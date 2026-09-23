@@ -5,6 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'narrative_overview_view_state.dart';
 import 'narrative_story_chapters.dart';
@@ -82,15 +83,7 @@ class NarrativeOverviewContent extends StatelessWidget {
   );
 
   List<Widget> _interactions(BuildContext context) {
-    final query = state.search.text.trim().toLowerCase();
-    final items = overview.interactions
-        .where(
-          (i) =>
-              i.searchText.contains(query) &&
-              (state.mapId == null || i.mapId == state.mapId) &&
-              (!state.onlyDirty || i.dirty),
-        )
-        .toList();
+    final items = state.visibleInteractions(overview);
     final maps = {
       for (final item in overview.interactions)
         if (item.mapId != null) item.mapId!: item.mapLabel,
@@ -133,6 +126,14 @@ class NarrativeOverviewContent extends StatelessWidget {
         },
       ),
       const SizedBox(height: 8),
+      StudioToggleRow(
+        label: 'Brouillons uniquement',
+        value: state.onlyDirty,
+        onChanged: (value) {
+          state.onlyDirty = value;
+          onChanged();
+        },
+      ),
       Text(
         'Recherche dans les noms, cartes et sources déjà connues. Le texte des dialogues n’est pas chargé.',
         style: Theme.of(context).textTheme.bodySmall,
@@ -179,10 +180,7 @@ class NarrativeOverviewContent extends StatelessWidget {
   }
 
   List<Widget> _facts(BuildContext context) {
-    final query = state.search.text.trim().toLowerCase();
-    final items = overview.facts
-        .where((f) => f.label.toLowerCase().contains(query))
-        .toList();
+    final items = state.visibleFacts(overview);
     return [
       Text(
         'États du monde (${items.length})',

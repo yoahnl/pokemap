@@ -33,7 +33,7 @@ extension NarrativeOverviewLandingSearch on NarrativeOverviewLanding {
                     .toLowerCase()
                     .contains(query))
                   (
-                    id: step.id,
+                    id: '${story.id}/${step.id}',
                     kind: 'Étape',
                     title: step.title,
                     subtitle: story.title,
@@ -91,15 +91,29 @@ extension NarrativeOverviewLandingSearch on NarrativeOverviewLanding {
       title: 'Résultats · ${results.length}',
       children: [
         if (results.isEmpty) const Text('Aucun document correspondant.'),
-        for (final item in results)
-          _documentRow(
-            context,
-            key: ValueKey('overview-result-${item.kind}-${item.id}'),
-            icon: Icons.description_outlined,
-            tone: StudioTone.info,
-            title: item.title,
-            subtitle: '${item.kind} · ${item.subtitle}',
-            onTap: item.open,
+        if (results.isNotEmpty)
+          SizedBox(
+            height:
+                (results.length < 5 ? results.length : 5) *
+                MediaQuery.textScalerOf(context).scale(84),
+            child: ListView.builder(
+              key: const PageStorageKey('overview-search-list'),
+              controller: resultsScroll,
+              itemExtent: MediaQuery.textScalerOf(context).scale(84),
+              itemCount: results.length,
+              itemBuilder: (context, index) {
+                final item = results[index];
+                return _documentRow(
+                  context,
+                  key: ValueKey('overview-result-${item.kind}-${item.id}'),
+                  icon: Icons.description_outlined,
+                  tone: StudioTone.info,
+                  title: item.title,
+                  subtitle: '${item.kind} · ${item.subtitle}',
+                  onTap: item.open,
+                );
+              },
+            ),
           ),
       ],
     );

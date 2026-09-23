@@ -2,6 +2,7 @@ import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -72,7 +73,8 @@ void main() {
           matching: find.byTooltip('Histoire'),
         ),
       );
-      await activate(tester, find.text('Scènes').first);
+      await activate(tester, find.text('Voir tous les documents').first);
+      await activate(tester, find.widgetWithText(StudioButton, 'Scènes'));
       final scenePage = tester.widget<SceneBuilderPage>(
         find.byType(SceneBuilderPage),
       );

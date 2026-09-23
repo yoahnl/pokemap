@@ -163,9 +163,49 @@ extension NarrativeOverviewLandingSide on NarrativeOverviewLanding {
         StudioPanel(
           title: 'Vérification narrative',
           children: [
-            const Text(
-              'Aucun score n’est calculé sur cette page. Ouvrez la vérification pour consulter les diagnostics actuels.',
-            ),
+            if (verification?.running == true) ...[
+              const Text('Contrôle en cours…'),
+              const SizedBox(height: 6),
+            ] else if (verification?.phase == VerificationPhase.failed) ...[
+              const Text('Dernier contrôle échoué'),
+              if (verification?.error case final error?) Text(error),
+              const SizedBox(height: 6),
+            ],
+            if (verification?.report case final report?) ...[
+              const Text('Rapport du projet'),
+              const SizedBox(height: 6),
+              Text(
+                'Contrôle du ${report.generatedAt.day.toString().padLeft(2, '0')}/${report.generatedAt.month.toString().padLeft(2, '0')}/${report.generatedAt.year} · ${report.drafted ? 'brouillons inclus' : 'version enregistrée'}',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${report.countOf(NarrativeProjectDiagnosticSeverity.error)} erreur(s) · ${report.countOf(NarrativeProjectDiagnosticSeverity.warning)} avertissement(s)',
+              ),
+              const SizedBox(height: 6),
+              Text('Périmètre : ${report.scope.join(' · ')}'),
+              for (final dimension in NarrativeValidationDimension.values)
+                Text(
+                  '${verificationDimensionLabel(dimension)} : ${verificationStatusLabel(_dimensionStatus(report, dimension))}',
+                ),
+              if (report.blockers.isNotEmpty)
+                Text('${report.blockers.length} brouillon(s) incomplet(s)'),
+              if (report.exclusions.isNotEmpty)
+                Text(
+                  '${report.exclusions.length} document(s) exclu(s) du contrôle',
+                ),
+              if (report.limitations.isNotEmpty)
+                Text('Limites : ${report.limitations.first}'),
+              if (verification!.stale) ...[
+                const SizedBox(height: 8),
+                const Text('Modifications depuis ce contrôle · à actualiser'),
+              ],
+              if (verification!.running) ...[
+                const SizedBox(height: 8),
+                const Text('Nouveau contrôle en cours…'),
+              ],
+            ] else if (verification?.running != true &&
+                verification?.phase != VerificationPhase.failed)
+              const Text('Non vérifié · aucun rapport pour ce projet.'),
             const SizedBox(height: 8),
             StudioButton(
               label: 'Ouvrir la vérification',
@@ -177,4 +217,18 @@ extension NarrativeOverviewLandingSide on NarrativeOverviewLanding {
       ],
     );
   }
+
+  NarrativeValidationStatus _dimensionStatus(
+    VerificationReport report,
+    NarrativeValidationDimension dimension,
+  ) => switch (dimension) {
+    NarrativeValidationDimension.structurallyValid =>
+      report.dimensions.structurallyValid.status,
+    NarrativeValidationDimension.narrativelySolvable =>
+      report.dimensions.narrativelySolvable.status,
+    NarrativeValidationDimension.physicallyReachable =>
+      report.dimensions.physicallyReachable.status,
+    NarrativeValidationDimension.runtimeSmokeVerified =>
+      report.dimensions.runtimeSmokeVerified.status,
+  };
 }

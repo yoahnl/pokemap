@@ -13,6 +13,7 @@ import '../events/event_workspace_page.dart';
 import '../events/event_view_state.dart';
 import '../events/event_map_loader.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
+import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../stories/story_progression_page.dart';
 import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
@@ -78,6 +79,7 @@ Widget? workspaceSecondaryContent({
   required Future<String?> Function(NarrativeEventSourceRef) onEventLocate,
   required Future<void> Function() onEventTest,
   required NarrativeWorkspaceController? narrative,
+  VerificationWorkspaceController? verification,
   required SceneWorkspaceController? scenes,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
@@ -222,6 +224,7 @@ Widget? workspaceSecondaryContent({
       onScenes: scenes == null ? null : onScenes,
       onWorld: onWorld,
       onVerification: onVerification,
+      verification: verification,
       onEvents: events == null ? null : onEvents,
       onProgression: stories == null ? null : onProgression,
       onOpenScene: scenes == null ? null : onOpenScene,

@@ -82,7 +82,11 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
       _changed();
       return;
     }
+    _gestureGeneration++;
+    _view?.pendingMove = null;
+    _view?.tool = StudioMapTool.select;
     _show(WorkspaceSpace.map);
+    _toolChanged();
   }
 
   Future<String?> _openScene(String sceneId) async {

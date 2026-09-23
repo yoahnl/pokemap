@@ -18,10 +18,12 @@ extension NarrativeOverviewLandingContent on NarrativeOverviewLanding {
           : 'Scènes du projet · ${scenes.length}',
       actions: [
         StudioButton(
-          label: 'Histoires et progression',
+          label: featuredScenes.isEmpty
+              ? 'Histoires et progression'
+              : 'Voir toutes les scènes',
           secondary: true,
           icon: Icons.route_outlined,
-          onPressed: onProgression,
+          onPressed: featuredScenes.isEmpty ? onProgression : onScenes,
         ),
       ],
       children: [
@@ -49,7 +51,7 @@ extension NarrativeOverviewLandingContent on NarrativeOverviewLanding {
                     preview: _scenePreview(context, scene.id),
                   ),
                 ),
-              for (var i = 0; i < stories.length; i++)
+              for (var i = 0; i < stories.length && i < 6; i++)
                 SizedBox(
                   key: ValueKey('overview-story-${stories[i].id}'),
                   width: cardWidth,
@@ -67,6 +69,12 @@ extension NarrativeOverviewLandingContent on NarrativeOverviewLanding {
                 ),
             ],
           ),
+        if (stories.length > 6) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${stories.length - 6} autres histoires · utilisez la recherche ou ouvrez la progression.',
+          ),
+        ],
       ],
     );
   }
@@ -152,7 +160,7 @@ extension NarrativeOverviewLandingContent on NarrativeOverviewLanding {
         for (final item in steps.take(4))
           _documentRow(
             context,
-            key: ValueKey('overview-step-${item.step.id}'),
+            key: ValueKey('overview-step-${item.storyId}-${item.step.id}'),
             icon: Icons.radio_button_checked,
             tone: StudioTone.info,
             title: item.step.title,

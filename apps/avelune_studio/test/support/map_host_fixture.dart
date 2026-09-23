@@ -259,6 +259,7 @@ class MapHostFixture {
 
   Future<EventWorkspaceController> eventOwner() async {
     await go('Histoire');
+    await enter('Voir tous les documents');
     await enter('Événements');
     final owner = tester
         .widget<EventWorkspacePage>(find.byType(EventWorkspacePage))

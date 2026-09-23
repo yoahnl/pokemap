@@ -10,6 +10,7 @@ import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
+import 'package:avelune_studio/features/verification/data/local_verification_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
@@ -34,7 +35,10 @@ class Ui05NarrativeFixture {
   static String eventId(int number) =>
       'evt_019abcde-9000-7000-8000-${number.toString().padLeft(12, '0')}';
 
-  static Future<Ui05NarrativeFixture> create(WidgetTester tester) async {
+  static Future<Ui05NarrativeFixture> create(
+    WidgetTester tester, {
+    int extraStories = 0,
+  }) async {
     await loadDesktopCaptureFonts();
     final fixture = await M3StoryFixture.create();
     final port = LocalNarrativeAdapter(
@@ -151,6 +155,13 @@ class Ui05NarrativeFixture {
               ),
             ],
           ),
+          for (var index = 0; index < extraStories; index++)
+            StorylineAsset(
+              id: 'collection-$index',
+              type: StorylineType.sideQuest,
+              title: 'Collection $index',
+              chapters: const [],
+            ),
         ],
       ),
     );
@@ -241,6 +252,12 @@ class Ui05NarrativeFixture {
                 mapAdapter: source.maps,
               )
             : null,
+        verificationPort: withOwners
+            ? LocalVerificationAdapter(
+                session: source.session,
+                mapAdapter: source.maps,
+              )
+            : null,
         loadVisuals: (_, _) async => visuals,
         runtimeBuilder: (_, _, _) => const SizedBox(),
         onClose: () async {},
@@ -255,11 +272,10 @@ class Ui05NarrativeFixture {
     );
     await narrative.openRecord(record);
     final edit = narrative.active!;
-    edit.change(
-      interaction: edit.current.interaction.revise(
-        name: 'Voyageuse · texte en préparation',
-      ),
+    final updated = edit.current.interaction.revise(
+      name: 'Voyageuse · texte en préparation',
     );
+    edit.change(interaction: updated);
     edit.document.commit(
       edit.document.current.copyWith(name: 'Jardin · travail non enregistré'),
     );
@@ -276,7 +292,6 @@ class Ui05NarrativeFixture {
       file.path.substring(source.directory.path.length): await file
           .readAsBytes(),
   };
-
   Future<void> dispose() async {
     controller.dispose();
     await visuals.dispose();

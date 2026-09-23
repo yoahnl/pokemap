@@ -5,9 +5,11 @@ class Ui05NarrativePort implements NarrativePort, NarrativeArtworkPort {
   final NarrativePort port;
   final WidgetTester tester;
   int dialogueReads = 0;
+  int artworkReads = 0;
   int publications = 0;
   @override
   Future<Uint8List?> readArtwork(NarrativeArtworkKind kind, {String? id}) {
+    artworkReads++;
     final artwork = port;
     if (artwork is! NarrativeArtworkPort) return Future.value();
     return (artwork as NarrativeArtworkPort).readArtwork(kind, id: id);

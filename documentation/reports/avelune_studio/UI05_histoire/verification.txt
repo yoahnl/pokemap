@@ -146,3 +146,67 @@ flutter test --no-pub --concurrency=2 --reporter=compact
 exit 0
 Lecture par LocalNarrativeAdapter des cinq illustrations depuis le vrai projet Train : cinq réponses non nulles. project.json avant/après : bd808b9bf2971f1352878295a86b15a6e9c5c7a539568c641070125ec73fa6a3.
 Les cinq copies suivies sous artwork_train/ sont identiques aux cinq fichiers du projet externe selon cmp. Pas de capture native interactive.
+
+AS-UI-005 finition — vérifications du 23 septembre 2026
+État initial : HEAD 2c9d162ae, arbre propre. Aucun Git write ni changement Notion dans cette intervention.
+
+git status --short --untracked-files=all | awk '/\.dart$/ {print substr($0,4)}' | xargs dart format --output=none --set-exit-if-changed
+Formatted 25 files (0 changed) in 0.10 seconds.
+exit 0
+
+flutter analyze --no-pub
+No issues found! (ran in 18.6s)
+exit 0
+
+flutter test --no-pub --concurrency=2 test/architecture/architecture_boundaries_test.dart test/presentation/ui05_narrative_overview_landing_test.dart test/presentation/ui05_narrative_artwork_test.dart test/presentation/ui05_story_journey_test.dart test/presentation/ui05_narrative_overview_collection_test.dart test/presentation/ui05_verification_summary_test.dart test/presentation/ui05_narrative_overview_navigation_test.dart test/presentation/ui05_narrative_overview_links_test.dart test/presentation/ui05_story_creation_test.dart test/dialogues_ui09_navigation_test.dart test/presentation/ui06_scene_navigation_test.dart test/map_workspace/keyboard_delete_host_test.dart test/presentation/ui07_story_construction_test.dart test/presentation/ui08_event_journey_test.dart test/presentation/ui08_event_sources_test.dart test/presentation/ui08_event_focus_test.dart test/dialogues_ui09_nested_navigation_test.dart test/cinematics_ui10_nested_navigation_test.dart
+02:29 +38: All tests passed!
+exit 0
+
+flutter test --no-pub test/presentation/ui05_narrative_overview_collection_test.dart
+00:41 +3: All tests passed!
+exit 0
+
+Passe complète précédant le raccordement du port UI13 à la fixture de capture :
+flutter test --no-pub --concurrency=2 test
+12:03 +905 ~2: All tests passed!
+exit 0
+Deux tests sont ignorés par leurs propres préconditions ; ils ne sont pas comptés comme exécutés.
+Le test desktop_workspace_layout_test.dart a réussi dans cette suite.
+
+flutter build macos --debug --no-pub
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+exit 0
+
+bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: no new Markdown files.
+exit 0
+git diff --check
+aucune sortie, exit 0
+
+Passes intermédiaires : une suite avec sortie capturée en pipe a été interrompue à +149 après blocage de cette capture, sans verdict. La première suite diffusée dans un fichier a terminé à 15:47 +895 ~2 -10, exit 1 : neuf anciens tests entraient encore par les accès directs remplacés par la nouvelle vue, et le stress desktop dépassait son attente d’E/S. Les routes ont été adaptées sans retirer leurs assertions. Le stress lancé seul ensuite a échoué à 00:29 +0 -1, exit 1, sur « Les E/S réelles ne terminent pas entre les frames en 20 secondes » ; il a réussi dans la suite finale. Une autre suite non finale a été interrompue à +633 pour renforcer le test de création avec une ancienne sélection explicite ; aucun verdict n’en est déduit.
+
+Captures finales : captures/ui05-finition-1536.png, captures/ui05-finition-1440.png, captures/ui05-finition-1280.png, captures/ui05-finition-1024-150.png. Vrais widgets Flutter sur fixture temporaire avec copies des illustrations du Train. Aucune manipulation native interactive n’a été réalisée. Aucun projet original modifié.
+
+AVELUNE_CAPTURE_DIR=/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/UI05_histoire/captures flutter test --no-pub test/presentation/ui05_narrative_overview_navigation_test.dart
+00:12 +2: All tests passed!
+exit 0 ; les quatre PNG ont été régénérés avec le port UI13 réel dans la fixture.
+
+Passe intermédiaire après ce raccordement : test/architecture/architecture_boundaries_test.dart a refusé test/support/ui05_narrative_fixture.dart à 302 lignes ; l’exécution a été interrompue sans verdict de suite. La fixture a été ramenée à 300 lignes sans modifier les contrôles.
+flutter test --no-pub test/architecture/architecture_boundaries_test.dart test/presentation/ui05_narrative_overview_navigation_test.dart
+00:12 +9: All tests passed!
+exit 0
+
+git status --short --untracked-files=all | awk '/\.dart$/ {print substr($0,4)}' | xargs dart format --output=none --set-exit-if-changed
+Formatted 25 files (0 changed) in 0.10 seconds.
+exit 0
+flutter analyze --no-pub
+No issues found! (ran in 5.8s)
+exit 0
+flutter test --no-pub --concurrency=2 test
+09:30 +905 ~2: All tests passed!
+exit 0 ; deux tests ignorés selon leurs préconditions, stress desktop réussi dans la suite.
+flutter build macos --debug --no-pub
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+exit 0
+
+État Git final observé : HEAD eb65bd79a. Les changements UI05, son rapport et ses quatre captures ne sont pas indexés. Des changements Swift et ressources sous apps/Avelune iOS/ sont apparus concurremment pendant l’intervention et ont été laissés intacts. Aucun commit, push ou changement Notion par cette mission.

@@ -7,6 +7,7 @@ import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
+import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
@@ -18,8 +19,10 @@ import 'narrative_overview_landing.dart';
 import 'narrative_overview_navigation.dart';
 import 'narrative_overview_view_state.dart';
 import '../stories/story_create_dialog.dart';
+import 'narrative_name_dialog.dart';
 
 part 'narrative_story_pane_overview.dart';
+part 'narrative_story_pane_creation.dart';
 
 class NarrativeStoryPane extends StatefulWidget {
   const NarrativeStoryPane({
@@ -41,6 +44,7 @@ class NarrativeStoryPane extends StatefulWidget {
     this.sceneOwner,
     this.dialogueOwner,
     this.eventOwner,
+    this.verification,
     this.onOpenStep,
     this.onOpenDialogue,
     this.onOpenEvent,
@@ -62,6 +66,7 @@ class NarrativeStoryPane extends StatefulWidget {
   final SceneWorkspaceController? sceneOwner;
   final DialogueWorkspaceController? dialogueOwner;
   final EventWorkspaceController? eventOwner;
+  final VerificationWorkspaceController? verification;
   final void Function(String storyId, String stepId)? onOpenStep;
   final ValueChanged<String>? onOpenDialogue, onOpenEvent, onOpenMap;
 
@@ -84,21 +89,11 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
         state.tab = NarrativeOverviewTab.interactions;
       }
     }
+    state.reconcileSelection(overview);
+    final stories = state.visibleStories(overview);
     final story = overview.stories
-        .where((s) => s.id == state.storyId)
+        .where((candidate) => candidate.id == state.storyId)
         .firstOrNull;
-    final query = state.search.text.trim().toLowerCase();
-    final stories = overview.stories
-        .where(
-          (s) =>
-              s.title.toLowerCase().contains(query) ||
-              s.chapters.any(
-                (c) =>
-                    c.title.toLowerCase().contains(query) ||
-                    c.steps.any((s) => s.title.toLowerCase().contains(query)),
-              ),
-        )
-        .toList();
     if (state.showOverview) return _buildOverview(overview);
     return Focus(
       onKeyEvent: (_, event) {
@@ -274,19 +269,5 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
     if (mounted && request == _navigationRequest && error != null) {
       setState(() => state.notice = error);
     }
-  }
-
-  Future<void> _createStory() async {
-    final owner = widget.storyOwner;
-    if (owner == null) return;
-    final request = await askStoryCreation(context);
-    if (!mounted || request == null) return;
-    final created = owner.create(request.$1, type: request.$2);
-    if (created == null) {
-      setState(() => state.notice = owner.error);
-      return;
-    }
-    state.storyId = created.id;
-    widget.onProgression?.call();
   }
 }

@@ -7,6 +7,7 @@ import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.d
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_overview_detail.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -78,8 +79,7 @@ void main() {
       );
       final mapBytes = await tester.runAsync(mapFile.readAsBytes);
       await _navigate(tester, 'Histoire');
-      await tester.tap(find.text('Scènes').first);
-      await tester.pumpAndSettle();
+      await _openScenes(tester);
       expect(find.byType(SceneBuilderPage), findsOneWidget);
       await tester.tap(
         find.byWidgetPredicate(
@@ -93,8 +93,10 @@ void main() {
       var page = tester.widget<SceneBuilderPage>(find.byType(SceneBuilderPage));
       expect(page.controller.active!.current.id, decoy.id);
       await _navigate(tester, 'Histoire');
-      await tester.tap(find.text('Voir tous les documents').first);
-      await tester.pumpAndSettle();
+      if (find.text('Voir tous les documents').evaluate().isNotEmpty) {
+        await tester.tap(find.text('Voir tous les documents').first);
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.text('Interactions').first);
       await tester.pumpAndSettle();
       await tester.tap(
@@ -142,8 +144,7 @@ void main() {
       expect(find.byType(SceneBuilderPage), findsNothing);
       expect(map.current, same(mapDraft));
       await _navigate(tester, 'Histoire');
-      await tester.tap(find.text('Scènes').first);
-      await tester.pumpAndSettle();
+      await _openScenes(tester);
       page = tester.widget<SceneBuilderPage>(find.byType(SceneBuilderPage));
       expect(page.controller.active, same(edit));
       expect(edit.current, same(graphDraft));
@@ -174,13 +175,21 @@ void main() {
       expect(await tester.runAsync(projectFile.readAsString), external);
       expect(narrative.publications, 0);
       await _navigate(tester, 'Histoire');
-      await tester.tap(find.text('Scènes').first);
-      await tester.pumpAndSettle();
+      await _openScenes(tester);
       expect(find.text(edit.error!), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+Future<void> _openScenes(WidgetTester tester) async {
+  if (find.text('Voir tous les documents').evaluate().isNotEmpty) {
+    await tester.tap(find.text('Voir tous les documents').first);
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.widgetWithText(StudioButton, 'Scènes'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _navigate(WidgetTester tester, String label) async {

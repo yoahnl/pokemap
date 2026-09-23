@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/narrative/application/narrative_overview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
+import '../../../features/verification/application/verification_workspace_controller.dart';
 import 'narrative_artwork_image.dart';
 import '../../shared/widgets/buttons/studio_action_card.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -24,10 +25,14 @@ class NarrativeOverviewLanding extends StatelessWidget {
     required this.scenes,
     required this.dialogues,
     required this.events,
+    this.verification,
     required this.search,
     required this.onSearch,
+    required this.resultsScroll,
     required this.onLibrary,
     required this.onCreateStory,
+    required this.onCreateScene,
+    required this.onCreateEvent,
     required this.onProgression,
     required this.onScenes,
     required this.onEvents,
@@ -56,10 +61,13 @@ class NarrativeOverviewLanding extends StatelessWidget {
   final List<SceneAsset> scenes;
   final List<ProjectDialogueEntry> dialogues;
   final List<NarrativeEventRecord> events;
+  final VerificationWorkspaceController? verification;
   final TextEditingController search;
   final ValueChanged<String> onSearch;
+  final ScrollController resultsScroll;
   final VoidCallback onLibrary;
   final VoidCallback? onCreateStory;
+  final VoidCallback? onCreateScene, onCreateEvent;
   final VoidCallback? onProgression, onScenes, onEvents, onVerification;
   final ValueChanged<String> onOpenStory;
   final void Function(String storyId, String stepId) onOpenStep;
@@ -236,27 +244,27 @@ class NarrativeOverviewLanding extends StatelessWidget {
         SizedBox(
           width: itemWidth,
           child: StudioActionCard(
-            title: 'Scènes',
-            subtitle: 'Ouvrir le constructeur',
+            title: 'Nouvelle scène',
+            subtitle: 'Assembler un scénario',
             icon: Icons.account_tree_outlined,
             tone: StudioTone.feature,
-            onPressed: onScenes,
+            onPressed: onCreateScene,
           ),
         ),
         SizedBox(
           width: itemWidth,
           child: StudioActionCard(
-            title: 'Événements',
+            title: 'Nouvel événement',
             subtitle: 'Déclencher une scène',
             icon: Icons.bolt_outlined,
             tone: StudioTone.warning,
-            onPressed: onEvents,
+            onPressed: onCreateEvent,
           ),
         ),
         SizedBox(
           width: itemWidth,
           child: StudioActionCard(
-            title: 'Vérification',
+            title: 'Vérification narrative',
             subtitle: 'Contrôler la cohérence',
             icon: Icons.fact_check_outlined,
             tone: StudioTone.success,

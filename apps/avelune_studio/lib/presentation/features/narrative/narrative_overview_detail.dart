@@ -30,7 +30,10 @@ class NarrativeOverviewDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final interaction = overview.interactionsById[state.interactionId];
-    final step = overview.stepsById[state.stepId];
+    final step = story?.chapters
+        .expand((chapter) => chapter.steps)
+        .where((item) => item.id == state.stepId)
+        .firstOrNull;
     final fact = overview.facts.where((f) => f.id == state.factId).firstOrNull;
     return StudioPanel(
       title: 'Détail',

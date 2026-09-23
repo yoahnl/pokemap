@@ -15,6 +15,7 @@ Future<void> ui08Open(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
+  await ui08Tap(tester, 'Voir tous les documents');
   await ui08Tap(tester, 'Événements');
 }
 

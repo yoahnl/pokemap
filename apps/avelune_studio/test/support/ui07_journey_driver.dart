@@ -19,6 +19,8 @@ Future<void> openStoryPage(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
+  await tester.tap(find.text('Voir tous les documents').first);
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Histoires et progression').first);
   await tester.pumpAndSettle();
 }

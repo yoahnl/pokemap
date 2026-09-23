@@ -25,13 +25,26 @@ extension _NarrativeStoryPaneOverview on _NarrativeStoryPaneState {
                 widget.eventOwner?.records ??
                 widget.controller.project.eventRegistry?.records ??
                 const [],
+            verification: widget.verification,
             search: state.search,
-            onSearch: (_) => refresh(),
+            onSearch: (_) {
+              if (state.resultsScroll.hasClients) state.resultsScroll.jumpTo(0);
+              refresh();
+            },
+            resultsScroll: state.resultsScroll,
             onLibrary: () {
               state.showOverview = false;
               refresh();
             },
             onCreateStory: widget.storyOwner == null ? null : _createStory,
+            onCreateScene:
+                widget.sceneOwner == null || widget.onOpenScene == null
+                ? null
+                : _createScene,
+            onCreateEvent:
+                widget.eventOwner == null || widget.onOpenEvent == null
+                ? null
+                : _createEvent,
             onProgression: widget.onProgression,
             onScenes: widget.onScenes,
             onEvents: widget.onEvents,
@@ -59,11 +72,7 @@ extension _NarrativeStoryPaneOverview on _NarrativeStoryPaneState {
             onOpenScene: widget.onOpenScene == null
                 ? null
                 : (id) => _navigateDocument(widget.onOpenScene!, id),
-            onOpenInteraction: (id) {
-              state.tab = NarrativeOverviewTab.interactions;
-              state.select(interaction: id);
-              _navigate(widget.onOpen, id);
-            },
+            onOpenInteraction: (id) => _navigate(widget.onOpen, id),
             onOpenDialogue: widget.onOpenDialogue,
             onOpenEvent: widget.onOpenEvent,
             onOpenMap: widget.onOpenMap,

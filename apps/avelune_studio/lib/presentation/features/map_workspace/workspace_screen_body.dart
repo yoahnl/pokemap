@@ -198,6 +198,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   onEventLocate: _locateEvent,
                                   onEventTest: _testEvent,
                                   narrative: _narrative,
+                                  verification: _verification,
                                   scenes: _scenes,
                                   sceneViews: _sceneViews,
                                   stories: _stories,
