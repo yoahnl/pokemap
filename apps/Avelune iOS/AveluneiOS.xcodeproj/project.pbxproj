@@ -215,6 +215,7 @@
 				56CB52B81B86699B245738A3 /* Sources */,
 				0960ED867F9ADAA80BF9234D /* Resources */,
 				C138F77C1AA2AFB89B84AD0F /* Frameworks */,
+				3DAA9F8A2372A19FCC95F5BC /* Verify Flutter framework */,
 			);
 			buildRules = (
 			);
@@ -275,6 +276,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		3DAA9F8A2372A19FCC95F5BC /* Verify Flutter framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"$(FLUTTER_SWIFT_PACKAGE_OUTPUT)/Scripts/FlutterAssembleInputs.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "Verify Flutter framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$FLUTTER_SWIFT_PACKAGE_OUTPUT/Scripts/flutter_integration.sh\" assemble";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		56CB52B81B86699B245738A3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -307,6 +331,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = NLNMNV3B3S;
+				FLUTTER_SWIFT_PACKAGE_OUTPUT = "$(PROJECT_DIR)/flutter_runtime/build/swift-package";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/flutter_runtime/build/ios/framework/Release",
@@ -457,6 +482,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = NLNMNV3B3S;
+				FLUTTER_SWIFT_PACKAGE_OUTPUT = "$(PROJECT_DIR)/flutter_runtime/build/swift-package";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/flutter_runtime/build/ios/framework/Release",

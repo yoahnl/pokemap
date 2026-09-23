@@ -11,6 +11,10 @@ schemes:
     build:
       targets:
         AveluneiOS: all
+      preActions:
+        - name: Select Flutter build mode
+          settingsTarget: AveluneiOS
+          script: /bin/sh "$FLUTTER_SWIFT_PACKAGE_OUTPUT/Scripts/flutter_integration.sh" prebuild
     run:
       config: Debug
     profile:
@@ -43,9 +47,16 @@ targets:
       - path: AveluneiOS/Resources
     dependencies:
       - package: FlutterNativeIntegration
+    postBuildScripts:
+      - name: Verify Flutter framework
+        script: /bin/sh "$FLUTTER_SWIFT_PACKAGE_OUTPUT/Scripts/flutter_integration.sh" assemble
+        inputFileLists:
+          - "$(FLUTTER_SWIFT_PACKAGE_OUTPUT)/Scripts/FlutterAssembleInputs.xcfilelist"
+        basedOnDependencyAnalysis: false
     settings:
       base:
         INFOPLIST_FILE: AveluneiOS/Resources/Info.plist
+        FLUTTER_SWIFT_PACKAGE_OUTPUT: "$(PROJECT_DIR)/flutter_runtime/build/swift-package"
         PRODUCT_BUNDLE_IDENTIFIER: com.avelune.ios
         DEVELOPMENT_TEAM: NLNMNV3B3S
         FRAMEWORK_SEARCH_PATHS:

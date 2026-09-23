@@ -67,3 +67,8 @@ fi
 
 cd "$APP_DIR"
 ./tool/build_runtime.sh --no-codesign
+
+PACKAGE_DIR="$APP_DIR/flutter_runtime/build/swift-package/FlutterNativeIntegration"
+ln -sfn ./Release "$PACKAGE_DIR/FlutterPluginRegistrant"
+test "$(readlink "$PACKAGE_DIR/FlutterPluginRegistrant")" = ./Release
+nm -gU "$PACKAGE_DIR/FlutterPluginRegistrant/Frameworks/App.xcframework/ios-arm64/App.framework/App" | grep '_kDartSnapshotText' > /dev/null
