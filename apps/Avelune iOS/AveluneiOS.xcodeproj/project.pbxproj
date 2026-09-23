@@ -16,6 +16,8 @@
 		5F863DDC453B95004AF13C46 /* FlutterGameDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D83CE70419ACA03C3733BBC /* FlutterGameDataSource.swift */; };
 		61FDDBC3483B0E5603614913 /* FlutterNativeIntegration in Frameworks */ = {isa = PBXBuildFile; productRef = 8252F89A0F6A1D853B84819B /* FlutterNativeIntegration */; };
 		6D6B3D765EA326DD3DD2CBB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13DDA7E95C7A585B155082CB /* ContentView.swift */; };
+		8CB04C5CFB24BACBCB2DD71F /* AveluneTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */; };
+		955A6A25546BFAC90C2E3B78 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1A15ED45E310612D633BE3D /* Assets.xcassets */; };
 		AEC9284E1C25AB3AB998B457 /* GamePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2816FA8443BE91C29475396C /* GamePlayerView.swift */; };
 		AF47FD5B6F6A067C020021AB /* GameLibraryUseCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F1542887444F882A9359CA /* GameLibraryUseCases.swift */; };
 		C66C6DDBEE92761A7DC14B5F /* GameListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA78EED43A72DA553AE3B339 /* GameListView.swift */; };
@@ -32,6 +34,7 @@
 		13DDA7E95C7A585B155082CB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2816FA8443BE91C29475396C /* GamePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePlayerView.swift; sourceTree = "<group>"; };
 		37EF0A6495FD9C41910A027B /* GameListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameListViewModel.swift; sourceTree = "<group>"; };
+		4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AveluneTheme.swift; sourceTree = "<group>"; };
 		50F1542887444F882A9359CA /* GameLibraryUseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLibraryUseCases.swift; sourceTree = "<group>"; };
 		5D83CE70419ACA03C3733BBC /* FlutterGameDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterGameDataSource.swift; sourceTree = "<group>"; };
 		66FB05939403664069C5DA46 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRepository.swift; sourceTree = "<group>"; };
@@ -41,6 +44,7 @@
 		8FA7EB1F065D0D796E1FFD23 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A51B2534A15668E251F3C00B /* GamePlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePlayerViewModel.swift; sourceTree = "<group>"; };
 		AFEC21B017B60381E9469DE5 /* HubPlatformChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubPlatformChannel.swift; sourceTree = "<group>"; };
+		C1A15ED45E310612D633BE3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C1AD87DC80E159C4946A4E48 /* FlutterNativeIntegration */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FlutterNativeIntegration; path = "flutter_runtime/build/swift-package/FlutterNativeIntegration"; sourceTree = SOURCE_ROOT; };
 		C61F8EF1A6BCF0E97EC94321 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		CA78EED43A72DA553AE3B339 /* GameListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameListView.swift; sourceTree = "<group>"; };
@@ -72,6 +76,7 @@
 		2673A8CDADC0519FBC1585D9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				C1A15ED45E310612D633BE3D /* Assets.xcassets */,
 				022C618AD49B6491C916A767 /* Info.plist */,
 			);
 			path = Resources;
@@ -172,6 +177,7 @@
 		C2B69B369C7A88797A3186EB /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */,
 				CA78EED43A72DA553AE3B339 /* GameListView.swift */,
 				2816FA8443BE91C29475396C /* GamePlayerView.swift */,
 				8FA7EB1F065D0D796E1FFD23 /* SettingsView.swift */,
@@ -271,6 +277,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EC3E79BD297D8C633E29BDD2 /* AppIcon.icon in Resources */,
+				955A6A25546BFAC90C2E3B78 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -306,6 +313,7 @@
 			files = (
 				EF49F869B223535A935B5A39 /* AppComposition.swift in Sources */,
 				DD392E360BD2E320102F2F8F /* AveluneApp.swift in Sources */,
+				8CB04C5CFB24BACBCB2DD71F /* AveluneTheme.swift in Sources */,
 				6D6B3D765EA326DD3DD2CBB5 /* ContentView.swift in Sources */,
 				E3FA605221D9CAFA08C57F50 /* FlutterEngineManager.swift in Sources */,
 				5F863DDC453B95004AF13C46 /* FlutterGameDataSource.swift in Sources */,
