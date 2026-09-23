@@ -245,6 +245,7 @@ class MapHostFixture {
 
   Future<WorldWorkspaceController> worldOwner() async {
     await go('Histoire');
+    await enter('Voir tous les documents');
     await enter('États et règles du monde');
     final owner = tester
         .widget<WorldWorkspacePage>(find.byType(WorldWorkspacePage))

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
@@ -12,7 +13,7 @@ import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_port.dart';
 import 'narrative_publication_baselines.dart';
 
-class LocalNarrativeAdapter implements NarrativePort {
+class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
   const LocalNarrativeAdapter({
     required this.session,
     required this.mapAdapter,
@@ -21,6 +22,38 @@ class LocalNarrativeAdapter implements NarrativePort {
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+
+  @override
+  Future<Uint8List?> readArtwork(
+    NarrativeArtworkKind kind, {
+    String? id,
+  }) async {
+    if (kind != NarrativeArtworkKind.hero &&
+        (id == null || !RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id))) {
+      return null;
+    }
+    final path = switch (kind) {
+      NarrativeArtworkKind.hero => 'assets/studio/narrative/hero.png',
+      NarrativeArtworkKind.story => 'assets/studio/narrative/stories/$id.png',
+      NarrativeArtworkKind.scene => 'assets/studio/narrative/scenes/$id.png',
+    };
+    try {
+      final bytes = await const LocalProjectFileReader().readBytes(
+        projectRoot: session.directoryPath,
+        relativePath: path,
+      );
+      if (bytes.length < 8 ||
+          bytes[0] != 0x89 ||
+          bytes[1] != 0x50 ||
+          bytes[2] != 0x4e ||
+          bytes[3] != 0x47) {
+        return null;
+      }
+      return Uint8List.fromList(bytes);
+    } on Object {
+      return null;
+    }
+  }
 
   @override
   Future<NarrativeDialogueSource> readDialogue(

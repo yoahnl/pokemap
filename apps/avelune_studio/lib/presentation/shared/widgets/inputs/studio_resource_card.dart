@@ -13,6 +13,7 @@ class StudioResourceCard extends StatefulWidget {
     this.category,
     this.metadata,
     this.maxNameLines = 1,
+    this.fillPreview = false,
   });
   final String name;
   final Widget preview;
@@ -20,6 +21,7 @@ class StudioResourceCard extends StatefulWidget {
   final VoidCallback onTap;
   final String? category, metadata;
   final int maxNameLines;
+  final bool fillPreview;
   @override
   State<StudioResourceCard> createState() => _StudioResourceCardState();
 }
@@ -54,7 +56,16 @@ class _StudioResourceCardState extends State<StudioResourceCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: StudioAssetPreview(child: widget.preview)),
+                Expanded(
+                  child: widget.fillPreview
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            StudioMetrics.controlRadius,
+                          ),
+                          child: SizedBox.expand(child: widget.preview),
+                        )
+                      : StudioAssetPreview(child: widget.preview),
+                ),
                 const SizedBox(height: 8),
                 Tooltip(
                   message: widget.name,

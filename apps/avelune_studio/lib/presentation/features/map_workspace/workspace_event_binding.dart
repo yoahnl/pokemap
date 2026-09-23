@@ -25,6 +25,13 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.events);
   }
 
+  void _openNarrativeEvent(String id) {
+    final event = _events?.record(id);
+    if (event == null) return;
+    _eventView.filterMapId = eventMapId(eventSource(event));
+    _openEvents(id);
+  }
+
   Future<void> _openEventSource(NarrativeEventSourceRef source) async {
     final events = _events;
     if (events == null) return;

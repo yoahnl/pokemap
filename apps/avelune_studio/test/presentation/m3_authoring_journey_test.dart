@@ -146,6 +146,8 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('Histoire').first);
       await tester.pump();
+      await tester.tap(find.text('Voir tous les documents').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Créer une histoire'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'La visite du quai');

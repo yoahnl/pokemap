@@ -20,6 +20,14 @@ extension _WorkspaceDialogueBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.dialogue);
   }
 
+  void _openNarrativeDialogue(String id) {
+    final owner = _dialogues;
+    if (owner == null) return;
+    _dialogueOrigin = WorkspaceSpace.story;
+    _show(WorkspaceSpace.dialogue);
+    unawaited(owner.open(id));
+  }
+
   Future<void> _openSceneDialogue(SceneYarnDialoguePayload payload) async {
     final owner = _dialogues;
     if (owner == null) return;

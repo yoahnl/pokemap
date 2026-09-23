@@ -78,3 +78,71 @@ ce journal et 5 captures non suivis. Aucun fichier indexé, commit ou push.
 Inventaire complet et zones : README.md.
 
 Lancement : cd apps/avelune_studio && flutter run -d macos
+
+Complément AS-UI-005 — vue d’ensemble narrative, 23 septembre 2026
+Git initial : arbre propre ; HEAD 08f9d75e891e42b953e3d676fc3d2b199e9699b7.
+
+Depuis apps/avelune_studio :
+AVELUNE_CAPTURE_DIR=/tmp/avelune-ui05-final flutter test test/presentation/ui05_narrative_overview_landing_test.dart test/presentation/ui05_narrative_overview_links_test.dart --reporter expanded --no-pub --concurrency=2
+00:07 +4: All tests passed!
+exit 0 ; cinq PNG copiés dans ce dossier après ce passage.
+
+flutter test test/ui12_world_close_test.dart test/ui12_world_global_close_test.dart test/ui12_world_navigation_test.dart test/map_workspace/keyboard_delete_host_test.dart test/presentation/ui06_scene_navigation_test.dart --reporter expanded --no-pub --concurrency=2
+00:29 +14: All tests passed!
+exit 0
+
+flutter test test/presentation/desktop_workspace_layout_test.dart --reporter expanded --no-pub
+00:24 +1: All tests passed!
+exit 0
+
+flutter analyze --no-pub
+No issues found! (ran in 6.4s)
+exit 0
+
+flutter test test/architecture/architecture_boundaries_test.dart --reporter expanded --no-pub
+00:01 +7: All tests passed!
+exit 0
+
+flutter build macos --debug --no-pub
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+exit 0
+
+flutter test --no-pub --concurrency=2 --reporter compact
+08:03 +895 ~2: 2 skipped tests.
+08:03 +895 ~2: All other tests passed!
+exit 0
+
+Passes intermédiaires, avant corrections des anciens chemins et du test de création :
+24:07 +884 ~2 -11: Some tests failed. Les 10 échecs de navigation ont été corrigés dans les parcours de test ; le stress a dépassé 20 secondes en suite.
+08:12 +894 ~2 -1: Some tests failed. Le nouveau test cliquait Créer avant la reconstruction du dialogue ; attente corrigée et bouton vérifié actif.
+Les résultats intermédiaires ne sont pas utilisés comme preuve de réussite finale.
+
+Depuis la racine :
+bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: no new Markdown files.
+exit 0
+git diff --check
+Aucune sortie ; exit 0.
+
+Captures Flutter hors écran, sans essai natif : 06-vue-ensemble-narrative.png, 07-vue-ensemble-1280.png, 08-vue-ensemble-1440.png, 09-vue-ensemble-compact-150.png, 10-reprise-scene-brouillon.png.
+Aucun projet original, Git ou Notion modifié. Lancement : cd apps/avelune_studio && flutter run -d macos
+
+Complément illustrations du Train, 23 septembre 2026 :
+flutter analyze lib test/presentation/ui05_narrative_artwork_test.dart test/narrative/narrative_artwork_adapter_test.dart
+No issues found! (ran in 7.5s)
+exit 0
+flutter test test/architecture/architecture_boundaries_test.dart test/architecture/dart_dependency_graph_test.dart test/presentation/ui05_narrative_overview_landing_test.dart test/presentation/ui05_narrative_overview_links_test.dart test/presentation/ui05_narrative_artwork_test.dart test/presentation/ui05_story_creation_test.dart test/presentation/ui05_story_journey_test.dart test/narrative/narrative_artwork_adapter_test.dart test/narrative_overview_test.dart test/narrative_overview_links_test.dart --concurrency=2
+00:20 +27: All tests passed!
+exit 0
+flutter build macos --debug --no-pub
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+exit 0
+flutter analyze --no-pub
+No issues found! (ran in 6.6s)
+exit 0
+flutter test --no-pub --concurrency=2 --reporter=compact
+08:12 +899 ~2: 2 skipped tests.
+08:12 +899 ~2: All other tests passed!
+exit 0
+Lecture par LocalNarrativeAdapter des cinq illustrations depuis le vrai projet Train : cinq réponses non nulles. project.json avant/après : bd808b9bf2971f1352878295a86b15a6e9c5c7a539568c641070125ec73fa6a3.
+Les cinq copies suivies sous artwork_train/ sont identiques aux cinq fichiers du projet externe selon cmp. Pas de capture native interactive.

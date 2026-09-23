@@ -94,7 +94,7 @@ Future<Ui13VerificationHarness> host(
       matching: find.byTooltip('Histoire'),
     ),
   );
-  await activate(tester, find.text('Vérification narrative').first);
+  await activate(tester, find.text('Ouvrir la vérification').first);
   expect(find.byType(VerificationWorkspacePage), findsOneWidget);
   if (!launch) return project;
   final controller = opened(tester);

@@ -1,10 +1,15 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_studio/features/narrative/application/narrative_editing.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_interaction.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_interaction_reader.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
+import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
+import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
+import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
@@ -16,6 +21,8 @@ import 'package:map_core/map_core_domain.dart';
 import 'load_desktop_capture_fonts.dart';
 import 'm2_ui_fixture.dart';
 import 'm3_story_fixture.dart';
+
+part 'ui05_narrative_port.dart';
 
 class Ui05NarrativeFixture {
   Ui05NarrativeFixture(this.source, this.controller, this.port, this.visuals);
@@ -192,7 +199,11 @@ class Ui05NarrativeFixture {
     );
   }
 
-  Widget app(WidgetTester tester, {double textScale = 1}) => RepaintBoundary(
+  Widget app(
+    WidgetTester tester, {
+    double textScale = 1,
+    bool withOwners = false,
+  }) => RepaintBoundary(
     key: captureKey,
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -206,6 +217,30 @@ class Ui05NarrativeFixture {
       home: MapWorkspaceScreen(
         controller: controller,
         narrativePort: port,
+        storyPort: withOwners
+            ? LocalStoryAdapter(
+                session: source.session,
+                mapAdapter: source.maps,
+              )
+            : null,
+        scenePort: withOwners
+            ? LocalSceneAdapter(
+                session: source.session,
+                mapAdapter: source.maps,
+              )
+            : null,
+        eventPort: withOwners
+            ? LocalEventAdapter(
+                session: source.session,
+                mapAdapter: source.maps,
+              )
+            : null,
+        dialoguePort: withOwners
+            ? LocalDialogueAdapter(
+                session: source.session,
+                mapAdapter: source.maps,
+              )
+            : null,
         loadVisuals: (_, _) async => visuals,
         runtimeBuilder: (_, _, _) => const SizedBox(),
         onClose: () async {},
@@ -246,29 +281,5 @@ class Ui05NarrativeFixture {
     controller.dispose();
     await visuals.dispose();
     await source.directory.delete(recursive: true);
-  }
-}
-
-class Ui05NarrativePort implements NarrativePort {
-  Ui05NarrativePort(this.port, this.tester);
-  final NarrativePort port;
-  final WidgetTester tester;
-  int dialogueReads = 0;
-  int publications = 0;
-  Future<T> run<T>(Future<T> Function() action) async =>
-      (await WidgetResourcePort.serial(tester, action))!;
-
-  @override
-  Future<NarrativeDialogueSource> readDialogue(ProjectDialogueEntry entry) {
-    dialogueReads++;
-    return run(() => port.readDialogue(entry));
-  }
-
-  @override
-  Future<NarrativePublicationReceipt> publish(
-    NarrativePublication publication,
-  ) {
-    publications++;
-    return run(() => port.publish(publication));
   }
 }

@@ -61,6 +61,30 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.scene);
   }
 
+  void _openNarrativeMap(String mapId) {
+    unawaited(_openNarrativeMapAsync(mapId));
+  }
+
+  Future<void> _openNarrativeMapAsync(String mapId) async {
+    final project = _controller.project;
+    final entry = project?.maps.where((item) => item.id == mapId).firstOrNull;
+    if (entry == null) return;
+    final request = ++_navigationRequest;
+    bool current() =>
+        mounted &&
+        request == _navigationRequest &&
+        identical(_controller.project, project) &&
+        _space == WorkspaceSpace.story;
+    await _controller.activate(entry, isCurrent: current);
+    if (!current()) return;
+    if (_controller.active?.base.mapId != mapId) {
+      _storyViewState.notice = _controller.error ?? 'Carte indisponible.';
+      _changed();
+      return;
+    }
+    _show(WorkspaceSpace.map);
+  }
+
   Future<String?> _openScene(String sceneId) async {
     final scenes = _scenes;
     if (scenes == null) return 'L’éditeur de scène est indisponible.';

@@ -16,11 +16,30 @@ extension _WorkspaceProgressionBinding on _MapWorkspaceScreenState {
   void _openProgression() {
     final stories = _stories;
     if (stories == null) return;
+    _progressionOrigin = WorkspaceReturn.story;
     final selected = _storyViewState.storyId;
     final id = selected != null && stories.stories.any((s) => s.id == selected)
         ? selected
         : stories.activeId ?? stories.stories.firstOrNull?.id;
     if (id != null) stories.open(id);
+    _show(WorkspaceSpace.progression);
+  }
+
+  void _openProgressionStep(String storyId, String stepId) {
+    final stories = _stories;
+    if (stories == null || !stories.open(storyId)) return;
+    final projection = buildStorylineProgressionProjection(
+      project: stories.project,
+      storylineId: storyId,
+    );
+    final node = projection.nodes
+        .where((item) => item.stepId == stepId)
+        .firstOrNull;
+    if (node != null) {
+      _progressionViews.forStory(stories.project, storyId).selection =
+          StoryGraphSelection.node(node);
+    }
+    _progressionOrigin = WorkspaceReturn.story;
     _show(WorkspaceSpace.progression);
   }
 }

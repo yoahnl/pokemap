@@ -104,3 +104,105 @@ Auto-critique : les textes complets des dialogues et les sources de cartes non c
 État final : 11 fichiers suivis modifiés, 22 nouveaux fichiers Dart et 7 fichiers de preuve non suivis ; aucun fichier indexé ni commit. Aucun package partagé, dépendance, projet original ou configuration native modifié. Attendre la validation visuelle avant toute autre page.
 
 Lancement depuis `apps/avelune_studio` : `flutter run -d macos`.
+
+## Complément AS-UI-005 — vue d’ensemble du Narrative Studio (23 septembre 2026)
+
+Ce complément décrit l’intervention actuelle ; les résultats et le HEAD de la section précédente sont historiques. La rubrique Histoire ouvre désormais une vue d’ensemble illustrée, distincte de l’accueil général. La vue détaillée UI05 reste accessible par « Voir tous les documents ». Aucun écran voisin, moteur narratif, package partagé ou projet utilisateur n’a été modifié.
+
+### Audit, décisions et passes
+
+État initial : arbre propre sur `main`, HEAD `08f9d75e891e42b953e3d676fc3d2b199e9699b7`. Le mandat nommait deux fichiers absents du kit ; Yoahn a explicitement retenu `ecrans/01_vue_ensemble_narrative/FICHE.md` et sa `MAQUETTE.png`. La maquette a été ouverte à taille originale. L’écran existant était une consultation structurée en trois colonnes, sans bandeau illustré ni reprise synthétique. Les propriétaires des histoires, scènes, dialogues et événements, la projection narrative et les routes Carte/Vérification étaient déjà présents : le risque principal était une navigation qui perdrait la sélection ou prendrait un document enregistré pour un brouillon.
+
+Passes séparées, sans sub-agent : **Audit/architecture** — conserver la projection et ses frontières ; **Implémentation** — ajouter seulement la composition et ses raccords ; **Tests** — vérifier identités, brouillons, absence d’écriture et anciens parcours ; **Build/validation** — analyse, architecture, build et suite Studio ; **Critique finale** — aucun pourcentage, date de modification ou état « terminé » inventé. Les chapitres servent seulement à contextualiser les étapes ; la progression de l’auteur ne devient pas une progression du joueur. L’illustration d’ambiance est commune aux cartes d’histoires car `StorylineAsset` ne porte pas de miniature dédiée.
+
+### Parcours et comparaison
+
+La page regroupe bandeau et quatre accès rapides, cartes des histoires réelles, quatre premières étapes dans l’ordre canonique, cartes du projet, reprise des sessions ouvertes ou sales, comptes issus des catalogues et accès à la vérification existante. La recherche rejoint l’identité exacte de l’histoire, de l’étape, de la scène, du dialogue, de l’événement, de l’interaction ou de la carte. L’ouverture d’une histoire mène à son graphe ; une étape sélectionne son nœud ; une scène et ses brouillons reviennent à leur propriétaire. La simple consultation ne publie rien.
+
+La capture initiale montrait encore la vue en trois colonnes. Après comparaison avec la référence 1584 × 993, les actions ont été replacées dans le bandeau ; la galerie et les étapes remontent dans le premier écran. À 1440, les quatre accès tiennent sur une ligne ; à 1280 ils passent sur deux lignes. À 1024 × 640 avec texte à 150 %, le bandeau grandit, la page défile et aucun texte ne déborde. Les données de la fixture ne reproduisent pas les contenus inventés de la maquette.
+
+Captures des **vrais widgets Flutter hors écran**, sans retouche, depuis une fixture temporaire publiée par les adaptateurs locaux ; aucune manipulation native n’est prétendue :
+
+| Fichier | État |
+| --- | --- |
+| [06-vue-ensemble-narrative.png](06-vue-ensemble-narrative.png) | 1536 × 1024, vue complète |
+| [07-vue-ensemble-1280.png](07-vue-ensemble-1280.png) | 1280 × 800, accès sur deux rangées |
+| [08-vue-ensemble-1440.png](08-vue-ensemble-1440.png) | 1440 × 900, quatre accès dans le bandeau |
+| [09-vue-ensemble-compact-150.png](09-vue-ensemble-compact-150.png) | 1024 × 640, texte à 150 % |
+| [10-reprise-scene-brouillon.png](10-reprise-scene-brouillon.png) | Retour depuis le Scene Builder avec session modifiée |
+
+### Fichiers et zones de diff
+
+Préfixe de tous les chemins de code : `apps/avelune_studio/`. Les fichiers `lib/` sont le code de la page et de ses routes ; `test/` contient les parcours et leurs fixtures. Le diff Git donne les lignes exactes.
+
+| Fichier | Zone et effet |
+| --- | --- |
+| `lib/presentation/features/narrative/narrative_overview_landing.dart` | Ajout : composition, bandeau et accès rapides adaptatifs |
+| `lib/presentation/features/narrative/narrative_overview_landing_content.dart` | Ajout : histoires, étapes ordonnées et cartes liées |
+| `lib/presentation/features/narrative/narrative_overview_landing_side.dart` | Ajout : sessions reprises, comptes réels, accès à la vérification |
+| `lib/presentation/features/narrative/narrative_overview_landing_search.dart` | Ajout : recherche par identités et composants de ligne |
+| `lib/presentation/features/narrative/narrative_story_pane_overview.dart` | Ajout : raccords des documents et propriétaires depuis UI05 |
+| `lib/presentation/features/narrative/narrative_story_pane.dart` | Vue d’ensemble par défaut, détail préservé et retour explicite |
+| `lib/presentation/features/narrative/narrative_overview_view_state.dart` | État de navigation de la vue d’ensemble |
+| `lib/presentation/shared/widgets/buttons/studio_action_card.dart` | Ajout : action compacte aux tokens Avelune |
+| `lib/presentation/shared/widgets/inputs/studio_resource_card.dart` | Variante d’aperçu plein cadre pour les histoires |
+| `lib/presentation/features/map_workspace/workspace_progression_binding.dart` | Ouverture de l’histoire et du nœud d’étape exacts |
+| `lib/presentation/features/map_workspace/workspace_story_binding.dart` | Ouverture gardée d’une carte du projet depuis UI05 |
+| `lib/presentation/features/map_workspace/workspace_dialogue_binding.dart` | Ouverture du dialogue dans son propriétaire |
+| `lib/presentation/features/map_workspace/workspace_event_binding.dart` | Filtre de source et ouverture de l’événement exact |
+| `lib/presentation/features/map_workspace/workspace_screen_body.dart` | Passage des quatre nouvelles destinations |
+| `lib/presentation/features/map_workspace/workspace_secondary_content.dart` | Passage des propriétaires et retours à UI05 |
+| `test/presentation/ui05_narrative_overview_landing_test.dart` | Ajout : création, histoire/étape exactes, carte, tailles et absence de publication |
+| `test/presentation/ui05_narrative_overview_links_test.dart` | Ajout : brouillon de scène, dialogue et événement exacts, retours |
+| `test/support/ui05_narrative_fixture.dart` | Propriétaires locaux réels pour le parcours de la page |
+| `test/support/ui05_narrative_port.dart` | Ajout : port de fixture extrait pour respecter la limite de 300 lignes |
+| `test/narrative/narrative_story_navigation_test.dart` | Entre directement dans le détail qu’il caractérise |
+| `test/presentation/ui05_story_creation_test.dart` | Accède au détail avant son ancien parcours de création |
+| `test/presentation/ui05_story_journey_test.dart` | Accède au détail et rend le défilement de l’action fiable |
+| `test/presentation/m3_authoring_journey_test.dart` | Accède au détail avant le parcours M3 |
+| `test/presentation/ui06_scene_navigation_test.dart` | Ouvre le détail avant l’onglet Interactions |
+| `test/support/ui10_workspace_harness.dart` | Préserve l’accès Cinématique par le détail |
+| `test/support/ui12_close_harness.dart` | Préserve l’accès États et règles par le détail |
+| `test/support/ui13_host_harness.dart` | Utilise le vrai bouton de vérification de la nouvelle page |
+| `test/support/map_host_fixture.dart` | Route générique vers États et règles via le détail |
+| `test/ui12_world_navigation_test.dart` | Vérifie le retour Histoire après la nouvelle entrée |
+
+Les cinq PNG ci-dessus et cette section sont les seules preuves ajoutées au rapport existant. Aucun commentaire n’a été ajouté au code manuel, conformément au mandat de Yoahn.
+
+### Vérifications finales et critique
+
+Depuis `apps/avelune_studio`, sur les sources et tests finaux :
+
+| Commande | Résultat exact |
+| --- | --- |
+| `flutter test test/presentation/ui05_narrative_overview_landing_test.dart test/presentation/ui05_narrative_overview_links_test.dart --reporter expanded --no-pub --concurrency=2` | 4 tests réussis, exit 0 ; captures ci-dessus |
+| `flutter test test/ui12_world_close_test.dart test/ui12_world_global_close_test.dart test/ui12_world_navigation_test.dart test/map_workspace/keyboard_delete_host_test.dart test/presentation/ui06_scene_navigation_test.dart --reporter expanded --no-pub --concurrency=2` | 14 tests réussis, exit 0 |
+| `flutter test test/presentation/desktop_workspace_layout_test.dart --reporter expanded --no-pub` | 1 test de stress réussi isolément, exit 0 |
+| `flutter test test/architecture/architecture_boundaries_test.dart --reporter expanded --no-pub` | 7 tests réussis, exit 0 |
+| `flutter analyze --no-pub` | `No issues found!`, exit 0 |
+| `flutter build macos --debug --no-pub` | `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app`, exit 0 |
+| `flutter test --no-pub --concurrency=2 --reporter compact` | `08:03 +895 ~2: 2 skipped tests. All other tests passed!`, exit 0 |
+
+Depuis la racine : `bash tools/scripts/check_markdown_hygiene.sh` → `Markdown hygiene: no new Markdown files.`, exit 0 ; `git diff --check` → aucune sortie, exit 0. Les deux tests ignorés sont ceux de la suite Studio qui demandent une copie externe ; ils ne sont pas comptés comme exécutés. Le journal textuel est ajouté à [verification.txt](verification.txt).
+
+Les passes intermédiaires de la suite ont d’abord révélé dix tests utilisant encore l’ancien accès direct depuis Histoire et un test de stress dépassant son attente d’E/S de 20 secondes. Les parcours historiques ont été réorientés via « Voir tous les documents », sans supprimer leurs assertions métier ; les 14 cas concernés passent, puis la suite finale passe. Une deuxième passe a relevé un test neuf cliquant « Créer » avant la reconstruction de la boîte de dialogue ; le test vérifie désormais l’activation réelle puis attend le rendu, et passe en suite finale. Le succès isolé du stress n’a pas été substitué au résultat en suite : ce dernier est aussi réussi dans l’exécution finale.
+
+Verdicts des passes : **Audit/architecture** — frontières conservées, pas de nouveau contrat moteur ; **Implémentation** — page et destinations réelles livrées ; **Tests** — identités, annulation, brouillons, retour et absence d’écriture prouvés ; **Build/validation** — analyse, build et suite finale réussis ; **Critique finale** — pas de sortie de périmètre dans les fichiers de code, mais les images d’histoires restent une illustration Avelune commune faute de miniature dans le modèle. Aucun nouvel acte auteur sémantique n’est exposé : parité MCP non applicable à cette composition de présentation, et aucun transport MCP n’est revendiqué comme testé dans cette intervention.
+
+Limites : pas de manipulation native interactive, pas de pourcentage d’écriture ni de statut de progression du joueur inféré, pas d’illustration propre à chaque histoire. La validation visuelle finale revient à Yoahn. Aucun autre écran n’est commencé. État Git final : modifications UI05 et tests/raccords décrits ci-dessus, cette note, `verification.txt` et cinq captures non indexées ; aucun commit, push ou changement Notion. Lancement : `cd apps/avelune_studio && flutter run -d macos`.
+
+## Complément — illustrations propres au Train de 17h42
+
+L’illustration Avelune commune était encore utilisée dans le bandeau et chaque carte d’histoire. Audit du projet ouvert : `Le train de 17h42` possède 188 scènes et 41 dialogues, mais aucune `StorylineAsset`. La demande d’images personnalisées ne justifie donc pas de créer artificiellement des chapitres ni de modifier le récit. L’état Git initial de cette passe était `main` à `d15171687bdcba63ee928f09c3fcf8ec8574d9c0`, avec les modifications UI05 décrites ci-dessus déjà présentes et non indexées.
+
+Studio lit désormais `assets/studio/narrative/hero.png`, `stories/<id>.png` et `scenes/<id>.png` dans le projet ouvert, via le lecteur de fichiers borné au projet. Une image absente ou invalide utilise le repli visuel ; un changement de projet ne conserve pas son image précédente pendant le chargement. Quand aucune histoire structurée n’existe, les trois premières scènes réelles occupent les grandes cartes du centre ; les quatre premières restent accessibles dans la reprise latérale. Le clic conserve l’identité de la scène et rejoint son éditeur existant. Il s’agit d’illustrations de Studio, sans changement du moteur ni des données de jeu.
+
+Cinq PNG originaux ont été générés et placés dans le projet externe `/Users/karim/Desktop/pokeMap Project/le_train_de_17h42/assets/studio/narrative/`. Une copie identique, vérifiée octet par octet, est suivie dans ce rapport sous `artwork_train/` afin que le push contienne aussi le travail graphique : `hero.png`, puis `scenes/campaign-opening.png`, `campaign-shizune.png`, `campaign-photo-home.png` et `campaign-box-home.png`. Pour réinstaller ce pack dans une autre copie du Train, recopier le contenu de `artwork_train/` vers `assets/studio/narrative/` de cette copie. Le visuel Shizune a été régénéré après confrontation au personnage canonique, scientifique et soigneuse. Le `project.json` original n’a pas été écrit : SHA-256 initial et final `bd808b9bf2971f1352878295a86b15a6e9c5c7a539568c641070125ec73fa6a3`.
+
+Zones nouvelles ou modifiées de cette passe, sous `apps/avelune_studio/` : `lib/features/narrative/domain/narrative_port.dart` définit le port de lecture décorative ; `lib/features/narrative/data/local_narrative_adapter.dart` valide l’identifiant et lit les PNG dans le projet ; `lib/presentation/features/narrative/narrative_artwork_image.dart` charge avec repli et protège le changement de projet ; `lib/presentation/features/narrative/narrative_overview_landing.dart`, `_content.dart`, `_side.dart` et `_search.dart` placent la bannière, les cartes et les miniatures ; `lib/presentation/features/narrative/narrative_story_pane.dart` et `_overview.dart` raccordent le port ; `lib/presentation/shared/widgets/buttons/studio_action_card.dart` accepte une miniature. `test/support/ui05_narrative_fixture.dart`, `_port.dart`, `test/narrative/narrative_artwork_adapter_test.dart` et `test/presentation/ui05_narrative_artwork_test.dart` couvrent la lecture, les replis, le projet actif, les cartes de scènes et leur destination. Le diff Git et ces sources donnent les lignes précises.
+
+Passes séparées : **Audit/architecture** — images de présentation sans nouveau champ métier ; **Implémentation** — cinq images et lecture bornée au projet ; **Tests** — lecture réelle, absence, identifiant invalide, changement de projet et ouverture de scène ; **Build/validation** — analyse, architecture et build réussis ; **Critique** — aucun contenu narratif inventé, seulement quatre scènes illustrées, et pas de validation native interactive. La parité MCP ne change pas : aucune commande auteur ni modèle canonique n’a été ajouté. La manipulation native n’a pas été réalisée, faute d’entrée de test Marionette dans cette application.
+
+Vérifications de cette passe : `flutter analyze lib test/presentation/ui05_narrative_artwork_test.dart test/narrative/narrative_artwork_adapter_test.dart` → `No issues found!` ; groupe UI05 et architecture → **27 tests réussis**, exit 0 ; `flutter build macos --debug --no-pub` → `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app`, exit 0 ; lecture directe des cinq PNG par `LocalNarrativeAdapter` depuis le vrai projet → cinq réponses non nulles ; `dart format --output=none --set-exit-if-changed` → 0 fichier changé ; `git diff --check` → exit 0. Les originaux du Train restent externes à Git ; leurs copies dans `artwork_train/` sont le matériel versionné. Aucun commentaire de code, aucune écriture Notion.
+
+Avant le commit, sur la même source finale : `flutter analyze --no-pub` → `No issues found! (ran in 6.6s)`, exit 0 ; `flutter test --no-pub --concurrency=2 --reporter=compact` → `08:12 +899 ~2: 2 skipped tests. All other tests passed!`, exit 0. Les deux tests ignorés requièrent la copie externe explicitement prévue ; aucune réussite n’est revendiquée pour eux. Les journaux sont ajoutés à `verification.txt`.

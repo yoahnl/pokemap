@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../map_workspace/domain/map_workspace_port.dart';
@@ -66,6 +68,12 @@ class NarrativePublicationReceipt {
 abstract interface class NarrativePort {
   Future<NarrativeDialogueSource> readDialogue(ProjectDialogueEntry entry);
   Future<NarrativePublicationReceipt> publish(NarrativePublication publication);
+}
+
+enum NarrativeArtworkKind { hero, story, scene }
+
+abstract interface class NarrativeArtworkPort {
+  Future<Uint8List?> readArtwork(NarrativeArtworkKind kind, {String? id});
 }
 
 class NarrativeFailure implements Exception {

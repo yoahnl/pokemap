@@ -28,6 +28,7 @@ void main() {
     narrativePort = _Port();
     maps = MapWorkspaceController(workspaceSession, mapPort);
     view = NarrativeOverviewViewState();
+    view.showOverview = false;
     await maps.initialize();
     controller = NarrativeWorkspaceController(
       maps,

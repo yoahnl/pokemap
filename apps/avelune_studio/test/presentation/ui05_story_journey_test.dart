@@ -44,6 +44,8 @@ void main() {
     expect(fixture.controller.documents, hasLength(1));
     expect(await tester.runAsync(fixture.diskSnapshot), before);
     await captureM3Widget(tester, fixture.captureKey, '01-histoire-structuree');
+    await tester.tap(find.text('Voir tous les documents').first);
+    await tester.pumpAndSettle();
     final unlinked = find.byKey(const ValueKey('step-unlinked'));
     if (unlinked.evaluate().isEmpty) {
       await tester.tap(find.text('Sur le quai'));
@@ -233,6 +235,11 @@ Future<void> _showDetailAction(WidgetTester tester, String label) async {
         )
         .first,
   );
+  await Scrollable.ensureVisible(
+    tester.element(find.text(label)),
+    alignment: .5,
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapDetailAction(WidgetTester tester, String label) async {

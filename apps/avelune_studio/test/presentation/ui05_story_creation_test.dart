@@ -29,6 +29,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Voir tous les documents').first);
+      await tester.pumpAndSettle();
       final narrative = tester
           .widget<NarrativeStoryPane>(find.byType(NarrativeStoryPane))
           .controller;

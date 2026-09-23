@@ -223,6 +223,10 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       ? null
                                       : _openVerification,
                                   onOpenScene: _openScene,
+                                  onOpenStep: _openProgressionStep,
+                                  onOpenDialogue: _openNarrativeDialogue,
+                                  onOpenEvent: _openNarrativeEvent,
+                                  onOpenMap: _openNarrativeMap,
                                   resources: _resources,
                                   visuals: _visuals,
                                   onMap: _openMap,

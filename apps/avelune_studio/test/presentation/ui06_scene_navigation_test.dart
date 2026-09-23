@@ -93,6 +93,8 @@ void main() {
       var page = tester.widget<SceneBuilderPage>(find.byType(SceneBuilderPage));
       expect(page.controller.active!.current.id, decoy.id);
       await _navigate(tester, 'Histoire');
+      await tester.tap(find.text('Voir tous les documents').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Interactions').first);
       await tester.pumpAndSettle();
       await tester.tap(

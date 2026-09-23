@@ -21,6 +21,7 @@ class NarrativeOverviewViewState {
   bool onlyDirty = false;
   bool detailVisible = false;
   bool initialized = false;
+  bool showOverview = true;
 
   void select({String? step, String? interaction, String? fact}) {
     stepId = step;

@@ -66,6 +66,7 @@ void main() {
         matching: find.byTooltip('Histoire'),
       ),
     );
+    await activate(tester, find.text('Voir tous les documents').first);
     await activate(tester, find.text('États et règles du monde').first);
     expect(find.byType(WorldWorkspacePage), findsOneWidget);
 

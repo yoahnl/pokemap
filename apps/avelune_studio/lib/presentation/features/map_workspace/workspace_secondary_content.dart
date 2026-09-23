@@ -93,6 +93,10 @@ Widget? workspaceSecondaryContent({
   VoidCallback? onReturnVerification,
   String progressionBackLabel = 'Histoire',
   required Future<String?> Function(String) onOpenScene,
+  void Function(String storyId, String stepId)? onOpenStep,
+  ValueChanged<String>? onOpenDialogue,
+  ValueChanged<String>? onOpenEvent,
+  ValueChanged<String>? onOpenMap,
   required ResourceNavigation? resources,
   required MapWorkspaceVisuals? visuals,
   required VoidCallback onMap,
@@ -221,6 +225,14 @@ Widget? workspaceSecondaryContent({
       onEvents: events == null ? null : onEvents,
       onProgression: stories == null ? null : onProgression,
       onOpenScene: scenes == null ? null : onOpenScene,
+      storyOwner: stories,
+      sceneOwner: scenes,
+      dialogueOwner: dialogues,
+      eventOwner: events,
+      onOpenStep: onOpenStep,
+      onOpenDialogue: onOpenDialogue,
+      onOpenEvent: onOpenEvent,
+      onOpenMap: onOpenMap,
     );
   }
   if (space == WorkspaceSpace.resources && resources != null) {

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
+import '../../../features/narrative/application/narrative_overview.dart';
+import '../../../features/narrative/domain/narrative_port.dart';
+import '../../../features/scenes/application/scene_workspace_controller.dart';
+import '../../../features/stories/application/story_workspace_controller.dart';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
+import '../../../features/events/application/event_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
@@ -8,8 +14,12 @@ import '../../shared/widgets/inputs/studio_tabs.dart';
 import 'narrative_overview_content.dart';
 import 'narrative_overview_detail.dart';
 import 'narrative_overview_header.dart';
+import 'narrative_overview_landing.dart';
 import 'narrative_overview_navigation.dart';
 import 'narrative_overview_view_state.dart';
+import '../stories/story_create_dialog.dart';
+
+part 'narrative_story_pane_overview.dart';
 
 class NarrativeStoryPane extends StatefulWidget {
   const NarrativeStoryPane({
@@ -27,6 +37,14 @@ class NarrativeStoryPane extends StatefulWidget {
     this.onEvents,
     this.onProgression,
     this.onOpenScene,
+    this.storyOwner,
+    this.sceneOwner,
+    this.dialogueOwner,
+    this.eventOwner,
+    this.onOpenStep,
+    this.onOpenDialogue,
+    this.onOpenEvent,
+    this.onOpenMap,
   });
   final NarrativeWorkspaceController controller;
   final NarrativeOverviewViewState viewState;
@@ -40,6 +58,12 @@ class NarrativeStoryPane extends StatefulWidget {
       onDialogues,
       onCinematics;
   final Future<String?> Function(String)? onOpenScene;
+  final StoryWorkspaceController? storyOwner;
+  final SceneWorkspaceController? sceneOwner;
+  final DialogueWorkspaceController? dialogueOwner;
+  final EventWorkspaceController? eventOwner;
+  final void Function(String storyId, String stepId)? onOpenStep;
+  final ValueChanged<String>? onOpenDialogue, onOpenEvent, onOpenMap;
 
   @override
   State<NarrativeStoryPane> createState() => _NarrativeStoryPaneState();
@@ -75,6 +99,7 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
               ),
         )
         .toList();
+    if (state.showOverview) return _buildOverview(overview);
     return Focus(
       onKeyEvent: (_, event) {
         if (event is KeyDownEvent &&
@@ -120,6 +145,18 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
                 onCinematics: widget.onCinematics,
                 onEvents: widget.onEvents,
                 onProgression: widget.onProgression,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: StudioButton(
+                    label: 'Vue d’ensemble',
+                    icon: Icons.arrow_back,
+                    secondary: true,
+                    onPressed: () => setState(() => state.showOverview = true),
+                  ),
+                ),
               ),
               if (widget.controller.publicationError case final error?)
                 Padding(
@@ -226,5 +263,30 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
         error != null) {
       setState(() => state.notice = error);
     }
+  }
+
+  Future<void> _navigateDocument(
+    Future<String?> Function(String) action,
+    String id,
+  ) async {
+    final request = ++_navigationRequest;
+    final error = await action(id);
+    if (mounted && request == _navigationRequest && error != null) {
+      setState(() => state.notice = error);
+    }
+  }
+
+  Future<void> _createStory() async {
+    final owner = widget.storyOwner;
+    if (owner == null) return;
+    final request = await askStoryCreation(context);
+    if (!mounted || request == null) return;
+    final created = owner.create(request.$1, type: request.$2);
+    if (created == null) {
+      setState(() => state.notice = owner.error);
+      return;
+    }
+    state.storyId = created.id;
+    widget.onProgression?.call();
   }
 }

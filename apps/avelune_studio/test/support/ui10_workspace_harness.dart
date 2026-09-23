@@ -52,6 +52,10 @@ class Ui10WorkspaceHarness {
       ),
     );
     await pumpIo(tester, frames: 8);
+    if (find.text('Voir tous les documents').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Voir tous les documents').first);
+      await tester.pumpAndSettle();
+    }
     if (find.text('Cinématiques sur carte').evaluate().isEmpty) {
       await tester.tap(find.byTooltip('Actions Histoire'));
       await tester.pumpAndSettle();
