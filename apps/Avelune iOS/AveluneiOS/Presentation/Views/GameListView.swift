@@ -251,7 +251,7 @@ private struct InstallationView: View {
 
                             Spacer()
 
-                            Text("\(stage.index + 1) / 3")
+                            Text("Étape \(stage.index + 1) sur 3")
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(AveluneTheme.muted)
                         }
@@ -259,12 +259,18 @@ private struct InstallationView: View {
                         HStack(spacing: 6) {
                             ForEach(InstallationStage.allCases, id: \.self) { step in
                                 Capsule()
-                                    .fill(step.index <= stage.index ? AveluneTheme.accent : LinearGradient(
+                                    .fill(step.index < stage.index ? AveluneTheme.accent : LinearGradient(
                                         colors: [AveluneTheme.surfaceRaised, AveluneTheme.surfaceRaised],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     ))
                                     .frame(height: 5)
+                                    .overlay {
+                                        if step == stage {
+                                            Capsule()
+                                                .strokeBorder(AveluneTheme.cyan, lineWidth: 1)
+                                        }
+                                    }
                             }
                         }
                         .animation(reduceMotion ? nil : .smooth(duration: 0.45), value: stage)
@@ -282,8 +288,16 @@ private struct InstallationView: View {
                                         .foregroundStyle(step.index <= stage.index ? .white : AveluneTheme.muted)
 
                                     Spacer()
+
+                                    if step == stage {
+                                        Text("En cours")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(AveluneTheme.cyan)
+                                            .accessibilityHidden(true)
+                                    }
                                 }
                                 .accessibilityElement(children: .combine)
+                                .accessibilityValue(step.index < stage.index ? "Terminée" : step == stage ? "En cours" : "À venir")
                             }
                         }
                     }
