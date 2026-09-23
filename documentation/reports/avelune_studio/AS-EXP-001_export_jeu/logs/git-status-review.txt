@@ -1,0 +1,18 @@
+ M apps/avelune_studio/lib/features/game_export/data/studio_game_export_controller.dart
+ M apps/avelune_studio/lib/features/game_export/domain/studio_game_export_port.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart
+ M apps/avelune_studio/test/game_export/studio_game_export_control_test.dart
+ M apps/avelune_studio/test/support/map_host_fixture.dart
+ M documentation/reports/avelune_studio/AS-EXP-001_export_jeu/README.md
+ M documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/player-import-journey.log
+ M documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-architecture.log
+ M documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-export-correction.log
+ M documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-suite.log
+?? apps/avelune_studio/test/game_export/studio_game_export_cancel_test.dart
+?? apps/avelune_studio/test/game_export/studio_game_export_close_test.dart
+?? apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/git-status-review.txt
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-analysis.log
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-build.log

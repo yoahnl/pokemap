@@ -46,7 +46,7 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
         ],
         testAvailable: _controller.active != null && !_actions.busy,
         navigate: _navigateFromHome,
-        guard: _actions.allowClose,
+        guard: _allowCloseWithExport,
       );
     });
   }

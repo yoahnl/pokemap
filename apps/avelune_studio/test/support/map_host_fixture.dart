@@ -14,6 +14,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
 import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
@@ -36,6 +37,7 @@ class MapHostFixture {
   final M3StoryFixture source;
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals visuals;
+  late final StudioGameExportController gameExport;
 
   EditableMapDocument get document => maps.active!;
 
@@ -47,6 +49,10 @@ class MapHostFixture {
     Future<File?> Function(String)? gameExportPicker,
     AssetBundle? assetBundle,
     GlobalKey? captureKey,
+    StudioHomeNavigation? home,
+    Future<void> Function()? onClose,
+    void Function(Future<bool> Function()?)? registerExitGuard,
+    StudioGameExportController Function(M3StoryFixture)? createGameExport,
     Size size = const Size(1536, 1024),
   }) async {
     tester.view.physicalSize = size;
@@ -64,10 +70,13 @@ class MapHostFixture {
     final visuals = WorkspaceTestVisuals();
     mapPort.interactive = true;
     final fixture = MapHostFixture._(tester, source, maps, visuals);
-    final gameExport = StudioGameExportController(
-      projectRoot: source.directory,
-      projectName: source.session.name,
-    );
+    final gameExport =
+        createGameExport?.call(source) ??
+        StudioGameExportController(
+          projectRoot: source.directory,
+          projectName: source.session.name,
+        );
+    fixture.gameExport = gameExport;
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox());
       gameExport.dispose();
@@ -86,6 +95,7 @@ class MapHostFixture {
       theme: studioTheme(),
       home: MapWorkspaceScreen(
         controller: maps,
+        home: home,
         gameExport: gameExport,
         gameExportPicker: (suggested) async {
           final file = await gameExportPicker?.call(suggested);
@@ -112,8 +122,8 @@ class MapHostFixture {
           tester,
         ),
         runtimeBuilder: (_, _, _) => const SizedBox(),
-        onClose: () async {},
-        registerExitGuard: (_) {},
+        onClose: onClose ?? () async {},
+        registerExitGuard: registerExitGuard ?? (_) {},
       ),
     );
     final rooted = assetBundle == null

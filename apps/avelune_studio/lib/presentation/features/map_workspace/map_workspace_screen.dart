@@ -276,7 +276,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   Future<void> _close() async {
-    if (await _actions.allowClose() && mounted) await widget.onClose();
+    if (await _allowCloseWithExport() && mounted) await widget.onClose();
   }
 
   @override

@@ -47,6 +47,7 @@ abstract interface class StudioGameExportPort {
   bool get busy;
   bool get canCancel;
   bool get canStart;
+  bool get operationActive;
   Stream<void> get changes;
 
   Future<void> load();

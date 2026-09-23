@@ -16,6 +16,9 @@ typedef BuildStudioGamePackage =
     );
 typedef WriteStudioGamePackage =
     Future<void> Function(GamePackageExportArtifact artifact, File outputFile);
+typedef ReadStudioSourceFingerprints =
+    Future<Map<String, String>> Function(String projectRoot);
+typedef CheckStudioExportDestination = Future<bool> Function(File outputFile);
 
 final class StudioGameExportController implements StudioGameExportPort {
   StudioGameExportController({
@@ -24,8 +27,14 @@ final class StudioGameExportController implements StudioGameExportPort {
     CanonicalGamePackageExportService? service,
     BuildStudioGamePackage? buildPackage,
     this.writePackage,
+    ReadStudioSourceFingerprints? readFingerprints,
+    CheckStudioExportDestination? destinationExists,
   }) : service = service ?? const CanonicalGamePackageExportService(),
-       buildPackage = buildPackage ?? _buildInIsolate;
+       buildPackage = buildPackage ?? _buildInIsolate,
+       readFingerprints =
+           readFingerprints ??
+           ((root) => Isolate.run(() => sourceFingerprints(root))),
+       destinationExists = destinationExists ?? ((file) => file.exists());
 
   final Directory projectRoot;
   @override
@@ -33,6 +42,8 @@ final class StudioGameExportController implements StudioGameExportPort {
   final CanonicalGamePackageExportService service;
   final BuildStudioGamePackage buildPackage;
   final WriteStudioGamePackage? writePackage;
+  final ReadStudioSourceFingerprints readFingerprints;
+  final CheckStudioExportDestination destinationExists;
   @override
   StudioExportStage stage = StudioExportStage.idle;
   GamePackageExportProfile? profile;
@@ -64,7 +75,6 @@ final class StudioGameExportController implements StudioGameExportPort {
   bool _disposed = false;
   bool _inFlight = false;
   bool _profileLoadFailed = false;
-
   @override
   bool get busy =>
       stage == StudioExportStage.preparing ||
@@ -72,10 +82,11 @@ final class StudioGameExportController implements StudioGameExportPort {
       stage == StudioExportStage.writing;
   @override
   bool get canCancel =>
-      stage == StudioExportStage.preparing ||
-      stage == StudioExportStage.building;
+      !_disposed && busy && stage != StudioExportStage.writing;
   @override
   bool get canStart => !_inFlight && !_disposed && !_profileLoadFailed;
+  @override
+  bool get operationActive => _inFlight;
 
   @override
   Future<void> load() async {
@@ -169,7 +180,7 @@ final class StudioGameExportController implements StudioGameExportPort {
         );
       }
       final root = projectRoot.path;
-      final before = await Isolate.run(() => sourceFingerprints(root));
+      final before = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.building;
       _notify();
@@ -181,17 +192,19 @@ final class StudioGameExportController implements StudioGameExportPort {
             : GamePackageExportMode.localTest,
       );
       if (!_valid(operation, isCurrentProject)) return false;
-      final after = await Isolate.run(() => sourceFingerprints(root));
+      final after = await readFingerprints(root);
+      if (!_valid(operation, isCurrentProject)) return false;
       if (!sameSourceFiles(before, after) || hasPendingChanges()) {
         throw StateError(
           'Le projet a changé pendant la construction. Aucun paquet n’a été écrit ; relancez l’export.',
         );
       }
-      if (!overwriteConfirmed && await outputFile.exists()) {
+      if (!overwriteConfirmed && await destinationExists(outputFile)) {
         throw StateError(
           'Le fichier de destination existe désormais. Confirmez son remplacement et relancez l’export.',
         );
       }
+      if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.writing;
       _notify();
       if (writePackage case final write?) {
@@ -204,12 +217,14 @@ final class StudioGameExportController implements StudioGameExportPort {
       }
       if (!_valid(operation, isCurrentProject)) return false;
       try {
-        final latest = await Isolate.run(() => sourceFingerprints(root));
+        final latest = await readFingerprints(root);
+        if (!_valid(operation, isCurrentProject)) return false;
         if (!sameSourceFiles(after, latest) || hasPendingChanges()) {
           warning =
               'Le projet a changé après sa capture. Ces modifications ne figurent pas dans ce paquet.';
         }
       } on Object {
+        if (!_valid(operation, isCurrentProject)) return false;
         warning =
             'Le paquet est prêt, mais les modifications plus récentes du projet n’ont pas pu être vérifiées.';
       }
@@ -219,11 +234,13 @@ final class StudioGameExportController implements StudioGameExportPort {
           projectRoot: projectRoot,
         ).save(profile);
       } on Object catch (failure) {
+        if (!_valid(operation, isCurrentProject)) return false;
         warning = [
           ?warning,
           'Le paquet est prêt, mais le profil d’export n’a pas été mémorisé : $failure',
         ].join(' ');
       }
+      if (!_valid(operation, isCurrentProject)) return false;
       sourceRevision = sourceRevisionOf(after);
       this.outputPath = outputFile.path;
       packageSha256 = artifact.packageSha256;

@@ -38,6 +38,8 @@ void main() {
     StudioGameExportController controller, {
     Future<bool> Function()? prepare,
     bool Function()? pending,
+    bool overwriteConfirmed = false,
+    bool Function()? isCurrentProject,
   }) => controller.export(
     metadata: StudioGameExportMetadata(
       gameId: profile.gameId,
@@ -48,21 +50,25 @@ void main() {
       locales: profile.supportedLocales.join(', '),
     ),
     outputPath: output.path,
-    overwriteConfirmed: false,
+    overwriteConfirmed: overwriteConfirmed,
     publication: true,
     prepare: prepare ?? () async => true,
     hasPendingChanges: pending ?? () => false,
-    isCurrentProject: () => true,
+    isCurrentProject: isCurrentProject ?? () => true,
   );
 
   StudioGameExportController controller({
     BuildStudioGamePackage? build,
     WriteStudioGamePackage? write,
+    ReadStudioSourceFingerprints? readFingerprints,
+    CheckStudioExportDestination? destinationExists,
   }) => StudioGameExportController(
     projectRoot: source.directory,
     projectName: source.session.name,
     buildPackage: build,
     writePackage: write,
+    readFingerprints: readFingerprints,
+    destinationExists: destinationExists,
   );
 
   test(

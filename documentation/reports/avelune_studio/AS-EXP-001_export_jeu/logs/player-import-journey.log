@@ -14,32 +14,32 @@
 00:03 +12: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
 00:03 +13: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
 00:03 +14: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
-[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project/project.json mapId=jardin
-[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project/project.json
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project/project.json
 [runtime_loader] project manifest read ok bytes=8545
 [runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
-[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project/maps/jardin.json
-[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project/maps/jardin.json
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project/maps/jardin.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project/maps/jardin.json
 [runtime_loader] map file read ok bytes=6976
 [runtime_loader] map validated id=jardin size=24x16 layers=3 entities=3 placedElements=3 warps=1 triggers=1
 [runtime_loader] bundle tilesets collected ids=atelier
-[runtime_loader] bundle tileset path id=atelier path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project/assets/atelier.png
-[runtime_loader] bundle load ok mapId=jardin projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/.transactions/1790119852178039-722266631/staged-version/project tilesets=1
-[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/project.json mapId=jardin
-[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/project.json
+[runtime_loader] bundle tileset path id=atelier path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/.transactions/1790127279809897-1639591426/staged-version/project tilesets=1
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/project.json
 [runtime_loader] project manifest read ok bytes=8545
 [runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
-[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/maps/jardin.json
-[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/maps/jardin.json
 [runtime_loader] map file read ok bytes=6976
 [runtime_loader] map validated id=jardin size=24x16 layers=3 entities=3 placedElements=3 warps=1 triggers=1
 [runtime_loader] bundle tilesets collected ids=atelier
-[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/assets/atelier.png
-[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project tilesets=1
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project tilesets=1
 [runtime_game] tileset image load start map=jardin
 [runtime_game] tileset cache resolve requested=1
 [runtime_game] tileset cache resolve ok result=1
-[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/project.json tilesets=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/project.json tilesets=1
 [runtime] New game created from project contract on jardin at (8, 9)
 [runtime_game] tileset image load ok count=1 map=jardin
 [runtime_game] mount root map start map=jardin
@@ -48,20 +48,20 @@
 [step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
 [step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
 [runtime_game] mount root map ok map=jardin
-[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/project.json mapId=clairiere
-[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/project.json
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/project.json
 [npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
 [npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
 [runtime_game] onLoad completed activeMapId=jardin
 [runtime_loader] project manifest read ok bytes=8545
 [runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
-[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/maps/clairiere.json
-[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/maps/clairiere.json
 [runtime_loader] map file read ok bytes=5651
 [runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
 [runtime_loader] bundle tilesets collected ids=atelier
-[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/assets/atelier.png
-[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project tilesets=1
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project tilesets=1
 [runtime_game] tileset cache resolve requested=1
 [runtime_game] tileset cache resolve ok result=1
 [step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
@@ -72,19 +72,19 @@
 [step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
 [npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
 [npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
-[event_v2] mapEnter activation=mapact_1790119852388441_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchNoFallback
-[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cb75-39d8-7002-8000-3039d1cc165a:zone:1790119852510
+[event_v2] mapEnter activation=mapact_1790127280026767_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cbe6-9011-7002-8000-3c006628a4c3:zone:1790127280151
 [dialogue] resolved dialogueId=zone
 [dialogue] resolved file=dialogues/zone.json
 [dialogue] requested startNode=Start
-[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cb75-39d8-7002-8000-3039d1cc165a:zone:1790119852510 phase=dialogueLoading serial=1
-[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-v8O7KS/player/games/games.avelune.d-part/versions/0.1.0/project/dialogues/zone.json
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cbe6-9011-7002-8000-3c006628a4c3:zone:1790127280151 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-player-H3fcZn/player/games/games.avelune.d-part/versions/0.1.0/project/dialogues/zone.json
 [dialogue] starting at node "Start"
-[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cb75-39d8-7002-8000-3039d1cc165a:zone:1790119852510 elapsedMs=5
-[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cb75-39d8-7002-8000-3039d1cc165a:zone:1790119852510 reason=dialogueOpened serial=1
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cbe6-9011-7002-8000-3c006628a4c3:zone:1790127280151 elapsedMs=5
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cbe6-9011-7002-8000-3c006628a4c3:zone:1790127280151 reason=dialogueOpened serial=1
 [dialogue] opened node=Start text="Bienvenue sur le quai."
 [dialogue] dialogue closed
-[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cb75-39d8-7002-8000-3039d1cc165a:zone:1790119852510 status=completed port=completed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0cbe6-9011-7002-8000-3c006628a4c3:zone:1790127280151 status=completed port=completed
 [dialogue] finished
 [step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
 [step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true

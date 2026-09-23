@@ -2,7 +2,7 @@ part of 'map_workspace_screen.dart';
 
 extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
   Future<bool> _allowCloseWithExport() async {
-    if (_gameExport?.canStart == false) return false;
+    if (_gameExport?.operationActive == true) return false;
     return _actions.allowClose();
   }
 
