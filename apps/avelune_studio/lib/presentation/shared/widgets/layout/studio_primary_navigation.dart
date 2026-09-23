@@ -35,6 +35,7 @@ class StudioPrimaryNavigation extends StatelessWidget {
       ('Ressources', Icons.grid_view_outlined, 'resources'),
       ('Histoire', Icons.menu_book_outlined, 'story'),
       ('Test du jeu', Icons.play_circle_outline, 'test'),
+      ('Exporter le jeu', Icons.archive_outlined, 'gameExport'),
     ];
     return SizedBox(
       width: compact ? 72 : 184,

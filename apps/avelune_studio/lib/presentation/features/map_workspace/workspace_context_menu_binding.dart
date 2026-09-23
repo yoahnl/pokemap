@@ -3,7 +3,6 @@ part of 'map_workspace_screen.dart';
 extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   void _releaseStaleMapState() {
     final document = _controller.active;
-    final project = _controller.project;
     for (final entry in _views.entries) {
       if (entry.key != document?.base.mapId) entry.value.pendingMove = null;
     }
@@ -16,15 +15,14 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
     final view = document == null ? null : _views[document.base.mapId];
     final armed = view?.pendingMove;
     if (armed != null &&
-        project != null &&
-        locateMapContextTarget(
-              document!,
-              project,
-              contextFamilyOf(armed.family),
-              armed.id,
-            ) ==
-            null) {
-      view!.pendingMove = null;
+        (view!.tool != StudioMapTool.select ||
+            mapContextAnchorOf(
+                  document!.current,
+                  contextFamilyOf(armed.family),
+                  armed.id,
+                ) ==
+                null)) {
+      view.pendingMove = null;
     }
   }
 
@@ -37,9 +35,6 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
       project: project,
       position: cell,
       referenceGuard: _draftReferences.guard,
-      narrativeGuard: (id) => _narrative?.blocksDeletion(id) == true
-          ? 'Une interaction en cours d’écriture utilise ce personnage.'
-          : null,
     );
   }
 
@@ -52,7 +47,8 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
     final selected = selectedContextTarget(document, project, _view);
     if (selected == null) {
       document.error =
-          'Sélectionnez un élément de la carte pour ouvrir son menu.';
+          'Aucun élément visible n’est sélectionné sur cette carte : '
+          'sélectionnez-en un pour ouvrir son menu.';
       _changed();
       return;
     }
@@ -253,20 +249,28 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Quelle interaction ouvrir ?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final entry in found.entries)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: StudioButton(
-                    label: entry.value,
-                    secondary: true,
-                    onPressed: () => Navigator.pop(dialogContext, entry.key),
-                  ),
-                ),
-            ],
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final entry in found.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: StudioButton(
+                        label: entry.value.trim().isEmpty
+                            ? 'Interaction sans nom'
+                            : entry.value,
+                        secondary: true,
+                        onPressed: () =>
+                            Navigator.pop(dialogContext, entry.key),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
           actions: [
             StudioButton(

@@ -69,6 +69,39 @@ class WorkspaceActions {
 
   Future<bool> allowClose() => _allowClose();
 
+  bool get hasPendingChanges =>
+      controller.dirty ||
+      resources()?.dirty == true ||
+      narrative()?.dirty == true ||
+      dialogues?.call()?.dirty == true ||
+      cinematics?.call()?.dirty == true ||
+      presentations?.call()?.dirty == true ||
+      events?.call()?.dirty == true ||
+      scenes?.call()?.dirty == true ||
+      world?.call()?.hasRuleDraft == true ||
+      worldInputsValid?.call() == false;
+
+  Future<bool> saveForExport() => _saveOwnedChanges();
+
+  String? get exportPreparationFailure {
+    final failures = <String?>[
+      controller.error,
+      resources()?.error,
+      narrative()?.publicationError,
+      narrative()?.error,
+      scenes?.call()?.error,
+      events?.call()?.error,
+      dialogues?.call()?.error,
+      cinematics?.call()?.error,
+      presentations?.call()?.error,
+      world?.call()?.error,
+    ];
+    for (final failure in failures) {
+      if (failure != null && failure.isNotEmpty) return failure;
+    }
+    return null;
+  }
+
   /// Validates the active inputs of every page that owns one, through their
   /// own mechanisms. It publishes nothing.
   Future<bool> flushEditors() async =>

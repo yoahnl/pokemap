@@ -55,17 +55,25 @@ Choisir un autre élément de la pile recalcule les deux disponibilités, et le
 décor qui bouge est celui que l'auteur a choisi.
 
 « Déplacer » arme la cible choisie. Le geste suivant déplace celle-là, même si
-un personnage ou un décor se trouve sous le pointeur : le geste court-circuite
-sa résolution habituelle quand une cible est armée. Une zone de jeu ou une zone
-d'histoire voyage par son rectangle entier — `MapArmedAreaMove` translate
-l'aire, la borne à la carte, conserve sa taille et sa charge utile, et n'écrit
-qu'une seule entrée d'historique. Échap désarme sans rien toucher.
+un autre élément se trouve sous le pointeur. Un décor armé reprend le chemin
+ordinaire du canvas : `MapEditingCommands.move`, son contrôle de bornes et son
+aperçu, avec le décalage entre le point saisi et l'origine du décor. Une zone
+de jeu ou une zone d'histoire voyage par son rectangle entier —
+`MapArmedAreaMove` translate l'aire, la borne à la carte, conserve sa taille et
+sa charge utile. Chaque déplacement n'écrit qu'une entrée d'historique.
+
+La consigne est portée par la cible armée elle-même (`MapWorkspaceViewState.
+armMove`) : elle disparaît avec elle après validation, Échap pendant l'aperçu,
+changement d'outil, changement de carte ou disparition de la cible. Un
+déplacement armé ne se réactive jamais au retour sur une carte.
 
 « Ouvrir son interaction » sur une zone d'histoire ouvre le travail existant et
 ne fabrique jamais d'identité narrative : le lien est cherché parmi les sessions
-en cours, les brouillons d'Événements et les enregistrements sauvegardés. Sans
-lien, la commande le dit et propose de tracer la zone depuis Histoire ; avec
-plusieurs, elle ouvre Événements filtré plutôt que d'en choisir un au hasard.
+en cours, les brouillons d'Événements et les enregistrements sauvegardés, puis
+ouvert par son vrai propriétaire — la session simplifiée, Événements, ou le
+document enregistré. Depuis Carte comme depuis Histoire, l'ouverture porte son
+origine et une seule requête de navigation. Sans lien, la commande le dit ; avec
+plusieurs, un choix limité aux interactions réellement liées s'affiche.
 
 ## Une seule implémentation des mutations
 
@@ -89,16 +97,20 @@ existants.
 - la requête est **figée à l'ouverture** : ce que l'auteur lit est ce que la
   commande revérifie ensuite ;
 - une cible disparue depuis l'ouverture est refusée avec une explication ;
-- Maj+F10 et la touche Menu ouvrent le menu sur la sélection courante, à sa
-  cellule, sans pointeur ;
+- Maj+F10 et la touche Menu ouvrent le menu sur la cible sélectionnée, même
+  si elle n'est pas la première de sa pile, à sa position actuelle, ancré près
+  d'elle dans le viewport courant ; sans cible valide, un message l'explique et
+  rien n'est modifié ;
+- tant qu'un menu est ouvert, aucune commande clavier destructive n'agit
+  derrière lui ;
 - le menu prend le focus à l'ouverture et le **rend** à son propriétaire
   précédent à la fermeture ;
 - chaque entrée est un contrôle activable au clavier : Tab la parcourt, Entrée
   l'exécute, une entrée bloquée reste inerte pour le clavier comme pour le
   pointeur ;
 - une dépendance ajoutée pendant que le menu est ouvert bloque quand même ;
-- changer d'espace ferme le menu, et un menu ouvert sur une autre carte n'est
-  plus affiché.
+- changer d'espace ou de carte ferme réellement la requête : un ancien menu ne
+  réapparaît pas au retour.
 
 ## Rendu
 
@@ -120,9 +132,13 @@ fenêtre est petite, et se ferme au clavier avec Échap.
 | commandes + sauvegarde disque | `test/map_workspace/context_menu_parity_test.dart` (1) |
 | rendu et bords, captures | `test/map_workspace/context_menu_visual_test.dart` (2) |
 | identité qualifiée jusqu'à l'exécution, devant/derrière | `test/map_workspace/context_identity_test.dart` (4) |
-| déplacement réel d'une zone et d'une zone d'histoire | `test/map_workspace/context_move_test.dart` (4) |
+| déplacement réel d'une zone et d'une zone d'histoire | `test/map_workspace/context_move_test.dart` (3) |
 | focus, activation clavier, reciblage | `test/map_workspace/context_keyboard_test.dart` (4) |
 | **véritable `MapWorkspaceScreen`**, avec ses propriétaires et ports | `test/map_workspace/context_menu_host_test.dart` (4) |
+| hôte réel : Supprimer et Retour arrière protégés, chaque famille | `test/map_workspace/keyboard_delete_host_test.dart` (6) |
+| hôte réel : Déplacer un décor, Échap, outil, carte, disque | `test/map_workspace/decor_move_host_test.dart` (8) |
+| hôte réel : rouvrir une interaction existante depuis Carte | `test/map_workspace/story_zone_reopen_host_test.dart` (5) |
+| hôte réel : lignes qualifiées, Maj+F10, changement de carte | `test/map_workspace/context_identity_host_test.dart` (4) |
 
 Les clics sont de véritables `startGesture(buttons: kSecondaryButton)`, pas des
 appels directs au constructeur du menu.
@@ -176,7 +192,94 @@ Dans le geste, six constructions identiques ont été repliées sur un seul
 point de sortie local ; ce n'est pas une abstraction nouvelle, c'est une
 duplication en moins.
 
+## Intervention — finaliser les parcours sans nouvelles régressions
+
+Base de revue `498c06e0a` ; travail sur `main`, arbre propre au départ (`HEAD`
+`d1d24bf00`, puis `1e10c83fb` après deux commits iOS d'une autre session, sans
+recouvrement). Livré en `70519322e`, puis complété par les corrections issues de
+la critique finale.
+
+### Audit initial
+
+Les quatre défauts signalés ont été confirmés à la lecture, puis reproduits par
+un test rouge sur le véritable écran :
+
+| Défaut | Cause trouvée |
+| --- | --- |
+| Supprimer contourne les protections | `map_workspace_shortcuts.dart` construisait `CharacterEditingCommands` sans `draftGuard` ; `historyGuard` ne voit que les sessions narratives |
+| Déplacer n'agit pas sur un décor | la branche armée de `MapCharacterGesture.start()` capturait le décor sans savoir le déplacer ; `_movingHint` n'était jamais remis à `null` |
+| Interaction non enregistrée introuvable depuis Carte | `_openStoryInteraction` exigeait l'espace Histoire, et l'appelant invalidait sa propre requête par un second incrément |
+| Menu et Maj+F10 perdent la cible | lignes indexées par `target.id` ; ouverture clavier depuis `stackPosition` et premier élément de la pile |
+
+Trouvé en chemin : chaque carte ayant sa propre `MapWorkspaceViewState`, un
+déplacement armé survivait à l'aller-retour ; et une requête de menu était
+seulement masquée sur une autre carte, pas fermée.
+
+### Corrections et zones modifiées
+
+| Fichier | Zone | Raison |
+| --- | --- | --- |
+| `application/map_context_menu_model.dart` | `mapContextAnchorOf`, `locateMapContextTarget` | retrouver une cible par sa famille et sa position actuelle, jamais par une ancienne case |
+| `application/map_context_menu_actions.dart` | `MapContextActionContext`, `_characterActions` | retrait du garde narratif non qualifié par carte |
+| `map_selection_context.dart` (créé) | correspondances de familles, `selectedContextTarget` | pont unique entre la sélection et le menu, partagé par Supprimer et Maj+F10 |
+| `map_workspace_shortcuts.dart` | `delete()` | Supprimer passe par `MapContextCommandRunner` avec le contexte de l'écran |
+| `workspace_keyboard_binding.dart` | `_keyboard` | aucune commande destructive derrière un menu ouvert |
+| `workspace_world_binding.dart` | `_draftReferenceSources` | une session d'interaction modifiée protège aussi sa zone d'histoire |
+| `map_workspace_view_state.dart` | `pendingMove`, `armMove`, `moveHint`, `armedDecorIn`, `attachViewport`, `globalOfCell` | consigne portée par la cible armée ; liaison du viewport sortie du canvas |
+| `map_workspace_canvas.dart` | `_down`, `_up` | un décor armé reprend le chemin ordinaire et libère le déplacement |
+| `map_character_gesture.dart` | `start()` | la branche armée ne capture plus un décor |
+| `workspace_context_menu_binding.dart` | `_releaseStaleMapState`, `_openContextMenuFromKeyboard`, `_openExistingStoryZone`, `_chooseInteraction` | libérations au changement de carte, d'outil ou de cible ; ouverture clavier ciblée ; choix limité aux interactions liées |
+| `workspace_story_binding.dart` | `_openStoryInteraction` | origine explicite, une seule requête |
+| `map_context_menu.dart` | lignes de cibles | clé et sélection qualifiées |
+| `map_workspace_screen.dart`, `workspace_screen_body.dart` | `_changed`, raccourcis, consigne | raccordements |
+
+### Passes
+
+- **Audit / architecture** : défauts confirmés, aucune règle de protection
+  recopiée dans les raccourcis, aucune couche `application` ne voit Flutter.
+- **Implémentation** : réutilisation des commandes, de l'index des brouillons et
+  du runner existants ; aucun cadre général de commandes.
+- **Tests** : un test d'acceptation par défaut sur le véritable
+  `MapWorkspaceScreen`, avec les ports narratif, Événements et Monde montés
+  comme par `StudioWorkspaceHost`, rouge avant la correction. Les parcours déjà
+  verts avant correction sont des gardes explicites (cible libre supprimable,
+  interaction enregistrée, lecture tardive).
+- **Build / validation** : voir « Résultats ».
+- **Critique finale**, par un relecteur indépendant en lecture seule. Corrigé
+  suite à ses constats : zone d'histoire en cours d'écriture supprimable,
+  garde narratif non qualifié par carte, déplacement armé qui survivait à un
+  changement d'outil, coût de la vérification de cible disparue, dialogue de
+  choix sans défilement ni nom de repli, formulation du message de Maj+F10.
+  Non corrigé : le setter `pendingMove` efface la consigne quand il reçoit une
+  valeur (piège d'API interne, sans chemin utilisateur) ; `blocksDeletion` n'a
+  plus d'appelant, laissé pour ne pas toucher au contrôleur narratif.
+
+### Décisions à valider
+
+- Supprimer et Retour arrière agissent désormais sur toutes les familles que le
+  menu supprime, avec ses protections. Avant, la touche ne supprimait que les
+  décors et les personnages. Un test prouve suppression et annulation pour le
+  panneau, le passage et la zone de jeu.
+- `codex_rule.md` demande un maximum de commentaires ; le mandat en interdit
+  dans le code manuel. Le mandat a été suivi.
+- Aucune écriture Notion : le mandat l'interdit sans autorisation, et le
+  connecteur demande une authentification.
+- Parité MCP PokeMap : non applicable, aucune nouvelle sémantique de données ni
+  commande ; seules les routes d'interface vers des commandes existantes
+  changent.
+
+## Correctif AS-EXP-001 — priorité au travail non enregistré
+
+Un cinquième test de l'hôte réel reproduit la première sauvegarde d'une
+interaction simplifiée, une seconde modification laissée en brouillon, puis
+« Ouvrir son interaction » depuis Carte. La réouverture reprend la même session
+et son contenu courant, sans publication implicite. Une session simplifiée
+propre laisse toujours la priorité au propriétaire Événements. La correction
+est dans `_openStoryInteraction()` ; les protections de coexistence restent
+actives.
+
 ## Limites
+
 
 - **aucune manipulation native macOS n'a été exécutée** : tout est mesuré par
   tests de widgets et écritures disque réelles. Les captures sont produites par

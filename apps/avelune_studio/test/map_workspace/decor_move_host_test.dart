@@ -1,4 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -164,6 +165,31 @@ void main() {
       expect(quai(), area);
       expect(f.document.undoCount, steps);
       expect(hint, findsNothing);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  testWidgets(
+    'choosing another tool releases the armed move and its instruction',
+    (tester) async {
+      final f = await MapHostFixture.open(tester);
+      final tree = decorAt(f, 'jardin-arbre');
+      await f.rightClick(5, 4);
+      await f.choose('Déplacer');
+      expect(hint, findsOneWidget);
+
+      await tester.tap(find.byTooltip('Dessiner une zone de jeu'));
+      await pumpFrames(tester);
+      expect(hint, findsNothing, reason: 'the instruction no longer applies');
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is StudioTool && widget.label == 'Sélectionner',
+        ),
+      );
+      await pumpFrames(tester);
+      await f.drag(13, 7, 13, 9);
+
+      expect(decorAt(f, 'jardin-arbre'), tree);
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

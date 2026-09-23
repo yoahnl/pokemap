@@ -39,6 +39,7 @@ enum WorkspaceSpace {
   presentation,
   world,
   verification,
+  gameExport,
 }
 
 class WorkspaceReturn {

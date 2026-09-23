@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_control_test.dart: invalid preparation preserves the draft and creates no package
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: native destination failure is shown without losing the page
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: native destination failure is shown without losing the page
+00:03 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: an interaction never saved reopens from the map with its own draft
+00:05 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: an interaction never saved reopens from the map with its own draft
+00:06 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: an interaction never saved reopens from the map with its own draft
+00:06 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: an interaction never saved reopens from the map with its own draft
+00:07 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: a rejected owner save keeps the interaction draft and blocks export
+00:07 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: a rejected owner save keeps the interaction draft and blocks export
+00:07 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: a saved interaction edited again reopens its current simplified draft
+00:07 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: a saved interaction edited again reopens its current simplified draft
+00:08 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: a saved interaction edited again reopens its current simplified draft
+00:08 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: a saved interaction edited again reopens its current simplified draft
+00:09 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: a saved interaction edited again reopens its current simplified draft
+00:10 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page
+00:12 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page
+00:14 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page
+00:16 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: several interactions on one zone offer only those, then open the one
+00:17 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart: several interactions on one zone offer only those, then open the one
+00:17 +19: All tests passed!

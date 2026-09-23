@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import '../features/game_export/data/studio_game_export_controller.dart';
+import '../platform/files/native_game_export_picker.dart';
 import 'package:flutter/widgets.dart';
 import '../features/cinematics/data/local_cinematic_adapter.dart';
 import '../features/presentations/data/local_presentation_adapter.dart';
@@ -53,6 +57,15 @@ class StudioBootstrap extends StatelessWidget {
       resourceImagePickerProvider.overrideWithValue(
         const NativeResourceImagePicker().choose,
       ),
+      gameExportPortProvider.overrideWith((ref, session) {
+        final port = StudioGameExportController(
+          projectRoot: Directory(session.directoryPath),
+          projectName: session.name,
+        );
+        ref.onDispose(port.dispose);
+        return port;
+      }),
+      gameExportPickerProvider.overrideWithValue(pickNativeGameExportFile),
       narrativePortProvider.overrideWith(
         (ref, session) => LocalNarrativeAdapter(
           session: session,

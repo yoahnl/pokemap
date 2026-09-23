@@ -126,14 +126,14 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     String id, {
     WorkspaceSpace from = WorkspaceSpace.story,
   }) async {
-    if (_events?.record(id) != null) {
+    final narrative = _narrative;
+    final local = narrative?.sessions[id];
+    if (local?.dirty != true && _events?.record(id) != null) {
       _openEvents(id);
       return null;
     }
-    final narrative = _narrative;
     if (narrative == null) return 'Le projet narratif est indisponible.';
     final request = ++_navigationRequest;
-    final local = narrative.sessions[id];
     final record = narrative.project.eventRegistry?.records
         .where((record) => record.id == id)
         .firstOrNull;

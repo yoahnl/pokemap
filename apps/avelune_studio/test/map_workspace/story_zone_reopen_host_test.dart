@@ -96,7 +96,64 @@ void main() {
             .widget<Text>(find.byKey(const ValueKey('map-context-target')))
             .data,
         'Zone d’histoire',
-        reason: 'the map came back on the zone the author was working on',
+        reason: 'the zone selected before opening is still the target after',
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  testWidgets(
+    'a saved interaction edited again reopens its current simplified draft',
+    (tester) async {
+      final f = await MapHostFixture.open(tester);
+      final narrative = await f.narrativeOwner();
+      await tester.tap(find.byTooltip('Dessiner une zone d’histoire'));
+      await pumpIo(tester, frames: 4);
+      await f.drag(3, 11, 5, 13);
+      await pumpIo(tester, frames: 12);
+
+      final session = narrative.active!;
+      final id = session.current.interaction.id;
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Nom de l’interaction'),
+        'Première version',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Texte de la réplique 1'),
+        'Bienvenue au quai.',
+      );
+      await pumpIo(tester, frames: 4);
+      await pumpIo(tester, frames: 4);
+      await tester.tap(find.text('Enregistrer l’interaction et la carte'));
+      await pumpIo(tester, frames: 16);
+      expect(
+        session.dirty,
+        isFalse,
+        reason: narrative.error ?? narrative.publicationError,
+      );
+      expect(
+        narrative.project.eventRegistry?.records.any((r) => r.id == id),
+        isTrue,
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Nom de l’interaction'),
+        'Version en cours',
+      );
+      await pumpIo(tester, frames: 4);
+      expect(session.dirty, isTrue);
+      final disk = await f.disk();
+      await backToMap(f);
+      await openFromMenu(f, 4, 12);
+
+      expect(pane, findsOneWidget);
+      expect(identical(narrative.active, session), isTrue);
+      expect(narrative.active!.current.interaction.id, id);
+      expect(narrative.active!.current.interaction.name, 'Version en cours');
+      expect(
+        await f.disk(),
+        disk,
+        reason: 'reopening did not publish the draft',
       );
     },
     timeout: const Timeout(Duration(minutes: 3)),

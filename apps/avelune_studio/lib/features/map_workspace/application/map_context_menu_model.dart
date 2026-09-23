@@ -130,26 +130,28 @@ List<MapContextTarget> mapContextTargetsAt(
 
 typedef MapContextPlacement = ({MapContextTarget target, GridPos at});
 
+GridPos? mapContextAnchorOf(MapData map, MapContextFamily family, String id) =>
+    switch (family) {
+      MapContextFamily.decor =>
+        map.placedElements.where((item) => item.id == id).firstOrNull?.pos,
+      MapContextFamily.character || MapContextFamily.marker =>
+        map.entities.where((item) => item.id == id).firstOrNull?.pos,
+      MapContextFamily.warp =>
+        map.warps.where((item) => item.id == id).firstOrNull?.pos,
+      MapContextFamily.zone =>
+        map.gameplayZones.where((item) => item.id == id).firstOrNull?.area.pos,
+      MapContextFamily.trigger =>
+        map.triggers.where((item) => item.id == id).firstOrNull?.area.pos,
+      MapContextFamily.cell => null,
+    };
+
 MapContextPlacement? locateMapContextTarget(
   EditableMapDocument document,
   ProjectManifest project,
   MapContextFamily family,
   String id,
 ) {
-  final map = document.current;
-  final at = switch (family) {
-    MapContextFamily.decor =>
-      map.placedElements.where((item) => item.id == id).firstOrNull?.pos,
-    MapContextFamily.character || MapContextFamily.marker =>
-      map.entities.where((item) => item.id == id).firstOrNull?.pos,
-    MapContextFamily.warp =>
-      map.warps.where((item) => item.id == id).firstOrNull?.pos,
-    MapContextFamily.zone =>
-      map.gameplayZones.where((item) => item.id == id).firstOrNull?.area.pos,
-    MapContextFamily.trigger =>
-      map.triggers.where((item) => item.id == id).firstOrNull?.area.pos,
-    MapContextFamily.cell => null,
-  };
+  final at = mapContextAnchorOf(document.current, family, id);
   if (at == null) return null;
   final target = mapContextTargetsAt(
     document,

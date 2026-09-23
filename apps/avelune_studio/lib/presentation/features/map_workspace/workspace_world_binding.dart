@@ -90,13 +90,20 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
           for (final session in narrative.sessions.values)
             if (session.dirty)
               if (session.current.interaction.source.toJson() case final source)
-                if (source['mapId'] case final String mapId)
+                if (source['mapId'] case final String mapId) ...[
                   if (source['entityId'] case final String entityId)
                     (
                       mapId: mapId,
                       kind: MapDraftReferenceKind.entity,
                       id: entityId,
                     ),
+                  if (source['triggerId'] case final String triggerId)
+                    (
+                      mapId: mapId,
+                      kind: MapDraftReferenceKind.trigger,
+                      id: triggerId,
+                    ),
+                ],
       ],
     );
   }

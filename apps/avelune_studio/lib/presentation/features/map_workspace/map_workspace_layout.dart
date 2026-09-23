@@ -34,6 +34,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onClose,
     required this.onResources,
     required this.onMap,
+    required this.onExport,
     required this.onOpenElement,
     required this.onEditElement,
     required this.homeSearch,
@@ -63,6 +64,7 @@ class MapWorkspaceLayout extends StatelessWidget {
       onClose,
       onResources,
       onMap;
+  final VoidCallback onExport;
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
@@ -193,6 +195,8 @@ class MapWorkspaceLayout extends StatelessWidget {
               onStory?.call();
             case 'test':
               onTest?.call();
+            case 'gameExport':
+              onExport();
           }
         },
         child: Column(

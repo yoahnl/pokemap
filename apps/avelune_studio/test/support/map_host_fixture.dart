@@ -9,9 +9,11 @@ import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.d
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
 import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
-import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
+import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
 import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
@@ -23,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'm2_ui_fixture.dart';
 import 'm3_story_fixture.dart';
+import 'map_workspace_fixture.dart' show WorkspaceTestVisuals;
 import 'ui05_narrative_fixture.dart';
 import 'ui08_workspace_harness.dart';
 import 'ui12_widget_world_port.dart';
@@ -32,7 +35,7 @@ class MapHostFixture {
   final WidgetTester tester;
   final M3StoryFixture source;
   final MapWorkspaceController maps;
-  final StudioMapResources visuals;
+  final MapWorkspaceVisuals visuals;
 
   EditableMapDocument get document => maps.active!;
 
@@ -40,30 +43,36 @@ class MapHostFixture {
     WidgetTester tester, {
     bool events = true,
     NarrativePort Function(NarrativePort port)? narrative,
+    Future<void> Function(M3StoryFixture source)? prepareSource,
+    Future<File?> Function(String)? gameExportPicker,
+    AssetBundle? assetBundle,
+    GlobalKey? captureKey,
     Size size = const Size(1536, 1024),
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final (source, maps, visuals, mapPort) = (await tester.runAsync(() async {
+    final (source, maps, mapPort) = (await tester.runAsync(() async {
       final source = await M3StoryFixture.create();
+      if (prepareSource != null) await prepareSource(source);
       final mapPort = Ui08MapPort(source.maps, tester);
       final maps = MapWorkspaceController(source.session, mapPort);
       await maps.initialize();
-      final visuals = await StudioMapResources.load(
-        source.session,
-        maps.project!,
-      );
-      return (source, maps, visuals, mapPort);
+      return (source, maps, mapPort);
     }))!;
+    final visuals = WorkspaceTestVisuals();
     mapPort.interactive = true;
     final fixture = MapHostFixture._(tester, source, maps, visuals);
+    final gameExport = StudioGameExportController(
+      projectRoot: source.directory,
+      projectName: source.session.name,
+    );
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox());
+      gameExport.dispose();
       maps.dispose();
       await tester.runAsync(() async {
-        await visuals.dispose();
         if (await source.directory.exists()) {
           await source.directory.delete(recursive: true);
         }
@@ -73,31 +82,47 @@ class MapHostFixture {
       LocalNarrativeAdapter(session: source.session, mapAdapter: source.maps),
       tester,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: MapWorkspaceScreen(
-          controller: maps,
-          loadVisuals: (_, _) async => visuals,
-          narrativePort: narrative?.call(narrativePort) ?? narrativePort,
-          eventPort: events
-              ? Ui08EventPort(
-                  LocalEventAdapter(
-                    session: source.session,
-                    mapAdapter: source.maps,
-                  ),
-                  tester,
-                )
-              : null,
-          worldPort: Ui12WidgetWorldPort(
-            LocalWorldAdapter(session: source.session, mapAdapter: source.maps),
-            tester,
-          ),
-          runtimeBuilder: (_, _, _) => const SizedBox(),
-          onClose: () async {},
-          registerExitGuard: (_) {},
+    final app = MaterialApp(
+      theme: studioTheme(),
+      home: MapWorkspaceScreen(
+        controller: maps,
+        gameExport: gameExport,
+        gameExportPicker: (suggested) async {
+          final file = await gameExportPicker?.call(suggested);
+          return file == null
+              ? null
+              : StudioGameExportDestination(
+                  file.path,
+                  exists: await file.exists(),
+                );
+        },
+        loadVisuals: (_, _) async => visuals,
+        narrativePort: narrative?.call(narrativePort) ?? narrativePort,
+        eventPort: events
+            ? Ui08EventPort(
+                LocalEventAdapter(
+                  session: source.session,
+                  mapAdapter: source.maps,
+                ),
+                tester,
+              )
+            : null,
+        worldPort: Ui12WidgetWorldPort(
+          LocalWorldAdapter(session: source.session, mapAdapter: source.maps),
+          tester,
         ),
+        runtimeBuilder: (_, _, _) => const SizedBox(),
+        onClose: () async {},
+        registerExitGuard: (_) {},
       ),
+    );
+    final rooted = assetBundle == null
+        ? app
+        : DefaultAssetBundle(bundle: assetBundle, child: app);
+    await tester.pumpWidget(
+      captureKey == null
+          ? rooted
+          : RepaintBoundary(key: captureKey, child: rooted),
     );
     await pumpIo(tester);
     return fixture;

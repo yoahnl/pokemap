@@ -1,0 +1,45 @@
+ M apps/avelune_studio/lib/app/di/providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/map_context_menu_actions.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/map_context_menu_model.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_close_actions.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_context_menu_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_story_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_world_binding.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart
+ M apps/avelune_studio/test/map_workspace/context_identity_host_test.dart
+ M apps/avelune_studio/test/map_workspace/decor_move_host_test.dart
+ M apps/avelune_studio/test/map_workspace/keyboard_delete_host_test.dart
+ M apps/avelune_studio/test/map_workspace/story_zone_reopen_host_test.dart
+ M apps/avelune_studio/test/support/map_host_fixture.dart
+ M apps/pokemap_hub/pubspec.lock
+ M apps/pokemap_hub/pubspec.yaml
+ M documentation/reports/avelune_studio/AS-MAP-002_clic_droit_carte/README.md
+ M packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart
+?? apps/avelune_studio/lib/app/di/game_export_providers.dart
+?? apps/avelune_studio/lib/features/game_export/data/studio_export_revision.dart
+?? apps/avelune_studio/lib/features/game_export/data/studio_game_export_controller.dart
+?? apps/avelune_studio/lib/features/game_export/domain/studio_game_export_port.dart
+?? apps/avelune_studio/lib/platform/files/native_game_export_picker.dart
+?? apps/avelune_studio/lib/presentation/features/game_export/studio_game_export_name.dart
+?? apps/avelune_studio/lib/presentation/features/game_export/studio_game_export_page.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart
+?? apps/avelune_studio/test/game_export/studio_game_export_control_test.dart
+?? apps/avelune_studio/test/game_export/studio_game_export_service_test.dart
+?? apps/avelune_studio/test/support/game_export_fixture.dart
+?? apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/README.md
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/as-exp-001-demo.avelunegame
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/captures/export-ready.png
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/git-status-final.txt
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/player-import-journey.log
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-architecture.log
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-export-correction.log
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-stress.log
+?? documentation/reports/avelune_studio/AS-EXP-001_export_jeu/logs/studio-suite.log

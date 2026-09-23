@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../../features/game_export/domain/studio_game_export_port.dart';
+import '../game_export/studio_game_export_page.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../presentations/presentation_view_state.dart';
@@ -78,6 +80,7 @@ part 'workspace_context_menu_binding.dart';
 part 'workspace_navigation_binding.dart';
 part 'workspace_world_binding.dart';
 part 'workspace_verification_binding.dart';
+part 'workspace_export_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -99,6 +102,8 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.worldPort,
     this.verificationPort,
     this.presentationMediaPicker,
+    this.gameExportPicker,
+    this.gameExport,
     this.home,
   });
   final MapWorkspaceController controller;
@@ -114,6 +119,8 @@ class MapWorkspaceScreen extends StatefulWidget {
   final WorldPort? worldPort;
   final VerificationPort? verificationPort;
   final PickPresentationMedia? presentationMediaPicker;
+  final PickGameExportFile? gameExportPicker;
+  final StudioGameExportPort? gameExport;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -176,6 +183,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   int _gestureGeneration = 0;
   int _navigationRequest = 0;
   late final WorkspaceActions _actions;
+  StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
   MapWorkspaceViewState? get _view {
     final id = _controller.active?.base.mapId;
@@ -208,8 +216,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );
-    widget.registerExitGuard(_actions.allowClose);
-    widget.home?.allowSwitch = _actions.allowClose;
+    widget.registerExitGuard(_allowCloseWithExport);
+    widget.home?.allowSwitch = _allowCloseWithExport;
     unawaited(_initialize());
   }
 

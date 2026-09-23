@@ -129,7 +129,30 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>
                               _openResources(element, true),
-                          resourceContent: _space == WorkspaceSpace.verification
+                          onExport: () {
+                            if (_gameExport != null) {
+                              _show(WorkspaceSpace.gameExport);
+                            }
+                          },
+                          resourceContent: _space == WorkspaceSpace.gameExport
+                              ? StudioGameExportPage(
+                                  controller: _gameExport!,
+                                  prepare: _prepareGameExport,
+                                  preparationFailure: () =>
+                                      _actions.exportPreparationFailure,
+                                  hasPendingChanges: () =>
+                                      _actions.hasPendingChanges,
+                                  isCurrentProject: () =>
+                                      mounted &&
+                                      !_controller.isDisposed &&
+                                      _controller.session.directoryPath ==
+                                          widget
+                                              .controller
+                                              .session
+                                              .directoryPath,
+                                  pickFile: widget.gameExportPicker!,
+                                )
+                              : _space == WorkspaceSpace.verification
                               ? _verificationPage()
                               : _space == WorkspaceSpace.world
                               ? _worldPage()

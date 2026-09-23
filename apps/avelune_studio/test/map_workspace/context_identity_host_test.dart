@@ -118,7 +118,10 @@ void main() {
 
       await shiftF10(f);
       expect(f.menu, findsNothing, reason: 'no silent retargeting');
-      expect(find.textContaining('Sélectionnez un élément'), findsOneWidget);
+      expect(
+        find.textContaining('Aucun élément visible n’est sélectionné'),
+        findsOneWidget,
+      );
       expect(f.document.undoCount, steps);
     },
     timeout: const Timeout(Duration(minutes: 3)),

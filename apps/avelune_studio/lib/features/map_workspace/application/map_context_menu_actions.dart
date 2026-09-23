@@ -14,13 +14,11 @@ class MapContextActionContext {
     required this.project,
     required this.position,
     this.referenceGuard,
-    this.narrativeGuard,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
   final GridPos position;
   final MapReferenceGuard? referenceGuard;
-  final String? Function(String entityId)? narrativeGuard;
 }
 
 /// The actions a family really supports. An unsupported capability is absent,
@@ -119,13 +117,11 @@ List<MapContextAction> _characterActions(
   MapContextTarget target,
   MapContextActionContext context,
 ) {
-  final blocked =
-      CharacterEditingCommands(
-        context.document,
-        context.project,
-        draftGuard: context.referenceGuard,
-      ).deletionProblem(target.id) ??
-      context.narrativeGuard?.call(target.id);
+  final blocked = CharacterEditingCommands(
+    context.document,
+    context.project,
+    draftGuard: context.referenceGuard,
+  ).deletionProblem(target.id);
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),
     const MapContextAction(

@@ -420,17 +420,18 @@ final class CanonicalGamePackageExportService {
     required File outputFile,
     GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
-    final outputName = outputFile.uri.pathSegments.last.toLowerCase();
-    if (!outputName.endsWith('.avelunegame') ||
-        outputName.endsWith('.pokemapgame.avelunegame')) {
-      throw GamePackageExportException(
-        code: 'invalidExportDestination',
-        path: outputFile.path,
-        message: 'Export destination must use a single .avelunegame extension.',
-      );
-    }
+    _validateDestination(outputFile);
     final artifact =
         await build(projectRoot: projectRoot, profile: profile, mode: mode);
+    await writeArtifactToFile(artifact: artifact, outputFile: outputFile);
+    return artifact;
+  }
+
+  Future<void> writeArtifactToFile({
+    required GamePackageExportArtifact artifact,
+    required File outputFile,
+  }) async {
+    _validateDestination(outputFile);
     try {
       await outputFile.parent.create(recursive: true);
     } on Object catch (error) {
@@ -442,14 +443,23 @@ final class CanonicalGamePackageExportService {
       );
     }
     final atomicWriter = atomicFileWriter ?? _writeAtomically;
+    final existed = await outputFile.exists();
     try {
       await atomicWriter(
         outputFile: outputFile,
         packageBytes: artifact.packageBytes,
         packageSha256: artifact.packageSha256,
       );
-      return artifact;
     } on FileSystemException catch (atomicError) {
+      if (existed || await outputFile.exists()) {
+        throw GamePackageExportException(
+          code: 'exportWriteFailed',
+          path: outputFile.path,
+          message:
+              'Le fichier existant a été conservé : écriture atomique indisponible.',
+          cause: atomicError,
+        );
+      }
       // NSSavePanel grants a sandboxed macOS application access to the exact
       // selected file, but not necessarily to sibling `.tmp` or `.backup`
       // files. Keep the crash-atomic path as the default, then fall back to a
@@ -460,7 +470,6 @@ final class CanonicalGamePackageExportService {
           packageBytes: artifact.packageBytes,
           packageSha256: artifact.packageSha256,
         );
-        return artifact;
       } on Object catch (directError) {
         throw GamePackageExportException(
           code: 'exportWriteFailed',
@@ -480,6 +489,18 @@ final class CanonicalGamePackageExportService {
         path: outputFile.path,
         message: 'The certified package could not be written atomically.',
         cause: error,
+      );
+    }
+  }
+
+  void _validateDestination(File outputFile) {
+    final outputName = outputFile.uri.pathSegments.last.toLowerCase();
+    if (!outputName.endsWith('.avelunegame') ||
+        outputName.endsWith('.pokemapgame.avelunegame')) {
+      throw GamePackageExportException(
+        code: 'invalidExportDestination',
+        path: outputFile.path,
+        message: 'Export destination must use a single .avelunegame extension.',
       );
     }
   }
