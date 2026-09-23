@@ -76,11 +76,11 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
             game: game,
             hostBranding: _splashBranding,
             splashLogo: const AssetImage(
-              'assets/avelune/logo/avelune_symbol.png',
+              'assets/avelune/logo/avelune_moon.png',
               package: _hubPackage,
             ),
             splashWordmark: const AssetImage(
-              'assets/avelune/logo/avelune_wordmark.png',
+              'assets/avelune/logo/avelune_glass_wordmark.png',
               package: _hubPackage,
             ),
             diagnosticLogFile: File(

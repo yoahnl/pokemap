@@ -17,7 +17,7 @@ void main() {
   setUpAll(() async {
     logoBytes = await _logoBytes();
     wordmarkBytes = await File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_wordmark.png',
+      '../../apps/pokemap_hub/assets/avelune/logo/avelune_glass_wordmark.png',
     ).readAsBytes();
     await (FontLoader('packages/map_player_ui/PokeMapSplashMarcellus')
           ..addFont(rootBundle.load('assets/fonts/Marcellus-Regular.ttf')))
@@ -41,15 +41,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<Image>(find.byKey(
-        const ValueKey<String>('startup-splash-wordmark-image'),
-      )).image,
+      tester
+          .widget<Image>(find.byKey(
+            const ValueKey<String>('startup-splash-wordmark-image'),
+          ))
+          .image,
       wordmark,
     );
     expect(
-      tester.widget<Opacity>(find.byKey(
-        const ValueKey<String>('startup-splash-wordmark'),
-      )).opacity,
+      tester
+          .widget<Opacity>(find.byKey(
+            const ValueKey<String>('startup-splash-wordmark'),
+          ))
+          .opacity,
       1,
     );
     expect(tester.takeException(), isNull);
@@ -225,7 +229,7 @@ void main() {
           .width,
       470,
     );
-    expect(tester.getSize(find.byType(Image).first).width, 176);
+    expect(tester.getSize(find.byType(Image).first).width, 240);
 
     await _setViewport(tester, const Size(390, 693.333333));
     await tester.pumpWidget(
@@ -248,7 +252,7 @@ void main() {
           .width,
       closeTo(296.4, .01),
     );
-    expect(tester.getSize(find.byType(Image).first).width, closeTo(132.6, .01));
+    expect(tester.getSize(find.byType(Image).first).width, closeTo(187.2, .01));
     expect(tester.takeException(), isNull);
   });
 
@@ -374,7 +378,7 @@ Future<void> _setViewport(WidgetTester tester, Size size) async {
 }
 
 Future<Uint8List> _logoBytes() => File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_symbol.png',
+      '../../apps/pokemap_hub/assets/avelune/logo/avelune_moon.png',
     ).readAsBytes();
 
 double _mockLoadingProgress(int milliseconds) {

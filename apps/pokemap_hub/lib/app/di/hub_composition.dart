@@ -21,10 +21,12 @@ const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
   secondaryColorHex: '#9E79D7',
 );
 
-final _aveluneRuntimeSplashLogo = AssetImage(AveluneMaterialCatalog.logo.path);
+const _aveluneRuntimeSplashLogo = AssetImage(
+  'assets/avelune/logo/avelune_moon.png',
+);
 
-final _aveluneRuntimeSplashWordmark = AssetImage(
-  AveluneMaterialCatalog.wordmark.path,
+const _aveluneRuntimeSplashWordmark = AssetImage(
+  'assets/avelune/logo/avelune_glass_wordmark.png',
 );
 
 abstract interface class HubAppComposition {

@@ -14,13 +14,14 @@ import 'package:pokemap_hub/features/session/domain/entities/installed_game_laun
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
-import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
 
 void main() {
   testWidgets('mounts the runtime splash on the first frame', (tester) async {
     final launch = Completer<InstalledGameLaunchContext>();
-    final logo = AssetImage(AveluneMaterialCatalog.logo.path);
-    final wordmark = AssetImage(AveluneMaterialCatalog.wordmark.path);
+    const logo = AssetImage('assets/avelune/logo/avelune_moon.png');
+    const wordmark = AssetImage(
+      'assets/avelune/logo/avelune_glass_wordmark.png',
+    );
 
     await tester.pumpWidget(
       MaterialApp(

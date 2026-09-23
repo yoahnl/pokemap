@@ -228,8 +228,8 @@ class _SplashLogoStage extends StatelessWidget {
     final double height =
         mobile ? viewport.height * .54 : math.min(viewport.height * .6, 500.0);
     final markSize = mobile
-        ? (viewport.width * .34).clamp(110.0, 150.0)
-        : (viewport.width * .11).clamp(104.0, 178.0);
+        ? (viewport.width * .48).clamp(150.0, 220.0)
+        : (viewport.width * .15).clamp(148.0, 240.0);
     final wordmarkSize = mobile
         ? (viewport.width * .044).clamp(14.0, 18.0)
         : (viewport.width * .0135).clamp(15.0, 22.0);
@@ -287,15 +287,22 @@ class _SplashLogoStage extends StatelessWidget {
                     offset: Offset(0, markState.translateY),
                     child: Transform.scale(
                       scale: markState.scale,
-                      child: _SplashMark(
-                        logo: logo,
-                        size: markSize,
-                        brightness: markState.brightness,
-                        saturation: markState.saturation,
-                        blur: markState.blur,
-                        shadowBlur: markState.shadowBlur,
-                        shadowColor: markState.shadowColor,
-                        fallbackColor: primary,
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, .0012)
+                          ..rotateY(markState.rotationY)
+                          ..rotateZ(markState.rotationZ),
+                        child: _SplashMark(
+                          logo: logo,
+                          size: markSize,
+                          brightness: markState.brightness,
+                          saturation: markState.saturation,
+                          blur: markState.blur,
+                          shadowBlur: markState.shadowBlur,
+                          shadowColor: markState.shadowColor,
+                          fallbackColor: primary,
+                        ),
                       ),
                     ),
                   ),
@@ -318,8 +325,8 @@ class _SplashLogoStage extends StatelessWidget {
                                 'startup-splash-wordmark-image',
                               ),
                               image: wordmark!,
-                              width: wordmarkSize * 13,
-                              height: wordmarkSize * 1.2,
+                              width: wordmarkSize * 19,
+                              height: wordmarkSize * 6.4,
                               fit: BoxFit.contain,
                               filterQuality: FilterQuality.high,
                               excludeFromSemantics: true,
@@ -447,7 +454,7 @@ class _FallbackMark extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Text(
-          'A',
+          '✦',
           style: TextStyle(
             color: color,
             fontFamily: 'PokeMapSplashMarcellus',
@@ -1009,6 +1016,8 @@ class _MarkState {
     required this.opacity,
     required this.translateY,
     required this.scale,
+    required this.rotationY,
+    required this.rotationZ,
     required this.brightness,
     required this.saturation,
     required this.blur,
@@ -1020,6 +1029,8 @@ class _MarkState {
     opacity: 1,
     translateY: 0,
     scale: 1,
+    rotationY: 0,
+    rotationZ: 0,
     brightness: 1,
     saturation: .9,
     blur: 0,
@@ -1030,6 +1041,8 @@ class _MarkState {
   final double opacity;
   final double translateY;
   final double scale;
+  final double rotationY;
+  final double rotationZ;
   final double brightness;
   final double saturation;
   final double blur;
@@ -1138,12 +1151,24 @@ _MarkState _markState(double time) {
     opacity: _keyframes(p, stops, const <double>[0, 0, 1, 1, 1, 0], curve),
     translateY:
         _keyframes(p, stops, const <double>[14, 14, 0, 0, 0, -4], curve),
-    scale:
-        _keyframes(p, stops, const <double>[.76, .76, 1.05, 1, 1, .97], curve),
+    scale: _keyframes(
+        p, stops, const <double>[1.32, 1.32, 1.12, 1, 1, .97], curve),
+    rotationY: _keyframes(
+      p,
+      stops,
+      const <double>[-1.3, -1.3, -.32, 0, 0, 0],
+      curve,
+    ),
+    rotationZ: _keyframes(
+      p,
+      stops,
+      const <double>[-.12, -.12, .04, 0, 0, 0],
+      curve,
+    ),
     brightness:
-        _keyframes(p, stops, const <double>[2.2, 2.2, 1.38, 1, 1, .72], curve),
+        _keyframes(p, stops, const <double>[.75, .75, 1.25, 1, 1, .72], curve),
     saturation:
-        _keyframes(p, stops, const <double>[.25, .25, .7, .9, .9, .6], curve),
+        _keyframes(p, stops, const <double>[1.1, 1.1, 1.08, 1, 1, .6], curve),
     blur: _keyframes(p, stops, const <double>[8, 8, 0, 0, 0, 1], curve),
     shadowBlur:
         _keyframes(p, stops, const <double>[42, 42, 36, 30, 30, 22], curve),
