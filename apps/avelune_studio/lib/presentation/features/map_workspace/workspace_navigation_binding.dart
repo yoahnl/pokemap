@@ -2,6 +2,11 @@ part of 'map_workspace_screen.dart';
 
 extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
   void _show(WorkspaceSpace space) {
+    if (_space == WorkspaceSpace.gameExport &&
+        space != _space &&
+        _gameExport?.operationActive == true) {
+      return;
+    }
     final inPresentation = _space == WorkspaceSpace.presentation;
     if (inPresentation && space != _space) {
       _presentations?.suspendPreview?.call();

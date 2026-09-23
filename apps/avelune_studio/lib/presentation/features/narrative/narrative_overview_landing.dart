@@ -14,6 +14,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../../theme/studio_tokens.dart';
 
 part 'narrative_overview_landing_content.dart';
+part 'narrative_overview_landing_desktop.dart';
 part 'narrative_overview_landing_side.dart';
 part 'narrative_overview_landing_search.dart';
 
@@ -93,24 +94,18 @@ class NarrativeOverviewLanding extends StatelessWidget {
             MediaQuery.textScalerOf(context).scale(14) <= 20;
         final sideWidth = wide ? 282.0 : contentWidth;
         final mainWidth = wide ? contentWidth - sideWidth - 12 : contentWidth;
+        if (wide) {
+          return _desktop(context, mainWidth, sideWidth, query);
+        }
         final main = _main(context, mainWidth, query);
         final side = SizedBox(width: sideWidth, child: _side(context));
         return SingleChildScrollView(
           key: const ValueKey('narrative-overview-scroll'),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          child: wide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: main),
-                    const SizedBox(width: 12),
-                    side,
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [main, const SizedBox(height: 12), side],
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [main, const SizedBox(height: 12), side],
+          ),
         );
       },
     );

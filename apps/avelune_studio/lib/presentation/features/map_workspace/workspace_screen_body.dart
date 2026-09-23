@@ -118,6 +118,8 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onClose: _close,
                           onResources: _openResources,
                           onMap: _openMap,
+                          onExport: _openGameExport,
+                          exportActive: _gameExport?.operationActive == true,
                           onStory: _narrative == null
                               ? null
                               : () => _show(WorkspaceSpace.story),
@@ -129,29 +131,8 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>
                               _openResources(element, true),
-                          onExport: () {
-                            if (_gameExport != null) {
-                              _show(WorkspaceSpace.gameExport);
-                            }
-                          },
                           resourceContent: _space == WorkspaceSpace.gameExport
-                              ? StudioGameExportPage(
-                                  controller: _gameExport!,
-                                  prepare: _prepareGameExport,
-                                  preparationFailure: () =>
-                                      _actions.exportPreparationFailure,
-                                  hasPendingChanges: () =>
-                                      _actions.hasPendingChanges,
-                                  isCurrentProject: () =>
-                                      mounted &&
-                                      !_controller.isDisposed &&
-                                      _controller.session.directoryPath ==
-                                          widget
-                                              .controller
-                                              .session
-                                              .directoryPath,
-                                  pickFile: widget.gameExportPicker!,
-                                )
+                              ? _gameExportPage()
                               : _space == WorkspaceSpace.verification
                               ? _verificationPage()
                               : _space == WorkspaceSpace.world

@@ -172,7 +172,7 @@ void main() {
       expect(find.text(_refusalMessage), findsNothing);
       expect(selections, 0);
       expect(tester.takeException(), isNull);
-      await tapVisible(tester, find.text('Fermer le projet'));
+      await tapVisible(tester, find.byKey(const ValueKey('Fermer le projet')));
       await tester.pumpAndSettle();
       expect(port.released, [exampleA]);
       await revealProjectPath(tester);

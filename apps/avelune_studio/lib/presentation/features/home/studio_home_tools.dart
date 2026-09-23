@@ -9,9 +9,11 @@ class StudioHomeTools extends StatelessWidget {
     required this.hasProject,
     required this.canTest,
     required this.busy,
+    this.dense = false,
   });
   final ValueChanged<String> onDestination;
   final bool hasProject, canTest, busy;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +71,7 @@ class StudioHomeTools extends StatelessWidget {
           'Tout ce dont vous avez besoin, au même endroit.',
           style: TextStyle(color: colors.onSurfaceVariant),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: dense ? 8 : 14),
         LayoutBuilder(
           builder: (context, constraints) {
             final scale = MediaQuery.textScalerOf(context).scale(1);
@@ -104,13 +106,13 @@ class StudioHomeTools extends StatelessWidget {
                               ? () => onDestination(tool.$4)
                               : null,
                           child: Padding(
-                            padding: const EdgeInsets.all(14),
+                            padding: EdgeInsets.all(dense ? 9 : 14),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  width: 46,
-                                  height: 46,
+                                  width: dense ? 30 : 46,
+                                  height: dense ? 30 : 46,
                                   decoration: BoxDecoration(
                                     color: tool.$5,
                                     borderRadius: BorderRadius.circular(8),
@@ -118,36 +120,38 @@ class StudioHomeTools extends StatelessWidget {
                                   child: Icon(
                                     tool.$3,
                                     color: colors.surfaceContainerLowest,
-                                    size: 28,
+                                    size: dense ? 19 : 28,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: dense ? 6 : 12),
                                 Text(
                                   tool.$1,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  tool.$2,
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 12,
-                                    height: 1.5,
+                                if (!dense) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    tool.$2,
+                                    style: TextStyle(
+                                      color: colors.onSurfaceVariant,
+                                      fontSize: 12,
+                                      height: 1.5,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Icon(
-                                    hasProject
-                                        ? Icons.arrow_forward
-                                        : Icons.lock_outline,
-                                    size: 17,
-                                    color: tool.$5,
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Icon(
+                                      hasProject
+                                          ? Icons.arrow_forward
+                                          : Icons.lock_outline,
+                                      size: 17,
+                                      color: tool.$5,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),

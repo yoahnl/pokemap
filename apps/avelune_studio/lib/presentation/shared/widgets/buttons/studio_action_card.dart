@@ -12,6 +12,8 @@ class StudioActionCard extends StatelessWidget {
     required this.tone,
     required this.onPressed,
     this.leading,
+    this.selected = false,
+    this.compact = false,
   });
 
   final String title, subtitle;
@@ -19,6 +21,8 @@ class StudioActionCard extends StatelessWidget {
   final StudioTone tone;
   final VoidCallback? onPressed;
   final Widget? leading;
+  final bool selected;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -27,31 +31,47 @@ class StudioActionCard extends StatelessWidget {
       button: true,
       enabled: onPressed != null,
       child: Material(
-        color: colors.surface,
+        color: selected
+            ? colors.primaryContainer.withValues(alpha: .35)
+            : colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
-          side: BorderSide(color: colors.outlineVariant),
+          side: BorderSide(
+            color: selected ? colors.primary : colors.outlineVariant,
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onPressed,
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                leading ?? StudioIconTile(icon: icon, tone: tone, size: 38),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+            padding: EdgeInsets.all(compact ? 9 : 12),
+            child: compact
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Row(
+                        children: [
+                          leading ??
+                              StudioIconTile(icon: icon, tone: tone, size: 28),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          Icon(
+                            selected ? Icons.check_circle : Icons.chevron_right,
+                            size: 16,
+                            color: selected
+                                ? colors.primary
+                                : colors.onSurfaceVariant,
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 5),
                       Text(
                         subtitle,
                         maxLines: 2,
@@ -59,16 +79,42 @@ class StudioActionCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
+                  )
+                : Row(
+                    children: [
+                      leading ??
+                          StudioIconTile(icon: icon, tone: tone, size: 38),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            Text(
+                              subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        selected ? Icons.check_circle : Icons.chevron_right,
+                        size: 18,
+                        color: selected
+                            ? colors.primary
+                            : colors.onSurfaceVariant,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: colors.onSurfaceVariant,
-                ),
-              ],
-            ),
           ),
         ),
       ),

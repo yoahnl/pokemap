@@ -139,3 +139,81 @@ Une annulation acceptée avant `writing` n'appelle pas le writer, ne touche pas 
 Passes séparées : **Audit/architecture** — les deux causes et les trois sorties ont été tracées, frontières conservées ; **Implémentation** — aucun nouveau format, exporteur ou moteur ; **Tests** — reproductions rouges puis 30 tests ciblés et 891 tests complets réussis ; **Build/validation** — analyse, Player installé et build macOS réussis ; **Critique finale** — le test d'opération retenue utilise une empreinte injectée pour contrôler le temps, tandis que les tests du contrôleur et du Player exercent les empreintes et paquet réels. Aucun sélecteur natif n'a été piloté manuellement lors de cette revue, et la capture visuelle initiale n'a pas été régénérée car l'interface est inchangée. Le test de stress est resté dans la suite. Aucun audit MCP, iOS/SPM ou narratif n'a été relancé : ces contrats ne changent pas. Aucun commentaire n'a été ajouté au code manuel.
 
 État Git final de cette revue : [git-status-review.txt](logs/git-status-review.txt). Aucun commit, push, PR ni changement Notion n'a été effectué. Les travaux UI05, objets, store et publication restent hors de cette correction.
+
+## Interface desktop et accès depuis l’accueil — 23 septembre 2026
+
+### Audit initial et décision de produit
+
+État initial observé : arbre propre sur `main` ; le repère `711499a9` fourni pour lecture n’a pas été checkout. La page d’export canonique et son contrôleur existaient déjà, ainsi que les gardes de brouillons, d’annulation et de sortie. L’accueil général, la vue Histoire UI05 et le cadre commun utilisaient des compositions distinctes. `avelune_symbol.png` contient le symbole approuvé ; `avelune_logo.png` est le wordmark et peut être placé à sa droite sans le dupliquer. Les assets du Train et les projets personnels sont restés hors de l’intervention.
+
+La première demande parlait d’une feuille compacte. La précision visuelle ultérieure de Yoahn remplace cette partie : « Exporter le jeu » ouvre une **page du workspace**, comme sur la photo fournie. Une seconde précision explicite retire l’entrée Export de la barre latérale : le **bouton de l’accueil général** est le seul accès principal à cette page. Le contrôleur, le sélecteur natif, la sauvegarde des propriétaires et le format `.avelunegame` sont réutilisés ; aucune seconde chaîne d’export n’a été créée. La photo n’est pas une nouvelle charte : le logo et les tokens Avelune déjà intégrés restent la source visuelle. Une couverture de jeu non déclarée n’est pas inventée ni présentée comme embarquée dans le paquet.
+
+### Fichiers et zones du diff
+
+Les chemins du tableau sont sous `apps/avelune_studio/`, sauf la dernière ligne relative à `apps/pokemap_hub/`. Les nouvelles parties Dart découpent des fichiers existants pour conserver la limite de 300 lignes ; elles ne créent pas une nouvelle couche métier.
+
+| Fichier | Zone modifiée ; raison et effet |
+| --- | --- |
+| `lib/presentation/features/game_export/studio_game_export_page.dart` | État du formulaire, choix de destination, confirmation d’écrasement et abonnement au contrôleur ; la page ne dispose jamais le contrôleur du workspace. |
+| `lib/presentation/features/game_export/studio_game_export_content.dart` | Informations essentielles, deux modes canoniques, destination et états réels ; trois sections lisibles à 1280 × 720. |
+| `lib/presentation/features/game_export/studio_game_export_layout.dart` | En-tête, colonnes adaptatives, contenu localement déroulant et actions fixes ; aucune boîte de dialogue globale. |
+| `lib/presentation/features/game_export/studio_game_export_summary.dart` | Résumé fondé sur les saisies, destination abrégée et options techniques accessibles ; aucune validation fictive avant exécution. |
+| `lib/presentation/features/home/studio_home_hero.dart` | Action « Exporter le jeu… » près des actions du projet et bandeau moins haut ; état désactivé sans projet. |
+| `lib/presentation/features/home/studio_home_projects.dart` | Récents construits à la demande dans une liste bornée ; cartes prévisualisées en nombre limité avec accès à la collection entière. |
+| `lib/presentation/features/home/studio_home_screen.dart` | Composition desktop contrainte, défilement local des contenus et collections, état d’ouverture ancré quand il exige une action. |
+| `lib/presentation/features/home/studio_home_tools.dart` | Grille d’outils plus dense à hauteur standard ; routes existantes conservées. |
+| `lib/presentation/features/map_workspace/map_workspace_layout.dart` | Contenu export dans le cadre commun et retrait du pied de carte sans pertinence sur la page Export. |
+| `lib/presentation/features/map_workspace/workspace_export_binding.dart` | Navigation vers la page avec le contrôleur existant, préparations et garde de projet existants. |
+| `lib/presentation/features/map_workspace/workspace_home_binding.dart` | Bouton d’accueil vers Export, retour vers l’accueil sans démonter le workspace et blocage pendant l’opération réelle. |
+| `lib/presentation/features/map_workspace/workspace_navigation_binding.dart` | Une opération d’export active refuse la sortie de la page jusqu’à son achèvement ou nettoyage. |
+| `lib/presentation/features/map_workspace/workspace_screen_body.dart` | Raccorde la page Export au `MapWorkspaceScreen` et transmet l’activité au cadre. |
+| `lib/presentation/features/narrative/narrative_overview_landing.dart` | Bascule de la seule grande composition Histoire vers les zones desktop bornées, sans modifier les propriétaires UI05. |
+| `lib/presentation/features/narrative/narrative_overview_landing_desktop.dart` | Bandeau et recherche stables, contenus Histoire et colonne latérale défilant localement ; recherche paresseuse conservée. |
+| `lib/presentation/features/project_session/project_open_controls.dart` | Conserve l’ouverture exacte et ses messages ; évite un second contrôle de fermeture dans l’accueil. |
+| `lib/presentation/features/project_session/project_session_screen.dart` | Bouton d’export depuis le véritable accueil, protection de fermeture et workspace monté hors écran lors du retour. |
+| `lib/presentation/shared/widgets/buttons/studio_action_card.dart` | Variante compacte et état sélectionné du composant partagé pour les modes ; tokens existants. |
+| `lib/presentation/shared/widgets/layout/studio_application_frame.dart` | Symbole approuvé + wordmark dans l’en-tête partagé, nom du projet quand la largeur le permet. |
+| `lib/presentation/shared/widgets/layout/studio_primary_navigation.dart` | Aucune entrée Export, Accueil sélectionné pour sa sous-page ; navigation fixe si elle tient, défilement local si la hauteur ou le texte l’exige. |
+| `test/game_export/studio_game_export_close_test.dart` | Sortie, profil illisible, brouillon et annulation encore en nettoyage depuis la page réelle. |
+| `test/game_export/studio_game_export_project_switch_test.dart` | Accueil réel → page du même projet → retour sans perte de carte/transform → export canonique, changement de projet gardé. |
+| `test/game_export/studio_game_export_service_test.dart` | Ouverture par la navigation Accueil, petit écran, fichier natif refusé, sauvegarde refusée, écrasement refusé et paquet réel. |
+| `test/home/home_character_navigation_test.dart` | Raccourci existant testé dans l’accueil localement déroulant. |
+| `test/home/home_visual_test.dart` | Tailles desktop, aucune entrée Export latérale, bouton d’accueil actif avec projet et désactivé sans projet, recherche et molette confinée. |
+| `test/home/home_lazy_collection_test.dart` | Cent récents à taille compacte : construction progressive et défilement interne. |
+| `test/presentation/project_path_submission_test.dart` | Fermeture du projet par le vrai contrôle compact après ouverture exacte. |
+| `test/presentation/studio_app_test.dart` | Identité et fermeture dans le cadre partagé, petite fenêtre sans débordement. |
+| `test/presentation/ui05_narrative_overview_navigation_test.dart` | Histoire conservée et défilements localisés sur quatre tailles. |
+| `test/support/map_host_fixture.dart` | Contrôleur/navigation d’export injectés dans le vrai workspace et captures sans bannière debug. |
+| `test/support/map_host_fixture_disk.dart` | Comparaison des fichiers auteur extraite de la fixture, sans changer son parcours. |
+| `test/support/open_project_path.dart` | Aide au vrai formulaire d’ouverture dans la zone locale déroulante. |
+| `../pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart` | Recette de l’installation Player adaptée au bouton de la page ; existence du vrai paquet vérifiée avant de masquer la source auteur. |
+
+Les captures finales de cette intervention sont liées ci-dessous. Le rapport UI05 existant conserve ses images du Train et reçoit une note sur la composition desktop ; aucune image du projet original n’est écrite. Aucun commentaire de code n’a été ajouté, suivant la demande explicite du mandat.
+
+### Comparaison et recette
+
+La première capture de la page montrait cinq cartes empilées et le résultat sous le pli. La composition finale rassemble les informations, les options et la vérification en trois sections, avec un résumé à droite et l’action d’export toujours accessible. À 1280 × 720, les trois sections sont visibles ; à 1024 × 640 et 150 % de texte, les champs et options avancées restent accessibles par le défilement local. Le résumé ne dit « Paquet produit » qu’après le reçu du contrôleur. La photo de référence montre une couverture : la page n’en simule pas une, car aucun média de couverture de cette fixture n’est exposé par le port Studio. Le champ avancé reste disponible, et les fichiers complets, SHA-256 et révision sont consultables après réussite.
+
+Captures Flutter finales, toutes issues de fixtures temporaires : [accueil du vrai workspace et action Export](captures/export-home.png), [page Export avant exécution](captures/export-home-ready.png), [résultat après export](captures/export-home-complete.png), [accueil à 1280 × 800](captures/ui01-demo-1280.png), [petite fenêtre à 150 % de texte](captures/ui01-small-150.png), [accueil sans projet](captures/ui01-empty.png). Les quatre captures UI05 mises à jour restent dans [le rapport Histoire](../UI05_histoire/README.md). Les images montrent des widgets Flutter exécutés dans le véritable hôte de test ; aucune manipulation native interactive n’est revendiquée.
+
+### Vérifications et relecture finale
+
+| Commande | Résultat et journal |
+| --- | --- |
+| `cd apps/avelune_studio && dart format --output=none --set-exit-if-changed` sur les 32 Dart modifiés ou créés | 32 fichiers contrôlés, 0 à reformater. |
+| `cd apps/pokemap_hub && dart format --output=none --set-exit-if-changed test/features/installation/avelune_studio_export_player_e2e_test.dart` | 1 fichier contrôlé, 0 à reformater. |
+| `cd apps/avelune_studio && flutter analyze --no-pub` | `No issues found!` ; [journal final](logs/studio-analysis-home-only-final.log). |
+| `cd apps/avelune_studio && flutter test --no-pub test/game_export/studio_game_export_service_test.dart test/game_export/studio_game_export_project_switch_test.dart test/game_export/studio_game_export_close_test.dart test/home/home_visual_test.dart test/home/home_lazy_collection_test.dart test/architecture` | 31 tests réussis sur la version **sans Export dans le menu** ; [journal](logs/export-home-only-targeted.log). |
+| `cd apps/avelune_studio && flutter test --no-pub test/presentation/ui05_narrative_overview_navigation_test.dart` | 2 tests réussis ; quatre captures UI05 régénérées sans entrée Export latérale ; [journal final](logs/ui05-desktop-home-only-final.log). |
+| `cd apps/pokemap_hub && flutter test --no-pub test/features/installation/avelune_studio_export_player_e2e_test.dart test/features/installation/game_package_installer_test.dart test/features/session/installed_game_launch_resolver_test.dart` | 15 tests réussis ; installation depuis le vrai paquet, source auteur rendue inaccessible, dialogue puis passage `jardin` → `clairiere` à `(8, 9)` ; [journal final](logs/player-import-home-only-final.log). |
+| `cd apps/avelune_studio && flutter build macos --debug --no-pub` | `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app` ; [journal final](logs/studio-build-home-only-final.log). |
+| `cd apps/pokemap_hub && flutter analyze --no-pub test/features/installation/avelune_studio_export_player_e2e_test.dart` | `No issues found!` ; [journal final](logs/player-test-analysis-home-only-final.log). |
+| `cd apps/avelune_studio && flutter test --no-pub --concurrency=2` | `09:12 +910 ~2: All tests passed!`, exit 0, avec le stress conservé ; [journal final](logs/studio-suite-home-only-final.log). |
+
+Le paquet témoin fraîchement produit à `/tmp/avelune_as_exp_001_demo.avelunegame` possède le même SHA-256 `b4f21353fe231650330cbce1e320175f7a24d966a697bcf8c443d0d43cdd823c` que [la copie suivie dans ce rapport](as-exp-001-demo.avelunegame). Il s’agit du paquet installé et joué dans la recette Player, pas d’un paquet reconstruit par le test.
+
+Les passes intermédiaires sont conservées. Une première suite a relevé **20 échecs**, notamment les tests du formulaire de chemin, les retours Carte et le stress pendant la réorganisation du cadre ; ces parcours ont été corrigés sans retirer leurs assertions métier ([journal](logs/studio-suite-home-export.log)). La passe suivante a trouvé un test de 335 lignes, incompatible avec la frontière de 300 lignes ; son cas « longue collection » a été extrait sans assouplir la règle ([journal](logs/studio-suite-export-page.log)). Une première recette Player s’arrêtait sur l’ancien libellé « Choisir le fichier et exporter » avant l’installation ; le test utilise désormais la clé de l’action de la page et vérifie que le fichier existe ([journal](logs/player-import-export-page.log)). Une [suite intermédiaire verte](logs/studio-suite-export-page-final.log) a ensuite été invalidée par le formatage d’un test ; la [suivante](logs/studio-suite-export-page-verified.log) a été interrompue lorsque Yoahn a précisé l’accès voulu (bouton d’accueil uniquement). La suite finale ci-dessus est la seule revendiquée pour les sources livrées. L’analyse globale du Hub a signalé un `info unnecessary_import` déjà présent dans `lib/presentation/features/home/widgets/avelune_game_shelf.dart:4`, sans rapport avec ce parcours ([journal](logs/player-analysis-export-page.log)) ; le fichier n’a pas été modifié.
+
+Passes de relecture : **Audit/architecture** — le cadre, l’accueil général, Histoire et l’export ont été distingués avant les modifications ; **Implémentation** — le bouton d’accueil et la page réutilisent le même contrôleur et les mêmes frontières, sans destination Export dans le menu ; **Tests** — route réelle, protections, collections et paquet Player installé exercés ; **Build/validation** — analyse Studio et build macOS réussis ; **Critique finale** — la maquette comporte une couverture que la fixture et le port d’export ne fournissent pas, elle n’est donc pas simulée. Les aperçus ne prouvent pas une manipulation native et le contrôle global Hub reste non vert pour l’import inutile cité. Aucune nouvelle sémantique de `map_authoring`, de format ou de moteur n’étant ajoutée, les transports API/CLI/MCP ne sont pas revendiqués comme modifiés ou testés ici. Aucun commentaire de code manuel n’a été ajouté.
+
+Contrôles finaux depuis la racine : `git diff --check` → exit 0, aucune sortie ; `bash tools/scripts/check_markdown_hygiene.sh` → `Markdown hygiene: no new Markdown files.` ; tous les liens relatifs de ce rapport existent. État Git final : `main` à `fa5d0e961`, fichiers du tableau, ce rapport, le complément UI05, captures et journaux modifiés ou non suivis, aucun fichier indexé. Aucun commit, push, PR, changement Notion ni projet personnel original modifié. L’application native a été construite, mais aucune manipulation manuelle de sa fenêtre ou du sélecteur natif n’a été effectuée pendant cette passe.

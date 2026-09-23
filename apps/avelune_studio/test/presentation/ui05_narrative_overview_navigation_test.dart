@@ -64,6 +64,14 @@ void main() {
     expect(find.text('Donnez vie à votre histoire'), findsOneWidget);
     expect(find.text('Histoires du projet · 2'), findsOneWidget);
     expect(find.text('Contenu du projet'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('narrative-overview-scroll')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const PageStorageKey('narrative-overview-content-scroll')),
+      findsOneWidget,
+    );
     expect(fixture.port.publications, 0);
     await captureM3Widget(tester, fixture.captureKey, 'ui05-finition-1536');
 
@@ -155,11 +163,19 @@ void main() {
     );
     await tester.pumpAndSettle();
     await pumpIo(tester);
+    expect(
+      find.byKey(const ValueKey('narrative-overview-scroll')),
+      findsNothing,
+    );
     await captureM3Widget(tester, fixture.captureKey, 'ui05-finition-1280');
     tester.view.physicalSize = const Size(1440, 900);
     await tester.pumpWidget(fixture.app(tester, withOwners: true));
     await pumpIo(tester);
     expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey('narrative-overview-scroll')),
+      findsNothing,
+    );
     await captureM3Widget(tester, fixture.captureKey, 'ui05-finition-1440');
     tester.view.physicalSize = const Size(1024, 640);
     await tester.pumpWidget(
@@ -167,6 +183,10 @@ void main() {
     );
     await pumpIo(tester);
     expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey('narrative-overview-scroll')),
+      findsOneWidget,
+    );
     await captureM3Widget(tester, fixture.captureKey, 'ui05-finition-1024-150');
     tester.view.physicalSize = const Size(1280, 800);
     await tester.pumpWidget(fixture.app(tester, withOwners: true));

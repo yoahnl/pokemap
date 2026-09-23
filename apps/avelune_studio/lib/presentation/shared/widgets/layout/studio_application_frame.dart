@@ -48,22 +48,43 @@ class StudioApplicationFrame extends StatelessWidget {
                     width: bounds.maxWidth < 650
                         ? 48
                         : compact
-                        ? 318
-                        : 388,
+                        ? 250
+                        : 300,
                     height: 60,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Image.asset(
-                        bounds.maxWidth < 650
-                            ? 'assets/home/avelune_symbol.png'
-                            : 'assets/home/avelune_logo.png',
-                        width: bounds.maxWidth < 650 ? 36 : 200,
-                        height: bounds.maxWidth < 650 ? 36 : 60,
-                        fit: BoxFit.contain,
-                        semanticLabel: 'Avelune Studio',
-                      ),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          'assets/home/avelune_symbol.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                          semanticLabel: 'Symbole Avelune Studio',
+                        ),
+                        if (bounds.maxWidth >= 650) ...[
+                          const SizedBox(width: 10),
+                          Image.asset(
+                            'assets/home/avelune_logo.png',
+                            width: 184,
+                            height: 54,
+                            fit: BoxFit.contain,
+                            semanticLabel: 'Avelune Studio',
+                          ),
+                        ],
+                      ],
                     ),
                   ),
+                  if (projectName != null && bounds.maxWidth >= 700) ...[
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: Text(
+                        projectName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                  ],
                   Expanded(
                     child: StudioSearchField(
                       controller: search,

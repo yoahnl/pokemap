@@ -35,15 +35,15 @@ void main() {
         assetBundle: _StudioAssetBundle(),
       );
       final before = await author.disk();
-      await author.go('Exporter le jeu');
+      await author.openExport();
       await tester.enterText(
         find.widgetWithText(TextField, 'Auteur'),
         'Avelune',
       );
-      await tester.tap(find.text('Choisir le fichier et exporter'));
+      await tester.tap(find.byKey(const ValueKey('start-game-export')));
       await pumpIo(tester, frames: 120);
       expect(
-        find.text('Paquet prêt'),
+        find.text('Dernier paquet produit'),
         findsOneWidget,
         reason:
             tester
@@ -51,6 +51,7 @@ void main() {
                 .controller
                 .error,
       );
+      expect(await tester.runAsync(packageFile.exists), isTrue);
       expect(await author.disk(), before);
       await tester.pumpWidget(const SizedBox());
 
@@ -58,9 +59,9 @@ void main() {
       final hiddenSource = Directory('${source.path}.offline');
       await tester.runAsync(() => source.rename(hiddenSource.path));
       addTearDown(() async {
-          if (await hiddenSource.exists()) {
-            await hiddenSource.delete(recursive: true);
-          }
+        if (await hiddenSource.exists()) {
+          await hiddenSource.delete(recursive: true);
+        }
       });
       expect(await tester.runAsync(source.exists), isFalse);
 

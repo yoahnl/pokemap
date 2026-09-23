@@ -31,12 +31,21 @@ import 'ui05_narrative_fixture.dart';
 import 'ui08_workspace_harness.dart';
 import 'ui12_widget_world_port.dart';
 
+part 'map_host_fixture_disk.dart';
+
 class MapHostFixture {
-  MapHostFixture._(this.tester, this.source, this.maps, this.visuals);
+  MapHostFixture._(
+    this.tester,
+    this.source,
+    this.maps,
+    this.visuals,
+    this.home,
+  );
   final WidgetTester tester;
   final M3StoryFixture source;
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals visuals;
+  final StudioHomeNavigation? home;
   late final StudioGameExportController gameExport;
 
   EditableMapDocument get document => maps.active!;
@@ -54,6 +63,7 @@ class MapHostFixture {
     void Function(Future<bool> Function()?)? registerExitGuard,
     StudioGameExportController Function(M3StoryFixture)? createGameExport,
     Size size = const Size(1536, 1024),
+    double textScale = 1,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -69,7 +79,9 @@ class MapHostFixture {
     }))!;
     final visuals = WorkspaceTestVisuals();
     mapPort.interactive = true;
-    final fixture = MapHostFixture._(tester, source, maps, visuals);
+    final navigation =
+        home ?? (gameExportPicker == null ? null : StudioHomeNavigation());
+    final fixture = MapHostFixture._(tester, source, maps, visuals, navigation);
     final gameExport =
         createGameExport?.call(source) ??
         StudioGameExportController(
@@ -80,6 +92,7 @@ class MapHostFixture {
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox());
       gameExport.dispose();
+      if (home == null) navigation?.dispose();
       maps.dispose();
       await tester.runAsync(() async {
         if (await source.directory.exists()) {
@@ -92,10 +105,17 @@ class MapHostFixture {
       tester,
     );
     final app = MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: studioTheme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: MapWorkspaceScreen(
         controller: maps,
-        home: home,
+        home: navigation,
         gameExport: gameExport,
         gameExportPicker: (suggested) async {
           final file = await gameExportPicker?.call(suggested);
@@ -227,6 +247,12 @@ class MapHostFixture {
     await pumpIo(tester, frames: 12);
   }
 
+  Future<void> openExport() async {
+    expect(home, isNotNull);
+    home!.navigate('gameExport');
+    await pumpIo(tester, frames: 12);
+  }
+
   Future<void> enter(String label) async {
     final target = find.text(label).first;
     await tester.ensureVisible(target);
@@ -270,19 +296,4 @@ class MapHostFixture {
     await go('Carte');
     return owner;
   }
-
-  Future<Map<String, List<int>>> disk() async => (await tester.runAsync(
-    () async => {
-      for (final file
-          in await source.directory
-              .list(recursive: true)
-              .where(
-                (file) => file is File && !file.path.contains('/.pokemap/'),
-              )
-              .cast<File>()
-              .toList())
-        file.path.substring(source.directory.path.length): await file
-            .readAsBytes(),
-    },
-  ))!;
 }

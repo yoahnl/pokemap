@@ -47,6 +47,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onContextMenu,
     this.movingHint,
     this.activeSpace = 'map',
+    this.exportActive = false,
     this.onHome,
   });
   final MapWorkspaceController controller;
@@ -63,10 +64,11 @@ class MapWorkspaceLayout extends StatelessWidget {
       onToolChanged,
       onClose,
       onResources,
-      onMap;
-  final VoidCallback onExport;
+      onMap,
+      onExport;
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
+  final bool exportActive;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final TextEditingController homeSearch;
   final ValueChanged<String>? onSearch;
@@ -181,6 +183,7 @@ class MapWorkspaceLayout extends StatelessWidget {
         search: homeSearch,
         onSearch: onSearch ?? (_) {},
         canTest: onTest != null,
+        busy: exportActive,
         onClose: onClose,
         active: activeSpace == 'interaction' ? 'story' : activeSpace,
         onDestination: (destination) {
@@ -275,7 +278,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           ],
                         )),
             ),
-            if (visuals != null)
+            if (visuals != null && activeSpace != 'gameExport')
               WorkspaceMapFooter(visuals: visuals!, map: doc?.current),
           ],
         ),

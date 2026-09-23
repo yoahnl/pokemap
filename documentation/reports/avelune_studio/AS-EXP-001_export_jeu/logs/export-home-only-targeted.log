@@ -1,0 +1,33 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:02 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:02 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:02 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:03 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:04 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:04 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:04 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:04 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:04 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:04 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:04 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:04 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:05 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:05 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:05 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:06 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:06 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:08 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:11 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
+00:12 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: a rejected owner save keeps the interaction draft and blocks export
+00:12 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
+00:13 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
+00:14 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page
+00:19 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: the two-map story fixture exports with the canonical service
+00:20 +31: All tests passed!

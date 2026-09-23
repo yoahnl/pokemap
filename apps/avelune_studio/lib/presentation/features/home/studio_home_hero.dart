@@ -8,41 +8,57 @@ class StudioHomeHero extends StatelessWidget {
     required this.busy,
     required this.onOpen,
     this.onResume,
+    this.onExport,
+    this.projectName,
+    this.compact = false,
+    this.smallWindow = false,
   });
   final bool busy;
   final VoidCallback onOpen;
   final VoidCallback? onResume;
+  final VoidCallback? onExport;
+  final String? projectName;
+  final bool compact;
+  final bool smallWindow;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 300),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          image: const DecorationImage(
-            image: AssetImage('assets/home/hero_landscape.png'),
-            fit: BoxFit.cover,
-            alignment: Alignment.centerRight,
-          ),
-        ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                colors.surfaceContainerLowest.withValues(alpha: .98),
-                colors.surfaceContainerLowest.withValues(alpha: .75),
-                colors.surfaceContainerLowest.withValues(alpha: .08),
-              ],
-              stops: const [0, .42, 1],
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.25;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: largeText
+              ? 210
+              : smallWindow
+              ? 188
+              : compact
+              ? 150
+              : 178,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/home/hero_landscape.png'),
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 30),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 590),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colors.surfaceContainerLowest.withValues(alpha: .98),
+                  colors.surfaceContainerLowest.withValues(alpha: .75),
+                  colors.surfaceContainerLowest.withValues(alpha: .08),
+                ],
+                stops: const [0, .42, 1],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              child: Align(
+                alignment: Alignment.centerLeft,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -55,73 +71,79 @@ class StudioHomeHero extends StatelessWidget {
                         letterSpacing: 2,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 4),
                     Text(
-                      'Donnez vie à votre propre',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontSize: 38, fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      'aventure',
+                      'Donnez vie à votre propre aventure',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
-                            fontSize: 38,
+                            fontSize: compact ? 27 : 32,
                             fontWeight: FontWeight.w700,
-                            color: StudioHomeTokens.titleAccent,
                           ),
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Cartes, personnages et histoires.\nRetrouvez vos outils de création, au même endroit.',
-                      style: TextStyle(fontSize: 16, height: 1.5),
+                    const SizedBox(height: 6),
+                    Text(
+                      projectName == null
+                          ? 'Ouvrez un projet pour retrouver vos créations.'
+                          : 'Projet courant : $projectName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 10,
-                      children: [
-                        if (onResume != null)
-                          StudioButton(
-                            label: 'Reprendre mon projet',
-                            icon: Icons.arrow_forward,
-                            onPressed: busy ? null : onResume,
-                          ),
-                        StudioButton(
-                          key: const Key('open-project-picker'),
-                          label: onResume == null
-                              ? 'Ouvrir un projet'
-                              : 'Ouvrir un autre projet',
-                          secondary: onResume != null,
-                          icon: Icons.folder_open,
-                          onPressed: busy ? null : onOpen,
-                        ),
-                        if (onResume == null)
-                          const Tooltip(
-                            message:
-                                'La création de projet sera disponible dans un prochain écran.',
-                            child: StudioButton(
-                              label: 'Nouveau projet',
-                              secondary: true,
-                              icon: Icons.add,
-                              onPressed: null,
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (onResume == null) ...[
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Création de projet : disponible dans un prochain écran.',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                    ],
                   ],
                 ),
               ),
             ),
           ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              if (onResume != null)
+                StudioButton(
+                  label: 'Reprendre mon projet',
+                  icon: Icons.arrow_forward,
+                  onPressed: busy ? null : onResume,
+                ),
+              StudioButton(
+                key: const Key('open-project-picker'),
+                label: onResume == null
+                    ? 'Ouvrir un projet'
+                    : 'Ouvrir un autre projet',
+                secondary: onResume != null,
+                icon: Icons.folder_open,
+                onPressed: busy ? null : onOpen,
+              ),
+              Tooltip(
+                message: projectName == null
+                    ? 'Ouvrez un projet pour exporter le jeu'
+                    : 'Créer un paquet .avelunegame pour Avelune Player',
+                child: StudioButton(
+                  key: const Key('home-export-game'),
+                  label: 'Exporter le jeu…',
+                  secondary: true,
+                  icon: Icons.archive_outlined,
+                  onPressed: busy ? null : onExport,
+                ),
+              ),
+              if (onResume == null)
+                const Tooltip(
+                  message:
+                      'La création de projet sera disponible dans un prochain écran.',
+                  child: StudioButton(
+                    label: 'Nouveau projet',
+                    secondary: true,
+                    icon: Icons.add,
+                    onPressed: null,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

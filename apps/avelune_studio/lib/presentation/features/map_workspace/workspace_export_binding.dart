@@ -1,6 +1,29 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
+  void _openGameExport() {
+    if (!mounted || _gameExport == null || widget.gameExportPicker == null) {
+      return;
+    }
+    _show(WorkspaceSpace.gameExport);
+  }
+
+  Widget _gameExportPage() {
+    final projectPath = _controller.session.directoryPath;
+    return StudioGameExportPage(
+      controller: _gameExport!,
+      prepare: _prepareGameExport,
+      preparationFailure: () => _actions.exportPreparationFailure,
+      hasPendingChanges: () => _actions.hasPendingChanges,
+      isCurrentProject: () =>
+          mounted &&
+          !_controller.isDisposed &&
+          _controller.session.directoryPath == projectPath,
+      pickFile: widget.gameExportPicker!,
+      onBack: _goHome,
+    );
+  }
+
   Future<bool> _allowCloseWithExport() async {
     if (_gameExport?.operationActive == true) return false;
     return _actions.allowClose();

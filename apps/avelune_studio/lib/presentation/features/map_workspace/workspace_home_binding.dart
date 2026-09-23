@@ -22,7 +22,9 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _goHome({bool search = false}) {
+    if (_gameExport?.operationActive == true) return;
     if (_presentations?.flushEdits?.call() == false) return;
+    if (_space == WorkspaceSpace.gameExport) _show(WorkspaceSpace.map);
     _presentations?.suspendPreview?.call();
     _cinematics?.transport.pause();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -79,6 +81,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
         if (_controller.active != null && !_actions.busy) {
           unawaited(_actions.test());
         }
+      case 'gameExport':
+        _openGameExport();
       default:
         _openMap();
     }

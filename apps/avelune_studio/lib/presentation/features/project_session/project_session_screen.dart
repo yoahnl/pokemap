@@ -144,6 +144,11 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     await widget.session.close();
   }
 
+  Future<void> _closeFromHome() async {
+    if (_home.allowSwitch != null && !await _home.allowSwitch!()) return;
+    if (mounted) await _close();
+  }
+
   @override
   void dispose() {
     _pickerGeneration++;
@@ -195,6 +200,10 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                   canTest: _home.canTest,
                   onOpen: () => _open(browse: true),
                   onResume: project == null ? null : _home.resume,
+                  onExport: project == null || busy
+                      ? null
+                      : () => _home.navigate('gameExport'),
+                  onClose: project == null ? null : _closeFromHome,
                   onDestination: _destination,
                   recentProjects: _recents.entries,
                   onRecent: (entry) {
@@ -215,7 +224,6 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                     onOpen: _open,
                     onBrowse: () => _open(browse: true),
                     onCancel: _cancel,
-                    onClose: widget.workspaceBuilder == null ? _close : null,
                   ),
                 ),
               ),

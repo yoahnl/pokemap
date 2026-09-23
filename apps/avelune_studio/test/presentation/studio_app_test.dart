@@ -59,7 +59,7 @@ void main() {
     await revealProjectPath(tester);
     expect(find.text('/exemple'), findsWidgets);
     expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
-    await tapVisible(tester, find.text('Fermer le projet'));
+    await tapVisible(tester, find.byKey(const ValueKey('Fermer le projet')));
     await tester.pumpAndSettle();
     expect(find.text('Projet ouvert — lecture seule'), findsNothing);
     expect(port.closed, [_project]);

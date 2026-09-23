@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 
@@ -13,6 +14,73 @@ import '../support/map_host_fixture.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 
 void main() {
+  testWidgets(
+    'home navigation opens export as a workspace page and returns to Carte',
+    (tester) async {
+      final f = await MapHostFixture.open(
+        tester,
+        prepareSource: prepareGameExportFixture,
+        gameExportPicker: (_) async => null,
+      );
+      final document = f.document;
+      await f.openExport();
+      expect(find.byType(StudioGameExportPage), findsOneWidget);
+      expect(
+        tester
+            .widget<StudioGameExportPage>(find.byType(StudioGameExportPage))
+            .controller,
+        same(f.gameExport),
+      );
+      await f.go('Carte');
+      expect(find.byType(StudioGameExportPage), findsNothing);
+      expect(f.document, same(document));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('small desktop page keeps fields and actions reachable', (
+    tester,
+  ) async {
+    final f = await MapHostFixture.open(
+      tester,
+      prepareSource: prepareGameExportFixture,
+      gameExportPicker: (_) async => null,
+      size: const Size(1024, 640),
+      textScale: 1.5,
+    );
+    await f.openExport();
+    final page = find.byType(StudioGameExportPage);
+    expect(page, findsOneWidget);
+    expect(find.byKey(const ValueKey('export-page-scroll')), findsOneWidget);
+    await tester.ensureVisible(
+      find.widgetWithText(TextField, 'Langues disponibles'),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Options avancées'));
+    await tester.tap(find.text('Options avancées'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.widgetWithText(TextField, 'Identifiant stable du jeu'),
+    );
+    await tester.pumpAndSettle();
+    final frame = tester.getRect(page);
+    final action = tester.getRect(
+      find.byKey(const ValueKey('start-game-export')),
+    );
+    expect(action.bottom, lessThanOrEqualTo(frame.bottom));
+    expect(tester.takeException(), isNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await pumpIo(tester, frames: 16);
+    expect(page, findsOneWidget);
+    await tester.tapAt(const Offset(500, 300));
+    await pumpIo(tester, frames: 16);
+    expect(page, findsOneWidget);
+    expect(f.gameExport.operationActive, isFalse);
+    await tester.tap(find.text('Retour à l’accueil'));
+    await pumpIo(tester, frames: 8);
+    expect(page, findsNothing);
+  });
+
   testWidgets('native destination failure is shown without losing the page', (
     tester,
   ) async {
@@ -21,8 +89,8 @@ void main() {
       prepareSource: prepareGameExportFixture,
       gameExportPicker: (_) async => throw const FileSystemException('Denied'),
     );
-    await f.go('Exporter le jeu');
-    await tester.tap(find.text('Choisir le fichier et exporter'));
+    await f.openExport();
+    await tester.tap(find.byKey(const ValueKey('start-game-export')));
     await pumpIo(tester, frames: 4);
     expect(
       find.textContaining('Sélection du fichier impossible'),
@@ -52,22 +120,24 @@ void main() {
         find.widgetWithText(TextField, 'Nom de l’interaction'),
         'Brouillon invalide',
       );
-      await f.go('Exporter le jeu');
+      await f.openExport();
       await tester.enterText(
         find.widgetWithText(TextField, 'Auteur'),
         'Avelune',
       );
-      await tester.tap(find.text('Choisir le fichier et exporter'));
+      await tester.tap(find.byKey(const ValueKey('start-game-export')));
       await pumpIo(tester, frames: 8);
       expect(find.text('Enregistrer avant l’export ?'), findsOneWidget);
-      await tester.tap(find.text('Enregistrer puis exporter'));
+      await tester.tap(find.text('Enregistrer puis exporter').last);
       await pumpIo(tester, frames: 20);
       expect(
         find.textContaining('Enregistrement préalable refusé'),
         findsOneWidget,
       );
       expect(await tester.runAsync(target.exists), isFalse);
-      await f.go('Histoire');
+      await tester.tap(find.text('Retour à l’accueil'));
+      await pumpIo(tester, frames: 16);
+      await f.go('Carte');
       final narrative = await f.narrativeOwner();
       expect(narrative.dirty, isTrue);
     },
@@ -88,12 +158,12 @@ void main() {
         prepareSource: prepareGameExportFixture,
         gameExportPicker: (_) async => target,
       );
-      await f.go('Exporter le jeu');
+      await f.openExport();
       await tester.enterText(
         find.widgetWithText(TextField, 'Auteur'),
         'Avelune',
       );
-      await tester.tap(find.text('Choisir le fichier et exporter'));
+      await tester.tap(find.byKey(const ValueKey('start-game-export')));
       await pumpIo(tester, frames: 5);
       expect(find.text('Remplacer ce paquet ?'), findsOneWidget);
       await tester.tap(find.text('Conserver'));
@@ -120,19 +190,19 @@ void main() {
         captureKey: captureKey,
       );
       final authorBefore = await f.disk();
-      await f.go('Exporter le jeu');
+      await f.openExport();
       expect(find.byType(StudioGameExportPage), findsOneWidget);
       await tester.enterText(
         find.widgetWithText(TextField, 'Auteur'),
         'Avelune',
       );
-      await tester.tap(find.text('Choisir le fichier et exporter'));
+      await tester.tap(find.byKey(const ValueKey('start-game-export')));
       await pumpIo(tester, frames: 120);
       final page = tester.widget<StudioGameExportPage>(
         find.byType(StudioGameExportPage),
       );
       expect(
-        find.text('Paquet prêt'),
+        find.text('Paquet produit'),
         findsOneWidget,
         reason: 'stage=${page.controller.stage} error=${page.controller.error}',
       );

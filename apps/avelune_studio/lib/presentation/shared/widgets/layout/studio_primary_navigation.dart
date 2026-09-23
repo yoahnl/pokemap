@@ -21,12 +21,13 @@ class StudioPrimaryNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final selectedDestination =
-        active == 'scene' ||
-            active == 'progression' ||
-            active == 'events' ||
-            active == 'dialogue' ||
-            active == 'cinematic'
+    final selectedDestination = active == 'gameExport'
+        ? 'home'
+        : active == 'scene' ||
+              active == 'progression' ||
+              active == 'events' ||
+              active == 'dialogue' ||
+              active == 'cinematic'
         ? 'story'
         : active;
     final items = [
@@ -35,7 +36,6 @@ class StudioPrimaryNavigation extends StatelessWidget {
       ('Ressources', Icons.grid_view_outlined, 'resources'),
       ('Histoire', Icons.menu_book_outlined, 'story'),
       ('Test du jeu', Icons.play_circle_outline, 'test'),
-      ('Exporter le jeu', Icons.archive_outlined, 'gameExport'),
     ];
     return SizedBox(
       width: compact ? 72 : 184,
@@ -47,60 +47,69 @@ class StudioPrimaryNavigation extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 26,
-                ),
-                children: [
-                  for (final item in items)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Tooltip(
-                        message: item.$1,
-                        child: Material(
-                          color: item.$3 == selectedDestination
-                              ? colors.primaryContainer
-                              : colors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(6),
-                          child: InkWell(
+              child: LayoutBuilder(
+                builder: (context, bounds) {
+                  final entries = <Widget>[
+                    for (final item in items)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Tooltip(
+                          message: item.$1,
+                          child: Material(
+                            color: item.$3 == selectedDestination
+                                ? colors.primaryContainer
+                                : colors.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(6),
-                            onTap:
-                                item.$3 != active &&
-                                    (item.$3 != 'test' || canTest) &&
-                                    !busy
-                                ? () => onDestination(item.$3)
-                                : null,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 13,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(item.$2, size: 22),
-                                  if (!compact) ...[
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Text(
-                                        item.$1,
-                                        style: TextStyle(
-                                          fontWeight:
-                                              item.$3 == selectedDestination
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap:
+                                  item.$3 != active &&
+                                      (item.$3 != 'test' || canTest) &&
+                                      !busy
+                                  ? () => onDestination(item.$3)
+                                  : null,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 13,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(item.$2, size: 22),
+                                    if (!compact) ...[
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          item.$1,
+                                          style: TextStyle(
+                                            fontWeight:
+                                                item.$3 == selectedDestination
+                                                ? FontWeight.w700
+                                                : FontWeight.w400,
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ];
+                  final padding = const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 26,
+                  );
+                  return MediaQuery.textScalerOf(context).scale(1) <= 1.25 &&
+                          bounds.maxHeight >= items.length * 64 + 52
+                      ? Padding(
+                          padding: padding,
+                          child: Column(children: entries),
+                        )
+                      : ListView(padding: padding, children: entries);
+                },
               ),
             ),
             Padding(

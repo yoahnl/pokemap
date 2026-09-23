@@ -62,7 +62,26 @@ void main() {
         );
         await tester.pumpAndSettle();
         final shortcut = find.byKey(const ValueKey('home-tool-characters'));
-        await tester.ensureVisible(shortcut);
+        Future<void> showShortcut() async {
+          if (compact) {
+            for (
+              var i = 0;
+              i < 8 && shortcut.hitTestable().evaluate().isEmpty;
+              i++
+            ) {
+              await tester.drag(
+                find.byKey(const ValueKey('home-local-content-scroll')),
+                const Offset(0, -160),
+              );
+              await tester.pumpAndSettle();
+            }
+          } else {
+            await tester.ensureVisible(shortcut);
+          }
+          expect(shortcut.hitTestable(), findsOneWidget);
+        }
+
+        await showShortcut();
         expect(find.text('Placer un personnage'), findsOneWidget);
         await tester.tap(shortcut);
         await tester.pumpAndSettle();
@@ -87,7 +106,7 @@ void main() {
         if (!compact) layout().onPalette();
         layout().onHome!();
         await tester.pumpAndSettle();
-        await tester.ensureVisible(shortcut);
+        await showShortcut();
         await tester.tap(shortcut);
         await tester.pumpAndSettle();
         expect(view.tool, StudioMapTool.select);

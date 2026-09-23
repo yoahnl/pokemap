@@ -15,14 +15,12 @@ class ProjectOpenControls extends StatelessWidget {
     required this.onBrowse,
     required this.onCancel,
     this.error,
-    this.onClose,
   });
   final TextEditingController path;
   final ProjectSessionState state;
   final bool picking;
   final String? error;
   final VoidCallback onOpen, onBrowse, onCancel;
-  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -73,14 +71,8 @@ class ProjectOpenControls extends StatelessWidget {
             ],
           ],
         ),
-        if (state.project != null && onClose != null) ...[
+        if (state.project != null)
           const StudioNotice('Projet ouvert — lecture seule'),
-          StudioButton(
-            label: 'Fermer le projet',
-            onPressed: onClose,
-            secondary: true,
-          ),
-        ],
       ],
     );
   }

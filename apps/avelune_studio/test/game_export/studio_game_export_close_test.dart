@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
@@ -35,12 +38,14 @@ void main() {
         onClose: () async => closes++,
         registerExitGuard: (guard) => windowGuard = guard,
       );
-      await f.go('Exporter le jeu');
+      await f.openExport();
       expect(find.textContaining('Profil d’export illisible'), findsOneWidget);
       expect(f.gameExport.canStart, isFalse);
       expect(f.gameExport.operationActive, isFalse);
       expect(await windowGuard!(), isTrue);
       expect(await home.allowSwitch!(), isTrue);
+      await tester.tap(find.text('Retour à l’accueil'));
+      await pumpIo(tester, frames: 16);
       await tester.tap(find.byKey(const ValueKey('Fermer le projet')));
       await pumpIo(tester, frames: 4);
       expect(closes, 1);
@@ -78,7 +83,7 @@ void main() {
       },
       registerExitGuard: (guard) => windowGuard = guard,
     );
-    await f.go('Exporter le jeu');
+    await f.openExport();
     final document = f.document;
     document.commit(document.current.copyWith(name: 'Brouillon conservé'));
     final pending = windowGuard!();
@@ -136,7 +141,7 @@ void main() {
       onClose: () async => closes++,
       registerExitGuard: (guard) => windowGuard = guard,
     );
-    await f.go('Exporter le jeu');
+    await f.openExport();
     artifact = (await tester.runAsync(
       () => const CanonicalGamePackageExportService().build(
         projectRoot: f.source.directory,
@@ -184,8 +189,19 @@ void main() {
     expect(f.gameExport.operationActive, isTrue);
     expect(await windowGuard!(), isFalse);
     expect(await home.allowSwitch!(), isFalse);
-    await tester.tap(find.byKey(const ValueKey('Fermer le projet')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<StudioButton>(
+            find.widgetWithText(StudioButton, 'Retour à l’accueil'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.tapAt(const Offset(500, 400));
     await pumpIo(tester, frames: 4);
+    expect(find.byType(StudioGameExportPage), findsOneWidget);
     expect(closes, 0);
     release.complete();
     expect(await tester.runAsync(() => exporting), isFalse);
@@ -193,6 +209,8 @@ void main() {
     expect(f.gameExport.operationActive, isFalse);
     expect(await windowGuard!(), isTrue);
     expect(await home.allowSwitch!(), isTrue);
+    await tester.tap(find.text('Retour à l’accueil'));
+    await pumpIo(tester, frames: 16);
     await tester.tap(find.byKey(const ValueKey('Fermer le projet')));
     await pumpIo(tester, frames: 4);
     expect(closes, 1);

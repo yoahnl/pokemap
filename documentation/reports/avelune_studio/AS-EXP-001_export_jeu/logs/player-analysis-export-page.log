@@ -1,0 +1,5 @@
+Analyzing pokemap_hub...
+
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/presentation/features/home/widgets/avelune_game_shelf.dart:4:8 • unnecessary_import
+
+1 issue found. (ran in 8.2s)

@@ -1,0 +1,45 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/game_package_installer_test.dart: preserves the filesystem cause when the selected package is unreadable
+00:00 +1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:00 +2: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:02 +3: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +4: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +5: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +6: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +7: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +8: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +9: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+00:03 +10: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with text "Choisir le fichier et exporter": []" (used in a call to
+"tap()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart:43:20)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  Studio package installs and plays from Avelune Player storage
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +10 -1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/game_package_installer_test.dart: GamePackageInstaller installs an update side by side after save preparation
+00:03 +10 -1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage [E]
+  Test failed. See exception logs above.
+  The test description was: Studio package installs and plays from Avelune Player storage
+
+00:03 +11 -1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/game_package_installer_test.dart: GamePackageInstaller treats reimporting an installed side version as idempotent
+00:03 +12 -1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/game_package_installer_test.dart: GamePackageInstaller does not activate update when save preparation fails
+00:03 +13 -1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/game_package_installer_test.dart: GamePackageInstaller rejects same game/version with a different tree
+00:03 +14 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/avelune_studio_export_player_e2e_test.dart: Studio package installs and plays from Avelune Player storage
