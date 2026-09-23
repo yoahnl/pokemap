@@ -41,7 +41,7 @@ struct GamePlayerView: View {
                     .multilineTextAlignment(.center)
                     .padding()
                 Button("Fermer") { onClose() }
-                    .buttonStyle(.bordered)
+                    .aveluneGlassButton(prominent: true)
             }
         }
     }

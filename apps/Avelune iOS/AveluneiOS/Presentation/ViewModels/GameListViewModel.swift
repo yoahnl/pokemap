@@ -14,6 +14,7 @@ final class GameListViewModel: ObservableObject {
     @Published private(set) var games: [Game] = []
     @Published private(set) var isBusy = false
     @Published private(set) var installationStage: InstallationStage?
+    @Published private(set) var installationName: String?
     @Published var errorMessage: String?
 
     private let loadLibraryUseCase: LoadLibraryUseCase
@@ -34,9 +35,11 @@ final class GameListViewModel: ObservableObject {
 
     func install(from url: URL) async {
         isBusy = true
+        installationName = url.deletingPathExtension().lastPathComponent
         installationStage = .preparing
         defer {
             installationStage = nil
+            installationName = nil
             isBusy = false
         }
 
