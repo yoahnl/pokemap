@@ -10,8 +10,6 @@ on:
         type: choice
         options:
           - pokemap
-          - avelune
-          - both
       action:
         description: Run a safe preflight or publish a stable release
         required: true
@@ -22,10 +20,6 @@ on:
           - publish
       pokemap_version:
         description: Required for a PokeMap publication (for example 0.3.4)
-        required: false
-        type: string
-      avelune_version:
-        description: Required for an Avelune publication (for example 0.1.2)
         required: false
         type: string
       confirmation:
@@ -51,11 +45,8 @@ jobs:
     outputs:
       action: ${{ steps.contract.outputs.action }}
       pokemap_selected: ${{ steps.contract.outputs.pokemap_selected }}
-      avelune_selected: ${{ steps.contract.outputs.avelune_selected }}
       pokemap_version: ${{ steps.contract.outputs.pokemap_version }}
-      avelune_version: ${{ steps.contract.outputs.avelune_version }}
       pokemap_tag: ${{ steps.contract.outputs.pokemap_tag }}
-      avelune_tag: ${{ steps.contract.outputs.avelune_tag }}
     steps:
       - name: Require the protected main branch
         run: test "$GITHUB_REF" = refs/heads/main
@@ -75,7 +66,6 @@ jobs:
           REQUEST_PRODUCT: ${{ inputs.product }}
           REQUEST_ACTION: ${{ inputs.action }}
           REQUEST_POKEMAP_VERSION: ${{ inputs.pokemap_version }}
-          REQUEST_AVELUNE_VERSION: ${{ inputs.avelune_version }}
           REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           dart run tool/release_control_center/validate_release_request.dart \
@@ -83,9 +73,7 @@ jobs:
             --action "$REQUEST_ACTION" \
             --ref "$GITHUB_REF" \
             --pokemap-pubspec packages/map_editor/pubspec.yaml \
-            --avelune-pubspec apps/pokemap_hub/pubspec.yaml \
             --pokemap-version "$REQUEST_POKEMAP_VERSION" \
-            --avelune-version "$REQUEST_AVELUNE_VERSION" \
             --confirmation "$REQUEST_CONFIRMATION" \
             --github-output "$GITHUB_OUTPUT"
 
@@ -105,22 +93,13 @@ jobs:
       - name: Dispatch selected preflights
         env:
           POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
-          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
           POKEMAP_VERSION: ${{ needs.validate-request.outputs.pokemap_version }}
-          AVELUNE_VERSION: ${{ needs.validate-request.outputs.avelune_version }}
         run: |
           if [[ "$POKEMAP_SELECTED" == true ]]; then
             gh workflow run pokemap_desktop_release.yml --ref main \
               --repo "$GITHUB_REPOSITORY" \
               -f mode="$ACTION" \
               -f version="$POKEMAP_VERSION" \
-              -f confirmation="$CONFIRMATION"
-          fi
-          if [[ "$AVELUNE_SELECTED" == true ]]; then
-            gh workflow run avelune_android_release.yml --ref main \
-              --repo "$GITHUB_REPOSITORY" \
-              -f mode="$ACTION" \
-              -f version="$AVELUNE_VERSION" \
               -f confirmation="$CONFIRMATION"
           fi
 
@@ -144,9 +123,7 @@ jobs:
       - name: Refuse existing stable tags
         env:
           POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
-          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
           POKEMAP_TAG: ${{ needs.validate-request.outputs.pokemap_tag }}
-          AVELUNE_TAG: ${{ needs.validate-request.outputs.avelune_tag }}
         run: |
           check_tag() {
             local tag="$1"
@@ -158,27 +135,15 @@ jobs:
           if [[ "$POKEMAP_SELECTED" == true ]]; then
             check_tag "$POKEMAP_TAG"
           fi
-          if [[ "$AVELUNE_SELECTED" == true ]]; then
-            check_tag "$AVELUNE_TAG"
-          fi
       - name: Dispatch selected publications
         env:
           POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
-          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
           POKEMAP_VERSION: ${{ needs.validate-request.outputs.pokemap_version }}
-          AVELUNE_VERSION: ${{ needs.validate-request.outputs.avelune_version }}
         run: |
           if [[ "$POKEMAP_SELECTED" == true ]]; then
             gh workflow run pokemap_desktop_release.yml --ref main \
               --repo "$GITHUB_REPOSITORY" \
               -f mode="$ACTION" \
               -f version="$POKEMAP_VERSION" \
-              -f confirmation="$CONFIRMATION"
-          fi
-          if [[ "$AVELUNE_SELECTED" == true ]]; then
-            gh workflow run avelune_android_release.yml --ref main \
-              --repo "$GITHUB_REPOSITORY" \
-              -f mode="$ACTION" \
-              -f version="$AVELUNE_VERSION" \
               -f confirmation="$CONFIRMATION"
           fi

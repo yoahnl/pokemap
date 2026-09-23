@@ -1,5 +1,5 @@
 name: pokemap_hub
-description: PokeMap Hub composition root and player application.
+description: Shared Avelune Player runtime, installation services, and assets.
 version: 1.0.1+3
 publish_to: none
 

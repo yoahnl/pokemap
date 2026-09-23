@@ -11,7 +11,6 @@ void main() {
     ).readAsStringSync();
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
-      workflow.indexOf('\n  windows-desktop-certification:'),
     );
     final dartEntrypoints = <File>{};
     var shellDirectory = repositoryRoot.uri;
@@ -66,7 +65,6 @@ void main() {
     ).readAsStringSync();
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
-      workflow.indexOf('\n  windows-desktop-certification:'),
     );
 
     expect(

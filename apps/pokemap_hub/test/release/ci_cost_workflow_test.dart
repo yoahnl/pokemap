@@ -5,14 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final repositoryRoot = Directory.current.parent.parent;
 
-  String workflow(String name) => File(
-        '${repositoryRoot.path}/.github/workflows/$name',
-      ).readAsStringSync();
+  String workflow(String name) =>
+      File('${repositoryRoot.path}/.github/workflows/$name').readAsStringSync();
 
   String triggers(String source) => source.substring(
-        source.indexOf('on:\n'),
-        source.indexOf('\npermissions:'),
-      );
+    source.indexOf('on:\n'),
+    source.indexOf('\npermissions:'),
+  );
 
   test('automatic commits run one bounded Linux workflow', () {
     final source = workflow('pokemap_quick_checks.yml');
@@ -41,11 +40,9 @@ void main() {
     expect(markdownSource, contains('cancel-in-progress: true'));
   });
 
-  test('distribution and certification workflows are opt-in or tagged', () {
+  test('remaining distribution and certification workflows are opt-in', () {
     final heavyweightWorkflows = <String, String>{
-      'avelune_android_release.yml': 'tags: ["avelune-v*"]',
       'pokemap_desktop_release.yml': 'tags: ["pokemap-v*"]',
-      'pokemap_hub_product_certification.yml': 'tags: ["pokemap-hub-v*"]',
     };
 
     for (final entry in heavyweightWorkflows.entries) {
@@ -57,6 +54,11 @@ void main() {
       expect(triggerSource, isNot(contains('  pull_request:')));
       expect(triggerSource, isNot(contains('    branches: [main]')));
     }
+
+    expect(
+      triggers(workflow('pokemap_hub_product_certification.yml')),
+      contains('  workflow_dispatch:'),
+    );
 
     expect(
       triggers(workflow('beta_perf_009_certification.yml')),

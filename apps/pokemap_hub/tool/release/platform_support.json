@@ -3,7 +3,8 @@
   "platforms": {
     "macos": {
       "status": "supported",
-      "releaseGate": "developer-id-notarized-dmg",
+      "distributionLifecycle": "retired-standalone-host",
+      "releaseGate": "none",
       "capabilities": {
         "image": "supported",
         "audio": "supported",
@@ -13,7 +14,8 @@
     },
     "windows": {
       "status": "build-and-launch-target",
-      "releaseGate": "release-build-and-launch",
+      "distributionLifecycle": "retired-standalone-host",
+      "releaseGate": "none",
       "capabilities": {
         "image": "target",
         "audio": "target",
@@ -24,7 +26,8 @@
     },
     "linux": {
       "status": "build-and-launch-target",
-      "releaseGate": "release-build-and-launch",
+      "distributionLifecycle": "retired-standalone-host",
+      "releaseGate": "none",
       "capabilities": {
         "image": "target",
         "audio": "target",
@@ -35,6 +38,7 @@
     },
     "ios": {
       "status": "xcode-cloud-target",
+      "distributionLifecycle": "native-swiftui-host",
       "releaseGate": "xcode-cloud",
       "capabilities": {
         "image": "supported",
@@ -46,14 +50,15 @@
     },
     "android": {
       "status": "build-target",
-      "releaseGate": "release-apk-build",
+      "distributionLifecycle": "planned-native-host",
+      "releaseGate": "none",
       "capabilities": {
         "image": "supported",
         "audio": "supported",
         "video": "supported",
         "captions": "supported"
       },
-      "deviceDistribution": "github-release"
+      "deviceDistribution": "none"
     },
     "web": {
       "status": "unsupported",
