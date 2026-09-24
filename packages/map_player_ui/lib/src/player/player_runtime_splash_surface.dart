@@ -123,10 +123,6 @@ class PlayerSplashTimeline extends StatelessWidget {
                   key: const ValueKey<String>('startup-splash-atmosphere'),
                   painter: _SplashBackdropPainter(
                     time: time,
-                    ambientTime: ambientTime,
-                    held: !reducedMotion &&
-                        loadingProgress < 1 &&
-                        progress >= kPlayerSplashHoldProgress,
                     background: background,
                   ),
                 ),
@@ -233,12 +229,10 @@ class _SplashLogoStage extends StatelessWidget {
     final wordmarkSize = mobile
         ? (viewport.width * .044).clamp(14.0, 18.0)
         : (viewport.width * .0135).clamp(15.0, 22.0);
-    final signatureSize = (viewport.width * .0062).clamp(8.0, 10.0);
+    final wordmarkWidth = wordmarkSize * 19;
+    final wordmarkHeight = wordmarkSize * 6.4;
     final markState = reducedMotion ? _MarkState.staticState : _markState(time);
     final nameState = reducedMotion ? _NameState.staticState : _nameState(time);
-    final signatureState = reducedMotion
-        ? _VerticalRevealState.staticState
-        : _signatureState(time);
     final name = _PaintedText(
       text: branding.displayName,
       textAlign: TextAlign.center,
@@ -255,6 +249,21 @@ class _SplashLogoStage extends StatelessWidget {
         ],
       ),
     );
+    Widget wordmarkColorLayer(Color color, double direction) =>
+        Transform.translate(
+          offset: Offset(wordmarkWidth * nameState.chromaticShift * direction,
+              wordmarkHeight * nameState.chromaticShift * .2 * direction),
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            child: Image(
+              image: wordmark!,
+              width: wordmarkWidth,
+              height: wordmarkHeight,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        );
 
     return SizedBox(
       width: width,
@@ -284,8 +293,12 @@ class _SplashLogoStage extends StatelessWidget {
                   key: const ValueKey<String>('startup-splash-mark'),
                   opacity: markState.opacity,
                   child: Transform.translate(
-                    offset: Offset(0, markState.translateY),
+                    offset: Offset(
+                      markState.translateX * viewport.width,
+                      markState.translateY * viewport.height,
+                    ),
                     child: Transform.scale(
+                      key: const ValueKey<String>('startup-splash-mark-zoom'),
                       scale: markState.scale,
                       child: Transform(
                         alignment: Alignment.center,
@@ -299,6 +312,7 @@ class _SplashLogoStage extends StatelessWidget {
                           brightness: markState.brightness,
                           saturation: markState.saturation,
                           blur: markState.blur,
+                          chromaticShift: markState.chromaticShift,
                           shadowBlur: markState.shadowBlur,
                           shadowColor: markState.shadowColor,
                           fallbackColor: primary,
@@ -307,51 +321,48 @@ class _SplashLogoStage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 10),
                 Opacity(
                   key: const ValueKey<String>('startup-splash-wordmark'),
                   opacity: nameState.opacity,
                   child: Transform.translate(
-                    offset: Offset(0, nameState.translateY),
-                    child: ImageFiltered(
-                      imageFilter: ui.ImageFilter.blur(
-                        sigmaX: nameState.blur,
-                        sigmaY: nameState.blur,
-                      ),
-                      child: wordmark == null
-                          ? name
-                          : Image(
-                              key: const ValueKey<String>(
-                                'startup-splash-wordmark-image',
-                              ),
-                              image: wordmark!,
-                              width: wordmarkSize * 19,
-                              height: wordmarkSize * 6.4,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.high,
-                              excludeFromSemantics: true,
-                              errorBuilder: (_, __, ___) => name,
-                            ),
+                    offset: Offset(
+                      nameState.translateX * viewport.width,
+                      nameState.translateY,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 13),
-                Opacity(
-                  key: const ValueKey<String>('startup-splash-signature'),
-                  opacity: signatureState.opacity,
-                  child: Transform.translate(
-                    offset: Offset(0, signatureState.translateY),
-                    child: _PaintedText(
-                      text: branding.signature.toUpperCase(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: const Color(0xFFECE5DC).withValues(alpha: .54),
-                        fontFamily: 'PokeMapSplashDMSans',
-                        package: 'map_player_ui',
-                        fontSize: signatureSize,
-                        fontWeight: FontWeight.w500,
-                        height: 1.2,
-                        letterSpacing: signatureSize * .32,
+                    child: Transform.scale(
+                      scale: nameState.scale,
+                      child: ImageFiltered(
+                        imageFilter: ui.ImageFilter.blur(
+                          sigmaX: nameState.blur,
+                          sigmaY: nameState.blur,
+                        ),
+                        child: wordmark == null
+                            ? name
+                            : Stack(
+                                alignment: Alignment.center,
+                                children: <Widget>[
+                                  if (nameState.chromaticShift >
+                                      .001) ...<Widget>[
+                                    wordmarkColorLayer(
+                                        const Color(0xBFFF476C), -1),
+                                    wordmarkColorLayer(
+                                        const Color(0xBF377FFF), 1),
+                                  ],
+                                  Image(
+                                    key: const ValueKey<String>(
+                                      'startup-splash-wordmark-image',
+                                    ),
+                                    image: wordmark!,
+                                    width: wordmarkWidth,
+                                    height: wordmarkHeight,
+                                    fit: BoxFit.contain,
+                                    filterQuality: FilterQuality.high,
+                                    excludeFromSemantics: true,
+                                    errorBuilder: (_, __, ___) => name,
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -372,6 +383,7 @@ class _SplashMark extends StatelessWidget {
     required this.brightness,
     required this.saturation,
     required this.blur,
+    required this.chromaticShift,
     required this.shadowBlur,
     required this.shadowColor,
     required this.fallbackColor,
@@ -382,6 +394,7 @@ class _SplashMark extends StatelessWidget {
   final double brightness;
   final double saturation;
   final double blur;
+  final double chromaticShift;
   final double shadowBlur;
   final Color shadowColor;
   final Color fallbackColor;
@@ -410,6 +423,20 @@ class _SplashMark extends StatelessWidget {
               child: image,
             ),
     );
+    Widget colorLayer(Color color, Offset offset) => Transform.translate(
+          offset: offset,
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            child: Image(
+              image: logo!,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        );
+    final split = size * chromaticShift;
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
@@ -431,6 +458,11 @@ class _SplashMark extends StatelessWidget {
             ),
           ),
         ),
+        if (split > .1) ...<Widget>[
+          colorLayer(const Color(0xBFFF476C), Offset(-split, -split * .3)),
+          colorLayer(const Color(0xBFA0FF74), Offset(split * .38, split * .2)),
+          colorLayer(const Color(0xBF377FFF), Offset(split, split * .28)),
+        ],
         filtered,
       ],
     );
@@ -717,14 +749,10 @@ class _SplashProgressPainter extends CustomPainter {
 class _SplashBackdropPainter extends CustomPainter {
   const _SplashBackdropPainter({
     required this.time,
-    required this.ambientTime,
-    required this.held,
     required this.background,
   });
 
   final double time;
-  final double ambientTime;
-  final bool held;
   final Color background;
 
   @override
@@ -741,147 +769,25 @@ class _SplashBackdropPainter extends CustomPainter {
           center,
           radius,
           const <Color>[
-            Color(0xAD2A2E55),
-            Color(0xEB090C1B),
+            Color(0xFF111019),
+            Color(0xFF07070D),
             Color(0xFF02040A),
           ],
-          const <double>[0, .3, .72],
+          const <double>[0, .42, .8],
         ),
     );
-    _paintField(canvas, size);
-    _paintAurora(
-      canvas,
-      size,
-      first: true,
-      state: _auroraOneState(time, ambientTime, held),
-    );
-    _paintAurora(
-      canvas,
-      size,
-      first: false,
-      state: _auroraTwoState(time, ambientTime, held),
-    );
-    _paintStars(canvas, size);
     _paintLightPass(canvas, size);
   }
 
-  void _paintField(Canvas canvas, Size size) {
-    final p = (ambientTime / 10000).clamp(0.0, 1.0);
-    final translate = Offset(
-      ui.lerpDouble(-size.width * .02, size.width * .02, p)!,
-      ui.lerpDouble(-size.height * .02, size.height * .02, p)!,
-    );
-    final scale = ui.lerpDouble(.96, 1.06, p)!;
-    final angle = ui.lerpDouble(0, 7 * math.pi / 180, p)!;
-    canvas.save();
-    canvas.translate(
-        size.width / 2 + translate.dx, size.height / 2 + translate.dy);
-    canvas.rotate(angle);
-    canvas.scale(scale);
-    canvas.translate(-size.width / 2, -size.height / 2);
-    final ringCenter = size.center(Offset.zero);
-    final maxRadius =
-        math.sqrt(size.width * size.width + size.height * size.height);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: .0055);
-    for (double radius = 49; radius < maxRadius; radius += 50) {
-      canvas.drawCircle(ringCenter, radius, paint);
-    }
-    canvas.restore();
-  }
-
-  void _paintAurora(
-    Canvas canvas,
-    Size size, {
-    required bool first,
-    required _AuroraState state,
-  }) {
-    if (state.opacity <= 0) return;
-    final rect = first
-        ? Rect.fromLTWH(-size.width * .2, size.height * .2, size.width * .78,
-            size.height * .42)
-        : Rect.fromLTWH(size.width * .47, size.height * .46, size.width * .78,
-            size.height * .42);
-    canvas.save();
-    final center = rect.center +
-        Offset(state.translateX * rect.width, state.translateY * rect.height);
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate((first ? -18 : 16) * math.pi / 180);
-    canvas.scale(state.scale);
-    canvas.translate(-rect.center.dx, -rect.center.dy);
-    final colors = first
-        ? <Color>[
-            Colors.transparent,
-            const Color(0xFF6761D2).withValues(alpha: .18 * state.opacity),
-            const Color(0xFFECB4FF).withValues(alpha: .11 * state.opacity),
-            Colors.transparent,
-          ]
-        : <Color>[
-            Colors.transparent,
-            const Color(0xFFE7A668).withValues(alpha: .12 * state.opacity),
-            const Color(0xFF9F5ECD).withValues(alpha: .16 * state.opacity),
-            Colors.transparent,
-          ];
-    canvas.drawOval(
-      rect,
-      Paint()
-        ..blendMode = BlendMode.screen
-        ..shader = ui.Gradient.linear(
-          rect.centerLeft,
-          rect.centerRight,
-          colors,
-          const <double>[0, 1 / 3, 2 / 3, 1],
-        )
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 72),
-    );
-    canvas.restore();
-  }
-
-  void _paintStars(Canvas canvas, Size size) {
-    const stars = <_Star>[
-      _Star(.17, .27, 800),
-      _Star(.28, .69, 1700),
-      _Star(.39, .19, 2400),
-      _Star(.63, .24, 1100),
-      _Star(.76, .63, 2900),
-      _Star(.84, .36, 1900),
-      _Star(.11, .76, 3300),
-      _Star(.69, .78, 400),
-    ];
-    for (final star in stars) {
-      final state = _starState(ambientTime, star.delay);
-      if (state.opacity <= 0) continue;
-      final center = Offset(size.width * star.x, size.height * star.y);
-      canvas.drawCircle(
-        center,
-        1,
-        Paint()
-          ..color =
-              const Color(0xFFFFECC0).withValues(alpha: .9 * state.opacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-      );
-      canvas.drawCircle(
-        center,
-        math.max(1, state.scale),
-        Paint()
-          ..color = const Color(0xFFFFF7DC).withValues(alpha: state.opacity),
-      );
-    }
-  }
-
   void _paintLightPass(Canvas canvas, Size size) {
-    final local = _localProgress(time, 2550, 2200);
+    final local = _localProgress(time, 0, 2600);
     if (local <= 0 || local >= 1) return;
-    final eased = const Cubic(.25, .6, .3, 1).transform(local);
-    final opacity = local <= .3
-        ? ui.lerpDouble(0, 1, local / .3)!
-        : ui.lerpDouble(1, 0, (local - .3) / .7)!;
-    final translate = ui.lerpDouble(-1.1, 1.1, eased)! * size.width;
+    final eased = const Cubic(.42, 0, .2, 1).transform(local);
+    final opacity = math.sin(local * math.pi);
+    final translate = ui.lerpDouble(-.9, .9, eased)! * size.width;
     canvas.save();
     canvas.translate(translate, 0);
-    canvas.rotate(22 * math.pi / 180);
+    canvas.rotate(-12 * math.pi / 180);
     final rect = Rect.fromLTWH(
         -size.width, -size.height, size.width * 3, size.height * 3);
     canvas.drawRect(
@@ -892,10 +798,11 @@ class _SplashBackdropPainter extends CustomPainter {
           rect.centerRight,
           <Color>[
             Colors.transparent,
-            const Color(0xFFE9D1FF).withValues(alpha: .05 * opacity),
+            const Color(0xFF4D60FC).withValues(alpha: .12 * opacity),
+            const Color(0xFFD451F7).withValues(alpha: .08 * opacity),
             Colors.transparent,
           ],
-          const <double>[.2, .48, .7],
+          const <double>[.25, .46, .53, .75],
         ),
     );
     canvas.restore();
@@ -903,10 +810,7 @@ class _SplashBackdropPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SplashBackdropPainter oldDelegate) =>
-      oldDelegate.time != time ||
-      oldDelegate.ambientTime != ambientTime ||
-      oldDelegate.held != held ||
-      oldDelegate.background != background;
+      oldDelegate.time != time || oldDelegate.background != background;
 }
 
 class _SplashLogoAtmospherePainter extends CustomPainter {
@@ -954,50 +858,6 @@ class _SplashLogoAtmospherePainter extends CustomPainter {
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22),
       );
     }
-    if (reducedMotion) return;
-    _paintOrbit(
-      canvas,
-      center: Offset(size.width / 2, size.height * .48),
-      state: _wideOrbitState(time, ambientTime, held),
-      width: math.min(viewportWidth * .36, 440),
-      aspectRatio: 1.9,
-      color: const Color(0xFFF1DEFF).withValues(alpha: .16),
-    );
-    _paintOrbit(
-      canvas,
-      center: Offset(size.width / 2, size.height * .48),
-      state: _tightOrbitState(time, ambientTime, held),
-      width: math.min(viewportWidth * .25, 305),
-      aspectRatio: 1,
-      color: const Color(0xFFEEC598).withValues(alpha: .13),
-    );
-  }
-
-  void _paintOrbit(
-    Canvas canvas, {
-    required Offset center,
-    required _OrbitState state,
-    required double width,
-    required double aspectRatio,
-    required Color color,
-  }) {
-    if (state.opacity <= 0) return;
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(state.angle);
-    canvas.scale(state.scale);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset.zero,
-        width: width,
-        height: width / aspectRatio,
-      ),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = color.withValues(alpha: color.a * state.opacity),
-    );
-    canvas.restore();
   }
 
   @override
@@ -1014,6 +874,7 @@ class _SplashLogoAtmospherePainter extends CustomPainter {
 class _MarkState {
   const _MarkState({
     required this.opacity,
+    required this.translateX,
     required this.translateY,
     required this.scale,
     required this.rotationY,
@@ -1021,12 +882,14 @@ class _MarkState {
     required this.brightness,
     required this.saturation,
     required this.blur,
+    required this.chromaticShift,
     required this.shadowBlur,
     required this.shadowColor,
   });
 
   static const staticState = _MarkState(
     opacity: 1,
+    translateX: 0,
     translateY: 0,
     scale: 1,
     rotationY: 0,
@@ -1034,11 +897,13 @@ class _MarkState {
     brightness: 1,
     saturation: .9,
     blur: 0,
+    chromaticShift: 0,
     shadowBlur: 30,
     shadowColor: Color(0x57E1B4FF),
   );
 
   final double opacity;
+  final double translateX;
   final double translateY;
   final double scale;
   final double rotationY;
@@ -1046,6 +911,7 @@ class _MarkState {
   final double brightness;
   final double saturation;
   final double blur;
+  final double chromaticShift;
   final double shadowBlur;
   final Color shadowColor;
 }
@@ -1055,6 +921,9 @@ class _NameState {
     required this.opacity,
     required this.letterSpacingEm,
     required this.blur,
+    required this.scale,
+    required this.chromaticShift,
+    required this.translateX,
     required this.translateY,
   });
 
@@ -1062,19 +931,23 @@ class _NameState {
     opacity: 1,
     letterSpacingEm: .62,
     blur: 0,
+    scale: 1,
+    chromaticShift: 0,
+    translateX: 0,
     translateY: 0,
   );
 
   final double opacity;
   final double letterSpacingEm;
   final double blur;
+  final double scale;
+  final double chromaticShift;
+  final double translateX;
   final double translateY;
 }
 
 class _VerticalRevealState {
   const _VerticalRevealState({required this.opacity, required this.translateY});
-
-  static const staticState = _VerticalRevealState(opacity: 1, translateY: 0);
 
   final double opacity;
   final double translateY;
@@ -1089,123 +962,110 @@ class _GlowState {
   final double scale;
 }
 
-class _OrbitState {
-  const _OrbitState({
-    required this.opacity,
-    required this.angle,
-    required this.scale,
-  });
-
-  final double opacity;
-  final double angle;
-  final double scale;
-}
-
-class _AuroraState {
-  const _AuroraState({
-    required this.opacity,
-    required this.translateX,
-    required this.translateY,
-    required this.scale,
-  });
-
-  final double opacity;
-  final double translateX;
-  final double translateY;
-  final double scale;
-}
-
-class _Star {
-  const _Star(this.x, this.y, this.delay);
-
-  final double x;
-  final double y;
-  final double delay;
-}
-
-class _StarState {
-  const _StarState({required this.opacity, required this.scale});
-
-  final double opacity;
-  final double scale;
-}
-
 _MarkState _markState(double time) {
-  final p = _localProgress(time, 350, 7200);
-  const stops = <double>[0, .12, .3, .52, .83, 1];
-  const curve = Cubic(.2, .8, .2, 1);
+  final p = _localProgress(time, 0, 7200);
+  const stops = <double>[0, .1, .27, .42, .82, 1];
+  const curve = Cubic(.42, 0, .2, 1);
   final shadow = _colorKeyframes(
     p,
     stops,
     const <Color>[
-      Color(0xB3F0D8FF),
-      Color(0xB3F0D8FF),
-      Color(0x8CE1B4FF),
-      Color(0x57E1B4FF),
-      Color(0x57E1B4FF),
-      Color(0x33E1B4FF),
+      Color(0xAA273DFF),
+      Color(0xAA273DFF),
+      Color(0x998B48EF),
+      Color(0x667D65CC),
+      Color(0x447D65CC),
+      Color(0x227D65CC),
     ],
     curve,
   );
   return _MarkState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, 1, 1, 1, 0], curve),
-    translateY:
-        _keyframes(p, stops, const <double>[14, 14, 0, 0, 0, -4], curve),
-    scale: _keyframes(
-        p, stops, const <double>[1.32, 1.32, 1.12, 1, 1, .97], curve),
+    opacity: _keyframes(p, stops, const <double>[1, 1, 1, 1, 1, 0], curve),
+    translateX: _keyframes(
+      p,
+      stops,
+      const <double>[-.3, -.12, .025, 0, 0, 0],
+      curve,
+    ),
+    translateY: _keyframes(
+      p,
+      stops,
+      const <double>[.08, -.04, .015, 0, 0, -.01],
+      curve,
+    ),
+    scale: _keyframes(p, stops, const <double>[7, 4.9, 1.18, 1, 1, .94], curve),
     rotationY: _keyframes(
       p,
       stops,
-      const <double>[-1.3, -1.3, -.32, 0, 0, 0],
+      const <double>[-.42, -.24, .08, 0, 0, 0],
       curve,
     ),
     rotationZ: _keyframes(
       p,
       stops,
-      const <double>[-.12, -.12, .04, 0, 0, 0],
+      const <double>[-.08, -.04, .025, 0, 0, 0],
       curve,
     ),
     brightness:
-        _keyframes(p, stops, const <double>[.75, .75, 1.25, 1, 1, .72], curve),
+        _keyframes(p, stops, const <double>[.85, 1.45, 1.1, 1, 1, .72], curve),
     saturation:
-        _keyframes(p, stops, const <double>[1.1, 1.1, 1.08, 1, 1, .6], curve),
-    blur: _keyframes(p, stops, const <double>[8, 8, 0, 0, 0, 1], curve),
+        _keyframes(p, stops, const <double>[1.5, 1.4, 1.15, 1, 1, .6], curve),
+    blur: _keyframes(p, stops, const <double>[0, 0, 0, 0, 0, 1], curve),
+    chromaticShift: _keyframes(
+      p,
+      stops,
+      const <double>[.05, .04, .012, 0, 0, 0],
+      curve,
+    ),
     shadowBlur:
-        _keyframes(p, stops, const <double>[42, 42, 36, 30, 30, 22], curve),
+        _keyframes(p, stops, const <double>[22, 18, 26, 30, 30, 18], curve),
     shadowColor: shadow,
   );
 }
 
 _NameState _nameState(double time) {
-  final p = _localProgress(time, 350, 7200);
-  const stops = <double>[0, .27, .47, .84, 1];
-  const curve = Cubic(.2, .75, .25, 1);
+  final p = _localProgress(time, 0, 7200);
+  const stops = <double>[0, .1, .27, .42, .82, 1];
+  const curve = Cubic(.42, 0, .2, 1);
   return _NameState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, 1, 1, 0], curve),
+    opacity: _keyframes(p, stops, const <double>[1, 1, 1, 1, 1, 0], curve),
     letterSpacingEm: _keyframes(
       p,
       stops,
-      const <double>[1.05, 1.05, .62, .62, .68],
+      const <double>[.7, .7, .62, .62, .62, .68],
       curve,
     ),
-    blur: _keyframes(p, stops, const <double>[5, 5, 0, 0, 1], curve),
-    translateY: _keyframes(p, stops, const <double>[8, 8, 0, 0, -2], curve),
-  );
-}
-
-_VerticalRevealState _signatureState(double time) {
-  final p = _localProgress(time, 400, 7200);
-  const stops = <double>[0, .44, .58, .84, 1];
-  const curve = Cubic(.25, .1, .25, 1);
-  return _VerticalRevealState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, 1, 1, 0], curve),
-    translateY: _keyframes(p, stops, const <double>[6, 6, 0, 0, -2], curve),
+    blur: _keyframes(p, stops, const <double>[0, 0, 0, 0, 0, 1], curve),
+    scale: _keyframes(
+      p,
+      stops,
+      const <double>[7, 4.9, 1.18, 1, 1, .96],
+      curve,
+    ),
+    chromaticShift: _keyframes(
+      p,
+      stops,
+      const <double>[.025, .02, .006, 0, 0, 0],
+      curve,
+    ),
+    translateX: _keyframes(
+      p,
+      stops,
+      const <double>[.5, .24, .035, 0, 0, 0],
+      curve,
+    ),
+    translateY: _keyframes(
+      p,
+      stops,
+      const <double>[.08, .04, 2, 0, 0, -2],
+      curve,
+    ),
   );
 }
 
 _VerticalRevealState _loadingState(double time) {
   final p = _localProgress(time, 0, 7200);
-  const stops = <double>[0, .18, .28, .88, 1];
+  const stops = <double>[0, .32, .45, .88, 1];
   const curve = Cubic(.25, .1, .25, 1);
   return _VerticalRevealState(
     opacity: _keyframes(p, stops, const <double>[0, 0, 1, 1, 0], curve),
@@ -1227,125 +1087,6 @@ _GlowState _glowState(double time, double ambientTime, bool held) {
     scale += wave * .015;
   }
   return _GlowState(opacity: opacity, scale: scale);
-}
-
-_OrbitState _wideOrbitState(double time, double ambientTime, bool held) {
-  final p = _localProgress(time, 450, 6400);
-  const stops = <double>[0, .1, .35, .82, 1];
-  const curve = Cubic(.2, .75, .25, 1);
-  var angle = _keyframes(
-        p,
-        const <double>[0, .1, 1],
-        const <double>[-25, -25, 155],
-        curve,
-      ) *
-      math.pi /
-      180;
-  if (held) angle += math.sin(ambientTime / 10000 * math.pi * 2) * .025;
-  return _OrbitState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, .9, .24, 0], curve),
-    angle: angle,
-    scale: _keyframes(
-      p,
-      const <double>[0, .1, 1],
-      const <double>[.45, .45, 1.45],
-      curve,
-    ),
-  );
-}
-
-_OrbitState _tightOrbitState(double time, double ambientTime, bool held) {
-  final p = _localProgress(time, 700, 6100);
-  const stops = <double>[0, .14, .42, .84, 1];
-  const curve = Cubic(.2, .75, .25, 1);
-  var angle = _keyframes(
-        p,
-        const <double>[0, .14, 1],
-        const <double>[45, 45, -135],
-        curve,
-      ) *
-      math.pi /
-      180;
-  if (held) angle -= math.sin(ambientTime / 10000 * math.pi * 2) * .022;
-  return _OrbitState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, .7, .18, 0], curve),
-    angle: angle,
-    scale: _keyframes(
-      p,
-      const <double>[0, .14, 1],
-      const <double>[.38, .38, 1.68],
-      curve,
-    ),
-  );
-}
-
-_AuroraState _auroraOneState(double time, double ambientTime, bool held) {
-  final p = _localProgress(time, 0, 7200);
-  const stops = <double>[0, .08, .42, .82, 1];
-  const curve = Cubic(.42, 0, .58, 1);
-  final wave = held ? math.sin(ambientTime / 10000 * math.pi * 2) : 0;
-  return _AuroraState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, .7, .36, 0], curve),
-    translateX: _keyframes(
-          p,
-          const <double>[0, .08, 1],
-          const <double>[-.18, -.18, .34],
-          curve,
-        ) +
-        wave * .012,
-    translateY: _keyframes(
-      p,
-      const <double>[0, .08, 1],
-      const <double>[.1, .1, -.06],
-      curve,
-    ),
-    scale: _keyframes(
-      p,
-      const <double>[0, .08, 1],
-      const <double>[.8, .8, 1.18],
-      curve,
-    ),
-  );
-}
-
-_AuroraState _auroraTwoState(double time, double ambientTime, bool held) {
-  final p = _localProgress(time, 200, 7200);
-  const stops = <double>[0, .16, .52, .86, 1];
-  const curve = Cubic(.42, 0, .58, 1);
-  final wave = held ? math.sin(ambientTime / 10000 * math.pi * 2) : 0;
-  return _AuroraState(
-    opacity: _keyframes(p, stops, const <double>[0, 0, .7, .3, 0], curve),
-    translateX: _keyframes(
-          p,
-          const <double>[0, .16, 1],
-          const <double>[.2, .2, -.28],
-          curve,
-        ) -
-        wave * .01,
-    translateY: _keyframes(
-      p,
-      const <double>[0, .16, 1],
-      const <double>[.1, .1, -.1],
-      curve,
-    ),
-    scale: _keyframes(
-      p,
-      const <double>[0, .16, 1],
-      const <double>[.86, .86, 1.14],
-      curve,
-    ),
-  );
-}
-
-_StarState _starState(double ambientTime, double delay) {
-  if (ambientTime < delay) return const _StarState(opacity: 0, scale: .3);
-  final p = ((ambientTime - delay) % 3600) / 3600;
-  const stops = <double>[0, .48, .58, 1];
-  const curve = Cubic(.42, 0, .58, 1);
-  return _StarState(
-    opacity: _keyframes(p, stops, const <double>[0, .75, .32, 0], curve),
-    scale: _keyframes(p, stops, const <double>[.3, 1, .72, .3], curve),
-  );
 }
 
 double _skipOpacity(double time) {

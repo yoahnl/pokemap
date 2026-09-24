@@ -118,6 +118,37 @@ void main() {
     }
   });
 
+  testWidgets('starts close and settles into a clean lockup', (tester) async {
+    Future<(double, double)> frame(int milliseconds) async {
+      await tester.pumpWidget(_app(PlayerSplashTimeline(
+        branding: branding,
+        progress: milliseconds / kPlayerSplashTimelineMilliseconds,
+        exitProgress: 0,
+        ambientProgress: 0,
+        loadingProgress: .5,
+        logo: MemoryImage(logoBytes),
+        wordmark: MemoryImage(wordmarkBytes),
+        reducedMotion: false,
+      )));
+      final zoom = tester.widget<Transform>(find.byKey(
+        const ValueKey<String>('startup-splash-mark-zoom'),
+      ));
+      final name = tester.widget<Opacity>(find.byKey(
+        const ValueKey<String>('startup-splash-wordmark'),
+      ));
+      return (zoom.transform.storage[0], name.opacity);
+    }
+
+    final opening = await frame(0);
+    expect(opening.$1, greaterThan(5));
+    expect(opening.$2, 1);
+
+    final settled = await frame(4500);
+    expect(settled.$1, closeTo(1, .01));
+    expect(settled.$2, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'holds a live composition when real loading outlasts the timeline',
       (tester) async {
@@ -201,7 +232,7 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey<String>('startup-splash-signature')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(_curtainAlpha(tester), 0);
   });
@@ -279,7 +310,20 @@ void main() {
       (tester) async {
     await _setViewport(tester, const Size(1600, 900));
     final logo = MemoryImage(logoBytes);
-    const frames = <int>[0, 500, 1500, 3000, 4500, 5750, 6750, 7200];
+    const frames = <int>[
+      0,
+      500,
+      1000,
+      1500,
+      2000,
+      2500,
+      3000,
+      3500,
+      4500,
+      5750,
+      6750,
+      7200,
+    ];
     for (final milliseconds in frames) {
       final loading = _mockLoadingProgress(milliseconds);
       await tester.pumpWidget(
@@ -330,29 +374,33 @@ void main() {
     );
   });
 
-  testWidgets('certifies the mobile 9:16 composition', (tester) async {
+  testWidgets('certifies the mobile 9:16 cinematic and lockup', (tester) async {
     await _setViewport(tester, const Size(390, 693.333333));
     final logo = MemoryImage(logoBytes);
-    await tester.pumpWidget(
-      _goldenApp(
-        PlayerSplashTimeline(
-          branding: branding,
-          progress: 4500 / 7200,
-          exitProgress: 0,
-          ambientProgress: .45,
-          loadingProgress: _mockLoadingProgress(4500),
-          loadingLabel: 'Accord du monde',
-          logo: logo,
-          wordmark: MemoryImage(wordmarkBytes),
-          reducedMotion: false,
+    for (final milliseconds in <int>[500, 1500, 4500]) {
+      await tester.pumpWidget(
+        _goldenApp(
+          PlayerSplashTimeline(
+            branding: branding,
+            progress: milliseconds / 7200,
+            exitProgress: 0,
+            ambientProgress: milliseconds / 10000,
+            loadingProgress: _mockLoadingProgress(milliseconds),
+            loadingLabel: _mockLoadingLabel(_mockLoadingProgress(milliseconds)),
+            logo: logo,
+            wordmark: MemoryImage(wordmarkBytes),
+            reducedMotion: false,
+          ),
         ),
-      ),
-    );
-    await tester.pump();
-    await expectLater(
-      find.byKey(const ValueKey<String>('startup-splash-golden')),
-      matchesGoldenFile('goldens/player_runtime_splash/mobile_9x16_4500.png'),
-    );
+      );
+      await tester.pump();
+      await expectLater(
+        find.byKey(const ValueKey<String>('startup-splash-golden')),
+        matchesGoldenFile(
+          'goldens/player_runtime_splash/mobile_9x16_$milliseconds.png',
+        ),
+      );
+    }
   });
 }
 
