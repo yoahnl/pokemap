@@ -17,7 +17,7 @@ import 'package:map_editor/src/application/services/pokemon_move_local_id.dart';
 ///
 /// Usage :
 ///   dart run tool/generate_pokemon_move_localized_names.dart \
-///     > lib/src/application/seeds/pokemon_move_localized_names.dart
+///     > ../map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_move_localized_names.dart
 ///
 /// Le rapport de génération est écrit sur stderr et ne pollue donc pas le
 /// fichier produit.
@@ -62,8 +62,7 @@ Future<void> main(List<String> arguments) async {
         final translations = <String, String>{
           'en': englishName,
           for (final language in _languages)
-            if ((names[language] ?? '').isNotEmpty)
-              language: names[language]!,
+            if ((names[language] ?? '').isNotEmpty) language: names[language]!,
         };
 
         if (translations.length == 1) {
@@ -92,8 +91,9 @@ Future<void> main(List<String> arguments) async {
     stderr.writeln('');
     stderr.writeln('=== Rapport de génération ===');
     stderr.writeln('Entrées produites          : ${table.length}');
-    stderr
-        .writeln('Sans nom anglais (ignorées): ${skippedNoEnglishName.length}');
+    stderr.writeln(
+      'Sans nom anglais (ignorées): ${skippedNoEnglishName.length}',
+    );
     for (final slug in skippedNoEnglishName) {
       stderr.writeln('  - $slug');
     }
@@ -136,12 +136,14 @@ Future<List<String>> _fetchAllMoveUrls(http.Client client) async {
 }
 
 Future<Map<String, dynamic>> _fetchJson(http.Client client, String url) async {
-  final response = await client.get(
-    Uri.parse(url),
-    headers: const <String, String>{
-      'User-Agent': 'PokeMapEditor/0.1 (+https://pokemap.local)',
-    },
-  ).timeout(const Duration(seconds: 30));
+  final response = await client
+      .get(
+        Uri.parse(url),
+        headers: const <String, String>{
+          'User-Agent': 'PokeMapEditor/0.1 (+https://pokemap.local)',
+        },
+      )
+      .timeout(const Duration(seconds: 30));
   if (response.statusCode != 200) {
     throw StateError('GET $url failed with ${response.statusCode}');
   }
@@ -177,14 +179,16 @@ String _renderDartFile(Map<String, Map<String, String>> table) {
     ..writeln('//   cd packages/map_editor && dart run \\')
     ..writeln('//     tool/generate_pokemon_move_localized_names.dart \\')
     ..writeln(
-        '//     > lib/src/application/seeds/pokemon_move_localized_names.dart')
+      '//     > ../map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_move_localized_names.dart',
+    )
     ..writeln('//')
     ..writeln('// Source : PokeAPI v2. Indexé par identifiant local du')
     ..writeln('// catalogue, dérivé du nom anglais via')
     ..writeln('// normalizePokemonMoveLocalId.')
     ..writeln('')
     ..writeln(
-        'const Map<String, Map<String, String>> pokemonMoveLocalizedNames =')
+      'const Map<String, Map<String, String>> pokemonMoveLocalizedNames =',
+    )
     ..writeln('    <String, Map<String, String>>{');
 
   for (final id in sortedIds) {
@@ -192,9 +196,7 @@ String _renderDartFile(Map<String, Map<String, String>> table) {
     final languages = translations.keys.toList()..sort();
     buffer.writeln("  '$id': <String, String>{");
     for (final language in languages) {
-      buffer.writeln(
-        "    '$language': '${_escape(translations[language]!)}',",
-      );
+      buffer.writeln("    '$language': '${_escape(translations[language]!)}',");
     }
     buffer.writeln('  },');
   }
@@ -208,7 +210,8 @@ String _renderDartFile(Map<String, Map<String, String>> table) {
     ..writeln('/// ce qui laisse le libellé anglais canonique en place.')
     ..writeln('Map<String, String> localizedNamesForMove(String localId) =>')
     ..writeln(
-        '    pokemonMoveLocalizedNames[localId] ?? const <String, String>{};');
+      '    pokemonMoveLocalizedNames[localId] ?? const <String, String>{};',
+    );
 
   return buffer.toString();
 }

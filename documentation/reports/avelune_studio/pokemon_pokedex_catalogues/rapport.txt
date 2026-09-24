@@ -1,0 +1,166 @@
+Avelune Studio — Pokémon : Pokédex et catalogues
+Rapport d'exécution local, 24 septembre 2026
+
+Résumé
+Le workspace Studio dispose d'une entrée Pokémon entre Histoire et Test du jeu. Pokédex et Attaques sont deux vues internes réelles. Les espèces du projet peuvent être recherchées/filtrées, importées en JSON avec compagnons ou depuis une source externe unitaire, éditées dans les cinq sections bornées, puis sauvegardées et relues depuis une autre session. Les attaques se consultent, se sélectionnent par identité réelle et se synchronisent via la fusion canonique. L'import PNG de menu utilise l'action canonique. Aucun projet personnel original ni statut Notion n'a été modifié pendant le développement.
+
+Audit initial et cadrage
+État de départ observé : branche main, HEAD e4479659d, arbre propre. Le HEAD a avancé pendant la mission par des travaux concurrents hors de notre diff ; état final à renseigner ci-dessous. Les SHA 56298b206 et 8f493299 étaient des repères de reprise, pas des cibles de checkout. Ont été lus : PROMPT_REPRISE_AVELUNE_STUDIO.md, note Notion 3e4197a7bfa58140899ed30eeb5b4553 en lecture seule, codex_rule.md, le cadre Studio, les modèles/codecs map_core, les actions/transactions map_authoring et les use cases Pokémon ciblés de map_editor. Les risques identifiés étaient la propriété des références compagnon, l'écrasement après aperçu, les brouillons multi-document, les réponses tardives et les règles de fusion d'Attaques. Scope conservé : uniquement Pokémon/Pokédex/Attaques et raccordements nécessaires. Carte, Narrative Studio, Export, Player et projets personnels préservés.
+
+Décisions et zones essentielles
+- Le port Pokémon est détenu par session/projet dans StudioBootstrap et libéré avec elle. L'hôte partage ses gardes de sortie/navigation ; la consultation ne publie rien et n'active pas implicitement Pokémon.
+- Les documents espèce, learnset, évolution et média sont résolus par le manifeste et les refs réels ; les écritures utilisent les préimages et la transaction canonique. Une révision disque divergente refuse l'écrasement et garde le brouillon.
+- La recherche/les filtres conservent la sélection par identifiant ; un homonyme ne la remplace pas. Une sélection masquée est indiquée. Les collections restent bornées et progressives.
+- L'import JSON valide les compagnons retenus avant toute écriture, vérifie identité et destination, puis redemande un aperçu si la source/projet a changé. L'import externe respecte failOnConflict, skipExisting et overwriteExisting avec confirmation ; il refuse un compagnon détenu par une autre espèce et rattache explicitement les refs vides. Les téléchargements externes d'images/cris ne sont pas dans ce chemin : l'interface l'annonce.
+- Le catalogue Attaques réemploie la conversion et la fusion partagées ; l'ancien éditeur utilise maintenant ces mêmes services par adaptateurs légers. Aucun import privé Studio → map_editor.
+- Les médias locaux réels sont prévisualisés quand présents ; les références introuvables sont indiquées et conservées. PNG icon/party/portrait passe par pokemon.media.import, sans promesse de remplacement implicite.
+- Les saisies en cours, annulation/rétablissement, fermeture, navigation et mutation asynchrone gardent le travail. Un import sur l'espèce sélectionnée recharge son propriétaire après succès, au lieu de réutiliser un ancien brouillon.
+
+Recette et preuve visuelle
+Fixtures temporaires seulement. Les captures sous captures/ sont produites par flutter test du véritable MapWorkspaceScreen (1536×1024 et 1024×640 à 150 %), pas par une manipulation native : pokemon-pokedex.png, pokemon-fiche.png, pokemon-attaques.png, pokemon-import-externe.png, pokemon-petite-fenetre.png. La capture d'import a été corrigée après comparaison : espacement du descriptif et du champ. Une nouvelle session ProjectSession/LocalMapWorkspaceAdapter relit du disque l'espèce et son apprentissage après sauvegarde. Le test A/B maintient le même identifiant dans deux projets et libère une recherche A tardive : B conserve ses données. La capture n'est pas une acceptation visuelle indépendante.
+
+Commandes et résultats observés
+- apps/avelune_studio: flutter test --no-pub --concurrency=1 test/pokemon — 22 réussis, 0 échec (journal /tmp/avelune-pokemon-targeted-final3.log).
+- apps/avelune_studio: flutter test --no-pub --concurrency=1 test/architecture/architecture_boundaries_test.dart — 7 réussis (journal /tmp/avelune-pokemon-architecture-corrected.log).
+- apps/avelune_studio: flutter test --no-pub --concurrency=1 test/pokemon/pokemon_project_switch_host_test.dart — 1 réussi après renforcement A/B (journal /tmp/avelune-pokemon-project-switch-final.log).
+- apps/avelune_studio: flutter test --no-pub --concurrency=1 test/pokemon/pokemon_workspace_host_test.dart — 5 réussis, captures Pokédex/Fiche/Attaques actualisées puis alignement du détail Attaques vérifié (journal /tmp/avelune-pokemon-moves-visual-final.log).
+- apps/avelune_studio: flutter analyze --no-pub — No issues found.
+- apps/avelune_studio: flutter build macos --debug --no-pub — succès sur les sources finales, build/macos/Build/Products/Debug/Avelune Studio.app (journal /tmp/avelune-pokemon-macos-build-final3.log). Build, aucune manipulation native de l'app. Lancement utilisateur : cd apps/avelune_studio && flutter run -d macos.
+- packages/map_core: dart test test/pokemon_project_data_test.dart test/pokemon_move_test.dart — 33 réussis, codecs et identités du contrat.
+- packages/map_runtime: flutter test --no-pub --concurrency=1 test/runtime_pokemon_species_loader_test.dart test/runtime_pokemon_learnset_loader_test.dart test/runtime_pokemon_evolution_loader_test.dart — 51 réussis, lecteurs runtime des documents partagés (/tmp/avelune-pokemon-runtime-consumers-final.log).
+- packages/map_authoring: dart analyze — No issues found ; tests ciblés Pokémon +24 réussis (/tmp/avelune-pokemon-authoring-targeted-final.log) ; dart test test/parity/full_authoring_parity_test.dart — 18 réussis (/tmp/avelune-pokemon-parity-final.log).
+- packages/map_editor: dart analyze lib — No issues found ; tests consommateurs anciens +29 et tests réseau/sync +27 réussis (/tmp/avelune-pokemon-editor-consumers-final.log et /tmp/avelune-pokemon-editor-network-final.log). flutter analyze --no-pub de tout le package sort avec 2 infos d'imports inutiles dans des tests cinématique/PNJ non modifiés.
+- tools/pokemap_mcp: npm run check — exit 0 (/tmp/avelune-pokemon-mcp-check-final.log) ; npm test — 83/83 réussis (/tmp/avelune-pokemon-mcp-final.log). pokemap_describe appelé sur le serveur MCP vivant : actions pokemon.species.write, pokemon.documents.write, pokemon.catalog.write et pokemon.media.import exposées. npm run verify:checkout-catalog exécute aussi pokemap_describe mais sort 1 car ce contrôle exige un arbre Git propre ; l'arbre de livraison est volontairement non committé.
+- packages/map_authoring: dart run tool/pmcp085_conformance.dart — exit 1 : catalogue complet (86 ressources, 360 actions, aucun contrat manquant ou bloqué), mais certification transport globale incomplète. Les actions Pokémon sont annoncées capables sur CLI/API/editor/MCP ; sauf pokemon.ruleset.set, leurs reçus de bout en bout par transport ne sont pas présents dans ce contrôle (/tmp/avelune-pokemon-pmcp085-final.json). Parité MCP déclarée PARTIAL, sans attribuer ce résultat à un défaut nouveau de l'UI.
+- dart format --output=none --set-exit-if-changed sur les 102 fichiers Dart touchés — 0 changement ; git diff --check — aucune erreur ; bash tools/scripts/check_markdown_hygiene.sh — aucun nouveau Markdown.
+- apps/avelune_studio: flutter test --no-pub --concurrency=2 — 932 réussis, 2 ignorés, 0 échec sur les sources finales (/tmp/avelune-pokemon-studio-suite-final5.log). Deux suites intermédiaires ont fini avec 1 échec chacune et ont été corrigées : test d'import externe à 301 lignes, puis imports Dart déplacés pendant la compilation du test A/B. La réussite finale ne masque pas ces itérations.
+- map_authoring: dart test complet — +882 -6, donc pas vert. Échecs : JSONL golden describe, SmartTile M01, deux assertions package_boundary, deux assertions registre des ressources ; les zones de ces tests ne figurent pas dans le diff Pokémon. L'échec pubspec/freezed_annotation a été reproduit isolément et cette dépendance figure déjà dans le HEAD. Les autres sont probablement préexistants, sans exécution d'un HEAD isolé pour le certifier (/tmp/avelune-pokemon-authoring-tests-final.log).
+
+Limites et auto-critique
+L'import externe livre les JSON métier mais ne télécharge pas automatiquement les binaires image/cri que l'ancien éditeur sait traiter ; l'état partiel est annoncé, sans stub présenté comme média disponible. Les sources distantes réelles n'ont pas été contactées durant cette recette : source réseau déterministe dans le vrai hôte. L'app macOS a été construite mais pas manipulée nativement. Le test de réouverture construit une autre session et un autre adaptateur qui relisent les fichiers ; il ne simule pas la fermeture puis la réouverture complète du processus. Aucun benchmark de latence indépendant ni certification de gameplay de toutes les méthodes d'évolution. Les six échecs de la suite complète map_authoring, les deux infos globales map_editor et la certification PMCP-085 globale incomplète ne sont pas masqués. Les objets/boutiques, équipes, rencontres, création d'attaques et moteur d'effets restent hors mandat. La réserve scènes modernes → progression structurée reste ouverte.
+
+Passes de revue
+Architecture (sub-agent, lecture seule) : frontières publiques et limite de fichier respectées après correction ; a identifié collision de compagnons et refs vides, corrigées et reproduites.
+Critique (sub-agent, lecture seule) : a identifié ancien brouillon après réimport et race pendant mutation ; corrigés avec tests déterministes.
+Preuves (sub-agent, lecture seule) : a vérifié journaux/captures et distingué harnais/native ; a signalé les anciens tests rouges et les six échecs partagés, traités ou consignés.
+Implémentation, Tests, Build/Validation (passes principales) : parcours complet raccordé, tests hôte ciblés et build menés ; pas de promesse de parité binaire externe ni de validation native.
+
+Inventaire complet des fichiers locaux touchés (MOD=suivi modifié, NEW=nouveau)
+Chaque description indique la zone et son impact ; les fichiers source et le diff Git sont la preuve ligne à ligne.
+MOD  apps/avelune_studio/lib/app/di/providers.dart — DI : fournisseur du port Pokémon par session
+MOD  apps/avelune_studio/lib/app/studio_bootstrap.dart — composition : adaptateur et sélecteurs natifs par projet
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart — cadre : raccordement du nouvel espace
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart — hôte : portée du propriétaire Pokémon
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart — garde de sortie commun avec Pokémon
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart — cycle de vie : libération du propriétaire
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart — navigation : conservation des brouillons et retour
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart — construction du contenu Pokémon dans l’hôte
+MOD  apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart — route Pokémon interne au workspace
+MOD  apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart — entrée Pokémon entre Histoire et Test
+MOD  apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart — raccordement de l’hôte au nouvel espace
+MOD  apps/avelune_studio/pubspec.lock — résolution reproductible de cette dépendance
+MOD  apps/avelune_studio/pubspec.yaml — dépendance HTTP de l’adaptateur réseau Studio
+MOD  apps/avelune_studio/test/support/map_host_fixture.dart — vrai hôte Studio instrumenté pour fixtures
+MOD  packages/map_authoring/lib/map_authoring.dart — façade publique des conversions et sources externes
+MOD  packages/map_editor/lib/src/application/models/pokemon_external_query_resolution.dart — ancien éditeur : adaptateur/ré-export de résolution de requête et identité externe vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/models/pokemon_external_species_search_result.dart — ancien éditeur : adaptateur/ré-export de résultat de recherche externe vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/ports/pokemon_external_source_repository.dart — ancien éditeur : adaptateur/ré-export de port des sources externes vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/seeds/pokemon_move_localized_names.dart — ancien éditeur : adaptateur/ré-export de noms d’attaques localisés vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/pokeapi_pokemon_evolution_converter.dart — ancien éditeur : adaptateur/ré-export de conversion canonique des évolutions PokeAPI vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/pokeapi_pokemon_learnset_converter.dart — ancien éditeur : adaptateur/ré-export de conversion canonique des apprentissages PokeAPI vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/pokeapi_pokemon_species_enricher.dart — ancien éditeur : adaptateur/ré-export de enrichissement canonique des espèces PokeAPI vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/pokemon_external_query_resolver.dart — ancien éditeur : adaptateur/ré-export de résolution des requêtes externes vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/pokemon_move_local_id.dart — ancien éditeur : adaptateur/ré-export de identités locales des attaques vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/showdown_move_catalog_converter.dart — ancien éditeur : adaptateur/ré-export de conversion du catalogue Showdown vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/services/showdown_pokemon_species_converter.dart — ancien éditeur : adaptateur/ré-export de conversion des espèces Showdown vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/use_cases/search_external_pokemon_species_use_case.dart — ancien éditeur : adaptateur/ré-export de recherche externe réutilisable vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart — synchronisation de l’ancien éditeur via fusion partagée
+MOD  packages/map_editor/lib/src/infrastructure/external/pokeapi_live_source.dart — ancien éditeur : adaptateur/ré-export de source PokeAPI via frontière HTTP concrète vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/infrastructure/external/showdown_snapshot_source.dart — ancien éditeur : adaptateur/ré-export de snapshot Showdown via frontière HTTP vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/lib/src/infrastructure/repositories/http_pokemon_external_source_repository.dart — ancien éditeur : adaptateur/ré-export de composition des sources HTTP vers la frontière partagée ; comportement conservé
+MOD  packages/map_editor/tool/generate_pokemon_move_localized_names.dart — générateur conservé avec import de la façade partagée
+NEW  apps/avelune_studio/lib/app/di/pokemon_providers.dart — zone Pokémon ou raccordement associé
+NEW  apps/avelune_studio/lib/features/pokemon/application/pokemon_external_commands.dart — recherche/prévisualisation/appliquer externe, retours réels
+NEW  apps/avelune_studio/lib/features/pokemon/application/pokemon_import_commands.dart — prévisualisation/appliquer JSON, protection des brouillons
+NEW  apps/avelune_studio/lib/features/pokemon/application/pokemon_learnset_commands.dart — sélecteur d’attaques et retour à la fiche
+NEW  apps/avelune_studio/lib/features/pokemon/application/pokemon_moves_sync_commands.dart — prévisualisation et application du catalogue d’attaques
+NEW  apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_controller.dart — propriétaire de sélection, recherche, brouillons, sauvegarde et opérations
+NEW  apps/avelune_studio/lib/features/pokemon/data/http_pokemon_external_transport.dart — transport HTTP concret au bord Studio/ancien éditeur
+NEW  apps/avelune_studio/lib/features/pokemon/data/local_pokemon_workspace_adapter.dart — manifest, références, projections, lecture/écriture du projet
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_document_transaction.dart — écritures canoniques révisionnées des documents liés
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_external_import.dart — conversion externe et politique de conflit, propriété des compagnons
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_external_source_session.dart — source externe composée et durée de vie du réseau
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_index_projection.dart — index léger des espèces du projet
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_json_import.dart — import JSON, compagnons facultatifs, validation et collisions
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_media_import.dart — import PNG via action canonique et politique de préservation
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_media_projection.dart — références média, résolution/aperçu de fichiers existants
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_moves_projection.dart — projections de détail et recherche des attaques
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_moves_snapshot_source.dart — adaptateur de snapshot pour la synchronisation
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_moves_sync.dart — fusion canonique du catalogue et révision
+NEW  apps/avelune_studio/lib/features/pokemon/data/pokemon_types_projection.dart — présentation des types depuis les données
+NEW  apps/avelune_studio/lib/features/pokemon/domain/pokemon_external_import_models.dart — aperçus, conflits et résultats externes
+NEW  apps/avelune_studio/lib/features/pokemon/domain/pokemon_import_models.dart — préimages et aperçus JSON
+NEW  apps/avelune_studio/lib/features/pokemon/domain/pokemon_moves_sync_models.dart — aperçus et résultats de fusion
+NEW  apps/avelune_studio/lib/features/pokemon/domain/pokemon_workspace_models.dart — identités, documents, brouillons et états
+NEW  apps/avelune_studio/lib/features/pokemon/domain/pokemon_workspace_port.dart — contrat public du propriétaire
+NEW  apps/avelune_studio/lib/platform/files/native_pokemon_json_picker.dart — sélecteur système de fichier JSON
+NEW  apps/avelune_studio/lib/platform/files/native_pokemon_png_picker.dart — sélecteur système de PNG
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_draft_controls.dart — commandes locales et historique de brouillon
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_external_import_panel.dart — recherche et aperçu d’un import externe
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_import_preview.dart — aperçu et confirmation de l’import JSON
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_moves_library.dart — bibliothèque, détail, diagnostic et synchronisation Attaques
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_detail.dart — fiche et commandes Enregistrer/Annuler
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_evolution.dart — prédecesseur et conditions d’évolution
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_forms.dart — formes et classification
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_learnset.dart — groupes d’apprentissages et choix d’attaque
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart — recherche, filtres, liste bornée et sélection stable
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_media.dart — références, variantes, animations et PNG
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_overview.dart — édition noms, types, description, activation
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_thumbnail.dart — aperçu réel ou absence explicite
+NEW  apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart — page Pokémon et deux vues internes
+NEW  apps/avelune_studio/test/fixtures/pokemon_external/bulbasaur_pokeapi_evolution.json — fixture locale Showdown/PokeAPI pour la recette hors réseau
+NEW  apps/avelune_studio/test/fixtures/pokemon_external/bulbasaur_pokeapi_pokemon.json — fixture locale Showdown/PokeAPI pour la recette hors réseau
+NEW  apps/avelune_studio/test/fixtures/pokemon_external/bulbasaur_pokeapi_species.json — fixture locale Showdown/PokeAPI pour la recette hors réseau
+NEW  apps/avelune_studio/test/fixtures/pokemon_external/bulbasaur_showdown.json — fixture locale Showdown/PokeAPI pour la recette hors réseau
+NEW  apps/avelune_studio/test/pokemon/pokemon_custom_refs_host_test.dart — test hôte : manifest et références non conventionnelles
+NEW  apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart — test hôte : recherche, réseau, conflit, politique et refs vides
+NEW  apps/avelune_studio/test/pokemon/pokemon_forms_evolution_host_test.dart — test hôte : champs formes/évolutions et préservation
+NEW  apps/avelune_studio/test/pokemon/pokemon_homonym_host_test.dart — test hôte : homonymes, filtre masquant la cible et sauvegarde stable
+NEW  apps/avelune_studio/test/pokemon/pokemon_json_collision_host_test.dart — test hôte : prévisualisation sans écritures, collision et réimport de sélection
+NEW  apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart — test hôte : 260 espèces et petite fenêtre à 150 %
+NEW  apps/avelune_studio/test/pokemon/pokemon_media_animation_host_test.dart — test hôte : animation/référence média et vraie image locale
+NEW  apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart — test à attente contrôlée : mutation pendant import/sauvegarde
+NEW  apps/avelune_studio/test/pokemon/pokemon_project_switch_host_test.dart — test hôte : réponse tardive de A sans contamination de B
+NEW  apps/avelune_studio/test/pokemon/pokemon_save_conflict_host_test.dart — test hôte : refus de révision et brouillon conservé
+NEW  apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart — test hôte : navigation, édition focalisée, réouverture indépendante, JSON/PNG et Attaques
+NEW  apps/avelune_studio/test/support/map_host_fixture_navigation.dart — navigation hôte réutilisée dans les recettes
+NEW  apps/avelune_studio/test/support/pokemon_external_source_fixture.dart — source réseau déterministe, retards et erreurs
+NEW  apps/avelune_studio/test/support/pokemon_moves_source_fixture.dart — snapshot d’attaques déterministe
+NEW  apps/avelune_studio/test/support/ui_pokemon_port.dart — pont asynchrone du vrai port pour widget tests
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/captures/pokemon-attaques.png — capture du vrai hôte Flutter sur fixture temporaire (pas une manipulation native)
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/captures/pokemon-fiche.png — capture du vrai hôte Flutter sur fixture temporaire (pas une manipulation native)
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/captures/pokemon-import-externe.png — capture du vrai hôte Flutter sur fixture temporaire (pas une manipulation native)
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/captures/pokemon-petite-fenetre.png — capture du vrai hôte Flutter sur fixture temporaire (pas une manipulation native)
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/captures/pokemon-pokedex.png — capture du vrai hôte Flutter sur fixture temporaire (pas une manipulation native)
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/http_pokemon_external_source_repository.dart — frontière partagée : composition des sources HTTP ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokeapi_live_source.dart — frontière partagée : source PokeAPI via frontière HTTP concrète ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokeapi_pokemon_evolution_converter.dart — frontière partagée : conversion canonique des évolutions PokeAPI ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokeapi_pokemon_learnset_converter.dart — frontière partagée : conversion canonique des apprentissages PokeAPI ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokeapi_pokemon_species_enricher.dart — frontière partagée : enrichissement canonique des espèces PokeAPI ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_external_http_transport.dart — frontière partagée : contrat HTTP sans dépendance Flutter/editor ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_external_query_resolution.dart — frontière partagée : résolution de requête et identité externe ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_external_query_resolver.dart — frontière partagée : résolution des requêtes externes ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_external_source_repository.dart — frontière partagée : port des sources externes ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_external_species_search_result.dart — frontière partagée : résultat de recherche externe ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_move_local_id.dart — frontière partagée : identités locales des attaques ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_move_localized_names.dart — frontière partagée : noms d’attaques localisés ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/pokemon_moves_catalog_merge.dart — frontière partagée : fusion par identifiant, champs locaux préservés ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/search_external_pokemon_species_use_case.dart — frontière partagée : recherche externe réutilisable ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/showdown_move_catalog_converter.dart — frontière partagée : conversion du catalogue Showdown ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/showdown_pokemon_species_converter.dart — frontière partagée : conversion des espèces Showdown ; réemploi par Studio et ancien éditeur
+NEW  packages/map_authoring/lib/src/domains/gameplay/pokemon_external/showdown_snapshot_source.dart — frontière partagée : snapshot Showdown via frontière HTTP ; réemploi par Studio et ancien éditeur
+NEW  packages/map_editor/lib/src/infrastructure/external/http_pokemon_external_transport.dart — ancien éditeur : adaptateur/ré-export de transport HTTP concret au bord Studio/ancien éditeur vers la frontière partagée ; comportement conservé
+NEW  documentation/reports/avelune_studio/pokemon_pokedex_catalogues/rapport.txt — présent rapport d'audit, commandes, résultats, limites et inventaire.
+
+État Git avant livraison
+Branche main, HEAD 865b5d3b070dbe888cc1ff4f1eee8b369ad99917 ; 32 fichiers suivis modifiés et 82 fichiers nouveaux, rapport et captures compris. Le HEAD a avancé par des travaux concurrents hors de ce diff depuis e4479659d. Ce rapport conserve l'état constaté à la fin de l'implémentation, avant l'autorisation ultérieure de commit et push. Aucune écriture Notion. Prochaines capacités du programme non commencées.

@@ -1,0 +1,31 @@
+{
+  "name": "Bulbasaur",
+  "num": 1,
+  "gen": 1,
+  "types": [
+    "Grass",
+    "Poison"
+  ],
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45
+  },
+  "abilities": {
+    "0": "Overgrow",
+    "H": "Chlorophyll"
+  },
+  "eggGroups": [
+    "Monster",
+    "Grass"
+  ],
+  "expType": "Medium Slow",
+  "baseExp": 64,
+  "catchRate": 45,
+  "baseFriendship": 50,
+  "heightm": 0.7,
+  "weightkg": 6.9
+}

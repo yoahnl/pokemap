@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
+import '../pokemon/pokemon_workspace_page.dart';
 import '../../../features/game_export/domain/studio_game_export_port.dart';
 import '../game_export/studio_game_export_page.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
@@ -91,6 +94,9 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
+    this.pokemonPort,
+    this.pokemonJsonPicker,
+    this.pokemonPngPicker,
     this.imagePicker,
     this.narrativePort,
     this.scenePort,
@@ -109,6 +115,9 @@ class MapWorkspaceScreen extends StatefulWidget {
   final MapWorkspaceController controller;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
+  final PokemonWorkspacePort? pokemonPort;
+  final Future<String?> Function()? pokemonJsonPicker;
+  final Future<String?> Function()? pokemonPngPicker;
   final NarrativePort? narrativePort;
   final ScenePort? scenePort;
   final StoryPort? storyPort;
@@ -139,6 +148,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
   final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;
+  PokemonWorkspaceController? _pokemon;
   NarrativeWorkspaceController? _narrative;
   SceneWorkspaceController? _scenes;
   StoryWorkspaceController? _stories;
@@ -218,6 +228,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     );
     widget.registerExitGuard(_allowCloseWithExport);
     widget.home?.allowSwitch = _allowCloseWithExport;
+    _initializePokemon();
     unawaited(_initialize());
   }
 
@@ -267,12 +278,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
 
   void _enterSpace(WorkspaceSpace space) {
     if (mounted) setState(() => _space = space);
-  }
-
-  void _toolChanged() {
-    _gestureGeneration++;
-    retainWorkspaceBrush(_visuals, _view);
-    _changed();
   }
 
   Future<void> _close() async {

@@ -1,0 +1,64 @@
+{
+  "name": "bulbasaur",
+  "generation": {
+    "name": "generation-i"
+  },
+  "capture_rate": 45,
+  "base_happiness": 50,
+  "is_baby": false,
+  "is_legendary": false,
+  "is_mythical": false,
+  "growth_rate": {
+    "name": "medium-slow"
+  },
+  "egg_groups": [
+    {
+      "name": "monster"
+    },
+    {
+      "name": "grass"
+    }
+  ],
+  "color": {
+    "name": "green"
+  },
+  "names": [
+    {
+      "language": {
+        "name": "en"
+      },
+      "name": "Bulbasaur"
+    },
+    {
+      "language": {
+        "name": "fr"
+      },
+      "name": "Bulbizarre"
+    }
+  ],
+  "genera": [
+    {
+      "language": {
+        "name": "en"
+      },
+      "genus": "Seed Pokémon"
+    },
+    {
+      "language": {
+        "name": "fr"
+      },
+      "genus": "Pokémon Graine"
+    }
+  ],
+  "flavor_text_entries": [
+    {
+      "language": {
+        "name": "en"
+      },
+      "flavor_text": "A strange seed was planted on its back at birth."
+    }
+  ],
+  "evolution_chain": {
+    "url": "https://pokeapi.example.test/api/v2/evolution-chain/1/"
+  }
+}

@@ -13,6 +13,9 @@ import 'package:avelune_studio/presentation/features/events/event_workspace_page
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/pokemon/data/pokemon_moves_snapshot_source.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show PokemonExternalSourceRepository;
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
@@ -30,8 +33,10 @@ import 'map_workspace_fixture.dart' show WorkspaceTestVisuals;
 import 'ui05_narrative_fixture.dart';
 import 'ui08_workspace_harness.dart';
 import 'ui12_widget_world_port.dart';
+import 'ui_pokemon_port.dart';
 
 part 'map_host_fixture_disk.dart';
+part 'map_host_fixture_navigation.dart';
 
 class MapHostFixture {
   MapHostFixture._(
@@ -56,6 +61,10 @@ class MapHostFixture {
     NarrativePort Function(NarrativePort port)? narrative,
     Future<void> Function(M3StoryFixture source)? prepareSource,
     Future<File?> Function(String)? gameExportPicker,
+    Future<String?> Function()? pokemonJsonPicker,
+    Future<String?> Function()? pokemonPngPicker,
+    PokemonMovesSnapshotSource? pokemonMovesSource,
+    PokemonExternalSourceRepository? pokemonExternalSource,
     AssetBundle? assetBundle,
     GlobalKey? captureKey,
     StudioHomeNavigation? home,
@@ -115,6 +124,14 @@ class MapHostFixture {
       ),
       home: MapWorkspaceScreen(
         controller: maps,
+        pokemonPort: UiPokemonPort.forFixture(
+          source,
+          tester,
+          movesSource: pokemonMovesSource,
+          externalSource: pokemonExternalSource,
+        ),
+        pokemonJsonPicker: pokemonJsonPicker,
+        pokemonPngPicker: pokemonPngPicker,
         home: navigation,
         gameExport: gameExport,
         gameExportPicker: (suggested) async {
@@ -237,27 +254,10 @@ class MapHostFixture {
     await pumpIo(tester, frames: 4);
   }
 
-  Future<void> go(String destination) async {
-    final target = find.descendant(
-      of: find.byType(StudioPrimaryNavigation),
-      matching: find.byTooltip(destination),
-    );
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(target);
-    await pumpIo(tester, frames: 12);
-  }
-
   Future<void> openExport() async {
     expect(home, isNotNull);
     home!.navigate('gameExport');
     await pumpIo(tester, frames: 12);
-  }
-
-  Future<void> enter(String label) async {
-    final target = find.text(label).first;
-    await tester.ensureVisible(target);
-    await tester.tap(target);
-    await pumpIo(tester, frames: 15);
   }
 
   Future<NarrativeWorkspaceController> narrativeOwner() async {

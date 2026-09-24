@@ -35,6 +35,7 @@ class StudioPrimaryNavigation extends StatelessWidget {
       ('Carte', Icons.map_outlined, 'map'),
       ('Ressources', Icons.grid_view_outlined, 'resources'),
       ('Histoire', Icons.menu_book_outlined, 'story'),
+      ('Pokémon', Icons.catching_pokemon_outlined, 'pokemon'),
       ('Test du jeu', Icons.play_circle_outline, 'test'),
     ];
     return SizedBox(

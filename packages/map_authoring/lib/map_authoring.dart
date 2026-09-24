@@ -171,6 +171,23 @@ export 'src/workspace/workspace_handle_store.dart';
 export 'src/workspace/workspace_policy.dart';
 
 export 'src/domains/gameplay/pokemon_media_import_actions.dart';
+export 'src/domains/gameplay/pokemon_external/showdown_move_catalog_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_moves_catalog_merge.dart';
+export 'src/domains/gameplay/pokemon_external/showdown_pokemon_species_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokeapi_pokemon_species_enricher.dart';
+export 'src/domains/gameplay/pokemon_external/pokeapi_pokemon_learnset_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokeapi_pokemon_evolution_converter.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_external_source_repository.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_external_http_transport.dart';
+export 'src/domains/gameplay/pokemon_external/pokeapi_live_source.dart';
+export 'src/domains/gameplay/pokemon_external/showdown_snapshot_source.dart';
+export 'src/domains/gameplay/pokemon_external/http_pokemon_external_source_repository.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_external_query_resolution.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_external_species_search_result.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_external_query_resolver.dart';
+export 'src/domains/gameplay/pokemon_external/search_external_pokemon_species_use_case.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_move_local_id.dart';
+export 'src/domains/gameplay/pokemon_external/pokemon_move_localized_names.dart';
 export 'src/domains/gameplay/pokemon_sprite_source_catalog.dart';
 
 export 'src/domains/narrative/presentation_publication_actions.dart';

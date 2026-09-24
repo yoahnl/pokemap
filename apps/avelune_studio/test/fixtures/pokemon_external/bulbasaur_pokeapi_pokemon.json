@@ -1,0 +1,86 @@
+{
+  "name": "bulbasaur",
+  "base_experience": 64,
+  "height": 7,
+  "weight": 69,
+  "sprites": {
+    "front_default": "https://assets.example.test/bulbasaur/front.png",
+    "back_default": "https://assets.example.test/bulbasaur/back.png",
+    "front_shiny": "https://assets.example.test/bulbasaur/front_shiny.png",
+    "back_shiny": "https://assets.example.test/bulbasaur/back_shiny.png",
+    "other": {
+      "official-artwork": {
+        "front_default": "https://assets.example.test/bulbasaur/portrait.png"
+      }
+    }
+  },
+  "cries": {
+    "latest": "https://assets.example.test/bulbasaur/cry.ogg"
+  },
+  "moves": [
+    {
+      "move": {
+        "name": "vine-whip"
+      },
+      "version_group_details": [
+        {
+          "level_learned_at": 7,
+          "move_learn_method": {
+            "name": "level-up"
+          },
+          "version_group": {
+            "name": "scarlet-violet"
+          }
+        }
+      ]
+    },
+    {
+      "move": {
+        "name": "tackle"
+      },
+      "version_group_details": [
+        {
+          "level_learned_at": 1,
+          "move_learn_method": {
+            "name": "level-up"
+          },
+          "version_group": {
+            "name": "scarlet-violet"
+          }
+        }
+      ]
+    },
+    {
+      "move": {
+        "name": "growl"
+      },
+      "version_group_details": [
+        {
+          "level_learned_at": 1,
+          "move_learn_method": {
+            "name": "level-up"
+          },
+          "version_group": {
+            "name": "scarlet-violet"
+          }
+        }
+      ]
+    },
+    {
+      "move": {
+        "name": "solar-beam"
+      },
+      "version_group_details": [
+        {
+          "level_learned_at": 0,
+          "move_learn_method": {
+            "name": "machine"
+          },
+          "version_group": {
+            "name": "scarlet-violet"
+          }
+        }
+      ]
+    }
+  ]
+}

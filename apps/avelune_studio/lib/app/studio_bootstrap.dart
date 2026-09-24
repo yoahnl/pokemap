@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import '../features/game_export/data/studio_game_export_controller.dart';
+import '../features/pokemon/data/local_pokemon_workspace_adapter.dart';
+import '../platform/files/native_pokemon_json_picker.dart';
+import '../platform/files/native_pokemon_png_picker.dart';
 import '../platform/files/native_game_export_picker.dart';
 import 'package:flutter/widgets.dart';
 import '../features/cinematics/data/local_cinematic_adapter.dart';
@@ -54,6 +57,22 @@ class StudioBootstrap extends StatelessWidget {
         ref.onDispose(port.dispose);
         return port;
       }),
+      pokemonPortProvider.overrideWith((ref, session) {
+        final port = LocalPokemonWorkspaceAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        );
+        ref.onDispose(port.dispose);
+        return port;
+      }),
+      pokemonJsonPickerProvider.overrideWithValue(
+        const NativePokemonJsonPicker().choose,
+      ),
+      pokemonPngPickerProvider.overrideWithValue(
+        const NativePokemonPngPicker().choose,
+      ),
       resourceImagePickerProvider.overrideWithValue(
         const NativeResourceImagePicker().choose,
       ),

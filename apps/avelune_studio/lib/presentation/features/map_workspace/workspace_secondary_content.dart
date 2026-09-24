@@ -31,6 +31,7 @@ enum WorkspaceSpace {
   map,
   resources,
   story,
+  pokemon,
   interaction,
   scene,
   progression,

@@ -119,6 +119,10 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onResources: _openResources,
                           onMap: _openMap,
                           onExport: _openGameExport,
+                          onPokemon: () {
+                            _show(WorkspaceSpace.pokemon);
+                            unawaited(_pokemon?.load());
+                          },
                           exportActive: _gameExport?.operationActive == true,
                           onStory: _narrative == null
                               ? null
@@ -133,6 +137,12 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               _openResources(element, true),
                           resourceContent: _space == WorkspaceSpace.gameExport
                               ? _gameExportPage()
+                              : _space == WorkspaceSpace.pokemon
+                              ? PokemonWorkspacePage(
+                                  controller: _pokemon,
+                                  pickJson: widget.pokemonJsonPicker,
+                                  pickPng: widget.pokemonPngPicker,
+                                )
                               : _space == WorkspaceSpace.verification
                               ? _verificationPage()
                               : _space == WorkspaceSpace.world

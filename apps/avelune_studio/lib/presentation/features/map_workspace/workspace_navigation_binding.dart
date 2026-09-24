@@ -1,7 +1,20 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
+  void _toolChanged() {
+    _gestureGeneration++;
+    retainWorkspaceBrush(_visuals, _view);
+    _changed();
+  }
+
   void _show(WorkspaceSpace space) {
+    if (_space == WorkspaceSpace.pokemon &&
+        space != _space &&
+        (_pokemon?.hasPendingChanges == true ||
+            _pokemon?.mutationActive == true)) {
+      unawaited(_leavePokemonThenShow(space));
+      return;
+    }
     if (_space == WorkspaceSpace.gameExport &&
         space != _space &&
         _gameExport?.operationActive == true) {
@@ -41,5 +54,49 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     _interactionNotice?.close();
     _narrative?.cancelOpening();
     _enterSpace(space);
+  }
+
+  Future<void> _leavePokemonThenShow(WorkspaceSpace destination) async {
+    if (!await _allowLeavePokemon() || !mounted) return;
+    _show(destination);
+  }
+
+  Future<bool> _allowLeavePokemon() async {
+    final pokemon = _pokemon;
+    if (pokemon == null) return true;
+    if (pokemon.mutationActive) return false;
+    if (!pokemon.hasPendingChanges) return true;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Conserver le brouillon Pokémon ?'),
+        content: const Text(
+          'La fiche contient des modifications non enregistrées.',
+        ),
+        actions: [
+          StudioButton(
+            label: 'Rester',
+            secondary: true,
+            onPressed: () => Navigator.pop(dialogContext, 'stay'),
+          ),
+          StudioButton(
+            label: 'Annuler les modifications',
+            secondary: true,
+            onPressed: () => Navigator.pop(dialogContext, 'discard'),
+          ),
+          StudioButton(
+            label: 'Enregistrer',
+            onPressed: () => Navigator.pop(dialogContext, 'save'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return false;
+    if (choice == 'save') return pokemon.save();
+    if (choice == 'discard') {
+      pokemon.discardSelected();
+      return true;
+    }
+    return false;
   }
 }

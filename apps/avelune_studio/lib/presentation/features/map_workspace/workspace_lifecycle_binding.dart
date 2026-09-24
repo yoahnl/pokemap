@@ -1,6 +1,13 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
+  void _initializePokemon() {
+    final port = widget.pokemonPort;
+    if (port != null) {
+      _pokemon = PokemonWorkspaceController(port, changed: _changed);
+    }
+  }
+
   /// Releases every controller, view store and visual this host owns.
   void disposeWorkspace() {
     widget.registerExitGuard(null);
@@ -13,6 +20,7 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     }
     _resources?.removeListener(_changed);
     _resources?.dispose();
+    _pokemon?.dispose();
     _narrative?.dispose();
     _scenes?.dispose();
     _stories?.dispose();
