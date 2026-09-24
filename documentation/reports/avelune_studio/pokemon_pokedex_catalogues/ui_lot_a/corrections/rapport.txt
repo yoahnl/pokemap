@@ -1,0 +1,273 @@
+Avelune Studio — Pokémon, consolidation du lot A
+24 septembre 2026
+
+Résultat utilisateur
+====================
+
+Le Pokédex affiche sa collection dans toute la hauteur disponible et permet
+d'atteindre la dernière espèce d'une fixture de 1 145 fiches. La vue d'ensemble
+présente d'abord le nom dans la langue d'édition, la description commune et les
+types ; les traductions et identifiants restent accessibles dans des sections
+repliées. Une traduction absente est explicitement absente et n'est pas créée
+par un simple changement de langue. Le détail d'une attaque sélectionnée est
+ancré en haut ; l'état sans sélection reste centré. Les noms d'attaques et de
+talents utilisent les libellés existants quand ils sont disponibles. Un talent
+sans libellé garde son identifiant explicite. La description monolingue d'une
+attaque est présentée comme une description source, sans langue inventée.
+
+L'import externe conserve l'identité et le chemin d'un compagnon legacy lors
+d'un remplacement confirmé. En mode « Garder les fichiers existants », un
+nouveau compagnon qui dépend d'une référence de fiche non écrite est exclu du
+plan, du résultat et de l'écriture. Un nouveau compagnon reste importable si la
+fiche conservée le référence déjà. Un plan vide se termine sans mutation.
+L'aperçu est invalidé si l'inventaire ou une référence retenue change. Le
+message de prévisualisation des bordures appartient à Carte ; les diagnostics
+globaux demeurent visibles dans Pokémon.
+
+Audit initial et portée
+=======================
+
+État relevé avant les modifications : répertoire
+/Users/karim/Project/pokemonProject, branche main, HEAD
+9d0ce3031db05a4b0570c7283701676439014428, statut court vide et diff stat
+vide. Le repère du mandat coïncidait avec le HEAD sans motiver un checkout.
+Environnement : macOS Darwin 27 ARM, Flutter 3.48.0-0.4.pre (beta), Dart 3.14
+beta. Le projet personnel « Le Train de 17h42 » n'a pas été ouvert en écriture.
+Les fixtures utilisées par les tests sont temporaires.
+
+Lecture ciblée : projections/contrôleur/imports Pokémon de Studio, validateur
+de cohérence de map_core, contrats d'authoring et writers legacy, widgets de
+bibliothèque/détail, raccordement du footer Carte, rapport Lot A antérieur et
+tests du véritable hôte. Les quatre captures fournies ont été ouvertes avant
+le code. Sept lignes visibles n'impliquaient pas sept espèces chargées :
+ListView.builder utilisait déjà toute la collection ; le bloc supérieur et les
+contraintes locales réduisaient son viewport. Un test initial de la fixture
+volumineuse mesurait environ 395,5 px pour une attente >450 px ; la même
+assertion et le parcours jusqu'à l'entrée 1 144 passent après correction.
+
+La description du Pokédex est dexContent.flavorText, une chaîne commune selon
+le codec actuel. Le choix de langue ne prétend donc pas la localiser. La
+description des attaques n'a pas de métadonnée de langue fiable dans ce
+catalogue ; aucun diagnostic « anglais » n'est déduit de sa seule chaîne.
+
+Règle de propriété commune
+=========================
+
+La décision pure resolvePokemonCompanionOwnership qualifie séparément
+référence, propriétaire espèce, speciesId déclaré et ensemble des espèces qui
+référencent le document. Elle est consommée par le validateur partagé et par
+la lecture et les imports Studio, sans IO dans map_core.
+
+- Propriétaire standard : speciesId déclaré = espèce qui référence le document.
+- Legacy : speciesId déclaré = référence documentaire seulement si cette
+  référence n'est pas l'identifiant d'une autre espèce connue et si un seul
+  propriétaire la référence.
+- Référence étrangère : refus ; aucune attribution par simple égalité de
+  chemin ou de nom affiché.
+- Deux propriétaires pour une même référence legacy : ambiguïté, refus ciblé
+  de la section/import ; la fiche d'espèce reste consultable.
+- Médias de forme : la forme peut lire les médias référencés de sa base selon
+  la relation base/forme existante. Cette exception ne vaut pas pour les
+  apprentissages ni les évolutions et ne duplique pas le média.
+
+Le test partagé reproduit le cas shared-learn à deux propriétaires : Studio et
+validateur prennent maintenant la même décision. Les gardes de transaction,
+préimage, révision, session et historique restent ceux de pokemon.documents.write.
+L'index session est réutilisé ; une ressource illisible ou ambiguë n'est pas
+normalisée silencieusement.
+
+Plan d'import et vérifications
+==============================
+
+La préparation externe part de la fiche conservée ou remplacée selon la
+politique. Le même plan effectif alimente les compteurs et l'écriture. En
+skipExisting, les documents déjà présents sont conservés ; les nouveaux
+compagnons sans référence dans la fiche réellement conservée sont exclus et
+expliqués. En overwriteExisting, la préimage exacte protège la destination
+et le speciesId documentaire legacy est maintenu avant l'action canonique.
+failOnConflict conserve son refus global. La signature de l'inventaire et les
+préimages sont revérifiées avant application ; un aperçu périmé échoue sans
+réutiliser un rattachement devenu faux.
+
+Les tests du véritable workspace couvrent l'ouverture d'un compagnon legacy,
+le remplacement externe et la réouverture indépendante avec même chemin et
+speciesId, l'exclusion d'un nouveau document orphelin, le plan vide et le
+changement d'une référence conservée après aperçu. Les autres tests Pokémon
+existants gardent import JSON/PNG, formes, évolution, apprentissages, médias,
+sélection par identité, changement de projet, conflits et sauvegarde focalisée.
+
+Modifications par zone
+======================
+
+map_core :
+- lib/src/models/pokemon_companion_ownership.dart (nouveau) : décision pure
+  standard/legacy/ambigu/étranger et exception média base/forme ;
+- lib/map_core_domain.dart : export public de cette règle ;
+- lib/src/validation/pokemon_catalog_coherence_validator.dart : recours à la
+  même décision et distinction du partage ambigu ;
+- test/pokemon_companion_ownership_test.dart (nouveau) : matrice de propriété.
+
+Studio, application et données :
+- features/pokemon/application/pokemon_workspace_controller.dart : langue
+  d'édition distincte du profil et du brouillon ;
+- features/pokemon/application/pokemon_external_commands.dart : résultat sans
+  changement sans remise à zéro indue du brouillon ;
+- features/pokemon/data/local_pokemon_workspace_adapter.dart et
+  pokemon_bundle_projection.dart (nouveau) : projection des documents et
+  index réutilisables dans le budget de taille ;
+- features/pokemon/data/pokemon_companion_projection.dart,
+  pokemon_media_projection.dart et pokemon_json_import.dart : qualification
+  du propriétaire de chaque compagnon par la règle partagée ;
+- features/pokemon/data/pokemon_external_import.dart et
+  pokemon_external_import_helpers.dart (nouveau) : prévisualisation legacy,
+  signature d'inventaire, plan protégé et conversion localisée ;
+- features/pokemon/data/pokemon_index_projection.dart et
+  pokemon_types_projection.dart : références projetées, noms de talents et
+  langues disponibles sans téléchargement ;
+- features/pokemon/domain/pokemon_workspace_models.dart et
+  pokemon_external_import_models.dart : valeurs de projection et plan effectif
+  sélectionné/conservé/exclu, résultat sans changement.
+
+Studio, présentation :
+- presentation/features/pokemon/pokemon_species_overview.dart : ordre utile,
+  champ de nom pour la langue choisie, replis traductions/détails techniques,
+  talents lisibles et description commune explicitée ;
+- presentation/features/pokemon/pokemon_species_library.dart : entête borné,
+  viewport étendu, Scrollbar et contrôleur local ;
+- presentation/features/pokemon/pokemon_moves_library.dart et
+  pokemon_move_detail.dart : détail en haut, défilement local, métadonnées
+  secondaires et absence de doublon Type/Catégorie ;
+- presentation/features/pokemon/pokemon_species_learnset.dart,
+  pokemon_species_evolution.dart et pokemon_species_media.dart : erreur ciblée
+  quand un compagnon ne peut pas être attribué ;
+- presentation/features/pokemon/pokemon_external_preview_pane.dart et
+  pokemon_workspace_page.dart : décision de plan visible et résultat exact ;
+- presentation/features/map_workspace/map_workspace_layout.dart et
+  workspace_map_footer.dart : message de bordures seulement dans Carte,
+  diagnostics globaux conservés.
+
+Tests Studio : pokemon_corrections_host_test.dart,
+pokemon_corrections_visual_host_test.dart, pokemon_external_plan_test.dart,
+pokemon_language_corrections_host_test.dart et
+pokemon_border_notice_host_test.dart (nouveaux) ;
+pokemon_external_import_host_test.dart adapte le libellé de plan vide sans
+affaiblir son test de mutation. Tous sont sous apps/avelune_studio/test/pokemon/.
+
+Preuves visuelles et provenance
+==============================
+
+Captures Flutter widget du véritable hôte Studio, sur fixtures temporaires,
+dans captures/ : correction-01-pokedex.png, 02-attaques.png,
+03-attaque.png, 04-vue-ensemble.png, 05-traductions.png,
+06-import-legacy.png, 07-exclusion.png et 08-langue-absente.png.
+Le test de collection utilise 1 145 espèces et 754 attaques, à 1536 × 1024
+logiques, facteur de texte standard et pixel ratio 1. Les captures sont des
+preuves de rendu instrumenté, pas une manipulation native ni une acceptation
+artistique indépendante. Une instance native de Studio était déjà ouverte
+dans l'environnement ; elle n'a pas été pilotée afin de ne pas toucher au
+workspace personnel potentiellement monté. Les tests visuels préexistants du
+workspace produisent également les états compacts et conflit dans le même
+dossier. Les quatre
+références reçues mesuraient 2048 × 1285 pixels de fichier ; elles ne
+déterminent pas directement la taille logique Flutter.
+
+Contrôles finaux
+===============
+
+Les commandes et sorties intégrales sont conservées sous logs/. Les résultats
+ci-dessous correspondent aux sources finales ; aucun test n'a été désactivé.
+
+- Studio, flutter test --no-pub --concurrency=1 test/pokemon : exit 0,
+  40 tests réussis (logs/pokemon-tests-final.log).
+- Studio, flutter test --no-pub --concurrency=1
+  test/architecture/architecture_boundaries_test.dart : exit 0,
+  7 tests réussis (logs/architecture-final.log).
+- Studio, flutter test --no-pub --concurrency=2 : exit 0,
+  950 tests réussis, 2 ignorés (logs/studio-full-final.log).
+- Studio, flutter analyze --no-pub : exit 0, aucune anomalie
+  (logs/studio-analyze-final.log).
+- Studio, flutter build macos --debug --no-pub : exit 0,
+  build/macos/Build/Products/Debug/Avelune Studio.app produit
+  (logs/macos-build-final.log). Ce build n'est pas une manipulation native.
+- Fichiers Dart modifiés/créés, dart format --output=none
+  --set-exit-if-changed : exit 0, 34 fichiers contrôlés, 0 modifié
+  (logs/changed-dart-format-final.log). Le contrôle de tout le répertoire
+  Studio trouve un écart dans test/support/game_export_fixture.dart,
+  fichier hors intervention ; aucun formatage forcé n'a été appliqué.
+- map_core, dart test test/pokemon_companion_ownership_test.dart
+  test/pokemon_catalog_coherence_validator_test.dart : exit 0,
+  21 tests réussis (logs/core-coherence-final.log).
+- map_core, dart analyze : exit 0, 122 remarques de lint sans erreur ;
+  elles concernent des fichiers hors du correctif (logs/core-analyze-final.log).
+- map_core, dart test : exit 1, 4 683 tests réussis, 1 ignoré, 5 échecs
+  (logs/core-full-final.log). Tests en échec :
+  project_item_reference_index_test.dart,
+  benchmark/verify_smart_tiles_performance_cli_test.dart,
+  scene_runtime_dry_run_preview_test.dart,
+  beta_playability_composition_test.dart et
+  cinematic_media_contract_fixture_test.dart. Le test d'index d'objets
+  échoue aussi isolément (logs/core-unrelated-isolated.log). Ces cinq échecs
+  sont également mentionnés par le précédent rapport du lot A ; leur
+  attribution précise reste non établie sans comparaison de base isolée.
+- map_authoring, dart test des trois tests
+  pokemon_catalog_authoring_test.dart,
+  pokemon_catalog_validation_transport_test.dart et
+  pokemon_catalog_jsonl_test.dart : exit 0, 13 tests réussis
+  (logs/authoring-pokemon-final.log).
+- map_authoring, dart test test/parity/full_authoring_parity_test.dart :
+  exit 0, 18 tests réussis (logs/authoring-parity-final.log).
+- map_authoring, dart analyze : exit 0, aucune anomalie
+  (logs/authoring-analyze-final.log).
+- tools/pokemap_mcp, npm run check : exit 0 ; npm test : exit 0,
+  83 tests réussis, 0 échec (logs/mcp-check-final.log et
+  logs/mcp-test-final.log). pokemap_describe du serveur vivant après build
+  expose 13 actions Pokémon, 0 contrat bloqué ou manquant.
+- map_authoring, dart run tool/pmcp085_conformance.dart : exit 1 ;
+  catalogue complet, 0 contrat bloqué/manquant, mais certification globale
+  de transport des objets toujours incomplète, donc
+  transportCertificationComplete=false et
+  itemTransportCertificationComplete=false (logs/pmcp085-final.log).
+  Ce contrôle transversal n'est pas annoncé comme réussi.
+- bash tools/scripts/check_markdown_hygiene.sh : exit 0,
+  « Markdown hygiene: no new Markdown files. »
+
+Les frontières direct API, JSONL et MCP restent exercées par les tests
+d'authoring et du serveur ; la mutation Studio est vérifiée depuis le
+véritable hôte. Aucun nouvel identifiant d'action MCP n'était requis pour une
+règle pure de propriété et une correction de plan Studio.
+
+Limites et critique
+==================
+
+La fixture volumineuse teste la hauteur et le défilement avec un grand nombre
+de documents conformes mais simples. Les scénarios de formes, médias présents
+et absents, traduction manquante, conflit et petite fenêtre sont exercés par
+des fixtures complémentaires, pas par chacun des 1 145 documents. Aucun
+service distant réel ni manipulation native à la souris n'est revendiqué.
+Les capacités hors mandat restent l'édition des combats, dresseurs, rencontres,
+objets et boutiques, la traduction automatique et la création d'espèces ou
+d'attaques. Les trois réserves techniques de ce mandat ont une reproduction ou
+un test de caractérisation ; le rendu final attend l'acceptation visuelle de
+Yoahn. Aucun commentaire de code manuel n'a été ajouté, conformément à sa
+demande explicite. La trace Notion exigée par AGENTS.md demeure en attente,
+car ce mandat interdit toute mutation Notion. Aucun statut DONE n'a été écrit.
+
+Passes internes : Audit/Architecture — règle pure et frontière confirmées ;
+Implémentation — réparations ciblées sans nouvel éditeur ; Tests — parcours
+workspace et cas négatifs ajoutés ; Build/Validation — résultats détaillés
+ci-dessus ; Critique — risque résiduel : réseau externe non essayé en direct,
+fixture volumineuse moins riche que les fixtures spécialisées. Ces passes ne
+représentent pas des avis indépendants d'autres personnes.
+
+État Git final
+==============
+
+Branche main, HEAD inchangé
+9d0ce3031db05a4b0570c7283701676439014428. Le statut final contient
+25 fichiers suivis modifiés et 61 fichiers non suivis de cette intervention
+(sources/tests, captures, journaux et présent rapport). Le diff des fichiers
+suivis donne 619 insertions et 376 suppressions ; les nouveaux fichiers sont
+listés dans logs/final-git.txt parce que git diff --stat ne les inclut pas.
+git diff --check ne signale aucun écart. Aucun fichier concurrent observé au
+préflight n'a été modifié ou effacé. Aucune écriture Git, aucune mutation
+Notion et aucune écriture dans un projet personnel original.

@@ -100,7 +100,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Garder les fichiers existants').last);
       await tester.pump();
-      await tester.tap(find.text('Appliquer l’import'));
+      await tester.tap(find.text('Terminer sans importer'));
       await pumpIo(tester);
       expect((await tester.runAsync(file.readAsBytes))!, importedBytes);
       expect(find.textContaining('conservé(s)'), findsWidgets);

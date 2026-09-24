@@ -1,4 +1,5 @@
 import '../models/pokemon_project_data.dart';
+import '../models/pokemon_companion_ownership.dart';
 import '../models/pokemon_ruleset_profile.dart';
 
 enum PokemonCatalogDiagnosticSeverity { error, warning }
@@ -190,6 +191,7 @@ final class PokemonCatalogCoherenceValidator {
       (species) => species.refs.media,
       (media) => media.speciesId,
       speciesIds,
+      media: true,
     );
     final formIdsBySpecies = _validateFormGraph(snapshot.species, collector);
 
@@ -378,8 +380,9 @@ final class PokemonCatalogCoherenceValidator {
     List<PokemonCatalogDocument<T>> companions,
     String Function(PokemonSpeciesFile) reference,
     String Function(T) declaredId,
-    Set<String> speciesIds,
-  ) {
+    Set<String> speciesIds, {
+    bool media = false,
+  }) {
     final ownersByReference = <String, Set<String>>{};
     for (final document in species) {
       final ref = reference(document.value).trim();
@@ -397,17 +400,27 @@ final class PokemonCatalogCoherenceValidator {
       final owners = ownersByReference[ref];
       if (owners == null || owners.isEmpty) continue;
       final declared = declaredId(document.value).trim();
-      if (speciesIds.contains(declared) && owners.contains(declared)) {
-        ownerByPath[document.path] = declared;
-        for (final owner in owners) {
+      for (final owner in owners) {
+        final speciesDocument = species
+            .where((item) => item.value.id == owner)
+            .first;
+        final forms = speciesDocument.value.forms;
+        final ownership = resolvePokemonCompanionOwnership(
+          ownerSpeciesId: owner,
+          reference: ref,
+          declaredSpeciesId: declared,
+          knownSpeciesIds: speciesIds,
+          referencingSpeciesIds: owners,
+          media: media,
+          ownerBaseFormId: forms.baseFormId,
+          ownerIsBaseForm: forms.isBaseForm,
+        );
+        if (ownership == PokemonCompanionOwnership.owned) {
+          ownerByPath[document.path] = declared == owner || declared == ref
+              ? owner
+              : declared;
           referencesByOwner.putIfAbsent(owner, () => <String>{}).add(ref);
         }
-      } else if (owners.length == 1 &&
-          declared == ref &&
-          !speciesIds.contains(ref)) {
-        final owner = owners.single;
-        ownerByPath[document.path] = owner;
-        referencesByOwner.putIfAbsent(owner, () => <String>{}).add(ref);
       }
     }
     return (ownerByPath: ownerByPath, referencesByOwner: referencesByOwner);

@@ -1,0 +1,20 @@
+00:00 +0: loading test/parity/full_authoring_parity_test.dart
+00:00 +0: PMCP-085 full authoring parity exposes no legacy terrain, path, or surface action
+00:00 +1: PMCP-085 full authoring parity registers every approved semantic resource without hidden gaps
+00:00 +2: PMCP-085 full authoring parity fails parity when a required direct read kind is not published
+00:00 +3: PMCP-085 full authoring parity separates declared, adapter, contract, and end-to-end evidence
+00:00 +4: PMCP-085 full authoring parity CHS-059 certifies all 25 Character Studio actions
+00:00 +5: PMCP-085 full authoring parity certifies every CIN-006 and CIN-019 action on four transports
+00:00 +6: PMCP-085 full authoring parity binds item transport receipts to action revision and fixture
+00:00 +7: PMCP-085 full authoring parity missing item transport receipt leaves only its action incomplete
+00:00 +8: PMCP-085 full authoring parity rejects receipts from another action revision or fixture
+00:00 +9: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:08 +10: PMCP-085 full authoring parity PMCP tool refuses an Item transport claim without receipts
+00:16 +11: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically
+00:16 +12: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport
+00:16 +13: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt
+00:16 +14: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity
+00:16 +15: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity
+00:16 +16: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity
+00:17 +17: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource
+00:17 +18: All tests passed!

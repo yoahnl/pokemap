@@ -25,6 +25,8 @@ class _PokemonSpeciesEvolutionEditorState
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final problem = controller.selectedDraft?.base.evolution?.problem;
+    if (problem != null) return PokemonSurface(child: Text(problem));
     final json = controller.selectedDraft?.document(
       PokemonDocumentFamily.evolution,
     );

@@ -55,6 +55,7 @@ extension PokemonExternalCommands on PokemonWorkspaceController {
       if (_disposed) return false;
       externalPreview = null;
       externalResult = result;
+      if (result.noChange) return true;
       await load(refresh: true);
       if (_disposed) return false;
       selectedId = null;

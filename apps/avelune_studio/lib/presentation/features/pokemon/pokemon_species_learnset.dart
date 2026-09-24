@@ -13,6 +13,8 @@ class PokemonSpeciesLearnsetEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final problem = controller.selectedDraft?.base.learnset?.problem;
+    if (problem != null) return PokemonSurface(child: Text(problem));
     final json = controller.selectedDraft?.document(
       PokemonDocumentFamily.learnset,
     );

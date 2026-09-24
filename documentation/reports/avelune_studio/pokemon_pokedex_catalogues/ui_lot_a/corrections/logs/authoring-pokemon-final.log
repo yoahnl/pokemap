@@ -1,0 +1,15 @@
+00:00 +0: loading test/domains/gameplay/pokemon_catalog_authoring_test.dart
+00:00 +0: test/domains/gameplay/pokemon_catalog_authoring_test.dart: Pokemon catalog authoring generic catalog edits canonicalize the document envelope
+00:00 +1: test/domains/gameplay/pokemon_catalog_authoring_test.dart: Pokemon catalog authoring shared codecs reject future schemas for every document family
+00:00 +2: test/domains/gameplay/pokemon_catalog_authoring_test.dart: Pokemon catalog authoring batch validation reports broken evolution and media references
+00:00 +3: test/domains/gameplay/pokemon_catalog_authoring_test.dart: Pokemon catalog authoring network import remains blocked without an explicit opt-in
+00:00 +4: test/domains/gameplay/pokemon_catalog_validation_transport_test.dart: direct and JSONL validation expose the same Pokemon gate
+00:00 +5: test/domains/gameplay/pokemon_catalog_validation_transport_test.dart: direct and JSONL validation expose the same Pokemon gate
+00:00 +6: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity adds catalog entries without resending or modifying existing definitions
+00:00 +7: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity adds catalog entries without resending or modifying existing definitions
+00:00 +8: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity writes a typed document batch identically through direct API and JSONL
+00:00 +9: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity invalid or duplicate members reject the whole batch before any write
+00:00 +10: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity writes the shared species schema through direct API and JSONL
+00:00 +11: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity rejects future species schemas through direct API and JSONL
+00:00 +12: test/domains/gameplay/pokemon_catalog_jsonl_test.dart: Pokemon document transport parity rejects missing species schemas before direct API and JSONL writes
+00:00 +13: All tests passed!

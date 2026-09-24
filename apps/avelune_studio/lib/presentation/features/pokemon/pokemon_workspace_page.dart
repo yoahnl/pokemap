@@ -102,9 +102,11 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
             if (controller.externalResult case final result?)
               _message(
                 context,
-                'Import ${result.speciesId} : ${result.created} créé(s), '
+                '${result.noChange ? 'Aucun document importé' : 'Import ${result.speciesId}'} : '
+                '${result.created} créé(s), '
                 '${result.overwritten} remplacé(s), '
-                '${result.skipped} conservé(s). '
+                '${result.skipped} conservé(s), '
+                '${result.excluded} exclu(s) sans rattachement. '
                 '${result.warnings.join(' ')}',
               ),
             if (controller.loading && index == null)

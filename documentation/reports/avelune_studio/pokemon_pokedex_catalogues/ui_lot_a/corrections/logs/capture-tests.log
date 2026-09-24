@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart: 1145 species and 754 moves fill and scroll their own viewports
+00:31 +1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart
+00:32 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: ambiguous legacy companion leaves the species readable
+00:37 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: legacy companion is replaced at its existing identity and path
+00:47 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: keeping a species with empty ref excludes unattached companion
+00:51 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: a changed retained reference invalidates an external preview
+00:54 +5: All tests passed!

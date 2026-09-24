@@ -1,0 +1,119 @@
+pwd: /Users/karim/Project/pokemonProject
+branch: main
+HEAD: 9d0ce3031db05a4b0570c7283701676439014428
+status:
+ M apps/avelune_studio/lib/features/pokemon/application/pokemon_external_commands.dart
+ M apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_controller.dart
+ M apps/avelune_studio/lib/features/pokemon/data/local_pokemon_workspace_adapter.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_companion_projection.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_external_import.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_index_projection.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_json_import.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_media_projection.dart
+ M apps/avelune_studio/lib/features/pokemon/data/pokemon_types_projection.dart
+ M apps/avelune_studio/lib/features/pokemon/domain/pokemon_external_import_models.dart
+ M apps/avelune_studio/lib/features/pokemon/domain/pokemon_workspace_models.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_footer.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_external_preview_pane.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_move_detail.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_moves_library.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_evolution.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_learnset.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_media.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_overview.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart
+ M apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart
+ M packages/map_core/lib/map_core_domain.dart
+ M packages/map_core/lib/src/validation/pokemon_catalog_coherence_validator.dart
+?? apps/avelune_studio/lib/features/pokemon/data/pokemon_bundle_projection.dart
+?? apps/avelune_studio/lib/features/pokemon/data/pokemon_external_import_helpers.dart
+?? apps/avelune_studio/test/pokemon/pokemon_border_notice_host_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_external_plan_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_language_corrections_host_test.dart
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-01-pokedex.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-02-attaques.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-03-attaque.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-04-vue-ensemble.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-05-traductions.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-06-import-legacy.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-07-exclusion.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/correction-08-langue-absente.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-01-bibliotheque.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-02-vue-ensemble.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-03-formes.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-04-apprentissages.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-05-evolutions.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-06-media-absent.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-06-medias.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-07-import-json.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-08-recherche-externe.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-09-conflits-externes.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-10-attaque-personnelle.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-10-attaques.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-10-synchronisation.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-attaques.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-compact-attaques-150.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-compact-fiche-200.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-compact-import-150.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-fiche-brouillon.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-fiche.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-import-externe.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-petite-fenetre.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/captures/pokemon-pokedex.png
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/architecture-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/authoring-analyze-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/authoring-parity-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/authoring-pokemon-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/capture-import-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/capture-tests.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/changed-dart-format-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/core-analyze-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/core-coherence-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/core-format-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/core-full-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/core-unrelated-isolated.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/final-git.txt
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/macos-build-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/mcp-check-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/mcp-test-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/pmcp085-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/pokemon-tests-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/studio-analyze-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/studio-format-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/logs/studio-full-final.log
+?? documentation/reports/avelune_studio/pokemon_pokedex_catalogues/ui_lot_a/corrections/rapport.txt
+?? packages/map_core/lib/src/models/pokemon_companion_ownership.dart
+?? packages/map_core/test/pokemon_companion_ownership_test.dart
+diff stat:
+ .../application/pokemon_external_commands.dart     |   1 +
+ .../application/pokemon_workspace_controller.dart  |   6 +
+ .../data/local_pokemon_workspace_adapter.dart      |  99 +++-----
+ .../pokemon/data/pokemon_companion_projection.dart |  72 ++++--
+ .../pokemon/data/pokemon_external_import.dart      |  87 ++++---
+ .../pokemon/data/pokemon_index_projection.dart     |   5 +
+ .../features/pokemon/data/pokemon_json_import.dart |  52 ++---
+ .../pokemon/data/pokemon_media_projection.dart     |   2 +
+ .../pokemon/data/pokemon_types_projection.dart     |  30 +++
+ .../domain/pokemon_external_import_models.dart     |  70 ++++++
+ .../pokemon/domain/pokemon_workspace_models.dart   |  12 +
+ .../map_workspace/map_workspace_layout.dart        |   6 +-
+ .../map_workspace/workspace_map_footer.dart        |   4 +-
+ .../pokemon/pokemon_external_preview_pane.dart     |  31 +--
+ .../features/pokemon/pokemon_move_detail.dart      |  33 ++-
+ .../features/pokemon/pokemon_moves_library.dart    |  13 +-
+ .../pokemon/pokemon_species_evolution.dart         |   2 +
+ .../features/pokemon/pokemon_species_learnset.dart |   2 +
+ .../features/pokemon/pokemon_species_library.dart  | 256 +++++++++++----------
+ .../features/pokemon/pokemon_species_media.dart    |   2 +
+ .../features/pokemon/pokemon_species_overview.dart | 166 ++++++++++---
+ .../features/pokemon/pokemon_workspace_page.dart   |   6 +-
+ .../pokemon/pokemon_external_import_host_test.dart |   2 +-
+ packages/map_core/lib/map_core_domain.dart         |   1 +
+ .../pokemon_catalog_coherence_validator.dart       |  35 ++-
+ 25 files changed, 619 insertions(+), 376 deletions(-)
+diff check:
+untracked count:       61

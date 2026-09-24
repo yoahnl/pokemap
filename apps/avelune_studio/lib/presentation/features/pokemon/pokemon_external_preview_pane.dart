@@ -27,7 +27,7 @@ class PokemonExternalPreviewPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final conflicts = preview.documents.where((item) => item.conflict).length;
-    final created = preview.documents.length - conflicts;
+    final plan = preview.plan(policy);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,8 +118,11 @@ class PokemonExternalPreviewPane extends StatelessWidget {
                       );
                       final decisions = _decisions(
                         context,
-                        created: created,
+                        created: plan.created,
                         conflicts: conflicts,
+                        overwritten: plan.overwritten,
+                        kept: plan.kept,
+                        excluded: plan.excluded.length,
                       );
                       if (bounds.maxWidth < 800) {
                         return Column(
@@ -150,7 +153,9 @@ class PokemonExternalPreviewPane extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerRight,
             child: StudioButton(
-              label: 'Appliquer l’import',
+              label: plan.selected.isEmpty
+                  ? 'Terminer sans importer'
+                  : 'Appliquer l’import',
               icon: Icons.file_download_outlined,
               loading: busy,
               onPressed: onApply,
@@ -165,9 +170,10 @@ class PokemonExternalPreviewPane extends StatelessWidget {
     BuildContext context, {
     required int created,
     required int conflicts,
+    required int overwritten,
+    required int kept,
+    required int excluded,
   }) {
-    final replacing = policy == PokemonExternalConflictPolicy.overwriteExisting;
-    final skipping = policy == PokemonExternalConflictPolicy.skipExisting;
     return Column(
       children: [
         PokemonSurface(
@@ -176,14 +182,13 @@ class PokemonExternalPreviewPane extends StatelessWidget {
             children: [
               const PokemonSectionHeading(title: 'Résumé selon votre choix'),
               PokemonDataRow(label: 'Nouveaux', value: '$created'),
-              PokemonDataRow(
-                label: 'À remplacer',
-                value: replacing ? '$conflicts' : '0',
-              ),
-              PokemonDataRow(
-                label: 'À conserver',
-                value: skipping ? '$conflicts' : '0',
-              ),
+              PokemonDataRow(label: 'À remplacer', value: '$overwritten'),
+              PokemonDataRow(label: 'À conserver', value: '$kept'),
+              if (excluded > 0)
+                PokemonDataRow(
+                  label: 'Sans rattachement enregistré',
+                  value: '$excluded exclu(s)',
+                ),
               if (conflicts > 0) ...[
                 const SizedBox(height: 10),
                 StudioSelect(

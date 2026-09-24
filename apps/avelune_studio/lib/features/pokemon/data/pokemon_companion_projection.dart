@@ -1,9 +1,25 @@
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_core/map_core.dart';
 
 import '../domain/pokemon_workspace_models.dart';
 import 'pokemon_index_projection.dart';
+
+Set<String> pokemonReferenceOwners(
+  Iterable<PokemonSpeciesSummary> entries,
+  PokemonDocumentFamily family,
+  String reference,
+) => {
+  for (final entry in entries)
+    if (switch (family) {
+      PokemonDocumentFamily.learnset => entry.learnsetReference == reference,
+      PokemonDocumentFamily.evolution => entry.evolutionReference == reference,
+      PokemonDocumentFamily.media => entry.mediaReference == reference,
+      PokemonDocumentFamily.species => false,
+    })
+      entry.id,
+};
 
 bool pokemonCompanionBelongsTo({
   required PokemonDocumentFamily family,
@@ -11,18 +27,22 @@ bool pokemonCompanionBelongsTo({
   required String reference,
   required String declaredSpeciesId,
   required Set<String> knownSpeciesIds,
+  required Set<String> referencingSpeciesIds,
   String ownerBaseFormId = '',
   bool ownerIsBaseForm = true,
 }) {
   if (family == PokemonDocumentFamily.species) return false;
-  if (declaredSpeciesId == ownerSpeciesId) return true;
-  if (family == PokemonDocumentFamily.media &&
-      !ownerIsBaseForm &&
-      ownerBaseFormId == declaredSpeciesId &&
-      knownSpeciesIds.contains(declaredSpeciesId)) {
-    return true;
-  }
-  return declaredSpeciesId == reference && !knownSpeciesIds.contains(reference);
+  return resolvePokemonCompanionOwnership(
+        ownerSpeciesId: ownerSpeciesId,
+        reference: reference,
+        declaredSpeciesId: declaredSpeciesId,
+        knownSpeciesIds: knownSpeciesIds,
+        referencingSpeciesIds: referencingSpeciesIds,
+        media: family == PokemonDocumentFamily.media,
+        ownerBaseFormId: ownerBaseFormId,
+        ownerIsBaseForm: ownerIsBaseForm,
+      ) ==
+      PokemonCompanionOwnership.owned;
 }
 
 Future<PokemonDocumentSource?> loadPokemonCompanion({
@@ -33,6 +53,7 @@ Future<PokemonDocumentSource?> loadPokemonCompanion({
   required String reference,
   required String ownerSpeciesId,
   required Set<String> knownSpeciesIds,
+  required Set<String> referencingSpeciesIds,
   String ownerBaseFormId = '',
   bool ownerIsBaseForm = true,
 }) async {
@@ -48,22 +69,31 @@ Future<PokemonDocumentSource?> loadPokemonCompanion({
     throw PokemonWorkspaceFailure('Compagnon illisible : $reference.');
   }
   final document = decoded as Map<String, dynamic>?;
-  if (document != null &&
-      !pokemonCompanionBelongsTo(
-        family: family,
-        ownerSpeciesId: ownerSpeciesId,
-        reference: reference,
-        declaredSpeciesId: document['speciesId'] as String? ?? '',
-        knownSpeciesIds: knownSpeciesIds,
-        ownerBaseFormId: ownerBaseFormId,
-        ownerIsBaseForm: ownerIsBaseForm,
-      )) {
-    throw PokemonWorkspaceFailure('Référence $reference incohérente.');
-  }
+  final ownership = document == null
+      ? PokemonCompanionOwnership.owned
+      : resolvePokemonCompanionOwnership(
+          ownerSpeciesId: ownerSpeciesId,
+          reference: reference,
+          declaredSpeciesId: document['speciesId'] as String? ?? '',
+          knownSpeciesIds: knownSpeciesIds,
+          referencingSpeciesIds: referencingSpeciesIds,
+          media: family == PokemonDocumentFamily.media,
+          ownerBaseFormId: ownerBaseFormId,
+          ownerIsBaseForm: ownerIsBaseForm,
+        );
   return PokemonDocumentSource(
     family: family,
     relativePath: path,
     bytes: bytes,
-    document: document,
+    document: ownership == PokemonCompanionOwnership.owned ? document : null,
+    problem: switch (ownership) {
+      PokemonCompanionOwnership.owned => null,
+      PokemonCompanionOwnership.ambiguous =>
+        'La référence $reference est partagée sans propriétaire unique. '
+            'Le compagnon reste conservé ; son édition est bloquée.',
+      PokemonCompanionOwnership.foreign =>
+        'La référence $reference désigne un autre propriétaire. '
+            'Le compagnon reste conservé ; son édition est bloquée.',
+    },
   );
 }

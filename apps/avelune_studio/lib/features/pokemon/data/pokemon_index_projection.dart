@@ -69,6 +69,11 @@ Future<List<PokemonSpeciesSummary>> loadPokemonSpeciesIndex({
           '' => '',
           final reference => '${config.mediaDir}/$reference.json',
         },
+        learnsetReference:
+            ((json['refs'] as Map?)?['learnset'] as String?) ?? '',
+        evolutionReference:
+            ((json['refs'] as Map?)?['evolution'] as String?) ?? '',
+        mediaReference: ((json['refs'] as Map?)?['media'] as String?) ?? '',
         enabled: classification['isEnabledInProject'] != false,
         relativePath: path,
       ),

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -12,6 +11,7 @@ import '../domain/pokemon_workspace_models.dart';
 import 'pokemon_companion_projection.dart';
 import 'pokemon_document_transaction.dart';
 import 'pokemon_import_preview_match.dart';
+import 'pokemon_index_projection.dart';
 
 final class PokemonJsonImport {
   const PokemonJsonImport({
@@ -49,7 +49,14 @@ final class PokemonJsonImport {
         ? p.dirname(directory)
         : null;
     final configured = manifest.pokemon;
-    final presentEntries = await _speciesFiles(configured);
+    final indexed = await loadPokemonSpeciesIndex(
+      reader: reader,
+      projectRoot: session.directoryPath,
+      config: configured,
+    );
+    final presentEntries = [
+      for (final entry in indexed) (entry.id, entry.relativePath),
+    ];
     final knownSpeciesIds = {
       identity,
       for (final entry in presentEntries) entry.$1,
@@ -112,6 +119,10 @@ final class PokemonJsonImport {
         reference: reference,
         declaredSpeciesId: document['speciesId'] as String? ?? '',
         knownSpeciesIds: knownSpeciesIds,
+        referencingSpeciesIds: {
+          ...pokemonReferenceOwners(indexed, family, reference),
+          identity,
+        },
         ownerBaseFormId: baseFormId,
         ownerIsBaseForm: isBaseForm,
       )) {
@@ -129,6 +140,10 @@ final class PokemonJsonImport {
           ownerSpeciesId: identity,
           reference: reference,
           knownSpeciesIds: knownSpeciesIds,
+          referencingSpeciesIds: {
+            ...pokemonReferenceOwners(indexed, family, reference),
+            identity,
+          },
           ownerBaseFormId: baseFormId,
           ownerIsBaseForm: isBaseForm,
         ),
@@ -193,6 +208,7 @@ final class PokemonJsonImport {
     String? ownerSpeciesId,
     String? reference,
     Set<String> knownSpeciesIds = const {},
+    Set<String> referencingSpeciesIds = const {},
     String ownerBaseFormId = '',
     bool ownerIsBaseForm = true,
   }) async {
@@ -205,6 +221,7 @@ final class PokemonJsonImport {
         reference: reference!,
         declaredSpeciesId: existing['speciesId'] as String? ?? '',
         knownSpeciesIds: knownSpeciesIds,
+        referencingSpeciesIds: referencingSpeciesIds,
         ownerBaseFormId: ownerBaseFormId,
         ownerIsBaseForm: ownerIsBaseForm,
       )) {
@@ -222,37 +239,6 @@ final class PokemonJsonImport {
       beforeBytes: beforeBytes,
       document: document,
     );
-  }
-
-  Future<List<(String, String)>> _speciesFiles(
-    ProjectPokemonConfig config,
-  ) async {
-    final directory = reader as ProjectDirectoryReader;
-    try {
-      final files = await directory.listFiles(
-        projectRoot: session.directoryPath,
-        relativeDirectory: config.speciesDir,
-      );
-      return [
-        for (final path in files.where((path) => path.endsWith('.json')))
-          (
-            (jsonDecode(
-                      utf8.decode(
-                        await reader.readBytes(
-                          projectRoot: session.directoryPath,
-                          relativePath: path,
-                        ),
-                      ),
-                    )
-                    as Map)['id']
-                as String,
-            path,
-          ),
-      ];
-    } on WorkspaceAccessException catch (error) {
-      if (error.code == 'workspace.directory_missing') return const [];
-      rethrow;
-    }
   }
 
   Future<List<int>?> _optional(String path) async {

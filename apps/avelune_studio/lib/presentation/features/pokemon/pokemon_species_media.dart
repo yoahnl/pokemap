@@ -46,6 +46,8 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
     final draft = controller.selectedDraft;
+    final problem = draft?.base.media?.problem;
+    if (problem != null) return PokemonSurface(child: Text(problem));
     final json = draft?.document(PokemonDocumentFamily.media);
     final references =
         (draft?.document(PokemonDocumentFamily.species)?['refs'] as Map?)

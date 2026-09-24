@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
@@ -15,6 +14,7 @@ import '../domain/pokemon_moves_sync_models.dart';
 import '../domain/pokemon_external_import_models.dart';
 import 'pokemon_document_transaction.dart';
 import 'pokemon_companion_projection.dart';
+import 'pokemon_bundle_projection.dart';
 import 'pokemon_external_import.dart';
 import 'pokemon_external_source_session.dart';
 import 'pokemon_index_projection.dart';
@@ -45,6 +45,7 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
   PokemonExternalSourceSession? _externalSession;
   PokemonExternalImport? _externalImport;
   Set<String>? _knownSpeciesIds;
+  List<PokemonSpeciesSummary>? _indexedSpecies;
 
   PokemonExternalImport get _external =>
       _externalImport ??= PokemonExternalImport(
@@ -145,6 +146,7 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
       config: manifest.pokemon,
     );
     _knownSpeciesIds = {for (final entry in entries) entry.id};
+    _indexedSpecies = entries;
     final language = await readPokemonProjectLocale(session.directoryPath);
     final moves = await loadPokemonMoves(
       reader: _reader,
@@ -163,6 +165,12 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
       projectRoot: session.directoryPath,
       config: manifest.pokemon,
     );
+    final abilityNames = await loadPokemonAbilityNames(
+      reader: _reader,
+      projectRoot: session.directoryPath,
+      config: manifest.pokemon,
+      locale: language.locale,
+    );
     return PokemonWorkspaceIndex(
       enabled: true,
       entries: entries,
@@ -176,68 +184,27 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
             ),
       types: types,
       items: items,
+      locale: language.locale,
+      abilityNames: abilityNames,
     );
   }
 
   @override
   Future<PokemonSpeciesBundle> loadSpecies(PokemonSpeciesSummary entry) async {
     final manifest = await _manifest;
-    final species = await _required(
-      PokemonDocumentFamily.species,
-      entry.relativePath,
-    );
-    final parsed = PokemonSpeciesFile.fromJson(species.document!);
-    if (parsed.id != entry.id ||
-        !entry.relativePath.startsWith('${manifest.pokemon.speciesDir}/')) {
-      throw const PokemonWorkspaceFailure(
-        'La fiche ne correspond plus à l’espèce sélectionnée.',
-      );
-    }
-    final knownSpeciesIds = await _speciesIdentities();
-    return PokemonSpeciesBundle(
-      species: species,
-      learnset: await loadPokemonCompanion(
-        reader: _reader,
-        projectRoot: session.directoryPath,
-        family: PokemonDocumentFamily.learnset,
-        directory: manifest.pokemon.learnsetsDir,
-        reference: parsed.refs.learnset,
-        ownerSpeciesId: parsed.id,
-        knownSpeciesIds: knownSpeciesIds,
-      ),
-      evolution: await loadPokemonCompanion(
-        reader: _reader,
-        projectRoot: session.directoryPath,
-        family: PokemonDocumentFamily.evolution,
-        directory: manifest.pokemon.evolutionsDir,
-        reference: parsed.refs.evolution,
-        ownerSpeciesId: parsed.id,
-        knownSpeciesIds: knownSpeciesIds,
-      ),
-      media: await loadPokemonCompanion(
-        reader: _reader,
-        projectRoot: session.directoryPath,
-        family: PokemonDocumentFamily.media,
-        directory: manifest.pokemon.mediaDir,
-        reference: parsed.refs.media,
-        ownerSpeciesId: parsed.id,
-        knownSpeciesIds: knownSpeciesIds,
-        ownerBaseFormId: parsed.forms.baseFormId,
-        ownerIsBaseForm: parsed.forms.isBaseForm,
-      ),
-    );
-  }
-
-  Future<PokemonDocumentSource> _required(
-    PokemonDocumentFamily family,
-    String path,
-  ) async {
-    final bytes = await _read(path);
-    return PokemonDocumentSource(
-      family: family,
-      relativePath: path,
-      bytes: bytes,
-      document: _decode(bytes),
+    final indexed =
+        _indexedSpecies ??
+        await loadPokemonSpeciesIndex(
+          reader: _reader,
+          projectRoot: session.directoryPath,
+          config: manifest.pokemon,
+        );
+    return loadPokemonSpeciesBundle(
+      reader: _reader,
+      projectRoot: session.directoryPath,
+      config: manifest.pokemon,
+      entry: entry,
+      index: indexed,
     );
   }
 
@@ -253,6 +220,8 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
       projectRoot: session.directoryPath,
       config: (await _manifest).pokemon,
     );
+    _indexedSpecies = entries;
+    _knownSpeciesIds = {for (final entry in entries) entry.id};
     final entry = entries.where((entry) => entry.id == draft.id).firstOrNull;
     if (entry == null) {
       throw const PokemonWorkspaceFailure(
@@ -276,6 +245,11 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
         projectRoot: session.directoryPath,
         entry: entry,
         knownSpeciesIds: await _speciesIdentities(),
+        referencingSpeciesIds: pokemonReferenceOwners(
+          _indexedSpecies ?? const [],
+          PokemonDocumentFamily.media,
+          entry.mediaReference,
+        ),
       );
 
   Future<Set<String>> _speciesIdentities() async => _knownSpeciesIds ??= {
@@ -286,15 +260,4 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
     ))
       entry.id,
   };
-
-  Future<List<int>> _read(String path) =>
-      _reader.readBytes(projectRoot: session.directoryPath, relativePath: path);
-
-  Map<String, dynamic> _decode(List<int> bytes) {
-    final value = jsonDecode(utf8.decode(bytes));
-    if (value is! Map<String, dynamic>) {
-      throw const FormatException('Document Pokémon non objet.');
-    }
-    return value;
-  }
 }

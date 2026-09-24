@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart
+00:00 +0: ambiguous legacy companion leaves the species readable
+00:03 +1: legacy companion is replaced at its existing identity and path
+00:07 +2: keeping a species with empty ref excludes unattached companion
+00:11 +3: a changed retained reference invalidates an external preview
+00:14 +4: All tests passed!

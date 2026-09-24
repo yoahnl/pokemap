@@ -33,6 +33,36 @@ Future<List<String>> loadPokemonTypes({
   return List.unmodifiable(values.toList()..sort());
 }
 
+Future<Map<String, String>> loadPokemonAbilityNames({
+  required ProjectFileReader reader,
+  required String projectRoot,
+  required ProjectPokemonConfig config,
+  required String locale,
+}) async {
+  final path = config.catalogFiles['abilities'];
+  if (path == null || path.isEmpty) return const {};
+  try {
+    final bytes = await reader.readBytes(
+      projectRoot: projectRoot,
+      relativePath: path,
+    );
+    final catalog = PokemonCatalogFile.fromJson(
+      (jsonDecode(utf8.decode(bytes)) as Map).cast<String, dynamic>(),
+    );
+    return Map.unmodifiable({
+      for (final entry in catalog.entries)
+        if (entry['id'] is String)
+          entry['id'] as String: resolveLocalizedName(
+            names: (entry['names'] as Map?)?.cast<String, String>() ?? {},
+            locale: locale,
+            fallback: (entry['name'] as String?) ?? entry['id'] as String,
+          ),
+    });
+  } on Object {
+    return const {};
+  }
+}
+
 Future<Map<String, String>> loadPokemonItems({
   required ProjectFileReader reader,
   required String projectRoot,

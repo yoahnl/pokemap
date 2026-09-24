@@ -11,9 +11,11 @@ class WorkspaceMapFooter extends StatelessWidget {
     super.key,
     required this.visuals,
     required this.map,
+    required this.showMapNotice,
   });
   final MapWorkspaceVisuals visuals;
   final MapData? map;
+  final bool showMapNotice;
 
   bool get _hasVisibleBorders =>
       map?.layers.any((layer) => layer is BorderLayer && layer.isVisible) ==
@@ -25,7 +27,7 @@ class WorkspaceMapFooter extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_hasVisibleBorders)
+        if (showMapNotice && _hasVisibleBorders)
           const Tooltip(
             message:
                 'Les bordures restent conservées et rendues dans le test du jeu.',

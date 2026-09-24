@@ -112,6 +112,7 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                       ),
                     )
                   : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
                           width: compact
@@ -196,11 +197,13 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: move == null
-                                  ? const PokemonEmptyState(
-                                      title: 'Choisissez une attaque',
-                                      description:
-                                          'Le catalogue du projet est consultable ici.',
-                                      icon: Icons.menu_book_outlined,
+                                  ? const Center(
+                                      child: PokemonEmptyState(
+                                        title: 'Choisissez une attaque',
+                                        description:
+                                            'Le catalogue du projet est consultable ici.',
+                                        icon: Icons.menu_book_outlined,
+                                      ),
                                     )
                                   : SingleChildScrollView(
                                       child: PokemonMoveDetail(move: move),

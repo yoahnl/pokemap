@@ -17,6 +17,9 @@ final class PokemonSpeciesSummary {
     this.baseFormId = '',
     this.isBaseForm = true,
     required this.mediaRelativePath,
+    this.learnsetReference = '',
+    this.evolutionReference = '',
+    this.mediaReference = '',
     required this.enabled,
     required this.relativePath,
   });
@@ -30,6 +33,9 @@ final class PokemonSpeciesSummary {
   final String baseFormId;
   final bool isBaseForm;
   final String mediaRelativePath;
+  final String learnsetReference;
+  final String evolutionReference;
+  final String mediaReference;
   final bool enabled;
   final String relativePath;
 }
@@ -40,12 +46,14 @@ final class PokemonDocumentSource {
     required this.relativePath,
     required this.bytes,
     required this.document,
+    this.problem,
   });
 
   final PokemonDocumentFamily family;
   final String relativePath;
   final List<int>? bytes;
   final Map<String, dynamic>? document;
+  final String? problem;
 }
 
 final class PokemonSpeciesBundle {
@@ -195,6 +203,8 @@ final class PokemonWorkspaceIndex {
     required this.moves,
     required this.types,
     required this.items,
+    this.locale = 'fr',
+    this.abilityNames = const {},
   });
 
   final bool enabled;
@@ -202,6 +212,8 @@ final class PokemonWorkspaceIndex {
   final PokemonMovesCatalogView moves;
   final List<String> types;
   final Map<String, String> items;
+  final String locale;
+  final Map<String, String> abilityNames;
 }
 
 final class PokemonWorkspaceFailure implements Exception {

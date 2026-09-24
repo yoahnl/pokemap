@@ -283,7 +283,11 @@ class MapWorkspaceLayout extends StatelessWidget {
                         )),
             ),
             if (visuals != null && activeSpace != 'gameExport')
-              WorkspaceMapFooter(visuals: visuals!, map: doc?.current),
+              WorkspaceMapFooter(
+                visuals: visuals!,
+                map: doc?.current,
+                showMapNotice: activeSpace == 'map',
+              ),
           ],
         ),
       );

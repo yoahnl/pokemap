@@ -35,6 +35,7 @@ Future<Uint8List?> loadPokemonThumbnail({
   required String projectRoot,
   required PokemonSpeciesSummary entry,
   required Set<String> knownSpeciesIds,
+  required Set<String> referencingSpeciesIds,
 }) async {
   if (entry.mediaRelativePath.isEmpty) return null;
   final bytes = await readOptionalPokemonResource(
@@ -52,6 +53,7 @@ Future<Uint8List?> loadPokemonThumbnail({
     reference: p.posix.basenameWithoutExtension(entry.mediaRelativePath),
     declaredSpeciesId: media.speciesId,
     knownSpeciesIds: knownSpeciesIds,
+    referencingSpeciesIds: referencingSpeciesIds,
     ownerBaseFormId: entry.baseFormId,
     ownerIsBaseForm: entry.isBaseForm,
   )) {

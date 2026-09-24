@@ -8,13 +8,22 @@ import 'pokemon_base_stats.dart';
 import 'pokemon_draft_controls.dart';
 import 'pokemon_ui_parts.dart';
 
-class PokemonSpeciesOverview extends StatelessWidget {
+class PokemonSpeciesOverview extends StatefulWidget {
   const PokemonSpeciesOverview({super.key, required this.controller});
 
   final PokemonWorkspaceController controller;
 
   @override
+  State<PokemonSpeciesOverview> createState() => _PokemonSpeciesOverviewState();
+}
+
+class _PokemonSpeciesOverviewState extends State<PokemonSpeciesOverview> {
+  bool translationsOpen = false;
+  bool technicalOpen = false;
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final draft = controller.selectedDraft!;
     final json = draft.document(PokemonDocumentFamily.species)!;
     final fields = PokemonDraftControls(
@@ -23,8 +32,20 @@ class PokemonSpeciesOverview extends StatelessWidget {
     );
     final names = (json['names'] as Map?)?.cast<String, dynamic>() ?? {};
     final content = (json['dexContent'] as Map?)?.cast<String, dynamic>() ?? {};
-    final typeJson = (json['typing'] as Map?)?.cast<String, dynamic>() ?? {};
-    final selectedTypes = List<String>.from(typeJson['types'] as List? ?? []);
+    final typing = (json['typing'] as Map?)?.cast<String, dynamic>() ?? {};
+    final types = List<String>.from(typing['types'] as List? ?? []);
+    final activeLanguage =
+        controller.editingLanguage ?? controller.index?.locale ?? 'fr';
+    final languages = {
+      activeLanguage,
+      'fr',
+      'en',
+      'de',
+      'es',
+      'it',
+      'ja',
+      ...names.keys,
+    }.toList()..sort();
     final typeOptions = {
       '': 'Aucun',
       for (final type in controller.index?.types ?? const <String>[])
@@ -35,35 +56,46 @@ class PokemonSpeciesOverview extends StatelessWidget {
         StudioPanel(
           title: 'Identité et description',
           children: [
-            PokemonDataRow(label: 'Identifiant', value: draft.id),
-            PokemonDataRow(label: 'Slug', value: '${json['slug'] ?? '—'}'),
-            PokemonDataRow(
-              label: 'Numéro national',
-              value: '${json['nationalDex'] ?? '—'}',
+            StudioSelect(
+              label: 'Langue d’édition du nom',
+              value: activeLanguage,
+              options: {for (final key in languages) key: _languageLabel(key)},
+              onChanged: controller.setEditingLanguage,
             ),
-            const Divider(height: 24),
-            for (final language in names.keys)
-              fields.text('Nom · $language', ['names', language]),
-            fields.text('Description du Pokédex', [
+            const SizedBox(height: 10),
+            if (names[activeLanguage] == null ||
+                '${names[activeLanguage]}'.trim().isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Aucune traduction pour $activeLanguage. Une valeur ne sera '
+                  'créée que si vous la saisissez.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            fields.text('Nom · ${_languageLabel(activeLanguage)}', [
+              'names',
+              activeLanguage,
+            ]),
+            fields.text('Description du Pokédex · texte commun', [
               'dexContent',
               'flavorText',
             ], lines: 3),
             LayoutBuilder(
               builder: (context, bounds) {
-                final compact = bounds.maxWidth < 440;
                 final first = StudioSelect(
                   label: 'Type principal',
-                  value: selectedTypes.firstOrNull,
+                  value: types.firstOrNull,
                   options: typeOptions,
                   onChanged: (value) => _setType(0, value),
                 );
                 final second = StudioSelect(
                   label: 'Type secondaire',
-                  value: selectedTypes.length > 1 ? selectedTypes[1] : '',
+                  value: types.length > 1 ? types[1] : '',
                   options: typeOptions,
                   onChanged: (value) => _setType(1, value),
                 );
-                return compact
+                return bounds.maxWidth < 440
                     ? Column(
                         children: [first, const SizedBox(height: 9), second],
                       )
@@ -76,6 +108,55 @@ class PokemonSpeciesOverview extends StatelessWidget {
                       );
               },
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        StudioPanel(
+          title: 'Autres traductions',
+          children: [
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => translationsOpen = !translationsOpen),
+              icon: Icon(
+                translationsOpen ? Icons.expand_less : Icons.expand_more,
+              ),
+              label: Text(
+                translationsOpen
+                    ? 'Masquer les langues'
+                    : 'Voir les ${names.length} langues disponibles',
+              ),
+            ),
+            if (translationsOpen)
+              for (final key in names.keys.where(
+                (key) => key != activeLanguage,
+              ))
+                fields.text('Nom · ${_languageLabel(key)} ($key)', [
+                  'names',
+                  key,
+                ]),
+          ],
+        ),
+        const SizedBox(height: 12),
+        StudioPanel(
+          title: 'Détails techniques',
+          children: [
+            TextButton.icon(
+              onPressed: () => setState(() => technicalOpen = !technicalOpen),
+              icon: Icon(technicalOpen ? Icons.expand_less : Icons.expand_more),
+              label: Text(
+                technicalOpen
+                    ? 'Masquer les identifiants'
+                    : 'Afficher les identifiants',
+              ),
+            ),
+            if (technicalOpen) ...[
+              PokemonDataRow(label: 'Identifiant', value: draft.id),
+              PokemonDataRow(label: 'Slug', value: '${json['slug'] ?? '—'}'),
+              PokemonDataRow(
+                label: 'Numéro national',
+                value: '${json['nationalDex'] ?? '—'}',
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 12),
@@ -103,11 +184,9 @@ class PokemonSpeciesOverview extends StatelessWidget {
       ],
     );
     final abilities =
-        (json['abilities'] as Map?)?.values
-            .whereType<String>()
-            .where((value) => value.isNotEmpty)
-            .toList() ??
-        const <String>[];
+        (json['abilities'] as Map?)?.cast<String, dynamic>() ?? {};
+    final abilityNames =
+        controller.index?.abilityNames ?? const <String, String>{};
     final right = Column(
       children: [
         PokemonBaseStats(
@@ -117,16 +196,20 @@ class PokemonSpeciesOverview extends StatelessWidget {
         StudioPanel(
           title: 'Talents référencés',
           children: [
-            if (abilities.isEmpty)
+            if (abilities.values.whereType<String>().every((id) => id.isEmpty))
               const Text('Aucun talent renseigné.')
             else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final ability in abilities) PokemonPill(label: ability),
-                ],
-              ),
+              for (final entry in abilities.entries)
+                if (entry.value is String && (entry.value as String).isNotEmpty)
+                  PokemonDataRow(
+                    label: _abilityRole(entry.key),
+                    value: switch (abilityNames[entry.value]) {
+                      null => '${entry.value} · libellé indisponible',
+                      final name when name == entry.value =>
+                        '$name · identifiant',
+                      final name => '$name (${entry.value})',
+                    },
+                  ),
           ],
         ),
         const SizedBox(height: 12),
@@ -155,10 +238,8 @@ class PokemonSpeciesOverview extends StatelessWidget {
     );
     return LayoutBuilder(
       builder: (context, bounds) {
-        final columns =
-            bounds.maxWidth >= 760 &&
-            MediaQuery.textScalerOf(context).scale(14) <= 18;
-        if (!columns) {
+        if (bounds.maxWidth < 760 ||
+            MediaQuery.textScalerOf(context).scale(14) > 18) {
           return Column(
             children: [identity, const SizedBox(height: 12), right],
           );
@@ -175,8 +256,25 @@ class PokemonSpeciesOverview extends StatelessWidget {
     );
   }
 
+  String _languageLabel(String key) => switch (key) {
+    'fr' => 'Français (fr)',
+    'en' => 'Anglais (en)',
+    'de' => 'Allemand (de)',
+    'es' => 'Espagnol (es)',
+    'it' => 'Italien (it)',
+    'ja' => 'Japonais (ja)',
+    final other => other,
+  };
+
+  String _abilityRole(String key) => switch (key) {
+    'primary' => 'Principal',
+    'secondary' => 'Secondaire',
+    'hidden' => 'Caché',
+    final other => other,
+  };
+
   void _setType(int position, String value) {
-    controller.edit(PokemonDocumentFamily.species, (json) {
+    widget.controller.edit(PokemonDocumentFamily.species, (json) {
       final typing = Map<String, dynamic>.from(json['typing'] as Map? ?? {});
       final types = List<String>.from(typing['types'] as List? ?? []);
       if (position == 0) {

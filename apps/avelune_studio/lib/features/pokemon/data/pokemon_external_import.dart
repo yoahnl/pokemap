@@ -9,6 +9,8 @@ import '../domain/pokemon_external_import_models.dart';
 import '../domain/pokemon_workspace_models.dart';
 import 'pokemon_document_transaction.dart';
 import 'pokemon_index_projection.dart';
+import 'pokemon_companion_projection.dart';
+import 'pokemon_external_import_helpers.dart';
 
 final class PokemonExternalImport {
   PokemonExternalImport({
@@ -63,12 +65,12 @@ final class PokemonExternalImport {
     }
     final showdown = await source.fetchShowdownSpeciesPayload(canonicalId);
     final warnings = <String>[];
-    final pokemon = await _optional(
+    final pokemon = await optionalExternalPayload(
       () => source.fetchPokeApiPokemonPayload(canonicalId),
       'Apprentissages et médias externes indisponibles',
       warnings,
     );
-    final evolutionPayload = await _optional(
+    final evolutionPayload = await optionalExternalPayload(
       () => source.fetchPokeApiEvolutionChainPayload(canonicalId),
       'Chaîne d’évolution externe indisponible',
       warnings,
@@ -119,7 +121,8 @@ final class PokemonExternalImport {
       'Les images et cris externes ne sont pas téléchargés par cet import.',
     );
     final config = baseline.manifest.pokemon;
-    final existing = (await loadIndex()).entries
+    final indexed = (await loadIndex()).entries;
+    final existing = indexed
         .where((entry) => entry.id == species.id)
         .firstOrNull;
     final speciesPath =
@@ -157,7 +160,7 @@ final class PokemonExternalImport {
       String path,
       Map<String, dynamic> json,
     ) async {
-      PokemonJsonDocument.fromJson(_kind(family), json);
+      PokemonJsonDocument.fromJson(externalDocumentKind(family), json);
       final beforeBytes = await readOptionalPokemonResource(
         reader: reader,
         projectRoot: session.directoryPath,
@@ -165,10 +168,29 @@ final class PokemonExternalImport {
       );
       if (beforeBytes != null && family != PokemonDocumentFamily.species) {
         final existing = PokemonJsonDocument.fromJson(
-          _kind(family),
+          externalDocumentKind(family),
           (jsonDecode(utf8.decode(beforeBytes)) as Map).cast<String, dynamic>(),
         ).toJson();
-        if (existing['speciesId'] != json['speciesId']) {
+        final reference = path
+            .split('/')
+            .last
+            .replaceAll(RegExp(r'\.json$'), '');
+        final ownerIds = {
+          ...pokemonReferenceOwners(indexed, family, reference),
+          if (family == PokemonDocumentFamily.learnset &&
+                  refs['learnset'] == reference ||
+              family == PokemonDocumentFamily.evolution &&
+                  refs['evolution'] == reference)
+            species.id,
+        };
+        if (!pokemonCompanionBelongsTo(
+          family: family,
+          ownerSpeciesId: species.id,
+          reference: reference,
+          declaredSpeciesId: existing['speciesId'] as String? ?? '',
+          knownSpeciesIds: {for (final entry in indexed) entry.id, species.id},
+          referencingSpeciesIds: ownerIds,
+        )) {
           throw PokemonWorkspaceFailure(
             'Le document $path appartient déjà à ${existing['speciesId']}.',
           );
@@ -204,6 +226,7 @@ final class PokemonExternalImport {
       speciesId: species.id,
       name: species.names['fr'] ?? species.names['en'] ?? species.id,
       projectRevision: baseline.revision,
+      inventorySignature: pokemonInventorySignature(indexed),
       documents: List.unmodifiable(documents),
       warnings: List.unmodifiable(warnings),
     );
@@ -219,13 +242,19 @@ final class PokemonExternalImport {
         'Le projet a changé depuis l’aperçu. Reprévisualisez.',
       );
     }
+    if (pokemonInventorySignature((await loadIndex()).entries) !=
+        preview.inventorySignature) {
+      throw const PokemonWorkspaceFailure(
+        'Les références Pokémon ont changé depuis l’aperçu. Reprévisualisez.',
+      );
+    }
     for (final item in preview.documents) {
       final current = await readOptionalPokemonResource(
         reader: reader,
         projectRoot: session.directoryPath,
         relativePath: item.relativePath,
       );
-      if (!_same(current, item.beforeBytes)) {
+      if (!samePokemonBytes(current, item.beforeBytes)) {
         throw PokemonWorkspaceFailure(
           '${item.relativePath} a changé depuis l’aperçu. Reprévisualisez.',
         );
@@ -237,12 +266,8 @@ final class PokemonExternalImport {
         'Des documents existent déjà. Choisissez Ignorer ou Remplacer.',
       );
     }
-    final selected = [
-      for (final item in preview.documents)
-        if (!item.conflict ||
-            conflictPolicy != PokemonExternalConflictPolicy.skipExisting)
-          item,
-    ];
+    final plan = preview.plan(conflictPolicy);
+    final selected = plan.selected;
     if (selected.isNotEmpty) {
       await PokemonDocumentTransaction(
         session: session,
@@ -260,39 +285,11 @@ final class PokemonExternalImport {
     }
     return PokemonExternalImportResult(
       speciesId: preview.speciesId,
-      created: selected.where((item) => !item.conflict).length,
-      overwritten: selected.where((item) => item.conflict).length,
-      skipped: preview.documents.length - selected.length,
+      created: plan.created,
+      overwritten: plan.overwritten,
+      skipped: plan.kept,
+      excluded: plan.excluded.length,
       warnings: preview.warnings,
     );
-  }
-
-  Future<Map<String, dynamic>?> _optional(
-    Future<Map<String, dynamic>> Function() load,
-    String label,
-    List<String> warnings,
-  ) async {
-    try {
-      return await load();
-    } on Object catch (error) {
-      warnings.add('$label : $error');
-      return null;
-    }
-  }
-
-  PokemonDocumentKind _kind(PokemonDocumentFamily family) => switch (family) {
-    PokemonDocumentFamily.species => PokemonDocumentKind.species,
-    PokemonDocumentFamily.learnset => PokemonDocumentKind.learnset,
-    PokemonDocumentFamily.evolution => PokemonDocumentKind.evolution,
-    PokemonDocumentFamily.media => PokemonDocumentKind.media,
-  };
-
-  bool _same(List<int>? a, List<int>? b) {
-    if (a == null || b == null) return a == null && b == null;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
   }
 }

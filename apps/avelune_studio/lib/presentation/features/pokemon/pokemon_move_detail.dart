@@ -28,11 +28,6 @@ class PokemonMoveDetail extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        move.id,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
                         move.name,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
@@ -66,18 +61,6 @@ class PokemonMoveDetail extends StatelessWidget {
           final first = StudioPanel(
             title: 'Caractéristiques',
             children: [
-              PokemonDataRow(
-                label: 'Type',
-                value: move.type == null
-                    ? 'Non renseigné'
-                    : pokemonTypeLabel(move.type!),
-              ),
-              PokemonDataRow(
-                label: 'Catégorie',
-                value: move.category == null
-                    ? 'Non renseignée'
-                    : pokemonMoveCategoryLabel(move.category),
-              ),
               PokemonDataRow(label: 'Cible', value: _targetLabel(move.target)),
               PokemonDataRow(
                 label: 'Priorité',
@@ -120,8 +103,22 @@ class PokemonMoveDetail extends StatelessWidget {
       ),
       if (move.description?.isNotEmpty == true) ...[
         const SizedBox(height: 12),
-        StudioPanel(title: 'Description', children: [Text(move.description!)]),
+        StudioPanel(
+          title: 'Description source',
+          children: [Text(move.description!)],
+        ),
       ],
+      const SizedBox(height: 12),
+      StudioPanel(
+        title: 'Détails techniques',
+        children: [
+          PokemonDataRow(label: 'Identifiant', value: move.id),
+          PokemonDataRow(
+            label: 'Origine',
+            value: move.userCreated ? 'Créée dans le projet' : 'Catalogue',
+          ),
+        ],
+      ),
       const SizedBox(height: 12),
       Text(
         'Les attaques sont consultables ici. Les apprentissages se modifient '

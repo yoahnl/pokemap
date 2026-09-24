@@ -22,6 +22,7 @@ final class PokemonWorkspaceController {
   PokemonDetailSection section = PokemonDetailSection.overview;
   String search = '';
   String moveSearch = '';
+  String? editingLanguage;
   String? typeFilter;
   int? generationFilter;
   bool? enabledFilter;
@@ -151,6 +152,11 @@ final class PokemonWorkspaceController {
 
   void setMoveSearch(String value) {
     moveSearch = value;
+    _notify();
+  }
+
+  void setEditingLanguage(String value) {
+    editingLanguage = value;
     _notify();
   }
 
