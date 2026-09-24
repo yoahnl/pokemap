@@ -19,6 +19,10 @@ const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
   signature: 'UNE EXPÉRIENCE DE JEU',
   primaryColorHex: '#F2D9B2',
   secondaryColorHex: '#9E79D7',
+  backgroundColorHex: '#030306',
+  minimumDisplayDuration: Duration(milliseconds: 2400),
+  exitTransitionDuration: Duration(milliseconds: 360),
+  finalCurtainDuration: Duration(milliseconds: 180),
 );
 
 const _aveluneRuntimeSplashLogo = AssetImage(

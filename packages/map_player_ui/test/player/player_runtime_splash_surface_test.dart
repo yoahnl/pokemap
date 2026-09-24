@@ -10,401 +10,244 @@ void main() {
   const branding = RuntimeHostSplashBranding(
     displayName: 'AVELUNE',
     signature: 'UNE EXPÉRIENCE DE JEU',
+    backgroundColorHex: '#030306',
+    minimumDisplayDuration: Duration(milliseconds: 2400),
+    exitTransitionDuration: Duration(milliseconds: 360),
+    finalCurtainDuration: Duration(milliseconds: 180),
   );
-  late Uint8List logoBytes;
-  late Uint8List wordmarkBytes;
+  late MemoryImage logo;
+  late MemoryImage wordmark;
 
   setUpAll(() async {
-    logoBytes = await _logoBytes();
-    wordmarkBytes = await File(
+    logo = MemoryImage(await File(
+      '../../apps/pokemap_hub/assets/avelune/logo/avelune_moon.png',
+    ).readAsBytes());
+    wordmark = MemoryImage(await File(
       '../../apps/pokemap_hub/assets/avelune/logo/avelune_glass_wordmark.png',
-    ).readAsBytes();
-    await (FontLoader('packages/map_player_ui/PokeMapSplashMarcellus')
-          ..addFont(rootBundle.load('assets/fonts/Marcellus-Regular.ttf')))
-        .load();
+    ).readAsBytes());
     await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')
           ..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf')))
         .load();
   });
 
-  testWidgets('renders the supplied wordmark with reduced motion',
+  testWidgets('moves the entire lockup through one continuous camera pull',
       (tester) async {
-    final wordmark = MemoryImage(wordmarkBytes);
+    final scales = <double>[];
+    for (final progress in <double>[0, .12, .24, .36, .48, .7]) {
+      await tester.pumpWidget(_app(_timeline(
+        branding: branding,
+        progress: progress,
+        logo: logo,
+        wordmark: wordmark,
+      )));
+      final camera = tester.widget<Transform>(find.byKey(
+        const ValueKey<String>('startup-splash-mark-zoom'),
+      ));
+      scales.add(camera.transform.storage[0]);
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey<String>('startup-splash-mark')),
+          matching: find.byKey(
+            const ValueKey<String>('startup-splash-mark-zoom'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey<String>('startup-splash-wordmark')),
+          matching: find.byKey(
+            const ValueKey<String>('startup-splash-mark-zoom'),
+          ),
+        ),
+        findsOneWidget,
+      );
+    }
+    expect(scales.first, closeTo(5.2, .001));
+    for (var i = 1; i < 5; i++) {
+      expect(scales[i], lessThan(scales[i - 1]));
+    }
+    expect(scales[4], closeTo(1, .001));
+    expect(scales[5], closeTo(1, .001));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('holds a clean logo while a game continues loading',
+      (tester) async {
     await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
       branding: branding,
-      progress: .2,
-      animationProgress: 0,
-      logo: MemoryImage(logoBytes),
+      progress: .35,
+      animationProgress: 1,
+      logo: logo,
       wordmark: wordmark,
-      reducedMotion: true,
     )));
-    await tester.pumpAndSettle();
-
-    expect(
-      tester
-          .widget<Image>(find.byKey(
-            const ValueKey<String>('startup-splash-wordmark-image'),
-          ))
-          .image,
-      wordmark,
+    final timeline = tester.widget<PlayerSplashTimeline>(
+      find.byKey(const ValueKey<String>('startup-splash-timeline')),
     );
+    expect(timeline.progress, kPlayerSplashHoldProgress);
+    expect(_curtainAlpha(tester), 0);
     expect(
-      tester
-          .widget<Opacity>(find.byKey(
-            const ValueKey<String>('startup-splash-wordmark'),
-          ))
-          .opacity,
-      1,
+      find.byKey(const ValueKey<String>('startup-splash-progress-value')),
+      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('keeps the host name when a wordmark cannot decode',
+  testWidgets('reveals decoded artwork without a first-frame pop',
+      (tester) async {
+    final alphas = <double>[];
+    for (final progress in <double>[0, .025, .05, .075, .1]) {
+      await tester.pumpWidget(_app(_timeline(
+        branding: branding,
+        progress: progress,
+        logo: logo,
+        wordmark: wordmark,
+      )));
+      alphas.add(tester.widget<Opacity>(find.byKey(
+        const ValueKey<String>('startup-splash-reveal'),
+      )).opacity);
+    }
+    expect(alphas.first, 0);
+    for (var i = 1; i < alphas.length; i++) {
+      expect(alphas[i], greaterThan(alphas[i - 1]));
+    }
+    expect(alphas.last, 1);
+  });
+
+  testWidgets('reduced motion shows the final lockup immediately',
       (tester) async {
     await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
       branding: branding,
       progress: .2,
       animationProgress: 0,
-      wordmark: MemoryImage(Uint8List.fromList(<int>[0, 1, 2])),
+      logo: logo,
+      wordmark: wordmark,
       reducedMotion: true,
     )));
-    await tester.pumpAndSettle();
+    final camera = tester.widget<Transform>(find.byKey(
+      const ValueKey<String>('startup-splash-mark-zoom'),
+    ));
+    expect(camera.transform.storage[0], 1);
     expect(
       find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
       findsOneWidget,
     );
-    final wordmark = find.byKey(
-      const ValueKey<String>('startup-splash-wordmark-image'),
-    );
+    expect(_curtainAlpha(tester), 0);
+  });
+
+  testWidgets('closes the curtain only after loading is complete',
+      (tester) async {
+    Future<double> opacity(
+        double loading, double animation, double exit) async {
+      await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
+        branding: branding,
+        progress: loading,
+        animationProgress: animation,
+        exitProgress: exit,
+      )));
+      return _curtainAlpha(tester);
+    }
+
+    expect(await opacity(.99, 1, 1), 0);
+    expect(await opacity(1, kPlayerSplashHoldProgress, 0), 0);
+    final closing = await opacity(1, .94, 0);
+    expect(closing, greaterThan(0));
+    expect(closing, lessThan(.86));
+    expect(await opacity(1, 1, 0), closeTo(.86, .001));
+    expect(await opacity(1, 1, 1), 1);
+  });
+
+  testWidgets('keeps the host name if the supplied images cannot decode',
+      (tester) async {
+    await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
+      branding: branding,
+      progress: .5,
+      animationProgress: .5,
+      wordmark: MemoryImage(Uint8List.fromList(<int>[0, 1, 2])),
+    )));
+    await tester.pumpAndSettle();
     expect(
-      find.descendant(of: wordmark, matching: find.byType(CustomPaint)),
+      find.byKey(const ValueKey<String>('startup-splash-fallback-mark')),
       findsOneWidget,
     );
+    expect(find.text('AVELUNE'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ports every signed premium splash timestamp', (tester) async {
-    const times = <int>[0, 500, 1500, 3000, 4500, 5750, 6750, 7200];
-    for (final milliseconds in times) {
-      final loading = _mockLoadingProgress(milliseconds);
-      await tester.pumpWidget(
-        _app(
-          PlayerSplashTimeline(
-            branding: branding,
-            progress:
-                (milliseconds / kPlayerSplashTimelineMilliseconds).clamp(0, 1),
-            exitProgress: 0,
-            ambientProgress: (milliseconds % 10000) / 10000,
-            loadingProgress: loading,
-            loadingLabel: _mockLoadingLabel(loading),
-            reducedMotion: false,
-          ),
-        ),
-      );
-
-      final timeline = tester.widget<PlayerSplashTimeline>(
-        find.byType(PlayerSplashTimeline),
-      );
+  testWidgets('fits the settled lockup and progress on desktop and phone',
+      (tester) async {
+    for (final size in <Size>[
+      const Size(1600, 900),
+      const Size(390, 693.333333),
+    ]) {
+      await _setViewport(tester, size);
+      await tester.pumpWidget(_app(_timeline(
+        branding: branding,
+        progress: .7,
+        logo: logo,
+        wordmark: wordmark,
+      )));
+      await tester.pump();
       expect(
-        timeline.progress,
-        closeTo(milliseconds / kPlayerSplashTimelineMilliseconds, .0001),
-      );
-      expect(timeline.loadingProgress, loading);
-      expect(
-        find.byKey(const ValueKey<String>('startup-splash-progress-value')),
-        findsOneWidget,
+        tester
+            .getSize(find.byKey(
+              const ValueKey<String>('startup-splash-progress'),
+            ))
+            .width,
+        lessThanOrEqualTo(size.width * .76),
       );
       expect(tester.takeException(), isNull);
     }
   });
 
-  testWidgets('starts close and settles into a clean lockup', (tester) async {
-    Future<(double, double)> frame(int milliseconds) async {
-      await tester.pumpWidget(_app(PlayerSplashTimeline(
-        branding: branding,
-        progress: milliseconds / kPlayerSplashTimelineMilliseconds,
-        exitProgress: 0,
-        ambientProgress: 0,
-        loadingProgress: .5,
-        logo: MemoryImage(logoBytes),
-        wordmark: MemoryImage(wordmarkBytes),
-        reducedMotion: false,
-      )));
-      final zoom = tester.widget<Transform>(find.byKey(
-        const ValueKey<String>('startup-splash-mark-zoom'),
-      ));
-      final name = tester.widget<Opacity>(find.byKey(
-        const ValueKey<String>('startup-splash-wordmark'),
-      ));
-      return (zoom.transform.storage[0], name.opacity);
-    }
-
-    final opening = await frame(0);
-    expect(opening.$1, greaterThan(5));
-    expect(opening.$2, 1);
-
-    final settled = await frame(4500);
-    expect(settled.$1, closeTo(1, .01));
-    expect(settled.$2, 1);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-      'holds a live composition when real loading outlasts the timeline',
-      (tester) async {
-    await tester.pumpWidget(
-      _app(
-        const PlayerRuntimeSplashSurface(
+  for (final viewport in <(String, Size)>[
+    ('desktop', const Size(1600, 900)),
+    ('mobile', const Size(390, 693.333333)),
+  ]) {
+    testWidgets('matches the ${viewport.$1} motion checkpoints',
+        (tester) async {
+      await _setViewport(tester, viewport.$2);
+      for (final milliseconds in <int>[0, 240, 480, 720, 1152, 1968]) {
+        final progress = milliseconds / 2400;
+        await tester.pumpWidget(_goldenApp(_timeline(
           branding: branding,
-          progress: .62,
-          animationProgress: 1,
-          ambientProgress: .93,
-          loadingLabel: 'Accord du monde',
-        ),
-      ),
-    );
-
-    final timeline = tester.widget<PlayerSplashTimeline>(
-      find.byKey(const ValueKey<String>('startup-splash-timeline')),
-    );
-    expect(timeline.progress, kPlayerSplashHoldProgress);
-    expect(
-      find.byKey(const ValueKey<String>('startup-splash-progress-label')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('startup-splash-progress-value')),
-      findsOneWidget,
-    );
-    expect(_curtainAlpha(tester), 0);
-    expect(
-      tester
-          .widget<Opacity>(
-            find.byKey(const ValueKey<String>('startup-splash-mark')),
-          )
-          .opacity,
-      greaterThan(.5),
-    );
-  });
-
-  testWidgets('finishes the exact curtain only after loading is complete',
-      (tester) async {
-    Future<double> curtain(double animation, double exit) async {
-      await tester.pumpWidget(
-        _app(
-          PlayerRuntimeSplashSurface(
-            branding: branding,
-            progress: 1,
-            animationProgress: animation,
-            exitProgress: exit,
-          ),
-        ),
-      );
-      return _curtainAlpha(tester);
-    }
-
-    expect(await curtain(kPlayerSplashHoldProgress, 0), 0);
-    expect(await curtain(6750 / 7200, 0), closeTo(.261, .01));
-    expect(await curtain(1, 0), closeTo(.866, .01));
-    expect(await curtain(1, 1), 1);
-  });
-
-  testWidgets('reduced motion renders the complete static composition',
-      (tester) async {
-    await tester.pumpWidget(
-      _app(
-        const PlayerRuntimeSplashSurface(
-          branding: branding,
-          progress: .2,
-          animationProgress: 0,
-          reducedMotion: true,
-        ),
-      ),
-    );
-
-    final timeline = tester.widget<PlayerSplashTimeline>(
-      find.byKey(const ValueKey<String>('startup-splash-timeline')),
-    );
-    expect(timeline.progress, kPlayerSplashHoldProgress);
-    expect(
-      find.byKey(const ValueKey<String>('startup-splash-wordmark')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('startup-splash-signature')),
-      findsNothing,
-    );
-    expect(_curtainAlpha(tester), 0);
-  });
-
-  testWidgets('matches desktop and 9:16 responsive geometry', (tester) async {
-    final logo = MemoryImage(logoBytes);
-    await _setViewport(tester, const Size(1600, 900));
-    await tester.pumpWidget(
-      _app(
-        PlayerRuntimeSplashSurface(
-          branding: branding,
-          progress: .68,
-          animationProgress: 4500 / 7200,
-          ambientProgress: .45,
+          progress: progress,
+          loadingProgress: progress,
           logo: logo,
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      tester
-          .getSize(
-              find.byKey(const ValueKey<String>('startup-splash-progress')))
-          .width,
-      470,
-    );
-    expect(tester.getSize(find.byType(Image).first).width, 240);
-
-    await _setViewport(tester, const Size(390, 693.333333));
-    await tester.pumpWidget(
-      _app(
-        PlayerRuntimeSplashSurface(
-          branding: branding,
-          progress: .68,
-          animationProgress: 4500 / 7200,
-          ambientProgress: .45,
-          logo: logo,
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      tester
-          .getSize(
-              find.byKey(const ValueKey<String>('startup-splash-progress')))
-          .width,
-      closeTo(296.4, .01),
-    );
-    expect(tester.getSize(find.byType(Image).first).width, closeTo(187.2, .01));
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('falls back safely when the supplied logo fails', (tester) async {
-    await tester.pumpWidget(
-      _app(
-        const PlayerRuntimeSplashSurface(
-          branding: branding,
-          progress: 1,
-          animationProgress: .5,
-          logo: NetworkImage('not-a-valid-url'),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      find.byKey(const ValueKey<String>('startup-splash-fallback-mark')),
-      findsWidgets,
-    );
-  });
-
-  testWidgets('certifies the desktop timeline against deterministic goldens',
-      (tester) async {
-    await _setViewport(tester, const Size(1600, 900));
-    final logo = MemoryImage(logoBytes);
-    const frames = <int>[
-      0,
-      500,
-      1000,
-      1500,
-      2000,
-      2500,
-      3000,
-      3500,
-      4500,
-      5750,
-      6750,
-      7200,
-    ];
-    for (final milliseconds in frames) {
-      final loading = _mockLoadingProgress(milliseconds);
-      await tester.pumpWidget(
-        _goldenApp(
-          PlayerSplashTimeline(
-            branding: branding,
-            progress: milliseconds / 7200,
-            exitProgress: 0,
-            ambientProgress: (milliseconds % 10000) / 10000,
-            loadingProgress: loading,
-            loadingLabel: _mockLoadingLabel(loading),
-            logo: logo,
-            wordmark: MemoryImage(wordmarkBytes),
-            reducedMotion: false,
+          wordmark: wordmark,
+        )));
+        await tester.pump();
+        await expectLater(
+          find.byKey(const ValueKey<String>('startup-splash-golden')),
+          matchesGoldenFile(
+            'goldens/player_runtime_splash/v3_${viewport.$1}_${milliseconds.toString().padLeft(4, '0')}.png',
           ),
-        ),
-      );
-      await tester.pump();
-      await expectLater(
-        find.byKey(const ValueKey<String>('startup-splash-golden')),
-        matchesGoldenFile(
-          'goldens/player_runtime_splash/desktop_${milliseconds.toString().padLeft(4, '0')}.png',
-        ),
-      );
-    }
-
-    await tester.pumpWidget(
-      _goldenApp(
-        PlayerSplashTimeline(
-          branding: branding,
-          progress: 1,
-          exitProgress: 1,
-          ambientProgress: .748,
-          loadingProgress: 1,
-          loadingLabel: 'Prêt',
-          logo: logo,
-          wordmark: MemoryImage(wordmarkBytes),
-          reducedMotion: false,
-        ),
-      ),
-    );
-    await tester.pump();
-    await expectLater(
-      find.byKey(const ValueKey<String>('startup-splash-golden')),
-      matchesGoldenFile(
-        'goldens/player_runtime_splash/desktop_7480.png',
-      ),
-    );
-  });
-
-  testWidgets('certifies the mobile 9:16 cinematic and lockup', (tester) async {
-    await _setViewport(tester, const Size(390, 693.333333));
-    final logo = MemoryImage(logoBytes);
-    for (final milliseconds in <int>[500, 1500, 4500]) {
-      await tester.pumpWidget(
-        _goldenApp(
-          PlayerSplashTimeline(
-            branding: branding,
-            progress: milliseconds / 7200,
-            exitProgress: 0,
-            ambientProgress: milliseconds / 10000,
-            loadingProgress: _mockLoadingProgress(milliseconds),
-            loadingLabel: _mockLoadingLabel(_mockLoadingProgress(milliseconds)),
-            logo: logo,
-            wordmark: MemoryImage(wordmarkBytes),
-            reducedMotion: false,
-          ),
-        ),
-      );
-      await tester.pump();
-      await expectLater(
-        find.byKey(const ValueKey<String>('startup-splash-golden')),
-        matchesGoldenFile(
-          'goldens/player_runtime_splash/mobile_9x16_$milliseconds.png',
-        ),
-      );
-    }
-  });
+        );
+      }
+    });
+  }
 }
 
+PlayerSplashTimeline _timeline({
+  required RuntimeHostSplashBranding branding,
+  required double progress,
+  double? loadingProgress,
+  ImageProvider? logo,
+  ImageProvider? wordmark,
+}) =>
+    PlayerSplashTimeline(
+      branding: branding,
+      progress: progress,
+      exitProgress: 0,
+      ambientProgress: progress,
+      loadingProgress: loadingProgress ?? .5,
+      logo: logo,
+      wordmark: wordmark,
+      reducedMotion: false,
+    );
+
 Widget _app(Widget child) => MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: PokeMapPlayerTheme.dark(),
       home: child,
     );
@@ -424,28 +267,6 @@ Future<void> _setViewport(WidgetTester tester, Size size) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 }
-
-Future<Uint8List> _logoBytes() => File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_moon.png',
-    ).readAsBytes();
-
-double _mockLoadingProgress(int milliseconds) {
-  final elapsed = (milliseconds / 7200).clamp(0.0, 1.0);
-  final value = switch (elapsed) {
-    < .2 => (elapsed / .2) * 24,
-    < .48 => 24 + ((elapsed - .2) / .28) * 31,
-    < .78 => 55 + ((elapsed - .48) / .3) * 29,
-    _ => 84 + ((elapsed - .78) / .22) * 16,
-  };
-  return value.round().clamp(0, 100) / 100;
-}
-
-String _mockLoadingLabel(double progress) => switch (progress) {
-      < .24 => 'Éveil',
-      < .55 => 'Préparation du voyage',
-      < .84 => 'Accord du monde',
-      _ => 'Prêt',
-    };
 
 double _curtainAlpha(WidgetTester tester) => tester
     .widget<ColoredBox>(
