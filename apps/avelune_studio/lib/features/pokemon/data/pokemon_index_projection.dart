@@ -61,6 +61,8 @@ Future<List<PokemonSpeciesSummary>> loadPokemonSpeciesIndex({
         generation: (json['genIntroduced'] as num?)?.toInt() ?? 0,
         types: index.types,
         formIds: index.formIds,
+        baseFormId: ((json['forms'] as Map?)?['baseFormId'] as String?) ?? '',
+        isBaseForm: ((json['forms'] as Map?)?['isBaseForm'] as bool?) ?? true,
         mediaRelativePath: switch (((json['refs'] as Map?)?['media'] as String?)
                 ?.trim() ??
             '') {
@@ -83,6 +85,7 @@ Future<PokemonMovesCatalogView> loadPokemonMoves({
   required ProjectFileReader reader,
   required String projectRoot,
   required ProjectPokemonConfig config,
+  required String locale,
 }) async {
   final path = config.catalogFiles['moves'];
   if (path == null || path.isEmpty) {
@@ -101,7 +104,7 @@ Future<PokemonMovesCatalogView> loadPokemonMoves({
     if (json is! Map<String, dynamic>) {
       throw const FormatException('Catalogue non objet.');
     }
-    return projectPokemonMoves(PokemonCatalogFile.fromJson(json), path);
+    return projectPokemonMoves(PokemonCatalogFile.fromJson(json), path, locale);
   } on Object catch (error) {
     return PokemonMovesCatalogView(
       entries: const [],

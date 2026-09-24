@@ -14,6 +14,8 @@ final class PokemonSpeciesSummary {
     required this.generation,
     required this.types,
     required this.formIds,
+    this.baseFormId = '',
+    this.isBaseForm = true,
     required this.mediaRelativePath,
     required this.enabled,
     required this.relativePath,
@@ -25,6 +27,8 @@ final class PokemonSpeciesSummary {
   final int generation;
   final List<String> types;
   final List<String> formIds;
+  final String baseFormId;
+  final bool isBaseForm;
   final String mediaRelativePath;
   final bool enabled;
   final String relativePath;
@@ -153,6 +157,7 @@ final class PokemonMoveSummary {
     this.priority,
     this.target,
     this.description,
+    this.userCreated = false,
   });
 
   final String id;
@@ -165,6 +170,7 @@ final class PokemonMoveSummary {
   final int? priority;
   final String? target;
   final String? description;
+  final bool userCreated;
 }
 
 final class PokemonMovesCatalogView {

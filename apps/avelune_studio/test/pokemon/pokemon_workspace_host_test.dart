@@ -64,6 +64,7 @@ void main() {
       find.byKey(const ValueKey('species-names.fr')),
       'Bulbizarre du Train',
     );
+    await captureM3Widget(tester, captureKey, 'pokemon-fiche-brouillon');
     await tester.tap(find.text('Apprentissages').last);
     await pumpIo(tester);
     await tester.tap(find.text('Ajouter une attaque').first);
@@ -235,11 +236,15 @@ void main() {
     await pumpIo(tester);
     await tester.tap(find.byKey(const ValueKey('move-leech-seed')));
     await pumpIo(tester);
-    expect(find.text('Cible : Une cible'), findsOneWidget);
+    expect(find.text('Cible'), findsOneWidget);
+    expect(find.text('Une cible'), findsOneWidget);
     await captureM3Widget(tester, captureKey, 'pokemon-attaques');
+    await tester.tap(find.text('Synchronisation'));
+    await pumpIo(tester);
     await tester.tap(find.text('Prévisualiser la synchronisation'));
     await pumpIo(tester);
     expect(find.textContaining('créations'), findsOneWidget);
+    await captureM3Widget(tester, captureKey, 'pokemon-10-synchronisation');
     expect((await tester.runAsync(catalog.readAsBytes))!, before);
     await tester.tap(find.text('Appliquer la synchronisation'));
     await pumpIo(tester);
@@ -256,45 +261,34 @@ void main() {
 }
 
 Future<void> _seedImportSource(Directory root) async {
-  const sourcePath =
-      '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10';
-  for (final (folder, file) in [
-    ('species', '0001-bulbasaur.json'),
-    ('learnsets', 'bulbasaur.json'),
-    ('evolutions', 'bulbasaur.json'),
-    ('media', 'bulbasaur.json'),
-  ]) {
-    final target = File('${root.path}/$folder/$file');
-    await target.parent.create(recursive: true);
-    final data =
-        jsonDecode(await File('$sourcePath/$folder/$file').readAsString())
-            as Map<String, dynamic>;
-    data['schemaVersion'] = 1;
-    await target.writeAsString(jsonEncode(data));
-  }
+  await _copySpeciesDocuments(root, '');
 }
 
 Future<void> _seedSpecies(M3StoryFixture source) async {
   final root = source.directory.path;
-  const sourcePath =
-      '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10';
-  for (final (folder, file) in [
-    ('species', '0001-bulbasaur.json'),
-    ('learnsets', 'bulbasaur.json'),
-    ('evolutions', 'bulbasaur.json'),
-    ('media', 'bulbasaur.json'),
-  ]) {
-    final target = File('$root/data/pokemon/$folder/$file');
-    await target.parent.create(recursive: true);
-    final data =
-        jsonDecode(await File('$sourcePath/$folder/$file').readAsString())
-            as Map<String, dynamic>;
-    data['schemaVersion'] = 1;
-    await target.writeAsString(jsonEncode(data));
-  }
+  await _copySpeciesDocuments(source.directory, 'data/pokemon/');
   final moves = File('$root/data/pokemon/catalogs/moves.json');
   await moves.parent.create(recursive: true);
   await File(
     '../../examples/playable_runtime_host/golden_item_system/data/pokemon/catalogs/moves.json',
   ).copy(moves.path);
+}
+
+Future<void> _copySpeciesDocuments(Directory root, String prefix) async {
+  const sourcePath =
+      '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10';
+  for (final (folder, file) in [
+    ('species', '0001-bulbasaur.json'),
+    ('learnsets', 'bulbasaur.json'),
+    ('evolutions', 'bulbasaur.json'),
+    ('media', 'bulbasaur.json'),
+  ]) {
+    final target = File('${root.path}/$prefix$folder/$file');
+    await target.parent.create(recursive: true);
+    final data =
+        jsonDecode(await File('$sourcePath/$folder/$file').readAsString())
+            as Map<String, dynamic>;
+    data['schemaVersion'] = 1;
+    await target.writeAsString(jsonEncode(data));
+  }
 }

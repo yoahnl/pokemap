@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart
+00:00 +0: project locale selects official and authored names without changing IDs
+00:00 +1: type, category, power and personal origin have distinct emblems
+00:00 +2: the real Pokémon workspace uses the game export locale
+00:03 +3: All tests passed!

@@ -1,0 +1,20 @@
+00:00 +0: loading test/pokemon_catalog_coherence_validator_test.dart
+00:00 +0: accepts a complete beta catalog without network access
+00:00 +1: accepts companion identities written from custom references
+00:00 +2: does not resolve another species document through a custom reference
+00:00 +3: does not infer an owner for a shared legacy alias
+00:00 +4: reports invalid ids, stats, capture rate, growth and references
+00:00 +5: reports duplicate ids and unknown learnset moves deterministically
+00:00 +6: disabled species can retain incomplete artwork with a visible warning
+00:00 +7: preserves documented catalog-only evolutions without allowing execution
+00:00 +8: catalog-only rules still reject missing references and conditions
+00:00 +9: reports unsupported evolutions, unknown targets and cycles
+00:00 +10: reports a form without a base species and required media gaps
+00:00 +11: accepts one reciprocal form graph with matching media variants
+00:00 +12: reports invalid base identities, duplicate forms and broken links
+00:00 +13: reports media variants missing from or unknown to the form graph
+00:00 +14: reports unsupported schema versions with actionable diagnostics
+00:00 +15: blocks every typed asset probe failure with a distinct diagnostic
+00:00 +16: rejects an authored animation without a sheet asset path
+00:00 +17: missing required catalogs block export and playtest
+00:00 +18: All tests passed!

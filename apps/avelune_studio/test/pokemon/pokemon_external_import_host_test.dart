@@ -14,119 +14,117 @@ import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/pokemon_external_source_fixture.dart';
 
 void main() {
-  testWidgets('external search previews without writing and imports in Studio', (
-    tester,
-  ) async {
-    await tester.runAsync(loadDesktopCaptureFonts);
-    final captureKey = GlobalKey();
-    final host = await MapHostFixture.open(
-      tester,
-      pokemonExternalSource: const PokemonExternalSourceFixture(),
-      captureKey: captureKey,
-    );
-    final file = File(
-      '${host.source.directory.path}/data/pokemon/species/bulbasaur.json',
-    );
-    final project = File('${host.source.directory.path}/project.json');
-    final projectBefore = (await tester.runAsync(project.readAsBytes))!;
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer depuis une source'));
-    await pumpIo(tester);
-    expect(find.text('Importer une espèce externe'), findsOneWidget);
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('pokemon-external-query')),
-        matching: find.byType(TextField),
-      ),
-      'bulbasaur',
-    );
-    await tester.pump();
-    final searchButton = tester.widget<StudioButton>(
-      find.ancestor(
-        of: find.text('Rechercher'),
-        matching: find.byType(StudioButton),
-      ),
-    );
-    expect(
-      searchButton.onPressed,
-      isNotNull,
-      reason:
-          'field=${tester.widget<TextField>(find.descendant(of: find.byKey(const ValueKey('pokemon-external-query')), matching: find.byType(TextField))).controller?.text}',
-    );
-    await tester.tap(find.text('Rechercher'));
-    await pumpIo(tester);
-    final state = tester
-        .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
-        .controller!;
-    expect(
-      state.externalSearch,
-      isNotNull,
-      reason: 'query=${state.externalBusy}, error=${state.error}',
-    );
-    expect(
-      find.textContaining('Bulbasaur · #1'),
-      findsOneWidget,
-      reason: tester
-          .widgetList<Text>(find.byType(Text))
-          .map((item) => item.data)
-          .whereType<String>()
-          .join(' | '),
-    );
-    await tester.tap(find.textContaining('Bulbasaur · #1'));
-    await pumpIo(tester);
-    expect(find.textContaining('Aperçu ·'), findsOneWidget);
-    await captureM3Widget(tester, captureKey, 'pokemon-import-externe');
-    expect((await tester.runAsync(file.exists))!, isFalse);
-    expect((await tester.runAsync(project.readAsBytes))!, projectBefore);
-    await tester.tap(find.text('Appliquer l’import'));
-    await pumpIo(tester);
-    expect((await tester.runAsync(file.exists))!, isTrue);
-    final reopened = (await tester.runAsync(() async {
-      final adapter = LocalPokemonWorkspaceAdapter(
-        session: host.source.session,
-        mapAdapter: host.source.maps,
+  testWidgets(
+    'external search previews without writing and imports in Studio',
+    (tester) async {
+      await tester.runAsync(loadDesktopCaptureFonts);
+      final captureKey = GlobalKey();
+      final host = await MapHostFixture.open(
+        tester,
+        pokemonExternalSource: const PokemonExternalSourceFixture(),
+        captureKey: captureKey,
       );
-      final entry = (await adapter.loadIndex()).entries.single;
-      return adapter.loadSpecies(entry);
-    }))!;
-    expect(reopened.species.document!['id'], 'bulbasaur');
-    expect(reopened.learnset?.document?['speciesId'], 'bulbasaur');
-    final importedBytes = (await tester.runAsync(file.readAsBytes))!;
-    await tester.tap(find.text('Importer depuis une source'));
-    await pumpIo(tester);
-    await tester.tap(find.textContaining('Bulbasaur · #1'));
-    await pumpIo(tester);
-    expect(find.textContaining('existe déjà'), findsWidgets);
-    expect(find.text('Appliquer l’import'), findsOneWidget);
-    await tester.tap(find.text('Refuser les conflits'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Garder les fichiers existants').last);
-    await tester.pump();
-    await tester.tap(find.text('Appliquer l’import'));
-    await pumpIo(tester);
-    expect((await tester.runAsync(file.readAsBytes))!, importedBytes);
-    expect(find.textContaining('conservé(s)'), findsWidgets);
-    await tester.tap(find.text('Importer depuis une source'));
-    await pumpIo(tester);
-    await tester.tap(find.textContaining('Bulbasaur · #1'));
-    await pumpIo(tester);
-    final changedBytes = (await tester.runAsync(() async {
-      await file.writeAsBytes([...importedBytes, 32]);
-      return file.readAsBytes();
-    }))!;
-    await tester.tap(find.text('Refuser les conflits'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Remplacer après confirmation').last);
-    await tester.pump();
-    await tester.tap(find.text('Appliquer l’import'));
-    await tester.pump();
-    await tester.tap(find.text('Remplacer').last);
-    await pumpIo(tester);
-    expect(find.textContaining('Reprévisualisez'), findsWidgets);
-    expect((await tester.runAsync(file.readAsBytes))!, changedBytes);
-    expect(tester.takeException(), isNull);
-  });
+      final file = File(
+        '${host.source.directory.path}/data/pokemon/species/bulbasaur.json',
+      );
+      final project = File('${host.source.directory.path}/project.json');
+      final projectBefore = (await tester.runAsync(project.readAsBytes))!;
+      await host.go('Pokémon');
+      await pumpIo(tester);
+      await tester.tap(find.text('Importer depuis une source'));
+      await pumpIo(tester);
+      expect(find.text('Importer une espèce externe'), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('pokemon-external-query')),
+          matching: find.byType(TextField),
+        ),
+        'bulbasaur',
+      );
+      await tester.pump();
+      final searchButton = tester.widget<StudioButton>(
+        find.ancestor(
+          of: find.text('Rechercher'),
+          matching: find.byType(StudioButton),
+        ),
+      );
+      expect(searchButton.onPressed, isNotNull);
+      await tester.tap(find.text('Rechercher'));
+      await pumpIo(tester);
+      final state = tester
+          .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
+          .controller!;
+      expect(
+        state.externalSearch,
+        isNotNull,
+        reason: 'query=${state.externalBusy}, error=${state.error}',
+      );
+      expect(
+        find.textContaining('Bulbasaur · #1'),
+        findsOneWidget,
+        reason: tester
+            .widgetList<Text>(find.byType(Text))
+            .map((item) => item.data)
+            .whereType<String>()
+            .join(' | '),
+      );
+      await captureM3Widget(tester, captureKey, 'pokemon-08-recherche-externe');
+      await tester.tap(find.textContaining('Bulbasaur · #1'));
+      await pumpIo(tester);
+      expect(find.textContaining('Aperçu ·'), findsOneWidget);
+      await captureM3Widget(tester, captureKey, 'pokemon-import-externe');
+      expect((await tester.runAsync(file.exists))!, isFalse);
+      expect((await tester.runAsync(project.readAsBytes))!, projectBefore);
+      await tester.tap(find.text('Appliquer l’import'));
+      await pumpIo(tester);
+      expect((await tester.runAsync(file.exists))!, isTrue);
+      final reopened = (await tester.runAsync(() async {
+        final adapter = LocalPokemonWorkspaceAdapter(
+          session: host.source.session,
+          mapAdapter: host.source.maps,
+        );
+        final entry = (await adapter.loadIndex()).entries.single;
+        return adapter.loadSpecies(entry);
+      }))!;
+      expect(reopened.species.document!['id'], 'bulbasaur');
+      expect(reopened.learnset?.document?['speciesId'], 'bulbasaur');
+      final importedBytes = (await tester.runAsync(file.readAsBytes))!;
+      await tester.tap(find.text('Importer depuis une source'));
+      await pumpIo(tester);
+      await tester.tap(find.textContaining('Bulbasaur · #1'));
+      await pumpIo(tester);
+      expect(find.textContaining('existe déjà'), findsWidgets);
+      await captureM3Widget(tester, captureKey, 'pokemon-09-conflits-externes');
+      expect(find.text('Appliquer l’import'), findsOneWidget);
+      await tester.tap(find.text('Refuser les conflits'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Garder les fichiers existants').last);
+      await tester.pump();
+      await tester.tap(find.text('Appliquer l’import'));
+      await pumpIo(tester);
+      expect((await tester.runAsync(file.readAsBytes))!, importedBytes);
+      expect(find.textContaining('conservé(s)'), findsWidgets);
+      await tester.tap(find.text('Importer depuis une source'));
+      await pumpIo(tester);
+      await tester.tap(find.textContaining('Bulbasaur · #1'));
+      await pumpIo(tester);
+      final changedBytes = (await tester.runAsync(() async {
+        await file.writeAsBytes([...importedBytes, 32]);
+        return file.readAsBytes();
+      }))!;
+      await tester.tap(find.text('Refuser les conflits'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remplacer après confirmation').last);
+      await tester.pump();
+      await tester.tap(find.text('Appliquer l’import'));
+      await tester.pump();
+      await tester.tap(find.text('Remplacer').last);
+      await pumpIo(tester);
+      expect(find.textContaining('Reprévisualisez'), findsWidgets);
+      expect((await tester.runAsync(file.readAsBytes))!, changedBytes);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('external network error preserves local project', (tester) async {
     final host = await MapHostFixture.open(

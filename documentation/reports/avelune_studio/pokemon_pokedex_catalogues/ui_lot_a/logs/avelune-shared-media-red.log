@@ -1,0 +1,32 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_shared_media_host_test.dart
+00:00 +0: a form reads shared media without copying or changing it
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: PokemonWorkspaceFailure:<Référence bulbasaur incohérente.>
+
+When the exception was thrown, this was the stack:
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:197:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_shared_media_host_test.dart:71:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart line 197
+The test description was:
+  a form reads shared media without copying or changing it
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -1: a form reads shared media without copying or changing it [E]
+  Test failed. See exception logs above.
+  The test description was: a form reads shared media without copying or changing it
+  
+00:03 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_shared_media_host_test.dart: a form reads shared media without copying or changing it

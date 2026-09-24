@@ -1,0 +1,126 @@
+Analyzing map_core...
+
+   info - lib/map_core_domain.dart:1:9 - Library names are not necessary. Remove the library name. - unnecessary_library_name
+   info - lib/src/authoring/narrative_event_configuration_validation.dart:487:19 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/authoring/narrative_event_configuration_validation.dart:487:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/authoring/narrative_event_draft_operations.dart:160:19 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/catalogs/narrative_event_project_catalog.dart:189:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/catalogs/narrative_event_project_catalog.dart:190:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/legacy_scenario_source_projection.dart:461:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/legacy_scenario_source_projection.dart:462:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/legacy_scenario_source_projection.dart:546:19 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/legacy_scenario_source_projection.dart:767:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/legacy_scenario_source_projection.dart:768:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:324:33 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1344:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1521:31 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1560:21 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1849:19 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1850:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1856:19 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:1857:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:2130:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:2131:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/compatibility/narrative_event_migration_planner_impl.dart:3309:21 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/dialogue/yarn_dialogue_compiler.dart:79:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/models/pokemon_move_effect.dart:49:56 - Angle brackets will be interpreted as HTML. Try using backticks around the content with angle brackets, or try replacing `<` with `&lt;` and `>` with `&gt;`. - unintended_html_in_doc_comment
+   info - lib/src/models/project_presentation_profile.dart:1892:15 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib/src/models/project_presentation_profile.dart:1930:13 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - lib/src/models/project_presentation_profile.dart:2511:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/models/project_presentation_profile.dart:2513:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/models/project_presentation_profile.dart:2537:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/models/project_presentation_profile.dart:2542:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_blueprint_json_codec.dart:456:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_blueprint_json_codec.dart:546:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_blueprint_json_codec.dart:706:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_blueprint_json_codec.dart:792:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_feature_json_codec.dart:305:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_resize.dart:622:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_resize.dart:647:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/border_visual_snapshot_json_codec.dart:292:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/build_narrative_event_project_catalog.dart:339:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_event_project_catalog.dart:341:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_event_project_catalog.dart:476:21 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_event_project_catalog.dart:476:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_outcome_event_source_catalog.dart:635:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_outcome_event_source_catalog.dart:636:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/build_narrative_spatial_event_source_catalog.dart:580:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/connected_line_border_resolver.dart:589:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/map_placed_element_shadow_override_json_codec.dart:93:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/narrative_event_registry_codec.dart:792:26 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_event_registry_codec.dart:793:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_project_validator.dart:1117:39 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:869:37 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:943:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:944:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:1072:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:1133:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/narrative_symbolic_reachability_solver.dart:1134:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/operations/project_element_shadow_config_json_codec.dart:83:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/stone_chain_line_border_resolver.dart:3538:13 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/operations/tiled_map_compilation.dart:822:9 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/read_models/narrative_event_builder_project_read_model.dart:558:31 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_builder_project_read_model.dart:559:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:386:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:387:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:397:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:398:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:515:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:516:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:868:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_event_navigation_intent.dart:869:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_map_events_read_model.dart:453:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/read_models/narrative_map_events_read_model.dart:454:35 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/src/validation/validators.dart:138:13 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/validation/validators.dart:139:13 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - lib/src/validation/validators.dart:140:13 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/border/border_rle_codec_test.dart:420:24 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/cinematic_actor_display_preview_model_test.dart:865:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/cinematic_actor_display_preview_model_test.dart:868:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/cinematic_preview_playback_plan_test.dart:1547:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/environment_preset_json_codec_test.dart:66:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/map_placed_element_rotation_test.dart:696:7 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/map_placed_tile_visual_index_test.dart:15:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/map_placed_tile_visual_index_test.dart:55:9 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/narrative_event_claim_fingerprints_test.dart:336:34 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_legacy_corpus_test.dart:406:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:984:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:984:26 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:985:18 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:985:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:1024:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:1242:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_integrity_closure_test.dart:1243:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:2939:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:2954:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:2983:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3003:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3059:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3060:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3080:39 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3185:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3186:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3212:7 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/narrative_event_migration_planner_test.dart:3220:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3232:31 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3316:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_planner_test.dart:3317:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_receipt_codec_test.dart:211:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_receipt_codec_test.dart:211:26 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_receipt_codec_test.dart:212:18 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_migration_receipt_codec_test.dart:212:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_registry_codec_test.dart:289:22 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_registry_codec_test.dart:290:18 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/narrative_event_registry_test.dart:229:23 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/project_dialogue_declared_outcomes_test.dart:254:9 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/shadow/project_manifest_shadow_catalog_json_test.dart:206:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/shadow_v2/projected_building_shadow_json_characterization_test.dart:152:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/smart_tiles/smart_tile_cell_context_test.dart:76:27 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/smart_tiles/smart_tile_layer_preset_change_test.dart:503:44 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/support/f1_runtime_catalog_fixture.dart:20:29 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/support/f1_runtime_catalog_fixture.dart:21:39 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/support/f1_runtime_catalog_fixture.dart:73:25 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - test/support/f1_runtime_catalog_fixture.dart:74:23 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - tool/verify_narrative_event_jcs_vectors.dart:129:28 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+
+122 issues found.

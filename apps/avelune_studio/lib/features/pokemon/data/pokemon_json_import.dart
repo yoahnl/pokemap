@@ -9,7 +9,9 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/pokemon_import_models.dart';
 import '../domain/pokemon_workspace_models.dart';
+import 'pokemon_companion_projection.dart';
 import 'pokemon_document_transaction.dart';
+import 'pokemon_import_preview_match.dart';
 
 final class PokemonJsonImport {
   const PokemonJsonImport({
@@ -39,12 +41,19 @@ final class PokemonJsonImport {
     final species = _validated(PokemonDocumentFamily.species, source);
     final identity = species['id'] as String;
     final references = (species['refs'] as Map).cast<String, dynamic>();
+    final forms = (species['forms'] as Map?)?.cast<String, dynamic>() ?? {};
+    final baseFormId = forms['baseFormId'] as String? ?? '';
+    final isBaseForm = forms['isBaseForm'] as bool? ?? true;
     final directory = p.dirname(absolutePath);
     final siblingDirectory = p.basename(directory).toLowerCase() == 'species'
         ? p.dirname(directory)
         : null;
     final configured = manifest.pokemon;
     final presentEntries = await _speciesFiles(configured);
+    final knownSpeciesIds = {
+      identity,
+      for (final entry in presentEntries) entry.$1,
+    };
     final sameIdentity = presentEntries
         .where((entry) => entry.$1 == identity)
         .toList();
@@ -97,7 +106,15 @@ final class PokemonJsonImport {
       if (!await file.exists()) continue;
       final bytes = await file.readAsBytes();
       final document = _validated(family, bytes);
-      if (document['speciesId'] != identity) {
+      if (!pokemonCompanionBelongsTo(
+        family: family,
+        ownerSpeciesId: identity,
+        reference: reference,
+        declaredSpeciesId: document['speciesId'] as String? ?? '',
+        knownSpeciesIds: knownSpeciesIds,
+        ownerBaseFormId: baseFormId,
+        ownerIsBaseForm: isBaseForm,
+      )) {
         throw PokemonWorkspaceFailure(
           'Le compagnon $reference ne concerne pas $identity.',
         );
@@ -109,6 +126,11 @@ final class PokemonJsonImport {
           p.posix.join(targetDirectory, '$reference.json'),
           bytes,
           document,
+          ownerSpeciesId: identity,
+          reference: reference,
+          knownSpeciesIds: knownSpeciesIds,
+          ownerBaseFormId: baseFormId,
+          ownerIsBaseForm: isBaseForm,
         ),
       );
     }
@@ -141,7 +163,7 @@ final class PokemonJsonImport {
     }
     final refreshed = await this.preview(preview.items.first.sourcePath);
     if (refreshed.fingerprint != preview.fingerprint ||
-        !_samePreviewTargets(refreshed, preview)) {
+        !samePokemonImportPreviewTargets(refreshed, preview)) {
       throw const PokemonWorkspaceFailure(
         'La source ou le projet a changé depuis l’aperçu. Reprévisualisez.',
       );
@@ -167,12 +189,25 @@ final class PokemonJsonImport {
     String sourcePath,
     String relativePath,
     List<int> sourceBytes,
-    Map<String, dynamic> document,
-  ) async {
+    Map<String, dynamic> document, {
+    String? ownerSpeciesId,
+    String? reference,
+    Set<String> knownSpeciesIds = const {},
+    String ownerBaseFormId = '',
+    bool ownerIsBaseForm = true,
+  }) async {
     final beforeBytes = await _optional(relativePath);
     if (beforeBytes != null && family != PokemonDocumentFamily.species) {
       final existing = _validated(family, beforeBytes);
-      if (existing['speciesId'] != document['speciesId']) {
+      if (!pokemonCompanionBelongsTo(
+        family: family,
+        ownerSpeciesId: ownerSpeciesId!,
+        reference: reference!,
+        declaredSpeciesId: existing['speciesId'] as String? ?? '',
+        knownSpeciesIds: knownSpeciesIds,
+        ownerBaseFormId: ownerBaseFormId,
+        ownerIsBaseForm: ownerIsBaseForm,
+      )) {
         throw PokemonWorkspaceFailure(
           'Le document $relativePath appartient déjà à '
           '${existing['speciesId']}.',
@@ -256,31 +291,4 @@ final class PokemonJsonImport {
     PokemonDocumentFamily.evolution => PokemonDocumentKind.evolution,
     PokemonDocumentFamily.media => PokemonDocumentKind.media,
   };
-
-  bool _samePreviewTargets(
-    PokemonLocalImportPreview a,
-    PokemonLocalImportPreview b,
-  ) {
-    if (a.items.length != b.items.length) return false;
-    for (var i = 0; i < a.items.length; i++) {
-      final left = a.items[i];
-      final right = b.items[i];
-      if (left.relativePath != right.relativePath ||
-          left.family != right.family ||
-          !_sameBytes(left.beforeBytes, right.beforeBytes) ||
-          !_sameBytes(left.sourceBytes, right.sourceBytes)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _sameBytes(List<int>? a, List<int>? b) {
-    if (a == null || b == null) return a == null && b == null;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }

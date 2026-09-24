@@ -12,6 +12,102 @@ void main() {
     expect(report.diagnostics, isEmpty);
   });
 
+  test('accepts companion identities written from custom references', () {
+    final report = validator.validate(
+      _validSnapshot(
+        species: [
+          _document(
+            'species/bulbasaur.json',
+            _species(
+              learnsetRef: 'custom-learn',
+              evolutionRef: 'custom-evo',
+              mediaRef: 'custom-media',
+            ),
+          ),
+        ],
+        learnsets: [
+          _document(
+            'learnsets/custom-learn.json',
+            _learnset(speciesId: 'custom-learn'),
+          ),
+        ],
+        evolutions: [
+          _document(
+            'evolutions/custom-evo.json',
+            _evolution(speciesId: 'custom-evo'),
+          ),
+        ],
+        media: [
+          _document(
+            'media/custom-media.json',
+            _media(speciesId: 'custom-media'),
+          ),
+        ],
+      ),
+    );
+
+    expect(report.errorCount, 0);
+  });
+
+  test(
+    'does not resolve another species document through a custom reference',
+    () {
+      final report = validator.validate(
+        _validSnapshot(
+          species: [
+            _document(
+              'species/bulbasaur.json',
+              _species(learnsetRef: 'custom-learn'),
+            ),
+            _document(
+              'species/foreign.json',
+              _species(id: 'foreign', nationalDex: 2),
+            ),
+          ],
+          learnsets: [
+            _document(
+              'learnsets/custom-learn.json',
+              _learnset(speciesId: 'foreign'),
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        report.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('species.learnset_ref_missing'),
+      );
+    },
+  );
+
+  test('does not infer an owner for a shared legacy alias', () {
+    final report = validator.validate(
+      _validSnapshot(
+        species: [
+          _document(
+            'species/bulbasaur.json',
+            _species(learnsetRef: 'shared-learn'),
+          ),
+          _document(
+            'species/second.json',
+            _species(id: 'second', nationalDex: 2, learnsetRef: 'shared-learn'),
+          ),
+        ],
+        learnsets: [
+          _document(
+            'learnsets/shared-learn.json',
+            _learnset(speciesId: 'shared-learn'),
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      contains('species.learnset_ref_missing'),
+    );
+  });
+
   test('reports invalid ids, stats, capture rate, growth and references', () {
     final invalid = _species(
       id: '',

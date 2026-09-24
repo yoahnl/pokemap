@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
-import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/layout/studio_panel.dart';
+import '../../shared/widgets/inputs/studio_search_field.dart';
+import 'pokemon_move_detail.dart';
+import 'pokemon_move_list_item.dart';
+import 'pokemon_moves_sync_panel.dart';
+import 'pokemon_ui_parts.dart';
 
 class PokemonMovesLibrary extends StatefulWidget {
   const PokemonMovesLibrary({super.key, required this.controller});
@@ -18,7 +20,7 @@ class PokemonMovesLibrary extends StatefulWidget {
 class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
   late final search = TextEditingController(text: widget.controller.moveSearch);
   bool showCompactDetail = false;
-  bool showCompactSync = false;
+  bool showSync = false;
 
   @override
   void dispose() {
@@ -37,255 +39,181 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
     return LayoutBuilder(
       builder: (context, bounds) {
         final compact =
-            bounds.maxWidth < 850 ||
+            bounds.maxWidth < 930 ||
             MediaQuery.textScalerOf(context).scale(14) > 20;
-        if (compact && showCompactDetail && move != null) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    StudioButton(
-                      label: 'Retour aux attaques',
-                      secondary: true,
-                      icon: Icons.arrow_back,
-                      onPressed: () =>
-                          setState(() => showCompactDetail = false),
-                    ),
-                    if (controller.moveInsertGroup != null)
-                      StudioButton(
-                        label: 'Choisir cette attaque',
-                        onPressed: () => controller.chooseMove(move.id),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: PokemonMoveDetail(move: move),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
           children: [
-            SizedBox(
-              width: compact
-                  ? bounds.maxWidth
-                  : (bounds.maxWidth * .4).clamp(300, 440),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Attaques · ${catalog.entries.length}',
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Catalogue des attaques',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 12),
-                    if (compact && !showCompactSync)
-                      StudioButton(
-                        label: 'Synchroniser le catalogue',
-                        secondary: true,
-                        onPressed: () => setState(() => showCompactSync = true),
-                      )
-                    else
-                      StudioPanel(
-                        title: 'Synchroniser le catalogue',
-                        children: [
-                          if (compact)
-                            StudioButton(
-                              label: 'Replier la synchronisation',
-                              secondary: true,
-                              onPressed: () =>
-                                  setState(() => showCompactSync = false),
-                            ),
-                          const Text(
-                            'Télécharge le catalogue Showdown seulement après votre action. '
-                            'L’aperçu ne modifie pas le projet.',
-                          ),
-                          const SizedBox(height: 8),
-                          if (controller.hasPendingChanges)
-                            const Text(
-                              'Enregistrez ou annulez la fiche ouverte avant la synchronisation.',
-                            ),
-                          if (controller.movesPreview != null) ...[
-                            Text(
-                              '${controller.movesPreview!.createdIds.length} créations · '
-                              '${controller.movesPreview!.updatedIds.length} mises à jour · '
-                              '${controller.movesPreview!.unchangedIds.length} inchangées · '
-                              '${controller.movesPreview!.preservedLocalOnlyIds.length} locales conservées',
-                            ),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                StudioButton(
-                                  label: 'Appliquer la synchronisation',
-                                  onPressed: controller.syncing
-                                      ? null
-                                      : controller.applyMovesSync,
-                                ),
-                                StudioButton(
-                                  label: 'Annuler l’aperçu',
-                                  secondary: true,
-                                  onPressed: controller.clearMovesPreview,
-                                ),
-                              ],
-                            ),
-                          ] else
-                            StudioButton(
-                              label: 'Prévisualiser la synchronisation',
-                              secondary: true,
-                              loading: controller.syncing,
-                              onPressed:
-                                  controller.operationActive ||
-                                      controller.hasPendingChanges
-                                  ? null
-                                  : controller.previewMovesSync,
-                            ),
-                        ],
-                      ),
-                    const SizedBox(height: 12),
-                    StudioSearchField(
-                      controller: search,
-                      onChanged: controller.setMoveSearch,
-                      label: 'Rechercher une attaque',
-                    ),
-                    if (catalog.problem != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text(
-                          catalog.problem!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    for (final diagnostic in catalog.diagnostics)
-                      Text(
-                        diagnostic,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: entries.isEmpty
-                          ? Center(
-                              child: Text(
-                                catalog.problem == null
-                                    ? 'Aucune attaque trouvée.'
-                                    : 'Le catalogue local doit être préparé.',
-                              ),
-                            )
-                          : ListView.builder(
-                              key: const PageStorageKey('pokemon-moves-list'),
-                              itemCount: entries.length,
-                              itemBuilder: (context, index) {
-                                final entry = entries[index];
-                                return Card(
-                                  child: ListTile(
-                                    key: ValueKey('move-${entry.id}'),
-                                    selected:
-                                        entry.id == controller.selectedMoveId,
-                                    title: Text(entry.name),
-                                    subtitle: Text(
-                                      '${entry.id} · ${entry.type ?? 'Type inconnu'}',
-                                    ),
-                                    onTap: () {
-                                      controller.selectMove(entry.id);
-                                      if (compact) {
-                                        setState(
-                                          () => showCompactDetail = true,
-                                        );
-                                      }
-                                    },
-                                    trailing: controller.moveInsertGroup != null
-                                        ? IconButton(
-                                            tooltip: 'Choisir cette attaque',
-                                            icon: const Icon(
-                                              Icons.add_circle_outline,
-                                            ),
-                                            onPressed: () =>
-                                                controller.chooseMove(entry.id),
-                                          )
-                                        : null,
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
+                  ),
+                  StudioButton(
+                    label: showSync
+                        ? 'Masquer la synchronisation'
+                        : 'Synchronisation',
+                    icon: Icons.sync,
+                    secondary: true,
+                    onPressed: () => setState(() => showSync = !showSync),
+                  ),
+                ],
               ),
             ),
-            if (!compact) ...[
-              const VerticalDivider(width: 1),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: move == null
-                      ? const Center(child: Text('Sélectionnez une attaque.'))
-                      : SingleChildScrollView(
-                          child: PokemonMoveDetail(move: move),
-                        ),
+            if (showSync ||
+                controller.movesPreview != null ||
+                catalog.problem != null)
+              SizedBox(
+                height: (bounds.maxHeight * .38).clamp(120, 270),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: PokemonMovesSyncPanel(controller: controller),
+                  ),
                 ),
               ),
-            ],
+            Expanded(
+              child: compact && showCompactDetail && move != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              StudioButton(
+                                label: 'Retour aux attaques',
+                                secondary: true,
+                                icon: Icons.arrow_back,
+                                onPressed: () =>
+                                    setState(() => showCompactDetail = false),
+                              ),
+                              if (controller.moveInsertGroup != null)
+                                StudioButton(
+                                  label: 'Choisir cette attaque',
+                                  onPressed: () =>
+                                      controller.chooseMove(move.id),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: PokemonMoveDetail(move: move),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Row(
+                      children: [
+                        SizedBox(
+                          width: compact
+                              ? bounds.maxWidth
+                              : (bounds.maxWidth * .28).clamp(300, 360),
+                          child: ColoredBox(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  PokemonSectionHeading(
+                                    title:
+                                        'Attaques · ${catalog.entries.length}',
+                                    description:
+                                        entries.length == catalog.entries.length
+                                        ? 'Sélectionnez une attaque pour voir ses valeurs.'
+                                        : '${entries.length} résultat(s) affiché(s)',
+                                  ),
+                                  StudioSearchField(
+                                    controller: search,
+                                    onChanged: controller.setMoveSearch,
+                                    label: 'Rechercher une attaque',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Expanded(
+                                    child: entries.isEmpty
+                                        ? PokemonEmptyState(
+                                            title: catalog.problem == null
+                                                ? 'Aucune attaque trouvée'
+                                                : 'Catalogue indisponible',
+                                            description: catalog.problem == null
+                                                ? 'Essayez une autre recherche.'
+                                                : 'Préparez le catalogue avec la synchronisation.',
+                                            icon: Icons.search_off,
+                                          )
+                                        : ListView.builder(
+                                            key: const PageStorageKey(
+                                              'pokemon-moves-list',
+                                            ),
+                                            itemCount: entries.length,
+                                            itemBuilder: (context, index) =>
+                                                PokemonMoveListItem(
+                                                  entry: entries[index],
+                                                  selected:
+                                                      entries[index].id ==
+                                                      controller.selectedMoveId,
+                                                  choosing:
+                                                      controller
+                                                          .moveInsertGroup !=
+                                                      null,
+                                                  onTap: () {
+                                                    controller.selectMove(
+                                                      entries[index].id,
+                                                    );
+                                                    if (compact) {
+                                                      setState(
+                                                        () =>
+                                                            showCompactDetail =
+                                                                true,
+                                                      );
+                                                    }
+                                                  },
+                                                  onChoose: () =>
+                                                      controller.chooseMove(
+                                                        entries[index].id,
+                                                      ),
+                                                ),
+                                          ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!compact) ...[
+                          const VerticalDivider(width: 1),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: move == null
+                                  ? const PokemonEmptyState(
+                                      title: 'Choisissez une attaque',
+                                      description:
+                                          'Le catalogue du projet est consultable ici.',
+                                      icon: Icons.menu_book_outlined,
+                                    )
+                                  : SingleChildScrollView(
+                                      child: PokemonMoveDetail(move: move),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
           ],
         );
       },
     );
   }
 }
-
-class PokemonMoveDetail extends StatelessWidget {
-  const PokemonMoveDetail({super.key, required this.move});
-
-  final PokemonMoveSummary move;
-
-  @override
-  Widget build(BuildContext context) => StudioPanel(
-    title: move.name,
-    children: [
-      Text('Identifiant : ${move.id}'),
-      Text('Type : ${move.type ?? 'Non renseigné'}'),
-      Text('Catégorie : ${move.category ?? 'Non renseignée'}'),
-      Text('Puissance : ${move.power?.toString() ?? 'Non renseignée'}'),
-      Text('Précision : ${move.accuracy ?? 'Non renseignée'}'),
-      Text('PP : ${move.pp?.toString() ?? 'Non renseignés'}'),
-      Text('Priorité : ${move.priority?.toString() ?? 'Non renseignée'}'),
-      Text('Cible : ${_targetLabel(move.target)}'),
-      if (move.description?.isNotEmpty == true) ...[
-        const SizedBox(height: 12),
-        Text(move.description!),
-      ],
-    ],
-  );
-}
-
-String _targetLabel(String? value) => switch (value?.split('.').last) {
-  null => 'Non renseignée',
-  'adjacentAlly' => 'Allié adjacent',
-  'adjacentAllyOrSelf' => 'Allié adjacent ou utilisateur',
-  'adjacentFoe' => 'Adversaire adjacent',
-  'all' => 'Tous',
-  'allAdjacent' => 'Tous les voisins',
-  'allAdjacentFoes' => 'Tous les adversaires voisins',
-  'allies' => 'Alliés',
-  'allySide' => 'Côté allié',
-  'allyTeam' => 'Équipe alliée',
-  'any' => 'Une cible au choix',
-  'foeSide' => 'Côté adverse',
-  'normal' => 'Une cible',
-  'randomNormal' => 'Une cible aléatoire',
-  'scripted' => 'Définie par le scénario',
-  'self' => 'Utilisateur',
-  final String other => other,
-};

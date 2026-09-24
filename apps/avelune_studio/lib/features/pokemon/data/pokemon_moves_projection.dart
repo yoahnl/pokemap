@@ -1,10 +1,12 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart' show localizedNamesForMove;
 
 import '../domain/pokemon_workspace_models.dart';
 
 PokemonMovesCatalogView projectPokemonMoves(
   PokemonCatalogFile catalog,
   String relativePath,
+  String locale,
 ) {
   final entries = <PokemonMoveSummary>[];
   final diagnostics = <String>[];
@@ -12,7 +14,7 @@ PokemonMovesCatalogView projectPokemonMoves(
   for (var index = 0; index < catalog.entries.length; index++) {
     final raw = catalog.entries[index];
     try {
-      final entry = _projectMove(raw);
+      final entry = _projectMove(raw, locale);
       if (!identities.add(entry.id)) {
         diagnostics.add('Attaque ${entry.id} répétée à la ligne ${index + 1}.');
       } else {
@@ -33,14 +35,15 @@ PokemonMovesCatalogView projectPokemonMoves(
   );
 }
 
-PokemonMoveSummary _projectMove(Map<String, dynamic> raw) {
+PokemonMoveSummary _projectMove(Map<String, dynamic> raw, String locale) {
   final id = (raw['id'] as String?)?.trim() ?? '';
   if (id.isEmpty) throw const FormatException('Missing move ID');
+  final userCreated = (raw['source'] as String?)?.trim() == 'project_custom';
   if (_isCanonical(raw)) {
     final move = PokemonMove.fromJson(raw);
     return PokemonMoveSummary(
       id: move.id,
-      name: _localized(move.names, move.name),
+      name: _localized(move.names, move.name, locale, move.id, userCreated),
       type: move.type,
       category: move.category.name,
       power: move.usesStandardDamageFlow ? move.basePower : null,
@@ -54,10 +57,17 @@ PokemonMoveSummary _projectMove(Map<String, dynamic> raw) {
       description: move.description.trim().isEmpty
           ? move.shortDescription
           : move.description,
+      userCreated: userCreated,
     );
   }
   final names = (raw['names'] as Map?)?.cast<String, dynamic>() ?? {};
-  final name = _localized(names, (raw['name'] as String?)?.trim() ?? id);
+  final name = _localized(
+    names,
+    (raw['name'] as String?)?.trim() ?? id,
+    locale,
+    id,
+    userCreated,
+  );
   return PokemonMoveSummary(
     id: id,
     name: name,
@@ -71,6 +81,7 @@ PokemonMoveSummary _projectMove(Map<String, dynamic> raw) {
     description:
         (raw['effectText'] ?? raw['description'] ?? raw['shortDesc'])
             as String?,
+    userCreated: userCreated,
   );
 }
 
@@ -80,10 +91,22 @@ bool _isCanonical(Map<String, dynamic> raw) =>
     raw.containsKey('basePower') ||
     raw.containsKey('damageModel');
 
-String _localized(Map names, String fallback) {
-  for (final language in ['fr', 'en']) {
-    final value = names[language];
-    if (value is String && value.trim().isNotEmpty) return value.trim();
-  }
-  return fallback;
+String _localized(
+  Map names,
+  String fallback,
+  String locale,
+  String id,
+  bool userCreated,
+) {
+  final available = <String, String>{
+    if (!userCreated) ...localizedNamesForMove(id.replaceAll('-', '_')),
+    for (final entry in names.entries)
+      if (entry.key is String && entry.value is String)
+        entry.key as String: entry.value as String,
+  };
+  return resolveLocalizedName(
+    names: available,
+    locale: locale,
+    fallback: fallback,
+  );
 }

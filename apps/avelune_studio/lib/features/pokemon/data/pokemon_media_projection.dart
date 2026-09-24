@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../domain/pokemon_workspace_models.dart';
+import 'pokemon_companion_projection.dart';
 import 'pokemon_index_projection.dart';
 
 Future<Uint8List?> loadPokemonImage({
@@ -32,6 +34,7 @@ Future<Uint8List?> loadPokemonThumbnail({
   required ProjectFileReader reader,
   required String projectRoot,
   required PokemonSpeciesSummary entry,
+  required Set<String> knownSpeciesIds,
 }) async {
   if (entry.mediaRelativePath.isEmpty) return null;
   final bytes = await readOptionalPokemonResource(
@@ -43,7 +46,17 @@ Future<Uint8List?> loadPokemonThumbnail({
   final media = PokemonMediaFile.fromJson(
     (jsonDecode(utf8.decode(bytes)) as Map).cast<String, dynamic>(),
   );
-  if (media.speciesId != entry.id) return null;
+  if (!pokemonCompanionBelongsTo(
+    family: PokemonDocumentFamily.media,
+    ownerSpeciesId: entry.id,
+    reference: p.posix.basenameWithoutExtension(entry.mediaRelativePath),
+    declaredSpeciesId: media.speciesId,
+    knownSpeciesIds: knownSpeciesIds,
+    ownerBaseFormId: entry.baseFormId,
+    ownerIsBaseForm: entry.isBaseForm,
+  )) {
+    return null;
+  }
   final variant = media.variants[media.defaultFormId];
   final path = variant?.icon ?? variant?.party ?? variant?.portrait;
   if (path == null) return null;

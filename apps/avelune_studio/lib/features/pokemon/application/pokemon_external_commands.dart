@@ -77,4 +77,10 @@ extension PokemonExternalCommands on PokemonWorkspaceController {
     externalSearch = null;
     _notify();
   }
+
+  void clearExternalPreview() {
+    if (externalBusy) return;
+    externalPreview = null;
+    _notify();
+  }
 }

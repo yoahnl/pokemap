@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
-import '../../shared/widgets/layout/studio_panel.dart';
-import 'pokemon_species_library.dart';
-import 'pokemon_species_detail.dart';
-import 'pokemon_moves_library.dart';
-import 'pokemon_import_preview.dart';
 import 'pokemon_external_import_panel.dart';
+import 'pokemon_import_preview.dart';
+import 'pokemon_moves_library.dart';
+import 'pokemon_species_detail.dart';
+import 'pokemon_species_library.dart';
+import 'pokemon_ui_parts.dart';
+import 'pokemon_workspace_tabs.dart';
 
 class PokemonWorkspacePage extends StatefulWidget {
   const PokemonWorkspacePage({
@@ -51,33 +51,36 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
     if (controller == null) {
-      return const Center(
-        child: Text('Le Pokédex est indisponible pour ce projet.'),
+      return const PokemonEmptyState(
+        title: 'Pokédex indisponible',
+        description: 'Ouvrez un projet pour consulter ses espèces.',
       );
     }
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
-            constraints.maxWidth < 850 ||
+            constraints.maxWidth < 930 ||
             MediaQuery.textScalerOf(context).scale(14) > 20;
         final index = controller.index;
+        final showPokedexActions =
+            controller.view == PokemonWorkspaceView.pokedex &&
+            controller.importPreview == null &&
+            !showExternalImport;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             StudioPageHeader(
               title: 'Pokémon',
-              description:
-                  'Préparez les espèces et leurs attaques pour ce projet.',
+              description: 'Espèces et attaques du projet courant.',
               actions: [
-                if (controller.view == PokemonWorkspaceView.pokedex &&
-                    widget.pickJson != null)
+                if (showPokedexActions && widget.pickJson != null)
                   StudioButton(
                     label: 'Importer un JSON',
                     secondary: true,
                     icon: Icons.file_upload_outlined,
                     onPressed: controller.operationActive ? null : _pickImport,
                   ),
-                if (controller.view == PokemonWorkspaceView.pokedex)
+                if (showPokedexActions)
                   StudioButton(
                     label: 'Importer depuis une source',
                     secondary: true,
@@ -86,72 +89,33 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         ? null
                         : () => setState(() => showExternalImport = true),
                   ),
-                if (controller.selectedDraft?.dirty == true)
-                  StudioButton(
-                    label: 'Enregistrer',
-                    icon: Icons.save_outlined,
-                    loading: controller.saving,
-                    onPressed: controller.mutationActive
-                        ? null
-                        : () => controller.save(),
-                  ),
-                if (controller.selectedDraft?.dirty == true)
-                  StudioButton(
-                    label: 'Annuler les modifications',
-                    secondary: true,
-                    onPressed: controller.mutationActive
-                        ? null
-                        : controller.discardSelected,
-                  ),
               ],
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: StudioTabs<PokemonWorkspaceView>(
-                items: const {
-                  PokemonWorkspaceView.pokedex: 'Pokédex',
-                  PokemonWorkspaceView.moves: 'Attaques',
-                },
-                selected: controller.view,
-                onChanged: controller.setView,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: PokemonWorkspaceTabs(controller: controller),
             ),
             if (controller.error != null)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  controller.error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
+              _message(context, controller.error!, error: true),
             if (controller.notice != null)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(controller.notice!),
-              ),
-            if (controller.importPreview != null)
-              PokemonImportPreviewPanel(controller: controller),
+              _message(context, controller.notice!),
             if (controller.externalResult case final result?)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: StudioPanel(
-                  title: 'Import terminé · ${result.speciesId}',
-                  children: [
-                    Text(
-                      '${result.created} document(s) créé(s) · '
-                      '${result.overwritten} remplacé(s) · '
-                      '${result.skipped} conservé(s)',
-                    ),
-                    for (final warning in result.warnings) Text(warning),
-                  ],
-                ),
+              _message(
+                context,
+                'Import ${result.speciesId} : ${result.created} créé(s), '
+                '${result.overwritten} remplacé(s), '
+                '${result.skipped} conservé(s). '
+                '${result.warnings.join(' ')}',
               ),
             if (controller.loading && index == null)
               const Expanded(child: Center(child: CircularProgressIndicator()))
             else if (index == null)
               Expanded(
-                child: Center(
-                  child: StudioButton(
+                child: PokemonEmptyState(
+                  title: 'Lecture impossible',
+                  description: 'Le Pokédex du projet n’a pas pu être chargé.',
+                  icon: Icons.error_outline,
+                  action: StudioButton(
                     label: 'Réessayer la lecture',
                     onPressed: () => controller.load(refresh: true),
                   ),
@@ -159,14 +123,18 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
               )
             else if (!index.enabled)
               const Expanded(
-                child: Center(
-                  child: Text(
-                    'La configuration Pokémon est désactivée pour ce projet.',
-                  ),
+                child: PokemonEmptyState(
+                  title: 'Pokémon désactivé',
+                  description:
+                      'La configuration Pokémon est désactivée dans ce projet.',
+                  icon: Icons.block_outlined,
                 ),
               )
-            else if (showExternalImport &&
-                controller.view == PokemonWorkspaceView.pokedex)
+            else if (controller.view == PokemonWorkspaceView.moves)
+              Expanded(child: PokemonMovesLibrary(controller: controller))
+            else if (controller.importPreview != null)
+              Expanded(child: PokemonImportPreviewPanel(controller: controller))
+            else if (showExternalImport)
               Expanded(
                 child: PokemonExternalImportPanel(
                   controller: controller,
@@ -176,11 +144,10 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
               )
             else
               Expanded(
-                child: controller.view == PokemonWorkspaceView.moves
-                    ? PokemonMovesLibrary(controller: controller)
-                    : compact &&
-                          showCompactDetail &&
-                          controller.selectedDraft != null
+                child:
+                    compact &&
+                        showCompactDetail &&
+                        controller.selectedDraft != null
                     ? PokemonSpeciesDetail(
                         controller: controller,
                         pickPng: widget.pickPng,
@@ -191,7 +158,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                           SizedBox(
                             width: compact
                                 ? constraints.maxWidth
-                                : (constraints.maxWidth * .36).clamp(290, 420),
+                                : (constraints.maxWidth * .28).clamp(300, 360),
                             child: PokemonSpeciesLibrary(
                               controller: controller,
                               onSelected: () {
@@ -216,6 +183,27 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _message(BuildContext context, String value, {bool error = false}) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: PokemonSurface(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              error ? Icons.error_outline : Icons.info_outline,
+              size: 17,
+              color: error ? colors.error : colors.tertiary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(value)),
+          ],
+        ),
+      ),
     );
   }
 }

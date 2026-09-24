@@ -81,6 +81,12 @@ void main() {
     expect((saved['names'] as Map)['fr'], 'Espèce finale');
     await tester.tap(find.text('Attaques').first);
     await pumpIo(tester);
+    final moves = find.byKey(const PageStorageKey('pokemon-moves-list'));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('move-leech-seed')),
+      180,
+      scrollable: find.descendant(of: moves, matching: find.byType(Scrollable)),
+    );
     await tester.tap(find.byKey(const ValueKey('move-leech-seed')));
     await pumpIo(tester);
     expect(find.text('Retour aux attaques'), findsOneWidget);

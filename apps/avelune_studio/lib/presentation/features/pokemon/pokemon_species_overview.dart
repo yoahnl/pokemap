@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
-import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/layout/studio_panel.dart';
+import 'pokemon_base_stats.dart';
 import 'pokemon_draft_controls.dart';
+import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesOverview extends StatelessWidget {
   const PokemonSpeciesOverview({super.key, required this.controller});
@@ -20,40 +22,111 @@ class PokemonSpeciesOverview extends StatelessWidget {
       PokemonDocumentFamily.species,
     );
     final names = (json['names'] as Map?)?.cast<String, dynamic>() ?? {};
+    final content = (json['dexContent'] as Map?)?.cast<String, dynamic>() ?? {};
     final typeJson = (json['typing'] as Map?)?.cast<String, dynamic>() ?? {};
     final selectedTypes = List<String>.from(typeJson['types'] as List? ?? []);
     final typeOptions = {
       '': 'Aucun',
       for (final type in controller.index?.types ?? const <String>[])
-        type: type,
+        type: pokemonTypeLabel(type),
     };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final identity = Column(
       children: [
         StudioPanel(
           title: 'Identité et description',
           children: [
-            Text(
-              'Identifiant ${draft.id} · Slug ${json['slug']}',
-              style: Theme.of(context).textTheme.bodySmall,
+            PokemonDataRow(label: 'Identifiant', value: draft.id),
+            PokemonDataRow(label: 'Slug', value: '${json['slug'] ?? '—'}'),
+            PokemonDataRow(
+              label: 'Numéro national',
+              value: '${json['nationalDex'] ?? '—'}',
             ),
-            const SizedBox(height: 12),
+            const Divider(height: 24),
             for (final language in names.keys)
               fields.text('Nom · $language', ['names', language]),
-            fields.text('Description du Pokédex', ['dexContent', 'flavorText']),
-            StudioSelect(
-              label: 'Type principal',
-              value: selectedTypes.firstOrNull,
-              options: typeOptions,
-              onChanged: (value) => _setType(0, value),
+            fields.text('Description du Pokédex', [
+              'dexContent',
+              'flavorText',
+            ], lines: 3),
+            LayoutBuilder(
+              builder: (context, bounds) {
+                final compact = bounds.maxWidth < 440;
+                final first = StudioSelect(
+                  label: 'Type principal',
+                  value: selectedTypes.firstOrNull,
+                  options: typeOptions,
+                  onChanged: (value) => _setType(0, value),
+                );
+                final second = StudioSelect(
+                  label: 'Type secondaire',
+                  value: selectedTypes.length > 1 ? selectedTypes[1] : '',
+                  options: typeOptions,
+                  onChanged: (value) => _setType(1, value),
+                );
+                return compact
+                    ? Column(
+                        children: [first, const SizedBox(height: 9), second],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(child: first),
+                          const SizedBox(width: 10),
+                          Expanded(child: second),
+                        ],
+                      );
+              },
             ),
-            const SizedBox(height: 12),
-            StudioSelect(
-              label: 'Type secondaire',
-              value: selectedTypes.length > 1 ? selectedTypes[1] : '',
-              options: typeOptions,
-              onChanged: (value) => _setType(1, value),
+          ],
+        ),
+        const SizedBox(height: 12),
+        StudioPanel(
+          title: 'Classification consultable',
+          children: [
+            PokemonDataRow(
+              label: 'Génération',
+              value: '${json['genIntroduced'] ?? 'Non renseignée'}',
             ),
+            PokemonDataRow(
+              label: 'Taille',
+              value: content['heightM'] == null
+                  ? 'Non renseignée'
+                  : '${content['heightM']} m',
+            ),
+            PokemonDataRow(
+              label: 'Poids',
+              value: content['weightKg'] == null
+                  ? 'Non renseigné'
+                  : '${content['weightKg']} kg',
+            ),
+          ],
+        ),
+      ],
+    );
+    final abilities =
+        (json['abilities'] as Map?)?.values
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toList() ??
+        const <String>[];
+    final right = Column(
+      children: [
+        PokemonBaseStats(
+          stats: (json['baseStats'] as Map?)?.cast<String, dynamic>() ?? {},
+        ),
+        const SizedBox(height: 12),
+        StudioPanel(
+          title: 'Talents référencés',
+          children: [
+            if (abilities.isEmpty)
+              const Text('Aucun talent renseigné.')
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final ability in abilities) PokemonPill(label: ability),
+                ],
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -78,19 +151,27 @@ class PokemonSpeciesOverview extends StatelessWidget {
             ]),
           ],
         ),
-        const SizedBox(height: 12),
-        StudioPanel(
-          title: 'Données consultables',
-          children: [
-            Text(
-              'Statistiques : ${(json['baseStats'] as Map?)?.entries.map((entry) => '${entry.key} ${entry.value}').join(' · ') ?? 'indisponibles'}',
-            ),
-            Text(
-              'Talents : ${(json['abilities'] as Map?)?.values.whereType<String>().join(' · ') ?? 'indisponibles'}',
-            ),
-          ],
-        ),
       ],
+    );
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final columns =
+            bounds.maxWidth >= 760 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 18;
+        if (!columns) {
+          return Column(
+            children: [identity, const SizedBox(height: 12), right],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 12),
+            Expanded(child: right),
+          ],
+        );
+      },
     );
   }
 

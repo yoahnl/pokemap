@@ -1,0 +1,110 @@
+00:00 +0: loading test/benchmark/verify_smart_tiles_performance_cli_test.dart
+00:00 +0: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +1 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +1 -1: test/beta_playability_composition_test.dart: BETA-SYS-005 the beta gate composition is declared and checked no validator exists without a declared place in the gate [E]
+  Expected: empty
+    Actual: Set:['project_regional_map_validator.dart']
+  
+  package:matcher                                   expect
+  test/beta_playability_composition_test.dart 51:7  main.<fn>.<fn>
+  
+00:00 +2 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +3 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +4 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +5 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +6 -1: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +6 -2: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +6 -2: test/cinematic_media_contract_fixture_test.dart: shared Selbrume media fixture has a publishable playback sequence [E]
+  Expected: <3200>
+    Actual: <2900>
+  
+  package:matcher                                       expect
+  test/cinematic_media_contract_fixture_test.dart 37:5  main.<fn>
+  
+00:00 +6 -3: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +7 -3: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +8 -3: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +9 -3: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +9 -3: test/project_item_reference_index_test.dart: indexes every canonical item usage with an editable path [E]
+  Expected: an object with length of <17>
+    Actual: [
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference',
+              Instance of 'ProjectItemReference'
+            ]
+     Which: has length of <18>
+  
+  package:matcher                                    expect
+  test/project_item_reference_index_test.dart 194:5  main.<fn>
+  
+00:00 +10 -3: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +10 -4: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:00 +10 -4: test/scene_runtime_dry_run_preview_test.dart: Scene runtime dry-run preview summarizes every canonical consequence in authored order [E]
+  Expected: [
+              SceneConsequenceKind:SceneConsequenceKind.setFact,
+              SceneConsequenceKind:SceneConsequenceKind.markEventConsumed,
+              SceneConsequenceKind:SceneConsequenceKind.completeStoryStep,
+              SceneConsequenceKind:SceneConsequenceKind.giveItem,
+              SceneConsequenceKind:SceneConsequenceKind.takeItem,
+              SceneConsequenceKind:SceneConsequenceKind.giveMoney,
+              SceneConsequenceKind:SceneConsequenceKind.grantRailCurrency,
+              SceneConsequenceKind:SceneConsequenceKind.grantRailStamp,
+              SceneConsequenceKind:SceneConsequenceKind.givePokemon,
+              SceneConsequenceKind:SceneConsequenceKind.giveConfiguredStarter,
+              SceneConsequenceKind:SceneConsequenceKind.healParty,
+              SceneConsequenceKind:SceneConsequenceKind.awardBadge,
+              SceneConsequenceKind:SceneConsequenceKind.unlockFieldAbility,
+              SceneConsequenceKind:SceneConsequenceKind.setNpcPresence,
+              SceneConsequenceKind:SceneConsequenceKind.setPauseMenuEntryVisibility,
+              SceneConsequenceKind:SceneConsequenceKind.finishGame
+            ]
+    Actual: MappedListIterable<SceneDryRunConsequenceChange, SceneConsequenceKind>:[
+              SceneConsequenceKind:SceneConsequenceKind.setFact,
+              SceneConsequenceKind:SceneConsequenceKind.markEventConsumed,
+              SceneConsequenceKind:SceneConsequenceKind.completeStoryStep,
+              SceneConsequenceKind:SceneConsequenceKind.giveItem,
+              SceneConsequenceKind:SceneConsequenceKind.takeItem,
+              SceneConsequenceKind:SceneConsequenceKind.giveMoney,
+              SceneConsequenceKind:SceneConsequenceKind.givePokemon,
+              SceneConsequenceKind:SceneConsequenceKind.giveConfiguredStarter,
+              SceneConsequenceKind:SceneConsequenceKind.healParty,
+              SceneConsequenceKind:SceneConsequenceKind.awardBadge,
+              SceneConsequenceKind:SceneConsequenceKind.unlockFieldAbility,
+              SceneConsequenceKind:SceneConsequenceKind.setNpcPresence,
+              SceneConsequenceKind:SceneConsequenceKind.setPauseMenuEntryVisibility,
+              SceneConsequenceKind:SceneConsequenceKind.finishGame
+            ]
+     Which: at location [6] is SceneConsequenceKind:<SceneConsequenceKind.givePokemon> instead of SceneConsequenceKind:<SceneConsequenceKind.grantRailCurrency>
+  
+  package:matcher                                     expect
+  test/scene_runtime_dry_run_preview_test.dart 190:7  main.<fn>.<fn>
+  
+00:00 +11 -4: test/benchmark/verify_smart_tiles_performance_cli_test.dart: verifies portable budgets and optional target timings
+00:01 +12 -4: test/benchmark/verify_smart_tiles_performance_cli_test.dart: rejects historical receipts unless explicitly allowed
+00:02 +13 -4: test/benchmark/verify_smart_tiles_performance_cli_test.dart: fails closed when the current Git source cannot be identified
+00:03 +14 -4: Some tests failed.
+
+Failing tests:
+  test/beta_playability_composition_test.dart: BETA-SYS-005 the beta gate composition is declared and checked no validator exists without a declared place in the gate
+  test/cinematic_media_contract_fixture_test.dart: shared Selbrume media fixture has a publishable playback sequence
+  test/project_item_reference_index_test.dart: indexes every canonical item usage with an editable path
+  test/scene_runtime_dry_run_preview_test.dart: Scene runtime dry-run preview summarizes every canonical consequence in authored order
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

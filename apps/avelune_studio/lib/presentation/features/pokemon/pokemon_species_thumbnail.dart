@@ -10,10 +10,12 @@ class PokemonSpeciesThumbnail extends StatefulWidget {
     super.key,
     required this.entry,
     required this.port,
+    this.size = 48,
   });
 
   final PokemonSpeciesSummary entry;
   final PokemonWorkspacePort port;
+  final double size;
 
   @override
   State<PokemonSpeciesThumbnail> createState() =>
@@ -33,8 +35,8 @@ class _PokemonSpeciesThumbnailState extends State<PokemonSpeciesThumbnail> {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 48,
-    height: 48,
+    width: widget.size,
+    height: widget.size,
     child: FutureBuilder<Uint8List?>(
       future: image,
       builder: (context, snapshot) {
@@ -50,10 +52,27 @@ class _PokemonSpeciesThumbnailState extends State<PokemonSpeciesThumbnail> {
           message: snapshot.hasError
               ? 'Aperçu indisponible : ${snapshot.error}'
               : 'Aucune image locale disponible',
-          child: Icon(
-            snapshot.connectionState == ConnectionState.waiting
-                ? Icons.hourglass_empty
-                : Icons.image_not_supported_outlined,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                snapshot.connectionState == ConnectionState.waiting
+                    ? Icons.hourglass_empty
+                    : Icons.image_not_supported_outlined,
+                size: widget.size > 64 ? 30 : 18,
+              ),
+              if (widget.size > 64 &&
+                  MediaQuery.textScalerOf(context).scale(12) < 18) ...[
+                const SizedBox(height: 8),
+                Text(
+                  snapshot.connectionState == ConnectionState.waiting
+                      ? 'Chargement…'
+                      : 'Aucun aperçu',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
           ),
         );
       },

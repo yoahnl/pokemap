@@ -1,13 +1,16 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_draft_controls.dart';
+import 'pokemon_media_preview.dart';
+import 'pokemon_media_role_card.dart';
+import 'pokemon_ui_parts.dart';
 
-class PokemonSpeciesMediaEditor extends StatelessWidget {
+class PokemonSpeciesMediaEditor extends StatefulWidget {
   const PokemonSpeciesMediaEditor({
     super.key,
     required this.controller,
@@ -18,93 +21,163 @@ class PokemonSpeciesMediaEditor extends StatelessWidget {
   final Future<String?> Function()? pickPng;
 
   @override
+  State<PokemonSpeciesMediaEditor> createState() =>
+      _PokemonSpeciesMediaEditorState();
+}
+
+class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
+  String? ownerId;
+  String? selectedForm;
+  String selectedRole = 'icon';
+
+  static const roles = [
+    'icon',
+    'party',
+    'portrait',
+    'frontStatic',
+    'backStatic',
+    'frontShinyStatic',
+    'backShinyStatic',
+    'overworld',
+    'cry',
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    final json = controller.selectedDraft?.document(
-      PokemonDocumentFamily.media,
-    );
+    final controller = widget.controller;
     final draft = controller.selectedDraft;
+    final json = draft?.document(PokemonDocumentFamily.media);
     final references =
         (draft?.document(PokemonDocumentFamily.species)?['refs'] as Map?)
             ?.cast<String, dynamic>();
     if (references?['media'] == null || references?['media'] == '') {
-      return const StudioPanel(
-        children: [Text('Aucune référence média associée à cette espèce.')],
+      return const PokemonEmptyState(
+        title: 'Aucun document média lié',
+        description:
+            'Cette fiche ne déclare aucune référence média. Les autres '
+            'sections restent disponibles.',
+        icon: Icons.image_not_supported_outlined,
       );
     }
+    final variants = (json?['variants'] as Map?)?.cast<String, dynamic>() ?? {};
+    final forms = <String>{
+      ...?controller.index?.entries
+          .where((entry) => entry.id == draft?.id)
+          .firstOrNull
+          ?.formIds,
+      ...variants.keys,
+    }.where((form) => form.isNotEmpty).toList();
+    if (ownerId != draft?.id) {
+      ownerId = draft?.id;
+      selectedForm = null;
+      selectedRole = 'icon';
+    }
+    final form = forms.contains(selectedForm)
+        ? selectedForm
+        : forms.contains(json?['defaultFormId'])
+        ? json!['defaultFormId'] as String
+        : forms.firstOrNull;
+    final values = (variants[form] as Map?)?.cast<String, dynamic>() ?? {};
+    final path = values[selectedRole] as String?;
     final fields = PokemonDraftControls(
       controller,
       PokemonDocumentFamily.media,
     );
-    final variants = (json?['variants'] as Map?)?.cast<String, dynamic>() ?? {};
-    final forms =
-        controller.index?.entries
-            .where((entry) => entry.id == draft?.id)
-            .firstOrNull
-            ?.formIds ??
-        const <String>[];
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (json != null)
-          StudioPanel(
-            title: 'Forme par défaut',
-            children: [
-              fields.text('Identifiant de la forme', ['defaultFormId']),
-            ],
+        const PokemonSectionHeading(
+          title: 'Médias de l’espèce',
+          description:
+              'Une référence ne garantit pas que le fichier existe. '
+              'L’import PNG conserve un rôle déjà associé.',
+        ),
+        if (json == null)
+          const PokemonSurface(
+            child: Text(
+              'Le document média est absent. Un import PNG peut le créer '
+              'pour un rôle pris en charge.',
+            ),
           )
         else
-          const StudioPanel(
+          StudioPanel(
+            title: 'Organisation des formes',
             children: [
-              Text('Aucun document média. Un import PNG peut le créer.'),
+              LayoutBuilder(
+                builder: (context, bounds) {
+                  final formChoice = StudioSelect(
+                    label: 'Forme consultée',
+                    value: form,
+                    options: {for (final item in forms) item: item},
+                    onChanged: (value) => setState(() => selectedForm = value),
+                  );
+                  final defaultField = fields.text('Forme par défaut', [
+                    'defaultFormId',
+                  ]);
+                  if (bounds.maxWidth < 530) {
+                    return Column(children: [formChoice, defaultField]);
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: formChoice),
+                      const SizedBox(width: 12),
+                      Expanded(child: defaultField),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         const SizedBox(height: 12),
-        for (final form in {...forms, ...variants.keys}) ...[
+        if (form == null)
+          const PokemonEmptyState(
+            title: 'Aucune forme disponible',
+            description:
+                'Associez d’abord une forme dans la fiche de l’espèce.',
+          )
+        else
+          LayoutBuilder(
+            builder: (context, bounds) {
+              final sideBySide = bounds.maxWidth >= 760;
+              final library = _roleLibrary(
+                values,
+                sideBySide ? bounds.maxWidth * .55 : bounds.maxWidth,
+              );
+              final detail = _roleDetail(
+                context,
+                fields,
+                form,
+                path,
+                json != null,
+              );
+              if (!sideBySide) {
+                return Column(
+                  children: [library, const SizedBox(height: 12), detail],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 55, child: library),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 45, child: detail),
+                ],
+              );
+            },
+          ),
+        if (form != null && values['animations'] is Map) ...[
+          const SizedBox(height: 12),
           StudioPanel(
-            title: 'Variante $form',
+            title: 'Références d’animations',
             children: [
-              for (final role in const [
-                'icon',
-                'party',
-                'portrait',
-                'frontStatic',
-                'backStatic',
-                'frontShinyStatic',
-                'backShinyStatic',
-                'overworld',
-                'cry',
-              ]) ...[
-                if (json != null) fields.text(role, ['variants', form, role]),
-                if (role != 'cry' &&
-                    ((variants[form] as Map?)?[role] as String?)?.isNotEmpty ==
-                        true)
-                  _MediaPreview(
-                    path: (variants[form] as Map)[role] as String,
-                    controller: controller,
-                  ),
-                if (pickPng != null &&
-                    const {'icon', 'party', 'portrait'}.contains(role))
-                  StudioButton(
-                    label: 'Importer PNG · $role',
-                    secondary: true,
-                    onPressed:
-                        controller.operationActive ||
-                            controller.hasPendingChanges
-                        ? null
-                        : () async {
-                            final path = await pickPng!();
-                            if (path == null) return;
-                            await controller.importMenuPng(
-                              sourcePath: path,
-                              formId: form,
-                              role: role,
-                            );
-                          },
-                  ),
-              ],
-              if ((variants[form] as Map?)?['animations']
-                  case final Map animations)
-                for (final animation in animations.entries) ...[
-                  Text('Animation ${animation.key}'),
+              for (final animation
+                  in (values['animations'] as Map).entries) ...[
+                Text(
+                  'Animation ${animation.key}',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (json != null) ...[
                   fields.text('Feuille', [
                     'variants',
                     form,
@@ -119,70 +192,103 @@ class PokemonSpeciesMediaEditor extends StatelessWidget {
                     '${animation.key}',
                     'animationId',
                   ]),
-                  if ((animation.value as Map?)?['sheet']
-                      case final String sheet)
-                    if (sheet.isNotEmpty)
-                      _MediaPreview(path: sheet, controller: controller),
                 ],
+              ],
             ],
           ),
-          const SizedBox(height: 12),
         ],
-        if (forms.isEmpty && variants.isEmpty)
-          const StudioPanel(
-            children: [Text('Aucune forme disponible pour les médias.')],
-          ),
-        const Text(
-          'Un import PNG conserve un média déjà choisi. Il ne le remplace pas.',
+      ],
+    );
+  }
+
+  Widget _roleLibrary(Map<String, dynamic> values, double width) {
+    final columns = width >= 500 ? 2 : 1;
+    final itemWidth = (width - (columns - 1) * 8) / columns;
+    return StudioPanel(
+      title: 'Rôles de la forme',
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final role in roles)
+              SizedBox(
+                width: itemWidth,
+                child: PokemonMediaRoleCard(
+                  role: role,
+                  path: values[role] as String?,
+                  selected: selectedRole == role,
+                  onTap: () => setState(() => selectedRole = role),
+                ),
+              ),
+          ],
         ),
       ],
     );
   }
-}
 
-class _MediaPreview extends StatefulWidget {
-  const _MediaPreview({required this.path, required this.controller});
-
-  final String path;
-  final PokemonWorkspaceController controller;
-
-  @override
-  State<_MediaPreview> createState() => _MediaPreviewState();
-}
-
-class _MediaPreviewState extends State<_MediaPreview> {
-  late Future<Uint8List?> image;
-
-  @override
-  void initState() {
-    super.initState();
-    image = widget.controller.port.loadImage(widget.path);
+  Widget _roleDetail(
+    BuildContext context,
+    PokemonDraftControls fields,
+    String form,
+    String? path,
+    bool hasDocument,
+  ) {
+    final canImport =
+        widget.pickPng != null &&
+        const {'icon', 'party', 'portrait'}.contains(selectedRole);
+    return StudioPanel(
+      title: pokemonMediaRoleLabel(selectedRole),
+      children: [
+        if (path == null || path.isEmpty)
+          const PokemonEmptyState(
+            title: 'Aucune référence',
+            description: 'Aucun fichier associé à ce rôle.',
+            icon: Icons.image_not_supported_outlined,
+          )
+        else if (selectedRole == 'cry')
+          const PokemonEmptyState(
+            title: 'Cri référencé',
+            description:
+                'Aucun lecteur audio n’est disponible dans cette fiche.',
+            icon: Icons.graphic_eq,
+          )
+        else
+          PokemonMediaPreview(
+            key: ValueKey('media-preview-$form-$selectedRole-$path'),
+            path: path,
+            controller: widget.controller,
+          ),
+        const SizedBox(height: 10),
+        if (hasDocument)
+          fields.text('Chemin du fichier', ['variants', form, selectedRole]),
+        if (canImport)
+          StudioButton(
+            label: 'Importer PNG · $selectedRole',
+            icon: Icons.file_upload_outlined,
+            secondary: true,
+            onPressed:
+                widget.controller.operationActive ||
+                    widget.controller.hasPendingChanges
+                ? null
+                : () async {
+                    final picked = await widget.pickPng!();
+                    if (picked == null) return;
+                    await widget.controller.importMenuPng(
+                      sourcePath: picked,
+                      formId: form,
+                      role: selectedRole,
+                    );
+                  },
+          ),
+        Text(
+          canImport
+              ? 'L’import associe un PNG uniquement si ce rôle est libre. '
+                    'Un choix existant est conservé.'
+              : 'Seule la référence du fichier peut être modifiée ici.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
   }
-
-  @override
-  void didUpdateWidget(covariant _MediaPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.path != widget.path ||
-        oldWidget.controller.port != widget.controller.port) {
-      image = widget.controller.port.loadImage(widget.path);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<Uint8List?>(
-    future: image,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState != ConnectionState.done) {
-        return const SizedBox(
-          height: 48,
-          child: Center(child: CircularProgressIndicator()),
-        );
-      }
-      final bytes = snapshot.data;
-      if (bytes == null) {
-        return Text('Fichier absent ou illisible : ${widget.path}');
-      }
-      return Image.memory(bytes, width: 96, height: 96, fit: BoxFit.contain);
-    },
-  );
 }

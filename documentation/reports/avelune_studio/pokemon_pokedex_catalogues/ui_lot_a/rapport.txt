@@ -1,0 +1,342 @@
+Avelune Studio / Pokémon — Lot A : corrections de compatibilité et refonte des écrans existants
+24 septembre 2026
+
+Résultat
+========
+
+L’espace Pokémon de Studio permet de consulter le Pokédex, éditer les cinq
+sections d’une espèce, choisir une attaque du catalogue, préparer et appliquer
+les imports JSON/externe, associer un PNG avec le contrat existant et consulter
+ou synchroniser les attaques. Les listes d’attaques utilisent la langue
+principale du profil de jeu : la fixture française affiche notamment
+Rugissement, Vampigraine, Abri et Charge. Les pictogrammes vectoriels varient
+par type, portent une marque physique/spéciale/statut, renforcent leur dégradé
+selon la puissance et montrent une étoile lorsque source=project_custom.
+Ce marqueur ne prétend pas qu’une attaque officielle simplement modifiée soit
+une création personnelle.
+
+Le lot ne crée ni attaque ni espèce, ne change aucun moteur de combat et ne
+télécharge pas les médias lors de l’import externe. Les projets personnels,
+dont Le Train de 17h42, n’ont pas été ouverts en écriture. Aucun commentaire
+n’a été ajouté au code manuel. Aucun commit, push ou changement Notion.
+
+Audit initial et interprétation
+===============================
+
+État observé au départ : branche main, HEAD
+f7af5d5ab6bed26bf4f5e45a0ea0284b368c238b, worktree propre. La sortie
+brute du statut initial n’avait pas été archivée ; ce constat est celui du
+préflight de l’intervention, pas une reconstruction Git. Le HEAD a avancé
+pendant le travail à 9b0a0a3ad9a451fae038dfb07d8856802512417a,
+sur un commit de cinématique de splash distinct de ce lot. Les nouveaux
+artefacts map_player_ui observés en parallèle sont préservés.
+
+Contrats constatés : PokemonWorkspaceController conserve les brouillons et
+gardes ; LocalPokemonWorkspaceAdapter lit les ressources du manifeste ;
+PokemonDocumentTransaction publie via pokemon.documents.write avec préimages
+et révisions ; l’import PNG emploie pokemon.media.import en mode preserve ;
+les imports JSON et externe et la fusion de catalogue avaient déjà des
+propriétaires canoniques. L’ancien use case d’apprentissage écrit parfois
+speciesId=référence documentaire, alors que Studio exigeait speciesId=espèce.
+Les fichiers concernés étaient dans apps/avelune_studio/lib/features/pokemon,
+sa présentation et ses tests, et le validateur de cohérence map_core. Les
+rapports Pokémon historiques et les dix maquettes du kit ont été consultés.
+
+Le kit demande dix états d’un seul espace et non dix entrées de navigation.
+Les maquettes contiennent aussi des actions non attestées (création d’espèce,
+éditeur d’effets, fournisseur « officiel », médias externes déjà téléchargés).
+Ces éléments n’ont pas été copiés. La demande explicite de Yoahn prime la
+consigne de commentaires de codex_rule.md : aucun commentaire de code n’a été
+ajouté. Les cinq passes nommées ci-dessous satisfont son exigence d’audit
+séparé sans lancer d’autres agents sur le worktree partagé.
+
+Défaut reproduit, correction et frontières
+===========================================
+
+Avant correction, le vrai hôte refusait custom-learn avec « Référence
+custom-learn incohérente ». L’aperçu JSON ignorait alors un compagnon legacy.
+Une forme partageant les médias de sa base échouait aussi sur « Référence
+bulbasaur incohérente ». Journaux rouges dans logs/avelune-lot-a-legacy-red.log,
+logs/avelune-lot-a-json-legacy-red.log et logs/avelune-shared-media-red.log.
+
+La règle retenue conserve trois identités distinctes : espèce propriétaire,
+référence depuis la fiche et identifiant déclaré par le compagnon. L’identité
+déclarée peut être l’espèce ; pour les compagnons legacy, elle peut être la
+référence seulement si celle-ci n’est pas une autre espèce connue. Un média
+peut être partagé avec une forme non-base qui déclare explicitement sa base.
+Un compagnon réellement étranger reste refusé. Chemins personnalisés et
+références optionnelles viennent du manifeste et des refs, jamais du nom
+affiché. Le validateur map_core résout ces propriétaires pour la cohérence et
+les cycles d’évolution sans réécrire les fichiers à la consultation. La
+prévisualisation et la transaction conservent les préimages et refusent un
+aperçu périmé ; les tests couvrent les deux sections et la réouverture disque.
+
+Surfaces et comparaison visuelle
+================================
+
+Toutes les captures 01–10 proviennent de tests Flutter branchés au véritable
+workspace Studio, à 1536×1024 avec une fixture temporaire de trois espèces,
+des JSON conformes et des PNG réellement copiés depuis les assets du dépôt.
+Ce sont des rendus de l’hôte instrumenté, pas une manipulation native
+indépendante ni des maquettes retouchées. Les images du kit ont été ouvertes
+avant le codage, puis comparées à ces rendus.
+
+01 captures/pokemon-01-bibliotheque.png : recherche, filtres réels, listes
+   progressives, état sans sélection. La fixture de trois espèces explique
+   l’espace libre ; aucun compteur fictif de 24 espèces.
+02 captures/pokemon-02-vue-ensemble.png : en-tête, médias locaux, noms,
+   description, six statistiques consultables, drapeaux de présence.
+03 captures/pokemon-03-formes.png : forme actuelle, liens et classification,
+   sans création implicite d’espèce.
+04 captures/pokemon-04-apprentissages.png : groupes existants, entrées
+   localisées, choix d’attaque via le catalogue réel.
+05 captures/pokemon-05-evolutions.png : branches stockées, cible non résolue
+   affichée, conditions conservées sans promesse de moteur.
+06 captures/pokemon-06-medias.png et pokemon-06-media-absent.png : rôles par
+   forme, vrai PNG, référence absente explicitement signalée.
+07 captures/pokemon-07-import-json.png : aperçu sans écriture, conflit et
+   confirmation ; les compteurs concernent des documents, pas des attaques.
+08 captures/pokemon-08-recherche-externe.png : recherche explicite dans la
+   source existante, sans fournisseur inventé ni réseau au chargement.
+09 captures/pokemon-09-conflits-externes.png : trois politiques canoniques,
+   résumé et limite des binaires annoncée avant application.
+10 captures/pokemon-10-attaques.png,
+   pokemon-10-attaque-personnelle.png et pokemon-10-synchronisation.png :
+   noms français, icônes de type et catégorie, étoile personnelle, détail
+   consultable, synchronisation repliable et résultat réel.
+
+États complémentaires : pokemon-petite-fenetre.png,
+pokemon-compact-attaques-150.png, pokemon-compact-import-150.png et
+pokemon-compact-fiche-200.png (1024×640, texte à 150/200 %),
+pokemon-fiche-brouillon.png, pokemon-06-media-absent.png et la capture de
+conflit JSON. À 200 %, la fiche défile localement et ses commandes de
+sauvegarde restent accessibles ; un test clique Enregistrer avec le champ
+encore focalisé. Les collections longues utilisent ListView.builder ou
+SliverList et ne chargent pas chaque ligne en widget.
+
+Écarts justifiés : pas d’asset décoratif inventé dans l’état vide ; pas de
+bouton « Nouvelle espèce » ou « Nouvelle attaque » ; pas de moteur d’effets,
+de téléchargement implicite ou de lecteurs média factices. La maquette est
+une cible de composition, pas un nouveau contrat métier. Les icônes d’attaque
+sont des vecteurs du thème, non des images générées par IA : elles sont nettes
+à toutes les tailles et leur provenance reste celle de Flutter/Studio.
+
+Inventaire du code et zones du diff
+==================================
+
+Le diff complet des sources, y compris les nouveaux Dart non indexés, est
+dans sources.patch. Les chemins ci-dessous sont relatifs au dépôt. Les tests
+créés/modifiés sont listés séparément ensuite. Aucun code hors Pokémon et
+map_core n’a été modifié pour ce lot.
+
+apps/avelune_studio/lib/features/pokemon/application/
+  pokemon_external_commands.dart : attente/requête et identité d’aperçu
+    externe ; refuse une réponse périmée sans perdre le brouillon.
+  pokemon_workspace_controller.dart : filtres et navigation du catalogue ;
+    préserve l’identité sélectionnée, le brouillon et ses gardes.
+
+apps/avelune_studio/lib/features/pokemon/data/
+  local_pokemon_workspace_adapter.dart : chargement par refs/manifeste,
+    identités connues, locale du profil, médias partagés ; port inchangé.
+  pokemon_companion_projection.dart [créé] : résolution bornée de propriété
+    des compagnons, refus d’une autre espèce connue.
+  pokemon_import_preview_match.dart [créé] : comparaison des destinations et
+    préimages d’aperçu avant application.
+  pokemon_project_locale.dart [créé] : locale principale du profil export ;
+    repli français diagnostiqué si profil illisible.
+  pokemon_index_projection.dart : formes de base dans l’index et locale
+    fournie à la projection des attaques.
+  pokemon_json_import.dart : prévisualisation et identité des compagnons
+    legacy, validation avant écriture et destinations réelles.
+  pokemon_media_projection.dart : aperçu d’image depuis la vraie référence,
+    y compris la forme qui partage le média de sa base.
+  pokemon_moves_projection.dart : noms officiels/localisés et noms du projet,
+    puissance/category/source sans modifier les IDs.
+
+apps/avelune_studio/lib/features/pokemon/domain/
+  pokemon_workspace_models.dart : résumé d’espèce avec forme de base et
+    résumé d’attaque avec origine personnelle pour la présentation.
+
+apps/avelune_studio/lib/presentation/theme/
+  studio_tokens.dart : couleurs sémantiques des dix-huit types Pokémon ;
+    aucune palette brute placée dans les écrans.
+
+apps/avelune_studio/lib/presentation/features/pokemon/
+  pokemon_workspace_page.dart : cadre Pokémon, états sans projet/erreur,
+    bibliothèque/imports et disposition responsive.
+  pokemon_workspace_tabs.dart [créé] : les deux vues locales sans nouvelle
+    destination principale.
+  pokemon_ui_parts.dart [créé] : surfaces, titres, pillettes et états sobres
+    à partir des tokens Studio.
+  pokemon_species_library.dart : recherche, filtres, sélection masquée,
+    liste progressive et défilement local.
+  pokemon_species_list_item.dart [créé] : ligne d’espèce avec identité,
+    types, statut et sélection distincts.
+  pokemon_species_thumbnail.dart : vrai aperçu différé, état manquant et
+    taille adaptée au texte agrandi.
+  pokemon_species_detail.dart : cinq sections, retour compact et défilement
+    local ; actions de sauvegarde fixes en hauteur contrainte.
+  pokemon_species_header.dart [créé] : identité, miniature, statut et
+    commandes Enregistrer/Annuler/Undo/Redo avec leur état réel.
+  pokemon_detail_tabs.dart [créé] : sections de fiche et focus accessible.
+  pokemon_species_overview.dart : formulaire lisible, noms/description/types
+    et flags existants, statistiques consultables.
+  pokemon_base_stats.dart [créé] : six barres décoratives à échelle commune
+    et total séparé.
+  pokemon_species_forms.dart : liens de forme et classification sans copie
+    ni création d’espèce.
+  pokemon_species_learnset.dart : familles d’apprentissage conservées et
+    sélecteur du même catalogue d’attaques.
+  pokemon_species_evolution.dart : parcours et inspecteur des liens stockés ;
+    références absentes maintenues visibles.
+  pokemon_evolution_entry.dart [créé] : paramètres d’un lien et sélection
+    bornée aux inventaires disponibles.
+  pokemon_species_media.dart : rôles par forme, états de résolution et
+    import PNG canonique en mode preserve.
+  pokemon_media_role_card.dart [créé] : choix de rôle et statut de référence.
+  pokemon_media_preview.dart [créé] : aperçu des octets réellement résolus.
+  pokemon_draft_controls.dart : champ focalisé/notification du brouillon.
+  pokemon_import_preview.dart : résumé JSON, documents, conflits et
+    confirmation réellement requise.
+  pokemon_import_document_row.dart [créé] : détail technique replié et
+    statut de chaque document.
+  pokemon_external_import_panel.dart : recherche bornée et progressive,
+    politiques de conflit et retours contextualisés.
+  pokemon_external_preview_pane.dart [créé] : résumé du plan, compteurs
+    selon politique et limite explicite des médias externes.
+  pokemon_moves_library.dart : liste localisée, recherche, détail compact et
+    synchronisation déplacée hors du haut de la liste.
+  pokemon_move_list_item.dart [créé] : ligne d’attaque et sélection réelle.
+  pokemon_move_emblem.dart [créé] : icône de type, marque de catégorie,
+    dégradé selon puissance et étoile project_custom.
+  pokemon_move_detail.dart [créé] : valeurs du contrat, absences non
+    transformées en zéro et statut personnel.
+  pokemon_moves_sync_panel.dart [créé] : préparation/application de fusion,
+    résultat et diagnostics sans badge anticipé.
+
+packages/map_core/lib/src/validation/
+  pokemon_catalog_coherence_validator.dart : résolution de propriétaire
+    depuis refs ; cohérence learnset/evolution/media et cycles qualifiés.
+
+Tests Studio :
+  apps/avelune_studio/test/pokemon/pokemon_custom_refs_host_test.dart :
+    convention legacy, chemins personnalisés, sauvegarde/réouverture.
+  apps/avelune_studio/test/pokemon/pokemon_json_collision_host_test.dart :
+    aperçu JSON, compagnon invalide, collision et source obsolète.
+  apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart :
+    recherche, erreurs, vrai import et refus d’un propriétaire étranger.
+  apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart :
+    navigation, deux sections, focus, import PNG et sync avec captures.
+  apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart :
+    260 espèces, défilement réel, édition et retour depuis Attaques.
+  apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart
+    [créé] : dix surfaces et largeur/texte contraints dans l’hôte réel.
+  apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart
+    [créé] : locale, noms, icônes, catégories, dégradé et origine.
+  apps/avelune_studio/test/pokemon/pokemon_shared_media_host_test.dart
+    [créé] : média partagé, vrai PNG, aucune copie dans le projet auteur.
+  packages/map_core/test/pokemon_catalog_coherence_validator_test.dart :
+    propriétaire legacy accepté, référence étrangère rejetée.
+
+Preuves exécutées
+=================
+
+Environnement : macOS 27.0, arm64 ; Flutter 3.48.0-0.4.pre (Dart Flutter
+3.14.0-95.2.beta), Dart CLI 3.12.1, Node 26.3.1. Les logs sont sous logs/.
+Le wrapper de tests Flutter attend le résultat puis ne réapplique une
+terminaison qu’aux descendants du runner dont il a vérifié l’identité.
+
+Commandes et résultats sur les sources de cette intervention :
+  apps/avelune_studio: flutter analyze --no-pub → exit 0, No issues found.
+  apps/avelune_studio: flutter test --no-pub --concurrency=1 test/pokemon
+    → exit 0, 30 tests passés (studio-pokemon-final.log).
+  apps/avelune_studio: flutter test --no-pub --concurrency=1
+    test/architecture/architecture_boundaries_test.dart
+    → exit 0, 7 tests passés (studio-architecture.log).
+  apps/avelune_studio: flutter test --no-pub --concurrency=2
+    → première exécution exit 0, 940 tests passés, 2 ignorés
+    (studio-all.log) ; seconde exécution sur les sources formatées exit 0,
+    940 tests passés, 2 ignorés (studio-all-final.log). Après cette suite,
+    une assertion supplémentaire a été ajoutée au test des icônes ; son
+    test ciblé a passé 3 cas, exit 0 (move-presentation-final.log). La suite
+    intégrale sur ces sources finales a aussi passé 940 tests, 2 ignorés,
+    exit 0 (studio-all-final-sources.log).
+  apps/avelune_studio: flutter build macos --debug --no-pub
+    → exit 0, Avelune Studio.app construit (studio-macos-build.log).
+  packages/map_core: dart test test/pokemon_catalog_coherence_validator_test.dart
+    → exit 0, 18 tests passés (map-core-coherence.log).
+  packages/map_core: dart analyze → exit 0, 122 infos lint hors diff,
+    sans erreur d’analyse (map-core-analyze.log).
+  packages/map_core: dart test → exit 1, 5 échecs exacts dans
+    map-core-all.log : project_item_reference_index,
+    verify_smart_tiles_performance_cli, scene_runtime_dry_run_preview,
+    beta_playability_composition et cinematic_media_contract_fixture.
+    Leurs assertions portent sur des éléments sans lien direct avec les
+    chemins Pokémon modifiés. Une relance isolée des cinq fichiers
+    (map-core-five-isolated.log) échoue encore sur quatre ; le test de
+    performance Smart Tiles passe isolément. Leur attribution historique
+    n’est pas établie.
+  packages/map_authoring: dart test des quatre fichiers
+    pokemon_catalog_authoring, pokemon_catalog_jsonl,
+    pokemon_catalog_validation_transport, pokemon_media_import
+    → exit 0, 24 tests passés (map-authoring-pokemon.log).
+  packages/map_authoring: dart test test/parity/full_authoring_parity_test.dart
+    → exit 0, 18 tests passés (authoring-parity.log).
+  packages/map_authoring: dart analyze → exit 0, No issues found
+    (map-authoring-analyze.log).
+  packages/map_authoring: dart run tool/pmcp085_conformance.dart
+    → exit 1 : catalogue complet, mais certification de transport globale
+    incomplète (pmcp085.log).
+  tools/pokemap_mcp: npm run check → exit 0 (mcp-check.log) ;
+    npm test → exit 0, 83 tests passés (mcp-test.log).
+
+Le pokemap_describe live a été lu après le rebuild MCP. Il déclare
+pokemonSpecies, pokemonMove, pokemonMedia et les mutations canoniques,
+mais ne certifie pas encore tous leurs transports de bout en bout. Sur une
+fixture du dépôt, pokemap_validate a rendu un catalogue Pokémon sans
+diagnostic, canExport=true et canPlaytest=true. Une requête live
+pokemonSpecies/list a renvoyé query.resource_kind_unsupported ; parité de
+lecture MCP marquée PARTIAL, sans adaptation hors lot. L’ouverture MCP avait
+créé un verrou vide .pokemap dans cette fixture ; après fermeture du handle,
+ce seul verrou, daté de l’opération et sans détenteur lsof, a été supprimé.
+La fixture est revenue à son état Git antérieur.
+
+Le formatage des 50 Dart touchés a ensuite été contrôlé à zéro changement
+(format-final.log). git diff --check ne rapporte aucune erreur d’espacement
+(git-diff-check.log). L’hygiène Markdown passe avec zéro nouveau fichier
+Markdown : le seul rapport consolidé est ce rapport.txt.
+
+Passes indépendantes et critique
+================================
+
+Audit / Architecture : contrats et frontières réutilisés ; aucun import
+Studio → map_editor. Verdict : conforme sur le lot, MCP live PARTIAL.
+Implémentation : identité compagnon qualifiée et dix surfaces raccordées
+aux propriétaires existants. Verdict : parcours livré, sans nouveau moteur.
+Tests : reproductions rouges puis 30 tests Pokémon et 18 de cohérence verts ;
+suite générale Studio verte ; cinq échecs map_core globaux non attribués.
+Build / Validation : analyse Studio et build macOS réussis ; aucune
+manipulation native de l’application construite n’est revendiquée.
+Critique finale : les maquettes donnent une densité et un catalogue plus
+riches que la fixture de trois espèces ; la comparaison valide la composition
+et les états, pas l’acceptation artistique de Yoahn. Les médias externes ne
+sont pas téléchargés, le catalogue MCP live est incomplet, et les cinq
+échecs map_core hors périmètre restent à diagnostiquer séparément.
+
+Limites préservées : stats et talents en consultation ; aucune création
+d’attaque/espèce ; formes liées sans création de fiche ; conditions
+d’évolution stockées sans certification de gameplay ; animations et cris
+référencés sans nouveau lecteur ; import externe de JSON métier sans binaires ;
+aucune promesse d’atomicité entre réseau et binaires. Un changement du profil
+de langue pendant que la session Pokémon est déjà ouverte peut nécessiter de
+rouvrir l’espace pour rafraîchir l’index. Les captures et tests ne remplacent
+pas une validation visuelle native ni un essai de service distant réel.
+
+Statut Git final : branche main, HEAD
+9b0a0a3ad9a451fae038dfb07d8856802512417a, 29 fichiers suivis
+modifiés dans le lot, 21 nouveaux Dart et le dossier de preuves non indexés ;
+voir logs/git-final-status.txt et logs/git-final-diff-stat.txt pour le détail.
+L’avance concurrente de HEAD concerne le splash et n’a pas été écrite par
+cette intervention. Aucun ticket Notion n’a été modifié : l’interdiction
+explicite du mandat prévaut sur la traçabilité Notion générale de AGENTS.md.
+Le travail reste prêt à review, non marqué DONE.

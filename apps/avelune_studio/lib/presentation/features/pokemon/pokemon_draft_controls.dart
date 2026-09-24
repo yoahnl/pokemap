@@ -13,7 +13,7 @@ class PokemonDraftControls {
 
   Map<String, dynamic> get data => controller.selectedDraft!.document(family)!;
 
-  Widget text(String label, List<String> path) {
+  Widget text(String label, List<String> path, {int lines = 1}) {
     final value = _read(path);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -21,6 +21,7 @@ class PokemonDraftControls {
         key: ValueKey('${family.name}-${path.join('.')}'),
         label: label,
         value: value?.toString() ?? '',
+        lines: lines,
         onChanged: (text) =>
             controller.edit(family, (json) => _write(json, path, text)),
       ),

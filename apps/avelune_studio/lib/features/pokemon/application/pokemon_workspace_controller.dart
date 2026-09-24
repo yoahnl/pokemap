@@ -27,6 +27,7 @@ final class PokemonWorkspaceController {
   bool? enabledFilter;
   String? selectedId;
   String? selectedMoveId;
+  String? lastSavedSpeciesId;
   String? moveInsertGroup;
   int? moveReplaceIndex;
   String? error;
@@ -102,6 +103,7 @@ final class PokemonWorkspaceController {
     final entry = index?.entries.where((item) => item.id == id).firstOrNull;
     if (entry == null) return false;
     selectedId = id;
+    lastSavedSpeciesId = null;
     section = PokemonDetailSection.overview;
     error = null;
     if (_drafts.containsKey(id)) {
@@ -171,18 +173,21 @@ final class PokemonWorkspaceController {
   }) {
     final draft = selectedDraft;
     if (draft == null || mutationActive) return;
+    lastSavedSpeciesId = null;
     draft.edit(family, change, initial: initial);
     _notify();
   }
 
   void undo() {
     if (mutationActive) return;
+    lastSavedSpeciesId = null;
     selectedDraft?.undo();
     _notify();
   }
 
   void redo() {
     if (mutationActive) return;
+    lastSavedSpeciesId = null;
     selectedDraft?.redo();
     _notify();
   }
@@ -190,6 +195,7 @@ final class PokemonWorkspaceController {
   void discardSelected() {
     final id = selectedId;
     if (id == null || mutationActive) return;
+    lastSavedSpeciesId = null;
     final draft = _drafts[id];
     if (draft != null) _drafts[id] = PokemonSpeciesDraft(draft.base);
     _notify();
@@ -200,6 +206,7 @@ final class PokemonWorkspaceController {
     if (draft == null || !draft.dirty || saving) return false;
     final id = draft.id;
     saving = true;
+    lastSavedSpeciesId = null;
     error = null;
     _notify();
     try {
@@ -207,6 +214,7 @@ final class PokemonWorkspaceController {
       if (_disposed) return false;
       _drafts[id] = PokemonSpeciesDraft(saved);
       await load(refresh: true);
+      if (!_disposed) lastSavedSpeciesId = id;
       return !_disposed;
     } on Object catch (failure) {
       if (!_disposed) error = 'Enregistrement refusé : $failure';

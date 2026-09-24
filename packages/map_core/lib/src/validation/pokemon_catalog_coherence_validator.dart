@@ -152,32 +152,54 @@ final class PokemonCatalogCoherenceValidator {
       family: 'species',
       collector: collector,
     );
-    final learnsetIds = _validateDocumentIdentities(
+    _validateDocumentIdentities(
       snapshot.learnsets,
       (value) => value.speciesId,
       family: 'learnset',
       collector: collector,
     );
-    final evolutionIds = _validateDocumentIdentities(
+    _validateDocumentIdentities(
       snapshot.evolutions,
       (value) => value.speciesId,
       family: 'evolution',
       collector: collector,
     );
-    final mediaIds = _validateDocumentIdentities(
+    _validateDocumentIdentities(
       snapshot.media,
       (value) => value.speciesId,
       family: 'media',
       collector: collector,
+    );
+    final learnsetOwners = _resolveCompanionOwners(
+      snapshot.species,
+      snapshot.learnsets,
+      (species) => species.refs.learnset,
+      (learnset) => learnset.speciesId,
+      speciesIds,
+    );
+    final evolutionOwners = _resolveCompanionOwners(
+      snapshot.species,
+      snapshot.evolutions,
+      (species) => species.refs.evolution,
+      (evolution) => evolution.speciesId,
+      speciesIds,
+    );
+    final mediaOwners = _resolveCompanionOwners(
+      snapshot.species,
+      snapshot.media,
+      (species) => species.refs.media,
+      (media) => media.speciesId,
+      speciesIds,
     );
     final formIdsBySpecies = _validateFormGraph(snapshot.species, collector);
 
     for (final document in snapshot.species) {
       _validateSpecies(
         document,
-        learnsetIds: learnsetIds,
-        evolutionIds: evolutionIds,
-        mediaIds: mediaIds,
+        learnsetIds: learnsetOwners.referencesByOwner[document.value.id] ?? {},
+        evolutionIds:
+            evolutionOwners.referencesByOwner[document.value.id] ?? {},
+        mediaIds: mediaOwners.referencesByOwner[document.value.id] ?? {},
         catalogIds: catalogIds,
         collector: collector,
       );
@@ -185,6 +207,7 @@ final class PokemonCatalogCoherenceValidator {
     for (final document in snapshot.learnsets) {
       _validateLearnset(
         document,
+        resolvedOwnerId: learnsetOwners.ownerByPath[document.path],
         speciesIds: speciesIds,
         moveIds: catalogIds['moves'],
         maxLevel: snapshot.ruleset.maxLevel,
@@ -194,6 +217,7 @@ final class PokemonCatalogCoherenceValidator {
     for (final document in snapshot.evolutions) {
       _validateEvolution(
         document,
+        resolvedOwnerId: evolutionOwners.ownerByPath[document.path],
         speciesIds: speciesIds,
         moveIds: catalogIds['moves'],
         itemIds: catalogIds['items'],
@@ -201,20 +225,26 @@ final class PokemonCatalogCoherenceValidator {
         collector: collector,
       );
     }
-    _validateEvolutionCycles(snapshot.evolutions, collector);
+    _validateEvolutionCycles(
+      snapshot.evolutions,
+      evolutionOwners.ownerByPath,
+      collector,
+    );
     final disabledSpeciesIds = {
       for (final document in snapshot.species)
         if (!document.value.classification.isEnabledInProject)
           document.value.id,
     };
     for (final document in snapshot.media) {
+      final ownerId = mediaOwners.ownerByPath[document.path];
       _validateMedia(
         document,
+        resolvedOwnerId: ownerId,
         enabledInProject: !disabledSpeciesIds.contains(
-          document.value.speciesId,
+          ownerId ?? document.value.speciesId,
         ),
         speciesIds: speciesIds,
-        formIds: formIdsBySpecies[document.value.speciesId],
+        formIds: formIdsBySpecies[ownerId ?? document.value.speciesId],
         assetProbeStatuses: snapshot.assetProbeStatuses,
         collector: collector,
       );
@@ -337,6 +367,50 @@ final class PokemonCatalogCoherenceValidator {
       );
     }
     return pathsById.keys.toSet();
+  }
+
+  ({
+    Map<String, String> ownerByPath,
+    Map<String, Set<String>> referencesByOwner,
+  })
+  _resolveCompanionOwners<T>(
+    List<PokemonCatalogDocument<PokemonSpeciesFile>> species,
+    List<PokemonCatalogDocument<T>> companions,
+    String Function(PokemonSpeciesFile) reference,
+    String Function(T) declaredId,
+    Set<String> speciesIds,
+  ) {
+    final ownersByReference = <String, Set<String>>{};
+    for (final document in species) {
+      final ref = reference(document.value).trim();
+      if (ref.isEmpty) continue;
+      ownersByReference
+          .putIfAbsent(ref, () => <String>{})
+          .add(document.value.id);
+    }
+    final ownerByPath = <String, String>{};
+    final referencesByOwner = <String, Set<String>>{};
+    for (final document in companions) {
+      final name = document.path.split('/').last;
+      if (!name.endsWith('.json')) continue;
+      final ref = name.substring(0, name.length - 5);
+      final owners = ownersByReference[ref];
+      if (owners == null || owners.isEmpty) continue;
+      final declared = declaredId(document.value).trim();
+      if (speciesIds.contains(declared) && owners.contains(declared)) {
+        ownerByPath[document.path] = declared;
+        for (final owner in owners) {
+          referencesByOwner.putIfAbsent(owner, () => <String>{}).add(ref);
+        }
+      } else if (owners.length == 1 &&
+          declared == ref &&
+          !speciesIds.contains(ref)) {
+        final owner = owners.single;
+        ownerByPath[document.path] = owner;
+        referencesByOwner.putIfAbsent(owner, () => <String>{}).add(ref);
+      }
+    }
+    return (ownerByPath: ownerByPath, referencesByOwner: referencesByOwner);
   }
 
   void _validateSpecies(
@@ -618,6 +692,7 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateLearnset(
     PokemonCatalogDocument<PokemonLearnsetFile> document, {
+    required String? resolvedOwnerId,
     required Set<String> speciesIds,
     required Set<String>? moveIds,
     required int maxLevel,
@@ -632,7 +707,9 @@ final class PokemonCatalogCoherenceValidator {
       collector: collector,
     );
     final speciesId = learnset.speciesId.trim();
-    if (speciesId.isNotEmpty && !speciesIds.contains(speciesId)) {
+    if (speciesId.isNotEmpty &&
+        !speciesIds.contains(speciesId) &&
+        resolvedOwnerId == null) {
       collector.error(
         code: 'learnset.species_missing',
         path: '$path.speciesId',
@@ -700,6 +777,7 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateEvolution(
     PokemonCatalogDocument<PokemonEvolutionFile> document, {
+    required String? resolvedOwnerId,
     required Set<String> speciesIds,
     required Set<String>? moveIds,
     required Set<String>? itemIds,
@@ -715,7 +793,9 @@ final class PokemonCatalogCoherenceValidator {
       collector: collector,
     );
     final speciesId = evolution.speciesId.trim();
-    if (speciesId.isNotEmpty && !speciesIds.contains(speciesId)) {
+    if (speciesId.isNotEmpty &&
+        !speciesIds.contains(speciesId) &&
+        resolvedOwnerId == null) {
       collector.error(
         code: 'evolution.species_missing',
         path: '$path.speciesId',
@@ -735,7 +815,7 @@ final class PokemonCatalogCoherenceValidator {
           action: 'Reference an existing target species.',
         );
       }
-      if (targetId.isNotEmpty && targetId == speciesId) {
+      if (targetId.isNotEmpty && targetId == (resolvedOwnerId ?? speciesId)) {
         collector.error(
           code: 'evolution.self_target',
           path: '$entryPath.targetSpeciesId',
@@ -861,12 +941,14 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateEvolutionCycles(
     List<PokemonCatalogDocument<PokemonEvolutionFile>> documents,
+    Map<String, String> ownerByPath,
     _DiagnosticCollector collector,
   ) {
     final edges = <String, Set<String>>{};
     final paths = <String, String>{};
     for (final document in documents) {
-      final source = document.value.speciesId.trim();
+      final source =
+          ownerByPath[document.path] ?? document.value.speciesId.trim();
       if (source.isEmpty) continue;
       paths.putIfAbsent(source, () => document.path);
       final targets = edges.putIfAbsent(source, () => <String>{});
@@ -896,6 +978,7 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateMedia(
     PokemonCatalogDocument<PokemonMediaFile> document, {
+    required String? resolvedOwnerId,
     required bool enabledInProject,
     required Set<String> speciesIds,
     required Set<String>? formIds,
@@ -911,7 +994,9 @@ final class PokemonCatalogCoherenceValidator {
       collector: collector,
     );
     final speciesId = media.speciesId.trim();
-    if (speciesId.isNotEmpty && !speciesIds.contains(speciesId)) {
+    if (speciesId.isNotEmpty &&
+        !speciesIds.contains(speciesId) &&
+        resolvedOwnerId == null) {
       collector.error(
         code: 'media.species_missing',
         path: '$path.speciesId',
