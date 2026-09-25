@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
+import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
+import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
 import '../pokemon/pokemon_workspace_page.dart';
 import '../../../features/game_export/domain/studio_game_export_port.dart';
 import '../game_export/studio_game_export_page.dart';
@@ -95,6 +97,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.registerExitGuard,
     this.resourcePort,
     this.pokemonPort,
+    this.pokemonCommercePort,
     this.pokemonJsonPicker,
     this.pokemonPngPicker,
     this.imagePicker,
@@ -116,6 +119,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
   final PokemonWorkspacePort? pokemonPort;
+  final PokemonCommercePort? pokemonCommercePort;
   final Future<String?> Function()? pokemonJsonPicker;
   final Future<String?> Function()? pokemonPngPicker;
   final NarrativePort? narrativePort;

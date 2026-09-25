@@ -5,6 +5,7 @@ import '../domain/pokemon_workspace_port.dart';
 import '../domain/pokemon_import_models.dart';
 import '../domain/pokemon_moves_sync_models.dart';
 import '../domain/pokemon_external_import_models.dart';
+import 'pokemon_commerce_controller.dart';
 
 part 'pokemon_learnset_commands.dart';
 part 'pokemon_moves_sync_commands.dart';
@@ -12,10 +13,11 @@ part 'pokemon_import_commands.dart';
 part 'pokemon_external_commands.dart';
 
 final class PokemonWorkspaceController {
-  PokemonWorkspaceController(this.port, {required this.changed});
+  PokemonWorkspaceController(this.port, {required this.changed, this.commerce});
 
   final PokemonWorkspacePort port;
   final void Function() changed;
+  final PokemonCommerceController? commerce;
   final _drafts = <String, PokemonSpeciesDraft>{};
   PokemonWorkspaceIndex? index;
   PokemonWorkspaceView view = PokemonWorkspaceView.pokedex;
@@ -47,9 +49,20 @@ final class PokemonWorkspaceController {
   int _request = 0;
   bool _disposed = false;
 
-  bool get operationActive => saving || importing || syncing || externalBusy;
-  bool get mutationActive => saving || committing;
-  bool get hasPendingChanges => _drafts.values.any((draft) => draft.dirty);
+  bool get operationActive =>
+      saving ||
+      importing ||
+      syncing ||
+      externalBusy ||
+      commerce?.saving == true ||
+      commerce?.importing == true;
+  bool get mutationActive =>
+      saving ||
+      committing ||
+      commerce?.saving == true ||
+      commerce?.importing == true;
+  bool get hasPendingChanges =>
+      _drafts.values.any((draft) => draft.dirty) || commerce?.dirty == true;
   PokemonSpeciesDraft? get selectedDraft => _drafts[selectedId];
 
   List<PokemonSpeciesSummary> get visibleSpecies {
@@ -138,6 +151,11 @@ final class PokemonWorkspaceController {
     }
     view = value;
     _notify();
+    if (value == PokemonWorkspaceView.items ||
+        value == PokemonWorkspaceView.shops) {
+      final owner = commerce;
+      if (owner != null) owner.load();
+    }
   }
 
   void setSection(PokemonDetailSection value) {
@@ -200,16 +218,21 @@ final class PokemonWorkspaceController {
 
   void discardSelected() {
     final id = selectedId;
-    if (id == null || mutationActive) return;
+    if (mutationActive) return;
     lastSavedSpeciesId = null;
-    final draft = _drafts[id];
-    if (draft != null) _drafts[id] = PokemonSpeciesDraft(draft.base);
+    final draft = id == null ? null : _drafts[id];
+    if (draft != null && id != null) {
+      _drafts[id] = PokemonSpeciesDraft(draft.base);
+    }
+    commerce?.discard();
     _notify();
   }
 
   Future<bool> save() async {
     final draft = selectedDraft;
-    if (draft == null || !draft.dirty || saving) return false;
+    if (draft?.dirty != true) return commerce?.save() ?? Future.value(false);
+    if (saving) return false;
+    if (draft == null) return false;
     final id = draft.id;
     saving = true;
     lastSavedSpeciesId = null;
@@ -221,6 +244,7 @@ final class PokemonWorkspaceController {
       _drafts[id] = PokemonSpeciesDraft(saved);
       await load(refresh: true);
       if (!_disposed) lastSavedSpeciesId = id;
+      if (commerce?.dirty == true && !await commerce!.save()) return false;
       return !_disposed;
     } on Object catch (failure) {
       if (!_disposed) error = 'Enregistrement refusé : $failure';
@@ -240,5 +264,6 @@ final class PokemonWorkspaceController {
   void dispose() {
     _disposed = true;
     _request++;
+    commerce?.dispose();
   }
 }

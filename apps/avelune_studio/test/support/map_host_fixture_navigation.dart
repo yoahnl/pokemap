@@ -17,4 +17,18 @@ extension MapHostFixtureNavigation on MapHostFixture {
     await tester.tap(target);
     await pumpIo(tester, frames: 15);
   }
+
+  Future<EventWorkspaceController> eventOwner() async {
+    await go('Histoire');
+    await enter('Voir tous les documents');
+    await enter('Événements');
+    final owner = tester
+        .widget<EventWorkspacePage>(find.byType(EventWorkspacePage))
+        .controller;
+    final ready = owner.prepare();
+    await pumpIo(tester, frames: 20);
+    expect(await ready, isTrue, reason: owner.error);
+    await go('Carte');
+    return owner;
+  }
 }

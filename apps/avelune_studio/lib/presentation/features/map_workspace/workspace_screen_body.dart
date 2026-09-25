@@ -142,6 +142,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   controller: _pokemon,
                                   pickJson: widget.pokemonJsonPicker,
                                   pickPng: widget.pokemonPngPicker,
+                                  onOpenReference: _openPokemonReference,
                                 )
                               : _space == WorkspaceSpace.verification
                               ? _verificationPage()

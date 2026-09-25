@@ -17,6 +17,8 @@ class PokemonWorkspaceTabs extends StatelessWidget {
         for (final (view, label) in const [
           (PokemonWorkspaceView.pokedex, 'Pokédex'),
           (PokemonWorkspaceView.moves, 'Attaques'),
+          (PokemonWorkspaceView.items, 'Objets'),
+          (PokemonWorkspaceView.shops, 'Boutiques'),
         ])
           Padding(
             padding: const EdgeInsets.only(right: 7),

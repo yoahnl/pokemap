@@ -11,6 +11,7 @@ import 'pokemon_species_detail.dart';
 import 'pokemon_species_library.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_workspace_tabs.dart';
+import 'pokemon_commerce_page.dart';
 
 class PokemonWorkspacePage extends StatefulWidget {
   const PokemonWorkspacePage({
@@ -18,11 +19,13 @@ class PokemonWorkspacePage extends StatefulWidget {
     required this.controller,
     this.pickJson,
     this.pickPng,
+    this.onOpenReference,
   });
 
   final PokemonWorkspaceController? controller;
   final Future<String?> Function()? pickJson;
   final Future<String?> Function()? pickPng;
+  final Future<void> Function(String kind, String id)? onOpenReference;
 
   @override
   State<PokemonWorkspacePage> createState() => _PokemonWorkspacePageState();
@@ -71,7 +74,8 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
           children: [
             StudioPageHeader(
               title: 'Pokémon',
-              description: 'Espèces et attaques du projet courant.',
+              description:
+                  'Espèces, attaques, objets et boutiques du projet courant.',
               actions: [
                 if (showPokedexActions && widget.pickJson != null)
                   StudioButton(
@@ -131,6 +135,22 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                       'La configuration Pokémon est désactivée dans ce projet.',
                   icon: Icons.block_outlined,
                 ),
+              )
+            else if (controller.view == PokemonWorkspaceView.items ||
+                controller.view == PokemonWorkspaceView.shops)
+              Expanded(
+                child: controller.commerce == null
+                    ? const PokemonEmptyState(
+                        title: 'Catalogue indisponible',
+                        description:
+                            'Ce projet ne fournit pas le catalogue demandé.',
+                      )
+                    : PokemonCommercePage(
+                        controller: controller,
+                        commerce: controller.commerce!,
+                        pickJson: widget.pickJson,
+                        onOpenReference: widget.onOpenReference,
+                      ),
               )
             else if (controller.view == PokemonWorkspaceView.moves)
               Expanded(child: PokemonMovesLibrary(controller: controller))

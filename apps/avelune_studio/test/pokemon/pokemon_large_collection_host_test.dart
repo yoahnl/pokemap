@@ -87,6 +87,8 @@ void main() {
       180,
       scrollable: find.descendant(of: moves, matching: find.byType(Scrollable)),
     );
+    await tester.drag(moves, const Offset(0, -100));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('move-leech-seed')));
     await pumpIo(tester);
     expect(find.text('Retour aux attaques'), findsOneWidget);

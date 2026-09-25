@@ -4,7 +4,16 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   void _initializePokemon() {
     final port = widget.pokemonPort;
     if (port != null) {
-      _pokemon = PokemonWorkspaceController(port, changed: _changed);
+      _pokemon = PokemonWorkspaceController(
+        port,
+        changed: _changed,
+        commerce: widget.pokemonCommercePort == null
+            ? null
+            : PokemonCommerceController(
+                widget.pokemonCommercePort!,
+                changed: _changed,
+              ),
+      );
     }
   }
 

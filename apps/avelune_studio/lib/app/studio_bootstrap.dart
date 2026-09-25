@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../features/game_export/data/studio_game_export_controller.dart';
 import '../features/pokemon/data/local_pokemon_workspace_adapter.dart';
+import '../features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import '../platform/files/native_pokemon_json_picker.dart';
 import '../platform/files/native_pokemon_png_picker.dart';
 import '../platform/files/native_game_export_picker.dart';
@@ -67,6 +68,14 @@ class StudioBootstrap extends StatelessWidget {
         ref.onDispose(port.dispose);
         return port;
       }),
+      pokemonCommercePortProvider.overrideWith(
+        (ref, session) => LocalPokemonCommerceAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        ),
+      ),
       pokemonJsonPickerProvider.overrideWithValue(
         const NativePokemonJsonPicker().choose,
       ),

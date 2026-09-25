@@ -1,6 +1,22 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
+  Future<void> _openPokemonReference(String kind, String id) async {
+    if (!await _allowLeavePokemon() || !mounted) return;
+    if (kind == 'scene') {
+      await _openScene(id);
+      return;
+    }
+    if (kind == 'map') {
+      final entry = _controller.project?.maps
+          .where((value) => value.id == id)
+          .firstOrNull;
+      if (entry == null) return;
+      _show(WorkspaceSpace.map);
+      await _controller.activate(entry);
+    }
+  }
+
   void _toolChanged() {
     _gestureGeneration++;
     retainWorkspaceBrush(_visuals, _view);

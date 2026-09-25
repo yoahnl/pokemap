@@ -34,6 +34,7 @@ import 'ui05_narrative_fixture.dart';
 import 'ui08_workspace_harness.dart';
 import 'ui12_widget_world_port.dart';
 import 'ui_pokemon_port.dart';
+import 'ui_pokemon_commerce_port.dart';
 
 part 'map_host_fixture_disk.dart';
 part 'map_host_fixture_navigation.dart';
@@ -130,6 +131,7 @@ class MapHostFixture {
           movesSource: pokemonMovesSource,
           externalSource: pokemonExternalSource,
         ),
+        pokemonCommercePort: UiPokemonCommercePort.forFixture(source, tester),
         pokemonJsonPicker: pokemonJsonPicker,
         pokemonPngPicker: pokemonPngPicker,
         home: navigation,
@@ -279,20 +281,6 @@ class MapHostFixture {
     for (var i = 0; i < 40 && !owner.initialized; i++) {
       await pumpIo(tester, frames: 3);
     }
-    await go('Carte');
-    return owner;
-  }
-
-  Future<EventWorkspaceController> eventOwner() async {
-    await go('Histoire');
-    await enter('Voir tous les documents');
-    await enter('Événements');
-    final owner = tester
-        .widget<EventWorkspacePage>(find.byType(EventWorkspacePage))
-        .controller;
-    final ready = owner.prepare();
-    await pumpIo(tester, frames: 20);
-    expect(await ready, isTrue, reason: owner.error);
     await go('Carte');
     return owner;
   }
