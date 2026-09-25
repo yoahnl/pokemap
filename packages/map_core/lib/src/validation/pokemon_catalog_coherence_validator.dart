@@ -416,9 +416,9 @@ final class PokemonCatalogCoherenceValidator {
           ownerIsBaseForm: forms.isBaseForm,
         );
         if (ownership == PokemonCompanionOwnership.owned) {
-          ownerByPath[document.path] = declared == owner || declared == ref
-              ? owner
-              : declared;
+          ownerByPath[document.path] = speciesIds.contains(declared)
+              ? declared
+              : owner;
           referencesByOwner.putIfAbsent(owner, () => <String>{}).add(ref);
         }
       }

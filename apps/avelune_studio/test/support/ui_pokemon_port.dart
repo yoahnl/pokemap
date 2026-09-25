@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/pokemon/domain/pokemon_moves_sync_models
 import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
 import 'package:map_authoring/map_authoring.dart'
     show PokemonExternalSourceRepository;
+import 'package:map_authoring/map_authoring_local.dart' show ProjectFileReader;
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/data/pokemon_moves_snapshot_source.dart';
@@ -22,12 +23,14 @@ class UiPokemonPort implements PokemonWorkspacePort {
     WidgetTester tester, {
     PokemonMovesSnapshotSource? movesSource,
     PokemonExternalSourceRepository? externalSource,
+    ProjectFileReader? reader,
   }) => UiPokemonPort(
     LocalPokemonWorkspaceAdapter(
       session: fixture.session,
       mapAdapter: fixture.maps,
       movesSource: movesSource,
       externalSource: externalSource,
+      reader: reader,
     ),
     tester,
   );

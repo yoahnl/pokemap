@@ -108,6 +108,69 @@ void main() {
     );
   });
 
+  test('shared media keeps its active base owner in either species order', () {
+    final base = _species(
+      forms: const PokemonSpeciesForms(
+        baseFormId: 'bulbasaur',
+        isBaseForm: true,
+        formId: 'base',
+        otherForms: ['mega'],
+      ),
+    );
+    final form = PokemonSpeciesFile.fromJson({
+      ..._species(
+        id: 'bulbasaur-mega',
+        nationalDex: 2,
+        learnsetRef: '',
+        evolutionRef: '',
+        mediaRef: 'bulbasaur',
+        forms: const PokemonSpeciesForms(
+          baseFormId: 'bulbasaur',
+          isBaseForm: false,
+          formId: 'mega',
+          otherForms: ['base'],
+        ),
+      ).toJson(),
+      'classification': {'isEnabledInProject': false},
+    });
+    PokemonCatalogCoherenceReport validate(List<PokemonSpeciesFile> order) =>
+        validator.validate(
+          _validSnapshot(
+            species: [
+              for (final value in order)
+                _document('species/${value.id}.json', value),
+            ],
+            media: [
+              _document(
+                'media/bulbasaur.json',
+                _media(
+                  variant: const PokemonMediaVariant(
+                    backStatic: 'assets/pokemon/bulbasaur-back.png',
+                  ),
+                  variants: const {
+                    'base': PokemonMediaVariant(
+                      backStatic: 'assets/pokemon/bulbasaur-back.png',
+                    ),
+                    'mega': PokemonMediaVariant(),
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+
+    final baseFirst = validate([base, form]);
+    final formFirst = validate([form, base]);
+    expect(formFirst.toJson(), baseFirst.toJson());
+    expect(
+      baseFirst.diagnostics.where(
+        (entry) => entry.code == 'media.front_static_missing',
+      ),
+      hasLength(1),
+    );
+    expect(baseFirst.canExport, isFalse);
+  });
+
   test('reports invalid ids, stats, capture rate, growth and references', () {
     final invalid = _species(
       id: '',

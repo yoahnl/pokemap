@@ -273,15 +273,14 @@ final class PokemonExternalImport {
         session: session,
         mapAdapter: mapAdapter,
         reader: reader,
-      ).apply([
-        for (final item in selected)
-          PokemonDocumentWriteRequest(
-            family: item.family,
-            relativePath: item.relativePath,
-            beforeBytes: item.beforeBytes,
-            document: item.document,
-          ),
-      ]);
+      ).apply(
+        externalWriteRequests(selected),
+        expectedDependencies: retainedExternalDependencies(
+          preview,
+          plan,
+          conflictPolicy,
+        ),
+      );
     }
     return PokemonExternalImportResult(
       speciesId: preview.speciesId,

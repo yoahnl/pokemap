@@ -21,6 +21,12 @@ final class PokemonDocumentWriteRequest {
   final Map<String, dynamic> document;
 }
 
+typedef PokemonDocumentReadDependency = ({
+  String resourceIdentity,
+  String relativePath,
+  List<int> beforeBytes,
+});
+
 final class PokemonDocumentTransaction {
   const PokemonDocumentTransaction({
     required this.session,
@@ -49,10 +55,17 @@ final class PokemonDocumentTransaction {
     ]);
   }
 
-  Future<void> apply(List<PokemonDocumentWriteRequest> documents) =>
-      mapAdapter.withResourceMutation(() => _apply(documents));
+  Future<void> apply(
+    List<PokemonDocumentWriteRequest> documents, {
+    List<PokemonDocumentReadDependency> expectedDependencies = const [],
+  }) => mapAdapter.withResourceMutation(
+    () => _apply(documents, expectedDependencies: expectedDependencies),
+  );
 
-  Future<void> _apply(List<PokemonDocumentWriteRequest> documents) async {
+  Future<void> _apply(
+    List<PokemonDocumentWriteRequest> documents, {
+    List<PokemonDocumentReadDependency> expectedDependencies = const [],
+  }) async {
     if (documents.isEmpty || documents.length > 200) {
       throw const PokemonWorkspaceFailure('Lot Pokémon vide ou trop grand.');
     }
@@ -102,6 +115,19 @@ final class PokemonDocumentTransaction {
         opened.projectHandle,
         policy: ProjectSnapshotLoadPolicy.editorReadProjection,
       );
+      for (final dependency in expectedDependencies) {
+        if (snapshot.resourceStorageKeys[dependency.resourceIdentity] !=
+                dependency.relativePath ||
+            !_sameBytes(
+              snapshot.findResourceBytes(dependency.resourceIdentity),
+              dependency.beforeBytes,
+            )) {
+          throw PokemonWorkspaceFailure(
+            '${dependency.relativePath} a changé depuis l’aperçu. '
+            'Reprévisualisez.',
+          );
+        }
+      }
       final operation =
           'pokemon_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
       final planned = await api.planMutation(
@@ -129,6 +155,19 @@ final class PokemonDocumentTransaction {
           opened.projectHandle,
           planId: planned.planId,
           operationId: operation,
+          precondition: () async {
+            for (final dependency in expectedDependencies) {
+              if (!_sameBytes(
+                await _readOptional(dependency.relativePath),
+                dependency.beforeBytes,
+              )) {
+                throw PokemonWorkspaceFailure(
+                  '${dependency.relativePath} a changé depuis l’aperçu. '
+                  'Reprévisualisez.',
+                );
+              }
+            }
+          },
         );
       } on Object catch (failure) {
         try {

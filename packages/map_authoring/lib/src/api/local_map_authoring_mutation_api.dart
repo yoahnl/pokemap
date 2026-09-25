@@ -241,11 +241,13 @@ final class LocalMapAuthoringMutationApi
     required String planId,
     required String operationId,
     String? confirmationToken,
+    AuthoringTransactionPrecondition? precondition,
   }) async {
     final result = await _session(projectHandle).applyMutation(
       planId: planId,
       operationId: operationId,
       confirmationToken: confirmationToken,
+      precondition: precondition,
     );
     await _releasePresentationMediaStaging(result);
     return result;
@@ -623,6 +625,7 @@ final class _LocalMapAuthoringSession {
     required String planId,
     required String operationId,
     String? confirmationToken,
+    AuthoringTransactionPrecondition? precondition,
   }) async {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
@@ -663,6 +666,7 @@ final class _LocalMapAuthoringSession {
         confirmationToken: confirmationToken == null
             ? null
             : AuthoringConfirmationToken.fromWireValue(confirmationToken),
+        precondition: precondition,
       );
       projected = receipt.status == AuthoringReceiptStatus.applied &&
               changes != null &&

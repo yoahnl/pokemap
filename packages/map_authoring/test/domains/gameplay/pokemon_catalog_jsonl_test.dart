@@ -66,6 +66,49 @@ void main() {
       expect(((receipt['diff'] as Map)['entries'] as List), hasLength(2));
     });
 
+    test('local apply precondition refuses a stale dependency before writes',
+        () async {
+      final harness = await _PokemonTransportHarness.create('batch-guarded');
+      addTearDown(harness.dispose);
+      final opened = await harness.readApi.openProject(harness.root.path);
+      await harness.mutations.attachProject(
+        projectRootPath: harness.root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      final snapshot = await harness.snapshots.load(opened.projectHandle);
+      final planned = await harness.mutations.planMutation(
+        opened.projectHandle,
+        harness._request(
+          workspaceHandle: opened.workspaceHandle.value,
+          revision: snapshot.revision,
+          document: _documentBatch(),
+          suffix: 'guarded',
+        ),
+      );
+      var checked = false;
+      await expectLater(
+        () => harness.mutations.applyMutation(
+          opened.projectHandle,
+          planId: planned.planId,
+          operationId: 'pokemon-batch-guarded',
+          precondition: () {
+            checked = true;
+            throw StateError('The retained species changed.');
+          },
+        ),
+        throwsStateError,
+      );
+      expect(checked, isTrue);
+      expect(await harness.speciesExists(), isFalse);
+      expect(
+        await File(
+          '${harness.root.path}/data/pokemon/evolutions/sproutle.json',
+        ).exists(),
+        isFalse,
+      );
+    });
+
     test('invalid or duplicate members reject the whole batch before any write',
         () async {
       for (final duplicate in [false, true]) {

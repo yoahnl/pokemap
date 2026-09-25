@@ -69,6 +69,7 @@ void main() {
               jsonDecode(await File(learnsetPath).readAsString()) as Map;
           learnset['schemaVersion'] = 1;
           learnset['speciesId'] = 'custom-learn';
+          learnset['startingMoves'] = ['growl'];
           final root = fixture.directory.path;
           final speciesFile = File('$root/data/pokemon/species/bulbasaur.json');
           final companion = File(
@@ -97,6 +98,17 @@ void main() {
       await tester.tap(find.text('Remplacer').last);
       await pumpIo(tester);
       final root = host.source.directory.path;
+      final onDisk = (await tester.runAsync(() async {
+        return jsonDecode(
+              await File(
+                '$root/data/pokemon/learnsets/custom-learn.json',
+              ).readAsString(),
+            )
+            as Map;
+      }))!;
+      expect(onDisk['speciesId'], 'custom-learn');
+      expect(onDisk['startingMoves'], contains('tackle'));
+      expect(onDisk['startingMoves'], isNot(['growl']));
       final adapter = LocalPokemonWorkspaceAdapter(
         session: host.source.session,
         mapAdapter: host.source.maps,
@@ -107,6 +119,10 @@ void main() {
       ))!;
       expect(reopened.species.document!['refs']['learnset'], 'custom-learn');
       expect(reopened.learnset!.document!['speciesId'], 'custom-learn');
+      expect(
+        reopened.learnset!.document!['startingMoves'],
+        onDisk['startingMoves'],
+      );
       expect(
         reopened.learnset!.relativePath,
         'data/pokemon/learnsets/custom-learn.json',

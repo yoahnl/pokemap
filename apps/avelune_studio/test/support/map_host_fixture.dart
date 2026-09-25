@@ -16,6 +16,7 @@ import 'package:avelune_studio/features/game_export/domain/studio_game_export_po
 import 'package:avelune_studio/features/pokemon/data/pokemon_moves_snapshot_source.dart';
 import 'package:map_authoring/map_authoring.dart'
     show PokemonExternalSourceRepository;
+import 'package:map_authoring/map_authoring_local.dart' show ProjectFileReader;
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
@@ -66,6 +67,7 @@ class MapHostFixture {
     Future<String?> Function()? pokemonPngPicker,
     PokemonMovesSnapshotSource? pokemonMovesSource,
     PokemonExternalSourceRepository? pokemonExternalSource,
+    ProjectFileReader? pokemonReader,
     AssetBundle? assetBundle,
     GlobalKey? captureKey,
     StudioHomeNavigation? home,
@@ -130,6 +132,7 @@ class MapHostFixture {
           tester,
           movesSource: pokemonMovesSource,
           externalSource: pokemonExternalSource,
+          reader: pokemonReader,
         ),
         pokemonCommercePort: UiPokemonCommercePort.forFixture(source, tester),
         pokemonJsonPicker: pokemonJsonPicker,
