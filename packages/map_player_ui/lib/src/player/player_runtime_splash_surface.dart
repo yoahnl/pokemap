@@ -7,28 +7,6 @@ import 'package:map_runtime/map_runtime.dart';
 const double kPlayerSplashTimelineMilliseconds = 7200;
 const double kPlayerSplashHoldProgress = .82;
 const Duration kPlayerSplashSlowLoadExitDuration = Duration(milliseconds: 1296);
-const ColorFilter _artworkTone = ColorFilter.matrix(<double>[
-  .36,
-  .55,
-  .09,
-  0,
-  0,
-  .21,
-  .70,
-  .09,
-  0,
-  0,
-  .21,
-  .55,
-  .24,
-  0,
-  0,
-  0,
-  0,
-  0,
-  1,
-  0,
-]);
 
 class PlayerRuntimeSplashSurface extends StatelessWidget {
   const PlayerRuntimeSplashSurface({
@@ -124,12 +102,19 @@ class PlayerSplashTimeline extends StatelessWidget {
         : Curves.easeInOutCubic.transform(
             _interval(progress, kPlayerSplashHoldProgress, 1),
           );
+    final macroProgress = reducedMotion
+        ? 1.0
+        : Curves.easeInOutSine.transform(_interval(progress, .02, .54));
+    final macroOpacity = reducedMotion
+        ? 0.0
+        : _interval(progress, 0, .08) *
+            (1 - Curves.easeInOut.transform(_interval(progress, .46, .65)));
     final markEntrance = reducedMotion
         ? 1.0
-        : Curves.easeOutCubic.transform(_interval(progress, .02, .37));
+        : Curves.easeInOut.transform(_interval(progress, .44, .62));
     final nameEntrance = reducedMotion
         ? 1.0
-        : Curves.easeOutCubic.transform(_interval(progress, .23, .56));
+        : Curves.easeInOut.transform(_interval(progress, .41, .68));
     final loadingEntrance = reducedMotion
         ? 1.0
         : Curves.easeOut.transform(_interval(progress, .57, .77));
@@ -139,11 +124,13 @@ class PlayerSplashTimeline extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewport = constraints.biggest;
+          final lockupWidth = math.min(viewport.width * .74, 550.0);
           final symbolSize = math.min(
-            math.min(viewport.width * .39, viewport.height * .19),
-            180.0,
+            math.min(lockupWidth * .24, viewport.height * .14),
+            120.0,
           );
-          final wordmarkWidth = math.min(viewport.width * .66, 340.0);
+          final wordmarkWidth = lockupWidth - symbolSize - lockupWidth * .04;
+          final markOffsetX = -(lockupWidth - symbolSize) / 2;
           final bottomInset = MediaQuery.paddingOf(context).bottom;
           return ColoredBox(
             color: background,
@@ -156,59 +143,67 @@ class PlayerSplashTimeline extends StatelessWidget {
                     background: background,
                   ),
                 ),
+                if (logo != null && !reducedMotion)
+                  Center(
+                    child: Transform.translate(
+                      offset: Offset(
+                        markOffsetX * macroProgress,
+                        -viewport.height * .015,
+                      ),
+                      child: Opacity(
+                        key: const ValueKey<String>('startup-splash-macro'),
+                        opacity: macroOpacity * (1 - departure),
+                        child: _PrismOpening(
+                          logo: logo!,
+                          size: symbolSize,
+                          viewport: viewport,
+                          progress: macroProgress,
+                        ),
+                      ),
+                    ),
+                  ),
                 Center(
                   child: Transform.translate(
-                    offset: Offset(0, -viewport.height * .025),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Opacity(
-                          key: const ValueKey<String>('startup-splash-reveal'),
-                          opacity: markEntrance * (1 - departure),
-                          child: Transform.translate(
-                            offset: Offset(0, 12 * (1 - markEntrance)),
-                            child: Transform.scale(
-                              key: const ValueKey<String>(
-                                'startup-splash-mark-zoom',
-                              ),
-                              scale: .96 + .04 * markEntrance,
-                              child: SizedBox.square(
-                                dimension: symbolSize,
-                                child: logo == null
-                                    ? const _FallbackMark()
-                                    : ColorFiltered(
-                                        colorFilter: _artworkTone,
-                                        child: Image(
-                                          key: const ValueKey<String>(
-                                            'startup-splash-mark',
-                                          ),
-                                          image: logo!,
-                                          fit: BoxFit.contain,
-                                          filterQuality: FilterQuality.medium,
-                                          errorBuilder: (_, __, ___) =>
-                                              const _FallbackMark(),
-                                        ),
+                    offset: Offset(0, -viewport.height * .015),
+                    child: SizedBox(
+                      width: lockupWidth,
+                      height: symbolSize,
+                      child: Row(
+                        children: <Widget>[
+                          Opacity(
+                            key:
+                                const ValueKey<String>('startup-splash-reveal'),
+                            opacity: markEntrance * (1 - departure),
+                            child: SizedBox.square(
+                              dimension: symbolSize,
+                              child: logo == null
+                                  ? const _FallbackMark()
+                                  : Image(
+                                      key: const ValueKey<String>(
+                                        'startup-splash-mark',
                                       ),
-                              ),
+                                      image: logo!,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.medium,
+                                      errorBuilder: (_, __, ___) =>
+                                          const _FallbackMark(),
+                                    ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: math.min(viewport.height * .025, 25)),
-                        Opacity(
-                          key: const ValueKey<String>('startup-splash-name'),
-                          opacity: nameEntrance * (1 - departure),
-                          child: Transform.translate(
-                            offset: Offset(0, 8 * (1 - nameEntrance)),
-                            child: SizedBox(
-                              width: wordmarkWidth,
-                              height: wordmarkWidth * .34,
-                              child: wordmark == null
-                                  ? _FallbackWordmark(
-                                      name: branding.displayName,
-                                    )
-                                  : ColorFiltered(
-                                      colorFilter: _artworkTone,
-                                      child: Image(
+                          SizedBox(width: lockupWidth * .04),
+                          Opacity(
+                            key: const ValueKey<String>('startup-splash-name'),
+                            opacity: nameEntrance * (1 - departure),
+                            child: Transform.translate(
+                              offset: Offset(14 * (1 - nameEntrance), 0),
+                              child: SizedBox(
+                                width: wordmarkWidth,
+                                height: symbolSize,
+                                child: wordmark == null
+                                    ? _FallbackWordmark(
+                                        name: branding.displayName,
+                                      )
+                                    : Image(
                                         key: const ValueKey<String>(
                                           'startup-splash-wordmark-image',
                                         ),
@@ -220,11 +215,11 @@ class PlayerSplashTimeline extends StatelessWidget {
                                           name: branding.displayName,
                                         ),
                                       ),
-                                    ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -256,6 +251,148 @@ class PlayerSplashTimeline extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PrismOpening extends StatelessWidget {
+  const _PrismOpening({
+    required this.logo,
+    required this.size,
+    required this.viewport,
+    required this.progress,
+  });
+
+  final ImageProvider logo;
+  final double size;
+  final Size viewport;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+        dimension: size,
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            _PrismFragment(
+              logo: logo,
+              start: 0,
+              end: .42,
+              dx: -viewport.width * .32,
+              dy: viewport.height * .06,
+              rotation: -.12,
+              progress: progress,
+            ),
+            _PrismFragment(
+              logo: logo,
+              start: .42,
+              end: .72,
+              dx: viewport.width * .04,
+              dy: -viewport.height * .08,
+              rotation: .07,
+              progress: progress,
+            ),
+            _PrismFragment(
+              logo: logo,
+              start: .72,
+              end: 1,
+              dx: viewport.width * .31,
+              dy: viewport.height * .04,
+              rotation: .11,
+              progress: progress,
+            ),
+          ],
+        ),
+      );
+}
+
+class _PrismFragment extends StatelessWidget {
+  const _PrismFragment({
+    required this.logo,
+    required this.start,
+    required this.end,
+    required this.dx,
+    required this.dy,
+    required this.rotation,
+    required this.progress,
+  });
+
+  final ImageProvider logo;
+  final double start;
+  final double end;
+  final double dx;
+  final double dy;
+  final double rotation;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final separation = 1 - progress;
+    final scale = ui.lerpDouble(7.2, 1, progress)!;
+    final clipper = _FragmentClipper(start, end);
+    return Transform.translate(
+      offset: Offset(dx * separation, dy * separation),
+      child: Transform.rotate(
+        angle: rotation * separation,
+        child: Transform.scale(
+          key: start == 0
+              ? const ValueKey<String>('startup-splash-macro-scale')
+              : null,
+          scale: scale,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              if (separation > .001)
+                Opacity(
+                  opacity: .6 * separation,
+                  child: Transform.translate(
+                    offset: Offset(10 * separation, -5 * separation),
+                    child: ImageFiltered(
+                      imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: ClipPath(
+                        clipper: clipper,
+                        child: Image(
+                          image: logo,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.medium,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ClipPath(
+                clipper: clipper,
+                child: Image(
+                  image: logo,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => const SizedBox(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FragmentClipper extends CustomClipper<Path> {
+  const _FragmentClipper(this.start, this.end);
+
+  final double start;
+  final double end;
+
+  @override
+  Path getClip(Size size) => Path()
+    ..addRect(
+      Rect.fromLTRB(size.width * start, 0, size.width * end, size.height),
+    );
+
+  @override
+  bool shouldReclip(_FragmentClipper oldClipper) =>
+      oldClipper.start != start || oldClipper.end != end;
 }
 
 class _FallbackMark extends StatelessWidget {

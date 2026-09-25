@@ -30,7 +30,7 @@ void main() {
         .load();
   });
 
-  testWidgets('keeps the symbol at its final size without a camera zoom',
+  testWidgets('assembles colorful logo fragments into the final lockup',
       (tester) async {
     final scales = <double>[];
     for (final progress in <double>[0, .12, .24, .36, .48, .7, 1]) {
@@ -40,20 +40,20 @@ void main() {
         logo: logo,
         wordmark: wordmark,
       )));
-      final camera = tester.widget<Transform>(find.byKey(
-        const ValueKey<String>('startup-splash-mark-zoom'),
+      final fragment = tester.widget<Transform>(find.byKey(
+        const ValueKey<String>('startup-splash-macro-scale'),
       ));
-      scales.add(camera.transform.storage[0]);
+      scales.add(fragment.transform.storage[0]);
       expect(find.byKey(const ValueKey<String>('startup-splash-mark')),
           findsOneWidget);
       expect(
           find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
           findsOneWidget);
     }
-    expect(scales.first, closeTo(.96, .001));
+    expect(scales.first, closeTo(7.2, .001));
     for (var i = 1; i < scales.length; i++) {
-      expect(scales[i], greaterThanOrEqualTo(scales[i - 1]));
-      expect(scales[i], lessThanOrEqualTo(1));
+      expect(scales[i], lessThanOrEqualTo(scales[i - 1]));
+      expect(scales[i], greaterThanOrEqualTo(1));
     }
     expect(scales.last, closeTo(1, .001));
     expect(tester.takeException(), isNull);
@@ -82,6 +82,7 @@ void main() {
     double? previousMark;
     double? previousName;
     double? previousScale;
+    double? previousMacro;
     for (var frame = 0; frame <= 118; frame++) {
       await tester.pumpWidget(_app(_timeline(
         branding: branding,
@@ -101,28 +102,35 @@ void main() {
           .opacity;
       final scale = tester
           .widget<Transform>(find.byKey(
-            const ValueKey<String>('startup-splash-mark-zoom'),
+            const ValueKey<String>('startup-splash-macro-scale'),
           ))
           .transform
           .storage[0];
+      final macro = tester
+          .widget<Opacity>(find.byKey(
+            const ValueKey<String>('startup-splash-macro'),
+          ))
+          .opacity;
       if (previousMark != null) {
         expect(mark, inInclusiveRange(previousMark, previousMark + .08));
         expect(name, inInclusiveRange(previousName!, previousName + .08));
-        expect(scale, inInclusiveRange(previousScale!, previousScale + .004));
+        expect(scale, inInclusiveRange(previousScale! - .18, previousScale));
+        expect((macro - previousMacro!).abs(), lessThanOrEqualTo(.12));
       }
       previousMark = mark;
       previousName = name;
       previousScale = scale;
+      previousMacro = macro;
     }
     expect(previousMark, 1);
     expect(previousName, 1);
     expect(previousScale, 1);
   });
 
-  testWidgets('reveals decoded artwork without a first-frame pop',
+  testWidgets('fades the macro artwork in before settling the logo',
       (tester) async {
     final alphas = <double>[];
-    for (final progress in <double>[0, .08, .16, .26, .37]) {
+    for (final progress in <double>[0, .02, .04, .06, .08]) {
       await tester.pumpWidget(_app(_timeline(
         branding: branding,
         progress: progress,
@@ -131,7 +139,7 @@ void main() {
       )));
       alphas.add(tester
           .widget<Opacity>(find.byKey(
-            const ValueKey<String>('startup-splash-reveal'),
+            const ValueKey<String>('startup-splash-macro'),
           ))
           .opacity);
     }
@@ -152,10 +160,14 @@ void main() {
       wordmark: wordmark,
       reducedMotion: true,
     )));
-    final camera = tester.widget<Transform>(find.byKey(
-      const ValueKey<String>('startup-splash-mark-zoom'),
-    ));
-    expect(camera.transform.storage[0], 1);
+    expect(
+      find.byKey(const ValueKey<String>('startup-splash-macro')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('startup-splash-mark')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
       findsOneWidget,
@@ -246,7 +258,7 @@ void main() {
         await expectLater(
           find.byKey(const ValueKey<String>('startup-splash-golden')),
           matchesGoldenFile(
-            'goldens/player_runtime_splash/v3_${viewport.$1}_${milliseconds.toString().padLeft(4, '0')}.png',
+            'goldens/player_runtime_splash/v4_${viewport.$1}_${milliseconds.toString().padLeft(4, '0')}.png',
           ),
         );
       }
@@ -269,7 +281,7 @@ void main() {
     await expectLater(
       find.byKey(const ValueKey<String>('startup-splash-golden')),
       matchesGoldenFile(
-        'goldens/player_runtime_splash/v3_mobile_waiting.png',
+        'goldens/player_runtime_splash/v4_mobile_waiting.png',
       ),
     );
   });
