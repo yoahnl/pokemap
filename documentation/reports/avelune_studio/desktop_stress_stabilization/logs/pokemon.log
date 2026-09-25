@@ -1,0 +1,90 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (108.0.0 available)
+  analyzer 13.3.0 (14.4.0 available)
+  archive 4.0.9 (4.3.0 available)
+  code_assets 2.0.0 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.1.0 available)
+  flutter_riverpod 3.4.2 (3.4.3 available)
+  gamepads 0.1.11 (0.1.12 available)
+  gamepads_android 0.1.9 (0.1.10 available)
+  gamepads_darwin 0.1.3 (0.1.4 available)
+  gamepads_linux 0.1.2 (0.1.3 available)
+  gamepads_platform_interface 0.1.3 (0.1.4 available)
+  gamepads_web 0.1.2 (0.1.3 available)
+  gamepads_windows 0.3.1 (0.3.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  package_config 2.2.0 (3.0.0 available)
+  platform 3.1.6 (3.2.0 available)
+  riverpod 3.4.2 (3.4.3 available)
+  synchronized 3.4.1+2 (3.4.2 available)
+  test 1.31.1 (1.32.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  test_core 0.6.18 (0.6.20 available)
+  vector_math 2.4.2 (2.4.3 available)
+  win32 5.15.0 (6.4.0 available)
+Got dependencies!
+25 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: ambiguous legacy companion leaves the species readable
+00:04 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
+00:08 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: legacy companion is replaced at its existing identity and path
+00:09 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external network error preserves local project
+00:11 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: keeping a species with empty ref excludes unattached companion
+00:12 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external preview refuses a companion owned by another species
+00:13 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart: a changed retained reference invalidates an external preview
+00:15 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external import attaches companions to empty references
+00:17 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart: Lot A surfaces use the real workspace and local media
+00:23 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart: return from Carte refreshes saved item pickup references
+00:24 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart: compact Attack and import views keep essential actions
+00:26 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart: return from Histoire refreshes narrative item references
+00:28 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart: 200% text keeps focused save reachable
+00:29 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart: refresh keeps a shop by identity and clears a removed shop
+00:32 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_language_corrections_host_test.dart: language selection does not write fallbacks and focused edit keeps its key
+00:35 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_language_corrections_host_test.dart: language selection does not write fallbacks and focused edit keeps its key
+00:36 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_json_collision_host_test.dart: overwriting selected species reloads its draft before editing
+00:40 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_json_collision_host_test.dart: overwriting selected species reloads its draft before editing
+00:42 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:44 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:46 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:48 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:50 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:51 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart: large Pokédex scrolls locally at 150% text scale
+00:52 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart: an in-flight PNG import cannot erase concurrent draft input
+00:52 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart: undo cannot race a save and resurrect stale values
+00:52 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart: active-owner discard never resets a hidden Commerce draft
+00:52 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_forms_evolution_host_test.dart: forms and evolution save together without losing old fields
+00:58 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_forms_evolution_host_test.dart: forms and evolution save together without losing old fields
+00:59 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_border_notice_host_test.dart: border preview notice belongs to Map while diagnostics remain
+01:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_media_animation_host_test.dart: animation references and custom local PNG reopen from disk
+01:05 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_plan_test.dart: keeping a referenced species can create its missing companion
+01:05 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_plan_test.dart: keeping an empty reference excludes its proposed companion
+01:05 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_project_switch_host_test.dart: read-only search can leave A and cannot update project B
+01:05 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_project_switch_host_test.dart: read-only search can leave A and cannot update project B
+01:10 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_custom_refs_host_test.dart: save follows manifest and companion refs, not species id
+01:12 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_save_conflict_host_test.dart: disk revision conflict keeps the focused species draft
+01:15 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_creation_host_test.dart: commerce actions remain reachable in a compact window
+01:16 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_creation_host_test.dart: creates an item with a battle effect and a shop through Studio
+01:21 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_creation_host_test.dart: creates an item with a battle effect and a shop through Studio
+01:24 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart: discard resets item before entering Pokédex
+01:24 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart: save writes item and independent reopen sees it
+01:27 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart: save writes item and independent reopen sees it
+01:27 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart: focused species and learnset edits survive independent reopen
+01:30 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart: focused species and learnset edits survive independent reopen
+01:33 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart: shop draft cannot be hidden by Attaques
+01:33 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart: JSON preview does not write and apply reopens imported identity
+01:35 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart: revision conflict blocks view change and preserves draft
+01:36 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart: menu PNG uses canonical import and preserves an existing role
+01:39 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart: 1145 species and 754 moves fill and scroll their own viewports
+01:42 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart: 1145 species and 754 moves fill and scroll their own viewports
+01:52 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: objects and shops persist through the real workspace
+01:52 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: catalog revision conflict preserves focused draft
+01:52 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: catalog revision conflict preserves focused draft
+01:53 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: catalog revision conflict preserves focused draft
+01:55 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart: the real Pokémon workspace uses the game export locale
+01:56 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: JSON import previews without writing and requires replacement consent
+01:58 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart: invalid focused price blocks save and leaving keeps the draft
+02:04 +58: All tests passed!

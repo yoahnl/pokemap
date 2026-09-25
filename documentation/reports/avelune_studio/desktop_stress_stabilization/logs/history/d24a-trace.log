@@ -1,0 +1,43 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (108.0.0 available)
+  analyzer 13.3.0 (14.4.0 available)
+  archive 4.0.9 (4.3.0 available)
+  code_assets 2.0.0 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.1.0 available)
+  flutter_riverpod 3.4.2 (3.4.3 available)
+  gamepads 0.1.11 (0.1.12 available)
+  gamepads_android 0.1.9 (0.1.10 available)
+  gamepads_darwin 0.1.3 (0.1.4 available)
+  gamepads_linux 0.1.2 (0.1.3 available)
+  gamepads_platform_interface 0.1.3 (0.1.4 available)
+  gamepads_web 0.1.2 (0.1.3 available)
+  gamepads_windows 0.3.1 (0.3.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  package_config 2.2.0 (3.0.0 available)
+  platform 3.1.6 (3.2.0 available)
+  riverpod 3.4.2 (3.4.3 available)
+  synchronized 3.4.1+2 (3.4.2 available)
+  test 1.31.1 (1.32.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  test_core 0.6.18 (0.6.20 available)
+  vector_math 2.4.2 (2.4.3 available)
+  win32 5.15.0 (6.4.0 available)
+Got dependencies!
+25 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /private/tmp/pokemap-stress-d24a/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart
+00:00 +0: real stress workspace stays usable across desktop sizes and diagnostics
+stress settle start 0ms
+stress progress 25 at 2402ms
+stress progress 50 at 4903ms
+stress progress 75 at 7157ms
+stress progress 100 at 9436ms
+stress progress 125 at 11973ms
+stress progress 150 at 14148ms
+stress progress 175 at 16383ms
+stress progress 200 at 18837ms
+stress settle end 18861ms diagnostics=200 reads=68 decodes=1
+00:24 +1: All tests passed!

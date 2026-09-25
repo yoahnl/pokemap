@@ -1,0 +1,79 @@
+# Avelune Studio — Lot B-ter : stabilisation du stress test desktop / E/S ressources
+
+## Résultat et périmètre
+
+La file de ressources n'est pas bloquée. Le test injectait une attente réelle de 20 ms à chaque tour de sa boucle de pompage, alors que les 200 diagnostics sont chargés séquentiellement. Cette temporisation répétée amenait l'attente de `StudioMapResources.settled` près de sa limite de 20 s et la faisait échouer selon la charge de la machine. Le correctif retire seulement cette latence artificielle : un tour de boucle d'événements sans délai fixe est conservé entre les frames. Le test garde les vraies E/S, les 200 diagnostics, leur retry et la limite de 20 s.
+
+Un seul fichier source est modifié : `apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart`, dans `_awaitWhilePumping`. Aucun écran, moteur, contrat Pokémon, package partagé, fixture ou projet personnel n'a été modifié. Aucun Git write n'a été effectué.
+
+## Gate Git initial et audit
+
+Avant toute écriture : `pwd` = `/Users/karim/Project/pokemonProject`, branche `main`, HEAD `d24a392430a5194a5b08838c60da254304b6f007`. `git status --short --untracked-files=all`, `git diff --stat` et `git diff --name-only` donnaient chacun une sortie vide. `git log --oneline -n 10` confirmait `d24a39243`, `47219745c`, puis `3825eedd9`. Les SHA ont servi uniquement à `git show`, `git diff`, `git ls-tree` et `git archive` ; aucun checkout/reset/restore n'a touché le worktree.
+
+Passes internes : Audit / Architecture a suivi le test, la fixture, `StudioMapResources`, `StudioImageStore`, le décodeur, les notifications, les widgets de vignette, la récupération et le lifecycle ; Implémentation a limité le changement à une ligne du test ; Tests a exécuté les reproductions, expériences contrôlées et régressions ; Build / Validation consigne ci-dessous les commandes finales ; Critique finale cherche un timeout déplacé, une assertion affaiblie ou un changement métier caché.
+
+## Reproduction sur le HEAD avant correction
+
+Commande : `flutter test test/presentation/desktop_workspace_layout_test.dart --concurrency=1` depuis `apps/avelune_studio`, trois exécutions séquentielles, sans modification préalable. Le test actif contenait 132 atlas et 200 incidents (`ResourceStressFixture.create()` sans paramètres). Les logs et mesures bruts sont dans `logs/baseline/`.
+
+| Run | Résultat exact | Temps réel de commande | Point observé |
+| --- | --- | ---: | --- |
+| 1 | `00:24 +1: All tests passed!` | 30,03 s | Parcours entier, dont activation `stress-errors`, 200 diagnostics et retry. |
+| 2 | `00:24 +1: All tests passed!` | 30,33 s | Même parcours. |
+| 3 | `00:24 +1: All tests passed!` | 29,35 s | Même parcours. |
+
+Donc 0/3 échec sur la reprise courante ; ce résultat ne gomme pas les échecs archivés au Lot B-bis. Dans `pokemon_objects_shops_consolidation/logs/studio-final.log`, la suite Studio terminait `+967 ~2 -1`. Dans `stress-isolated.log`, le test isolé terminait `+0 -1`. Les deux traces pointaient `_settle` appelé après `controller.activate('stress-errors')` à la ligne 184, puis `_awaitWhilePumping` et son assertion « Les E/S réelles ne terminent pas entre les frames en 20 secondes. » Le retry venait après cette étape et n'avait pas encore été atteint. Les anciens logs ne donnent pas le nombre de requêtes encore pendantes au moment précis de l'échec ; cette valeur n'est pas inventée.
+
+## Sémantique réelle de `settled` et cause
+
+`StudioMapResources.settled` délègue à `StudioImageStore.settled`. Ce getter boucle tant que `_queue` n'est pas vide et attend les `Completer` de toutes les requêtes présentes à chaque tour ; il vérifie à nouveau la queue si des requêtes sont arrivées pendant l'attente. Il attend donc la file d'images entière, y compris les requêtes ajoutées avant qu'elle ne se vide, plutôt qu'une génération figée. Les probes de fichier, lectures et décodages sont couverts par les requêtes. Les diagnostics sont mis à jour avant leur complétion ; ils ne sont pas une seconde Future autonome. `retryResources` relance explicitement les identifiants encore retryables avec `retainUntilComplete`. Le décodage d'image Flutter exige que le test continue à pomper : une expérience qui attendait `settled` seulement dans `tester.runAsync` a expiré trois fois dès la première carte.
+
+`StudioImageStore._drain` traite une requête à la fois. Même en cas d'exception, son `finally` retire l'identifiant de `_queue`, complète son `Completer`, nettoie `_loading`, notifie et programme la suivante. `release` résout les requêtes devenues inutiles ; `close` résout celles qui n'ont pas commencé. Aucune fuite de compteur ou Future abandonnée n'a été observée dans ce parcours. Si une lecture sous-jacente ne rendait jamais la main, l'opération active pourrait encore attendre ; ce n'est pas ce qu'ont montré les mesures.
+
+Une trace temporaire, uniquement dans `/tmp/pokemap-stress-d24a`, a mesuré après activation de `stress-errors` : 25 diagnostics à 2 402 ms, 50 à 4 903 ms, 100 à 9 436 ms, 150 à 14 148 ms, 200 à 18 837 ms, puis `settled` à 18 861 ms (`reads=68`, `decodes=1`). La queue progressait sans arrêt et terminait seulement 1,14 s avant l'assertion. Avec la même fixture et une pause de 1 ms par tour, les 200 diagnostics terminaient à 3 932 ms. Avec un simple `Future.delayed(Duration.zero)`, ils terminaient à 2 051 ms. Les logs des trois expériences sont dans `logs/history/d24a-{trace,pump1ms,pumpzero}.*`. La variation est causée par le sommeil répété du protocole de test, non par une régression du store.
+
+## Comparaison historique sans changement du worktree
+
+Des archives Git partielles ont été extraites dans `/tmp/pokemap-stress-3825`, `/tmp/pokemap-stress-4721` et `/tmp/pokemap-stress-d24a`, avec l'application et ses packages locaux. Le même test a été exécuté deux fois par copie indépendante ; les logs sont dans `logs/history/`.
+
+| Révision | Run 1 | Run 2 | Temps réels |
+| --- | --- | --- | --- |
+| `3825eedd` | `00:24 +1: All tests passed!` | `00:24 +1: All tests passed!` | 41,70 s (compilation froide) ; 28,36 s. |
+| `47219745` | `00:24 +1: All tests passed!` | `00:25 +1: All tests passed!` | 41,57 s (compilation froide) ; 30,59 s. |
+| `d24a3924` | `00:24 +1: All tests passed!` | `00:24 +1: All tests passed!` | 40,64 s (compilation froide) ; 28,14 s. |
+
+Il n'existe donc pas de première révision en échec dans ces trois points observés. Le test, la fixture, le générateur de stress, `StudioImageStore`, `StudioMapResources` et le décodeur ont exactement les mêmes identifiants de blob Git dans les trois révisions. Le diff pertinent de Lot B/B-bis touche des raccordements Pokémon et le workspace, mais ce test construit `MapWorkspaceScreen` sans port Pokémon/Commerce. Aucun lien causal vers Pokémon n'est établi. L'échec précédent à `d24a3924` et la réussite actuelle sur le même blob démontrent une sensibilité à la cadence d'exécution ; ils ne datent pas son introduction. Les archives historiques ont été exécutées avec le Flutter et la résolution des dépendances actuels, pas avec une machine et un toolchain archivés.
+
+## Correction et garde-fous
+
+Dans `apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart`, `_awaitWhilePumping` utilise désormais `tester.runAsync(() => Future<void>.delayed(Duration.zero))` après le `pump`, au lieu de dormir 20 ms à chaque tour. Le test continue à pomper les frames dont dépend le décodage, puis laisse les E/S et microtâches avancer sans attente fixe. Le plafond de 20 s et `expect(done, isTrue)` restent identiques. Les 200 diagnostics, les six configurations de fenêtre/texte, la virtualisation, le retry et les assertions d'image restent en place. Ce correctif est limité au protocole d'attente du test : il ne masque ni un échec de lecture ni une Future réellement pendante.
+
+## Vérification sur sources finales
+
+Les journaux exacts sont dans `logs/`. Les tests Flutter ont été exécutés depuis `apps/avelune_studio`. Un échec de commande de lancement initial, dû à un chemin de log relatif erroné, n'a lancé aucun test ; le chemin absolu a été utilisé immédiatement après. Le formatage Dart de la ligne modifiée a été appliqué ensuite, sans changement de comportement.
+
+| Vérification | Commande | Résultat |
+| --- | --- | --- |
+| Stress final 1 | `flutter test test/presentation/desktop_workspace_layout_test.dart --concurrency=1` | `00:06 +1: All tests passed!`, 10,61 s réels. |
+| Stress final 2 | même commande | `00:05 +1: All tests passed!`, 10,08 s réels. |
+| Stress final 3 | même commande | `00:05 +1: All tests passed!`, 9,97 s réels. |
+| Ressources ciblées | `flutter test` sur `studio_map_resources_test.dart`, `studio_resource_lifecycle_test.dart`, `studio_resource_thumbnail_test.dart`, `studio_resource_catalog_update_test.dart`, `studio_terrain_brush_resources_test.dart`, `workspace_resource_diagnostics_test.dart`, `--concurrency=2` | `00:05 +23: All tests passed!` |
+| Pokémon | `flutter test test/pokemon --concurrency=2` | `02:04 +58: All tests passed!` |
+| Architecture | `flutter test test/architecture --concurrency=2` | `00:01 +12: All tests passed!` |
+| Analyse | `flutter analyze` | `No issues found! (ran in 11.1s)` |
+| Stress après formatage 1–3 | même commande, trois fois consécutives sur les sources finales | `00:04 +1: All tests passed!` pour chaque run ; 10,46 s, 8,53 s et 8,39 s réels. |
+| Format final | `dart format --output=none --set-exit-if-changed test/presentation/desktop_workspace_layout_test.dart` | `Formatted 1 file (0 changed) in 0.02 seconds.` |
+| Suite Studio | `flutter test --concurrency=2` | `10:24 +968 ~2: All tests passed!`, 630,60 s réels ; le stress est passé dans cette suite vers `07:41 +704 ~1`. |
+| Build macOS debug | `flutter build macos --debug` | `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app`, exit 0, 24,88 s réels. |
+
+Les six tests de ressources ont été choisis parce qu'ils couvrent le store/décodage, les leases et la fin de vie, les vignettes qui lancent les requêtes, l'invalidation du catalogue, les pinceaux qui changent les ressources retenues, et les diagnostics/retries visibles. Les tests Pokémon vérifient que le workspace commun conserve le Lot B-bis. Aucun parcours natif manuel n'est revendiqué par les tests widget ou par le futur build.
+
+## Critique finale et limites
+
+Audit / Architecture : aucun changement nécessaire dans le store ou le runtime ; y toucher sans reproduction d'un défaut métier ajouterait un risque inutile. Implémentation : une seule temporisation du test est supprimée, sans déplacer ni allonger son plafond. Tests : les réussites historiques ne prouvent pas une date d'introduction ; la trace contrôlée explique l'échec chronométrique mais ne certifie pas tous les environnements possibles. Build / Validation : les commandes demandées sont vertes ; le build n'est pas une manipulation native manuelle. Critique finale : `Duration.zero` évite la latence cumulative mais conserve le pompage indispensable au décodage ; le test original a encore une borne de 20 s et échouera sur une vraie attente bloquée. Les deux réserves Lot A (propriété déterministe des médias partagés ; protection transactionnelle des dépendances conservées pendant import externe) restent ouvertes et hors périmètre. Les dix échecs MCP du rapport précédent restent hors périmètre et n'ont pas été relancés ici.
+
+## Gate Git final
+
+`git status --short --untracked-files=all` est archivé intégralement dans `logs/git-final-status.log` : 53 lignes, soit un seul fichier Dart suivi modifié et 52 fichiers non suivis du présent Evidence Pack. Aucun autre fichier source ni projet utilisateur n'apparaît. Le rapport a été complété ensuite sans changer l'ensemble de ces chemins.
+
+`git diff --stat` : `apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart | 4 +---` ; `1 file changed, 1 insertion(+), 3 deletions(-)`. `git diff --name-only` ne renvoie que ce même fichier. `git diff --check` : sortie vide, exit 0. `bash tools/scripts/check_markdown_hygiene.sh` : `Markdown hygiene: no new Markdown files.` Aucun commit, push, checkout ou mutation de branche n'a été effectué.

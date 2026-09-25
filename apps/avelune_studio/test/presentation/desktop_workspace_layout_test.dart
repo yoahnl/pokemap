@@ -260,9 +260,7 @@ Future<void> _awaitWhilePumping(
   while (!done && elapsed.elapsed < const Duration(seconds: 20)) {
     await tester.pump();
     if (!done) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     }
   }
   if (failure != null) throw failure!;
