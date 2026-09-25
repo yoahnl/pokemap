@@ -70,8 +70,13 @@ final class PokemonCommerceController {
     ];
   }
 
-  Future<void> load() async {
-    if (snapshot != null || loading) return;
+  Future<void> load({bool refresh = false}) async {
+    if ((snapshot != null || loading) && !refresh) return;
+    if (refresh && (dirty || saving || importing)) {
+      error = 'Actualisation reportée : une fiche est encore en cours.';
+      changed();
+      return;
+    }
     final generation = ++_generation;
     loading = true;
     error = null;
@@ -79,7 +84,27 @@ final class PokemonCommerceController {
     try {
       final loaded = await port.load();
       if (_disposed || generation != _generation) return;
+      if (dirty || saving || importing) {
+        error = 'Actualisation reportée : le brouillon est conservé.';
+        return;
+      }
+      final selectedItemId = item?.id;
+      final selectedShopId = shop?.id;
       snapshot = loaded;
+      _baseItem = loaded.catalog?.entries
+          .where((value) => value.id == selectedItemId)
+          .firstOrNull;
+      item = _baseItem;
+      _baseShop = loaded.shops
+          .where((value) => value.id == selectedShopId)
+          .firstOrNull;
+      shop = _baseShop;
+      if ((selectedItemId != null && item == null) ||
+          (selectedShopId != null && shop == null)) {
+        section = PokemonCommerceSection.overview;
+      }
+      formVersion++;
+      notice = null;
     } on Object catch (failure) {
       if (!_disposed && generation == _generation) error = '$failure';
     } finally {
@@ -176,10 +201,13 @@ final class PokemonCommerceController {
     changed();
   }
 
-  void discard() {
+  void discardSelected() {
     if (saving) return;
-    item = _baseItem;
-    shop = _baseShop;
+    if (item != null) {
+      item = _baseItem;
+    } else if (shop != null) {
+      shop = _baseShop;
+    }
     fieldErrors.clear();
     formVersion++;
     error = null;

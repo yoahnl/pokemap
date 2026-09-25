@@ -177,7 +177,7 @@ class PokemonCommerceDetail extends StatelessWidget {
                   label: 'Annuler les modifications',
                   secondary: true,
                   onPressed: commerce.dirty && !commerce.saving
-                      ? commerce.discard
+                      ? commerce.discardSelected
                       : null,
                 ),
                 StudioButton(

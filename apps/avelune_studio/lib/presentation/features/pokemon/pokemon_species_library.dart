@@ -220,8 +220,8 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
         ),
       );
       if (!mounted || choice == null || choice == 'stay') return;
-      if (choice == 'save' && !await controller.save()) return;
-      if (choice == 'discard') controller.discardSelected();
+      if (choice == 'save' && !await controller.saveActiveOwner()) return;
+      if (choice == 'discard') controller.discardSelectedSpecies();
     }
     final selected = await controller.selectSpecies(id);
     if (selected && mounted) widget.onSelected();

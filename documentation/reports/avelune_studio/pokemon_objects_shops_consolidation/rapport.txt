@@ -1,0 +1,124 @@
+# Avelune Studio — Pokémon Lot B-bis : consolidation Objets et Boutiques
+
+## Résumé et périmètre
+
+Le changement de sous-onglet Pokémon protège désormais le propriétaire actif d'un brouillon. Le même choix Rester / Annuler les modifications / Enregistrer s'applique à la sortie globale. La sauvegarde et l'annulation visent une seule fiche. Le retour depuis Carte ou Histoire recharge le snapshot Commerce complet par le port existant : catalogue, boutiques, cartes, références, dépendances narratives et diagnostics. Les identités encore présentes restent sélectionnées ; les identités supprimées sont désélectionnées.
+
+Le travail ne touche ni au runtime des achats, ni aux contrats `map_core` ou `map_authoring`, ni aux autres écrans Pokémon. Aucun projet personnel original n'a été modifié. Ce rapport capture la validation avant l'autorisation ultérieure de commit et push ; la révision publiée est consignée dans le ticket Notion existant.
+
+## Base et gate Git initial
+
+- Révision lue : `47219745c3e2e4fab819ce4a99e5924db3f36b30`, branche `main`. Le parent `3825eedd9279dfd39fdb56d67e09119d10680e12` est seulement un repère.
+- Commandes avant la première modification : `pwd`, `git branch --show-current`, `git status --short --untracked-files=all`, `git diff --stat`, `git diff --name-only`, `git log --oneline -n 10`.
+- `pwd` : `/Users/karim/Project/pokemonProject` ; branche : `main` ; état initial : sortie vide pour `git status`, `git diff --stat` et `git diff --name-only`. Il n'y avait donc aucun changement concurrent préexistant à distinguer.
+- Environnement de validation : Darwin 27.0.0 arm64, Flutter 3.48.0-0.4.pre (beta), Node v26.3.1. Les commandes Flutter sont exécutées depuis `apps/avelune_studio`.
+
+## Audit initial et reproduction
+
+Lecture ciblée des contrôleurs Pokémon/Commerce et import, des onglets, pages et fiches, du garde de navigation et du cycle de vie workspace, du port Commerce et de son adaptateur local, ainsi que des tests hôte Commerce, création, collection longue, références personnalisées et changement de projet. Les mutations existantes restent confiées aux adaptateurs canoniques ; l'index Commerce vient de `LocalPokemonCommerceAdapter.load()`.
+
+Inventaire consulté : `features/pokemon/application/{pokemon_workspace_controller,pokemon_commerce_controller,pokemon_commerce_import_commands}.dart`, `features/pokemon/domain/pokemon_commerce_port.dart`, `features/pokemon/data/local_pokemon_commerce_adapter.dart`, `presentation/features/pokemon/{pokemon_workspace_tabs,pokemon_workspace_page,pokemon_commerce_page,pokemon_commerce_detail}.dart`, `presentation/features/map_workspace/{workspace_navigation_binding,workspace_lifecycle_binding}.dart`, puis `test/pokemon/{pokemon_commerce_host_test,pokemon_commerce_creation_host_test,pokemon_large_collection_host_test,pokemon_custom_refs_host_test,pokemon_workspace_host_test,pokemon_project_switch_host_test}.dart` et les fixtures Carte/Histoire effectivement utilisées.
+
+- **Navigation, avant correction.** Test hôte : édition du nom de `potion`, puis clic Pokédex. Attendu : dialogue de garde ; obtenu : `Found 0 widgets with text "Conserver le brouillon Pokémon ?"`, test en échec. `PokemonWorkspaceTabs` appelait directement `setView` malgré `commerce.dirty`. `save()` pouvait ensuite sauver l'espèce puis Commerce, et `discardSelected()` effaçait les deux.
+- **Snapshot, avant correction.** Test hôte : ouverture d'Objets, sauvegarde canonique d'un pickup dans Carte, retour à Pokémon. Attendu : une référence supplémentaire ; obtenu : `Expected: <1>`, `Actual: <0>`. `PokemonCommerceController.load()` retournait sans relire dès qu'un snapshot existait.
+
+## Décision sémantique et zones modifiées
+
+| Fichier | Zone et raison | Effet attendu |
+| --- | --- | --- |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_controller.dart` | `setView`, `activeOwnerDirty`, `saveActiveOwner`, `discardActiveOwner`, `discardSelectedSpecies` | Refus d'un changement direct qui masquerait un brouillon ; sauvegarde/annulation ciblées ; refus d'un état exceptionnel à plusieurs propriétaires sales. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_commerce_controller.dart` | `load(refresh: true)`, rebinding par ID, `discardSelected` | Relecture complète sans écraser une saisie, même commencée pendant l'attente ; sélection et base rechargées par identité exacte. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_draft_dialog.dart` | Dialogue commun | Trois décisions explicites pour l'onglet et la sortie globale. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_tabs.dart` et `pokemon_workspace_page.dart` | Callback asynchrone de navigation et garde | Enregistrer/annuler/rester avant changement de vue ; échec de sauvegarde bloque la navigation. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_page.dart` et `pokemon_commerce_detail.dart` | Ouverture d'une boutique depuis les références, annulation ciblée | Résolution de la boutique courante par ID après un éventuel save/refresh ; pas d'ancienne instance réinjectée. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_header.dart` et `pokemon_species_library.dart` | Appels explicites de sauvegarde/annulation | Les commandes de fiche restent limitées à l'espèce active. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart` et `workspace_navigation_binding.dart` | Dialogue commun ; refresh à la réactivation de Pokémon | Le garde global conserve sa politique et le retour depuis Carte/Histoire recharge Commerce. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart` | Préparation à l'export | La sauvegarde Pokémon préalable cible le propriétaire actif, sans save multi-propriétaire implicite. |
+| `apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart` | Parcours du véritable hôte | Rester, annuler, enregistrer, espèce/boutique sales et conflit de révision. |
+| `apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart` | Parcours Carte/Histoire et fixtures temporaires | Pickup ajouté/retiré via Carte, scène publiée via contrat auteur, sélection, suppression et diagnostic boutique rafraîchi. |
+| `apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_guard_test.dart` et `pokemon_mutation_guard_test.dart` | Concurrence contrôlée et état exceptionnel | Édition pendant une lecture retenue sans perte ; aucune sauvegarde implicite à deux propriétaires ; annulation active seule. |
+
+La suppression externe contrôlée dans les tests de sélection ne simule pas un bouton de suppression Studio. Elle force l'état disque afin de vérifier qu'un ID disparu ne laisse pas une fiche obsolète. Le parcours Carte, lui, utilise `MapWorkspaceController.save`, et le parcours Histoire utilise `LocalSceneAdapter.publishScene`.
+
+Pendant un refresh, la page Commerce montre l'indicateur de lecture existant à la place de l'ancien snapshot. Elle ne présente donc pas transitoirement des références périmées comme des références actuelles.
+
+## Passes internes et auto-critique
+
+- **Audit / Architecture** : causes localisées aux raccordements de navigation et au retour anticipé de `load` ; aucune nouvelle frontière de données nécessaire.
+- **Implémentation** : garde commune et refresh explicite, sans scanner ni transaction inter-domaines ajouté.
+- **Tests** : reproductions rouges avant correction, puis tests hôte et tests contrôlés de concurrence ; régressions du Lot B conservées.
+- **Build / Validation** : résultats exacts consignés ci-dessous ; la suite Studio garde son échec de stress.
+- **Critique finale** : la relecture doit vérifier les retours asynchrones, la sélection après refresh et l'absence de save multi-propriétaire. Le refresh est déclenché au retour de Pokémon ; une modification externe pendant que Pokémon reste ouvert n'est pas détectée en temps réel, mais la sauvegarde garde son contrôle de révision. La manipulation native n'est pas déduite d'un build.
+
+La parité MCP des actions d'auteur est inchangée : ce lot n'ajoute ni action ni contrat sémantique partagé. La relecture de snapshot et le dialogue sont des comportements de présentation Studio ; les mutations Carte/Histoire restent canoniques. `pokemap_describe` a répondu `ok: true` et expose toujours `item.create`, `item.update` et `campaign.shop.upsert`. Le test ciblé MCP « describes queries and mutates canonical items » passe ; le smoke complet d'items échoue sur `worker.timeout` dans la suite exhaustive mais passe isolément ensuite. Cette réussite isolée n'efface pas l'échec de la suite exhaustive : la parité MCP exhaustive n'est pas certifiée. Les réserves de parité Commerce antérieures ne sont pas déclarées levées ici.
+
+## Evidence Pack — commandes sur sources finales
+
+| Vérification | Commande | Résultat exact |
+| --- | --- | --- |
+| Formatage | `dart format` sur 16 fichiers Dart touchés | `Formatted 16 files (5 changed) in 0.09 seconds.` |
+| Contrôle du format final | `dart format --output=none --set-exit-if-changed` sur les mêmes 16 fichiers | `Formatted 16 files (0 changed) in 0.10 seconds.` |
+| Nouveaux tests hôte | `flutter test test/pokemon/pokemon_commerce_guard_host_test.dart test/pokemon/pokemon_commerce_refresh_host_test.dart --concurrency=2` | `00:40 +10: All tests passed!` sur la source finale. |
+| Gardes contrôlés | `flutter test test/pokemon/pokemon_mutation_guard_test.dart test/pokemon/pokemon_commerce_refresh_guard_test.dart test/pokemon/pokemon_commerce_refresh_host_test.dart --concurrency=2` | `00:17 +8: All tests passed!` |
+| Régressions demandées | `flutter test` avec Commerce hôte, création, grande collection, références personnalisées, workspace et changement de projet, `--concurrency=2` | `00:46 +14: All tests passed!` |
+| Analyse Studio | `flutter analyze` | `No issues found! (ran in 34.0s)` sur la source finale. |
+| Architecture Studio | `flutter test test/architecture --concurrency=2` | `00:05 +12: All tests passed!` sur la source finale. |
+| Suite Pokémon | `flutter test test/pokemon --concurrency=2` | `02:36 +58: All tests passed!` sur la source finale. |
+| Suite Studio | `flutter test --concurrency=2` | `26:36 +967 ~2 -1: Some tests failed.` Un seul échec : `test/presentation/desktop_workspace_layout_test.dart`, E/S de ressources non terminées en 20 secondes à la ligne 269, après activation de `stress-errors` à la ligne 184. |
+| Stress isolé | `flutter test test/presentation/desktop_workspace_layout_test.dart --concurrency=1` | `00:34 +0 -1: Some tests failed.` Même attente de `StudioMapResources.settled` dépassant 20 secondes. |
+| Build macOS debug | `flutter build macos --debug` | `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app` (exit 0). |
+| Contrôle MCP | `npm run check` depuis `tools/pokemap_mcp` | Réussite (exit 0). `pokemap_describe` live : `ok: true`, actions item et shop présentes. |
+| Suite MCP | `npm test` depuis `tools/pokemap_mcp` | Échec (exit 1) : `tests 83`, `pass 73`, `fail 10`, `cancelled 0`, `skipped 0`. Neuf échecs renvoient `worker.timeout` ; le dixième concerne le reçu `map.create`. Le test « MCP describes queries and mutates canonical items » passe, le smoke complet d'items échoue. |
+| Smoke MCP item isolé | `node --import tsx --test --test-concurrency=1 test/live_item_smoke.test.ts` depuis `tools/pokemap_mcp` | `tests 1`, `pass 1`, `fail 0`, `duration_ms 9904.59425`. Cette relance isolée n'annule pas les dix échecs de la suite complète. |
+| Hygiène Markdown | `bash tools/scripts/check_markdown_hygiene.sh` | `Markdown hygiene: no new Markdown files.` Le rapport demandé utilise `rapport.txt`, comme d'autres rapports Pokémon existants. |
+
+Les sorties complètes des commandes majeures sont archivées dans `logs/`, y compris `mcp-test.log`. Seuls les espaces de fin de ligne et les lignes blanches finales des journaux ont été retirés pour le contrôle Git ; les résultats et diagnostics textuels restent identiques. Une première suite Studio a été interrompue volontairement après le dernier ajustement d'affichage ; son log `studio-interrupted.log` se termine sur des erreurs de fermeture de flux provoquées par l'arrêt du runner et ne constitue pas une validation. La suite finale a été relancée du début. Les tests hôte Flutter prouvent le comportement du véritable workspace en fixture temporaire ; aucun parcours natif manuel n'est revendiqué.
+
+L'échec de stress n'est **pas** qualifié de préexistant : son test n'a pas été exécuté sur le commit de base. Il se reproduit isolément et porte sur l'attente d'E/S réelles de ressources Carte ; aucun des fichiers de ressources ou de ce test n'a été modifié par le Lot B-bis. Il reste ouvert et n'a été ni désactivé, ni corrigé hors périmètre.
+
+## Limites et point d'arrêt
+
+Ces deux réserves n'ont pas été traitées ni déclarées corrigées par le Lot B-bis : **propriété déterministe des médias partagés base / forme** et **protection transactionnelle des dépendances conservées pendant un import externe**. L'achat/vente runtime, la mutation du sac et de l'argent, les interactions marchands, la suppression d'objets et tout nouvel atelier Pokémon restent hors périmètre.
+
+## Traçabilité
+
+Le ticket existant « Avelune Studio — Lot B Pokémon : Objets et Boutiques » a reçu une section Lot B-bis avec les résultats réels : https://app.notion.com/p/3e6197a7bfa581569d4ef6c86134fe00. Son statut reste `TO REVIEW` ; aucun nouveau ticket ou backlog n'a été créé.
+
+## Gate Git final
+
+Gate avant livraison Git : `git diff --check` : sortie vide, exit 0. `git diff --stat` : 12 fichiers suivis, 191 insertions et 56 suppressions. `git diff --name-only` donne ces mêmes 12 fichiers suivis ; les quatre nouveaux fichiers Dart et le rapport avec ses journaux sont non suivis à cet instant. Aucun fichier temporaire hors Evidence Pack n'apparaît dans le dépôt.
+
+`git status --short --untracked-files=all` :
+
+```text
+ M apps/avelune_studio/lib/features/pokemon/application/pokemon_commerce_controller.dart
+ M apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_controller.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_detail.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_page.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_header.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart
+ M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_tabs.dart
+ M apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart
+?? apps/avelune_studio/lib/presentation/features/pokemon/pokemon_draft_dialog.dart
+?? apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_guard_test.dart
+?? apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/analyze-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/architecture-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/build-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/controller-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/mcp-check.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/mcp-item-isolated.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/mcp-test.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/pokemon-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/regression-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/stress-isolated.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/studio-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/studio-interrupted.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/logs/targeted-final.log
+?? documentation/reports/avelune_studio/pokemon_objects_shops_consolidation/rapport.txt
+```

@@ -143,8 +143,8 @@ final class PokemonWorkspaceController {
     }
   }
 
-  void setView(PokemonWorkspaceView value) {
-    if (mutationActive) return;
+  bool setView(PokemonWorkspaceView value) {
+    if (mutationActive || (value != view && hasPendingChanges)) return false;
     if (value == PokemonWorkspaceView.pokedex) {
       moveInsertGroup = null;
       moveReplaceIndex = null;
@@ -156,6 +156,7 @@ final class PokemonWorkspaceController {
       final owner = commerce;
       if (owner != null) owner.load();
     }
+    return true;
   }
 
   void setSection(PokemonDetailSection value) {
@@ -216,7 +217,7 @@ final class PokemonWorkspaceController {
     _notify();
   }
 
-  void discardSelected() {
+  void discardSelectedSpecies() {
     final id = selectedId;
     if (mutationActive) return;
     lastSavedSpeciesId = null;
@@ -224,13 +225,42 @@ final class PokemonWorkspaceController {
     if (draft != null && id != null) {
       _drafts[id] = PokemonSpeciesDraft(draft.base);
     }
-    commerce?.discard();
     _notify();
   }
 
-  Future<bool> save() async {
+  bool get activeOwnerDirty => switch (view) {
+    PokemonWorkspaceView.pokedex => selectedDraft?.dirty == true,
+    PokemonWorkspaceView.items =>
+      commerce?.item != null && commerce?.dirty == true,
+    PokemonWorkspaceView.shops =>
+      commerce?.shop != null && commerce?.dirty == true,
+    PokemonWorkspaceView.moves => false,
+  };
+
+  bool discardActiveOwner() {
+    if (mutationActive || !activeOwnerDirty) return false;
+    if (view == PokemonWorkspaceView.pokedex) {
+      discardSelectedSpecies();
+    } else {
+      commerce!.discardSelected();
+    }
+    return true;
+  }
+
+  Future<bool> saveActiveOwner() async {
+    if (!hasPendingChanges) return true;
+    final dirtySpecies = _drafts.values.where((draft) => draft.dirty).length;
+    final dirtyCommerce = commerce?.dirty == true ? 1 : 0;
+    if (!activeOwnerDirty || dirtySpecies + dirtyCommerce != 1) {
+      error = 'Un autre brouillon Pokémon reste ouvert. Revenez à sa fiche.';
+      _notify();
+      return false;
+    }
+    if (view == PokemonWorkspaceView.items ||
+        view == PokemonWorkspaceView.shops) {
+      return commerce!.save();
+    }
     final draft = selectedDraft;
-    if (draft?.dirty != true) return commerce?.save() ?? Future.value(false);
     if (saving) return false;
     if (draft == null) return false;
     final id = draft.id;
@@ -244,7 +274,6 @@ final class PokemonWorkspaceController {
       _drafts[id] = PokemonSpeciesDraft(saved);
       await load(refresh: true);
       if (!_disposed) lastSavedSpeciesId = id;
-      if (commerce?.dirty == true && !await commerce!.save()) return false;
       return !_disposed;
     } on Object catch (failure) {
       if (!_disposed) error = 'Enregistrement refusé : $failure';

@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_commerce_controller.dart';
 import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 
 void main() {
   test('an in-flight PNG import cannot erase concurrent draft input', () async {
@@ -24,7 +27,7 @@ void main() {
     );
     controller.undo();
     controller.redo();
-    controller.discardSelected();
+    controller.discardSelectedSpecies();
     expect(controller.selectedDraft!.dirty, isFalse);
     expect(
       (controller.selectedDraft!.document(
@@ -48,7 +51,7 @@ void main() {
       PokemonDocumentFamily.species,
       (json) => (json['names'] as Map)['fr'] = 'Nom sauvé',
     );
-    final operation = controller.save();
+    final operation = controller.saveActiveOwner();
     await port.saveStarted.future;
     controller.undo();
     expect(controller.selectedDraft!.dirty, isTrue);
@@ -64,6 +67,46 @@ void main() {
     expect(controller.selectedDraft!.dirty, isFalse);
     controller.dispose();
   });
+
+  test('active-owner discard never resets a hidden Commerce draft', () async {
+    final port = _HeldPokemonPort();
+    final commerce = PokemonCommerceController(
+      _UnusedCommercePort(),
+      changed: () {},
+    );
+    final controller = PokemonWorkspaceController(
+      port,
+      changed: () {},
+      commerce: commerce,
+    );
+    await controller.load();
+    await controller.selectSpecies('bulbasaur');
+    controller.edit(
+      PokemonDocumentFamily.species,
+      (json) => (json['names'] as Map)['fr'] = 'Espèce en cours',
+    );
+    commerce.selectItem(
+      const ProjectItemDefinition(
+        id: 'potion',
+        displayName: 'Potion',
+        pocketId: 'items',
+      ),
+    );
+    commerce.editItem((item) => item.copyWith(displayName: 'Objet en cours'));
+    expect(await controller.saveActiveOwner(), isFalse);
+    expect(port.saveStarted.isCompleted, isFalse);
+    expect(controller.discardActiveOwner(), isTrue);
+    expect(controller.selectedDraft!.dirty, isFalse);
+    expect(commerce.item!.displayName, 'Objet en cours');
+    expect(commerce.dirty, isTrue);
+    expect(controller.setView(PokemonWorkspaceView.items), isFalse);
+    controller.dispose();
+  });
+}
+
+final class _UnusedCommercePort implements PokemonCommercePort {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 final class _HeldPokemonPort implements PokemonWorkspacePort {

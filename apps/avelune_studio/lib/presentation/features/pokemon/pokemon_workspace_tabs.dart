@@ -4,9 +4,14 @@ import '../../../features/pokemon/application/pokemon_workspace_controller.dart'
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 class PokemonWorkspaceTabs extends StatelessWidget {
-  const PokemonWorkspaceTabs({super.key, required this.controller});
+  const PokemonWorkspaceTabs({
+    super.key,
+    required this.controller,
+    required this.onViewRequested,
+  });
 
   final PokemonWorkspaceController controller;
+  final Future<bool> Function(PokemonWorkspaceView) onViewRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +34,7 @@ class PokemonWorkspaceTabs extends StatelessWidget {
                     : colors.surfaceContainer,
                 foregroundColor: colors.onSurface,
               ),
-              onPressed: () => controller.setView(view),
+              onPressed: () => onViewRequested(view),
               child: Text(label),
             ),
           ),

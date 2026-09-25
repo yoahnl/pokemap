@@ -1,0 +1,302 @@
+
+> @pokemap/mcp-server@0.1.0 test
+> npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts
+
+
+> @pokemap/mcp-server@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ MCP exposes and applies the canonical Border blueprint lifecycle (13028.646916ms)
+✔ checkout verifier certifies the packaged server from the requested repository (12525.484542ms)
+✔ checkout verifier rejects a project outside the requested repository (0.582709ms)
+✔ checkout verifier fails closed on stale presentation catalog evidence (0.151833ms)
+✔ checkout verifier rejects legacy cinematic actions and resources (0.134708ms)
+✔ parses artifact roots separately from project roots (1.957917ms)
+✔ accepts a bounded authoring deadline for large project mutations (0.4695ms)
+✔ all twelve tools publish strict schemas, outputs and annotations (65.510125ms)
+✔ project bootstrap maps inspect and confirmed repair to canonical commands (18.186083ms)
+✔ rate and UTF-8 size budgets fail closed before reaching a gateway (13.698084ms)
+✔ default authoring budget accepts the exact limit and rejects limit + 1 (3.920709ms)
+✔ strict schemas reject a deterministic malformed-envelope corpus (25.792417ms)
+✖ MCP emits the same map.create golden receipt as direct API, CLI and editor (15349.558458ms)
+✔ pokemap_game_export routes an opaque project handle to game_export (131.740583ms)
+✔ MCP describes queries and mutates canonical items (20804.210208ms)
+✖ packaged live MCP executes the complete item mutation smoke contract (17868.291083ms)
+✖ MENU-A packaged MCP authors quests and profile labels and scene visibility (17478.642167ms)
+✔ MCP scene.upsert preserves a non-base Pokemon form (14828.971958ms)
+✔ MCP persists a typed pause menu visibility consequence (12990.306041ms)
+✔ CIN-033 certifies preSession and Presentation through live MCP (20622.319625ms)
+✖ MCP commits and undoes one atomic Presentation clip batch (17079.633292ms)
+✔ MCP executes and rereads every cinematic library catalog action (16160.46125ms)
+✖ MCP applies and rereads the authored presentation profile (16871.827958ms)
+✔ MCP applies and rereads title motion and intro accessibility (14497.103917ms)
+✔ MCP authors, rereads, and safely deletes an encounter table (14077.525834ms)
+✔ MCP exposes Event V2 activation and safe raw asset replacement (15067.874417ms)
+✔ MCP preserves CLI plan/apply parity for one complete map batch (13222.863042ms)
+✔ MCP rejects generic operations for Smart Tile layer creation (11779.986542ms)
+✔ MCP paints every lattice from a geometric Wang selection (11372.116125ms)
+✔ MCP paints precise corners without changing other Wang lattices (14665.04375ms)
+✔ MCP applies Smart Tile cell edits through the canonical transport (12543.589791ms)
+✔ MCP upserts and paints a reusable Smart Tile pattern (12879.970125ms)
+✔ MCP sets and queries a Smart Tile encounter behavior (14555.272041ms)
+✔ MCP changes, reopens, undoes, and reapplies a Smart Tile layer preset (17376.258708ms)
+✖ MCP imports a Tiled tileset through one canonical receipt (15473.673042ms)
+✔ MCP imports one complete TMX bundle through one canonical receipt (14870.120958ms)
+✖ MCP imports a TMX larger than its request budget through an artifact handle (15608.476791ms)
+✔ MCP packs a Tiled image collection through one canonical receipt (14875.7235ms)
+✔ MCP marks dry-run plans non-applicable before confirmation or apply (12631.724875ms)
+✔ MCP normalizes and atomically merges the complete M01 Smart Tile fixture (17594.321917ms)
+✔ MCP previews and confirms literal Smart Tile reconstruction (14784.381708ms)
+✔ MCP organizes nested map folders without rewriting maps (14673.436125ms)
+✔ MCP reorganizes an element atlas and preserves its frames after reopen (14065.756875ms)
+✔ MCP completes a cold-start 34-element visual batch import (14932.121458ms)
+✖ MCP stages an H.264 MP4 as video instead of M4A audio (15743.713ms)
+✔ CHS-057 live MCP certifies identity and portrait transports (13358.786125ms)
+✔ CHS-058 live MCP certifies animation frame and asset transports (14819.840292ms)
+✔ CHS-059 live MCP publishes all Character Studio transport evidence (12172.721417ms)
+✔ CHS-053 live MCP certifies the complete Character Studio lifecycle (15603.298958ms)
+✖ MCP returns a revision conflict without silently rebuilding the plan (17067.683958ms)
+✔ recovery requires an exact confirmation and preserves permission errors (6.674292ms)
+✖ authoring MCP refuses Bag commands and cannot write a user save (17116.147125ms)
+✔ playtest projection freezes validated bytes and removes them on dispose (86.408ms)
+✔ playtest projection fails closed and cleans invalid catalog bytes (21.450542ms)
+✔ playtest projection rejects bytes changed by validation (21.790541ms)
+✔ playtest projection uses the canonical Authoring validator on its copy (28426.287208ms)
+✔ playtest projection rejects a symlink in its destination chain (10.138792ms)
+✔ playtest projection stops traversal at its entry quota (26.46125ms)
+✔ playtest projection fails closed when immutability is unavailable (2.4735ms)
+✔ MCP writes canonical Pokemon species and rejects invalid schemas (19766.096416ms)
+✔ official SDK negotiates 2026-07-28 and preserves structured content (54.006334ms)
+✔ official SDK falls back to the documented 2025-11-25 handshake (28.149625ms)
+✔ unsupported pinned protocol fails closed (0.792916ms)
+✔ the packaged stdio entrypoint completes a real modern client exchange (11470.410083ms)
+✔ Tasks remain disabled until the official 2026 extension API is stable (0.247792ms)
+✔ the packaged entrypoint refuses missing roots without protocol noise (155.116084ms)
+✔ MCP discovers, queries, upserts and deletes RailJourneys (8495.771959ms)
+✔ read-only MCP inspects a real project with cursor pagination (7210.467333ms)
+✔ MCP exposes paginated project presentation preview contexts (6979.482709ms)
+✔ MCP exposes connection and bounded world graph reads (6949.073583ms)
+✔ resource templates project map catalog and diagnostics use explicit handles (6897.613209ms)
+✔ artifact reads are handle-only and unknown handles fail closed (6.858083ms)
+✔ workspace open cannot escape the configured roots (6666.459875ms)
+✔ MENU-I packaged MCP authors and queries regional map semantics (7507.131875ms)
+✔ runtime MCP renders through map_runtime and registers opaque PNG bytes (17716.570292ms)
+✔ sandboxed playtest job returns receipt, artifacts and ordered events (7014.268833ms)
+✔ playtest jobs support bounded cancellation (7248.937542ms)
+✔ failed playtest jobs can be retried as a new traced attempt (7133.749542ms)
+✔ Pokemon preflight failure never creates a runtime executor (7279.063334ms)
+✔ retry rebuilds and revalidates a fresh Pokemon projection (6921.012ms)
+✔ packaged MCP publishes source and authoritative dirty map coherently (7859.864458ms)
+✔ packaged MCP publishes UI07 story ownership without touching maps (8384.049041ms)
+✔ packaged MCP discovers and commits Studio native image import (8251.204792ms)
+ℹ tests 83
+ℹ suites 0
+ℹ pass 73
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 802510.56775
+
+✖ failing tests:
+
+test at test/conformance_security.test.ts:1:6734
+✖ MCP emits the same map.create golden receipt as direct API, CLI and editor (15349.558458ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(value && typeof value === "object" && !Array.isArray(value))
+
+      at record (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:30:10)
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:308:7)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/live_item_smoke.test.ts:1:2498
+✖ packaged live MCP executes the complete item mutation smoke contract (17868.291083ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/live_item_smoke.test.ts:130:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/live_item_smoke.test.ts:164:27)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/live_menu_contracts.test.ts:1:858
+✖ MENU-A packaged MCP authors quests and profile labels and scene visibility (17478.642167ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/live_menu_contracts.test.ts:23:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/live_menu_contracts.test.ts:51:27)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:1:32737
+✖ MCP commits and undoes one atomic Presentation clip batch (17079.633292ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:1792:23)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:1:44729
+✖ MCP applies and rereads the authored presentation profile (16871.827958ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:2347:26)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:1:93805
+✖ MCP imports a Tiled tileset through one canonical receipt (15473.673042ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:4470:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:1:98692
+✖ MCP imports a TMX larger than its request budget through an artifact handle (15608.476791ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:4663:25)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:30:9796
+✖ MCP stages an H.264 MP4 as video instead of M4A audio (15743.713ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:5876:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/mutation_server.test.ts:30:32758
+✖ MCP returns a revision conflict without silently rebuilding the plan (17067.683958ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:85:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/mutation_server.test.ts:6842:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/playtest_player_state.test.ts:1:1215
+✖ authoring MCP refuses Bag commands and cannot write a user save (17116.147125ms)
+  AssertionError [ERR_ASSERTION]: {"ok":false,"data":{},"artifacts":[],"error":{"code":"worker.timeout","message":"The canonical Authoring worker did not answer in time.","retryable":true,"remediation":[],"details":{}}}
+  + actual - expected
+
+  + true
+  - undefined
+
+      at toolData (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/playtest_player_state.test.ts:29:10)
+      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/playtest_player_state.test.ts:56:25)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

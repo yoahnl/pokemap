@@ -53,7 +53,9 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
           ],
         ),
       );
-      if (choice != true || !mounted || !await _pokemon!.save()) return false;
+      if (choice != true || !mounted || !await _pokemon!.saveActiveOwner()) {
+        return false;
+      }
     }
     if (!await _actions.flushEditors()) return false;
     if (!mounted) return false;

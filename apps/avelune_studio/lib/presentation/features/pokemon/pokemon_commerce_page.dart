@@ -20,12 +20,14 @@ class PokemonCommercePage extends StatefulWidget {
     required this.commerce,
     this.pickJson,
     this.onOpenReference,
+    required this.onViewRequested,
   });
 
   final PokemonWorkspaceController controller;
   final PokemonCommerceController commerce;
   final Future<String?> Function()? pickJson;
   final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<bool> Function(PokemonWorkspaceView) onViewRequested;
 
   @override
   State<PokemonCommercePage> createState() => _PokemonCommercePageState();
@@ -64,12 +66,17 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
     setState(() => compactDetail = true);
   }
 
-  void _selectShop(ShopDefinition value) {
-    if (!widget.commerce.selectShop(value)) {
+  Future<void> _selectShop(ShopDefinition value) async {
+    if (!await widget.onViewRequested(PokemonWorkspaceView.shops) || !mounted) {
+      return;
+    }
+    final current = widget.commerce.snapshot?.shops
+        .where((shop) => shop.id == value.id)
+        .firstOrNull;
+    if (current == null || !widget.commerce.selectShop(current)) {
       _blocked();
       return;
     }
-    widget.controller.setView(PokemonWorkspaceView.shops);
     setState(() => compactDetail = true);
   }
 
@@ -81,7 +88,7 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
   Widget build(BuildContext context) {
     final commerce = widget.commerce;
     final items = widget.controller.view == PokemonWorkspaceView.items;
-    if (commerce.loading && commerce.snapshot == null) {
+    if (commerce.loading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (commerce.snapshot == null) {

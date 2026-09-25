@@ -177,7 +177,7 @@ class PokemonSpeciesSaveControls extends StatelessWidget {
               label: 'Annuler les modifications',
               secondary: true,
               onPressed: draft.dirty && !controller.mutationActive
-                  ? controller.discardSelected
+                  ? controller.discardSelectedSpecies
                   : null,
             ),
             StudioButton(
@@ -185,7 +185,7 @@ class PokemonSpeciesSaveControls extends StatelessWidget {
               icon: Icons.save_outlined,
               loading: controller.saving,
               onPressed: draft.dirty && !controller.mutationActive
-                  ? () => controller.save()
+                  ? () => controller.saveActiveOwner()
                   : null,
             ),
           ],

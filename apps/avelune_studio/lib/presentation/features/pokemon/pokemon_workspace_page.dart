@@ -12,6 +12,7 @@ import 'pokemon_species_library.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_workspace_tabs.dart';
 import 'pokemon_commerce_page.dart';
+import 'pokemon_draft_dialog.dart';
 
 class PokemonWorkspacePage extends StatefulWidget {
   const PokemonWorkspacePage({
@@ -34,6 +35,37 @@ class PokemonWorkspacePage extends StatefulWidget {
 class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
   bool showCompactDetail = false;
   bool showExternalImport = false;
+  bool _changingView = false;
+
+  Future<bool> _requestViewChange(PokemonWorkspaceView next) async {
+    final controller = widget.controller;
+    if (controller == null || _changingView || controller.operationActive) {
+      return false;
+    }
+    if (controller.view == next) return true;
+    _changingView = true;
+    try {
+      if (controller.hasPendingChanges) {
+        final decision = await showPokemonDraftDialog(context);
+        if (!mounted || !identical(widget.controller, controller)) return false;
+        if (decision == PokemonDraftDecision.save &&
+            !await controller.saveActiveOwner()) {
+          return false;
+        }
+        if (decision == PokemonDraftDecision.discard &&
+            !controller.discardActiveOwner()) {
+          return false;
+        }
+        if (decision == null || decision == PokemonDraftDecision.stay) {
+          return false;
+        }
+      }
+      if (!mounted || !identical(widget.controller, controller)) return false;
+      return controller.setView(next);
+    } finally {
+      _changingView = false;
+    }
+  }
 
   Future<void> _pickImport() async {
     final controller = widget.controller!;
@@ -97,7 +129,10 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: PokemonWorkspaceTabs(controller: controller),
+              child: PokemonWorkspaceTabs(
+                controller: controller,
+                onViewRequested: _requestViewChange,
+              ),
             ),
             if (controller.error != null)
               _message(context, controller.error!, error: true),
@@ -150,6 +185,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         commerce: controller.commerce!,
                         pickJson: widget.pickJson,
                         onOpenReference: widget.onOpenReference,
+                        onViewRequested: _requestViewChange,
                       ),
               )
             else if (controller.view == PokemonWorkspaceView.moves)

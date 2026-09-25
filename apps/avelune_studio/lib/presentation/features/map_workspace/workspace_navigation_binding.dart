@@ -69,7 +69,14 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     _navigationRequest++;
     _interactionNotice?.close();
     _narrative?.cancelOpening();
+    final refreshCommerce =
+        space == WorkspaceSpace.pokemon &&
+        _space != WorkspaceSpace.pokemon &&
+        _pokemon?.commerce?.snapshot != null;
     _enterSpace(space);
+    if (refreshCommerce) {
+      unawaited(_pokemon!.commerce!.load(refresh: true));
+    }
   }
 
   Future<void> _leavePokemonThenShow(WorkspaceSpace destination) async {
@@ -82,36 +89,13 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     if (pokemon == null) return true;
     if (pokemon.mutationActive) return false;
     if (!pokemon.hasPendingChanges) return true;
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Conserver le brouillon Pokémon ?'),
-        content: const Text(
-          'La fiche contient des modifications non enregistrées.',
-        ),
-        actions: [
-          StudioButton(
-            label: 'Rester',
-            secondary: true,
-            onPressed: () => Navigator.pop(dialogContext, 'stay'),
-          ),
-          StudioButton(
-            label: 'Annuler les modifications',
-            secondary: true,
-            onPressed: () => Navigator.pop(dialogContext, 'discard'),
-          ),
-          StudioButton(
-            label: 'Enregistrer',
-            onPressed: () => Navigator.pop(dialogContext, 'save'),
-          ),
-        ],
-      ),
-    );
+    final choice = await showPokemonDraftDialog(context);
     if (!mounted) return false;
-    if (choice == 'save') return pokemon.save();
-    if (choice == 'discard') {
-      pokemon.discardSelected();
-      return true;
+    if (choice == PokemonDraftDecision.save) {
+      return await pokemon.saveActiveOwner() && !pokemon.hasPendingChanges;
+    }
+    if (choice == PokemonDraftDecision.discard) {
+      return pokemon.discardActiveOwner() && !pokemon.hasPendingChanges;
     }
     return false;
   }
