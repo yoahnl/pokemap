@@ -62,6 +62,8 @@ void main() {
     await pumpIo(tester);
 
     expect(reader.triggered, isTrue);
+    expect(reader.speciesProbes, 2);
+    expect(reader.referenceAtPrecondition, 'bulbasaur');
     expect(
       (await tester.runAsync(
         () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
@@ -72,8 +74,48 @@ void main() {
         .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
         .controller!;
     expect(controller.error, isNull);
+    expect(controller.externalResult, isNotNull);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'transaction precondition rejects a kept species edited after snapshot',
+    (tester) async {
+      final reader = _RaceReader(
+        changeReference: false,
+        changeAtPrecondition: true,
+      );
+      final host = await _openHost(tester, reader);
+      final root = host.source.directory.path;
+      await _previewKeptImport(tester, host);
+      reader.projectRoot = root;
+      reader.armed = true;
+
+      await tester.tap(find.text('Appliquer l’import'));
+      await pumpIo(tester);
+
+      expect(reader.speciesProbes, 2);
+      expect(reader.referenceAtFirstProbe, 'bulbasaur');
+      expect(reader.referenceAtPrecondition, 'bulbasaur');
+      expect(reader.changedAtPrecondition, isTrue);
+      final file = File('$root/data/pokemon/species/bulbasaur.json');
+      final species = jsonDecode(file.readAsStringSync()) as Map;
+      expect((species['refs'] as Map)['learnset'], 'other-learn');
+      expect(
+        (await tester.runAsync(
+          () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
+        ))!,
+        isFalse,
+      );
+      final controller = tester
+          .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
+          .controller!;
+      expect(controller.error, contains('Reprévisualisez'));
+      expect(controller.externalResult, isNull);
+      expect(find.textContaining('Import bulbasaur :'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Future<MapHostFixture> _openHost(WidgetTester tester, _RaceReader reader) =>
@@ -126,14 +168,22 @@ final class _RaceReader
         ProjectFileReader,
         ProjectDirectoryReader,
         ProjectResourceProbeReader {
-  _RaceReader({required this.changeReference});
+  _RaceReader({
+    required this.changeReference,
+    this.changeAtPrecondition = false,
+  });
 
   final bool changeReference;
+  final bool changeAtPrecondition;
   final LocalProjectFileReader _delegate = const LocalProjectFileReader();
   String? projectRoot;
   bool armed = false;
   bool triggered = false;
+  bool changedAtPrecondition = false;
   int _companionProbes = 0;
+  int speciesProbes = 0;
+  String? referenceAtFirstProbe;
+  String? referenceAtPrecondition;
 
   @override
   Future<String> canonicalizeDirectory(String path) =>
@@ -164,6 +214,21 @@ final class _RaceReader
       projectRoot: projectRoot,
       relativePath: relativePath,
     );
+    if (armed && relativePath == 'data/pokemon/species/bulbasaur.json') {
+      final file = File('${this.projectRoot}/$relativePath');
+      final species = jsonDecode(file.readAsStringSync()) as Map;
+      final reference = (species['refs'] as Map)['learnset'] as String;
+      speciesProbes++;
+      if (speciesProbes == 1) referenceAtFirstProbe = reference;
+      if (speciesProbes == 2) {
+        referenceAtPrecondition = reference;
+        if (changeAtPrecondition) {
+          (species['refs'] as Map)['learnset'] = 'other-learn';
+          file.writeAsStringSync(jsonEncode(species));
+          changedAtPrecondition = true;
+        }
+      }
+    }
     if (armed &&
         relativePath == 'data/pokemon/learnsets/bulbasaur.json' &&
         ++_companionProbes == 2) {
