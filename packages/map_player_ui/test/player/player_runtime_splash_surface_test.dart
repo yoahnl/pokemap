@@ -11,7 +11,7 @@ void main() {
     displayName: 'AVELUNE',
     signature: 'UNE EXPÉRIENCE DE JEU',
     backgroundColorHex: '#030306',
-    minimumDisplayDuration: Duration(milliseconds: 2400),
+    minimumDisplayDuration: Duration(milliseconds: 3400),
     exitTransitionDuration: Duration(milliseconds: 360),
     finalCurtainDuration: Duration(milliseconds: 180),
   );
@@ -30,10 +30,9 @@ void main() {
         .load();
   });
 
-  testWidgets('assembles colorful logo fragments into the final lockup',
-      (tester) async {
+  testWidgets('reveals the eclipse before the final lockup', (tester) async {
     final scales = <double>[];
-    for (final progress in <double>[0, .12, .24, .36, .48, .7, 1]) {
+    for (final progress in <double>[0, .12, .24, .36, .48, .7, .82]) {
       await tester.pumpWidget(_app(_timeline(
         branding: branding,
         progress: progress,
@@ -41,21 +40,23 @@ void main() {
         wordmark: wordmark,
       )));
       final fragment = tester.widget<Transform>(find.byKey(
-        const ValueKey<String>('startup-splash-macro-scale'),
+        const ValueKey<String>('startup-splash-eclipse-scale'),
       ));
       scales.add(fragment.transform.storage[0]);
+      expect(find.byKey(const ValueKey<String>('startup-splash-eclipse')),
+          findsOneWidget);
       expect(find.byKey(const ValueKey<String>('startup-splash-mark')),
           findsOneWidget);
       expect(
           find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
           findsOneWidget);
     }
-    expect(scales.first, closeTo(7.2, .001));
+    expect(scales.first, closeTo(1.33, .001));
     for (var i = 1; i < scales.length; i++) {
       expect(scales[i], lessThanOrEqualTo(scales[i - 1]));
-      expect(scales[i], greaterThanOrEqualTo(1));
+      expect(scales[i], greaterThanOrEqualTo(.55));
     }
-    expect(scales.last, closeTo(1, .001));
+    expect(scales.last, closeTo(.55, .001));
     expect(tester.takeException(), isNull);
   });
 
@@ -82,11 +83,11 @@ void main() {
     double? previousMark;
     double? previousName;
     double? previousScale;
-    double? previousMacro;
-    for (var frame = 0; frame <= 118; frame++) {
+    double? previousEclipse;
+    for (var frame = 0; frame <= 167; frame++) {
       await tester.pumpWidget(_app(_timeline(
         branding: branding,
-        progress: frame / 144,
+        progress: frame / 204,
         logo: logo,
         wordmark: wordmark,
       )));
@@ -102,35 +103,35 @@ void main() {
           .opacity;
       final scale = tester
           .widget<Transform>(find.byKey(
-            const ValueKey<String>('startup-splash-macro-scale'),
+            const ValueKey<String>('startup-splash-eclipse-scale'),
           ))
           .transform
           .storage[0];
-      final macro = tester
+      final eclipse = tester
           .widget<Opacity>(find.byKey(
-            const ValueKey<String>('startup-splash-macro'),
+            const ValueKey<String>('startup-splash-eclipse-logo'),
           ))
           .opacity;
       if (previousMark != null) {
         expect(mark, inInclusiveRange(previousMark, previousMark + .08));
         expect(name, inInclusiveRange(previousName!, previousName + .08));
-        expect(scale, inInclusiveRange(previousScale! - .18, previousScale));
-        expect((macro - previousMacro!).abs(), lessThanOrEqualTo(.12));
+        expect(scale, inInclusiveRange(previousScale! - .06, previousScale));
+        expect((eclipse - previousEclipse!).abs(), lessThanOrEqualTo(.12));
       }
       previousMark = mark;
       previousName = name;
       previousScale = scale;
-      previousMacro = macro;
+      previousEclipse = eclipse;
     }
     expect(previousMark, 1);
     expect(previousName, 1);
-    expect(previousScale, 1);
+    expect(previousScale, .55);
   });
 
-  testWidgets('fades the macro artwork in before settling the logo',
+  testWidgets('reveals the moon through the eclipse before the lockup',
       (tester) async {
     final alphas = <double>[];
-    for (final progress in <double>[0, .02, .04, .06, .08]) {
+    for (final progress in <double>[0, .18, .21, .26, .32]) {
       await tester.pumpWidget(_app(_timeline(
         branding: branding,
         progress: progress,
@@ -139,7 +140,7 @@ void main() {
       )));
       alphas.add(tester
           .widget<Opacity>(find.byKey(
-            const ValueKey<String>('startup-splash-macro'),
+            const ValueKey<String>('startup-splash-eclipse-logo'),
           ))
           .opacity);
     }
@@ -147,7 +148,7 @@ void main() {
     for (var i = 1; i < alphas.length; i++) {
       expect(alphas[i], greaterThan(alphas[i - 1]));
     }
-    expect(alphas.last, 1);
+    expect(alphas.last, greaterThan(.9));
   });
 
   testWidgets('reduced motion shows the final lockup immediately',
@@ -161,7 +162,7 @@ void main() {
       reducedMotion: true,
     )));
     expect(
-      find.byKey(const ValueKey<String>('startup-splash-macro')),
+      find.byKey(const ValueKey<String>('startup-splash-eclipse')),
       findsNothing,
     );
     expect(
@@ -245,8 +246,8 @@ void main() {
     testWidgets('matches the ${viewport.$1} motion checkpoints',
         (tester) async {
       await _setViewport(tester, viewport.$2);
-      for (final milliseconds in <int>[0, 240, 480, 720, 1152, 1968]) {
-        final progress = milliseconds / 2400;
+      for (final milliseconds in <int>[0, 240, 480, 720, 1152, 1968, 2788]) {
+        final progress = milliseconds / 3400;
         await tester.pumpWidget(_goldenApp(_timeline(
           branding: branding,
           progress: progress,
