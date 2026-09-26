@@ -19,8 +19,7 @@ struct ContentView: View {
                 }
                 .tag(AppTab.settings)
         }
-        .tint(AveluneTheme.lilac)
-        .preferredColorScheme(.dark)
+        .tint(AveluneTheme.action)
         .fullScreenCover(item: $appState.presentedGame) { game in
             GamePlayerView(
                 viewModel: appState.gamePlayerViewModel,

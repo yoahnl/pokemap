@@ -216,6 +216,7 @@ class AveluneLibraryBridge {
       'publisher': game.publisherName,
       'version': game.currentVersion.gameVersion.toString(),
       'defaultLocale': game.defaultLocale,
+      'supportedLocales': game.supportedLocales,
       'accentColor': game.branding?.accentColor,
       'iconPath': activity.iconPath,
       'coverPath': activity.coverPath,

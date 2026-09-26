@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		012111EC8E6F735BA856F561 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C8297DB9B85FDD7C686D76 /* Game.swift */; };
 		064B2736739E84B090F31E7B /* GameRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB05939403664069C5DA46 /* GameRepository.swift */; };
+		24794E141E452E4406AD4845 /* LibraryVisualGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D96307BEC01034E29BCB09 /* LibraryVisualGateTests.swift */; };
 		28844350F4CC24D7CF3A47F3 /* GameListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EF0A6495FD9C41910A027B /* GameListViewModel.swift */; };
 		3EE917FB245D7BB4DBC93ECE /* HubPlatformChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFEC21B017B60381E9469DE5 /* HubPlatformChannel.swift */; };
 		4136C664E1396660DC1C87AF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA7EB1F065D0D796E1FFD23 /* SettingsView.swift */; };
@@ -18,15 +19,35 @@
 		6D6B3D765EA326DD3DD2CBB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13DDA7E95C7A585B155082CB /* ContentView.swift */; };
 		8CB04C5CFB24BACBCB2DD71F /* AveluneTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */; };
 		955A6A25546BFAC90C2E3B78 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C1A15ED45E310612D633BE3D /* Assets.xcassets */; };
+		A6C82FC234C297BF85E839A4 /* GameLibraryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FDEF290C3E4EBF6EB1722AB /* GameLibraryComponents.swift */; };
 		AEC9284E1C25AB3AB998B457 /* GamePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2816FA8443BE91C29475396C /* GamePlayerView.swift */; };
 		AF47FD5B6F6A067C020021AB /* GameLibraryUseCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F1542887444F882A9359CA /* GameLibraryUseCases.swift */; };
 		C66C6DDBEE92761A7DC14B5F /* GameListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA78EED43A72DA553AE3B339 /* GameListView.swift */; };
 		D3E891C6ABBBC35C8BE6553E /* GamePlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51B2534A15668E251F3C00B /* GamePlayerViewModel.swift */; };
 		DD392E360BD2E320102F2F8F /* AveluneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8593CB6197C587105FE26ED3 /* AveluneApp.swift */; };
+		E0A6F2462EE082763418D96F /* GameDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD49D510A1A8502593E74015 /* GameDetailView.swift */; };
 		E3FA605221D9CAFA08C57F50 /* FlutterEngineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DB8C48F97D9A0DE60697BD6 /* FlutterEngineManager.swift */; };
+		E639E4DB437D0B3BEA50FC37 /* GameLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C87A8CB4427A867077C00B /* GameLibraryTests.swift */; };
 		EC3E79BD297D8C633E29BDD2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C61F8EF1A6BCF0E97EC94321 /* AppIcon.icon */; };
 		EF49F869B223535A935B5A39 /* AppComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 098820CC6943BEF1D1542FCF /* AppComposition.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5FF685945F578F0CFAAB7C43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 188F72070CA879D41C71A1EE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 092850D3A02238DB7F41A15F;
+			remoteInfo = AveluneiOS;
+		};
+		ABF97B1B5122877F8B40C894 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 188F72070CA879D41C71A1EE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 092850D3A02238DB7F41A15F;
+			remoteInfo = AveluneiOS;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		022C618AD49B6491C916A767 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -34,10 +55,13 @@
 		13DDA7E95C7A585B155082CB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2816FA8443BE91C29475396C /* GamePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePlayerView.swift; sourceTree = "<group>"; };
 		37EF0A6495FD9C41910A027B /* GameListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameListViewModel.swift; sourceTree = "<group>"; };
+		40D96307BEC01034E29BCB09 /* LibraryVisualGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryVisualGateTests.swift; sourceTree = "<group>"; };
 		4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AveluneTheme.swift; sourceTree = "<group>"; };
 		50F1542887444F882A9359CA /* GameLibraryUseCases.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLibraryUseCases.swift; sourceTree = "<group>"; };
 		5D83CE70419ACA03C3733BBC /* FlutterGameDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterGameDataSource.swift; sourceTree = "<group>"; };
+		5FDEF290C3E4EBF6EB1722AB /* GameLibraryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLibraryComponents.swift; sourceTree = "<group>"; };
 		66FB05939403664069C5DA46 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRepository.swift; sourceTree = "<group>"; };
+		6FA3B874A0AC2CE3C932464F /* AveluneiOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AveluneiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		768F736FC7ED3ECC450CF532 /* AveluneiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AveluneiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7DB8C48F97D9A0DE60697BD6 /* FlutterEngineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterEngineManager.swift; sourceTree = "<group>"; };
 		8593CB6197C587105FE26ED3 /* AveluneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AveluneApp.swift; sourceTree = "<group>"; };
@@ -48,8 +72,11 @@
 		C1AD87DC80E159C4946A4E48 /* FlutterNativeIntegration */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FlutterNativeIntegration; path = "flutter_runtime/build/swift-package/FlutterNativeIntegration"; sourceTree = SOURCE_ROOT; };
 		C61F8EF1A6BCF0E97EC94321 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		CA78EED43A72DA553AE3B339 /* GameListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameListView.swift; sourceTree = "<group>"; };
+		CD49D510A1A8502593E74015 /* GameDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDetailView.swift; sourceTree = "<group>"; };
 		D9D6FC4592ADDAFA85F90964 /* GameRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRepositoryImpl.swift; sourceTree = "<group>"; };
 		E4C8297DB9B85FDD7C686D76 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		E4C87A8CB4427A867077C00B /* GameLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLibraryTests.swift; sourceTree = "<group>"; };
+		F3ACA53A40E571B346E24DCC /* AveluneiOSUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AveluneiOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +173,8 @@
 			isa = PBXGroup;
 			children = (
 				768F736FC7ED3ECC450CF532 /* AveluneiOS.app */,
+				6FA3B874A0AC2CE3C932464F /* AveluneiOSTests.xctest */,
+				F3ACA53A40E571B346E24DCC /* AveluneiOSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,11 +207,21 @@
 			isa = PBXGroup;
 			children = (
 				4B77507DD6B29EA7C8AE0631 /* AveluneTheme.swift */,
+				CD49D510A1A8502593E74015 /* GameDetailView.swift */,
+				5FDEF290C3E4EBF6EB1722AB /* GameLibraryComponents.swift */,
 				CA78EED43A72DA553AE3B339 /* GameListView.swift */,
 				2816FA8443BE91C29475396C /* GamePlayerView.swift */,
 				8FA7EB1F065D0D796E1FFD23 /* SettingsView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		E931339323D3F5F3CD86F24D /* AveluneiOSUITests */ = {
+			isa = PBXGroup;
+			children = (
+				40D96307BEC01034E29BCB09 /* LibraryVisualGateTests.swift */,
+			);
+			path = AveluneiOSUITests;
 			sourceTree = "<group>";
 		};
 		ECB9DE43C7D46358E8905FAD /* DataSources */ = {
@@ -197,9 +236,19 @@
 			isa = PBXGroup;
 			children = (
 				6197ED970A2B7F99EE6FBA37 /* AveluneiOS */,
+				F7C48F78B8BD183A1A66FD81 /* AveluneiOSTests */,
+				E931339323D3F5F3CD86F24D /* AveluneiOSUITests */,
 				4F4B9A7FCF5310B7A0B4BD2C /* Packages */,
 				A487528E9E173C1F6B021663 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		F7C48F78B8BD183A1A66FD81 /* AveluneiOSTests */ = {
+			isa = PBXGroup;
+			children = (
+				E4C87A8CB4427A867077C00B /* GameLibraryTests.swift */,
+			);
+			path = AveluneiOSTests;
 			sourceTree = "<group>";
 		};
 		F7D34007CAA7D4C04098CB1C /* ViewModels */ = {
@@ -235,6 +284,42 @@
 			productReference = 768F736FC7ED3ECC450CF532 /* AveluneiOS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		0A4122F97E94F3EE336B1875 /* AveluneiOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 71769A51662C19CCC560983E /* Build configuration list for PBXNativeTarget "AveluneiOSUITests" */;
+			buildPhases = (
+				9A3C12572B200DA1B5637D7B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BAF7D75964E68ABD40AAF452 /* PBXTargetDependency */,
+			);
+			name = AveluneiOSUITests;
+			packageProductDependencies = (
+			);
+			productName = AveluneiOSUITests;
+			productReference = F3ACA53A40E571B346E24DCC /* AveluneiOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		E40DB9A8FA828CD78610A1CD /* AveluneiOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA67AC4F16BC6D7D2BD0940F /* Build configuration list for PBXNativeTarget "AveluneiOSTests" */;
+			buildPhases = (
+				5B7E451EE7C6D0D91B627990 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5B44D9B509DA6159A617396B /* PBXTargetDependency */,
+			);
+			name = AveluneiOSTests;
+			packageProductDependencies = (
+			);
+			productName = AveluneiOSTests;
+			productReference = 6FA3B874A0AC2CE3C932464F /* AveluneiOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -246,6 +331,9 @@
 				TargetAttributes = {
 					092850D3A02238DB7F41A15F = {
 						DevelopmentTeam = NLNMNV3B3S;
+					};
+					0A4122F97E94F3EE336B1875 = {
+						TestTargetID = 092850D3A02238DB7F41A15F;
 					};
 				};
 			};
@@ -267,6 +355,8 @@
 			projectRoot = "";
 			targets = (
 				092850D3A02238DB7F41A15F /* AveluneiOS */,
+				E40DB9A8FA828CD78610A1CD /* AveluneiOSTests */,
+				0A4122F97E94F3EE336B1875 /* AveluneiOSUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -318,6 +408,8 @@
 				E3FA605221D9CAFA08C57F50 /* FlutterEngineManager.swift in Sources */,
 				5F863DDC453B95004AF13C46 /* FlutterGameDataSource.swift in Sources */,
 				012111EC8E6F735BA856F561 /* Game.swift in Sources */,
+				E0A6F2462EE082763418D96F /* GameDetailView.swift in Sources */,
+				A6C82FC234C297BF85E839A4 /* GameLibraryComponents.swift in Sources */,
 				AF47FD5B6F6A067C020021AB /* GameLibraryUseCases.swift in Sources */,
 				C66C6DDBEE92761A7DC14B5F /* GameListView.swift in Sources */,
 				28844350F4CC24D7CF3A47F3 /* GameListViewModel.swift in Sources */,
@@ -330,9 +422,70 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5B7E451EE7C6D0D91B627990 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E639E4DB437D0B3BEA50FC37 /* GameLibraryTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9A3C12572B200DA1B5637D7B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				24794E141E452E4406AD4845 /* LibraryVisualGateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		5B44D9B509DA6159A617396B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 092850D3A02238DB7F41A15F /* AveluneiOS */;
+			targetProxy = 5FF685945F578F0CFAAB7C43 /* PBXContainerItemProxy */;
+		};
+		BAF7D75964E68ABD40AAF452 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 092850D3A02238DB7F41A15F /* AveluneiOS */;
+			targetProxy = ABF97B1B5122877F8B40C894 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		4648432993C29323BDD45FE9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AveluneiOS;
+			};
+			name = Debug;
+		};
+		82D26DF51228EA6007D1BB37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AveluneiOS.app/AveluneiOS";
+			};
+			name = Release;
+		};
 		841653ED28CDB4AC39A101D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -484,6 +637,22 @@
 			};
 			name = Release;
 		};
+		DB9C53060C9046CF73ABED81 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AveluneiOS;
+			};
+			name = Release;
+		};
 		DE097324017EFEC34B98E7EA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -506,6 +675,22 @@
 			};
 			name = Release;
 		};
+		FAA98C79986DB409F6A59215 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AveluneiOS.app/AveluneiOS";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -514,6 +699,24 @@
 			buildConfigurations = (
 				95576490203096E8CB87B8CB /* Debug */,
 				ACECC0D9CC475F4271D9D2EF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		71769A51662C19CCC560983E /* Build configuration list for PBXNativeTarget "AveluneiOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4648432993C29323BDD45FE9 /* Debug */,
+				DB9C53060C9046CF73ABED81 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CA67AC4F16BC6D7D2BD0940F /* Build configuration list for PBXNativeTarget "AveluneiOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FAA98C79986DB409F6A59215 /* Debug */,
+				82D26DF51228EA6007D1BB37 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

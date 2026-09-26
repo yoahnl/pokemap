@@ -20,7 +20,7 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Langue")
                                         .font(.headline)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AveluneTheme.text)
                                     Text("Langue de l’application")
                                         .font(.caption)
                                         .foregroundStyle(AveluneTheme.muted)
@@ -56,7 +56,7 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Infos de debug")
                                         .font(.headline)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AveluneTheme.text)
                                     Text("Afficher les informations techniques")
                                         .font(.caption)
                                         .foregroundStyle(AveluneTheme.muted)
@@ -79,7 +79,7 @@ struct SettingsView: View {
                             VStack(spacing: 15) {
                                 Text("Des histoires à emporter partout.")
                                     .font(.system(.headline, design: .rounded))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AveluneTheme.text)
 
                                 Text("Avelune pour iOS · Version \(version)")
                                     .font(.caption)
@@ -116,6 +116,7 @@ struct SettingsView: View {
                 .scaledToFit()
                 .frame(width: 205, height: 58, alignment: .leading)
                 .offset(x: -18)
+                .shadow(color: AveluneTheme.text.opacity(0.32), radius: 1.5)
                 .accessibilityLabel("Avelune")
 
             Text("VOTRE ESPACE")
@@ -125,7 +126,7 @@ struct SettingsView: View {
 
             Text("Réglages")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AveluneTheme.text)
 
             Text("Une expérience à votre image.")
                 .font(.subheadline)

@@ -21,8 +21,18 @@ schemes:
       config: Release
     analyze:
       config: Debug
+    test:
+      targets:
+        - AveluneiOSTests
     archive:
       config: Release
+  AveluneVisualGate:
+    build:
+      targets:
+        AveluneiOS: all
+    test:
+      targets:
+        - AveluneiOSUITests
 
 packages:
   FlutterNativeIntegration:
@@ -65,3 +75,23 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/Frameworks"
+  AveluneiOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AveluneiOSTests
+    dependencies:
+      - target: AveluneiOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+  AveluneiOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: AveluneiOSUITests
+    dependencies:
+      - target: AveluneiOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"

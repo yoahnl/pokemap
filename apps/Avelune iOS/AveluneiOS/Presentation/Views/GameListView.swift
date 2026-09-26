@@ -5,50 +5,76 @@ struct GameListView: View {
     @ObservedObject var viewModel: GameListViewModel
     let onGameSelected: (Game) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var artworkTransition
+    @State private var path: [String] = []
+    @State private var quickViewGame: Game?
     @State private var showFilePicker = false
     @State private var pendingImportURL: URL?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                libraryHeader
+        NavigationStack(path: $path) {
+            ZStack {
+                VStack(spacing: 0) {
+                    libraryHeader
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 18) {
-                        if viewModel.games.isEmpty {
-                            emptyLibrary
-                        } else {
-                            HStack {
-                                Text("VOS AVENTURES")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .tracking(2.2)
-                                    .foregroundStyle(AveluneTheme.muted)
-
-                                Spacer()
-
-                                Text("\(viewModel.games.count)")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(AveluneTheme.cyan)
-                            }
-                            .padding(.horizontal, 4)
-
-                            ForEach(viewModel.games) { game in
-                                GameRow(
-                                    game: game,
-                                    onPlay: { onGameSelected(game) },
-                                    onDelete: { Task { await viewModel.uninstall(game) } }
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 26) {
+                            if viewModel.games.isEmpty {
+                                emptyLibrary
+                                    .padding(.horizontal, 24)
+                            } else {
+                                FeaturedGamesView(
+                                    games: Game.featuredOrder(viewModel.games),
+                                    onPlay: onGameSelected,
+                                    onDetails: showDetails,
+                                    onQuickView: showQuickView
                                 )
+
+                                GameCollectionView(
+                                    games: viewModel.games,
+                                    transition: artworkTransition,
+                                    onDetails: showDetails,
+                                    onQuickView: showQuickView,
+                                    onDelete: { game in Task { await viewModel.uninstall(game) } },
+                                    onImport: { showFilePicker = true }
+                                )
+                                .padding(.horizontal, 24)
                             }
                         }
+                        .padding(.top, 24)
+                        .padding(.bottom, 36)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 22)
-                    .padding(.bottom, 36)
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
+                .background(AveluneBackground())
+
+                if let game = quickViewGame {
+                    QuickGameView(
+                        game: game,
+                        transition: artworkTransition,
+                        reduceMotion: reduceMotion,
+                        onClose: closeQuickView,
+                        onPlay: {
+                            closeQuickView()
+                            onGameSelected(game)
+                        },
+                        onDetails: {
+                            quickViewGame = nil
+                            DispatchQueue.main.async {
+                                path.append(game.id)
+                            }
+                        }
+                    )
+                    .zIndex(1)
+                }
             }
-            .background(AveluneBackground())
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: String.self) { id in
+                if let game = viewModel.games.first(where: { $0.id == id }) {
+                    GameDetailView(game: game, onPlay: { onGameSelected(game) })
+                }
+            }
             .task { await viewModel.refresh() }
             .sheet(isPresented: $showFilePicker, onDismiss: {
                 guard let url = pendingImportURL else { return }
@@ -73,9 +99,9 @@ struct GameListView: View {
                 if viewModel.isBusy && viewModel.installationStage == nil {
                     ProgressView("Mise à jour de la bibliothèque…")
                         .tint(AveluneTheme.lilac)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AveluneTheme.text)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.black.opacity(0.6))
+                        .background(.ultraThinMaterial)
                 }
             }
             .alert("Erreur", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -88,56 +114,62 @@ struct GameListView: View {
         }
     }
 
+    private func showDetails(_ game: Game) { path.append(game.id) }
+
+    private func showQuickView(_ game: Game) {
+        withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.86)) {
+            quickViewGame = game
+        }
+    }
+
+    private func closeQuickView() {
+        withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.38, dampingFraction: 0.88)) {
+            quickViewGame = nil
+        }
+    }
+
     private var libraryHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image("AveluneWordmark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 205, height: 58, alignment: .leading)
-                .offset(x: -18)
-                .accessibilityLabel("Avelune")
+            HStack(spacing: 10) {
+                Image("AveluneMoon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 43, height: 43)
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
+                    .accessibilityHidden(true)
 
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("VOTRE UNIVERS")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .tracking(2.5)
-                        .foregroundStyle(AveluneTheme.cyan)
-                    Text("Bibliothèque")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
+                Image("AveluneWordmark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 160, height: 46, alignment: .leading)
+                    .shadow(color: AveluneTheme.text.opacity(0.32), radius: 1.5)
+                    .accessibilityLabel("Avelune")
 
                 Spacer()
 
-                Button {
-                    showFilePicker = true
-                } label: {
+                Button { showFilePicker = true } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 34, height: 34)
+                        .font(.system(size: 19, weight: .semibold))
+                        .frame(width: 44, height: 44)
                 }
                 .aveluneGlassButton(circular: true)
                 .accessibilityLabel("Importer un jeu")
             }
 
-            Text(viewModel.games.isEmpty
-                 ? "Vos aventures commencent ici."
-                 : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "") à portée de main.")
+            Text("Bibliothèque")
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                .foregroundStyle(AveluneTheme.text)
+
+            Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
                 .font(.subheadline)
                 .foregroundStyle(AveluneTheme.muted)
-                .padding(.top, 3)
         }
         .padding(.horizontal, 24)
         .padding(.top, 8)
-        .padding(.bottom, 22)
+        .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            LinearGradient(
-                colors: [AveluneTheme.surface.opacity(0.9), AveluneTheme.background.opacity(0.96)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            AveluneTheme.background
             .ignoresSafeArea(edges: .top)
         }
         .overlay(alignment: .bottom) {
@@ -157,7 +189,7 @@ struct GameListView: View {
             VStack(spacing: 10) {
                 Text("Un monde vous attend")
                     .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AveluneTheme.text)
 
                 Text("Importez votre premier jeu et retrouvez toutes vos aventures au même endroit.")
                     .font(.subheadline)
@@ -223,7 +255,7 @@ private struct InstallationView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Une nouvelle aventure arrive")
                             .font(.system(size: 29, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AveluneTheme.text)
                             .fixedSize(horizontal: false, vertical: true)
 
                         Text(gameName)
@@ -247,7 +279,7 @@ private struct InstallationView: View {
 
                             Text(stage.title)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AveluneTheme.text)
 
                             Spacer()
 
@@ -388,134 +420,6 @@ private extension InstallationStage {
         case .preparing: return "doc.zipper"
         case .installing: return "square.stack.3d.up"
         case .finishing: return "checkmark.seal"
-        }
-    }
-}
-
-private struct GameRow: View {
-    let game: Game
-    let onPlay: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ZStack(alignment: .bottomLeading) {
-                GameArtwork(path: game.artworkPath)
-
-                LinearGradient(
-                    colors: [.clear, AveluneTheme.background.opacity(0.28), AveluneTheme.background.opacity(0.96)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(game.canContinue ? "CONTINUER À JOUER" : "VOTRE AVENTURE")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .tracking(1.8)
-                        .foregroundStyle(AveluneTheme.cyan)
-
-                    Spacer()
-
-                    Text(game.title)
-                        .font(.system(size: 27, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .shadow(color: .black.opacity(0.3), radius: 8, y: 2)
-
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.78))
-                        .lineLimit(1)
-                }
-                .padding(22)
-            }
-            .frame(height: 210)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .onTapGesture(perform: onPlay)
-            .accessibilityLabel("Jouer à \(game.title)")
-            .accessibilityAddTraits(.isButton)
-
-            HStack {
-                Menu {
-                    Button(role: .destructive, action: onDelete) {
-                        Label("Supprimer le jeu", systemImage: "trash")
-                    }
-                } label: {
-                    Label("Options", systemImage: "ellipsis")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .aveluneGlassButton()
-                .accessibilityLabel("Options pour \(game.title)")
-
-                Spacer()
-
-                Button(action: onPlay) {
-                    Label(game.canContinue ? "Reprendre" : "Jouer", systemImage: "play.fill")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .aveluneGlassButton(prominent: true)
-                .accessibilityLabel("Jouer à \(game.title)")
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [AveluneTheme.surfaceRaised, AveluneTheme.surface],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(AveluneTheme.border, lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.16), radius: 20, y: 10)
-    }
-
-    private var subtitle: String {
-        [game.author, game.version.map { "v\($0)" }]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
-    }
-}
-
-private struct GameArtwork: View {
-    let path: String?
-
-    var body: some View {
-        GeometryReader { geometry in
-            Group {
-                if let path, let image = UIImage(contentsOfFile: path) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    ZStack {
-                        LinearGradient(
-                            colors: [AveluneTheme.lilac.opacity(0.54), AveluneTheme.surfaceRaised, AveluneTheme.cyan.opacity(0.34)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-
-                        Circle()
-                            .fill(AveluneTheme.cyan.opacity(0.25))
-                            .frame(width: 210, height: 210)
-                            .blur(radius: 42)
-                            .offset(x: 115, y: -65)
-
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 78, weight: .ultraLight))
-                            .foregroundStyle(.white.opacity(0.65))
-                            .offset(x: 80, y: -15)
-                    }
-                }
-            }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .clipped()
         }
     }
 }
