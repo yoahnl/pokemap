@@ -9,6 +9,7 @@ import 'resource_catalog.dart';
 import 'resource_catalog_toolbar.dart';
 import 'resource_catalog_view.dart';
 import 'resource_category_filter.dart';
+import 'resource_category_tree.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
 import 'resource_terrain_draft_list.dart';
@@ -123,11 +124,9 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
         },
       );
 
-  Widget categories(Map<String, String> values, {VoidCallback? close}) =>
+  Widget categories(ResourceCategoryTree tree, {VoidCallback? close}) =>
       ResourceCategoryFilter(
-        categories: values,
-        items: items,
-        kind: state.kind,
+        tree: tree,
         selected: state.category,
         onChanged: (value) {
           change(() => state.category = value);
@@ -144,10 +143,13 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = state.visibleItems(items);
+    final tree = ResourceCategoryTree(widget.project, state.kind, items);
+    final filtered = state.visibleItems(
+      items,
+      acceptedCategories: tree.idsFor(state.category),
+    );
     final selected = state.reconcileSelection(filtered);
-    final values = resourceCategories(widget.project, state.kind, items: items);
-    final hasCategories = values.keys.any((value) => value.isNotEmpty);
+    final hasCategories = tree.nodes.isNotEmpty || tree.uncategorized > 0;
     return LayoutBuilder(
       builder: (context, bounds) {
         final inlineDetail =
@@ -217,7 +219,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                         title: 'Catégories',
                         closeLabel: 'Retour aux ressources',
                         builder: (context, refresh, close) =>
-                            categories(values, close: close),
+                            categories(tree, close: close),
                       )
                     : null,
               ),
@@ -236,7 +238,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (inlineCategories) ...[
-                      SizedBox(width: 180, child: categories(values)),
+                      SizedBox(width: 220, child: categories(tree)),
                       const SizedBox(width: 14),
                     ],
                     Expanded(

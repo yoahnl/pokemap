@@ -129,6 +129,8 @@ void main() {
     await pumpIo(tester);
     expect(find.byKey(const ValueKey('atlas-selection')), findsOneWidget);
     await captureM3Widget(tester, capture, '03-palette-tuiles');
+    await tester.tap(find.byTooltip('Retour à la carte'));
+    await tester.pumpAndSettle();
     final layout = tester.widget<MapWorkspaceLayout>(
       find.byType(MapWorkspaceLayout),
     );

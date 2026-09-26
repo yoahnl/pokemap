@@ -108,22 +108,36 @@ void main() {
         expect(tester.takeException(), isNull);
       }
 
+      Future<void> openPalette() async {
+        await tester.tap(find.byTooltip('Palette'));
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> closePalette() async {
+        await tester.tap(find.byTooltip('Retour à la carte'));
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> chooseTool(String label) async {
+        await openPalette();
+        await tester.tap(find.byTooltip(label));
+        await closePalette();
+      }
+
       await settle();
+      await openPalette();
       await tester.tap(find.text('Décor du pinceau').first);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
-      await tester.tap(find.byTooltip('Déplacer la vue'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
+      await chooseTool('Déplacer la vue');
+      await openPalette();
       resources.store.request(stressAtlasId(0));
       await settle();
       expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Peindre'));
-      await tester.pump();
+      await closePalette();
+      await chooseTool('Peindre');
       expect(resources.store.priority, contains(stressAtlasId(1)));
+      await openPalette();
       final palette = tester.widget<MapWorkspacePalette>(
         find.byType(MapWorkspacePalette),
       );
@@ -139,40 +153,43 @@ void main() {
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(2)));
       expect(resources.store.priority, isNot(contains(stressAtlasId(1))));
-      await tester.tap(find.text('Terrains'));
+      await openPalette();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MapWorkspacePalette),
+          matching: find.text('Terrains'),
+        ),
+      );
       await tester.pump();
       await tester.tap(find.text(terrain.previewPreset.name).first);
       await settle();
-      await tester.tap(find.byTooltip('Déplacer la vue'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
+      await chooseTool('Déplacer la vue');
+      await openPalette();
+      await closePalette();
       expect(find.byType(MapWorkspacePalette), findsNothing);
       expect(resources.store.priority, contains(stressAtlasId(2)));
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Peindre'));
+      await openPalette();
+      await closePalette();
+      await chooseTool('Peindre');
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(2)));
       expect(
         resources.decodedBytes,
         lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
       );
+      await openPalette();
       await tester.tap(find.text('Personnages').last);
       await tester.pump();
       await tester.tap(find.text(character.name).first);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
       expect(resources.store.priority, isNot(contains(stressAtlasId(2))));
-      await tester.tap(find.byTooltip('Déplacer la vue'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
+      await chooseTool('Déplacer la vue');
+      await openPalette();
       resources.store.request(stressAtlasId(0));
       await settle();
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('Placer un personnage'));
+      await closePalette();
+      await chooseTool('Placer un personnage');
       await settle();
       expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
       expect(resources.store.priority, contains(stressAtlasId(1)));

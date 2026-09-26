@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
@@ -53,6 +54,38 @@ void main() {
       reason: 'the menu target is also the selection',
     );
   });
+
+  test(
+    'a lone decor has one honest reason for both unavailable directions',
+    () {
+      final id = MapEditingCommands(
+        h.document,
+        h.project,
+      ).place(workspaceElement, const GridPos(x: 4, y: 4))!;
+      final actions = mapContextActionsFor(
+        MapContextTarget(
+          mapId: h.document.current.id,
+          family: MapContextFamily.decor,
+          id: id,
+          label: 'Arbre',
+          kindLabel: 'Décor',
+        ),
+        MapContextActionContext(
+          document: h.document,
+          project: h.project,
+          position: const GridPos(x: 4, y: 4),
+        ),
+      );
+      final forward = actions.singleWhere(
+        (action) => action.command == MapContextCommand.bringForward,
+      );
+      final backward = actions.singleWhere(
+        (action) => action.command == MapContextCommand.sendBackward,
+      );
+      expect(forward.unavailable, backward.unavailable);
+      expect(forward.unavailable, contains('Aucun autre décor'));
+    },
+  );
 
   testWidgets('a right click never paints, places or erases', (tester) async {
     h.view

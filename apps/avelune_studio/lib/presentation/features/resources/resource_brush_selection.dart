@@ -55,6 +55,8 @@ Future<bool> useResourceOnMap({
     state.brush = null;
     state.tool = StudioMapTool.terrain;
   } else {
+    state.paletteTab = 'Décors';
+    state.revealPalette = true;
     state.brush = item.element;
     state.tile = null;
     state.terrain = null;

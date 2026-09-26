@@ -24,8 +24,14 @@ void main() {
     await tester.pumpWidget(f.app(tester));
     await pumpIo(tester);
     final original = f.controller.active!;
+    await tester.tap(find.byTooltip('Palette'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Arbre du jardin').first);
-    await tester.pump();
+    await tester.pumpAndSettle();
+    if (find.byType(Dialog).evaluate().isNotEmpty) {
+      await tester.tap(find.byTooltip('Retour à la carte'));
+      await tester.pumpAndSettle();
+    }
     Offset cell(int x, int y) {
       final canvas = find.byKey(const ValueKey('map-canvas'));
       final scale = tester

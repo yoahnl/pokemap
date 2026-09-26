@@ -7,8 +7,10 @@ import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notic
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
-import 'map_workspace_canvas.dart';
 import 'map_workspace_palette_column.dart';
+import 'map_library_navigator.dart';
+import 'map_workspace_compact_navigator.dart';
+import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
@@ -50,6 +52,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.activeSpace = 'map',
     this.exportActive = false,
     this.onHome,
+    this.onOrganizeMaps,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
@@ -83,7 +86,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final String? movingHint;
   final String activeSpace;
   final VoidCallback? onHome;
-
+  final OrganizeMapLibrary? onOrganizeMaps;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) {
@@ -96,7 +99,10 @@ class MapWorkspaceLayout extends StatelessWidget {
       final compactInspector = availableWidth < 1000 || largeText;
       final compactPalette = availableWidth < 650 || largeText;
       final showInspector = inspector ?? (!compactInspector);
-      final showPalette = palette && !compactPalette;
+      final navigatorWidth = showInspector && !compactInspector ? 1150 : 880;
+      final showNavigator = availableWidth >= navigatorWidth && !largeText;
+      final shortWindow = c.maxHeight < 1020;
+      final showPaletteDock = palette && !compactPalette && !shortWindow;
       final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
       final inspectorWidth = c.maxWidth >= 1400 ? 300.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
@@ -121,7 +127,12 @@ class MapWorkspaceLayout extends StatelessWidget {
         title: 'Palette',
         builder: (context, refresh, close) => paletteContent(refresh, close),
       );
-
+      void openNavigator() => showMapLibraryCompactPanel(
+        context,
+        controller: controller,
+        onActivate: onActivate,
+        onOrganize: onOrganizeMaps,
+      );
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapSelectionInspector(
@@ -179,7 +190,6 @@ class MapWorkspaceLayout extends StatelessWidget {
           });
         }
       }
-
       return StudioApplicationFrame(
         projectName: controller.session.name,
         search: homeSearch,
@@ -213,9 +223,13 @@ class MapWorkspaceLayout extends StatelessWidget {
                 controller: controller,
                 view: view,
                 onChanged: onToolChanged,
-                paletteVisible: showPalette,
+                paletteVisible: showPaletteDock,
                 inspectorVisible: showInspector && !compactInspector,
-                onPalette: compactPalette && ready ? openPalette : onPalette,
+                navigatorVisible: showNavigator,
+                onNavigator: openNavigator,
+                onPalette: (compactPalette || shortWindow) && ready
+                    ? openPalette
+                    : onPalette,
                 onInspector: compactInspector && ready
                     ? () => showWorkspaceCompactPanel(
                         context,
@@ -245,41 +259,28 @@ class MapWorkspaceLayout extends StatelessWidget {
                             'Choisissez une carte disponible dans ce projet.',
                           ),
                         )
-                      : Row(
-                          children: [
-                            if (showPalette) paletteContent(() {}),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.outlineVariant,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: MapWorkspaceCanvas(
-                                      key: ValueKey(doc.base.mapId),
-                                      document: doc,
-                                      project: project,
-                                      visuals: visuals!,
-                                      view: view!,
-                                      onChanged: onChanged,
-                                      gestureGeneration: generation,
-                                      onZoneDrawn: onZoneDrawn,
-                                      onContextMenu: onContextMenu,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (showInspector && !compactInspector)
-                              inspectorContent(() {}),
-                          ],
+                      : MapWorkspaceEditorPane(
+                          controller: controller,
+                          document: doc,
+                          project: project,
+                          visuals: visuals!,
+                          view: view!,
+                          search: search,
+                          generation: generation,
+                          showNavigator: showNavigator,
+                          showToolStrip: c.maxHeight >= 900 && !largeText,
+                          showPaletteDock: showPaletteDock,
+                          inspector: showInspector && !compactInspector
+                              ? inspectorContent(() {})
+                              : null,
+                          onActivate: onActivate,
+                          onOrganizeMaps: onOrganizeMaps,
+                          onToolChanged: onToolChanged,
+                          onChanged: onChanged,
+                          onMoreTools: openPalette,
+                          onResources: onResources,
+                          onZoneDrawn: onZoneDrawn,
+                          onContextMenu: onContextMenu,
                         )),
             ),
             if (visuals != null && activeSpace != 'gameExport')

@@ -51,17 +51,23 @@ class ResourceLibraryState {
       .toLowerCase()
       .contains(query.trim().toLowerCase());
 
-  bool matchesCategory(ResourceItem item) =>
+  bool matchesCategory(ResourceItem item, {Set<String>? acceptedCategories}) =>
       category.isEmpty ||
       (category == uncategorizedResourceCategory
           ? item.category.isEmpty
-          : item.category == category);
+          : acceptedCategories?.contains(item.category) ??
+                item.category == category);
 
-  List<ResourceItem> visibleItems(List<ResourceItem> items) {
+  List<ResourceItem> visibleItems(
+    List<ResourceItem> items, {
+    Set<String>? acceptedCategories,
+  }) {
     final visible = items
         .where(
           (item) =>
-              item.kind == kind && matchesQuery(item) && matchesCategory(item),
+              item.kind == kind &&
+              matchesQuery(item) &&
+              matchesCategory(item, acceptedCategories: acceptedCategories),
         )
         .toList();
     visible.sort((a, b) {

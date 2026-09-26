@@ -159,6 +159,60 @@ void main() {
   });
 
   test(
+    'folder organization uses canonical mutation and preserves open maps',
+    () async {
+      final loaded = await fixture.loadMap();
+      final mapBytes = await fixture.mapFile.readAsBytes();
+      final receipt = await fixture.resources.mutate('map.library.reorganize', {
+        'groups': [
+          const ProjectMapGroup(
+            id: 'village',
+            name: 'Village',
+            type: MapGroupType.village,
+          ).toJson(),
+        ],
+        'assignments': [
+          {'mapId': 'garden', 'groupId': 'village'},
+        ],
+      });
+      expect(receipt.manifest.maps.single.groupId, 'village');
+      expect(receipt.changedPaths, ['project.json']);
+      expect(await fixture.mapFile.readAsBytes(), mapBytes);
+      final reopened = LocalMapWorkspaceAdapter();
+      final manifest = await reopened.loadProject(fixture.session);
+      expect(manifest.groups.single.name, 'Village');
+      expect(manifest.maps.single.groupId, 'village');
+      await fixture.maps.saveMap(
+        fixture.session,
+        loaded,
+        loaded.map.copyWith(name: 'Jardin modifié'),
+      );
+      expect(
+        (await reopened.loadMap(
+          fixture.session,
+          manifest.maps.single,
+        )).map.name,
+        'Jardin modifié',
+      );
+    },
+  );
+
+  test('invalid folder move leaves manifest and map unchanged', () async {
+    final manifestBytes = await fixture.manifestFile.readAsBytes();
+    final mapBytes = await fixture.mapFile.readAsBytes();
+    await expectLater(
+      fixture.resources.mutate('map.library.reorganize', {
+        'assignments': [
+          {'mapId': 'garden', 'groupId': 'missing'},
+        ],
+      }),
+      throwsA(isA<ResourceFailure>()),
+    );
+    expect(await fixture.manifestFile.readAsBytes(), manifestBytes);
+    expect(await fixture.mapFile.readAsBytes(), mapBytes);
+  });
+
+  test(
     'unchanged definition can be used without a mutation or lost conflict guard',
     () async {
       final imported = await fixture.import();

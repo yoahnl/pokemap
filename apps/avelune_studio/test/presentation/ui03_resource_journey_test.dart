@@ -8,7 +8,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_catalog.
 import 'package:avelune_studio/presentation/features/resources/resource_catalog_view.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/atlas_selection_view.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resource_card.dart';
 import '../support/m2_ui_fixture.dart';
@@ -119,8 +119,8 @@ void main() {
     await pumpIo(tester);
     expect(f.controller.active, same(document));
     expect(document.current, same(beforeMap));
-    final palette = tester.widget<MapWorkspacePalette>(
-      find.byType(MapWorkspacePalette),
+    final palette = tester.widget<MapWorkspacePaletteDock>(
+      find.byType(MapWorkspacePaletteDock),
     );
     expect(palette.view.tool, StudioMapTool.place);
     expect(palette.view.brush!.id, n.library.selectedId);
@@ -143,7 +143,7 @@ void main() {
     await tester.tap(find.text('Utiliser sur la carte'));
     await pumpIo(tester);
     final tileView = tester
-        .widget<MapWorkspacePalette>(find.byType(MapWorkspacePalette))
+        .widget<MapWorkspacePaletteDock>(find.byType(MapWorkspacePaletteDock))
         .view;
     expect(tileView.tile!.localTileId, 13);
     expect(tileView.tool, StudioMapTool.paint);
@@ -158,7 +158,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('resource-use')));
     await pumpIo(tester);
     final terrainView = tester
-        .widget<MapWorkspacePalette>(find.byType(MapWorkspacePalette))
+        .widget<MapWorkspacePaletteDock>(find.byType(MapWorkspacePaletteDock))
         .view;
     expect(terrainView.terrain!.id, 'chemin');
     expect(terrainView.tool, StudioMapTool.terrain);

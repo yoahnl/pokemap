@@ -87,6 +87,7 @@ part 'workspace_navigation_binding.dart';
 part 'workspace_world_binding.dart';
 part 'workspace_verification_binding.dart';
 part 'workspace_export_binding.dart';
+part 'workspace_map_library_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -121,8 +122,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final ResourcePort? resourcePort;
   final PokemonWorkspacePort? pokemonPort;
   final PokemonCommercePort? pokemonCommercePort;
-  final Future<String?> Function()? pokemonJsonPicker;
-  final Future<String?> Function()? pokemonPngPicker;
+  final Future<String?> Function()? pokemonJsonPicker, pokemonPngPicker;
   final NarrativePort? narrativePort;
   final ScenePort? scenePort;
   final StoryPort? storyPort;

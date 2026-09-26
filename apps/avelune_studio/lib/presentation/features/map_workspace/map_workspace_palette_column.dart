@@ -43,7 +43,11 @@ class MapWorkspacePaletteColumn extends StatelessWidget {
           ConstrainedBox(
             constraints: BoxConstraints(
               maxHeight: constraints.maxHeight.isFinite
-                  ? constraints.maxHeight * .4
+                  ? constraints.maxHeight *
+                        (constraints.maxHeight < 700 ||
+                                MediaQuery.textScalerOf(context).scale(14) > 18
+                            ? .15
+                            : .32)
                   : double.infinity,
             ),
             child: SingleChildScrollView(

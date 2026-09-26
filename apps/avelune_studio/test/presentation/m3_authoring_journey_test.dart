@@ -65,8 +65,16 @@ void main() {
         ),
       );
       await pumpIo(tester);
+      if (find.text('Personnages').evaluate().isEmpty) {
+        await tester.tap(find.byTooltip('Palette'));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.text('Personnages').last);
       await tester.pump();
+      if (find.byTooltip('Retour à la carte').evaluate().isNotEmpty) {
+        await tester.tap(find.byTooltip('Retour à la carte'));
+        await tester.pumpAndSettle();
+      }
       final canvas = find.byKey(const ValueKey('map-canvas'));
       final settings = controller.project!.settings;
       await tester.tapAt(

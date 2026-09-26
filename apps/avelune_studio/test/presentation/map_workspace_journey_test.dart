@@ -58,7 +58,14 @@ void main() {
       Offset(x * 32 + 8, y * 32 + 8);
 
   Future<void> place(WidgetTester tester, int x, int y) async {
+    await tester.tap(find.byTooltip('Palette'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Arbre').first);
+    await tester.pumpAndSettle();
+    if (find.byType(Dialog).evaluate().isNotEmpty) {
+      await tester.tap(find.byTooltip('Retour à la carte'));
+      await tester.pumpAndSettle();
+    }
     await tester.tapAt(cell(tester, x, y));
     await tester.pumpAndSettle();
   }
@@ -182,6 +189,8 @@ void main() {
       await open(tester);
       await place(tester, 2, 2);
       final document = controller.active!;
+      await tester.tap(find.byTooltip('Palette'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tuiles'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tuile 1'));

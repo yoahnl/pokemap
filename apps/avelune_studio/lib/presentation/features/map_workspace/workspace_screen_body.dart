@@ -106,6 +106,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                             _gestureGeneration++;
                             unawaited(_controller.activate(entry));
                           },
+                          onOrganizeMaps: _resources == null
+                              ? null
+                              : _organizeMaps,
                           onSave: document == null || document.saving
                               ? null
                               : _saveWorkspaceDocument,

@@ -14,7 +14,7 @@ import 'map_marker_inspector.dart';
 import 'map_trigger_inspector.dart';
 import 'map_zone_inspector.dart';
 import 'map_warp_inspector.dart';
-import 'map_workspace_inspector.dart';
+import 'map_decor_inspector_tabs.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 
@@ -241,7 +241,7 @@ class MapSelectionInspector extends StatelessWidget {
                       ),
                     ),
                   )
-                : MapWorkspaceInspector(
+                : MapDecorInspectorTabs(
                     project: project,
                     document: document,
                     visuals: visuals,
@@ -250,7 +250,6 @@ class MapSelectionInspector extends StatelessWidget {
                     onOpenResource: onOpenElement,
                     onEditResource: onEditElement,
                     width: width,
-                    tool: view.tool,
                   ),
           ),
         ],

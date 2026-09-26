@@ -21,6 +21,7 @@ final class LocalResourceAdapter implements ResourcePort {
     'element.upsert',
     'smart_tile.preset.draft.upsert',
     'smart_tile.preset.publish',
+    'map.library.reorganize',
   };
 
   @override
@@ -178,7 +179,8 @@ final class LocalResourceAdapter implements ResourcePort {
         final manifest = ProjectManifest.fromJson(
           jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
         );
-        if (jsonEncode(before.manifest.maps) != jsonEncode(manifest.maps)) {
+        if (actionId != 'map.library.reorganize' &&
+            jsonEncode(before.manifest.maps) != jsonEncode(manifest.maps)) {
           throw const ResourceFailure(
             'Une ressource ne peut pas remplacer le catalogue de cartes.',
           );
@@ -212,7 +214,11 @@ final class LocalResourceAdapter implements ResourcePort {
             );
           }
         }
-        await mapAdapter.acceptResourceMutation(session, receipt);
+        await mapAdapter.acceptResourceMutation(
+          session,
+          receipt,
+          allowMapOrganization: actionId == 'map.library.reorganize',
+        );
         return receipt;
       } finally {
         if (artifactHandle != null) await artifacts.release(artifactHandle);

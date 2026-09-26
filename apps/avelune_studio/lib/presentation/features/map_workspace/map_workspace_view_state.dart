@@ -80,6 +80,8 @@ class MapWorkspaceViewState {
   bool revealPalette = false;
   bool revealInspector = false;
   String paletteTab = 'Décors';
+  String decorCategoryId = '';
+  String terrainCategoryId = '';
   final paletteScrollOffsets = <String, double>{};
   String? paletteAtlasId;
   final paletteAtlasTransforms = <String, TransformationController>{};

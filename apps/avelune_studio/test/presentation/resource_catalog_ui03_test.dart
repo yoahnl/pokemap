@@ -1,4 +1,5 @@
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_category_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -144,4 +145,37 @@ void main() {
       );
     },
   );
+
+  test('parent category includes descendants without inventing new groups', () {
+    final manifest = workspaceProject.copyWith(
+      elementCategories: const [
+        ProjectElementCategory(id: 'buildings', name: 'Bâtiments'),
+        ProjectElementCategory(
+          id: 'houses',
+          name: 'Maisons',
+          parentCategoryId: 'buildings',
+        ),
+        ProjectElementCategory(id: 'nature', name: 'Nature'),
+      ],
+      elements: [
+        workspaceElement.copyWith(id: 'house', categoryId: 'houses'),
+        workspaceElement.copyWith(id: 'tree', categoryId: 'nature'),
+      ],
+    );
+    final items = resourceCatalog(manifest);
+    final tree = ResourceCategoryTree(manifest, ResourceKind.decors, items);
+    expect(tree.nodes.map((node) => (node.id, node.depth, node.count)), [
+      ('buildings', 0, 1),
+      ('houses', 1, 1),
+      ('nature', 0, 1),
+    ]);
+    final state = ResourceLibraryState()..category = 'buildings';
+    expect(
+      state
+          .visibleItems(items, acceptedCategories: tree.idsFor('buildings'))
+          .map((item) => item.id),
+      ['house'],
+    );
+    expect(tree.idsFor('nature'), {'nature'});
+  });
 }

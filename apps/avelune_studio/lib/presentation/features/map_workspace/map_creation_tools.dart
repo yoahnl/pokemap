@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import 'map_encounter_mode_picker.dart';
 import 'map_workspace_view_state.dart';
 
 class MapCreationTools extends StatelessWidget {
@@ -118,6 +119,8 @@ class MapCreationTools extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          MapEncounterModePicker(view: view, onChanged: onChanged),
         ],
       ),
     );

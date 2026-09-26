@@ -104,6 +104,7 @@ void main() {
           expect(
             viewport.height,
             greaterThanOrEqualTo(size.height * (scale > 1 ? .5 : .6)),
+            reason: 'Viewport $size avec texte ×$scale',
           );
           if (size == const Size(1280, 800)) {
             expect(viewport.width, greaterThanOrEqualTo(560));
@@ -138,6 +139,8 @@ void main() {
       );
       expect(resources!.images.length, lessThan(fixture.atlasCount));
       final readsBefore = resources!.store.decoder.reads;
+      await tester.tap(find.byTooltip('Palette'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tuiles'));
       await _settle(tester, resources!);
       final tileThumbnails = tester
@@ -172,6 +175,8 @@ void main() {
       );
       expect(find.byIcon(Icons.hourglass_empty), findsNothing);
       await _capture(tester, capture, 'workspace-tile-thumbnails');
+      await tester.tap(find.byTooltip('Retour à la carte'));
+      await tester.pumpAndSettle();
 
       await _awaitWhilePumping(
         tester,

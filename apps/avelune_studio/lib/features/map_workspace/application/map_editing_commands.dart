@@ -85,6 +85,38 @@ class MapEditingCommands {
       _reorderedAt(instanceId: instanceId, at: at, forward: forward) !=
       document.current;
 
+  String? reorderProblemAt({
+    required String instanceId,
+    required GridPos at,
+    required bool forward,
+  }) {
+    if (canReorderAt(instanceId: instanceId, at: at, forward: forward)) {
+      return null;
+    }
+    final source = document.current.placedElements
+        .where((element) => element.id == instanceId)
+        .firstOrNull;
+    if (source == null) return 'Ce décor n’est plus sur la carte.';
+    final peers = mapPlacedElementsAt(
+      document.current,
+      project,
+      at,
+      layerId: source.layerId,
+    );
+    if (!peers.any((element) => element.id == instanceId)) {
+      return 'Ce décor n’occupe plus cet emplacement.';
+    }
+    if (peers.length == 1) {
+      return 'Aucun autre décor sur ce calque à cet emplacement.';
+    }
+    if (!canReorderAt(instanceId: instanceId, at: at, forward: !forward)) {
+      return 'Les autres décors de ce calque ont un comportement de rendu non interchangeable.';
+    }
+    return forward
+        ? 'Ce décor est déjà devant ses voisins réordonnables.'
+        : 'Ce décor est déjà derrière ses voisins réordonnables.';
+  }
+
   void reorderAt({
     required String instanceId,
     required GridPos at,

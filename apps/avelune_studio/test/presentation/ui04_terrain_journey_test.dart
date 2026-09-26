@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/ui04_terrain_atlas.dart';
 
@@ -156,12 +156,12 @@ void main() {
       expect(find.byType(TerrainEditorScreen), findsNothing);
       expect(document.current, same(dirtyMap));
       expect(document.undoCount, undoCount);
-      final palette = tester.widget<MapWorkspacePalette>(
-        find.byType(MapWorkspacePalette),
-      );
-      expect(palette.view.terrain!.id, id);
-      expect(palette.view.paletteTab, 'Terrains');
-      expect(palette.view.transform.value, transform);
+      final view = tester
+          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .view;
+      expect(view.terrain!.id, id);
+      expect(view.paletteTab, 'Terrains');
+      expect(view.transform.value, transform);
       final canvas = tester.getTopLeft(
         find.byKey(const ValueKey('map-canvas')),
       );

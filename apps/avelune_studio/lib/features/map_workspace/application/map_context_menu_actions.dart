@@ -88,26 +88,20 @@ List<MapContextAction> _decorActions(
     MapContextAction(
       MapContextCommand.bringForward,
       'Passer devant',
-      unavailable:
-          commands.canReorderAt(
-            instanceId: target.id,
-            at: context.position,
-            forward: true,
-          )
-          ? null
-          : 'Ce décor est déjà devant les autres à cet endroit.',
+      unavailable: commands.reorderProblemAt(
+        instanceId: target.id,
+        at: context.position,
+        forward: true,
+      ),
     ),
     MapContextAction(
       MapContextCommand.sendBackward,
       'Passer derrière',
-      unavailable:
-          commands.canReorderAt(
-            instanceId: target.id,
-            at: context.position,
-            forward: false,
-          )
-          ? null
-          : 'Ce décor est déjà derrière les autres à cet endroit.',
+      unavailable: commands.reorderProblemAt(
+        instanceId: target.id,
+        at: context.position,
+        forward: false,
+      ),
     ),
     const MapContextAction(MapContextCommand.delete, 'Supprimer le décor'),
   ];

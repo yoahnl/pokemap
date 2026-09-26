@@ -27,6 +27,7 @@ class MapWorkspacePalette extends StatefulWidget {
     this.onResources,
     this.onTileset,
     this.width = 240,
+    this.compactContent = false,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
@@ -37,6 +38,7 @@ class MapWorkspacePalette extends StatefulWidget {
   final VoidCallback? onResources;
   final ValueChanged<ProjectTilesetEntry>? onTileset;
   final double width;
+  final bool compactContent;
   @override
   State<MapWorkspacePalette> createState() => _MapWorkspacePaletteState();
 }
@@ -216,6 +218,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   @override
   Widget build(BuildContext context) {
     final view = widget.view;
+    if (widget.compactContent) return catalog();
     return StudioSidebar(
       width: widget.width,
       child: Column(
