@@ -16,6 +16,7 @@ RuntimeAuthoringMapRenderer createStudioMapRenderer(
     tilesetAbsolutePathsById: resources.paths,
   ),
   images: resources.images,
+  borderAssets: resources.borderPreview.assetsFor(map),
   includeCharacters: true,
 );
 
@@ -37,6 +38,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
   late RuntimeAuthoringMapRenderer renderer;
   final Object _owner = Object();
   int _catalogVersion = -1;
+  BorderRuntimeAssetBundle? _borderAssets;
 
   @override
   void initState() {
@@ -46,14 +48,20 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
       widget.resources.mapResourceIds(widget.map),
     );
     renderer = widget.resources.renderer(widget.map)..update(0);
+    _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
     _catalogVersion = widget.resources.catalogVersion;
     widget.resources.addListener(_changed);
   }
 
   void _changed() {
     if (!mounted) return;
-    if (_catalogVersion != widget.resources.catalogVersion) {
+    if (_catalogVersion != widget.resources.catalogVersion ||
+        !identical(
+          _borderAssets,
+          widget.resources.borderPreview.assetsFor(widget.map),
+        )) {
       _catalogVersion = widget.resources.catalogVersion;
+      _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
       setState(
         () => renderer = widget.resources.renderer(widget.map)..update(0),
       );
@@ -81,6 +89,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         widget.resources.mapResourceIds(widget.map),
       );
       renderer = widget.resources.renderer(widget.map)..update(0);
+      _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
     }
   }
 

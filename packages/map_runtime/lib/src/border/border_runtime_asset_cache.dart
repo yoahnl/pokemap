@@ -108,11 +108,16 @@ final class BorderRuntimeAssetCache {
   final Map<_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>
       _imageFutureByKey =
       <_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>{};
+  bool _disposed = false;
+  Future<void>? _disposal;
 
   Future<RuntimeTilesetImage> loadFrame({
     required String projectRoot,
     required BorderRuntimeFrameRequest frame,
   }) async {
+    if (_disposed) {
+      throw StateError('Border runtime assets are closed.');
+    }
     final absolutePath = p.normalize(
       p.absolute(p.join(projectRoot, frame.relativeAssetPath)),
     );
@@ -163,6 +168,23 @@ final class BorderRuntimeAssetCache {
       }),
     );
     return BorderRuntimeAssetBundle(snapshots: loadedSnapshots);
+  }
+
+  Future<void> dispose() => _disposal ??= _dispose();
+
+  Future<void> _dispose() async {
+    _disposed = true;
+    final pending = _imageFutureByKey.values.toList();
+    _imageFutureByKey.clear();
+    final images = await Future.wait(
+      pending.map((future) => future.then<RuntimeTilesetImage?>(
+            (image) => image,
+            onError: (Object _) => null,
+          )),
+    );
+    for (final image in images.whereType<RuntimeTilesetImage>().toSet()) {
+      image.dispose();
+    }
   }
 }
 

@@ -75,7 +75,7 @@ class MapWorkspaceViewState {
   GameplayZoneKind zoneKind = GameplayZoneKind.encounter;
   String characterQuery = '';
   double characterScrollOffset = 0;
-  bool grid = true;
+  bool grid = false;
   bool paletteTiles = false;
   bool revealPalette = false;
   bool revealInspector = false;

@@ -262,10 +262,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                     children: [
                       Positioned.fill(
                         child: widget.visuals.canvas(
-                          _characterGesture?.preview ??
-                              (_stroke?.terrain == true
-                                  ? _stroke!.preview
-                                  : map),
+                          _characterGesture?.preview ?? _stroke?.preview ?? map,
                         ),
                       ),
                       Positioned.fill(

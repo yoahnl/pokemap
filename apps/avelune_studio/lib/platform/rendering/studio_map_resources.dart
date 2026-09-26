@@ -14,6 +14,7 @@ import 'studio_atlas_preview.dart';
 import 'studio_character_thumbnail.dart';
 import 'studio_cinematic_media.dart';
 import 'studio_resource_notifications.dart';
+import 'studio_border_preview.dart';
 import '../../presentation/features/characters/character_workspace_visuals.dart';
 import '../../presentation/features/cinematics/cinematic_workspace_visuals.dart';
 
@@ -21,6 +22,7 @@ import '../../presentation/features/presentations/presentation_workspace_visuals
 import '../../features/presentations/domain/presentation_port.dart';
 import 'presentation_workspace_visuals.dart';
 part 'studio_map_resource_recovery.dart';
+part 'studio_map_resources_helpers.dart';
 
 final class StudioMapResources
     implements
@@ -29,7 +31,8 @@ final class StudioMapResources
         CharacterWorkspaceVisuals,
         CinematicWorkspaceVisuals,
         CinematicMediaWorkspaceVisuals,
-        PresentationMediaWorkspaceVisuals {
+        PresentationMediaWorkspaceVisuals,
+        MapBorderPreviewVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
@@ -68,12 +71,24 @@ final class StudioMapResources
   ProjectCharacterEntry? _characterBrush;
   int catalogVersion = 0;
   late final StudioImageStore store;
+  late final StudioBorderPreview borderPreview = StudioBorderPreview(
+    projectRoot: projectRoot,
+    changed: _notify,
+  );
+  @override
+  bool get borderPreviewLoading => borderPreview.loading;
+  @override
+  bool get borderPreviewReady => borderPreview.assets != null;
+  @override
+  String? get borderPreviewIssue => borderPreview.issue;
   bool _disposed = false;
   @override
   Set<String> activeResourceIds = {};
   Map<String, RuntimeTilesetImage> get images => store.images;
   int get decodedBytes => store.decodedBytes;
-  Future<void> get settled => store.settled;
+  Future<void> get settled async {
+    await Future.wait([store.settled, borderPreview.settled]);
+  }
 
   static Future<StudioMapResources> load(
     ProjectSession session,
@@ -143,7 +158,10 @@ final class StudioMapResources
       ..addAll(next.colors);
     store.invalidate(invalid);
     catalogVersion++;
-    if (_activeMap != null) setActiveMap(_activeMap!);
+    if (_activeMap != null) {
+      borderPreview.invalidate(updated, _activeMap!);
+      setActiveMap(_activeMap!);
+    }
     final terrain = _terrainPreset;
     final character = _characterBrush;
     if (character != null) {
@@ -168,40 +186,12 @@ final class StudioMapResources
   Widget atlasPreview(String tilesetId) =>
       StudioAtlasPreview(resources: this, tilesetId: tilesetId);
 
-  Set<String> elementResourceIds(ProjectElementEntry element) =>
-      _index.forElement(element);
-  Set<String> characterResourceIds(ProjectCharacterEntry character) =>
-      _index.forCharacter(character);
-  Set<String> tileResourceIds(TileLayerPaletteEntry tile) =>
-      _index.forTile(tile);
-  Set<String> mapResourceIds(MapData map) => _index.forMap(map);
-  bool hasFailure(Iterable<String> ids) => ids.any(_diagnostics.containsKey);
+  @override
+  void setActiveMap(MapData map) => _setActiveMap(map);
 
   @override
-  void setActiveMap(MapData map) {
-    if (_disposed) return;
-    _activeMap = map;
-    activeResourceIds = mapResourceIds(map);
-    store.priority = {...activeResourceIds, ..._brushIds};
-    store.retain(_activeOwner, activeResourceIds);
-    _notify();
-  }
-
-  @override
-  void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) {
-    if (_disposed) return;
-    _brushElement = element;
-    _brushTile = tile;
-    _terrainPreset = null;
-    _characterBrush = null;
-    _brushIds = element != null
-        ? elementResourceIds(element)
-        : tile != null
-        ? tileResourceIds(tile)
-        : {};
-    store.priority = {...activeResourceIds, ..._brushIds};
-    store.retain(_brushOwner, _brushIds);
-  }
+  void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) =>
+      _setBrush(element, tile);
 
   @override
   void setTerrainBrush(ProjectSmartTilePreset? preset) {
@@ -263,14 +253,17 @@ final class StudioMapResources
   Future<void> retryResources(Iterable<String> resourceIds) =>
       _retryResources(resourceIds);
 
-  RuntimeAuthoringMapRenderer renderer(MapData map) {
-    if (_disposed) throw StateError('Ressources fermées');
-    return createStudioMapRenderer(map, this);
-  }
-
   @override
-  List<WorkspaceResourceDiagnostic> get diagnostics =>
-      List.unmodifiable(_diagnostics.values);
+  List<WorkspaceResourceDiagnostic> get diagnostics => List.unmodifiable([
+    ..._diagnostics.values,
+    if (borderPreview.issue case final issue?)
+      WorkspaceResourceDiagnostic(
+        resourceId: 'border:${_activeMap?.id}',
+        name: 'Bordures de la carte',
+        cause: WorkspaceResourceCause.readFailure,
+        detail: issue,
+      ),
+  ]);
   @override
   List<String> get warnings =>
       diagnostics.map((item) => '${item.name} : ${item.message}').toList();
@@ -294,6 +287,7 @@ final class StudioMapResources
     store.release(_activeOwner);
     store.release(_brushOwner);
     store.close();
+    await borderPreview.dispose();
     _changes.dispose();
   }
 }

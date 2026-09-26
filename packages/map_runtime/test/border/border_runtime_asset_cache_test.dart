@@ -67,6 +67,26 @@ void main() {
     expect(await second, same(image));
   });
 
+  test('dispose waits for an in-flight image and releases it once', () async {
+    final completer = Completer<RuntimeTilesetImage>();
+    final cache = BorderRuntimeAssetCache(
+      imageLoader: (absolutePath, {transparentColor}) => completer.future,
+    );
+    final loading = cache.loadFrame(projectRoot: p.current, frame: _frame());
+    await Future<void>.delayed(Duration.zero);
+    final disposing = cache.dispose();
+    final image = await _runtimeImage();
+    completer.complete(image);
+    expect(await loading, same(image));
+    await disposing;
+    await cache.dispose();
+    expect(image.debugDisposed, isTrue);
+    await expectLater(
+      cache.loadFrame(projectRoot: p.current, frame: _frame()),
+      throwsStateError,
+    );
+  });
+
   test('evicts a failed load so a later request retries', () async {
     var loadCount = 0;
     final image = await _runtimeImage();

@@ -28,15 +28,44 @@ class WorkspaceMapFooter extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showMapNotice && _hasVisibleBorders)
-          const Tooltip(
-            message:
-                'Les bordures restent conservées et rendues dans le test du jeu.',
-            child: Text(
-              'Bordures non prévisualisées · visibles dans le test du jeu',
-              key: ValueKey('map-border-notice'),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+          ListenableBuilder(
+            listenable: visuals,
+            builder: (context, _) {
+              final MapBorderPreviewVisuals? preview =
+                  visuals is MapBorderPreviewVisuals
+                  ? visuals as MapBorderPreviewVisuals
+                  : null;
+              if (preview != null) {
+                if (preview.borderPreviewIssue case final issue?) {
+                  return Tooltip(
+                    message: issue,
+                    child: const Text(
+                      'Bordures indisponibles · voir les diagnostics',
+                      key: ValueKey('map-border-notice'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }
+                if (preview.borderPreviewLoading) {
+                  return const Text(
+                    'Chargement des bordures…',
+                    key: ValueKey('map-border-notice'),
+                  );
+                }
+                if (preview.borderPreviewReady) return const SizedBox.shrink();
+              }
+              return const Tooltip(
+                message:
+                    'Les bordures restent conservées et rendues dans le test du jeu.',
+                child: Text(
+                  'Bordures non prévisualisées · visibles dans le test du jeu',
+                  key: ValueKey('map-border-notice'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            },
           ),
         WorkspaceResourceDiagnostics(visuals: visuals),
       ],

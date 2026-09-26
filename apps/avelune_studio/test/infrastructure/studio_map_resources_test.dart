@@ -118,6 +118,56 @@ void main() {
     );
   });
 
+  test(
+    'invalid Border stays diagnostic and other map visuals remain usable',
+    () async {
+      final resources = await StudioMapResources.load(session, manifest);
+      addTearDown(resources.dispose);
+      final source = exampleMap('border-error', 'Border error');
+      final map = source.copyWith(
+        layers: [
+          ...source.layers,
+          BorderLayer(
+            id: 'broken-border',
+            name: 'Broken border',
+            content: BorderLayerContent(
+              features: [
+                BorderFeature(
+                  id: 'missing-materialization',
+                  name: 'Missing materialization',
+                  blueprintId: 'missing-blueprint',
+                  seed: BorderSignedInt64.zero,
+                  geometry: BorderRegionGeometry(
+                    width: 1,
+                    height: 1,
+                    cells: [true],
+                  ),
+                  overrides: const [],
+                  keepOutRegions: const [],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      resources.setActiveMap(map);
+      await resources.settled;
+      expect(resources.borderPreviewReady, isFalse);
+      expect(resources.borderPreviewLoading, isFalse);
+      expect(resources.diagnostics.single.resourceId, 'border:${map.id}');
+      expect(resources.diagnostics.single.detail, contains('broken-border'));
+      final renderer = resources.renderer(map)..update(0);
+      final recorder = ui.PictureRecorder();
+      renderer.paint(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(768, 512);
+      image.dispose();
+      picture.dispose();
+      await resources.retryResources(['border:${map.id}']);
+      expect(resources.diagnostics.single.resourceId, 'border:${map.id}');
+    },
+  );
+
   test('resource symlink cannot escape project root', () async {
     final outside = await Directory.systemTemp.createTemp('studio_outside_');
     addTearDown(() => outside.delete(recursive: true));

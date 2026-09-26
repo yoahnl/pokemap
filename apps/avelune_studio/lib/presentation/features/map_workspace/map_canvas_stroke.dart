@@ -108,18 +108,21 @@ class MapCanvasStroke {
       buffer.breakInterpolation();
       return;
     }
+    final revision = buffer.revision;
     if (terrain) {
-      final changed = buffer.setSmartTileMaterialAt(
+      buffer.setSmartTileMaterialAt(
         origin: cell,
         materialId: erase ? null : materialId,
       );
-      if (changed) preview = buffer.commit(project: project, validate: (_) {});
     } else {
       buffer.paintTiles(
         origin: cell,
         patternSize: const GridSize(width: 1, height: 1),
         tiles: [erase ? null : tile],
       );
+    }
+    if (buffer.revision != revision) {
+      preview = buffer.commit(project: project, validate: (_) {});
     }
     if (!cells.contains(cell)) cells.add(cell);
   }

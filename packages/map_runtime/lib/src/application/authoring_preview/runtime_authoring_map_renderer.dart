@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:map_core/map_core.dart';
 
 import '../../infrastructure/runtime_tileset_image.dart';
+import '../../border/border_runtime_asset_cache.dart';
 import '../../presentation/flame/map_layers_component.dart';
 import '../../shadow/runtime_static_placed_element_shadow_sources.dart';
 import '../runtime_map_bundle.dart';
@@ -11,6 +12,7 @@ final class RuntimeAuthoringMapRenderer {
   RuntimeAuthoringMapRenderer({
     required RuntimeMapBundle bundle,
     required Map<String, RuntimeTilesetImage> images,
+    BorderRuntimeAssetBundle? borderAssets,
     bool includeCharacters = false,
   })  : _bundle = bundle,
         _images = images,
@@ -18,6 +20,8 @@ final class RuntimeAuthoringMapRenderer {
         _background = MapLayersComponent(
           bundle: bundle,
           tileImagesByTilesetId: images,
+          borderAssets: borderAssets,
+          renderBorders: borderAssets != null,
           shadowCollectionProvider: () =>
               buildRuntimeStaticPlacedElementShadowCollectionForBundle(
             bundle: bundle,

@@ -13,15 +13,20 @@ import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import '../support/load_desktop_capture_fonts.dart';
 
 void main() {
   final projectPath = Platform.environment['AVELUNE_PROJECT_COPY'];
+  final mapId =
+      Platform.environment['AVELUNE_CAPTURE_MAP_ID'] ?? 'hanazuki-gare';
   testWidgets(
     'real Train copy renders with demand resources and desktop panels',
     (tester) async {
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.physicalSize = mapId == 'uwu'
+          ? const Size(1660, 1080)
+          : const Size(1280, 800);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.runAsync(() async {
@@ -74,13 +79,20 @@ void main() {
           await _awaitWhilePumping(tester, loaded.future);
           expect(coldReads, 0);
           final manifest = controller.project!;
-          final entry = manifest.maps.singleWhere(
-            (entry) => entry.id == 'hanazuki-gare',
-          );
+          final entry = manifest.maps.singleWhere((entry) => entry.id == mapId);
           await _awaitWhilePumping(tester, controller.activate(entry));
           await _settle(tester, resources!);
           expect(controller.error, isNull);
           expect(controller.active!.base.mapId, entry.id);
+          if (controller.active!.current.layers.whereType<BorderLayer>().any(
+            (layer) => layer.isVisible && layer.content.features.isNotEmpty,
+          )) {
+            expect(resources!.borderPreviewReady, isTrue);
+            expect(
+              find.byKey(const ValueKey('map-border-notice')),
+              findsNothing,
+            );
+          }
           expect(resources!.images, isNotEmpty);
           expect(
             resources!.store.decoder.decodes,
@@ -117,13 +129,13 @@ void main() {
           expect(document.dirty, isFalse);
           expect(find.text('Empilement ici'), findsOneWidget);
           expect(tester.takeException(), isNull);
-          await _capture(capture, 'train-hanazuki-carte-palette-empilement');
+          await _capture(capture, 'train-$mapId-carte-palette-empilement');
           final diagnostics = resources!.diagnostics;
           if (diagnostics.isNotEmpty) {
             await tester.tap(find.byKey(const ValueKey('resource-details')));
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);
-            await _capture(capture, 'train-hanazuki-diagnostics');
+            await _capture(capture, 'train-$mapId-diagnostics');
             await tester.tap(
               find.byKey(const ValueKey('Fermer les diagnostics')),
             );

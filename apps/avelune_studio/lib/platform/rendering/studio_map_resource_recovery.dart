@@ -6,6 +6,11 @@ extension StudioMapResourceRecovery on StudioMapResources {
     final ids = resourceIds
         .where((id) => _diagnostics[id]?.canRetry ?? false)
         .toSet();
+    final borderId = 'border:${_activeMap?.id}';
+    if (resourceIds.contains(borderId) && borderPreview.issue != null) {
+      borderPreview.invalidate(manifest, _activeMap!);
+      await borderPreview.settled;
+    }
     for (final id in ids) {
       final old = _diagnostics[id];
       if (old == null) continue;

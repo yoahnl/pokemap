@@ -120,6 +120,7 @@ class MapLayersComponent extends PositionComponent {
     this.shadowRenderer = const ShadowRuntimeRenderer(),
     this.borderAssets,
     this.borderRenderer = const BorderRuntimeRenderer(),
+    this.renderBorders = true,
     this.debugOnRenderProfile,
     this.smartTileAnimationController,
   })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
@@ -171,6 +172,7 @@ class MapLayersComponent extends PositionComponent {
   final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
+  final bool renderBorders;
   final MapLayersRenderProfileObserver? debugOnRenderProfile;
   final SmartTileAnimationActivationController? smartTileAnimationController;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
@@ -498,6 +500,7 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintBorderLayer(Canvas canvas, BorderLayer layer) {
+    if (!renderBorders) return;
     // Border materialization and tile sizes are immutable for the component
     // lifetime: build the instruction list once per layer, not per frame.
     final collection = _borderInstructionsByLayerId[layer.id] ??=

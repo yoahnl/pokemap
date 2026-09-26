@@ -31,3 +31,9 @@ abstract interface class ResourceWorkspaceVisuals {
     Set<String> changedRelativePaths = const {},
   });
 }
+
+abstract interface class MapBorderPreviewVisuals {
+  bool get borderPreviewLoading;
+  bool get borderPreviewReady;
+  String? get borderPreviewIssue;
+}
