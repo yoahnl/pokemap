@@ -22,6 +22,7 @@ class MapLibraryNavigator extends StatefulWidget {
     required this.dirtyMapIds,
     required this.onActivate,
     required this.onOrganize,
+    this.onCollapse,
     this.width = 230,
   });
 
@@ -30,6 +31,7 @@ class MapLibraryNavigator extends StatefulWidget {
   final Set<String> dirtyMapIds;
   final ValueChanged<ProjectMapEntry> onActivate;
   final OrganizeMapLibrary? onOrganize;
+  final VoidCallback? onCollapse;
   final double width;
 
   @override
@@ -198,6 +200,12 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                         if (!_selecting) _selected.clear();
                       }),
               ),
+              if (widget.onCollapse != null)
+                StudioTool(
+                  label: 'Masquer les cartes',
+                  icon: Icons.keyboard_double_arrow_left,
+                  onPressed: widget.onCollapse,
+                ),
             ],
           ),
           const SizedBox(height: 8),

@@ -15,6 +15,7 @@ class StudioApplicationFrame extends StatelessWidget {
     this.canTest = false,
     this.onClose,
     this.searchFocusNode,
+    this.headerActions,
   });
   final Widget child;
   final TextEditingController search;
@@ -24,6 +25,7 @@ class StudioApplicationFrame extends StatelessWidget {
   final bool busy, canTest;
   final VoidCallback? onClose;
   final FocusNode? searchFocusNode;
+  final Widget? headerActions;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -86,12 +88,14 @@ class StudioApplicationFrame extends StatelessWidget {
                     const SizedBox(width: 18),
                   ],
                   Expanded(
-                    child: StudioSearchField(
-                      controller: search,
-                      focusNode: searchFocusNode,
-                      label: 'Rechercher dans vos projets et cartes',
-                      onChanged: onSearch,
-                    ),
+                    child:
+                        headerActions ??
+                        StudioSearchField(
+                          controller: search,
+                          focusNode: searchFocusNode,
+                          label: 'Rechercher dans vos projets et cartes',
+                          onChanged: onSearch,
+                        ),
                   ),
                   const SizedBox(width: 12),
                 ],

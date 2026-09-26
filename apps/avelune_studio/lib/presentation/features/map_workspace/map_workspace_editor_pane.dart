@@ -9,8 +9,9 @@ import 'map_workspace_palette_dock.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import '../../shared/widgets/buttons/studio_tool.dart';
 
-class MapWorkspaceEditorPane extends StatelessWidget {
+class MapWorkspaceEditorPane extends StatefulWidget {
   const MapWorkspaceEditorPane({
     super.key,
     required this.controller,
@@ -50,73 +51,105 @@ class MapWorkspaceEditorPane extends StatelessWidget {
   final void Function(GridPos, Offset)? onContextMenu;
 
   @override
-  Widget build(BuildContext context) => Row(
+  State<MapWorkspaceEditorPane> createState() => _MapWorkspaceEditorPaneState();
+}
+
+class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
+  bool _navigatorCollapsed = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
     children: [
-      if (showNavigator)
-        MapLibraryNavigator(
-          project: project,
-          activeMapId: document.base.mapId,
-          dirtyMapIds: {
-            for (final entry in controller.documents.entries)
-              if (entry.value.dirty) entry.key,
-          },
-          onActivate: onActivate,
-          onOrganize: onOrganizeMaps,
-          width: 230,
-        ),
       Expanded(
-        child: Column(
+        child: Row(
           children: [
-            if (showToolStrip)
-              MapWorkspaceToolStrip(
-                view: view,
-                storyAvailable: onZoneDrawn != null,
-                onChanged: onToolChanged,
-                onMoreTools: onMoreTools,
-                onResources: onResources,
-              ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      if (widget.showToolStrip)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: widget.showNavigator && !_navigatorCollapsed
+                                ? 252
+                                : 0,
+                          ),
+                          child: MapWorkspaceToolStrip(
+                            view: widget.view,
+                            storyAvailable: widget.onZoneDrawn != null,
+                            onChanged: widget.onToolChanged,
+                            onMoreTools: widget.onMoreTools,
+                            onResources: widget.onResources,
+                          ),
+                        ),
+                      Expanded(
+                        child: MapWorkspaceCanvas(
+                          key: ValueKey(widget.document.base.mapId),
+                          document: widget.document,
+                          project: widget.project,
+                          visuals: widget.visuals,
+                          view: widget.view,
+                          onChanged: widget.onChanged,
+                          gestureGeneration: widget.generation,
+                          onZoneDrawn: widget.onZoneDrawn,
+                          onContextMenu: widget.onContextMenu,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: MapWorkspaceCanvas(
-                      key: ValueKey(document.base.mapId),
-                      document: document,
-                      project: project,
-                      visuals: visuals,
-                      view: view,
-                      onChanged: onChanged,
-                      gestureGeneration: generation,
-                      onZoneDrawn: onZoneDrawn,
-                      onContextMenu: onContextMenu,
+                  if (widget.showNavigator)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      height: 320,
+                      child: Offstage(
+                        offstage: _navigatorCollapsed,
+                        child: MapLibraryNavigator(
+                          project: widget.project,
+                          activeMapId: widget.document.base.mapId,
+                          dirtyMapIds: {
+                            for (final entry
+                                in widget.controller.documents.entries)
+                              if (entry.value.dirty) entry.key,
+                          },
+                          onActivate: widget.onActivate,
+                          onOrganize: widget.onOrganizeMaps,
+                          onCollapse: () =>
+                              setState(() => _navigatorCollapsed = true),
+                          width: 252,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  if (widget.showNavigator && _navigatorCollapsed)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: StudioTool(
+                        label: 'Afficher les cartes',
+                        icon: Icons.keyboard_double_arrow_right,
+                        onPressed: () =>
+                            setState(() => _navigatorCollapsed = false),
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (showPaletteDock)
-              MapWorkspacePaletteDock(
-                project: project,
-                document: document,
-                visuals: visuals,
-                view: view,
-                search: search,
-                onChanged: onToolChanged,
-                onResources: onResources,
-                onOpenFullPalette: onMoreTools,
-              ),
+            ?widget.inspector,
           ],
         ),
       ),
-      ?inspector,
+      if (widget.showPaletteDock)
+        MapWorkspacePaletteDock(
+          project: widget.project,
+          document: widget.document,
+          visuals: widget.visuals,
+          view: widget.view,
+          search: widget.search,
+          onChanged: widget.onToolChanged,
+          onResources: widget.onResources,
+          onOpenFullPalette: widget.onMoreTools,
+        ),
     ],
   );
 }

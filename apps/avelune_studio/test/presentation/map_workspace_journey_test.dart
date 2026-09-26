@@ -51,6 +51,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Masquer les cartes'));
+    await tester.pumpAndSettle();
   }
 
   Offset cell(WidgetTester tester, int x, int y) =>
@@ -203,6 +205,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('Annuler')));
       await tester.pumpAndSettle();
       expect(document.undoCount, 1);
+      await tester.tap(find.byTooltip('Afficher les cartes'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(TextField).first);
       await tester.enterText(find.byType(TextField).first, 'arbres');
       await tester.sendKeyEvent(LogicalKeyboardKey.backspace);

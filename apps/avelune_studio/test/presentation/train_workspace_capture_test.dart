@@ -20,11 +20,19 @@ void main() {
   final projectPath = Platform.environment['AVELUNE_PROJECT_COPY'];
   final mapId =
       Platform.environment['AVELUNE_CAPTURE_MAP_ID'] ?? 'hanazuki-gare';
+  final captureWidth = int.tryParse(
+    Platform.environment['AVELUNE_CAPTURE_WIDTH'] ?? '',
+  );
+  final captureHeight = int.tryParse(
+    Platform.environment['AVELUNE_CAPTURE_HEIGHT'] ?? '',
+  );
   testWidgets(
     'real Train copy renders with demand resources and desktop panels',
     (tester) async {
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = mapId == 'uwu'
+      tester.view.physicalSize = captureWidth != null && captureHeight != null
+          ? Size(captureWidth.toDouble(), captureHeight.toDouble())
+          : mapId == 'uwu'
           ? const Size(1660, 1080)
           : const Size(1280, 800);
       addTearDown(tester.view.resetPhysicalSize);
@@ -128,6 +136,11 @@ void main() {
           await _settle(tester, resources!);
           expect(document.dirty, isFalse);
           expect(find.text('Empilement ici'), findsOneWidget);
+          if (Platform.environment['AVELUNE_CAPTURE_ORDER'] == '1') {
+            await tester.tap(find.text('Ordre').last);
+            await tester.pumpAndSettle();
+            expect(find.text('Décors réordonnables ici'), findsOneWidget);
+          }
           expect(tester.takeException(), isNull);
           await _capture(capture, 'train-$mapId-carte-palette-empilement');
           final diagnostics = resources!.diagnostics;

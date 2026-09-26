@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 import 'map_decor_order_panel.dart';
+import 'map_decor_selection_summary.dart';
 import 'map_workspace_inspector.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -43,6 +44,15 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
     return Column(
       children: [
         if (selected != null)
+          StudioSidebar(
+            width: widget.width,
+            child: MapDecorSelectionSummary(
+              document: widget.document,
+              project: widget.project,
+              visuals: widget.visuals,
+            ),
+          ),
+        if (selected != null)
           StudioTabs<bool>(
             items: const {false: 'Propriétés', true: 'Ordre'},
             selected: _showOrder,
@@ -70,6 +80,7 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
                   onEditResource: widget.onEditResource,
                   width: widget.width,
                   tool: widget.view.tool,
+                  showSelectionSummary: selected == null,
                 ),
         ),
       ],

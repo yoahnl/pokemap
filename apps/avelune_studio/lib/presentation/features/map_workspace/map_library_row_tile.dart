@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import 'map_library_tree.dart';
 
@@ -26,29 +25,28 @@ class MapLibraryRowTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final map = row.map;
     return Padding(
-      padding: EdgeInsets.only(left: row.depth * 10.0),
+      padding: EdgeInsets.only(left: row.depth * 14.0),
       child: row.isFolder
-          ? Row(
-              children: [
-                StudioTool(
-                  label: collapsed
-                      ? 'Déplier ${row.label}'
-                      : 'Replier ${row.label}',
-                  icon: collapsed ? Icons.chevron_right : Icons.expand_more,
-                  onPressed: onToggleFolder,
-                ),
-                Expanded(
-                  child: StudioChoice(
-                    label: row.label,
-                    subtitle: '${row.count}',
-                    onTap: onToggleFolder,
+          ? StudioChoice(
+              label: row.label,
+              subtitle: '${row.count}',
+              dense: true,
+              leading: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    collapsed ? Icons.chevron_right : Icons.expand_more,
+                    size: 16,
                   ),
-                ),
-              ],
+                  const Icon(Icons.folder_outlined, size: 17),
+                ],
+              ),
+              onTap: onToggleFolder,
             )
           : StudioChoice(
               key: ValueKey('map-library-${map!.id}'),
               label: '${dirty ? '• ' : ''}${map.name}',
+              dense: true,
               leading: Icon(
                 selecting && selected ? Icons.check_box : Icons.map_outlined,
                 size: 18,

@@ -99,12 +99,11 @@ class MapWorkspaceLayout extends StatelessWidget {
       final compactInspector = availableWidth < 1000 || largeText;
       final compactPalette = availableWidth < 650 || largeText;
       final showInspector = inspector ?? (!compactInspector);
-      final navigatorWidth = showInspector && !compactInspector ? 1150 : 880;
-      final showNavigator = availableWidth >= navigatorWidth && !largeText;
-      final shortWindow = c.maxHeight < 1020;
-      final showPaletteDock = palette && !compactPalette && !shortWindow;
+      final showNavigator =
+          !largeText && availableWidth >= (showInspector ? 1150 : 880);
+      final showPaletteDock = palette && !compactPalette && c.maxHeight >= 1020;
       final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
-      final inspectorWidth = c.maxWidth >= 1400 ? 300.0 : 280.0;
+      final inspectorWidth = c.maxWidth >= 1400 ? 340.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapWorkspacePaletteColumn(
@@ -190,6 +189,33 @@ class MapWorkspaceLayout extends StatelessWidget {
           });
         }
       }
+      final headerBar = showNavigator && activeSpace == 'map';
+      final toolbar = resourceContent == null
+          ? MapWorkspaceToolbar(
+              controller: controller,
+              view: view,
+              onChanged: onToolChanged,
+              paletteVisible: showPaletteDock,
+              inspectorVisible: showInspector && !compactInspector,
+              navigatorVisible: showNavigator,
+              onNavigator: openNavigator,
+              onPalette: (compactPalette || c.maxHeight < 1020) && ready
+                  ? openPalette
+                  : onPalette,
+              onInspector: compactInspector && ready
+                  ? () => showWorkspaceCompactPanel(
+                      context,
+                      title: 'Inspecteur',
+                      builder: (context, refresh, close) =>
+                          inspectorContent(refresh, close),
+                    )
+                  : onInspector,
+              onActivate: onActivate,
+              onSave: onSave,
+              onTest: onTest,
+              onClose: onClose,
+            )
+          : null;
       return StudioApplicationFrame(
         projectName: controller.session.name,
         search: homeSearch,
@@ -197,6 +223,7 @@ class MapWorkspaceLayout extends StatelessWidget {
         canTest: onTest != null,
         busy: exportActive,
         onClose: onClose,
+        headerActions: headerBar ? toolbar : null,
         active: activeSpace == 'interaction' ? 'story' : activeSpace,
         onDestination: (destination) {
           switch (destination) {
@@ -218,31 +245,7 @@ class MapWorkspaceLayout extends StatelessWidget {
         },
         child: Column(
           children: [
-            if (resourceContent == null)
-              MapWorkspaceToolbar(
-                controller: controller,
-                view: view,
-                onChanged: onToolChanged,
-                paletteVisible: showPaletteDock,
-                inspectorVisible: showInspector && !compactInspector,
-                navigatorVisible: showNavigator,
-                onNavigator: openNavigator,
-                onPalette: (compactPalette || shortWindow) && ready
-                    ? openPalette
-                    : onPalette,
-                onInspector: compactInspector && ready
-                    ? () => showWorkspaceCompactPanel(
-                        context,
-                        title: 'Inspecteur',
-                        builder: (context, refresh, close) =>
-                            inspectorContent(refresh, close),
-                      )
-                    : onInspector,
-                onActivate: onActivate,
-                onSave: onSave,
-                onTest: onTest,
-                onClose: onClose,
-              ),
+            if (!headerBar && toolbar != null) toolbar,
             if (error != null) StudioNotice(error!, isError: true, maxLines: 2),
             if (error == null && movingHint != null)
               StudioNotice(movingHint!, maxLines: 2),

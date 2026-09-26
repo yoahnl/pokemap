@@ -11,10 +11,12 @@ class ResourceCategoryFilter extends StatefulWidget {
     required this.tree,
     required this.selected,
     required this.onChanged,
+    this.compact = false,
   });
   final ResourceCategoryTree tree;
   final String selected;
   final ValueChanged<String> onChanged;
+  final bool compact;
 
   @override
   State<ResourceCategoryFilter> createState() => _ResourceCategoryFilterState();
@@ -46,6 +48,7 @@ class _ResourceCategoryFilterState extends State<ResourceCategoryFilter> {
             key: const ValueKey('resource-category-'),
             label: 'Toutes les catégories',
             subtitle: '${widget.tree.total}',
+            dense: widget.compact,
             selected: widget.selected.isEmpty,
             onTap: () => widget.onChanged(''),
           ),
@@ -74,6 +77,7 @@ class _ResourceCategoryFilterState extends State<ResourceCategoryFilter> {
                         key: ValueKey('resource-category-${node.id}'),
                         label: node.name,
                         subtitle: '${node.count}',
+                        dense: widget.compact,
                         selected: widget.selected == node.id,
                         onTap: () => widget.onChanged(node.id),
                       ),
@@ -86,6 +90,7 @@ class _ResourceCategoryFilterState extends State<ResourceCategoryFilter> {
               key: const ValueKey('resource-category-__uncategorized__'),
               label: 'Sans catégorie',
               subtitle: '${widget.tree.uncategorized}',
+              dense: widget.compact,
               selected: widget.selected == uncategorizedResourceCategory,
               onTap: () => widget.onChanged(uncategorizedResourceCategory),
             ),

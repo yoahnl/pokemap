@@ -12,6 +12,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_panels.dart';
+import 'map_workspace_palette_dock_header.dart';
 
 class MapWorkspacePaletteDock extends StatefulWidget {
   const MapWorkspacePaletteDock({
@@ -41,6 +42,9 @@ class MapWorkspacePaletteDock extends StatefulWidget {
 }
 
 class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
+  double _height = 218;
+  bool _collapsed = false;
+
   @override
   Widget build(BuildContext context) {
     final kind = widget.view.paletteTab;
@@ -68,7 +72,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
     }).toList();
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
     return Container(
-      height: 206,
+      height: _collapsed ? 48 : _height,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
@@ -79,53 +83,25 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(
-                kind == 'Terrains' ? Icons.terrain : Icons.category_outlined,
-                size: 17,
-              ),
-              const SizedBox(width: 6),
-              Text(kind, style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final value in const [
-                        'Décors',
-                        'Terrains',
-                        'Tuiles',
-                        'Personnages',
-                        'Passages',
-                      ]) ...[
-                        StudioButton(
-                          label: value,
-                          secondary: kind != value,
-                          onPressed: () {
-                            widget.view.paletteTab = value;
-                            widget.view.paletteTiles = value == 'Tuiles';
-                            setState(() {});
-                            widget.onChanged();
-                            if (value == 'Tuiles') widget.onOpenFullPalette();
-                          },
-                        ),
-                        const SizedBox(width: 5),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Palette complète',
-                icon: const Icon(Icons.open_in_full),
-                onPressed: widget.onOpenFullPalette,
-              ),
-            ],
+          MapWorkspacePaletteDockHeader(
+            kind: kind,
+            collapsed: _collapsed,
+            onKindChanged: (value) {
+              widget.view.paletteTab = value;
+              widget.view.paletteTiles = value == 'Tuiles';
+              setState(() => _collapsed = false);
+              widget.onChanged();
+              if (value == 'Tuiles') widget.onOpenFullPalette();
+            },
+            onToggle: () => setState(() => _collapsed = !_collapsed),
+            onResize: (delta) => setState(() {
+              _collapsed = false;
+              _height = (_height - delta).clamp(178, 330);
+            }),
+            onOpenFullPalette: widget.onOpenFullPalette,
           ),
-          const SizedBox(height: 6),
-          if (detailed && kind != 'Tuiles')
+          if (!_collapsed) const SizedBox(height: 6),
+          if (!_collapsed && detailed && kind != 'Tuiles')
             Expanded(
               child: Column(
                 children: [
@@ -151,7 +127,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 ],
               ),
             )
-          else if (kind == 'Tuiles')
+          else if (!_collapsed && kind == 'Tuiles')
             Expanded(
               child: Center(
                 child: StudioButton(
@@ -160,16 +136,17 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 ),
               ),
             )
-          else
+          else if (!_collapsed)
             Expanded(
               child: Row(
                 children: [
                   if (tree.nodes.isNotEmpty || tree.uncategorized > 0) ...[
                     SizedBox(
-                      width: 190,
+                      width: 228,
                       child: ResourceCategoryFilter(
                         tree: tree,
                         selected: selectedCategory,
+                        compact: true,
                         onChanged: (value) {
                           if (resourceKind == ResourceKind.decors) {
                             widget.view.decorCategoryId = value;
@@ -215,7 +192,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                     return Padding(
                                       padding: const EdgeInsets.only(right: 8),
                                       child: SizedBox(
-                                        width: 110,
+                                        width: 122,
                                         child: StudioPaletteCard(
                                           key: ValueKey(
                                             item.element != null
@@ -223,16 +200,17 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                                 : 'terrain-${item.id}',
                                           ),
                                           name: item.name,
+                                          maxNameLines: 2,
                                           preview: item.element != null
                                               ? widget.visuals.thumbnail(
                                                   item.element!,
-                                                  size: 68,
+                                                  size: 74,
                                                 )
                                               : resourcePreview(
                                                   item,
                                                   widget.project,
                                                   widget.visuals,
-                                                  size: 68,
+                                                  size: 74,
                                                 ),
                                           selected: item.element != null
                                               ? widget.view.brush?.id == item.id

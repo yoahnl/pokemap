@@ -121,7 +121,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('Annuler')));
     await pumpIo(tester);
     expect(document.current.placedElements, before.placedElements);
-    await tester.tap(find.text('Tuiles'));
+    await tester.tap(find.byTooltip('Changer la palette'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tuiles').last);
     await pumpIo(tester);
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
@@ -146,6 +148,8 @@ void main() {
     expect(controller.active, same(document));
     expect(document.dirty, isTrue);
     expect(view.transform.value, matrix);
+    await tester.tap(find.byTooltip('Accueil'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Jardin');
     await pumpIo(tester);
     expect(find.text('Reprendre mon projet'), findsOneWidget);

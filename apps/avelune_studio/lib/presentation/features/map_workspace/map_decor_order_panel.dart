@@ -3,8 +3,8 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
-import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -60,9 +60,20 @@ class MapDecorOrderPanel extends StatelessWidget {
         subtitle: different
             ? 'Autre calque · ${layers[element.layerId] ?? element.layerId}'
             : 'Position ${rank + 1} · ${layers[element.layerId] ?? element.layerId}',
-        leading: definition == null
-            ? null
-            : visuals.thumbnail(definition, size: 34),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 24,
+              child: Text(
+                different ? '–' : '${rank + 1}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            if (definition != null) visuals.thumbnail(definition, size: 34),
+          ],
+        ),
         selected: element.id == selected.id,
         onTap: () {
           view.select(document, MapSelectionFamily.decor, element.id);
@@ -74,7 +85,7 @@ class MapDecorOrderPanel extends StatelessWidget {
     return ListView(
       children: [
         Text(
-          'Ordre des décors ici',
+          'Décors réordonnables ici',
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: 6),
@@ -104,27 +115,43 @@ class MapDecorOrderPanel extends StatelessWidget {
             entry(element, index, different: true),
         ],
         const SizedBox(height: 10),
-        StudioDepthControl(
-          onForward: forwardReason == null
-              ? () {
-                  commands.reorderAt(
-                    instanceId: selected.id,
-                    at: position,
-                    forward: true,
-                  );
-                  onChanged();
-                }
-              : null,
-          onBackward: backwardReason == null
-              ? () {
-                  commands.reorderAt(
-                    instanceId: selected.id,
-                    at: position,
-                    forward: false,
-                  );
-                  onChanged();
-                }
-              : null,
+        Row(
+          children: [
+            Expanded(
+              child: StudioButton(
+                label: 'Monter',
+                icon: Icons.arrow_upward,
+                onPressed: forwardReason == null
+                    ? () {
+                        commands.reorderAt(
+                          instanceId: selected.id,
+                          at: position,
+                          forward: true,
+                        );
+                        onChanged();
+                      }
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StudioButton(
+                label: 'Descendre',
+                icon: Icons.arrow_downward,
+                secondary: true,
+                onPressed: backwardReason == null
+                    ? () {
+                        commands.reorderAt(
+                          instanceId: selected.id,
+                          at: position,
+                          forward: false,
+                        );
+                        onChanged();
+                      }
+                    : null,
+              ),
+            ),
+          ],
         ),
         if (local.length > 1 &&
             forwardReason != null &&

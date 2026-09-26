@@ -10,6 +10,7 @@ class StudioChoice extends StatefulWidget {
     this.leading,
     this.subtitle,
     this.tone,
+    this.dense = false,
   });
   final String label;
   final VoidCallback? onTap;
@@ -17,6 +18,7 @@ class StudioChoice extends StatefulWidget {
   final Widget? leading;
   final String? subtitle;
   final StudioTone? tone;
+  final bool dense;
   @override
   State<StudioChoice> createState() => _StudioChoiceState();
 }
@@ -30,7 +32,7 @@ class _StudioChoiceState extends State<StudioChoice> {
     final colors = theme.colorScheme;
     final accent = widget.tone?.color(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.symmetric(vertical: widget.dense ? 1 : 2),
       child: Semantics(
         selected: widget.selected,
         button: true,
@@ -59,9 +61,12 @@ class _StudioChoiceState extends State<StudioChoice> {
             onTap: widget.onTap,
             onFocusChange: (value) => setState(() => _focused = value),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 34),
+              constraints: BoxConstraints(minHeight: widget.dense ? 26 : 34),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: widget.dense ? 4 : 7,
+                ),
                 child: Row(
                   children: [
                     if (widget.leading != null) ...[
@@ -75,7 +80,7 @@ class _StudioChoiceState extends State<StudioChoice> {
                         children: [
                           Text(
                             widget.label,
-                            maxLines: 2,
+                            maxLines: widget.dense ? 1 : 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: widget.selected
@@ -83,7 +88,7 @@ class _StudioChoiceState extends State<StudioChoice> {
                                   : null,
                             ),
                           ),
-                          if (widget.subtitle != null) ...[
+                          if (widget.subtitle != null && !widget.dense) ...[
                             const SizedBox(height: 3),
                             Text(
                               widget.subtitle!,
@@ -95,7 +100,9 @@ class _StudioChoiceState extends State<StudioChoice> {
                         ],
                       ),
                     ),
-                    if (widget.selected) ...[
+                    if (widget.dense && widget.subtitle != null)
+                      Text(widget.subtitle!, style: theme.textTheme.bodySmall),
+                    if (widget.selected && !widget.dense) ...[
                       const SizedBox(width: 6),
                       Icon(
                         Icons.check,

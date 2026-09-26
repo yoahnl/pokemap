@@ -192,6 +192,8 @@ void main() {
     'every family the menu deletes, the keyboard deletes and undoes',
     (tester) async {
       final f = await MapHostFixture.open(tester);
+      await tester.tap(find.byTooltip('Masquer les cartes'));
+      await pumpIo(tester);
       final project = f.maps.project!;
       final sign = MapEntityEditingCommands(
         f.document,

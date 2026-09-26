@@ -23,6 +23,7 @@ class MapWorkspaceInspector extends StatefulWidget {
     this.onEditResource,
     this.width = 300,
     this.tool = StudioMapTool.select,
+    this.showSelectionSummary = true,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
@@ -33,6 +34,7 @@ class MapWorkspaceInspector extends StatefulWidget {
   final ValueChanged<ProjectElementEntry>? onEditResource;
   final double width;
   final StudioMapTool tool;
+  final bool showSelectionSummary;
   @override
   State<MapWorkspaceInspector> createState() => _MapWorkspaceInspectorState();
 }
@@ -87,28 +89,30 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  selected == null ? 'La carte' : 'Élément sélectionné',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                if (entry != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: StudioAssetPreview(
-                      height: 104,
-                      child: visuals.thumbnail(entry, size: 100),
-                    ),
+                if (widget.showSelectionSummary) ...[
+                  Text(
+                    selected == null ? 'La carte' : 'Élément sélectionné',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                Text(
-                  entry?.name ??
-                      (selected == null
-                          ? document.current.name
-                          : 'Ressource manquante'),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                  const SizedBox(height: 12),
+                  if (entry != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: StudioAssetPreview(
+                        height: 104,
+                        child: visuals.thumbnail(entry, size: 100),
+                      ),
+                    ),
+                  Text(
+                    entry?.name ??
+                        (selected == null
+                            ? document.current.name
+                            : 'Ressource manquante'),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ],
                 if (selected == null) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -138,6 +142,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                       'Tracez une zone sur la carte pour lui associer une interaction.',
                     StudioMapTool.gameplayZone =>
                       'Tracez une zone de jeu : rencontres, déplacement, effet ou danger.',
+                    StudioMapTool.encounterPaint =>
+                      'Peignez les cases des rencontres. Un glissé forme une seule modification annulable.',
+                    StudioMapTool.encounterErase =>
+                      'Retirez les cases peintes de la zone de rencontres sélectionnée.',
                     StudioMapTool.erase =>
                       'Cliquez ou faites glisser pour effacer avec la gomme.',
                   }),
