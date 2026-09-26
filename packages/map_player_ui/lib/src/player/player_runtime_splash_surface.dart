@@ -102,35 +102,30 @@ class PlayerSplashTimeline extends StatelessWidget {
         : Curves.easeInOutCubic.transform(
             _interval(progress, kPlayerSplashHoldProgress, 1),
           );
-    final macroProgress = reducedMotion
-        ? 1.0
-        : Curves.easeInOutSine.transform(_interval(progress, .02, .54));
-    final macroOpacity = reducedMotion
+    final eclipseTime = 3.4 * progress;
+    final eclipseCollapse = _smooth(eclipseTime, .03, 1.55);
+    final eclipseLogoOpacity = reducedMotion
         ? 0.0
-        : _interval(progress, 0, .08) *
-            (1 - Curves.easeInOut.transform(_interval(progress, .46, .65)));
-    final markEntrance = reducedMotion
-        ? 1.0
-        : Curves.easeInOut.transform(_interval(progress, .44, .62));
-    final nameEntrance = reducedMotion
-        ? 1.0
-        : Curves.easeInOut.transform(_interval(progress, .41, .68));
-    final loadingEntrance = reducedMotion
-        ? 1.0
-        : Curves.easeOut.transform(_interval(progress, .57, .77));
+        : _smooth(eclipseTime, .55, 1.1) *
+            (1 - _smooth(eclipseTime, 1.35, 1.72));
+    final markEntrance = reducedMotion ? 1.0 : _smooth(eclipseTime, 1.46, 2.04);
+    final nameEntrance = reducedMotion ? 1.0 : _smooth(eclipseTime, 1.46, 2.04);
+    final loadingEntrance =
+        reducedMotion ? 1.0 : _smooth(eclipseTime, 2.16, 2.55);
     return Semantics(
       label: '${branding.displayName}. ${branding.signature}',
       value: '${(loadingProgress * 100).round()} %',
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewport = constraints.biggest;
+          final stageWidth =
+              math.min(viewport.width, viewport.height * 390 / 694);
           final lockupWidth = math.min(viewport.width * .74, 550.0);
           final symbolSize = math.min(
             math.min(lockupWidth * .24, viewport.height * .14),
             120.0,
           );
           final wordmarkWidth = lockupWidth - symbolSize - lockupWidth * .04;
-          final markOffsetX = -(lockupWidth - symbolSize) / 2;
           final bottomInset = MediaQuery.paddingOf(context).bottom;
           return ColoredBox(
             color: background,
@@ -143,28 +138,55 @@ class PlayerSplashTimeline extends StatelessWidget {
                     background: background,
                   ),
                 ),
+                if (!reducedMotion)
+                  CustomPaint(
+                    key: const ValueKey<String>('startup-splash-eclipse'),
+                    painter: _EclipsePainter(
+                      time: eclipseTime,
+                      departure: departure,
+                    ),
+                  ),
                 if (logo != null && !reducedMotion)
                   Center(
                     child: Transform.translate(
-                      offset: Offset(
-                        markOffsetX * macroProgress,
-                        -viewport.height * .015,
-                      ),
+                      offset: Offset(0, -viewport.height * .03),
                       child: Opacity(
-                        key: const ValueKey<String>('startup-splash-macro'),
-                        opacity: macroOpacity * (1 - departure),
-                        child: _PrismOpening(
-                          logo: logo!,
-                          size: symbolSize,
-                          viewport: viewport,
-                          progress: macroProgress,
+                        key: const ValueKey<String>(
+                          'startup-splash-eclipse-logo',
+                        ),
+                        opacity: eclipseLogoOpacity * (1 - departure),
+                        child: Transform.rotate(
+                          angle: ui.lerpDouble(
+                            -9 * math.pi / 180,
+                            0,
+                            eclipseCollapse,
+                          )!,
+                          child: Transform.scale(
+                            key: const ValueKey<String>(
+                              'startup-splash-eclipse-scale',
+                            ),
+                            scale: ui.lerpDouble(
+                              1.33,
+                              .55,
+                              _smooth(eclipseTime, .68, 1.45),
+                            )!,
+                            child: SizedBox.square(
+                              dimension: stageWidth * .42,
+                              child: Image(
+                                image: logo!,
+                                fit: BoxFit.contain,
+                                filterQuality: FilterQuality.medium,
+                                errorBuilder: (_, __, ___) => const SizedBox(),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 Center(
                   child: Transform.translate(
-                    offset: Offset(0, -viewport.height * .015),
+                    offset: Offset(0, -viewport.height * .03),
                     child: SizedBox(
                       width: lockupWidth,
                       height: symbolSize,
@@ -194,28 +216,25 @@ class PlayerSplashTimeline extends StatelessWidget {
                           Opacity(
                             key: const ValueKey<String>('startup-splash-name'),
                             opacity: nameEntrance * (1 - departure),
-                            child: Transform.translate(
-                              offset: Offset(14 * (1 - nameEntrance), 0),
-                              child: SizedBox(
-                                width: wordmarkWidth,
-                                height: symbolSize,
-                                child: wordmark == null
-                                    ? _FallbackWordmark(
-                                        name: branding.displayName,
-                                      )
-                                    : Image(
-                                        key: const ValueKey<String>(
-                                          'startup-splash-wordmark-image',
-                                        ),
-                                        image: wordmark!,
-                                        fit: BoxFit.contain,
-                                        filterQuality: FilterQuality.medium,
-                                        errorBuilder: (_, __, ___) =>
-                                            _FallbackWordmark(
-                                          name: branding.displayName,
-                                        ),
+                            child: SizedBox(
+                              width: wordmarkWidth,
+                              height: symbolSize,
+                              child: wordmark == null
+                                  ? _FallbackWordmark(
+                                      name: branding.displayName,
+                                    )
+                                  : Image(
+                                      key: const ValueKey<String>(
+                                        'startup-splash-wordmark-image',
                                       ),
-                              ),
+                                      image: wordmark!,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.medium,
+                                      errorBuilder: (_, __, ___) =>
+                                          _FallbackWordmark(
+                                        name: branding.displayName,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
@@ -253,146 +272,126 @@ class PlayerSplashTimeline extends StatelessWidget {
   }
 }
 
-class _PrismOpening extends StatelessWidget {
-  const _PrismOpening({
-    required this.logo,
-    required this.size,
-    required this.viewport,
-    required this.progress,
+class _EclipsePainter extends CustomPainter {
+  const _EclipsePainter({
+    required this.time,
+    required this.departure,
   });
 
-  final ImageProvider logo;
-  final double size;
-  final Size viewport;
-  final double progress;
+  final double time;
+  final double departure;
 
   @override
-  Widget build(BuildContext context) => SizedBox.square(
-        dimension: size,
-        child: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
-          children: <Widget>[
-            _PrismFragment(
-              logo: logo,
-              start: 0,
-              end: .42,
-              dx: -viewport.width * .32,
-              dy: viewport.height * .06,
-              rotation: -.12,
-              progress: progress,
+  void paint(Canvas canvas, Size size) {
+    final stageWidth = math.min(size.width, size.height * 390 / 694);
+    final center = Offset(size.width * .5, size.height * .47);
+    final collapse = _smooth(time, .03, 1.55);
+    final orbitScale = ui.lerpDouble(2.1, .55, collapse)!;
+    final orbitOpacity =
+        .93 * _smooth(time, 0, .2) * (1 - _smooth(time, 1.42, 2.04));
+    final softOpacity =
+        .62 * _smooth(time, 0, .26) * (1 - _smooth(time, 1.35, 1.94));
+
+    if (softOpacity > 0) {
+      _paintOrbit(
+        canvas,
+        center,
+        stageWidth * .81 * ui.lerpDouble(1.9, .58, collapse)!,
+        ui.lerpDouble(40, 155, collapse)! * math.pi / 180,
+        softOpacity * (1 - departure),
+        true,
+      );
+    }
+    if (orbitOpacity > 0) {
+      _paintOrbit(
+        canvas,
+        center,
+        stageWidth * .725 * orbitScale,
+        ui.lerpDouble(-75, 42, collapse)! * math.pi / 180,
+        orbitOpacity * (1 - departure),
+        false,
+      );
+    }
+
+    final discOpacity =
+        _smooth(time, .08, .3) * (1 - _smooth(time, 1.35, 1.72));
+    if (discOpacity <= 0) return;
+    final crossing = _smooth(time, .2, 1.35);
+    final discCenter = center.translate(
+      ui.lerpDouble(-stageWidth * .27, stageWidth * .37, crossing)!,
+      0,
+    );
+    final radius = stageWidth * .485 * ui.lerpDouble(1.3, .76, collapse)!;
+    canvas.drawCircle(
+      discCenter,
+      radius,
+      Paint()
+        ..color = Colors.black.withValues(
+          alpha: .7 * discOpacity * (1 - departure),
+        )
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stageWidth * .075),
+    );
+    canvas.drawCircle(
+      discCenter,
+      radius,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          discCenter.translate(radius * .12, -radius * .2),
+          radius * 1.3,
+          <Color>[
+            const Color(0xFF090B16).withValues(
+              alpha: discOpacity * (1 - departure),
             ),
-            _PrismFragment(
-              logo: logo,
-              start: .42,
-              end: .72,
-              dx: viewport.width * .04,
-              dy: -viewport.height * .08,
-              rotation: .07,
-              progress: progress,
-            ),
-            _PrismFragment(
-              logo: logo,
-              start: .72,
-              end: 1,
-              dx: viewport.width * .31,
-              dy: viewport.height * .04,
-              rotation: .11,
-              progress: progress,
+            const Color(0xFF010207).withValues(
+              alpha: discOpacity * (1 - departure),
             ),
           ],
         ),
-      );
-}
-
-class _PrismFragment extends StatelessWidget {
-  const _PrismFragment({
-    required this.logo,
-    required this.start,
-    required this.end,
-    required this.dx,
-    required this.dy,
-    required this.rotation,
-    required this.progress,
-  });
-
-  final ImageProvider logo;
-  final double start;
-  final double end;
-  final double dx;
-  final double dy;
-  final double rotation;
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final separation = 1 - progress;
-    final scale = ui.lerpDouble(7.2, 1, progress)!;
-    final clipper = _FragmentClipper(start, end);
-    return Transform.translate(
-      offset: Offset(dx * separation, dy * separation),
-      child: Transform.rotate(
-        angle: rotation * separation,
-        child: Transform.scale(
-          key: start == 0
-              ? const ValueKey<String>('startup-splash-macro-scale')
-              : null,
-          scale: scale,
-          child: Stack(
-            fit: StackFit.expand,
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              if (separation > .001)
-                Opacity(
-                  opacity: .6 * separation,
-                  child: Transform.translate(
-                    offset: Offset(10 * separation, -5 * separation),
-                    child: ImageFiltered(
-                      imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: ClipPath(
-                        clipper: clipper,
-                        child: Image(
-                          image: logo,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.medium,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ClipPath(
-                clipper: clipper,
-                child: Image(
-                  image: logo,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, __, ___) => const SizedBox(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
-}
 
-class _FragmentClipper extends CustomClipper<Path> {
-  const _FragmentClipper(this.start, this.end);
-
-  final double start;
-  final double end;
-
-  @override
-  Path getClip(Size size) => Path()
-    ..addRect(
-      Rect.fromLTRB(size.width * start, 0, size.width * end, size.height),
+  void _paintOrbit(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double rotation,
+    double opacity,
+    bool soft,
+  ) {
+    final colors = soft
+        ? <Color>[
+            const Color(0xFF3C89FF),
+            const Color(0xFFA854FF),
+            const Color(0xFFFB7BBD),
+            const Color(0xFF3C89FF),
+          ]
+        : <Color>[
+            const Color(0xFF1D71F5),
+            const Color(0xFF38E0E4),
+            const Color(0xFFFFF7C2),
+            const Color(0xFFF36AC4),
+            const Color(0xFF8B56EE),
+            const Color(0xFF1D71F5),
+          ];
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = radius * (soft ? .13 : .09)
+        ..shader = SweepGradient(
+          colors:
+              colors.map((color) => color.withValues(alpha: opacity)).toList(),
+          transform: GradientRotation(rotation),
+        ).createShader(Rect.fromCircle(center: center, radius: radius))
+        ..maskFilter =
+            soft ? MaskFilter.blur(BlurStyle.normal, radius * .05) : null,
     );
+  }
 
   @override
-  bool shouldReclip(_FragmentClipper oldClipper) =>
-      oldClipper.start != start || oldClipper.end != end;
+  bool shouldRepaint(_EclipsePainter oldDelegate) =>
+      oldDelegate.time != time || oldDelegate.departure != departure;
 }
 
 class _FallbackMark extends StatelessWidget {
@@ -558,6 +557,11 @@ class _BackdropPainter extends CustomPainter {
 
 double _interval(double value, double start, double end) =>
     ((value - start) / (end - start)).clamp(0.0, 1.0);
+
+double _smooth(double value, double start, double end) {
+  final fraction = _interval(value, start, end);
+  return fraction * fraction * (3 - 2 * fraction);
+}
 
 Color _brandColor(String hex, Color fallback) {
   final raw = hex.startsWith('#') ? hex.substring(1) : hex;

@@ -20,7 +20,7 @@ const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
   primaryColorHex: '#F2D9B2',
   secondaryColorHex: '#9E79D7',
   backgroundColorHex: '#030306',
-  minimumDisplayDuration: Duration(milliseconds: 2400),
+  minimumDisplayDuration: Duration(milliseconds: 3400),
   exitTransitionDuration: Duration(milliseconds: 360),
   finalCurtainDuration: Duration(milliseconds: 180),
 );
