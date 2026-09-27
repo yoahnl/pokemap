@@ -148,6 +148,14 @@ final class StudioMapResources
       nextColors: next.colors,
       changedRelativePaths: changedRelativePaths,
     );
+    final borderChanged =
+        manifest.borderCatalog != updated.borderCatalog ||
+        manifest.settings != updated.settings ||
+        updated.borderCatalog.visualSnapshots.any(
+          (snapshot) => snapshot.frames.any(
+            (frame) => changedRelativePaths.contains(frame.relativeAssetPath),
+          ),
+        );
     manifest = updated;
     _index = next;
     paths
@@ -159,7 +167,9 @@ final class StudioMapResources
     store.invalidate(invalid);
     catalogVersion++;
     if (_activeMap != null) {
-      borderPreview.invalidate(updated, _activeMap!);
+      if (borderChanged) {
+        borderPreview.invalidate(updated, _activeMap!);
+      }
       setActiveMap(_activeMap!);
     }
     final terrain = _terrainPreset;

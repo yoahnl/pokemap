@@ -116,11 +116,13 @@ final class PokemonWorkspaceController {
     if (selectedDraft?.dirty == true || saving) return false;
     final entry = index?.entries.where((item) => item.id == id).firstOrNull;
     if (entry == null) return false;
+    final previousId = selectedId;
     selectedId = id;
     lastSavedSpeciesId = null;
     section = PokemonDetailSection.overview;
     error = null;
     if (_drafts.containsKey(id)) {
+      _releaseInactiveDrafts(previousId);
       _notify();
       return true;
     }
@@ -131,6 +133,7 @@ final class PokemonWorkspaceController {
       final bundle = await port.loadSpecies(entry);
       if (!_current(request) || selectedId != id) return false;
       _drafts[id] = PokemonSpeciesDraft(bundle);
+      _releaseInactiveDrafts(previousId);
       return true;
     } on Object catch (failure) {
       if (_current(request)) error = 'Fiche $id indisponible : $failure';
@@ -141,6 +144,17 @@ final class PokemonWorkspaceController {
         _notify();
       }
     }
+  }
+
+  void _releaseInactiveDrafts(String? previousId) {
+    _drafts.removeWhere((id, draft) {
+      if (id == selectedId) return false;
+      if (draft.dirty) {
+        draft.clearHistory();
+        return false;
+      }
+      return id != previousId;
+    });
   }
 
   bool setView(PokemonWorkspaceView value) {

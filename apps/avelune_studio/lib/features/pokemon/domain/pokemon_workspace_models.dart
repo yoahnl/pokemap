@@ -85,6 +85,9 @@ final class PokemonSpeciesBundle {
 }
 
 final class PokemonSpeciesDraft {
+  static const _maxHistoryEntries = 100;
+  static const _maxHistoryBytes = 16 * 1024 * 1024;
+
   PokemonSpeciesDraft(this.base)
     : _current = {
         for (final source in base.documents)
@@ -93,8 +96,8 @@ final class PokemonSpeciesDraft {
 
   final PokemonSpeciesBundle base;
   final Map<PokemonDocumentFamily, Map<String, dynamic>> _current;
-  final List<Map<PokemonDocumentFamily, Map<String, dynamic>>> _undo = [];
-  final List<Map<PokemonDocumentFamily, Map<String, dynamic>>> _redo = [];
+  final List<_PokemonDraftHistoryEntry> _undo = [];
+  final List<_PokemonDraftHistoryEntry> _redo = [];
 
   String get id => base.species.document!['id'] as String;
 
@@ -113,44 +116,89 @@ final class PokemonSpeciesDraft {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
+  void clearHistory() {
+    _undo.clear();
+    _redo.clear();
+  }
+
   void edit(
     PokemonDocumentFamily family,
     void Function(Map<String, dynamic>) change, {
     Map<String, dynamic>? initial,
   }) {
-    final before = _copyAll(_current);
-    final next = _copy(_current[family] ?? initial ?? <String, dynamic>{});
+    final previous = _current[family];
+    final before = previous == null ? null : jsonEncode(previous);
+    final next =
+        (jsonDecode(before ?? jsonEncode(initial ?? <String, dynamic>{}))
+                as Map)
+            .cast<String, dynamic>();
     change(next);
-    if (jsonEncode(next) == jsonEncode(_current[family])) return;
-    _undo.add(before);
+    if (jsonEncode(next) == before) return;
+    _pushHistory(_undo, _PokemonDraftHistoryEntry(family, before));
     _redo.clear();
     _current[family] = next;
   }
 
   void undo() {
     if (_undo.isEmpty) return;
-    _redo.add(_copyAll(_current));
-    _replace(_undo.removeLast());
+    final entry = _undo.removeLast();
+    _pushHistory(_redo, _snapshot(entry.family));
+    _restore(entry);
   }
 
   void redo() {
     if (_redo.isEmpty) return;
-    _undo.add(_copyAll(_current));
-    _replace(_redo.removeLast());
+    final entry = _redo.removeLast();
+    _pushHistory(_undo, _snapshot(entry.family));
+    _restore(entry);
   }
 
-  void _replace(Map<PokemonDocumentFamily, Map<String, dynamic>> value) {
-    _current
-      ..clear()
-      ..addAll(_copyAll(value));
+  _PokemonDraftHistoryEntry _snapshot(PokemonDocumentFamily family) =>
+      _PokemonDraftHistoryEntry(
+        family,
+        _current[family] == null ? null : jsonEncode(_current[family]),
+      );
+
+  void _restore(_PokemonDraftHistoryEntry entry) {
+    final snapshot = entry.snapshot;
+    if (snapshot == null) {
+      _current.remove(entry.family);
+    } else {
+      _current[entry.family] = (jsonDecode(snapshot) as Map)
+          .cast<String, dynamic>();
+    }
+  }
+
+  static void _pushHistory(
+    List<_PokemonDraftHistoryEntry> entries,
+    _PokemonDraftHistoryEntry entry,
+  ) {
+    if (entry.retainedBytes > _maxHistoryBytes) {
+      entries.clear();
+      return;
+    }
+    entries.add(entry);
+    var retainedBytes = entries.fold<int>(
+      0,
+      (total, entry) => total + entry.retainedBytes,
+    );
+    while (entries.length > _maxHistoryEntries ||
+        retainedBytes > _maxHistoryBytes) {
+      retainedBytes -= entries.removeAt(0).retainedBytes;
+    }
   }
 
   static Map<String, dynamic> _copy(Map<String, dynamic> value) =>
       (jsonDecode(jsonEncode(value)) as Map).cast<String, dynamic>();
+}
 
-  static Map<PokemonDocumentFamily, Map<String, dynamic>> _copyAll(
-    Map<PokemonDocumentFamily, Map<String, dynamic>> value,
-  ) => {for (final entry in value.entries) entry.key: _copy(entry.value)};
+final class _PokemonDraftHistoryEntry {
+  const _PokemonDraftHistoryEntry(this.family, this.snapshot);
+
+  final PokemonDocumentFamily family;
+  final String? snapshot;
+
+  int get retainedBytes => (snapshot?.length ?? 0) * 2;
 }
 
 final class PokemonMoveSummary {

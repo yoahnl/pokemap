@@ -20,6 +20,7 @@ import 'di/home_providers.dart';
 import '../features/scenes/data/local_scene_adapter.dart';
 import '../features/stories/data/local_story_adapter.dart';
 import '../platform/files/studio_preferences.dart';
+import '../features/project_session/application/project_session_controller.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
@@ -34,11 +35,15 @@ import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/shell/studio_workspace_host.dart';
 
 class StudioBootstrap extends StatelessWidget {
-  const StudioBootstrap({super.key});
+  const StudioBootstrap({super.key, this.debugSession});
+
+  final ProjectSessionController? debugSession;
 
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      if (debugSession != null)
+        projectSessionControllerProvider.overrideWithValue(debugSession!),
       recentProjectsPortProvider.overrideWith((ref) => studioRecentProjects()),
       projectSessionPortProvider.overrideWith((ref) {
         final local = LocalProjectSessionAdapter();

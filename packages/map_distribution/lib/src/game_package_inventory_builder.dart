@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:crypto/crypto.dart';
 
 import 'content_tree_hasher.dart';
@@ -44,10 +46,20 @@ final class GamePackageInventoryBuilder {
   }) {
     final snapshot = Map<String, List<int>>.unmodifiable(
       payloadFiles.map(
-        (path, bytes) => MapEntry(
-          path,
-          List<int>.unmodifiable(List<int>.from(bytes)),
-        ),
+        (path, bytes) {
+          if (bytes is! Uint8List &&
+              bytes.any((byte) => byte < 0 || byte > 255)) {
+            _fail(
+              'invalidFileBytes',
+              path,
+              'Payload values must be bytes.',
+            );
+          }
+          return MapEntry(
+            path,
+            Uint8List.fromList(bytes).asUnmodifiableView(),
+          );
+        },
       ),
     );
     if (snapshot.isEmpty || snapshot.length > maxFileCount) {
@@ -70,13 +82,6 @@ final class GamePackageInventoryBuilder {
           'pathCollision',
           r'$.content.files',
           'Payload paths collide after normalization or case folding.',
-        );
-      }
-      if (entry.value.any((byte) => byte < 0 || byte > 255)) {
-        _fail(
-          'invalidFileBytes',
-          entry.key,
-          'Payload values must be bytes.',
         );
       }
       if (entry.value.length > maxFileBytes) {

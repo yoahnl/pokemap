@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:avelune_studio/features/presentations/data/local_presentation_adapter.dart';
 import 'package:avelune_studio/features/presentations/domain/presentation_port.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,6 +81,14 @@ void main() {
         label: 'Image',
         kind: ProjectMediaKind.image,
       );
+      expect(media.previewBytes, isA<Uint8List>());
+      expect(
+        media.previewBytes,
+        same(await port.artifacts.read(
+          media.parameters['artifactHandle'] as String,
+        )),
+      );
+      expect(() => media.previewBytes[0] = 0, throwsUnsupportedError);
       expect(await f.file('project.json').readAsBytes(), before);
       expect(await f.file('assets/.pokemap-media.json').exists(), false);
       final result = await port.publish(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -7,6 +8,25 @@ import 'package:test/test.dart';
 
 void main() {
   group('AuthoringActionPlanner', () {
+    test('freezes resource payload into compact immutable bytes', () {
+      final source = <int>[1, 2, 3];
+      final change = AuthoringResourceChange(
+        resource: AuthoringResourceRef(kind: 'assetBlob', id: 'example'),
+        storageKey: 'assets/example.bin',
+        beforeBytes: null,
+        afterBytes: source,
+      );
+
+      source[0] = 9;
+      expect(change.afterBytes, isA<Uint8List>());
+      expect(change.afterBytes, [1, 2, 3]);
+      expect(() => change.afterBytes![0] = 9, throwsUnsupportedError);
+      expect(
+        () => (change.afterBytes! as Uint8List).buffer.asUint8List()[0] = 9,
+        throwsUnsupportedError,
+      );
+    });
+
     test('plans a real-project change without writing fixture bytes', () async {
       final fixtureManifest = File(_fixtureManifestPath());
       final beforeFixtureBytes = await fixtureManifest.readAsBytes();

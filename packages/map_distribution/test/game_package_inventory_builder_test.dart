@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
@@ -6,6 +7,28 @@ import 'package:test/test.dart';
 void main() {
   group('GamePackageInventoryBuilder', () {
     const builder = GamePackageInventoryBuilder();
+
+    test('keeps a compact immutable snapshot of source bytes', () {
+      final source = Uint8List.fromList(<int>[1, 2, 3]);
+      final inventory = builder.buildWithSnapshot(<String, List<int>>{
+        'project/project.json': source,
+      });
+      final snapshot = inventory.payloadSnapshot['project/project.json']!;
+
+      expect(snapshot, isA<Uint8List>());
+      expect(snapshot, <int>[1, 2, 3]);
+      source[0] = 9;
+      expect(snapshot, <int>[1, 2, 3]);
+      expect(() => snapshot[0] = 9, throwsUnsupportedError);
+      expect(
+        () => (snapshot as Uint8List).buffer.asUint8List()[0] = 9,
+        throwsUnsupportedError,
+      );
+      expect(
+        () => inventory.payloadSnapshot['other.json'] = <int>[1],
+        throwsUnsupportedError,
+      );
+    });
 
     test('builds a sorted immutable inventory and all hashes', () {
       final files = <String, List<int>>{
@@ -38,6 +61,12 @@ void main() {
     });
 
     test('rejects missing project manifest, collisions, and quotas', () {
+      _expectCode(
+        () => builder.build(<String, List<int>>{
+          'project/project.json': <int>[256],
+        }),
+        'invalidFileBytes',
+      );
       _expectCode(
         () => builder.build(<String, List<int>>{
           'presentation/icon.png': <int>[1],

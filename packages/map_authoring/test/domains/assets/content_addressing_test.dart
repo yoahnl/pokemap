@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -7,6 +8,24 @@ import 'package:test/test.dart';
 
 void main() {
   group('content-addressed artifact store', () {
+    test('stores one compact immutable snapshot across reads', () async {
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final source = Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]);
+      final staged = await store.put(source);
+      final first = await store.read(staged.reference.handle);
+      final second = await store.read(staged.reference.handle);
+
+      source[0] = 0;
+      expect(first, isA<Uint8List>());
+      expect(first, [0xff, 0xd8, 0xff, 0x00]);
+      expect(second, same(first));
+      expect(() => first[0] = 0, throwsUnsupportedError);
+      expect(
+        () => (first as Uint8List).buffer.asUint8List()[0] = 0,
+        throwsUnsupportedError,
+      );
+    });
+
     test('batch import commits all logical paths with one shared blob',
         () async {
       final directory =

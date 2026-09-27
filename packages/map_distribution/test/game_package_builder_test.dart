@@ -11,6 +11,51 @@ void main() {
   group('GamePackageBuilder', () {
     const builder = GamePackageBuilder();
 
+    test('exposes compact immutable package bytes', () {
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: <String, List<int>>{
+          'project/project.json': _validProjectBytes(),
+        },
+      );
+
+      expect(built.packageBytes, isA<Uint8List>());
+      expect(() => built.packageBytes[0] = 0, throwsUnsupportedError);
+      expect(
+        () => (built.packageBytes as Uint8List).buffer.asUint8List()[0] = 0,
+        throwsUnsupportedError,
+      );
+      expect(
+          sha256.convert(built.packageBytes).toString(), built.packageSha256);
+    });
+
+    test('defensively copies bytes passed to the public result constructor',
+        () {
+      final source = Uint8List.fromList(<int>[1, 2, 3]);
+      final result = GamePackageBuildResult(
+        manifest: _draftManifest(),
+        packageBytes: source,
+      );
+
+      source[0] = 9;
+      expect(result.packageBytes, <int>[1, 2, 3]);
+      expect(result.packageBytes, isA<Uint8List>());
+      expect(result.packageSha256, sha256.convert(<int>[1, 2, 3]).toString());
+      expect(() => result.packageBytes[0] = 9, throwsUnsupportedError);
+    });
+
+    test('rejects non-byte values in the public result constructor', () {
+      for (final invalidByte in <int>[-1, 256]) {
+        expect(
+          () => GamePackageBuildResult(
+            manifest: _draftManifest(),
+            packageBytes: <int>[1, invalidByte],
+          ),
+          throwsArgumentError,
+        );
+      }
+    });
+
     test('builds a deterministic STORE-only data package', () {
       final firstPayload = <String, List<int>>{
         'project/project.json': _validProjectBytes(),
