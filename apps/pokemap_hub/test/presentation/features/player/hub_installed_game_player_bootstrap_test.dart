@@ -25,6 +25,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
         theme: PokeMapPlayerTheme.light(),
         home: HubInstalledGamePlayer(
           supportRoot: Directory.systemTemp,
@@ -53,6 +54,12 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('startup-splash-timeline')),
       findsOneWidget,
+    );
+    expect(
+      Localizations.localeOf(
+        tester.element(find.byType(PlayerRuntimeStartupShell)),
+      ),
+      const Locale('fr'),
     );
     expect(find.byType(PlayerLoadingSurface), findsNothing);
     final timeline = tester.widget<PlayerSplashTimeline>(

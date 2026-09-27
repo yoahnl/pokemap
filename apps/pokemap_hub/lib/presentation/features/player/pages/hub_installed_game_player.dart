@@ -348,9 +348,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
     final locale = effectiveSnapshot.playerSnapshot?.preferences?.locale;
     final playerLocale = locale == null
-        ? _playerLocale
+        ? _playerLocale ??
+            Locale(
+              widget.game.defaultLocale.split(RegExp('[-_]')).first.toLowerCase(),
+            )
         : Locale(locale.split(RegExp('[-_]')).first);
-    if (playerLocale == null) return player;
     return Localizations.override(
       context: context,
       locale: playerLocale,
