@@ -17,44 +17,45 @@ struct GameListView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ZStack {
-                VStack(spacing: 0) {
-                    libraryHeader
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 26) {
+                    Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
+                        .font(.subheadline)
+                        .foregroundStyle(AveluneTheme.muted)
+                        .padding(.horizontal, 24)
 
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 26) {
-                            if viewModel.games.isEmpty {
-                                emptyLibrary
-                                    .padding(.horizontal, 24)
-                            } else {
-                                FeaturedGamesView(
-                                    games: Game.featuredOrder(viewModel.games),
-                                    navigationTransition: navigationTransition,
-                                    quickTransition: quickTransition,
-                                    onPlay: onGameSelected,
-                                    onDetails: { showDetails($0, sourceID: "featured:\($0.id)") },
-                                    onQuickView: { showQuickView($0, sourceID: "featured:\($0.id)") }
-                                )
+                    if viewModel.games.isEmpty {
+                        emptyLibrary
+                            .padding(.horizontal, 24)
+                    } else {
+                        FeaturedGamesView(
+                            games: Game.featuredOrder(viewModel.games),
+                            navigationTransition: navigationTransition,
+                            quickTransition: quickTransition,
+                            onPlay: onGameSelected,
+                            onDetails: { showDetails($0, sourceID: "featured:\($0.id)") },
+                            onQuickView: { showQuickView($0, sourceID: "featured:\($0.id)") }
+                        )
 
-                                GameCollectionView(
-                                    games: viewModel.games,
-                                    navigationTransition: navigationTransition,
-                                    quickTransition: quickTransition,
-                                    onDetails: { showDetails($0, sourceID: "collection:\($0.id)") },
-                                    onQuickView: { showQuickView($0, sourceID: "collection:\($0.id)") },
-                                    onDelete: { game in Task { await viewModel.uninstall(game) } },
-                                    onImport: { showFilePicker = true }
-                                )
-                                .padding(.horizontal, 24)
-                            }
-                        }
-                        .padding(.top, 24)
-                        .padding(.bottom, 36)
+                        GameCollectionView(
+                            games: viewModel.games,
+                            navigationTransition: navigationTransition,
+                            quickTransition: quickTransition,
+                            onDetails: { showDetails($0, sourceID: "collection:\($0.id)") },
+                            onQuickView: { showQuickView($0, sourceID: "collection:\($0.id)") },
+                            onDelete: { game in Task { await viewModel.uninstall(game) } },
+                            onImport: { showFilePicker = true }
+                        )
+                        .padding(.horizontal, 24)
                     }
-                    .scrollIndicators(.hidden)
                 }
-                .background(AveluneBackground())
-
+                .padding(.top, 16)
+                .padding(.bottom, 36)
+            }
+            .scrollIndicators(.hidden)
+            .accessibilityIdentifier("library-scroll")
+            .background(AveluneBackground())
+            .overlay {
                 if let game = quickViewGame {
                     QuickGameView(
                         game: game,
@@ -68,16 +69,31 @@ struct GameListView: View {
                         },
                         onDetails: {
                             navigationSourceID = quickViewSourceID
+                            path.append(game.id)
                             quickViewGame = nil
-                            DispatchQueue.main.async {
-                                path.append(game.id)
-                            }
                         }
                     )
-                    .zIndex(1)
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationTitle("Bibliothèque")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar(quickViewGame == nil ? .visible : .hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Image("AveluneMoon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .accessibilityLabel("Avelune")
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showFilePicker = true } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Importer un jeu")
+                }
+            }
             .navigationDestination(for: String.self) { id in
                 if let game = viewModel.games.first(where: { $0.id == id }) {
                     GameDetailView(game: game, onPlay: { onGameSelected(game) })
@@ -142,55 +158,6 @@ struct GameListView: View {
     private func closeQuickView() {
         withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.38, dampingFraction: 0.88)) {
             quickViewGame = nil
-        }
-    }
-
-    private var libraryHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image("AveluneMoon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 43, height: 43)
-                    .clipShape(RoundedRectangle(cornerRadius: 11))
-                    .accessibilityHidden(true)
-
-                Image("AveluneWordmark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 160, height: 46, alignment: .leading)
-                    .shadow(color: AveluneTheme.text.opacity(0.32), radius: 1.5)
-                    .accessibilityLabel("Avelune")
-
-                Spacer()
-
-                Button { showFilePicker = true } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 19, weight: .semibold))
-                        .frame(width: 44, height: 44)
-                }
-                .aveluneGlassButton(circular: true)
-                .accessibilityLabel("Importer un jeu")
-            }
-
-            Text("Bibliothèque")
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(AveluneTheme.text)
-
-            Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
-                .font(.subheadline)
-                .foregroundStyle(AveluneTheme.muted)
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
-        .padding(.bottom, 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            AveluneTheme.background
-            .ignoresSafeArea(edges: .top)
-        }
-        .overlay(alignment: .bottom) {
-            AveluneTheme.border.frame(height: 1)
         }
     }
 

@@ -38,7 +38,7 @@ struct GameDetailView: View {
                     LibraryArtwork(paths: game.heroCandidates, style: artworkStyle)
 
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.28), .black.opacity(0.85)],
+                        colors: [.clear, .black.opacity(0.1), .black.opacity(0.7)],
                         startPoint: .top,
                         endPoint: .bottom
                     )

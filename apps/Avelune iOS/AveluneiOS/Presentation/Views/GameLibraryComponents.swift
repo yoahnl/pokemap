@@ -202,7 +202,7 @@ private struct FeaturedGameCard: View {
                 .aveluneQuickArtwork(id: "featured:\(game.id)", in: quickTransition, reduceMotion: reduceMotion)
 
             LinearGradient(
-                colors: [.clear, .black.opacity(0.34), .black.opacity(0.88)],
+                colors: [.clear, .black.opacity(0.12), .black.opacity(0.72)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -305,7 +305,7 @@ struct GameCollectionView: View {
                     .aveluneQuickArtwork(id: "collection:\(game.id)", in: quickTransition, reduceMotion: reduceMotion)
 
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.1), .black.opacity(0.84)],
+                    colors: [.clear, .black.opacity(0.04), .black.opacity(0.68)],
                     startPoint: .top,
                     endPoint: .bottom
                 )

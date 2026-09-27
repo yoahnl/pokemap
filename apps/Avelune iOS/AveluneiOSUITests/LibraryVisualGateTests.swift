@@ -1,6 +1,35 @@
 import XCTest
 
 final class LibraryVisualGateTests: XCTestCase {
+    func testLibraryHeaderCollapsesAndExpands() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        guard app.otherElements["featured-page-count"].waitForExistence(timeout: 20) else {
+            throw XCTSkip("Installer au moins deux jeux pour vérifier le défilement de la bibliothèque.")
+        }
+
+        let navigationBar = app.navigationBars["Bibliothèque"]
+        let library = app.scrollViews["library-scroll"]
+        XCTAssertTrue(navigationBar.waitForExistence(timeout: 5))
+        XCTAssertTrue(library.exists)
+
+        let expandedHeight = navigationBar.frame.height
+        library.swipeUp()
+        let collapse = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in navigationBar.frame.height < expandedHeight - 8 },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [collapse], timeout: 5), .completed)
+
+        library.swipeDown()
+        let expand = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in navigationBar.frame.height > expandedHeight - 10 },
+            object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [expand], timeout: 5), .completed)
+    }
+
     func testCarouselSwipesBetweenGames() throws {
         let app = XCUIApplication()
         app.launch()
