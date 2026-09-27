@@ -129,7 +129,7 @@ jobs:
           flutter analyze
           flutter build macos --release
           ../../packages/map_editor/tool/release/package_macos_preview.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg build/release/PokeMap-macos-preview.dmg
       - name: Preserve macOS preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -202,7 +202,7 @@ jobs:
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
-          APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
           test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
@@ -232,7 +232,7 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
           ../pokemap_hub/tool/release/notarize_macos_release.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
             --result-json "$RUNNER_TEMP/notary-result.json" \
@@ -251,7 +251,7 @@ jobs:
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
           ../../packages/map_editor/tool/release/package_macos_update.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
             --generate-appcast "$GENERATE_APPCAST" \
@@ -551,7 +551,7 @@ jobs:
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
-          APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
           test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
@@ -581,7 +581,7 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
           ../pokemap_hub/tool/release/notarize_macos_release.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
             --result-json "$RUNNER_TEMP/notary-result.json" \
@@ -600,7 +600,7 @@ jobs:
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
           ../../packages/map_editor/tool/release/package_macos_update.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
             --generate-appcast "$GENERATE_APPCAST" \

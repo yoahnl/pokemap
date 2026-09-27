@@ -5,7 +5,8 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = PokeMap
+PRODUCT_NAME = Avelune Studio
+PRODUCT_MODULE_NAME = Runner
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor
