@@ -16,6 +16,97 @@ import 'package:pokemap_hub/features/session/domain/repositories/session_launch_
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
 
 void main() {
+  testWidgets('loads the game while motion waits for the jingle to start', (
+    tester,
+  ) async {
+    final launch = Completer<InstalledGameLaunchContext>();
+    final preferences = Completer<HubPreferencesRead>();
+    final audio = _GateSplashAudioDriver();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HubInstalledGamePlayer(
+          supportRoot: Directory.systemTemp,
+          saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+          preferencesRepository: _PendingPreferencesRepository(
+            preferences.future,
+          ),
+          controlProfileRepository: _UnusedControlProfileRepository(),
+          launchResolver: _PendingLaunchResolver(launch.future),
+          game: _game(),
+          hostBranding: const RuntimeHostSplashBranding(
+            displayName: 'TEST',
+            signature: 'RUNTIME',
+          ),
+          splashLogo: null,
+          splashAudioDriver: audio,
+          onHubRequested: () async {},
+          diagnosticLogFile: File('/dev/null'),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(
+      tester
+          .widget<PlayerRuntimeStartupShell>(
+            find.byType(PlayerRuntimeStartupShell),
+          )
+          .splashAnimationReady,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<PlayerSplashTimeline>(find.byType(PlayerSplashTimeline))
+          .progress,
+      0,
+    );
+    expect(audio.playCalls, 0);
+
+    preferences.complete(
+      const HubPreferencesRead(
+        preferences: PlayerPreferences(masterVolume: .5, musicVolume: .4),
+        source: HubPreferencesSource.current,
+        currentCorrupt: false,
+        backupCorrupt: false,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(audio.playCalls, 1);
+    expect(audio.lastVolume, closeTo(.12, .0001));
+    expect(
+      tester
+          .widget<PlayerRuntimeStartupShell>(
+            find.byType(PlayerRuntimeStartupShell),
+          )
+          .splashAnimationReady,
+      isFalse,
+    );
+
+    audio.start();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(
+      tester
+          .widget<PlayerRuntimeStartupShell>(
+            find.byType(PlayerRuntimeStartupShell),
+          )
+          .splashAnimationReady,
+      isTrue,
+    );
+    expect(
+      tester
+          .widget<PlayerSplashTimeline>(find.byType(PlayerSplashTimeline))
+          .progress,
+      greaterThan(0),
+    );
+    expect(launch.isCompleted, isFalse);
+
+    launch.completeError(StateError('bootstrap test completed'));
+    await tester.pump();
+  });
+
   testWidgets('mounts the runtime splash on the first frame', (tester) async {
     final launch = Completer<InstalledGameLaunchContext>();
     const logo = AssetImage('assets/avelune/logo/avelune_moon.png');
@@ -90,6 +181,45 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
   });
+}
+
+final class _GateSplashAudioDriver implements FlameCinematicAudioDriver {
+  final Completer<Object> _started = Completer<Object>();
+  int playCalls = 0;
+  double? lastVolume;
+
+  void start() => _started.complete(Object());
+
+  @override
+  Future<Object> play(
+    String path, {
+    required double volume,
+    required bool loop,
+  }) {
+    playCalls++;
+    lastVolume = volume;
+    return _started.future;
+  }
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Future<void> stop(Object handle) async {}
+}
+
+final class _PendingPreferencesRepository
+    implements PlayerPreferencesRepositoryInterface {
+  const _PendingPreferencesRepository(this.pending);
+
+  final Future<HubPreferencesRead> pending;
+
+  @override
+  Future<HubPreferencesRead> load() => pending;
+
+  @override
+  Future<void> save(PlayerPreferences preferences) =>
+      throw UnimplementedError();
 }
 
 final class _PendingLaunchResolver implements SessionLaunchRepositoryInterface {

@@ -2,28 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
-import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/core/config/avelune_runtime_splash_branding.dart';
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
 import 'package:pokemap_hub/core/error/hub_failure.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
-
-const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
-  displayName: 'AVELUNE',
-  signature: 'UNE EXPÉRIENCE DE JEU',
-  primaryColorHex: '#F2D9B2',
-  secondaryColorHex: '#9E79D7',
-  backgroundColorHex: '#030306',
-  minimumDisplayDuration: Duration(milliseconds: 3400),
-  exitTransitionDuration: Duration(milliseconds: 360),
-  finalCurtainDuration: Duration(milliseconds: 180),
-);
 
 const _aveluneRuntimeSplashLogo = AssetImage(
   'assets/avelune/logo/avelune_moon.png',
@@ -150,7 +139,7 @@ final class HubComposition implements HubAppComposition {
           ),
           launchResolver: launchResolver,
           game: game.game,
-          hostBranding: _aveluneRuntimeSplashBranding,
+          hostBranding: aveluneRuntimeSplashBranding,
           splashLogo: _aveluneRuntimeSplashLogo,
           splashWordmark: _aveluneRuntimeSplashWordmark,
           preferences: controller.snapshot.preferences,

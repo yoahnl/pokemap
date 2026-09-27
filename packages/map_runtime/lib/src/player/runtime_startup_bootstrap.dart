@@ -115,6 +115,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     RuntimeHostSplashBranding? hostBranding,
     Duration? minimumSplashDuration,
+    Future<void>? splashSequenceStarted,
     RuntimePresentationOrientation presentationOrientation =
         RuntimePresentationOrientation.landscape,
     void Function(T value)? onPrepared,
@@ -124,6 +125,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         _minimumSplashDuration = minimumSplashDuration ??
             hostBranding?.minimumDisplayDuration ??
             const Duration(milliseconds: 7200),
+        _splashSequenceStarted = splashSequenceStarted,
         _splashExitDuration = hostBranding?.exitTransitionDuration ??
             const Duration(milliseconds: 1296),
         _presentationOrientation = presentationOrientation,
@@ -160,6 +162,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
   final RuntimeStartupClock _clock;
   final RuntimeHostSplashBranding? _hostBranding;
   final Duration _minimumSplashDuration;
+  final Future<void>? _splashSequenceStarted;
   final Duration _splashExitDuration;
   final void Function(T value)? _onPrepared;
   final StreamController<RuntimeStartupSnapshot> _snapshots =
@@ -196,8 +199,8 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         ? _minimumSplashDuration - _splashExitDuration
         : Duration.zero;
     _timelineGate = RuntimeStartupTimelineGate(
-      minimumDisplayElapsed: _delay(_minimumSplashDuration),
-      splashHoldElapsed: _delay(holdDuration),
+      minimumDisplayElapsed: _splashDelay(_minimumSplashDuration),
+      splashHoldElapsed: _splashDelay(holdDuration),
     );
     _startBootstrapAttempt();
   }
@@ -596,6 +599,13 @@ final class RuntimeStartupBootstrapCoordinator<T> {
       return delay.future;
     }
     return clock.delay(duration);
+  }
+
+  Future<void> _splashDelay(Duration duration) {
+    final started = _splashSequenceStarted;
+    if (started == null) return _delay(duration);
+    return started
+        .then((_) => _disposed ? Future<void>.value() : _delay(duration));
   }
 
   void _publish(RuntimeStartupSnapshot snapshot) {

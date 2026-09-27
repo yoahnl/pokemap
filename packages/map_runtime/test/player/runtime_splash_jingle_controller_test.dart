@@ -48,6 +48,24 @@ void main() {
     expect(driver.stopCount, 1);
   });
 
+  test('uses the jingle only if external splash playback fails', () async {
+    final driver = _FakeAudioDriver();
+    final controller = RuntimeSplashJingleController(
+      driver: driver,
+      enabled: false,
+    );
+
+    await controller.playOnce();
+    expect(driver.played, isEmpty);
+    expect(controller.hasPlayed, isFalse);
+
+    controller.enabled = true;
+    await controller.playOnce();
+    await controller.playOnce();
+    expect(driver.played, <String>[runtimePremiumSplashJingleAsset]);
+    await controller.dispose();
+  });
+
   test('lifecycle pause stops the jingle without replaying it on resume',
       () async {
     final driver = _FakeAudioDriver();

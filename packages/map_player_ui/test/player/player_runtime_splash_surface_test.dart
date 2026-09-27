@@ -51,7 +51,7 @@ void main() {
           find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
           findsOneWidget);
     }
-    expect(scales.first, closeTo(1.33, .001));
+    expect(scales.first, closeTo(1.0, .001));
     for (var i = 1; i < scales.length; i++) {
       expect(scales[i], lessThanOrEqualTo(scales[i - 1]));
       expect(scales[i], greaterThanOrEqualTo(.55));
@@ -194,6 +194,25 @@ void main() {
     expect(await opacity(1, .94, 0), 0);
     expect(await opacity(1, 1, 0), 0);
     expect(await opacity(1, 1, 1), 1);
+  });
+
+  testWidgets('keeps loading progress above the cinematic', (tester) async {
+    await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
+      branding: branding,
+      progress: .5,
+      animationProgress: .5,
+      cinematic: const ColoredBox(
+        key: ValueKey<String>('splash-cinematic'),
+        color: Colors.blue,
+      ),
+    )));
+    expect(
+        find.byKey(const ValueKey<String>('splash-cinematic')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('startup-splash-eclipse')),
+        findsNothing);
+    expect(find.byKey(const ValueKey<String>('startup-splash-progress-label')),
+        findsOneWidget);
+    expect(_curtainAlpha(tester), 0);
   });
 
   testWidgets('keeps the host name if the supplied images cannot decode',

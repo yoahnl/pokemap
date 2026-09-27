@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
@@ -7,6 +8,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
@@ -61,6 +63,9 @@ final class HubRuntimeStartupBootstrap
     this.diagnosticLogFile,
     this.presentationFrameDeltas,
     this.presentationBeforeTerminal,
+    this.preferencesRead,
+    this.audioMixer,
+    this.splashJingle,
   });
 
   final Directory supportRoot;
@@ -77,6 +82,9 @@ final class HubRuntimeStartupBootstrap
   final File? diagnosticLogFile;
   final RuntimePresentationFrameDeltas? presentationFrameDeltas;
   final RuntimePresentationBeforeTerminal? presentationBeforeTerminal;
+  final Future<HubPreferencesRead>? preferencesRead;
+  final RuntimeAudioMixer? audioMixer;
+  final RuntimeSplashJingleController? splashJingle;
 
   @override
   Future<RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>> prepare({
@@ -87,25 +95,28 @@ final class HubRuntimeStartupBootstrap
       final launch = await launchResolver.resolve(game);
       onStageCompleted(RuntimeStartupBootstrapStage.projectResolution);
 
-      final preferencesRead = await preferencesRepository.load();
-      final preferences = preferencesRead.preferences;
+      final loadedPreferences =
+          await (preferencesRead ?? preferencesRepository.load());
+      final preferences = loadedPreferences.preferences;
       onStageCompleted(RuntimeStartupBootstrapStage.playerPreferences);
 
       final controlProfile = await controlProfileRepository.load();
       onStageCompleted(RuntimeStartupBootstrapStage.controlProfile);
 
       final store = saveRepositoryFactory(supportRoot, launch.identity);
-      final audioMixer = RuntimeAudioMixer(
-        mix: RuntimeAudioMix(
-          masterVolume: preferences.masterVolume,
-          musicVolume: preferences.musicVolume,
-          effectsVolume: preferences.effectsVolume,
-        ),
-      );
+      final configuredAudioMixer =
+          audioMixer ??
+          RuntimeAudioMixer(
+            mix: RuntimeAudioMix(
+              masterVolume: preferences.masterVolume,
+              musicVolume: preferences.musicVolume,
+              effectsVolume: preferences.effectsVolume,
+            ),
+          );
       final preferencesGateway = HubPlayerPreferencesGateway(
         store: preferencesRepository,
         fallbackLocale: launch.manifest.locales.defaultLocale,
-        audioMixer: audioMixer,
+        audioMixer: configuredAudioMixer,
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
       final playerLocale = ProjectLocaleResolver.resolve(
@@ -132,11 +143,10 @@ final class HubRuntimeStartupBootstrap
       onStageCompleted(RuntimeStartupBootstrapStage.presentationBinding);
 
       final projectFile = await launch.assets.resolveReference(launch.project);
-      final projectJson = jsonDecode(await projectFile.readAsString());
-      if (projectJson is! Map<String, dynamic>) {
-        throw const FormatException('Installed project must be an object.');
-      }
-      final installedProject = ProjectManifest.fromJson(projectJson);
+      final projectText = await projectFile.readAsString();
+      final installedProject = await Isolate.run(
+        () => _parseInstalledProject(projectText),
+      );
       if (installedProject.presentationCinematics.isNotEmpty) {
         final media =
             _referencesPresentationMedia(installedProject)
@@ -151,7 +161,7 @@ final class HubRuntimeStartupBootstrap
           runtimeSourceId: launch.identity.gameId,
           media: media,
           targetPlatform: currentPresentationMediaTargetPlatform(),
-          audioMixer: audioMixer,
+          audioMixer: configuredAudioMixer,
           reducedMotion: preferences.reducedMotion,
           frameDeltas: presentationFrameDeltas,
           beforeTerminal: presentationBeforeTerminal,
@@ -178,7 +188,7 @@ final class HubRuntimeStartupBootstrap
         mountGame: mountGame,
         unmountGame: unmountGame,
         preloadedInitialMap: initialMapPreloader.resolveForSession,
-        audioMixer: audioMixer,
+        audioMixer: configuredAudioMixer,
         presentationCinematicPlayer: presentationRuntime?.controller,
       );
       final sessions = GameSessionController(
@@ -191,7 +201,9 @@ final class HubRuntimeStartupBootstrap
         preferencesGateway: preferencesGateway,
         newGameFlow: newGameFlow,
         inventoryPreferencesGateway: FilePlayerInventoryPreferencesGateway(
-          directory: Directory.fromUri(supportRoot.uri.resolve('inventory_preferences/')),
+          directory: Directory.fromUri(
+            supportRoot.uri.resolve('inventory_preferences/'),
+          ),
         ),
         sessionController: sessions,
         externalExit: HubRuntimeExternalExit(onHubRequested),
@@ -206,10 +218,12 @@ final class HubRuntimeStartupBootstrap
         initialMapPreloadPort: initialMapPreloader,
         assetResolver: startupAdapter,
         introController: RuntimeIntroSequenceController(),
-        splashJingleController: RuntimeSplashJingleController(
-          mixer: audioMixer,
+        splashJingleController:
+            splashJingle ??
+            RuntimeSplashJingleController(mixer: configuredAudioMixer),
+        titleMusicController: RuntimeTitleMusicController(
+          mixer: configuredAudioMixer,
         ),
-        titleMusicController: RuntimeTitleMusicController(mixer: audioMixer),
         presentationMetadata: RuntimeStartupPresentationMetadata(
           author: launch.manifest.author.name,
           description: launch.manifest.description,
@@ -225,7 +239,7 @@ final class HubRuntimeStartupBootstrap
           coordinator: coordinator,
           startupAdapter: startupAdapter,
           playerLocale: playerLocale,
-          audioMixer: audioMixer,
+          audioMixer: configuredAudioMixer,
           controlProfileStore: controlProfileRepository,
           controlProfile: controlProfile,
           reducedMotion: preferences.reducedMotion,
@@ -250,6 +264,14 @@ final class HubRuntimeStartupBootstrap
       );
     }
   }
+}
+
+ProjectManifest _parseInstalledProject(String text) {
+  final projectJson = jsonDecode(text);
+  if (projectJson is! Map<String, dynamic>) {
+    throw const FormatException('Installed project must be an object.');
+  }
+  return ProjectManifest.fromJson(projectJson);
 }
 
 bool _referencesPresentationMedia(ProjectManifest project) {

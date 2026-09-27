@@ -19,6 +19,35 @@ void main() {
     description: 'Une aventure ferroviaire.',
   );
 
+  testWidgets('splash motion waits for its audio start signal', (tester) async {
+    Widget shell(bool ready) => _app(PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(RuntimeStartupPhase.splash),
+          titlePresentation: presentation,
+          splashAnimationReady: ready,
+          onStartupCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ));
+
+    await tester.pumpWidget(shell(false));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(
+        tester
+            .widget<PlayerSplashTimeline>(find.byType(PlayerSplashTimeline))
+            .progress,
+        0);
+
+    await tester.pumpWidget(shell(true));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(
+        tester
+            .widget<PlayerSplashTimeline>(find.byType(PlayerSplashTimeline))
+            .progress,
+        greaterThan(0));
+  });
+
   testWidgets('startup title options apply player locale and language changes',
       (tester) async {
     var player = _optionsPlayer().next(
@@ -80,7 +109,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('startup title options apply player accessibility and menu effects',
+  testWidgets(
+      'startup title options apply player accessibility and menu effects',
       (tester) async {
     const preferences = PlayerPreferencesSnapshot(
       locale: 'fr',
@@ -134,7 +164,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('startup title options await rejected persistence and restore values',
+  testWidgets(
+      'startup title options await rejected persistence and restore values',
       (tester) async {
     final completion = Completer<RuntimePlayerCommandResult>();
     addTearDown(() {
@@ -1067,7 +1098,8 @@ void main() {
 }
 
 RuntimePlayerCommandResult _acceptPlayerCommand(RuntimePlayerCommand _) =>
-    const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
+    const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.accepted);
 
 RuntimeStartupSnapshot _startup(
   RuntimeStartupPhase phase, {

@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/core/config/avelune_runtime_splash_branding.dart';
 import 'package:pokemap_hub/features/installation/application/use_cases/install_game_package_use_case.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/game_save_update_preparation.dart';
@@ -14,17 +14,6 @@ import 'package:pokemap_hub/features/session/data/repositories/control_profile_r
 import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
-
-const _splashBranding = RuntimeHostSplashBranding(
-  displayName: 'AVELUNE',
-  signature: 'UNE EXPÉRIENCE DE JEU',
-  primaryColorHex: '#F2D9B2',
-  secondaryColorHex: '#9E79D7',
-  backgroundColorHex: '#030306',
-  minimumDisplayDuration: Duration(milliseconds: 2400),
-  exitTransitionDuration: Duration(milliseconds: 360),
-  finalCurtainDuration: Duration(milliseconds: 180),
-);
 
 const _hubPackage = 'pokemap_hub';
 
@@ -78,7 +67,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
             ),
             launchResolver: _bridge.launchResolver,
             game: game,
-            hostBranding: _splashBranding,
+            hostBranding: aveluneRuntimeSplashBranding,
             splashLogo: const AssetImage(
               'assets/avelune/logo/avelune_moon.png',
               package: _hubPackage,

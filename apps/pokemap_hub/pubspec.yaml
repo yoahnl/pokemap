@@ -52,6 +52,7 @@ flutter:
   assets:
     - assets/avelune/artwork/
     - assets/avelune/logo/
+    - assets/avelune/splash/
     - assets/avelune/materials/
     - assets/avelune/objects/cartridge/
     - assets/avelune/objects/console/

@@ -10,6 +10,7 @@ final class RuntimeSplashJingleController {
     FlameCinematicAudioDriver? driver,
     RuntimeAudioMixer? mixer,
     this.volume = 0.6,
+    this.enabled = true,
   })  : assert(volume >= 0 && volume <= 1),
         _driver = driver ?? _FlameBundledSplashJingleDriver(),
         _mixer = mixer ?? RuntimeAudioMixer();
@@ -17,6 +18,7 @@ final class RuntimeSplashJingleController {
   final FlameCinematicAudioDriver _driver;
   final RuntimeAudioMixer _mixer;
   final double volume;
+  bool enabled;
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
@@ -30,7 +32,7 @@ final class RuntimeSplashJingleController {
   bool get isPlaying => _handle != null;
 
   Future<void> playOnce() {
-    if (_disposed || _hasPlayed) return _pending;
+    if (_disposed || _hasPlayed || !enabled) return _pending;
     _hasPlayed = true;
     return _enqueue(_play);
   }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
+import 'package:video_player/video_player.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
@@ -14,6 +15,7 @@ import 'package:pokemap_hub/features/session/application/services/hub_installed_
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
+import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 
@@ -37,6 +39,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.hostBranding,
     required this.splashLogo,
     this.splashWordmark,
+    this.splashAudioDriver,
     this.diagnosticLogFile,
     player_ui.PlayerPreferences? preferences,
   });
@@ -55,6 +58,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final RuntimeHostSplashBranding hostBranding;
   final ImageProvider? splashLogo;
   final ImageProvider? splashWordmark;
+  final FlameCinematicAudioDriver? splashAudioDriver;
   final File? diagnosticLogFile;
 
   @override
@@ -76,6 +80,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   final Completer<void> _mountWait = Completer<void>();
   Locale? _playerLocale;
   RuntimeAudioMixer? _audioMixer;
+  late final RuntimeSplashJingleController _splashJingle;
+  late final Future<HubPreferencesRead> _preferencesRead;
+  late final Future<void> _splashSequenceStarted;
+  VideoPlayerController? _splashMovie;
+  final Completer<void> _splashImagesReady = Completer<void>();
+  Completer<void>? _splashResume;
+  bool _splashImagesRequested = false;
+  bool _splashAnimationReady = false;
   ControlProfileRepositoryInterface? _controlProfileStore;
   player_ui.PlayerControlProfile _controlProfile =
       player_ui.PlayerControlProfile.standard;
@@ -84,11 +96,108 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   bool _reducedMotion = false;
   HubInstalledPresentationRuntime? _presentationRuntime;
 
+  bool get _useSplashMovie =>
+      Platform.isIOS &&
+      widget.hostBranding.displayName == 'AVELUNE' &&
+      widget.splashAudioDriver == null;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final mixer = RuntimeAudioMixer();
+    _audioMixer = mixer;
+    _splashJingle = RuntimeSplashJingleController(
+      mixer: mixer,
+      driver: widget.splashAudioDriver,
+      enabled: !_useSplashMovie,
+    );
+    _preferencesRead = Future<HubPreferencesRead>.sync(
+      widget.preferencesRepository.load,
+    );
+    _splashSequenceStarted = _startSplashSequence(mixer);
     _startRuntimeBootstrap();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_splashImagesRequested) return;
+    _splashImagesRequested = true;
+    final images = <ImageProvider>[
+      if (widget.splashLogo != null) widget.splashLogo!,
+      if (widget.splashWordmark != null) widget.splashWordmark!,
+      if (widget.hostBranding.displayName == 'AVELUNE') ...<ImageProvider>[
+        const AssetImage(
+          'assets/splash/eclipse_orbit_soft.png',
+          package: 'map_player_ui',
+        ),
+        const AssetImage(
+          'assets/splash/eclipse_orbit_sharp.png',
+          package: 'map_player_ui',
+        ),
+        const AssetImage(
+          'assets/splash/eclipse_disc.png',
+          package: 'map_player_ui',
+        ),
+      ],
+    ];
+    unawaited(
+      Future.wait<void>([
+        for (final image in images)
+          precacheImage(image, context, onError: (_, _) {}),
+      ]).then(
+        (_) => _splashImagesReady.complete(),
+        onError: (Object _, StackTrace _) => _splashImagesReady.complete(),
+      ),
+    );
+  }
+
+  Future<void> _startSplashSequence(RuntimeAudioMixer mixer) async {
+    try {
+      final preferences = (await _preferencesRead).preferences;
+      await mixer.transitionTo(
+        RuntimeAudioMix(
+          masterVolume: preferences.masterVolume,
+          musicVolume: preferences.musicVolume,
+          effectsVolume: preferences.effectsVolume,
+        ),
+      );
+      if (!_lifecycleActive) {
+        await (_splashResume ??= Completer<void>()).future;
+      }
+      if (!mounted) return;
+      if (_useSplashMovie) {
+        final movie = VideoPlayerController.asset(
+          'assets/avelune/splash/avelune_eclipse.mp4',
+          package: 'pokemap_hub',
+        );
+        try {
+          await movie.initialize();
+          await movie.setVolume(
+            mixer.mix.volumeFor(RuntimeAudioRoute.splash, sourceVolume: .6),
+          );
+          await movie.setLooping(false);
+          if (!mounted) {
+            await movie.dispose();
+            return;
+          }
+          _splashMovie = movie;
+          await movie.play();
+          if (mounted) setState(() => _splashAnimationReady = true);
+          return;
+        } on Object {
+          await movie.dispose();
+        }
+      }
+      await _splashImagesReady.future;
+      if (!mounted) return;
+      _splashJingle.enabled = true;
+      await _splashJingle.playOnce();
+    } on Object {
+      if (!mounted) return;
+    }
+    if (mounted) setState(() => _splashAnimationReady = true);
   }
 
   void _startRuntimeBootstrap() {
@@ -98,6 +207,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             supportRoot: widget.supportRoot,
             saveRepositoryFactory: widget.saveRepositoryFactory,
             preferencesRepository: widget.preferencesRepository,
+            preferencesRead: _preferencesRead,
+            audioMixer: _audioMixer,
+            splashJingle: _splashJingle,
             controlProfileRepository: widget.controlProfileRepository,
             launchResolver: widget.launchResolver,
             game: widget.game,
@@ -105,11 +217,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             mountGame: _mountGame,
             unmountGame: _unmountGame,
             stopIntroPlayback: _startupShellController.stopIntroPlayback,
-            defaultProfileDisplayNameForLocale: (locale) =>
-                HubInstalledPlayerStrings.forLocale(locale).defaultProfile,
+            defaultProfileDisplayNameForLocale:
+                (locale) =>
+                    HubInstalledPlayerStrings.forLocale(locale).defaultProfile,
             diagnosticLogFile: widget.diagnosticLogFile,
           ),
           hostBranding: widget.hostBranding,
+          splashSequenceStarted: _splashSequenceStarted,
           onPrepared: _acceptRuntimeBootstrap,
         );
     _startupCoordinator = startup;
@@ -139,6 +253,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   void _handleStartupSnapshot(RuntimeStartupSnapshot snapshot) {
     if (!mounted) return;
+    if (snapshot.phase != RuntimeStartupPhase.splash &&
+        snapshot.phase != RuntimeStartupPhase.preparing) {
+      final movie = _splashMovie;
+      if (movie != null) unawaited(movie.pause());
+    }
     setState(() => _startupSnapshot = snapshot);
   }
 
@@ -199,11 +318,22 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final startup = _startupCoordinator;
     if (state == AppLifecycleState.resumed) {
+      final splashResume = _splashResume;
+      _splashResume = null;
+      if (splashResume != null && !splashResume.isCompleted) {
+        splashResume.complete();
+      }
       if (!_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = true);
       }
       if (startup != null) {
         unawaited(startup.resumeFromLifecycle());
+      }
+      unawaited(_splashJingle.resumeFromLifecycle());
+      if (_splashMovie != null &&
+          (_startupSnapshot?.phase == RuntimeStartupPhase.splash ||
+              _startupSnapshot?.phase == RuntimeStartupPhase.preparing)) {
+        unawaited(_splashMovie!.play());
       }
       unawaited(_presentationRuntime?.controller.resumeAfterLifecycle());
       return;
@@ -218,6 +348,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (startup != null) {
         unawaited(startup.pauseForLifecycle());
       }
+      unawaited(_splashJingle.pauseForLifecycle());
+      final movie = _splashMovie;
+      if (movie != null) unawaited(movie.pause());
       unawaited(_presentationRuntime?.controller.pauseForLifecycle());
     }
   }
@@ -232,14 +365,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
             : effectiveSnapshot.phase;
     final resolvedPresentation = effectiveSnapshot.presentation;
-    final playerPresentation = resolvedPresentation == null
-        ? const player_ui.RuntimePlayerPresentation(
-            title: player_ui.RuntimePlayerTitlePresentation(author: ''),
-          )
-        : player_ui.RuntimePlayerPresentation.fromRuntime(
-            resolvedPresentation,
-            imageForAsset: _startupImage,
-          );
+    final playerPresentation =
+        resolvedPresentation == null
+            ? const player_ui.RuntimePlayerPresentation(
+              title: player_ui.RuntimePlayerTitlePresentation(author: ''),
+            )
+            : player_ui.RuntimePlayerPresentation.fromRuntime(
+              resolvedPresentation,
+              imageForAsset: _startupImage,
+            );
     // La personnalisation part d'un thème joueur VIERGE, jamais de
     // `Theme.of(context)` : à ce niveau, c'est le thème Avelune, et
     // `applyAveluneTheme` y écrase `colorScheme.primary` avec l'accent du
@@ -248,9 +382,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     // couleur héritait de la marque du lanceur au lieu de la sienne — visible
     // sur tout widget qui laisse `style: null`. La luminosité résolue par
     // l'app est conservée, elle vient bien d'une préférence du joueur.
-    final playerBaseTheme = Theme.of(context).brightness == Brightness.dark
-        ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
-        : player_ui.PokeMapPlayerTheme.light(reducedMotion: _reducedMotion);
+    final playerBaseTheme =
+        Theme.of(context).brightness == Brightness.dark
+            ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
+            : player_ui.PokeMapPlayerTheme.light(reducedMotion: _reducedMotion);
     final personalizedTheme = playerPresentation.applyTo(playerBaseTheme);
     final startupTheme =
         visiblePhase == RuntimeStartupPhase.preparing ||
@@ -288,71 +423,85 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final player = Theme(
       data: startupTheme,
       child: player_ui.PlayerRuntimeStartupShell(
-          key: const ValueKey<String>('pokemap-runtime-startup-shell'),
-          controller: _startupShellController,
-          branding: widget.hostBranding,
-          snapshot: effectiveSnapshot,
-          titlePresentation:
-              playerPresentation.title,
-          introSource: introSource,
-          introPoster: _startupImage(resolvedPresentation?.introPoster),
-          audioMixer: _audioMixer,
-          titlePromptSource: _startupVideo(
-            resolvedPresentation?.titlePromptVideo,
-            promptVariant,
-            looping: true,
-            volume: 0,
-          ),
-          titlePromptPoster: _startupImage(
-            resolvedPresentation?.titlePromptPoster,
-          ),
-          titleMenuSource: _startupVideo(
-            resolvedPresentation?.titleMenuVideo,
-            menuVariant,
-            looping: true,
-            volume: 0,
-          ),
-          titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
-          splashLogo: widget.splashLogo,
-          splashWordmark: widget.splashWordmark,
-          reducedMotion: _reducedMotion,
-          onPresentationOrientationChanged: (nextOrientation) {
-            unawaited(startup.updatePresentationOrientation(nextOrientation));
-          },
-          onStartupCommand: (command) {
-            unawaited(startup.dispatch(command));
-          },
-          onPlayerCommand: (command) => startup.dispatchPlayerCommand(
-            startupSnapshotRevision: effectiveSnapshot.revision,
-            command: command,
-          ),
-          onIntroPlaybackCompleted: (revision) {
-            unawaited(
-              startup.introPlaybackCompleted(snapshotRevision: revision),
-            );
-          },
-          onIntroPlaybackFailed: (revision, reason) {
-            unawaited(
-              startup.introPlaybackFailed(
-                snapshotRevision: revision,
-                reason: reason,
-              ),
-            );
-          },
-          sessionBuilder:
-              viewController == null
-                  ? (_, _) => const SizedBox.expand()
-                  : (_, _) =>
-                      _buildSessionView(viewController, playerPresentation),
+        key: const ValueKey<String>('pokemap-runtime-startup-shell'),
+        controller: _startupShellController,
+        branding: widget.hostBranding,
+        snapshot: effectiveSnapshot,
+        titlePresentation: playerPresentation.title,
+        introSource: introSource,
+        introPoster: _startupImage(resolvedPresentation?.introPoster),
+        audioMixer: _audioMixer,
+        titlePromptSource: _startupVideo(
+          resolvedPresentation?.titlePromptVideo,
+          promptVariant,
+          looping: true,
+          volume: 0,
+        ),
+        titlePromptPoster: _startupImage(
+          resolvedPresentation?.titlePromptPoster,
+        ),
+        titleMenuSource: _startupVideo(
+          resolvedPresentation?.titleMenuVideo,
+          menuVariant,
+          looping: true,
+          volume: 0,
+        ),
+        titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
+        splashLogo: widget.splashLogo,
+        splashWordmark: widget.splashWordmark,
+        splashCinematic:
+            _splashMovie == null
+                ? null
+                : FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _splashMovie!.value.size.width,
+                    height: _splashMovie!.value.size.height,
+                    child: VideoPlayer(_splashMovie!),
+                  ),
+                ),
+        reducedMotion: _reducedMotion,
+        splashAnimationReady: _splashAnimationReady,
+        onPresentationOrientationChanged: (nextOrientation) {
+          unawaited(startup.updatePresentationOrientation(nextOrientation));
+        },
+        onStartupCommand: (command) {
+          unawaited(startup.dispatch(command));
+        },
+        onPlayerCommand:
+            (command) => startup.dispatchPlayerCommand(
+              startupSnapshotRevision: effectiveSnapshot.revision,
+              command: command,
+            ),
+        onIntroPlaybackCompleted: (revision) {
+          unawaited(startup.introPlaybackCompleted(snapshotRevision: revision));
+        },
+        onIntroPlaybackFailed: (revision, reason) {
+          unawaited(
+            startup.introPlaybackFailed(
+              snapshotRevision: revision,
+              reason: reason,
+            ),
+          );
+        },
+        sessionBuilder:
+            viewController == null
+                ? (_, _) => const SizedBox.expand()
+                : (_, _) =>
+                    _buildSessionView(viewController, playerPresentation),
       ),
     );
     final locale = effectiveSnapshot.playerSnapshot?.preferences?.locale;
-    final playerLocale = locale == null
-        ? _playerLocale ??
-            Locale(
-              widget.game.defaultLocale.split(RegExp('[-_]')).first.toLowerCase(),
-            )
-        : Locale(locale.split(RegExp('[-_]')).first);
+    final playerLocale =
+        locale == null
+            ? _playerLocale ??
+                Locale(
+                  widget.game.defaultLocale
+                      .split(RegExp('[-_]'))
+                      .first
+                      .toLowerCase(),
+                )
+            : Locale(locale.split(RegExp('[-_]')).first);
     return Localizations.override(
       context: context,
       locale: playerLocale,
@@ -433,16 +582,24 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
   }
 
-  Future<void> _updateControlProfile(player_ui.PlayerControlProfile profile) async {
+  Future<void> _updateControlProfile(
+    player_ui.PlayerControlProfile profile,
+  ) async {
     if (profile == _controlProfile) return;
     final store = _controlProfileStore;
-    if (store == null) throw StateError('Control profile storage is unavailable.');
+    if (store == null) {
+      throw StateError('Control profile storage is unavailable.');
+    }
     await store.save(profile);
     if (mounted) setState(() => _controlProfile = profile);
   }
 
   @override
   void dispose() {
+    final splashResume = _splashResume;
+    if (splashResume != null && !splashResume.isCompleted) {
+      splashResume.complete();
+    }
     _releaseMountWait();
     WidgetsBinding.instance.removeObserver(this);
     final startupCoordinator = _startupCoordinator;
@@ -464,6 +621,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (startupCoordinator != null) {
       unawaited(startupCoordinator.dispose());
     }
+    unawaited(_splashJingle.dispose());
+    final movie = _splashMovie;
+    if (movie != null) unawaited(movie.dispose());
     super.dispose();
   }
 }

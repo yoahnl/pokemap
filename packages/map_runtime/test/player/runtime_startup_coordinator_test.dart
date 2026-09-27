@@ -1487,6 +1487,34 @@ void main() {
     );
   });
 
+  test('splash clock starts with playback while bootstrap runs in parallel',
+      () async {
+    final playback = Completer<void>();
+    final harness = _RuntimeStartupBootstrapTestHarness(
+      splashSequenceStarted: playback.future,
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.bootstrap.completeStage(
+      RuntimeStartupBootstrapStage.projectResolution,
+    );
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.progress, .08);
+    expect(harness.clock.pendingDurations, isEmpty);
+
+    playback.complete();
+    await _flushEvents();
+    expect(
+      harness.clock.pendingDurations,
+      containsAll(<Duration>[
+        const Duration(seconds: 7),
+        const Duration(milliseconds: 5704),
+      ]),
+    );
+  });
+
   test('Back is consumed before the runtime bootstrap graph exists', () async {
     final harness = _RuntimeStartupBootstrapTestHarness();
     addTearDown(harness.dispose);
@@ -1729,7 +1757,7 @@ final class _NamePreSessionRunner implements RuntimeNewGamePreSessionRunner {
 }
 
 final class _RuntimeStartupBootstrapTestHarness {
-  _RuntimeStartupBootstrapTestHarness()
+  _RuntimeStartupBootstrapTestHarness({Future<void>? splashSequenceStarted})
       : player = RuntimePlayerTestHarness(),
         clock = _ManualStartupClock() {
     final graph = RuntimeStartupPreparedGraph(
@@ -1750,6 +1778,7 @@ final class _RuntimeStartupBootstrapTestHarness {
       bootstrapPort: bootstrap,
       clock: clock,
       minimumSplashDuration: const Duration(seconds: 7),
+      splashSequenceStarted: splashSequenceStarted,
       onPrepared: preparedValues.add,
     );
   }

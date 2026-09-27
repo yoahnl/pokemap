@@ -72,6 +72,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.introPoster,
     this.splashLogo,
     this.splashWordmark,
+    this.splashCinematic,
     this.introDriverFactory,
     this.audioMixer,
     this.titlePromptSource,
@@ -82,6 +83,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.onPresentationOrientationChanged,
     this.payloadForAction,
     this.reducedMotion = false,
+    this.splashAnimationReady = true,
     this.splashAnimationProgress,
     this.splashLoadingProgress,
     this.sessionBuilder,
@@ -107,6 +109,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final ImageProvider? introPoster;
   final ImageProvider? splashLogo;
   final ImageProvider? splashWordmark;
+  final Widget? splashCinematic;
   final PlayerIntroPlaybackFactory? introDriverFactory;
   final RuntimeAudioMixer? audioMixer;
   final PlayerIntroVideoSource? titlePromptSource;
@@ -118,6 +121,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
       onPresentationOrientationChanged;
   final Object? Function(RuntimePlayerAction action)? payloadForAction;
   final bool reducedMotion;
+  final bool splashAnimationReady;
   final double? splashAnimationProgress;
   final double? splashLoadingProgress;
   final Widget Function(
@@ -263,6 +267,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           loadingLabel: _runtimeStartupLoadingLabel(widget.snapshot),
           logo: widget.splashLogo,
           wordmark: widget.splashWordmark,
+          cinematic: widget.splashCinematic,
           reducedMotion: widget.reducedMotion,
         ),
       );
@@ -271,6 +276,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (widget.reducedMotion) {
       _splashAnimation.stop(canceled: false);
       _splashAnimation.value = kPlayerSplashHoldProgress;
+      _splashAmbientAnimation.stop(canceled: false);
+      _splashAmbientAnimation.value = 0;
+      _splashFinishAnimation.stop(canceled: false);
+      _splashFinishAnimation.value = 0;
+      return;
+    }
+    if (!widget.splashAnimationReady) {
+      _splashAnimation.stop(canceled: false);
+      _splashAnimation.value = 0;
       _splashAmbientAnimation.stop(canceled: false);
       _splashAmbientAnimation.value = 0;
       _splashFinishAnimation.stop(canceled: false);
