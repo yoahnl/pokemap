@@ -127,6 +127,53 @@ void main() {
     expect(resolved?.bundle.map.id, 'p3_test_map');
   });
 
+  test('prepares the narrative map catalog before a saved session starts',
+      () async {
+    final save = _saveEnvelope(identity, mapId: 'p3_test_map');
+    final manifest =
+        (await loadProjectManifestFromFile(projectFile.path)).copyWith(
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.dualRead,
+        records: const [],
+        legacyClaims: const [],
+      ),
+    );
+    final progress = <RuntimeInitialMapPreloadProgress>[];
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => projectFile.path,
+      loadSave: (_) async => save,
+      manifestLoader: (_) async => manifest,
+    );
+
+    await preloader.preloadInitialMap(
+      RuntimeInitialMapPreloadRequest.continueGame(save.address),
+      onProgress: progress.add,
+    );
+    final resolved = await preloader.resolveForSession(
+      projectFilePath: projectFile.path,
+      descriptor: _descriptor(
+        identity,
+        launchMode: GameSessionLaunchMode.continueGame,
+      ),
+      initialSave: save,
+    );
+
+    expect(resolved?.narrativeSnapshot?.mapsById.keys, ['p3_test_map']);
+    expect(
+      progress.map((step) => step.value),
+      orderedEquals([...progress.map((step) => step.value)]..sort()),
+    );
+    expect(
+      progress.any(
+        (step) => step.stage == RuntimeInitialMapPreloadStage.narrativeCatalog,
+      ),
+      isTrue,
+    );
+    expect(progress.last.value, 1);
+    resolved?.dispose();
+  });
+
   test('rejects a missing or mismatched saved session before bundle loading',
       () async {
     final address = SaveSlotAddress(

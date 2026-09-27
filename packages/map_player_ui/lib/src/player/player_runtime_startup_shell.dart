@@ -725,7 +725,8 @@ String _runtimeStartupLoadingLabel(RuntimeStartupSnapshot snapshot) {
     RuntimeStartupPreparationStage.playerPreferences => 'PRÉFÉRENCES DU JOUEUR',
     RuntimeStartupPreparationStage.saveDiscovery =>
       'RECHERCHE DE LA SAUVEGARDE',
-    RuntimeStartupPreparationStage.initialMap => 'ACCORD DU MONDE',
+    RuntimeStartupPreparationStage.initialMap =>
+      'CARTES ET RESSOURCES DU MONDE',
     RuntimeStartupPreparationStage.presentationProfile =>
       'PROFIL DE PRÉSENTATION',
     RuntimeStartupPreparationStage.splashBranding => 'PRÉPARATION DU SPLASH',

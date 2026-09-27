@@ -66,6 +66,7 @@ void main() {
       branding: branding,
       progress: .35,
       animationProgress: 1,
+      loadingLabel: 'CARTES ET RESSOURCES DU MONDE',
       logo: logo,
       wordmark: wordmark,
     )));
@@ -76,6 +77,7 @@ void main() {
     expect(_curtainAlpha(tester), 0);
     expect(find.byKey(const ValueKey<String>('startup-splash-progress-label')),
         findsOneWidget);
+    expect(find.text('CARTES ET RESSOURCES DU MONDE'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

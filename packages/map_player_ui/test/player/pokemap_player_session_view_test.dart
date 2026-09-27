@@ -1769,18 +1769,107 @@ void main() {
     await tester.pumpWidget(_app(_view(controller)));
 
     expect(find.text('catalogues'), findsOneWidget);
-    expect(
-      tester
-          .widget<LinearProgressIndicator>(
-            find.byType(LinearProgressIndicator),
-          )
-          .value,
-      .5,
-    );
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsOneWidget);
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
 
     await tester.tap(find.text('Annuler'));
     expect(controller.commands.single.action, RuntimePlayerAction.cancel);
     expect(controller.commands.single.snapshotRevision, 11);
+  });
+
+  testWidgets('names the real map mounting stage in the player language',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 12,
+      phase: RuntimePlayerPhase.loadingSession,
+      loadingProgress: const GameSessionLoadingProgress(
+        stage: 'mount',
+        current: 3,
+        total: 7,
+      ),
+    ));
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller)));
+
+    expect(find.text('Construction de la scène'), findsOneWidget);
+    expect(find.text('43%'), findsOneWidget);
+  });
+
+  testWidgets('keeps loading artwork until the first map accepts the menu',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.loadingSession,
+      loadingProgress: const GameSessionLoadingProgress(
+        stage: 'mount',
+        current: 3,
+        total: 7,
+      ),
+    ));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked,
+    ));
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+
+    await tester.pumpWidget(_app(_view(controller,
+        gameplayInputAuthority: authority)));
+    controller.publish(_snapshot(
+      revision: 2,
+      phase: RuntimePlayerPhase.playing,
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+      ],
+    ));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsOneWidget);
+    expect(find.text('Activation de la carte'), findsOneWidget);
+    expect(find.text('100%'), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-touch-menu-open')),
+        findsNothing);
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-touch-menu-open')),
+        findsOneWidget);
+  });
+
+  testWidgets('reveals an opening dialogue without waiting for the menu',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.loadingSession,
+    ));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked,
+    ));
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+
+    await tester.pumpWidget(_app(_view(controller,
+        gameplayInputAuthority: authority)));
+    controller.publish(_snapshot(revision: 2, phase: RuntimePlayerPhase.playing));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsOneWidget);
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.dialogue,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsNothing);
   });
 
   testWidgets('routes a preSession result through the Player command',

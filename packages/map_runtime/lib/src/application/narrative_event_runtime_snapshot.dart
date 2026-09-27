@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:map_core/map_core.dart';
 
 /// Immutable Event V2 runtime view built from one project/map corpus.
@@ -32,6 +34,7 @@ final class NarrativeEventRuntimeSnapshot {
     required Future<({ProjectManifest project, MapData map})> Function(
       String mapId,
     ) loadMap,
+    void Function(int completed, int total)? onMapLoaded,
   }) async {
     final registry = project.eventRegistry ??
         NarrativeEventRegistry(
@@ -46,7 +49,8 @@ final class NarrativeEventRuntimeSnapshot {
         : EventRegistryDecodeResult.decoded(registry);
     final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
     final validatedProjects = Set<ProjectManifest>.identity()..add(project);
-    if (registry.mode == EventSystemMode.legacyOnly && !registry.hasLocalRuntimeAuthority) {
+    if (registry.mode == EventSystemMode.legacyOnly &&
+        !registry.hasLocalRuntimeAuthority) {
       return NarrativeEventRuntimeSnapshot._(
         project: project,
         mapsById: const <String, MapData>{},
@@ -60,7 +64,7 @@ final class NarrativeEventRuntimeSnapshot {
         validatedProjects: validatedProjects,
       );
     }
-    final projectFingerprint = _runtimeProjectFingerprint(project);
+    String? projectFingerprint;
     final mapsById = <String, MapData>{};
 
     for (final mapEntry in project.maps) {
@@ -71,7 +75,9 @@ final class NarrativeEventRuntimeSnapshot {
         );
       }
       final loaded = await loadMap(mapEntry.id);
-      if (_runtimeProjectFingerprint(loaded.project) != projectFingerprint) {
+      if (!identical(loaded.project, project) &&
+          _runtimeProjectFingerprint(loaded.project) !=
+              (projectFingerprint ??= _runtimeProjectFingerprint(project))) {
         throw StateError(
           'Event V2 runtime snapshot changed while loading map '
           '"${mapEntry.id}".',
@@ -85,63 +91,16 @@ final class NarrativeEventRuntimeSnapshot {
       }
       mapsById[mapEntry.id] = loaded.map;
       validatedProjects.add(loaded.project);
+      onMapLoaded?.call(mapsById.length, project.maps.length);
     }
 
-    final legacyMapProjections = <LegacyMapEventProjection>[
-      for (final map in mapsById.values)
-        for (final event in map.events)
-          projectLegacyMapEventReadOnly(
-            mapId: map.id,
-            map: map,
-            event: event,
-            claimIndex: structuralClaimIndex,
-            rawEventJson: Map<String, Object?>.from(event.toJson()),
-          ),
-    ];
-    final legacyScenarioProjections = <LegacyScenarioSourceProjection>[
-      for (final scenario in project.scenarios)
-        for (final node in scenario.nodes)
-          if (isLegacyScenarioSourceNode(node))
-            projectLegacyScenarioSourceReadOnly(
-              scenario: scenario,
-              node: node,
-              scenes: project.scenes,
-              claimIndex: structuralClaimIndex,
-            ),
-    ];
-    final runtimeEvidence = LegacyClaimRuntimeEvidence(
-      entries: [
-        for (final projection in legacyMapProjections)
-          if (projection.confirmedSource != null)
-            LegacyClaimRuntimeEvidenceEntry(
-              provenance: projection.provenance,
-              source: projection.confirmedSource!,
-              sourceFingerprint: projection.sourceFingerprint,
-            ),
-        for (final projection in legacyScenarioProjections)
-          if (projection.source != null)
-            LegacyClaimRuntimeEvidenceEntry(
-              provenance: projection.provenance,
-              source: projection.source!,
-              sourceFingerprint: projection.sourceFingerprint,
-            ),
-      ],
-    );
-    final referencedOutcomes = <NarrativeOutcomeRef>[
-      for (final projection in legacyScenarioProjections)
-        if (projection.source != null)
-          ...projection.source!.when(
-            entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
-            triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
-            mapEnter: (_) => const <NarrativeOutcomeRef>[],
-            outcomeReceived: (outcome) => <NarrativeOutcomeRef>[outcome],
-          ),
-    ];
-    final projectCatalog = buildNarrativeEventProjectCatalog(
-      project: project,
-      maps: mapsById.values.toList(growable: false),
-      legacyProjections: legacyMapProjections,
-      referencedOutcomes: referencedOutcomes,
+    final catalog = await Isolate.run(
+      () => _buildNarrativeCatalog(
+        project: project,
+        mapsById: mapsById,
+        registry: registry,
+        structuralClaimIndex: structuralClaimIndex,
+      ),
     );
 
     return NarrativeEventRuntimeSnapshot._(
@@ -149,14 +108,86 @@ final class NarrativeEventRuntimeSnapshot {
       mapsById: Map<String, MapData>.unmodifiable(mapsById),
       registryResult: registryResult,
       factResolver: factResolver,
-      projectCatalog: projectCatalog,
-      legacyClaimIndex: buildRuntimeValidatedLegacyClaimIndex(
-        registry,
-        runtimeEvidence: runtimeEvidence,
-      ),
+      projectCatalog: catalog.projectCatalog,
+      legacyClaimIndex: catalog.legacyClaimIndex,
       validatedProjects: validatedProjects,
     );
   }
+}
+
+({
+  NarrativeEventProjectCatalog projectCatalog,
+  ValidatedLegacyClaimIndex legacyClaimIndex,
+}) _buildNarrativeCatalog({
+  required ProjectManifest project,
+  required Map<String, MapData> mapsById,
+  required NarrativeEventRegistry registry,
+  required ValidatedLegacyClaimIndex structuralClaimIndex,
+}) {
+  final legacyMapProjections = <LegacyMapEventProjection>[
+    for (final map in mapsById.values)
+      for (final event in map.events)
+        projectLegacyMapEventReadOnly(
+          mapId: map.id,
+          map: map,
+          event: event,
+          claimIndex: structuralClaimIndex,
+          rawEventJson: Map<String, Object?>.from(event.toJson()),
+        ),
+  ];
+  final legacyScenarioProjections = <LegacyScenarioSourceProjection>[
+    for (final scenario in project.scenarios)
+      for (final node in scenario.nodes)
+        if (isLegacyScenarioSourceNode(node))
+          projectLegacyScenarioSourceReadOnly(
+            scenario: scenario,
+            node: node,
+            scenes: project.scenes,
+            claimIndex: structuralClaimIndex,
+          ),
+  ];
+  final runtimeEvidence = LegacyClaimRuntimeEvidence(
+    entries: [
+      for (final projection in legacyMapProjections)
+        if (projection.confirmedSource != null)
+          LegacyClaimRuntimeEvidenceEntry(
+            provenance: projection.provenance,
+            source: projection.confirmedSource!,
+            sourceFingerprint: projection.sourceFingerprint,
+          ),
+      for (final projection in legacyScenarioProjections)
+        if (projection.source != null)
+          LegacyClaimRuntimeEvidenceEntry(
+            provenance: projection.provenance,
+            source: projection.source!,
+            sourceFingerprint: projection.sourceFingerprint,
+          ),
+    ],
+  );
+  final referencedOutcomes = <NarrativeOutcomeRef>[
+    for (final projection in legacyScenarioProjections)
+      if (projection.source != null)
+        ...projection.source!.when(
+          entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
+          triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
+          mapEnter: (_) => const <NarrativeOutcomeRef>[],
+          outcomeReceived: (outcome) => <NarrativeOutcomeRef>[outcome],
+        ),
+  ];
+  final projectCatalog = buildNarrativeEventProjectCatalog(
+    project: project,
+    maps: mapsById.values.toList(growable: false),
+    legacyProjections: legacyMapProjections,
+    referencedOutcomes: referencedOutcomes,
+  );
+
+  return (
+    projectCatalog: projectCatalog,
+    legacyClaimIndex: buildRuntimeValidatedLegacyClaimIndex(
+      registry,
+      runtimeEvidence: runtimeEvidence,
+    ),
+  );
 }
 
 String _runtimeProjectFingerprint(ProjectManifest project) {

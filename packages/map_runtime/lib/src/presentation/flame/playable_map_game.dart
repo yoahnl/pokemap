@@ -221,6 +221,8 @@ typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
   required String mapId,
 });
 
+enum PlayableMapGameInitialLoadStage { resources, map, player }
+
 typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>
     Function(
   Map<String, String> absolutePathByTilesetId, {
@@ -248,6 +250,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
     RuntimeTilesetImageSingleFlightCache? initialTilesetImageCache,
+    NarrativeEventRuntimeSnapshot? initialNarrativeSnapshot,
+    this.onInitialLoadProgress,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
@@ -289,6 +293,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _dialogueSessionLoader = dialogueSessionLoader ?? loadDialogueContent,
         _runtimeMapBundleLoader =
             runtimeMapBundleLoader ?? loadRuntimeMapBundle,
+        _hasInjectedRuntimeMapBundleLoader = runtimeMapBundleLoader != null,
         _runtimeTilesetImageLoader =
             runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
@@ -297,6 +302,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
+    _cachedNarrativeRuntimeSnapshot = initialNarrativeSnapshot;
     _pixelCamera = PixelPerfectOverworldCameraController(
       camera: camera,
       displayScale: _bundle.manifest.settings.displayScale,
@@ -433,6 +439,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   final String projectFilePath;
+  final void Function(PlayableMapGameInitialLoadStage stage)?
+      onInitialLoadProgress;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
 
   /// Le joueur a-t-il demandé un mouvement réduit ?
@@ -610,6 +618,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
+  final bool _hasInjectedRuntimeMapBundleLoader;
   final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
   late final RuntimeTilesetImageSingleFlightCache _tilesetImageCache;
   bool _isRemoved = false;
@@ -1035,6 +1044,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final snapshot = await NarrativeEventRuntimeSnapshot.build(
       project: project,
       loadMap: (mapId) async {
+        if (!_hasInjectedRuntimeMapBundleLoader &&
+            identical(project, _bundle.manifest)) {
+          final entry = projectMapEntryForId(project, mapId);
+          if (entry == null) {
+            throw StateError('The narrative map is missing from the project.');
+          }
+          final mapPath = p.normalize(
+            p.join(_bundle.projectRootDirectory, entry.relativePath),
+          );
+          if (!p.isWithin(_bundle.projectRootDirectory, mapPath)) {
+            throw StateError('The narrative map path escapes the project.');
+          }
+          final map = mapId == _bundle.map.id
+              ? _bundle.map
+              : await loadMapDataFromFile(
+                  mapPath,
+                  projectDialogueContext: project,
+                );
+          return (project: project, map: map);
+        }
         final bundle = await _loadRuntimeMapBundleCached(mapId);
         return (project: bundle.manifest, map: bundle.map);
       },
@@ -3904,6 +3933,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
       _itemCatalogSnapshot = bootResources[3]! as ItemCatalogSnapshot;
+      onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.resources);
       await afterInitialTilesetImagesLoaded?.call();
       if (_isRemoved) return;
       // The coordinator was constructed before asynchronous catalogue loading.
@@ -4004,6 +4034,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       if (_isRemoved) return;
       debugPrint('[runtime_game] mount root map ok map=$_activeMapId');
+      onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.map);
       final playerChar = _resolvePlayerCharacter(_bundle);
       _player = PlayerComponent(
         bundle: _bundle,
@@ -4015,6 +4046,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _playerSupportsRunning = _player.hasRunningAnimation;
       await world.add(_player);
       if (_isRemoved) return;
+      onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.player);
       _actorContactShadowRuntimeReady = true;
       _refreshActorContactShadowCollection();
       _syncGameStateFromWorld();

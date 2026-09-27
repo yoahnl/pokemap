@@ -17,6 +17,7 @@ import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_options.dart';
 import 'player_battle_overlay.dart';
 import 'player_title_screen.dart';
+import 'player_world_loading_surface.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
@@ -231,6 +232,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   PlayerControllerFamily get _controllerFamily =>
       _controllerFamilies[_inputPolicy.activeControllerId] ?? PlayerControllerFamily.unknown;
   bool _menuTransitionPending = false;
+  bool _waitingForInitialMapInteraction = false;
 
   bool get _touchControlsAvailable =>
       widget.touchControlsAvailable ??
@@ -245,6 +247,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   void initState() {
     super.initState();
     _latestSnapshot = widget.controller.snapshot;
+    _waitingForInitialMapInteraction =
+        _latestSnapshot.phase == RuntimePlayerPhase.loadingSession ||
+        _latestSnapshot.phase == RuntimePlayerPhase.preparingSession;
     _inputPolicy = PlayerInputSourcePolicy(touchAvailable: _touchControlsAvailable);
     WidgetsBinding.instance.addObserver(this);
     _lifecycleActive = WidgetsBinding.instance.lifecycleState == null ||
@@ -296,6 +301,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       _pauseFocusController.dispose();
       _pauseFocusController = RuntimePlayerFocusController();
       _latestSnapshot = widget.controller.snapshot;
+      _waitingForInitialMapInteraction =
+          _latestSnapshot.phase == RuntimePlayerPhase.loadingSession ||
+          _latestSnapshot.phase == RuntimePlayerPhase.preparingSession;
     }
     if (oldWidget.presentationFrame != widget.presentationFrame) {
       oldWidget.presentationFrame?.removeListener(
@@ -345,6 +353,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     if (!mounted) return;
     final previous = _latestSnapshot;
     _latestSnapshot = snapshot;
+    if (snapshot.phase == RuntimePlayerPhase.loadingSession ||
+        snapshot.phase == RuntimePlayerPhase.preparingSession) {
+      _waitingForInitialMapInteraction = true;
+    } else if (snapshot.phase != RuntimePlayerPhase.playing) {
+      _waitingForInitialMapInteraction = false;
+    }
     if (snapshot.phase != previous.phase ||
         snapshot.worldService?.request != previous.worldService?.request) {
       _releaseGameplayDirections();
@@ -928,6 +942,22 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     RuntimePlayerSnapshot snapshot,
     RuntimeInputAuthoritySnapshot inputAuthority,
   ) {
+    if (_waitingForInitialMapInteraction &&
+        snapshot.phase == RuntimePlayerPhase.playing &&
+        ((inputAuthority.acceptsOverworldInput &&
+                _acceptsOverworldInteraction &&
+                snapshot.isActionEnabled(RuntimePlayerAction.openMenu)) ||
+            inputAuthority.context == RuntimeInputContext.dialogue ||
+            inputAuthority.context == RuntimeInputContext.cinematic ||
+            inputAuthority.context == RuntimeInputContext.battle ||
+            widget.presentationFrame?.value != null ||
+            widget.dialoguePresentation?.value != null ||
+            widget.battlePresentation?.value != null ||
+            snapshot.worldService != null)) {
+      _waitingForInitialMapInteraction = false;
+    }
+    final showInitialMapCurtain = _waitingForInitialMapInteraction &&
+        snapshot.phase == RuntimePlayerPhase.playing;
     final acceptsOverworldTouch = inputAuthority.acceptsOverworldInput && _acceptsOverworldInteraction;
     final acceptsTouchControls = _touchControlsAvailable &&
         widget.gameplayInputRoute != null &&
@@ -1146,6 +1176,17 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
             )
           else
             inputHints(),
+        if (showInitialMapCurtain)
+          Positioned.fill(
+            child: PlayerWorldLoadingSurface(
+              gameTitle: snapshot.gameTitle,
+              stage: Localizations.localeOf(context).languageCode == 'fr'
+                  ? 'Activation de la carte'
+                  : 'Activating the map',
+              reducedMotion:
+                  snapshot.preferences?.accessibility.reducedMotion ?? false,
+            ),
+          ),
       ],
     );
     return RuntimePlayerPreferencesScope(

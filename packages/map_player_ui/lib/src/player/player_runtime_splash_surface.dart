@@ -263,6 +263,7 @@ class PlayerSplashTimeline extends StatelessWidget {
                         width: math.min(viewport.width * .72, 380.0),
                         progress: loadingProgress,
                         ambientProgress: ambientProgress,
+                        label: loadingLabel ?? 'CHARGEMENT',
                       ),
                     ),
                   ),
@@ -438,11 +439,13 @@ class _LoadingZone extends StatelessWidget {
     required this.width,
     required this.progress,
     required this.ambientProgress,
+    required this.label,
   });
 
   final double width;
   final double progress;
   final double ambientProgress;
+  final String label;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -452,11 +455,11 @@ class _LoadingZone extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'CHARGEMENT',
+                    label,
                     key: ValueKey<String>('startup-splash-progress-label'),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xFF777481),
                       fontFamily: 'PokeMapSplashDMSans',
                       package: 'map_player_ui',

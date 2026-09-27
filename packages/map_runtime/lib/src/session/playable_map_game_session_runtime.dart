@@ -178,7 +178,7 @@ final class PlayableMapGameSessionRuntime
       const GameSessionLoadingProgress(
         stage: 'project',
         current: 0,
-        total: 4,
+        total: 7,
       ),
     );
     final projectFilePath = await _projectFilePath();
@@ -186,7 +186,7 @@ final class PlayableMapGameSessionRuntime
       const GameSessionLoadingProgress(
         stage: 'save',
         current: 1,
-        total: 4,
+        total: 7,
       ),
     );
     final save = await _initialSave();
@@ -239,7 +239,7 @@ final class PlayableMapGameSessionRuntime
       const GameSessionLoadingProgress(
         stage: 'world',
         current: 2,
-        total: 4,
+        total: 7,
       ),
     );
     final RuntimeMapBundle bundle;
@@ -291,6 +291,19 @@ final class PlayableMapGameSessionRuntime
                 ? MapActivationReason.initialBoot
                 : MapActivationReason.saveRestore,
         initialTilesetImageCache: initialTilesetImageCache,
+        initialNarrativeSnapshot: preloadedInitialMap?.narrativeSnapshot,
+        onInitialLoadProgress: (stage) {
+          final (name, current) = switch (stage) {
+            PlayableMapGameInitialLoadStage.resources => ('resources', 4),
+            PlayableMapGameInitialLoadStage.map => ('map', 5),
+            PlayableMapGameInitialLoadStage.player => ('player', 6),
+          };
+          reportProgress(GameSessionLoadingProgress(
+            stage: name,
+            current: current,
+            total: 7,
+          ));
+        },
         enableActorContactShadows: false,
         enableStaticPlacedElementShadows: false,
         audioMixer: audioMixer,
@@ -341,7 +354,7 @@ final class PlayableMapGameSessionRuntime
       const GameSessionLoadingProgress(
         stage: 'mount',
         current: 3,
-        total: 4,
+        total: 7,
       ),
     );
     await _mountGame(game);
@@ -352,8 +365,8 @@ final class PlayableMapGameSessionRuntime
     reportProgress(
       const GameSessionLoadingProgress(
         stage: 'ready',
-        current: 4,
-        total: 4,
+        current: 7,
+        total: 7,
       ),
     );
   }

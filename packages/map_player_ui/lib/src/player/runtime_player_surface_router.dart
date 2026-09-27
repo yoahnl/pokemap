@@ -17,6 +17,7 @@ import 'player_save_recovery_surface.dart';
 import 'player_save_strings.dart';
 import 'player_scene_interaction_surface.dart';
 import 'player_session_surfaces.dart';
+import 'player_world_loading_surface.dart';
 import 'player_title_options_surface.dart';
 import 'player_title_screen.dart';
 import 'runtime_player_actions.dart';
@@ -335,18 +336,27 @@ class _RuntimePlayerSurfaceRouterState
           ),
           onResult: widget.onPreSessionResult ?? (_) {},
         ),
-      RuntimePlayerPhase.preSession => PlayerLoadingSurface(
+      RuntimePlayerPhase.preSession => PlayerWorldLoadingSurface(
+          gameTitle: widget.snapshot.gameTitle,
           stage: l10n.preparingSession,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
+          reducedMotion:
+              widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
         ),
-      RuntimePlayerPhase.preparingSession => PlayerLoadingSurface(
+      RuntimePlayerPhase.preparingSession => PlayerWorldLoadingSurface(
+          gameTitle: widget.snapshot.gameTitle,
           stage: l10n.preparingSession,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
+          reducedMotion:
+              widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
         ),
-      RuntimePlayerPhase.loadingSession => PlayerLoadingSurface(
-          stage: widget.snapshot.loadingProgress?.stage ?? l10n.loadingGame,
+      RuntimePlayerPhase.loadingSession => PlayerWorldLoadingSurface(
+          gameTitle: widget.snapshot.gameTitle,
+          stage: _sessionLoadingStage(context),
           progress: _progress,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
+          reducedMotion:
+              widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
         ),
       RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
           hitRegionKey: widget.gameplayTouchMenuKey,
@@ -582,6 +592,22 @@ class _RuntimePlayerSurfaceRouterState
     final total = progress?.total;
     if (progress == null || total == null || total == 0) return null;
     return (progress.current / total).clamp(0, 1);
+  }
+
+  String _sessionLoadingStage(BuildContext context) {
+    final stage = widget.snapshot.loadingProgress?.stage;
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    return switch (stage) {
+      'project' => french ? 'Ouverture du jeu' : 'Opening game',
+      'save' => french ? 'Lecture de la sauvegarde' : 'Reading save',
+      'world' => french ? 'Préparation du monde' : 'Preparing world',
+      'mount' => french ? 'Construction de la scène' : 'Building scene',
+      'resources' => french ? 'Chargement des ressources' : 'Loading assets',
+      'map' => french ? 'Montage de la carte' : 'Mounting map',
+      'player' => french ? 'Placement du joueur' : 'Placing player',
+      'ready' => french ? 'Prêt' : 'Ready',
+      _ => stage ?? context.playerL10n.loadingGame,
+    };
   }
 
   VoidCallback? _callbackFor(RuntimePlayerAction action) {
