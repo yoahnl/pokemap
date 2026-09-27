@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_context_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -12,6 +13,35 @@ import '../support/map_context_harness.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  testWidgets('context actions have distinct icons and destructive color', (
+    tester,
+  ) async {
+    final h = MapContextHarness.of(workspaceProject);
+    addTearDown(h.dispose);
+    MapEditingCommands(
+      h.document,
+      h.project,
+    ).place(workspaceElement, const GridPos(x: 4, y: 4));
+    await h.pump(tester);
+    await h.rightClick(tester, 4, 4);
+
+    final menu = find.byType(MapContextMenu);
+    expect(
+      find.descendant(of: menu, matching: find.byIcon(Icons.tune)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: menu, matching: find.byIcon(Icons.open_with)),
+      findsOneWidget,
+    );
+    final deleteIcon = tester.widget<Icon>(
+      find.descendant(of: menu, matching: find.byIcon(Icons.delete_outline)),
+    );
+    final colors = Theme.of(tester.element(menu)).colorScheme;
+    expect(deleteIcon.color, colors.error);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the context menu holds the charter on a crowded cell', (
     tester,
   ) async {
@@ -45,6 +75,8 @@ void main() {
     await h.rightClick(tester, 4, 4);
 
     expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.park_outlined), findsOneWidget);
     await captureM3Widget(tester, key, 'asmap002-menu-contextuel');
   });
 

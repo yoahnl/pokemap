@@ -58,10 +58,16 @@ void main() {
     String? focusedLabel() {
       final context = FocusManager.instance.primaryFocus?.context;
       final button = context?.findAncestorWidgetOfExactType<TextButton>();
-      final align = button?.child;
-      return align is Align && align.child is Text
-          ? (align.child! as Text).data
-          : null;
+      if (button == null) return null;
+      return tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byWidget(button),
+              matching: find.byType(Text),
+            ),
+          )
+          .firstOrNull
+          ?.data;
     }
 
     await h.rightClick(tester, 4, 4);

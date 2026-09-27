@@ -170,6 +170,15 @@ class _MapContextMenuState extends State<MapContextMenu> {
               MapContextCommand.properties,
               '${target.label} · ${target.kindLabel}',
             ),
+            icon: switch (target.family) {
+              MapContextFamily.character => Icons.person_outline,
+              MapContextFamily.marker => Icons.place_outlined,
+              MapContextFamily.warp => Icons.door_front_door_outlined,
+              MapContextFamily.decor => Icons.park_outlined,
+              MapContextFamily.zone => Icons.grid_view_outlined,
+              MapContextFamily.trigger => Icons.auto_stories_outlined,
+              MapContextFamily.cell => Icons.crop_square,
+            },
             selected: target.sameAs(request.selected),
             key: ValueKey('map-context-pick-${target.key}'),
             onPressed: () => widget.onTarget(target),
@@ -183,29 +192,45 @@ class _ActionRow extends StatelessWidget {
     required this.action,
     required this.onPressed,
     this.selected = false,
+    this.icon,
   });
   final MapContextAction action;
   final VoidCallback onPressed;
   final bool selected;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final iconColor = action.enabled
+        ? _actionColor(colors, action.command)
+        : colors.onSurfaceVariant;
     final row = TextButton(
       onPressed: action.enabled ? onPressed : null,
       style: TextButton.styleFrom(
         alignment: Alignment.centerLeft,
         shape: const RoundedRectangleBorder(),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         backgroundColor: selected ? colors.primaryContainer : null,
-        foregroundColor: selected
+        foregroundColor: action.command == MapContextCommand.delete
+            ? colors.error
+            : selected
             ? colors.onPrimaryContainer
             : colors.onSurface,
         disabledForegroundColor: colors.onSurfaceVariant,
       ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(action.label, maxLines: 2, overflow: TextOverflow.ellipsis),
+      child: Row(
+        children: [
+          Icon(icon ?? _actionIcon(action.command), size: 17, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              action.label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
     return action.enabled
@@ -213,6 +238,33 @@ class _ActionRow extends StatelessWidget {
         : Tooltip(message: action.unavailable!, child: row);
   }
 }
+
+IconData _actionIcon(MapContextCommand command) => switch (command) {
+  MapContextCommand.properties => Icons.tune,
+  MapContextCommand.openResource => Icons.open_in_new,
+  MapContextCommand.editResource => Icons.edit_outlined,
+  MapContextCommand.openInteraction => Icons.forum_outlined,
+  MapContextCommand.openDestination => Icons.map_outlined,
+  MapContextCommand.openNarrativeDocument => Icons.auto_stories_outlined,
+  MapContextCommand.move => Icons.open_with,
+  MapContextCommand.bringForward => Icons.vertical_align_top,
+  MapContextCommand.sendBackward => Icons.vertical_align_bottom,
+  MapContextCommand.copyCoordinates => Icons.content_copy,
+  MapContextCommand.eraseTile => Icons.backspace_outlined,
+  MapContextCommand.delete => Icons.delete_outline,
+};
+
+Color _actionColor(ColorScheme colors, MapContextCommand command) =>
+    switch (command) {
+      MapContextCommand.delete || MapContextCommand.eraseTile => colors.error,
+      MapContextCommand.move ||
+      MapContextCommand.bringForward ||
+      MapContextCommand.sendBackward => colors.secondary,
+      MapContextCommand.properties ||
+      MapContextCommand.editResource ||
+      MapContextCommand.openInteraction => colors.tertiary,
+      _ => colors.primary,
+    };
 
 class _MenuLayout extends SingleChildLayoutDelegate {
   const _MenuLayout(this.anchor);
