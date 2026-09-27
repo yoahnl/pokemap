@@ -42,6 +42,7 @@ final class LibraryArtworkCache {
 
 struct LibraryArtwork: View {
     let paths: [String]
+    let style: AveluneArtworkStyle
 
     @State private var image: UIImage?
 
@@ -56,16 +57,42 @@ struct LibraryArtwork: View {
                     ZStack {
                         LinearGradient(
                             colors: [
-                                AveluneTheme.lilac.opacity(0.5),
                                 AveluneTheme.surfaceRaised,
-                                AveluneTheme.cyan.opacity(0.3)
+                                style.secondary.opacity(0.72),
+                                AveluneTheme.background
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
+
+                        RadialGradient(
+                            colors: [style.glow.opacity(0.9), style.secondary.opacity(0.25), .clear],
+                            center: UnitPoint(x: 0.75, y: 0.26),
+                            startRadius: 4,
+                            endRadius: geometry.size.width * 0.8
+                        )
+
+                        Circle()
+                            .fill(style.glow.opacity(0.9))
+                            .frame(width: min(geometry.size.width * 0.24, 92))
+                            .blur(radius: 20)
+                            .offset(x: geometry.size.width * 0.23, y: -geometry.size.height * 0.21)
+
+                        Ellipse()
+                            .fill(AveluneTheme.background.opacity(0.62))
+                            .frame(width: geometry.size.width * 1.5, height: geometry.size.height * 0.5)
+                            .offset(x: -geometry.size.width * 0.17, y: geometry.size.height * 0.37)
+
+                        Ellipse()
+                            .fill(AveluneTheme.background.opacity(0.82))
+                            .frame(width: geometry.size.width * 1.5, height: geometry.size.height * 0.35)
+                            .offset(x: geometry.size.width * 0.25, y: geometry.size.height * 0.48)
+
                         Image(systemName: "sparkles")
-                            .font(.system(size: 58, weight: .ultraLight))
-                            .foregroundStyle(AveluneTheme.text.opacity(0.65))
+                            .font(.system(size: min(geometry.size.width * 0.17, 64), weight: .ultraLight))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .shadow(color: style.glow.opacity(0.8), radius: 18)
+                            .offset(x: -geometry.size.width * 0.18, y: -geometry.size.height * 0.12)
                     }
                 }
             }
@@ -84,7 +111,11 @@ struct LibraryArtwork: View {
 }
 
 struct FeaturedGamesView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let games: [Game]
+    let navigationTransition: Namespace.ID
+    let quickTransition: Namespace.ID
     let onPlay: (Game) -> Void
     let onDetails: (Game) -> Void
     let onQuickView: (Game) -> Void
@@ -92,6 +123,8 @@ struct FeaturedGamesView: View {
     @State private var selectedID: String?
 
     var body: some View {
+        let shouldReduceMotion = reduceMotion
+
         VStack(alignment: .leading, spacing: 14) {
             Text("À la une")
                 .font(.system(.title2, design: .rounded, weight: .bold))
@@ -107,10 +140,18 @@ struct FeaturedGamesView: View {
                             FeaturedGameCard(
                                 game: game,
                                 onPlay: { onPlay(game) },
-                                onDetails: { onDetails(game) }
+                                onDetails: { onDetails(game) },
+                                quickTransition: quickTransition,
+                                reduceMotion: reduceMotion
                             )
                             .frame(width: cardWidth)
                             .id(game.id)
+                            .aveluneZoomSource(id: "featured:\(game.id)", in: navigationTransition, reduceMotion: reduceMotion)
+                            .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                                content
+                                    .scaleEffect(shouldReduceMotion || phase.isIdentity ? 1 : 0.94)
+                                    .opacity(shouldReduceMotion || phase.isIdentity ? 1 : 0.72)
+                            }
                             .onLongPressGesture { onQuickView(game) }
                         }
                     }
@@ -133,6 +174,7 @@ struct FeaturedGamesView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: selectedID)
                 .accessibilityLabel("Jeu \(currentPage + 1) sur \(games.count)")
                 .accessibilityValue("\(currentPage + 1)")
                 .accessibilityIdentifier("featured-page-count")
@@ -149,10 +191,15 @@ private struct FeaturedGameCard: View {
     let game: Game
     let onPlay: () -> Void
     let onDetails: () -> Void
+    let quickTransition: Namespace.ID
+    let reduceMotion: Bool
 
     var body: some View {
+        let style = AveluneTheme.artworkStyle(for: game)
+
         ZStack(alignment: .bottomLeading) {
-            LibraryArtwork(paths: game.heroCandidates)
+            LibraryArtwork(paths: game.heroCandidates, style: style)
+                .aveluneQuickArtwork(id: "featured:\(game.id)", in: quickTransition, reduceMotion: reduceMotion)
 
             LinearGradient(
                 colors: [.clear, .black.opacity(0.34), .black.opacity(0.88)],
@@ -176,19 +223,24 @@ private struct FeaturedGameCard: View {
                 HStack(spacing: 10) {
                     Button(action: onPlay) {
                         Label(game.canContinue ? "Reprendre" : "Jouer", systemImage: "play.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(AveluneTheme.lilac)
+                    .tint(style.action)
 
                     Button(action: onDetails) {
                         Label("Détails", systemImage: "info.circle")
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                     .tint(.white)
                 }
-                .controlSize(.large)
+                .controlSize(.regular)
             }
             .padding(20)
             .foregroundStyle(.white)
@@ -205,7 +257,8 @@ struct GameCollectionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let games: [Game]
-    let transition: Namespace.ID
+    let navigationTransition: Namespace.ID
+    let quickTransition: Namespace.ID
     let onDetails: (Game) -> Void
     let onQuickView: (Game) -> Void
     let onDelete: (Game) -> Void
@@ -248,7 +301,8 @@ struct GameCollectionView: View {
     private func collectionCard(_ game: Game) -> some View {
         ZStack(alignment: .topTrailing) {
             ZStack(alignment: .bottomLeading) {
-                LibraryArtwork(paths: game.coverCandidates)
+                LibraryArtwork(paths: game.coverCandidates, style: AveluneTheme.artworkStyle(for: game))
+                    .aveluneQuickArtwork(id: "collection:\(game.id)", in: quickTransition, reduceMotion: reduceMotion)
 
                 LinearGradient(
                     colors: [.clear, .black.opacity(0.1), .black.opacity(0.84)],
@@ -263,18 +317,12 @@ struct GameCollectionView: View {
                     .padding(12)
             }
             .aspectRatio(0.72, contentMode: .fit)
-            .background {
-                if !reduceMotion {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(AveluneTheme.surface)
-                        .matchedGeometryEffect(id: game.id, in: transition)
-                }
-            }
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(AveluneTheme.border))
             .contentShape(RoundedRectangle(cornerRadius: 20))
             .onTapGesture { onDetails(game) }
             .onLongPressGesture { onQuickView(game) }
+            .aveluneZoomSource(id: "collection:\(game.id)", in: navigationTransition, reduceMotion: reduceMotion)
             .accessibilityLabel("\(game.title), voir la fiche")
             .accessibilityAddTraits(.isButton)
 
@@ -299,6 +347,7 @@ struct GameCollectionView: View {
 struct QuickGameView: View {
     let game: Game
     let transition: Namespace.ID
+    let sourceID: String
     let reduceMotion: Bool
     let onClose: () -> Void
     let onPlay: () -> Void
@@ -314,8 +363,9 @@ struct QuickGameView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ZStack(alignment: .topTrailing) {
-                        LibraryArtwork(paths: game.heroCandidates)
+                        LibraryArtwork(paths: game.heroCandidates, style: AveluneTheme.artworkStyle(for: game))
                             .frame(height: 240)
+                            .aveluneQuickArtwork(id: sourceID, in: transition, reduceMotion: reduceMotion, isSource: false)
 
                         Button(action: onClose) {
                             Image(systemName: "xmark")
@@ -351,6 +401,7 @@ struct QuickGameView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
+                            .tint(AveluneTheme.artworkStyle(for: game).action)
                             .accessibilityIdentifier("quick-view-play")
 
                             Button(action: onDetails) {
@@ -364,13 +415,7 @@ struct QuickGameView: View {
                     .padding(22)
                 }
                 .background {
-                    if reduceMotion {
-                        RoundedRectangle(cornerRadius: 28).fill(AveluneTheme.surface)
-                    } else {
-                        RoundedRectangle(cornerRadius: 28)
-                            .fill(AveluneTheme.surface)
-                            .matchedGeometryEffect(id: game.id, in: transition, isSource: false)
-                    }
+                    RoundedRectangle(cornerRadius: 28).fill(AveluneTheme.surface)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 28))
                 .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(AveluneTheme.border))
@@ -379,6 +424,6 @@ struct QuickGameView: View {
             .scrollIndicators(.hidden)
             .frame(maxHeight: 620)
         }
-        .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
+        .transition(.opacity)
     }
 }

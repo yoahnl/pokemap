@@ -6,9 +6,12 @@ struct GameListView: View {
     let onGameSelected: (Game) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var artworkTransition
+    @Namespace private var navigationTransition
+    @Namespace private var quickTransition
     @State private var path: [String] = []
+    @State private var navigationSourceID: String?
     @State private var quickViewGame: Game?
+    @State private var quickViewSourceID: String?
     @State private var showFilePicker = false
     @State private var pendingImportURL: URL?
 
@@ -26,16 +29,19 @@ struct GameListView: View {
                             } else {
                                 FeaturedGamesView(
                                     games: Game.featuredOrder(viewModel.games),
+                                    navigationTransition: navigationTransition,
+                                    quickTransition: quickTransition,
                                     onPlay: onGameSelected,
-                                    onDetails: showDetails,
-                                    onQuickView: showQuickView
+                                    onDetails: { showDetails($0, sourceID: "featured:\($0.id)") },
+                                    onQuickView: { showQuickView($0, sourceID: "featured:\($0.id)") }
                                 )
 
                                 GameCollectionView(
                                     games: viewModel.games,
-                                    transition: artworkTransition,
-                                    onDetails: showDetails,
-                                    onQuickView: showQuickView,
+                                    navigationTransition: navigationTransition,
+                                    quickTransition: quickTransition,
+                                    onDetails: { showDetails($0, sourceID: "collection:\($0.id)") },
+                                    onQuickView: { showQuickView($0, sourceID: "collection:\($0.id)") },
                                     onDelete: { game in Task { await viewModel.uninstall(game) } },
                                     onImport: { showFilePicker = true }
                                 )
@@ -52,7 +58,8 @@ struct GameListView: View {
                 if let game = quickViewGame {
                     QuickGameView(
                         game: game,
-                        transition: artworkTransition,
+                        transition: quickTransition,
+                        sourceID: quickViewSourceID ?? "collection:\(game.id)",
                         reduceMotion: reduceMotion,
                         onClose: closeQuickView,
                         onPlay: {
@@ -60,6 +67,7 @@ struct GameListView: View {
                             onGameSelected(game)
                         },
                         onDetails: {
+                            navigationSourceID = quickViewSourceID
                             quickViewGame = nil
                             DispatchQueue.main.async {
                                 path.append(game.id)
@@ -73,6 +81,11 @@ struct GameListView: View {
             .navigationDestination(for: String.self) { id in
                 if let game = viewModel.games.first(where: { $0.id == id }) {
                     GameDetailView(game: game, onPlay: { onGameSelected(game) })
+                        .aveluneZoomDestination(
+                            id: navigationSourceID ?? "featured:\(game.id)",
+                            in: navigationTransition,
+                            reduceMotion: reduceMotion
+                        )
                 }
             }
             .task { await viewModel.refresh() }
@@ -114,9 +127,13 @@ struct GameListView: View {
         }
     }
 
-    private func showDetails(_ game: Game) { path.append(game.id) }
+    private func showDetails(_ game: Game, sourceID: String) {
+        navigationSourceID = sourceID
+        path.append(game.id)
+    }
 
-    private func showQuickView(_ game: Game) {
+    private func showQuickView(_ game: Game, sourceID: String) {
+        quickViewSourceID = sourceID
         withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.86)) {
             quickViewGame = game
         }

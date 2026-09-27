@@ -7,6 +7,8 @@ struct GameDetailView: View {
     let game: Game
     let onPlay: () -> Void
 
+    private var artworkStyle: AveluneArtworkStyle { AveluneTheme.artworkStyle(for: game) }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -33,7 +35,7 @@ struct GameDetailView: View {
                 .padding(.horizontal, 24)
 
                 ZStack(alignment: .bottomLeading) {
-                    LibraryArtwork(paths: game.heroCandidates)
+                    LibraryArtwork(paths: game.heroCandidates, style: artworkStyle)
 
                     LinearGradient(
                         colors: [.clear, .black.opacity(0.28), .black.opacity(0.85)],
@@ -57,6 +59,7 @@ struct GameDetailView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(artworkStyle.action)
                     .controlSize(.large)
 
                     if let description = game.description, !description.isEmpty {
@@ -72,9 +75,12 @@ struct GameDetailView: View {
 
                             if description.count > 180 {
                                 Button(showsFullDescription ? "Voir moins" : "Voir plus") {
-                                    showsFullDescription.toggle()
+                                    withAnimation(.smooth(duration: 0.3)) {
+                                        showsFullDescription.toggle()
+                                    }
                                 }
                                 .font(.subheadline.weight(.semibold))
+                                .tint(artworkStyle.action)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -130,7 +136,7 @@ struct GameDetailView: View {
             .padding(.bottom, 36)
         }
         .scrollIndicators(.hidden)
-        .background(AveluneBackground())
+        .background(AveluneBackground(accent: artworkStyle.glow))
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -138,7 +144,7 @@ struct GameDetailView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
                 .frame(width: 22)
-                .foregroundStyle(AveluneTheme.lilac)
+                .foregroundStyle(artworkStyle.action)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)

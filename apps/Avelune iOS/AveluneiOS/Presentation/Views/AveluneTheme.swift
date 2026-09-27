@@ -16,6 +16,35 @@ enum AveluneTheme {
         endPoint: .bottomTrailing
     )
 
+    static func artworkStyle(for game: Game) -> AveluneArtworkStyle {
+        let palettes: [AveluneArtworkStyle] = [
+            .init(glow: Color(red: 0.32, green: 0.75, blue: 0.88), secondary: Color(red: 0.19, green: 0.37, blue: 0.65), action: Color(red: 0.20, green: 0.49, blue: 0.65)),
+            .init(glow: Color(red: 1, green: 0.65, blue: 0.43), secondary: Color(red: 0.78, green: 0.32, blue: 0.50), action: Color(red: 0.74, green: 0.35, blue: 0.43)),
+            .init(glow: Color(red: 0.70, green: 0.60, blue: 1), secondary: Color(red: 0.34, green: 0.43, blue: 0.82), action: Color(red: 0.48, green: 0.40, blue: 0.77)),
+            .init(glow: Color(red: 0.64, green: 0.84, blue: 0.57), secondary: Color(red: 0.18, green: 0.53, blue: 0.56), action: Color(red: 0.25, green: 0.53, blue: 0.46))
+        ]
+
+        var hash: UInt32 = 2_166_136_261
+        for byte in game.title.utf8 {
+            hash = (hash ^ UInt32(byte)) &* 16_777_619
+        }
+
+        let palette = palettes[Int(hash % UInt32(palettes.count))]
+        guard let accent = color(from: game.accentColor) else { return palette }
+        return .init(glow: accent, secondary: palette.secondary, action: palette.action)
+    }
+
+    private static func color(from value: String?) -> Color? {
+        guard let value else { return nil }
+        let hex = value.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard hex.count == 6, let number = UInt32(hex, radix: 16) else { return nil }
+        return Color(
+            red: Double((number >> 16) & 0xff) / 255,
+            green: Double((number >> 8) & 0xff) / 255,
+            blue: Double(number & 0xff) / 255
+        )
+    }
+
     private static func adaptive(dark: UIColor, light: UIColor) -> Color {
         Color(uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark ? dark : light
@@ -23,29 +52,31 @@ enum AveluneTheme {
     }
 }
 
+struct AveluneArtworkStyle {
+    let glow: Color
+    let secondary: Color
+    let action: Color
+}
+
 struct AveluneBackground: View {
+    var accent: Color = AveluneTheme.cyan
+
     var body: some View {
         ZStack {
             AveluneTheme.background
 
             RadialGradient(
-                colors: [AveluneTheme.lilac.opacity(0.19), .clear],
-                center: .topLeading,
+                colors: [accent.opacity(0.16), .clear],
+                center: .topTrailing,
                 startRadius: 30,
-                endRadius: 390
+                endRadius: 340
             )
 
             RadialGradient(
-                colors: [AveluneTheme.cyan.opacity(0.1), .clear],
-                center: .bottomTrailing,
+                colors: [AveluneTheme.lilac.opacity(0.09), .clear],
+                center: .bottomLeading,
                 startRadius: 20,
                 endRadius: 360
-            )
-
-            LinearGradient(
-                colors: [AveluneTheme.surface.opacity(0.1), .clear, AveluneTheme.lilac.opacity(0.035)],
-                startPoint: .top,
-                endPoint: .bottom
             )
         }
         .ignoresSafeArea()
@@ -53,6 +84,33 @@ struct AveluneBackground: View {
 }
 
 extension View {
+    @ViewBuilder
+    func aveluneQuickArtwork(id: String, in namespace: Namespace.ID, reduceMotion: Bool, isSource: Bool = true) -> some View {
+        if reduceMotion {
+            self
+        } else {
+            matchedGeometryEffect(id: id, in: namespace, isSource: isSource)
+        }
+    }
+
+    @ViewBuilder
+    func aveluneZoomSource(id: String, in namespace: Namespace.ID, reduceMotion: Bool) -> some View {
+        if #available(iOS 18.0, *), !reduceMotion {
+            matchedTransitionSource(id: id, in: namespace)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func aveluneZoomDestination(id: String, in namespace: Namespace.ID, reduceMotion: Bool) -> some View {
+        if #available(iOS 18.0, *), !reduceMotion {
+            navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
+        }
+    }
+
     @ViewBuilder
     func aveluneGlassButton(prominent: Bool = false, circular: Bool = false) -> some View {
         if #available(iOS 26.0, *) {
