@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:image/image.dart' as image;
@@ -9,6 +10,91 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
+  test('export artifact reuses the certified immutable archive', () async {
+    final projectRoot = await _createPlayableProject();
+    addTearDown(() => projectRoot.delete(recursive: true));
+    GamePackageBuildResult? built;
+    final service = CanonicalGamePackageExportService(
+      pokemonValidator: _acceptPokemonProjection,
+      packageArchiveBuilder: ({required manifest, required payloadFiles}) {
+        built = const GamePackageBuilder().build(
+          manifest: manifest,
+          payloadFiles: payloadFiles,
+        );
+        return built!;
+      },
+    );
+
+    final artifact = await service.build(
+      projectRoot: projectRoot,
+      profile: _profile(),
+    );
+
+    expect(identical(artifact.packageBytes, built!.packageBytes), isTrue);
+    expect(artifact.packageBytes, isA<Uint8List>());
+    expect(
+      () => artifact.packageBytes[0] = 0,
+      throwsUnsupportedError,
+    );
+
+    final suppliedBytes = artifact.packageBytes.toList();
+    final externalArtifact = GamePackageExportArtifact(
+      packageBytes: suppliedBytes,
+      manifest: artifact.manifest,
+      inspection: artifact.inspection,
+      personalizationPreflight: artifact.personalizationPreflight,
+      certification: artifact.certification,
+      suggestedFileName: artifact.suggestedFileName,
+      compiledDialogueCount: artifact.compiledDialogueCount,
+      scrubbedSecretFieldCount: artifact.scrubbedSecretFieldCount,
+    );
+    suppliedBytes[0] ^= 0xff;
+    expect(externalArtifact.packageBytes, artifact.packageBytes);
+    expect(externalArtifact.packageBytes, isA<Uint8List>());
+    expect(
+      () => GamePackageExportArtifact(
+        packageBytes: [-1],
+        manifest: artifact.manifest,
+        inspection: artifact.inspection,
+        personalizationPreflight: artifact.personalizationPreflight,
+        certification: artifact.certification,
+        suggestedFileName: artifact.suggestedFileName,
+        compiledDialogueCount: artifact.compiledDialogueCount,
+        scrubbedSecretFieldCount: artifact.scrubbedSecretFieldCount,
+      ),
+      throwsA(
+        isA<GamePackageFormatException>()
+            .having((error) => error.code, 'code', 'invalidFileBytes'),
+      ),
+    );
+  });
+
+  test('selected-file fallback preserves the certified archive', () async {
+    final projectRoot = await _createPlayableProject();
+    final exportRoot = await Directory.systemTemp.createTemp('direct_export_');
+    addTearDown(() => projectRoot.delete(recursive: true));
+    addTearDown(() => exportRoot.delete(recursive: true));
+    final service = CanonicalGamePackageExportService(
+      pokemonValidator: _acceptPokemonProjection,
+      atomicFileWriter: ({
+        required outputFile,
+        required packageBytes,
+        required packageSha256,
+      }) async {
+        throw const FileSystemException('Sibling writes denied');
+      },
+    );
+    final artifact = await service.build(
+      projectRoot: projectRoot,
+      profile: _profile(),
+    );
+    final output = File(p.join(exportRoot.path, 'direct.avelunegame'));
+
+    await service.writeArtifactToFile(artifact: artifact, outputFile: output);
+
+    expect(await output.readAsBytes(), artifact.packageBytes);
+  });
+
   test('local test exports an unfinished story while publication rejects it',
       () async {
     final projectRoot = await _createPlayableProject();

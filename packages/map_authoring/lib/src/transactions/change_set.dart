@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
@@ -196,11 +198,16 @@ String _safeStorageKey(String value) {
 
 List<int>? _freezeOptionalBytes(Iterable<int>? values, String field) {
   if (values == null) return null;
-  final bytes = values.toList(growable: false);
-  if (bytes.any((value) => value < 0 || value > 255)) {
-    throw ArgumentError.value(values, field, 'must contain bytes');
+  final source = values is List<int> ? values : values.toList(growable: false);
+  final bytes = Uint8List(source.length);
+  for (var index = 0; index < source.length; index++) {
+    final value = source[index];
+    if (value < 0 || value > 255) {
+      throw ArgumentError.value(values, field, 'must contain bytes');
+    }
+    bytes[index] = value;
   }
-  return List.unmodifiable(bytes);
+  return bytes.asUnmodifiableView();
 }
 
 String? _verifiedOptionalRevision(

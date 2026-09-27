@@ -156,6 +156,20 @@ void main() {
       expect(resources.borderPreviewLoading, isFalse);
       expect(resources.diagnostics.single.resourceId, 'border:${map.id}');
       expect(resources.diagnostics.single.detail, contains('broken-border'));
+      final issue = resources.borderPreviewIssue;
+      await resources.updateCatalog(manifest.copyWith(name: 'Renamed'));
+      expect(resources.borderPreviewIssue, issue);
+      expect(resources.borderPreviewLoading, isFalse);
+      await resources.updateCatalog(
+        manifest.copyWith(
+          borderCatalog: ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.formatVersionV2,
+          ),
+        ),
+      );
+      expect(resources.borderPreviewLoading, isTrue);
+      await resources.settled;
+      expect(resources.borderPreviewIssue, issue);
       final renderer = resources.renderer(map)..update(0);
       final recorder = ui.PictureRecorder();
       renderer.paint(ui.Canvas(recorder));

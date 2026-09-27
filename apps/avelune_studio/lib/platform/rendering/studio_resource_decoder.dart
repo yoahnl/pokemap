@@ -76,12 +76,11 @@ final class StudioResourceDecoder {
     try {
       reserve(0, probe.identity!.byteLength * 2);
       reads++;
-      bytes = Uint8List.fromList(
-        await reader.readBytes(
-          projectRoot: projectRoot,
-          relativePath: relativePath,
-        ),
+      final source = await reader.readBytes(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
       );
+      bytes = source is Uint8List ? source : Uint8List.fromList(source);
     } on Object catch (error) {
       throw StudioResourceFailure(
         error is FileSystemException &&

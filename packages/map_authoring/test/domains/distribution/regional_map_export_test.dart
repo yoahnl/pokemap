@@ -1,12 +1,57 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('projection keeps a compact immutable snapshot of supplied bytes', () {
+    final source = Uint8List.fromList([1, 2, 3]);
+    final project = ProjectManifest(
+      name: 'Projection fixture',
+      maps: const [],
+      tilesets: const [],
+    );
+    final projection = RuntimeProjectProjection(
+      project: project,
+      presentation: project.effectivePresentation,
+      payloadFiles: {'project/asset.bin': source},
+      payloadDirectories: const {},
+      compiledDialogueCount: 0,
+      scrubbedSecretFieldCount: 0,
+    );
+
+    source[0] = 9;
+    final payload = projection.payloadFiles['project/asset.bin']!;
+    expect(payload, isA<Uint8List>());
+    expect(payload, [1, 2, 3]);
+    expect(() => payload[0] = 7, throwsUnsupportedError);
+    expect(
+      () => projection.payloadFiles['project/other.bin'] = [4],
+      throwsUnsupportedError,
+    );
+    expect(
+      () => RuntimeProjectProjection(
+        project: project,
+        presentation: project.effectivePresentation,
+        payloadFiles: {
+          'project/invalid.bin': [256]
+        },
+        payloadDirectories: const {},
+        compiledDialogueCount: 0,
+        scrubbedSecretFieldCount: 0,
+      ),
+      throwsA(
+        isA<GamePackageFormatException>()
+            .having((error) => error.code, 'code', 'invalidFileBytes'),
+      ),
+    );
+  });
+
   for (final reference in ['region', 'thumbnail']) {
     test(
         'export retains $reference source shared with unused presentation media',

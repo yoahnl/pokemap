@@ -15,16 +15,33 @@ import 'package_path_policy.dart';
 
 final class GamePackageBuildResult {
   GamePackageBuildResult({
-    required this.manifest,
+    required GamePackageManifest manifest,
     required List<int> packageBytes,
-  }) : packageBytes = List.unmodifiable(packageBytes),
-       packageSha256 = sha256.convert(packageBytes).toString(),
-       archiveBytes = packageBytes.length;
+  }) : this._fromOwnedBytes(
+          manifest: manifest,
+          packageBytes: _copyPackageBytes(packageBytes),
+        );
+
+  GamePackageBuildResult._fromOwnedBytes({
+    required this.manifest,
+    required Uint8List packageBytes,
+  })  : packageBytes = packageBytes.asUnmodifiableView(),
+        packageSha256 = sha256.convert(packageBytes).toString(),
+        archiveBytes = packageBytes.length;
 
   final GamePackageManifest manifest;
   final List<int> packageBytes;
   final String packageSha256;
   final int archiveBytes;
+
+  static Uint8List _copyPackageBytes(List<int> bytes) {
+    for (final byte in bytes) {
+      if (byte < 0 || byte > 255) {
+        throw ArgumentError.value(byte, 'packageBytes', 'Must contain bytes.');
+      }
+    }
+    return Uint8List.fromList(bytes);
+  }
 }
 
 /// Builds the deterministic ZIP representation of a `.avelunegame` archive.
@@ -96,21 +113,20 @@ final class GamePackageBuilder {
     for (final entry in content.files) {
       contentValidator.validate(
         entry,
-        Uint8List.fromList(payloadSnapshot[entry.path]!),
+        payloadSnapshot[entry.path]! as Uint8List,
       );
     }
     GamePackageProjectValidator(securityPolicy).validate(
       packagedManifest,
-      Uint8List.fromList(payloadSnapshot['project/project.json']!),
+      payloadSnapshot['project/project.json']! as Uint8List,
       payloadPaths: payloadSnapshot.keys.toSet(),
     );
-    final entries =
-        <MapEntry<String, List<int>>>[
-          MapEntry<String, List<int>>('game-manifest.json', manifestBytes),
-          ...payloadSnapshot.entries,
-        ]..sort(
-          (left, right) => PackagePathPolicy.compareUtf8(left.key, right.key),
-        );
+    final entries = <MapEntry<String, List<int>>>[
+      MapEntry<String, List<int>>('game-manifest.json', manifestBytes),
+      ...payloadSnapshot.entries,
+    ]..sort(
+        (left, right) => PackagePathPolicy.compareUtf8(left.key, right.key),
+      );
 
     final bytes = DeterministicZipEncoder.encode(entries);
     if (bytes.length > securityPolicy.maxArchiveBytes) {
@@ -120,7 +136,7 @@ final class GamePackageBuilder {
         message: 'Built package exceeds archive policy.',
       );
     }
-    return GamePackageBuildResult(
+    return GamePackageBuildResult._fromOwnedBytes(
       manifest: manifestCodec.decodeUtf8(manifestBytes),
       packageBytes: bytes,
     );

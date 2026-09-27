@@ -12,6 +12,7 @@ import '../assets/asset_store.dart';
 import '../assets/project_media_store.dart';
 import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
+import 'immutable_byte_snapshot.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -33,7 +34,8 @@ final class RuntimeProjectProjection {
         const <ProjectTypographyRole, RuntimeProjectedFontRole>{},
   })  : payloadFiles = Map.unmodifiable(
           payloadFiles.map(
-            (path, bytes) => MapEntry(path, List<int>.unmodifiable(bytes)),
+            (path, bytes) =>
+                MapEntry(path, immutableByteSnapshot(bytes, path: path)),
           ),
         ),
         payloadDirectories = Set.unmodifiable(

@@ -117,7 +117,7 @@ final class MemoryArtifactStore implements ArtifactStore {
     }
     _entries[reference.handle] = _ArtifactEntry(
       reference: reference,
-      bytes: List<int>.unmodifiable(bytes),
+      bytes: Uint8List.fromList(bytes).asUnmodifiableView(),
     );
     return StoredArtifact(reference: reference, deduplicated: false);
   }
@@ -134,7 +134,7 @@ final class MemoryArtifactStore implements ArtifactStore {
         'The artifact handle is unknown or has expired.',
       );
     }
-    return List<int>.unmodifiable(entry.bytes);
+    return entry.bytes;
   }
 
   @override
@@ -454,6 +454,6 @@ final class _ArtifactEntry {
   _ArtifactEntry({required this.reference, required this.bytes});
 
   final ContentArtifactRef reference;
-  final List<int> bytes;
+  final Uint8List bytes;
   int retainCount = 1;
 }

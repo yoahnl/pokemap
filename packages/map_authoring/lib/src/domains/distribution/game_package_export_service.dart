@@ -10,6 +10,7 @@ import '../gameplay/pokemon_catalog_coherence_loader.dart';
 import '../../ports/project_file_reader.dart';
 import 'game_package_gameplay_readiness_gate.dart';
 import 'game_package_export_profile.dart';
+import 'immutable_byte_snapshot.dart';
 import 'runtime_project_projection_builder.dart';
 import 'runtime_project_projection_file_reader.dart';
 
@@ -66,6 +67,27 @@ final class GamePackageExportCertification {
 final class GamePackageExportArtifact {
   GamePackageExportArtifact({
     required List<int> packageBytes,
+    required GamePackageManifest manifest,
+    required GamePackageInspectionResult inspection,
+    required GamePackagePersonalizationPreflightReceipt
+        personalizationPreflight,
+    required GamePackageExportCertification certification,
+    required String suggestedFileName,
+    required int compiledDialogueCount,
+    required int scrubbedSecretFieldCount,
+  }) : this._(
+          packageBytes: immutableByteSnapshot(packageBytes, path: r'$'),
+          manifest: manifest,
+          inspection: inspection,
+          personalizationPreflight: personalizationPreflight,
+          certification: certification,
+          suggestedFileName: suggestedFileName,
+          compiledDialogueCount: compiledDialogueCount,
+          scrubbedSecretFieldCount: scrubbedSecretFieldCount,
+        );
+
+  GamePackageExportArtifact._({
+    required this.packageBytes,
     required this.manifest,
     required this.inspection,
     required this.personalizationPreflight,
@@ -73,7 +95,7 @@ final class GamePackageExportArtifact {
     required this.suggestedFileName,
     required this.compiledDialogueCount,
     required this.scrubbedSecretFieldCount,
-  }) : packageBytes = List.unmodifiable(packageBytes);
+  });
 
   final List<int> packageBytes;
   final GamePackageManifest manifest;
@@ -383,7 +405,7 @@ final class CanonicalGamePackageExportService {
           message: diagnostics.join(' '),
         );
       }
-      return GamePackageExportArtifact(
+      return GamePackageExportArtifact._(
         packageBytes: built.packageBytes,
         manifest: built.manifest,
         inspection: inspection,
@@ -516,8 +538,8 @@ final class CanonicalGamePackageExportService {
     var backedUp = false;
     try {
       await temporary.writeAsBytes(packageBytes, flush: true);
-      final writtenBytes = await temporary.readAsBytes();
-      if (sha256.convert(writtenBytes).toString() != packageSha256) {
+      final writtenDigest = await sha256.bind(temporary.openRead()).first;
+      if (writtenDigest.toString() != packageSha256) {
         throw const GamePackageExportException(
           code: 'exportWriteVerificationFailed',
           message: 'Written package digest differs from the certified bytes.',
@@ -559,8 +581,8 @@ final class CanonicalGamePackageExportService {
     }
     try {
       await outputFile.writeAsBytes(packageBytes, flush: true);
-      final writtenBytes = await outputFile.readAsBytes();
-      if (sha256.convert(writtenBytes).toString() != packageSha256) {
+      final writtenDigest = await sha256.bind(outputFile.openRead()).first;
+      if (writtenDigest.toString() != packageSha256) {
         throw const GamePackageExportException(
           code: 'exportWriteVerificationFailed',
           message: 'Written package digest differs from the certified bytes.',

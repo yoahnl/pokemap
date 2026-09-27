@@ -1,14 +1,24 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 
 final class StudioBorderPreview {
-  StudioBorderPreview({required this.projectRoot, required this.changed});
+  StudioBorderPreview({
+    required this.projectRoot,
+    required this.changed,
+    BorderRuntimeAssetCache? cache,
+  }) : _cache = cache ?? BorderRuntimeAssetCache() {
+    _caches.add(_cache);
+  }
 
   final String projectRoot;
   final void Function() changed;
   final List<BorderRuntimeAssetCache> _caches = [];
-  late BorderRuntimeAssetCache _cache = _newCache();
+  BorderRuntimeAssetCache _cache;
   List<BorderLayer> _layers = const [];
   ProjectBorderCatalog? _catalog;
   String? _mapId;
@@ -60,12 +70,17 @@ final class StudioBorderPreview {
     final layers = map.layers.whereType<BorderLayer>().toList();
     if (!force &&
         _mapId == map.id &&
-        identical(_catalog, manifest.borderCatalog) &&
+        _catalog == manifest.borderCatalog &&
         layers.length == _layers.length &&
         Iterable<int>.generate(
           layers.length,
         ).every((index) => identical(layers[index], _layers[index]))) {
       return;
+    }
+    if (!force && _mapId != null) {
+      final previous = _cache;
+      _cache = _newCache();
+      _retireAfterFrame(previous);
     }
     _mapId = map.id;
     _catalog = manifest.borderCatalog;
@@ -84,8 +99,33 @@ final class StudioBorderPreview {
 
   void invalidate(ProjectManifest manifest, MapData map) {
     if (_disposed) return;
+    final previous = _cache;
     _cache = _newCache();
     setActiveMap(manifest, map, force: true);
+    _retireAfterFrame(previous);
+  }
+
+  void _retireAfterFrame(BorderRuntimeAssetCache cache) {
+    SchedulerBinding.instance.scheduleFrameCallback((_) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        final disposal = cache.dispose();
+        unawaited(
+          disposal.then(
+            (_) => _caches.remove(cache),
+            onError: (Object error, StackTrace stack) {
+              _caches.remove(cache);
+              FlutterError.reportError(
+                FlutterErrorDetails(
+                  exception: error,
+                  stack: stack,
+                  library: 'avelune_studio',
+                ),
+              );
+            },
+          ),
+        );
+      });
+    });
   }
 
   Future<void> _load(

@@ -53,7 +53,7 @@ extension LocalPresentationMedia on LocalPresentationAdapter {
       return PresentationStagedMedia(
         media: media,
         parameters: Map.unmodifiable(fields),
-        previewBytes: List.unmodifiable(await artifacts.read(handle)),
+        previewBytes: await artifacts.read(handle),
       );
     } catch (failure) {
       if (handle != null) await artifacts.release(handle);
