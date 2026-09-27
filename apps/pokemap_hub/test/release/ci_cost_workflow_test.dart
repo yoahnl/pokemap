@@ -28,6 +28,14 @@ void main() {
     expect(source, contains('runs-on: ubuntu-24.04'));
     expect(source, contains('timeout-minutes: 15'));
     expect(source, contains('cancel-in-progress: true'));
+    expect('"apps/avelune_studio/**"'.allMatches(source), hasLength(2));
+    expect(source, contains('working-directory: apps/avelune_studio'));
+    expect(source, contains('test/app/studio_bootstrap_test.dart'));
+    expect(source, contains('test/home/recent_projects_test.dart'));
+    expect(
+      source,
+      contains('test/project_session/scoped_project_session_adapter_test.dart'),
+    );
     expect(source, contains('flutter analyze --no-pub'));
     expect(source, contains('dart analyze'));
     expect(source, contains('test/map_editing_controller_test.dart'));

@@ -6,6 +6,7 @@ import '../features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import '../platform/files/native_pokemon_json_picker.dart';
 import '../platform/files/native_pokemon_png_picker.dart';
 import '../platform/files/native_game_export_picker.dart';
+import '../platform/files/scoped_project_session_adapter.dart';
 import 'package:flutter/widgets.dart';
 import '../features/cinematics/data/local_cinematic_adapter.dart';
 import '../features/presentations/data/local_presentation_adapter.dart';
@@ -39,9 +40,10 @@ class StudioBootstrap extends StatelessWidget {
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
       recentProjectsPortProvider.overrideWith((ref) => studioRecentProjects()),
-      projectSessionPortProvider.overrideWith(
-        (ref) => LocalProjectSessionAdapter(),
-      ),
+      projectSessionPortProvider.overrideWith((ref) {
+        final local = LocalProjectSessionAdapter();
+        return Platform.isMacOS ? ScopedProjectSessionAdapter(local) : local;
+      }),
       projectDirectoryPickerProvider.overrideWithValue(
         const NativeProjectDirectoryPicker().choose,
       ),

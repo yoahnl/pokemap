@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('desktop workflow builds the PokeMap editor on all three platforms',
+  test('desktop workflow builds Avelune Studio on all three platforms',
       () async {
     final workflow = await File(
       '../../.github/workflows/pokemap_desktop_release.yml',
@@ -19,7 +19,7 @@ void main() {
     expect(workflow, contains('PokeMap-linux-x64.tar.gz'));
     expect(workflow, contains('tool/release/package_macos_preview.sh'));
     expect(workflow, contains('tool/release/notarize_macos_release.sh'));
-    expect(workflow, contains('--volume-name PokeMap'));
+    expect(workflow, contains("--volume-name 'Avelune Studio'"));
     expect(workflow, contains('workflow_dispatch:'));
     expect(workflow, contains('macos-preflight:'));
     expect(workflow, contains('assemble-release:'));
@@ -57,12 +57,12 @@ void main() {
     expect(workflow, contains('validate-release:'));
     expect(
       workflow,
-      contains(
-        r'dart run tool/release/validate_release_version.dart '
-        r'--tag "$RELEASE_TAG" --pubspec pubspec.yaml '
-        r'--github-output "$GITHUB_OUTPUT"',
-      ),
+      contains('dart run tool/release/validate_release_version.dart'),
     );
+    expect(workflow, contains(r'--tag "$RELEASE_TAG"'));
+    expect(workflow, contains('--pubspec ../../apps/avelune_studio/pubspec.yaml'));
+    expect(workflow, contains(r'--previous-build "$PREVIOUS_BUILD"'));
+    expect(workflow, contains(r'--github-output "$GITHUB_OUTPUT"'));
     expect(workflow, contains('- validate-release'));
     expect(
       workflow.indexOf('validate-release:'),

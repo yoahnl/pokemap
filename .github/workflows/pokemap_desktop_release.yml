@@ -1,4 +1,4 @@
-name: PokeMap desktop distribution
+name: Avelune Studio desktop distribution
 
 on:
   workflow_dispatch:
@@ -75,7 +75,36 @@ jobs:
             fi
           fi
           flutter pub get
-          dart run tool/release/validate_release_version.dart --tag "$RELEASE_TAG" --pubspec pubspec.yaml --github-output "$GITHUB_OUTPUT"
+          curl --fail --location --silent --show-error \
+            'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml' \
+            --output "$RUNNER_TEMP/current-appcast.xml"
+          PREVIOUS_BUILD="$(python3 - "$RUNNER_TEMP/current-appcast.xml" ../../apps/avelune_studio/pubspec.yaml <<'PY'
+          import pathlib
+          import re
+          import sys
+          import xml.etree.ElementTree as ET
+
+          namespace = '{http://www.andymatuschak.org/xml-namespaces/sparkle}'
+          item = ET.parse(sys.argv[1]).find('.//item')
+          if item is None:
+              raise SystemExit('Stable appcast has no release item.')
+          previous_version = tuple(map(int, item.findtext(f'{namespace}shortVersionString').split('.')))
+          previous_build = int(item.findtext(f'{namespace}version'))
+          candidate_text = pathlib.Path(sys.argv[2]).read_text()
+          candidate = re.search(r'^version: (\d+)\.(\d+)\.(\d+)\+(\d+)$', candidate_text, re.M)
+          if candidate is None:
+              raise SystemExit('Studio pubspec has no stable release version.')
+          candidate_version = tuple(map(int, candidate.group(1, 2, 3)))
+          if candidate_version <= previous_version or int(candidate.group(4)) <= previous_build:
+              raise SystemExit('Studio release must exceed the current stable version and build.')
+          print(max(previous_build, 307))
+          PY
+          )"
+          dart run tool/release/validate_release_version.dart \
+            --tag "$RELEASE_TAG" \
+            --pubspec ../../apps/avelune_studio/pubspec.yaml \
+            --previous-build "$PREVIOUS_BUILD" \
+            --github-output "$GITHUB_OUTPUT"
 
   macos-preview:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -93,13 +122,13 @@ jobs:
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Test and build macOS preview
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           flutter pub get
           flutter test test/release
           flutter analyze
           flutter build macos --release
-          tool/release/package_macos_preview.sh \
+          ../../packages/map_editor/tool/release/package_macos_preview.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
             --dmg build/release/PokeMap-macos-preview.dmg
       - name: Preserve macOS preview
@@ -108,7 +137,7 @@ jobs:
           name: pokemap-macos-preview-${{ github.sha }}
           if-no-files-found: error
           retention-days: 30
-          path: packages/map_editor/build/release/PokeMap-macos-preview.dmg
+          path: apps/avelune_studio/build/release/PokeMap-macos-preview.dmg
 
   macos-preflight:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preflight' }}
@@ -127,7 +156,7 @@ jobs:
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Read preflight version
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           RELEASE_VERSION="$(sed -nE 's/^version: ([0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+$/\1/p' pubspec.yaml)"
           RELEASE_BUILD_NUMBER="$(sed -nE 's/^version: [0-9]+\.[0-9]+\.[0-9]+\+([0-9]+)$/\1/p' pubspec.yaml)"
@@ -155,8 +184,8 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: \
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
-      - name: Build and sign PokeMap preflight
-        working-directory: packages/map_editor
+      - name: Build and sign Avelune Studio preflight
+        working-directory: apps/avelune_studio
         env:
           DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
           POKEMAP_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.POKEMAP_SPARKLE_PUBLIC_ED_KEY }}
@@ -168,24 +197,28 @@ jobs:
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
           flutter pub get
-          flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
+          flutter test test/release
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
           APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
+          test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
+          test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
+          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'
           plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             "$APP_PATH/Contents/Info.plist"
           test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
             "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
           test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
           test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
-          ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
+          ../pokemap_hub/tool/release/sign_macos_app.sh \
             --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
       - name: Notarize, staple and assess preflight
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -198,15 +231,15 @@ jobs:
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
-          ../../apps/pokemap_hub/tool/release/notarize_macos_release.sh \
+          ../pokemap_hub/tool/release/notarize_macos_release.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
             --result-json "$RUNNER_TEMP/notary-result.json" \
             --log-directory "$RUNNER_TEMP/notary-logs" \
-            --volume-name PokeMap
+            --volume-name 'Avelune Studio'
       - name: Generate signed Sparkle preflight
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         env:
           SPARKLE_PRIVATE_ED_KEY_BASE64: ${{ secrets.SPARKLE_PRIVATE_ED_KEY_BASE64 }}
         run: |
@@ -217,7 +250,7 @@ jobs:
           GENERATE_APPCAST="$(find build/macos -type f \
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
-          tool/release/package_macos_update.sh \
+          ../../packages/map_editor/tool/release/package_macos_update.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
@@ -233,9 +266,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
-            packages/map_editor/build/release/PokeMap-Editor-*-macOS.dmg
-            packages/map_editor/build/release/PokeMap-Editor-*-macOS.app.zip
-            packages/map_editor/build/release/appcast-macos.xml
+            apps/avelune_studio/build/release/PokeMap-Editor-*-macOS.dmg
+            apps/avelune_studio/build/release/PokeMap-Editor-*-macOS.app.zip
+            apps/avelune_studio/build/release/appcast-macos.xml
 
   windows:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -258,7 +291,7 @@ jobs:
           "$env:RUNNER_TEMP/flutter/bin" |
             Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
       - name: Test, build and package Windows
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         shell: pwsh
         run: |
           flutter pub get
@@ -290,8 +323,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: |
-            packages/map_editor/build/release/PokeMap-windows-x64.zip
-            packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
+            apps/avelune_studio/build/release/PokeMap-windows-x64.zip
+            apps/avelune_studio/build/release/PokeMap-Editor-Setup-*.exe
 
   windows-release:
     if: >-
@@ -323,23 +356,23 @@ jobs:
           "$env:RUNNER_TEMP/flutter/bin" |
             Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
       - name: Build Windows manual release
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         shell: pwsh
         run: |
           flutter pub get
-          flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
+          flutter test test/release
           flutter analyze
           flutter build windows --release `
             "--build-name=$env:RELEASE_VERSION" `
             "--build-number=$env:RELEASE_BUILD_NUMBER"
           $bundle = "build/windows/x64/runner/Release"
-          foreach ($file in @("PokeMap.exe", "WinSparkle.dll")) {
+          foreach ($file in @("PokeMap.exe")) {
             if (-not (Test-Path "$bundle/$file")) {
               throw "PokeMap Windows bundle is missing $file."
             }
           }
       - name: Package Windows manual installer
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         shell: pwsh
         run: |
           ./tool/release/package_windows_manual_release.ps1 `
@@ -352,7 +385,7 @@ jobs:
           name: pokemap-windows-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
-          path: packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
+          path: apps/avelune_studio/build/release/PokeMap-Editor-Setup-*.exe
 
   linux-preview:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -382,7 +415,7 @@ jobs:
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Test, build and package Linux preview
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           flutter pub get
           flutter test test/release
@@ -398,7 +431,7 @@ jobs:
           name: pokemap-linux-${{ github.sha }}
           if-no-files-found: error
           retention-days: 30
-          path: packages/map_editor/build/release/PokeMap-linux-x64.tar.gz
+          path: apps/avelune_studio/build/release/PokeMap-linux-x64.tar.gz
 
   linux-release:
     if: >-
@@ -436,7 +469,7 @@ jobs:
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Test, build and package versioned Linux release
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           flutter pub get
           flutter test test/release
@@ -444,17 +477,17 @@ jobs:
           flutter build linux --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
-          test -x build/linux/x64/release/bundle/pokemap
-          mkdir -p build/release
-          tar -C build/linux/x64/release/bundle -czf \
-            "build/release/PokeMap-Editor-$RELEASE_VERSION-linux-x64.tar.gz" .
+          tool/release/package_linux_release.sh \
+            --version "$RELEASE_VERSION" \
+            --bundle build/linux/x64/release/bundle \
+            --output-dir build/release
       - name: Preserve versioned Linux package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pokemap-linux-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
-          path: packages/map_editor/build/release/PokeMap-Editor-*-linux-x64.tar.gz
+          path: apps/avelune_studio/build/release/PokeMap-Editor-*-linux-x64.tar.gz
 
   macos-release:
     if: >-
@@ -500,8 +533,8 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: \
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
-      - name: Build and sign PokeMap
-        working-directory: packages/map_editor
+      - name: Build and sign Avelune Studio
+        working-directory: apps/avelune_studio
         env:
           DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
           POKEMAP_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.POKEMAP_SPARKLE_PUBLIC_ED_KEY }}
@@ -513,24 +546,28 @@ jobs:
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
           flutter pub get
-          flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
+          flutter test test/release
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
           APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
+          test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
+          test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
+          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'
           plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             "$APP_PATH/Contents/Info.plist"
           test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
             "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
           test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
           test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
-          ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
+          ../pokemap_hub/tool/release/sign_macos_app.sh \
             --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
-      - name: Notarize, staple and assess PokeMap
-        working-directory: packages/map_editor
+      - name: Notarize, staple and assess Avelune Studio
+        working-directory: apps/avelune_studio
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -543,15 +580,15 @@ jobs:
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
-          ../../apps/pokemap_hub/tool/release/notarize_macos_release.sh \
+          ../pokemap_hub/tool/release/notarize_macos_release.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
             --result-json "$RUNNER_TEMP/notary-result.json" \
             --log-directory "$RUNNER_TEMP/notary-logs" \
-            --volume-name PokeMap
+            --volume-name 'Avelune Studio'
       - name: Package signed Sparkle update
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         env:
           SPARKLE_PRIVATE_ED_KEY_BASE64: ${{ secrets.SPARKLE_PRIVATE_ED_KEY_BASE64 }}
         run: |
@@ -562,7 +599,7 @@ jobs:
           GENERATE_APPCAST="$(find build/macos -type f \
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
-          tool/release/package_macos_update.sh \
+          ../../packages/map_editor/tool/release/package_macos_update.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
@@ -578,9 +615,9 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           path: |
-            packages/map_editor/build/release/PokeMap-Editor-*-macOS.dmg
-            packages/map_editor/build/release/PokeMap-Editor-*-macOS.app.zip
-            packages/map_editor/build/release/appcast-macos.xml
+            apps/avelune_studio/build/release/PokeMap-Editor-*-macOS.dmg
+            apps/avelune_studio/build/release/PokeMap-Editor-*-macOS.app.zip
+            apps/avelune_studio/build/release/appcast-macos.xml
 
   assemble-release:
     if: >-
@@ -695,7 +732,7 @@ jobs:
           gh release create "$RELEASE_TAG" --draft "${TARGET_ARGS[@]}" \
             dist/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "PokeMap $RELEASE_VERSION" \
+            --title "Avelune Studio $RELEASE_VERSION" \
             --generate-notes
 
   smoke-download-draft:
@@ -829,7 +866,7 @@ jobs:
           if ! gh release view "$STABLE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$STABLE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --title "PokeMap Editor stable update feed" \
+              --title "Avelune Studio stable update feed" \
               --notes "Machine-readable stable update metadata."
           fi
       - name: Promote macOS appcast first

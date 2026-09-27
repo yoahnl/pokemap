@@ -13,7 +13,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Avelune Studio</string>
+	<key>CFBundleDisplayName</key>
+	<string>Avelune Studio</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,5 +30,23 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Avelune Studio a besoin d’accéder au Bureau pour ouvrir vos projets.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Avelune Studio a besoin d’accéder au dossier Documents pour ouvrir vos projets.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Avelune Studio peut accéder aux téléchargements pour importer des ressources de projet.</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>$(POKEMAP_SPARKLE_PUBLIC_ED_KEY)</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 </dict>
 </plist>

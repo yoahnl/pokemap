@@ -12,7 +12,14 @@ class MainFlutterWindow: NSWindow {
     self.setContentSize(NSSize(width: 1000, height: 720))
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    StudioProjectAccessBridge.install(on: flutterViewController)
+    StudioUpdaterBridge.install(on: flutterViewController)
 
     super.awakeFromNib()
+  }
+
+  deinit {
+    StudioUpdaterBridge.uninstall()
+    StudioProjectAccessBridge.uninstall()
   }
 }

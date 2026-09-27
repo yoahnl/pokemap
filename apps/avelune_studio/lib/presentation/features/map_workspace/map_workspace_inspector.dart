@@ -142,10 +142,6 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                       'Tracez une zone sur la carte pour lui associer une interaction.',
                     StudioMapTool.gameplayZone =>
                       'Tracez une zone de jeu : rencontres, déplacement, effet ou danger.',
-                    StudioMapTool.encounterPaint =>
-                      'Peignez les cases des rencontres. Un glissé forme une seule modification annulable.',
-                    StudioMapTool.encounterErase =>
-                      'Retirez les cases peintes de la zone de rencontres sélectionnée.',
                     StudioMapTool.erase =>
                       'Cliquez ou faites glisser pour effacer avec la gomme.',
                   }),

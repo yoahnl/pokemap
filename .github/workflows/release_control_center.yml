@@ -72,7 +72,7 @@ jobs:
             --product "$REQUEST_PRODUCT" \
             --action "$REQUEST_ACTION" \
             --ref "$GITHUB_REF" \
-            --pokemap-pubspec packages/map_editor/pubspec.yaml \
+            --pokemap-pubspec apps/avelune_studio/pubspec.yaml \
             --pokemap-version "$REQUEST_POKEMAP_VERSION" \
             --confirmation "$REQUEST_CONFIRMATION" \
             --github-output "$GITHUB_OUTPUT"
