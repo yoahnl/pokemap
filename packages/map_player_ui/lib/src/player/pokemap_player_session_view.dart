@@ -121,6 +121,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     required this.controller,
     required this.titlePresentation,
     required this.gameSceneBuilder,
+    this.loadingLogo,
+    this.loadingWordmark,
     this.payloadForAction,
     this.onShowDiagnostics,
     this.gameplayInputRoute,
@@ -152,6 +154,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 
   final RuntimePlayerViewController controller;
   final RuntimePlayerTitlePresentation titlePresentation;
+  final ImageProvider? loadingLogo;
+  final ImageProvider? loadingWordmark;
 
   /// Builds the runtime scene below the player surfaces.
   ///
@@ -990,6 +994,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           pauseFocusController: _pauseFocusController,
           snapshot: snapshot,
           titlePresentation: widget.titlePresentation,
+          loadingLogo: widget.loadingLogo,
+          loadingWordmark: widget.loadingWordmark,
           activeInputSource: _activeInputSource,
           hardwareGamepadEnabled: !widget.controllerInputEnabled,
           pauseMenuLabels: widget.pauseMenuLabels,
@@ -1180,6 +1186,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           Positioned.fill(
             child: PlayerWorldLoadingSurface(
               gameTitle: snapshot.gameTitle,
+              logo: widget.loadingLogo,
+              wordmark: widget.loadingWordmark,
               stage: Localizations.localeOf(context).languageCode == 'fr'
                   ? 'Activation de la carte'
                   : 'Activating the map',

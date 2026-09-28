@@ -41,6 +41,8 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     required this.titlePresentation,
     required this.gameSceneBuilder,
     required this.onAction,
+    this.loadingLogo,
+    this.loadingWordmark,
     this.onReturnToTitle,
     this.onShowDiagnostics,
     this.gameplayTouchMenuEnabled = true,
@@ -67,6 +69,8 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
 
   final RuntimePlayerSnapshot snapshot;
   final RuntimePlayerTitlePresentation titlePresentation;
+  final ImageProvider? loadingLogo;
+  final ImageProvider? loadingWordmark;
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionCallback onAction;
   final Future<RuntimePlayerCommandResult> Function(bool saveBeforeExit)?
@@ -338,6 +342,8 @@ class _RuntimePlayerSurfaceRouterState
         ),
       RuntimePlayerPhase.preSession => PlayerWorldLoadingSurface(
           gameTitle: widget.snapshot.gameTitle,
+          logo: widget.loadingLogo,
+          wordmark: widget.loadingWordmark,
           stage: l10n.preparingSession,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
           reducedMotion:
@@ -345,6 +351,8 @@ class _RuntimePlayerSurfaceRouterState
         ),
       RuntimePlayerPhase.preparingSession => PlayerWorldLoadingSurface(
           gameTitle: widget.snapshot.gameTitle,
+          logo: widget.loadingLogo,
+          wordmark: widget.loadingWordmark,
           stage: l10n.preparingSession,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
           reducedMotion:
@@ -352,6 +360,8 @@ class _RuntimePlayerSurfaceRouterState
         ),
       RuntimePlayerPhase.loadingSession => PlayerWorldLoadingSurface(
           gameTitle: widget.snapshot.gameTitle,
+          logo: widget.loadingLogo,
+          wordmark: widget.loadingWordmark,
           stage: _sessionLoadingStage(context),
           progress: _progress,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),

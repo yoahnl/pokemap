@@ -553,6 +553,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     return player_ui.PokeMapPlayerSessionView(
       key: const ValueKey<String>('pokemap-runtime-player-view'),
       controller: viewController,
+      loadingLogo: widget.splashLogo,
+      loadingWordmark: widget.splashWordmark,
       titlePresentation: presentation.title,
       pauseMenuLabels: presentation.pauseMenuLabels,
       pausePresentation: presentation.pausePresentation,
