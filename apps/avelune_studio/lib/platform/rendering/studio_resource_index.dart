@@ -49,12 +49,10 @@ final class StudioResourceIndex {
   });
 
   Set<String> forCharacter(ProjectCharacterEntry character) => expand({
+    character.tilesetId,
     for (final animation in character.animations)
-      if (animation.state == CharacterAnimationState.idle)
-        if (animation.sourceAssetId?.trim().isNotEmpty ?? false)
-          characterAnimationRuntimeImageId(animation.sourceAssetId!)
-        else
-          character.tilesetId,
+      if (animation.sourceAssetId?.trim().isNotEmpty ?? false)
+        characterAnimationRuntimeImageId(animation.sourceAssetId!),
   });
 
   Set<String> forTerrain(ProjectSmartTilePreset preset) {

@@ -28,6 +28,7 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onCreateBorder,
     required this.onResumeBorder,
     required this.onImport,
+    this.onCharacters,
     required this.onBack,
     this.openMaps = const [],
     this.targetMapName,
@@ -46,6 +47,7 @@ class ResourceLibraryScreen extends StatefulWidget {
   final VoidCallback onCreateBorder;
   final ValueChanged<BorderBlueprintRecord> onResumeBorder;
   final VoidCallback onImport;
+  final VoidCallback? onCharacters;
   final VoidCallback onBack;
   final String? targetMapName;
   final bool canUse;
@@ -186,6 +188,13 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                   onCreatePath: widget.onTerrain,
                   onImport: widget.onImport,
                 ),
+                if (widget.onCharacters != null)
+                  StudioButton(
+                    label: 'Personnages',
+                    icon: Icons.person_outline,
+                    secondary: true,
+                    onPressed: widget.onCharacters,
+                  ),
                 StudioButton(
                   label: widget.targetMapName == null
                       ? 'Retour à la carte'

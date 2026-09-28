@@ -1,6 +1,37 @@
 part of 'studio_map_resources.dart';
 
 extension StudioMapResourcesHelpers on StudioMapResources {
+  ProjectRegularAtlasTilesetSource? _characterAtlas(
+    ProjectCharacterEntry character,
+  ) {
+    final image = images[character.tilesetId];
+    if (image == null) return null;
+    return ProjectRegularAtlasTilesetSource(
+      assetId: character.tilesetId,
+      pixelWidth: image.width,
+      pixelHeight: image.height,
+      tileWidth: manifest.settings.tileWidth,
+      tileHeight: manifest.settings.tileHeight,
+    );
+  }
+
+  Widget _characterThumbnail(
+    ProjectCharacterEntry character, {
+    required double size,
+    required EntityFacing facing,
+    CharacterAnimationState state = CharacterAnimationState.idle,
+    int elapsedMs = 0,
+    CharacterCustomAnimationClip? customAnimation,
+  }) => StudioCharacterThumbnail(
+    resources: this,
+    character: character,
+    size: size,
+    facing: facing,
+    animationState: state,
+    elapsedMs: elapsedMs,
+    customAnimation: customAnimation,
+  );
+
   void _refreshBrushAfterCatalog(ProjectManifest updated) {
     final terrain = _terrainPreset;
     final character = _characterBrush;

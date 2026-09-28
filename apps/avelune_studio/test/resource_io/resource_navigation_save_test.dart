@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -170,6 +171,16 @@ final class _ControlledResources implements ResourcePort {
   @override
   Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
       throw UnimplementedError();
+
+  Future<ResourceMutationReceipt> importCharacterPortrait(
+    CharacterPortraitImport request,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<Uint8List?> readCharacterPortrait(
+    String characterId,
+    String stateId,
+  ) => throw UnimplementedError();
 
   @override
   Future<ResourceMutationReceipt> mutate(

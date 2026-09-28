@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:map_core/map_core_domain.dart';
 
 final class ResourceImageImport {
@@ -34,6 +35,18 @@ final class BorderCreationRequest {
   final List<String> acceptedWarningCodes;
 }
 
+final class CharacterPortraitImport {
+  const CharacterPortraitImport({
+    required this.sourcePath,
+    required this.characterId,
+    required this.portraitStateId,
+  });
+
+  final String sourcePath;
+  final String characterId;
+  final String portraitStateId;
+}
+
 final class ResourceMutationReceipt {
   const ResourceMutationReceipt({
     required this.before,
@@ -56,6 +69,15 @@ abstract interface class ResourcePort {
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request);
 
   Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request);
+
+  Future<ResourceMutationReceipt> importCharacterPortrait(
+    CharacterPortraitImport request,
+  );
+
+  Future<Uint8List?> readCharacterPortrait(
+    String characterId,
+    String portraitStateId,
+  );
 
   Future<ResourceMutationReceipt> mutate(
     String actionId,

@@ -1,17 +1,20 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart' show MapAuthoringException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/resource_port.dart';
 import 'border_resource_sources.dart';
 import 'resource_no_change.dart';
 
 part 'local_border_resource_adapter.dart';
+part 'local_resource_character_operations.dart';
 
 final class LocalResourceAdapter implements ResourcePort {
   LocalResourceAdapter({required this.session, required this.mapAdapter});
@@ -28,6 +31,13 @@ final class LocalResourceAdapter implements ResourcePort {
     'border.blueprint.draft.upsert',
     'border.blueprint.publish',
     'map.library.reorganize',
+    'characterStudio.character.create',
+    'characterStudio.character.update',
+    'characterStudio.animationClip.upsert',
+    'characterStudio.animationClip.delete',
+    'characterStudio.portraitState.create',
+    'characterStudio.character.portrait.clear',
+    'characterStudio.asset.import',
   };
 
   @override
@@ -35,20 +45,22 @@ final class LocalResourceAdapter implements ResourcePort {
       _createBorder(this, request);
 
   @override
-  Future<ResourceMutationReceipt> importImage(ResourceImageImport request) {
-    final id = _identity('source');
-    return _run(
-      'tileset.import_image',
-      (_) => {
-        'tilesetId': id,
-        'name': request.name.trim(),
-        'tileWidth': request.tileWidth,
-        'tileHeight': request.tileHeight,
-      },
-      sourcePath: request.sourcePath,
-      createdTilesetId: id,
-    );
-  }
+  Future<ResourceMutationReceipt> importCharacterPortrait(
+    CharacterPortraitImport request,
+  ) => _importCharacterPortrait(this, request);
+
+  @override
+  Future<Uint8List?> readCharacterPortrait(
+    String characterId,
+    String stateId,
+  ) => LocalDialogueAdapter(
+    session: session,
+    mapAdapter: mapAdapter,
+  ).readPortrait(characterId, stateId);
+
+  @override
+  Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>
+      _importResourceImage(this, request);
 
   @override
   Future<ResourceMutationReceipt> mutate(
@@ -58,19 +70,7 @@ final class LocalResourceAdapter implements ResourcePort {
 
   @override
   Future<ResourceMutationReceipt> saveElement(ProjectElementEntry element) =>
-      _run('element.upsert', (manifest) {
-        final known = manifest.elementCategories.any(
-          (category) => category.id == element.categoryId,
-        );
-        if (known) return {'element': element.toJson()};
-        final category = manifest.elementCategories.isEmpty
-            ? const ProjectElementCategory(id: 'studio_decors', name: 'Décors')
-            : manifest.elementCategories.first;
-        return {
-          'element': element.copyWith(categoryId: category.id).toJson(),
-          if (manifest.elementCategories.isEmpty) 'category': category.toJson(),
-        };
-      });
+      _saveResourceElement(this, element);
 
   Future<ResourceMutationReceipt> _run(
     String actionId,

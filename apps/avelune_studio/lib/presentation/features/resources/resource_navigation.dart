@@ -7,32 +7,65 @@ import 'package:avelune_studio/features/terrains/application/terrain_draft_contr
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import '../characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
+part 'resource_navigation_terrain.dart';
 
-enum ResourcePage { library, decor, terrain }
+enum ResourcePage { library, decor, terrain, characters }
 
-class ResourceNavigation extends ChangeNotifier {
+class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   ResourceNavigation({
     required this.workspace,
     required this.port,
     required this.visuals,
     required this.onUse,
-  });
+  }) {
+    characters.addListener(notifyListeners);
+  }
+  @override
   final MapWorkspaceController workspace;
   final ResourcePort port;
   final MapWorkspaceVisuals visuals;
   final ValueChanged<ResourceItem> onUse;
   final library = ResourceLibraryState();
   final Map<String, DecorDraft> decors = {};
+  @override
   final Map<String, TerrainDraftController> terrains = {};
+  late final CharacterStudioController characters = CharacterStudioController(
+    project: () => workspace.project!,
+    mutate: mutate,
+  );
+  @override
   ResourcePage page = ResourcePage.library;
   DecorDraft? decor;
+  @override
   TerrainDraftController? terrain;
   bool busy = false;
+  @override
   String? error;
+  @override
   var _terrainSequence = 0;
-  bool get dirty => decors.isNotEmpty || terrains.values.any((t) => t.dirty);
+  bool get dirty =>
+      decors.isNotEmpty ||
+      terrains.values.any((t) => t.dirty) ||
+      characters.dirty;
+
+  void setImportError(String message) {
+    error = message;
+    notifyListeners();
+  }
+
+  void setImportBusy(bool value) {
+    busy = value;
+    notifyListeners();
+  }
+
+  void openCharacters([String? characterId]) {
+    if (characterId != null) characters.select(characterId);
+    page = ResourcePage.characters;
+    notifyListeners();
+  }
 
   List<ProjectSmartTileAuthoringDraft> get terrainDrafts {
     final project = workspace.project!;
@@ -71,6 +104,7 @@ class ResourceNavigation extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   void showLibrary([ResourceItem? item]) {
     page = ResourcePage.library;
     if (item != null) {
@@ -113,6 +147,10 @@ class ResourceNavigation extends ChangeNotifier {
       for (final draft in terrains.values.where((t) => t.dirty)) {
         if (!await draft.save(mutate, publish: false)) return false;
       }
+      if (!await characters.saveAll()) {
+        error = characters.error;
+        return false;
+      }
       return !dirty;
     } catch (e) {
       error = e.toString();
@@ -126,6 +164,7 @@ class ResourceNavigation extends ChangeNotifier {
 
   Future<ProjectManifest> accept(ResourceMutationReceipt receipt) async {
     workspace.acceptResources(receipt.before, receipt.manifest);
+    characters.refreshClean();
     for (final model in terrains.values) {
       model.manifest = receipt.manifest;
     }
@@ -198,65 +237,6 @@ class ResourceNavigation extends ChangeNotifier {
     notifyListeners();
   }
 
-  void prepareTerrain(ResourceItem item) {
-    if (item.terrain != null) {
-      final draft = editableTerrainDraft(
-        workspace.project!,
-        item.terrain!,
-        localDrafts: terrains.values.map((model) => model.draft),
-      );
-      if (draft != null) {
-        resumeTerrain(draft);
-      } else {
-        error = advancedTerrainPreparationMessage;
-        showLibrary(item);
-      }
-      return;
-    }
-    final tileset = item.tileset;
-    if (tileset == null) return;
-    final problem = terrainSourceCompatibilityProblem(tileset);
-    if (problem != null) {
-      error = problem;
-      showLibrary(item);
-      return;
-    }
-    final id =
-        'terrain-${DateTime.now().microsecondsSinceEpoch}-${++_terrainSequence}';
-    terrain = TerrainDraftController(
-      manifest: workspace.project!,
-      atlas: terrainAtlas(tileset, 'atlas-$id'),
-      id: id,
-      name: tileset.name,
-    );
-    terrains[terrain!.draft.id] = terrain!;
-    error = null;
-    page = ResourcePage.terrain;
-    notifyListeners();
-  }
-
-  void resumeTerrain(ProjectSmartTileAuthoringDraft draft) {
-    final problem = terrainDraftCompatibilityProblem(
-      workspace.project!,
-      terrains[draft.id]?.draft ?? draft,
-    );
-    if (problem != null) {
-      error = problem;
-      showLibrary();
-      return;
-    }
-    terrain = terrains.putIfAbsent(
-      draft.id,
-      () => TerrainDraftController.resume(
-        manifest: workspace.project!,
-        draft: draft,
-      ),
-    );
-    error = null;
-    page = ResourcePage.terrain;
-    notifyListeners();
-  }
-
   void completeTerrainPublication(ProjectSmartTilePreset preset) {
     final item = ResourceItem(
       id: preset.id,
@@ -296,5 +276,12 @@ class ResourceNavigation extends ChangeNotifier {
       busy = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    characters.removeListener(notifyListeners);
+    characters.dispose();
+    super.dispose();
   }
 }
