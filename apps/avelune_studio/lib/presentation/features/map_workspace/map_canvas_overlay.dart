@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'map_painted_encounter_overlay.dart';
+
+part 'map_canvas_zone_paint.dart';
 
 class MapCanvasOverlay extends CustomPainter {
   MapCanvasOverlay({
@@ -126,26 +129,6 @@ class MapCanvasOverlay extends CustomPainter {
     }
     label.paint(canvas, Offset(rect.left + 4, rect.top - label.height));
     label.dispose();
-  }
-
-  void _paintGameplayZones(Canvas canvas) {
-    if (map.gameplayZones.isEmpty) return;
-    final clip = canvas.getLocalClipBounds();
-    for (final zone in map.gameplayZones) {
-      final rect = Rect.fromLTWH(
-        zone.area.pos.x * cellWidth,
-        zone.area.pos.y * cellHeight,
-        zone.area.size.width * cellWidth,
-        zone.area.size.height * cellHeight,
-      );
-      if (!clip.overlaps(rect)) continue;
-      _paintBadge(
-        canvas,
-        rect,
-        zone.name.trim().isEmpty ? 'Zone de jeu' : zone.name,
-        chosen: zone.id == selectedZoneId,
-      );
-    }
   }
 
   void _paintMarkers(Canvas canvas) {

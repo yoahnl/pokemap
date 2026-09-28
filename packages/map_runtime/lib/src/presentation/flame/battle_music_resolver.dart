@@ -154,19 +154,12 @@ final class BattleMusicResolver {
       if (zone.kind != GameplayZoneKind.encounter) continue;
       final payload = zone.encounter;
       if (payload == null || !hasAuthoredValue(payload)) continue;
-      if (!_containsPos(zone.area, pos)) continue;
+      if (!gameplayZoneContainsPosition(zone, pos)) continue;
       if (bestZone == null || zone.priority >= bestZone.priority) {
         bestZone = zone;
       }
     }
     return bestZone;
-  }
-
-  bool _containsPos(MapRect rect, GridPos pos) {
-    return pos.x >= rect.pos.x &&
-        pos.y >= rect.pos.y &&
-        pos.x < rect.pos.x + rect.size.width &&
-        pos.y < rect.pos.y + rect.size.height;
   }
 
   bool _isAuthored(String? value) => (value?.trim().isNotEmpty) ?? false;

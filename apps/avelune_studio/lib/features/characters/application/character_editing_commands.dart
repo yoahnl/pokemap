@@ -107,4 +107,20 @@ class CharacterEditingCommands {
       ),
     );
   }
+
+  void assignTrainer(String id, String? trainerId) {
+    final entity = selected(id);
+    if (entity?.npc == null) return;
+    if (trainerId != null &&
+        !project.trainers.any((trainer) => trainer.id == trainerId)) {
+      throw StateError('Ce dresseur ne fait plus partie du projet.');
+    }
+    document.commit(
+      updateEntityOnMap(
+        document.current,
+        entityId: id,
+        npc: entity!.npc!.copyWith(trainerId: trainerId),
+      ),
+    );
+  }
 }

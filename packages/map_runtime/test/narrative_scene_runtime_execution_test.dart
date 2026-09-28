@@ -6,6 +6,259 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 
 void main() {
   group('executeNarrativeEventScene', () {
+    test('unique wild battle consumes one-shot only after victory or capture',
+        () async {
+      const state = GameState(saveId: 'save_unique');
+      final project = _project().copyWith(
+        encounterTables: const [
+          ProjectEncounterTable(
+            id: 'unique',
+            name: 'Rencontre unique',
+            encounterKind: EncounterKind.special,
+            tags: ['studio:unique'],
+            entries: [
+              ProjectEncounterEntry(
+                speciesId: 'embercub',
+                minLevel: 12,
+                maxLevel: 12,
+              ),
+            ],
+          ),
+        ],
+        scenes: [_uniqueWildScene()],
+      );
+      for (final (outcome, consumed) in const [
+        ('defeat', false),
+        ('runaway', false),
+        ('victory', true),
+        ('captured', true),
+      ]) {
+        final result = await executeNarrativeEventScene(
+          request: const NarrativeSceneExecutionRequest(
+            eventId: 'unique_event',
+            sceneId: 'unique_scene',
+            executionId: 'unique_execution',
+            gameState: state,
+          ),
+          project: project,
+          mapsById: const {},
+          currentGameState: () => state,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => throw StateError('Unexpected condition'),
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (intent) {
+              expect(intent.battleKind, 'wild');
+              expect(intent.battleTemplateId, 'unique');
+              return outcome;
+            },
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+          ),
+        );
+        expect(result, isA<NarrativeSceneExecutionCompleted>(),
+            reason: result is NarrativeSceneExecutionFailed
+                ? '${result.failure}'
+                : null);
+        expect((result as NarrativeSceneExecutionCompleted).consumeOneShot,
+            consumed);
+        expect(
+          result.updatedGameState.storyFlags.activeFlags,
+          consumed
+              ? contains('studio:unique_encounter:unique:consumed')
+              : isNot(contains('studio:unique_encounter:unique:consumed')),
+        );
+      }
+    });
+    test('one consumed table cannot replay through another scene after reload',
+        () async {
+      const state = GameState(saveId: 'save_shared_unique');
+      final project = _project().copyWith(
+        encounterTables: const [
+          ProjectEncounterTable(
+            id: 'unique',
+            name: 'Rencontre unique',
+            encounterKind: EncounterKind.special,
+            tags: ['studio:unique'],
+            entries: [
+              ProjectEncounterEntry(
+                speciesId: 'embercub',
+                minLevel: 12,
+                maxLevel: 12,
+              ),
+            ],
+          ),
+        ],
+        scenes: [_uniqueWildScene(), _uniqueWildScene('another_scene')],
+      );
+      var battles = 0;
+      SceneRuntimeHostCallbacks callbacks(String outcome) =>
+          SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => throw StateError('Unexpected condition'),
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (_) {
+              battles++;
+              return outcome;
+            },
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+          );
+      Future<NarrativeSceneExecutionResult> play(
+        String sceneId,
+        GameState gameState,
+        String outcome,
+      ) =>
+          executeNarrativeEventScene(
+            request: NarrativeSceneExecutionRequest(
+              eventId: sceneId,
+              sceneId: sceneId,
+              executionId: 'run_$sceneId',
+              gameState: gameState,
+            ),
+            project: project,
+            mapsById: const {},
+            currentGameState: () => gameState,
+            callbacks: callbacks(outcome),
+          );
+
+      final defeat = await play('unique_scene', state, 'defeat');
+      expect(defeat, isA<NarrativeSceneExecutionCompleted>());
+      expect(battles, 1);
+      final victory = await play('unique_scene', state, 'victory');
+      expect(victory, isA<NarrativeSceneExecutionCompleted>());
+      expect(battles, 2);
+      final saved = (victory as NarrativeSceneExecutionCompleted)
+          .updatedGameState
+          .toJson();
+      final reloaded = GameState.fromJson(saved);
+      final replay = await play('another_scene', reloaded, 'victory');
+      expect(replay, isA<NarrativeSceneExecutionCancelled>());
+      expect(battles, 2);
+    });
+    test('a consumed table on an unvisited branch does not block the scene',
+        () async {
+      const initial = GameState(saveId: 'save_branch_unique');
+      final state = const GameStateMutations().setFlag(
+        initial,
+        uniqueEncounterConsumedFlag('unique'),
+      );
+      final scene = SceneAsset(
+        id: 'branch_scene',
+        name: 'Combat avec branche',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'common',
+              kind: SceneNodeKind.battle,
+              payload: SceneBattlePayload(
+                battleKind: 'wild',
+                battleTemplateId: 'common',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(
+              id: 'unique',
+              kind: SceneNodeKind.battle,
+              payload: SceneBattlePayload(
+                battleKind: 'wild',
+                battleTemplateId: 'unique',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_common',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'common',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'common_victory',
+              fromNodeId: 'common',
+              fromPortId: 'victory',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+            SceneEdge(
+              id: 'common_defeat',
+              fromNodeId: 'common',
+              fromPortId: 'defeat',
+              toNodeId: 'unique',
+              kind: SceneEdgeKind.battleDefeat,
+            ),
+            SceneEdge(
+              id: 'unique_victory',
+              fromNodeId: 'unique',
+              fromPortId: 'victory',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+            SceneEdge(
+              id: 'unique_defeat',
+              fromNodeId: 'unique',
+              fromPortId: 'defeat',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.battleDefeat,
+            ),
+          ],
+        ),
+      );
+      final project = _project().copyWith(
+        encounterTables: const [
+          ProjectEncounterTable(
+            id: 'common',
+            name: 'Rencontre libre',
+            encounterKind: EncounterKind.special,
+            entries: [
+              ProjectEncounterEntry(
+                speciesId: 'embercub',
+                minLevel: 5,
+                maxLevel: 5,
+              ),
+            ],
+          ),
+          ProjectEncounterTable(
+            id: 'unique',
+            name: 'Rencontre unique',
+            encounterKind: EncounterKind.special,
+            tags: ['studio:unique'],
+            entries: [
+              ProjectEncounterEntry(
+                speciesId: 'embercub',
+                minLevel: 12,
+                maxLevel: 12,
+              ),
+            ],
+          ),
+        ],
+        scenes: [scene],
+      );
+      final battles = <String?>[];
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'branch_event',
+          sceneId: 'branch_scene',
+          executionId: 'branch_run',
+          gameState: state,
+        ),
+        project: project,
+        mapsById: const {},
+        currentGameState: () => state,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (_) => throw StateError('Unexpected condition'),
+          showDialogue: (_) => throw StateError('Unexpected dialogue'),
+          startBattle: (intent) {
+            battles.add(intent.battleTemplateId);
+            return 'victory';
+          },
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      expect(battles, ['common']);
+    });
     test('rebases buffered consequences onto host battle write-back', () async {
       const requestGameState = GameState(
         saveId: 'save_scene_runtime',
@@ -469,6 +722,64 @@ ProjectManifest _project() {
     scenes: <SceneAsset>[_battleThenFactScene()],
   );
 }
+
+SceneAsset _uniqueWildScene([String id = 'unique_scene']) => SceneAsset(
+      id: id,
+      name: 'Rencontre unique',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'battle',
+            kind: SceneNodeKind.battle,
+            payload: SceneBattlePayload(
+              battleKind: 'wild',
+              battleTemplateId: 'unique',
+              declaredOutcomes: const [
+                'victory',
+                'captured',
+                'defeat',
+                'runaway',
+              ],
+            ),
+          ),
+          for (final outcome in const [
+            'victory',
+            'captured',
+            'defeat',
+            'runaway',
+          ])
+            SceneNode(id: 'end_$outcome', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'start_battle',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'battle',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          for (final outcome in const [
+            'victory',
+            'captured',
+            'defeat',
+            'runaway',
+          ])
+            SceneEdge(
+              id: 'battle_$outcome',
+              fromNodeId: 'battle',
+              fromPortId: outcome,
+              toNodeId: 'end_$outcome',
+              kind: switch (outcome) {
+                'victory' => SceneEdgeKind.battleVictory,
+                'defeat' => SceneEdgeKind.battleDefeat,
+                _ => SceneEdgeKind.branchOutcome,
+              },
+            ),
+        ],
+      ),
+    );
 
 SceneAsset _battleThenFactScene() {
   return SceneAsset(

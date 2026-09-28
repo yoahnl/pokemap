@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 class MapPaletteGrid extends StatefulWidget {
   const MapPaletteGrid({

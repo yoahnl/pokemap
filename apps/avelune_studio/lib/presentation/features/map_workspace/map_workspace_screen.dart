@@ -1,8 +1,10 @@
 import 'dart:async';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
+import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
 import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
+import '../../../features/pokemon/domain/pokemon_combat_port.dart';
 import '../pokemon/pokemon_workspace_page.dart';
 import '../pokemon/pokemon_draft_dialog.dart';
 import '../../../features/game_export/domain/studio_game_export_port.dart';
@@ -100,6 +102,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.resourcePort,
     this.pokemonPort,
     this.pokemonCommercePort,
+    this.pokemonCombatPort,
     this.pokemonJsonPicker,
     this.pokemonPngPicker,
     this.imagePicker,
@@ -122,6 +125,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final ResourcePort? resourcePort;
   final PokemonWorkspacePort? pokemonPort;
   final PokemonCommercePort? pokemonCommercePort;
+  final PokemonCombatPort? pokemonCombatPort;
   final Future<String?> Function()? pokemonJsonPicker, pokemonPngPicker;
   final NarrativePort? narrativePort;
   final ScenePort? scenePort;
@@ -279,14 +283,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       setState(() {});
       _publishHome();
     }
-  }
-
-  void _enterSpace(WorkspaceSpace space) {
-    if (mounted) setState(() => _space = space);
-  }
-
-  Future<void> _close() async {
-    if (await _allowCloseWithExport() && mounted) await widget.onClose();
   }
 
   @override

@@ -6,6 +6,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/map_gameplay_zone_payloads.dart';
 import '../models/project_manifest.dart';
+import '../operations/map_gameplay_zones.dart';
 
 enum EncounterProbabilityIssue {
   invalidChancePerStep,
@@ -212,7 +213,7 @@ EncounterSourceResolution resolveEncounterSourceAtPosition(
     for (final zone in map.gameplayZones)
       if (zone.kind == GameplayZoneKind.encounter &&
           zone.encounter?.encounterKind == encounterKind &&
-          _containsPosition(zone.area, position))
+          gameplayZoneContainsPosition(zone, position))
         EncounterSource(
           kind: EncounterSourceKind.gameplayZone,
           id: zone.id,
@@ -279,6 +280,7 @@ List<EncounterSourceAmbiguity> findEncounterSourceAmbiguities(MapData map) {
         layer: layer,
         materialId: behavior.materialId,
         rect: zone.area,
+        contains: (position) => gameplayZoneContainsPosition(zone, position),
       );
       if (position != null) {
         ambiguities.add(
@@ -338,6 +340,7 @@ GridPos? _firstSmartTileMaterialPositionInRect({
   required SmartTileLayer layer,
   required String materialId,
   required MapRect rect,
+  required bool Function(GridPos) contains,
 }) {
   final materialValue = layer.materialPalette.indexOf(materialId);
   if (materialValue <= 0) return null;
@@ -353,7 +356,8 @@ GridPos? _firstSmartTileMaterialPositionInRect({
   for (var y = top; y < bottom; y++) {
     for (var x = left; x < right; x++) {
       final index = y * map.size.width + x;
-      if (index < semanticCells.length &&
+      if (contains(GridPos(x: x, y: y)) &&
+          index < semanticCells.length &&
           semanticCells[index] == materialValue) {
         return GridPos(x: x, y: y);
       }
@@ -465,7 +469,7 @@ EncounterZoneResolution resolveEncounterZoneAtPosition(
   final eligible = zones
       .where((zone) => zone.kind == GameplayZoneKind.encounter)
       .where((zone) => zone.encounter?.encounterKind == encounterKind)
-      .where((zone) => _containsPosition(zone.area, position))
+      .where((zone) => gameplayZoneContainsPosition(zone, position))
       .toList(growable: false);
   if (eligible.isEmpty) {
     return const EncounterZoneResolution.noZone();
@@ -509,7 +513,7 @@ List<EncounterZoneAmbiguity> findEncounterZoneAmbiguities(
       if (left.priority != right.priority ||
           left.encounter!.encounterKind != right.encounter!.encounterKind ||
           left.encounter == right.encounter ||
-          !_rectanglesOverlap(left.area, right.area)) {
+          !_zonesOverlap(left, right)) {
         continue;
       }
       ambiguities.add(
@@ -524,13 +528,34 @@ List<EncounterZoneAmbiguity> findEncounterZoneAmbiguities(
   return List<EncounterZoneAmbiguity>.unmodifiable(ambiguities);
 }
 
-bool _containsPosition(MapRect area, GridPos pos) {
-  final right = area.pos.x + area.size.width;
-  final bottom = area.pos.y + area.size.height;
-  return pos.x >= area.pos.x &&
-      pos.x < right &&
-      pos.y >= area.pos.y &&
-      pos.y < bottom;
+bool _zonesOverlap(MapGameplayZone left, MapGameplayZone right) {
+  if (!_rectanglesOverlap(left.area, right.area)) return false;
+  final startX = left.area.pos.x > right.area.pos.x
+      ? left.area.pos.x
+      : right.area.pos.x;
+  final startY = left.area.pos.y > right.area.pos.y
+      ? left.area.pos.y
+      : right.area.pos.y;
+  final endX =
+      left.area.pos.x + left.area.size.width <
+          right.area.pos.x + right.area.size.width
+      ? left.area.pos.x + left.area.size.width
+      : right.area.pos.x + right.area.size.width;
+  final endY =
+      left.area.pos.y + left.area.size.height <
+          right.area.pos.y + right.area.size.height
+      ? left.area.pos.y + left.area.size.height
+      : right.area.pos.y + right.area.size.height;
+  for (var y = startY; y < endY; y++) {
+    for (var x = startX; x < endX; x++) {
+      final position = GridPos(x: x, y: y);
+      if (gameplayZoneContainsPosition(left, position) &&
+          gameplayZoneContainsPosition(right, position)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool _rectanglesOverlap(MapRect left, MapRect right) {

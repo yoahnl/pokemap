@@ -74,8 +74,41 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         mapsById: mapsById,
       );
   var validationState = request.gameState;
+  bool? uniqueBattleConsumed;
+  var blockedUniqueBattle = false;
+  final consumedUniqueTableIds = <String>{};
   final execution = await SceneRuntimeExecutor(
-    callbacks: callbacks.toExecutionCallbacks(
+    callbacks: SceneRuntimeHostCallbacks(
+      evaluateCondition: callbacks.evaluateCondition,
+      showDialogue: callbacks.showDialogue,
+      startBattle: (intent) async {
+        final uniqueTable = project.encounterTables.any(
+          (table) =>
+              table.id == intent.battleTemplateId &&
+              table.tags.contains('studio:unique'),
+        );
+        if (intent.battleKind == 'wild' &&
+            uniqueTable &&
+            (consumedUniqueTableIds.contains(intent.battleTemplateId) ||
+                currentGameState().storyFlags.activeFlags.contains(
+                      uniqueEncounterConsumedFlag(intent.battleTemplateId!),
+                    ))) {
+          blockedUniqueBattle = true;
+          throw StateError('Cette rencontre unique a déjà eu lieu.');
+        }
+        final outcome = await callbacks.startBattle(intent);
+        if (intent.battleKind == 'wild' && uniqueTable) {
+          final consumed = outcome == 'victory' || outcome == 'captured';
+          uniqueBattleConsumed = (uniqueBattleConsumed ?? false) || consumed;
+          if (consumed) consumedUniqueTableIds.add(intent.battleTemplateId!);
+        }
+        return outcome;
+      },
+      playCinematic: callbacks.playCinematic,
+      playPresentationCinematic: callbacks.playPresentationCinematic,
+      executeInteractiveCommand: callbacks.executeInteractiveCommand,
+      requestStructuredInteraction: callbacks.requestStructuredInteraction,
+    ).toExecutionCallbacks(
       applyConsequence: (consequence) {
         throw UnsupportedError('Scene node id is required for consequences.');
       },
@@ -114,6 +147,11 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     maxSteps: maxSteps,
   ).execute(planResult.plan!);
   if (execution.status != SceneRuntimeExecutionStatus.completed) {
+    if (blockedUniqueBattle) {
+      return NarrativeSceneExecutionResult.cancelled(
+        StateError('Cette rencontre unique a déjà eu lieu.'),
+      );
+    }
     return NarrativeSceneExecutionResult.failed(
       StateError(
         execution.message ??
@@ -138,9 +176,17 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   }
 
   final sceneOutcomeId = execution.sceneOutcomeId;
+  var completedState = writeResult.gameState;
+  for (final tableId in consumedUniqueTableIds) {
+    completedState = const GameStateMutations().setFlag(
+      completedState,
+      uniqueEncounterConsumedFlag(tableId),
+    );
+  }
   return NarrativeSceneExecutionResult.completed(
-    updatedGameState: writeResult.gameState,
+    updatedGameState: completedState,
     gameCompletion: writeResult.gameCompletion,
+    consumeOneShot: uniqueBattleConsumed ?? true,
     qualifiedOutcomes: <NarrativeOutcomeRef>[
       ...hostedBattleOutcomes,
       if (sceneOutcomeId != null)
@@ -152,3 +198,6 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     ],
   );
 }
+
+String uniqueEncounterConsumedFlag(String tableId) =>
+    'studio:unique_encounter:${Uri.encodeComponent(tableId)}:consumed';

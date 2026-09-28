@@ -105,6 +105,28 @@ void main() {
     expect(document.undoCount, 0);
     expect(document.dirty, isFalse);
   });
+  test('assigning a real trainer is undoable and rejects stale IDs', () {
+    project = project.copyWith(
+      trainers: [
+        const ProjectTrainerEntry(
+          id: 'alice',
+          name: 'Alice',
+          trainerClass: 'Dresseuse',
+        ),
+      ],
+    );
+    commands = CharacterEditingCommands(document, project);
+    final npc = commands.place(guide, const GridPos(x: 2, y: 3));
+    commands.assignTrainer(npc.id, 'alice');
+    expect(commands.selected(npc.id)!.npc!.trainerId, 'alice');
+    document.restore(redo: false);
+    expect(commands.selected(npc.id)!.npc!.trainerId, isNull);
+    document.restore(redo: true);
+    expect(commands.selected(npc.id)!.npc!.trainerId, 'alice');
+    commands.assignTrainer(npc.id, null);
+    expect(commands.selected(npc.id)!.npc!.trainerId, isNull);
+    expect(() => commands.assignTrainer(npc.id, 'missing'), throwsStateError);
+  });
   test('story source references block deletion with the canonical index', () {
     final first = commands.place(guide, const GridPos(x: 2, y: 3));
     project = project.copyWith(

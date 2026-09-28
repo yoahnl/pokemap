@@ -178,6 +178,7 @@ abstract class MapGameplayZone with _$MapGameplayZone {
     @Default('') String name,
     required GameplayZoneKind kind,
     required MapRect area,
+    @JsonKey(includeIfNull: false) List<GridPos>? cellMask,
 
     /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
     @Default(0) int priority,

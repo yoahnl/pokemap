@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';

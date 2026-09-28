@@ -36,6 +36,8 @@ dependencies:
 dev_dependencies:
   avelune_studio:
     path: ../avelune_studio
+  map_gameplay:
+    path: ../../packages/map_gameplay
   flutter_test:
     sdk: flutter
   integration_test:

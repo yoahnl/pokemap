@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum PokemonWorkspaceView { pokedex, moves, items, shops }
+enum PokemonWorkspaceView { pokedex, moves, items, shops, combats }
 
 enum PokemonDetailSection { overview, forms, learnset, evolution, media }
 

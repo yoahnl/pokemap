@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay_editing.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'map_canvas_stroke.dart';
+import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
+
+part 'map_workspace_canvas_gestures.dart';
 
 class MapWorkspaceCanvas extends StatefulWidget {
   const MapWorkspaceCanvas({
@@ -34,6 +38,7 @@ class MapWorkspaceCanvas extends StatefulWidget {
 }
 
 class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
+  void _refreshGesture() => setState(() {});
   final _focus = FocusNode();
   final _surface = GlobalKey();
   GridPos? _start;
@@ -41,6 +46,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   MapPlacedElement? _moving;
   bool _armed = false;
   MapCanvasStroke? _stroke;
+  MapEncounterCellStroke? _encounterStroke;
   MapData? _gestureSource;
   MapCharacterGesture? _characterGesture;
   double get _width =>
@@ -65,91 +71,6 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     }
   }
 
-  void _down(PointerDownEvent event) {
-    if (event.buttons == kSecondaryButton) {
-      // Never reaches the painting, placement or erasing path.
-      _cancel();
-      widget.onContextMenu?.call(_cell(event.localPosition), event.position);
-      return;
-    }
-    if (event.buttons != kPrimaryButton ||
-        widget.view.tool == StudioMapTool.pan) {
-      return;
-    }
-    _focus.requestFocus();
-    final cell = _cell(event.localPosition);
-    final armed = widget.view.armedDecorIn(widget.document.current);
-    if (armed == null) {
-      try {
-        _characterGesture = MapCharacterGesture.start(
-          document: widget.document,
-          project: widget.project,
-          view: widget.view,
-          origin: cell,
-        );
-        if (_characterGesture != null) {
-          widget.onChanged();
-          return;
-        }
-      } catch (error) {
-        widget.document.error = error.toString();
-        widget.onChanged();
-        return;
-      }
-    }
-    _start = cell;
-    _gestureSource = widget.document.current;
-    final tool = widget.view.tool;
-    if (tool == StudioMapTool.place) {
-      final brush = widget.view.brush;
-      final placed = brush == null ? null : _commands.place(brush, cell);
-      if (placed != null) {
-        widget.view.select(widget.document, MapSelectionFamily.decor, placed);
-      }
-      _cancel();
-      widget.onChanged();
-    } else if (tool == StudioMapTool.select) {
-      final hits = _commands.stack(cell);
-      final held = widget.view.selectedFor(
-        widget.document.current.id,
-        MapSelectionFamily.decor,
-      );
-      _armed = armed != null;
-      _moving =
-          armed ??
-          (hits.any((e) => e.id == held)
-              ? hits.firstWhere((e) => e.id == held)
-              : hits.firstOrNull);
-      final moving = _moving;
-      if (moving == null) {
-        widget.view.clearSelection(widget.document);
-      } else {
-        widget.view.select(
-          widget.document,
-          MapSelectionFamily.decor,
-          moving.id,
-        );
-      }
-      widget.document.stackPosition = cell;
-      widget.onChanged();
-    } else {
-      try {
-        _stroke = MapCanvasStroke.start(
-          map: widget.document.current,
-          project: widget.project,
-          view: widget.view,
-          commands: _commands,
-          origin: cell,
-        );
-        setState(() {});
-      } catch (error) {
-        widget.document.error = error.toString();
-        _cancel();
-        widget.onChanged();
-      }
-    }
-  }
-
   void _paint(GridPos cell) {
     _stroke?.paint(cell);
     setState(() {});
@@ -163,6 +84,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final start = _start;
     if (start == null) return;
     final cell = _cell(event.localPosition);
+    if (_encounterStroke != null) {
+      setState(() => _encounterStroke!.paint(cell));
+      return;
+    }
     if (_stroke != null) {
       _paint(cell);
       return;
@@ -194,6 +119,28 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final preview = _preview;
     if (moving != null && preview != null) _commands.move(moving.id, preview);
     if (_armed) widget.view.pendingMove = null;
+    final encounterStroke = _encounterStroke;
+    if (encounterStroke != null) {
+      try {
+        final zone =
+            GameplayZoneEditingCommands(
+              widget.document,
+              widget.project,
+            ).paintEncounterCells(
+              encounterStroke.cells,
+              erase: encounterStroke.erase,
+              selectedZoneId: widget.view.selectedFor(
+                widget.document.current.id,
+                MapSelectionFamily.zone,
+              ),
+            );
+        if (zone != null) {
+          widget.view.select(widget.document, MapSelectionFamily.zone, zone.id);
+        }
+      } catch (error) {
+        widget.document.error = error.toString();
+      }
+    }
     final stroke = _stroke;
     if (stroke != null) {
       try {
@@ -213,6 +160,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     _moving = null;
     _armed = false;
     _stroke = null;
+    _encounterStroke = null;
     _gestureSource = null;
     _characterGesture = null;
   }
@@ -276,6 +224,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                               view: widget.view,
                               gesture: _characterGesture,
                               stroke: _stroke,
+                              encounterStroke: _encounterStroke,
                               preview: _preview,
                               cellWidth: _width,
                               cellHeight: _height,

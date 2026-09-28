@@ -9,10 +9,7 @@ import '../models/smart_tile_gameplay_zone_provenance.dart';
 // Lookup
 // ---------------------------------------------------------------------------
 
-MapGameplayZone? findGameplayZoneById(
-  MapData map,
-  String zoneId,
-) {
+MapGameplayZone? findGameplayZoneById(MapData map, String zoneId) {
   final normalized = zoneId.trim();
   if (normalized.isEmpty) return null;
   for (final zone in map.gameplayZones) {
@@ -22,13 +19,10 @@ MapGameplayZone? findGameplayZoneById(
 }
 
 /// Retourne la zone de priorité la plus haute à la position donnée (dernière posée si égalité).
-MapGameplayZone? findGameplayZoneAtPos(
-  MapData map,
-  GridPos pos,
-) {
+MapGameplayZone? findGameplayZoneAtPos(MapData map, GridPos pos) {
   MapGameplayZone? best;
   for (final zone in map.gameplayZones) {
-    if (_containsPos(zone.area, pos)) {
+    if (gameplayZoneContainsPosition(zone, pos)) {
       if (best == null || zone.priority >= best.priority) {
         best = zone;
       }
@@ -38,12 +32,9 @@ MapGameplayZone? findGameplayZoneAtPos(
 }
 
 /// Retourne toutes les zones couvrant [pos], triées par priorité décroissante.
-List<MapGameplayZone> findAllGameplayZonesAtPos(
-  MapData map,
-  GridPos pos,
-) {
+List<MapGameplayZone> findAllGameplayZonesAtPos(MapData map, GridPos pos) {
   final result = map.gameplayZones
-      .where((z) => _containsPos(z.area, pos))
+      .where((z) => gameplayZoneContainsPosition(z, pos))
       .toList(growable: false);
   result.sort((a, b) => b.priority.compareTo(a.priority));
   return result;
@@ -53,13 +44,13 @@ List<MapGameplayZone> findAllGameplayZonesAtPos(
 // Mutations
 // ---------------------------------------------------------------------------
 
-MapData addGameplayZoneToMap(
-  MapData map, {
-  required MapGameplayZone zone,
-}) {
+MapData addGameplayZoneToMap(MapData map, {required MapGameplayZone zone}) {
   final normalized = _normalizeZone(zone);
-  _validateZone(map, normalized,
-      duplicateIdLabel: 'Gameplay zone ID already exists');
+  _validateZone(
+    map,
+    normalized,
+    duplicateIdLabel: 'Gameplay zone ID already exists',
+  );
   return map.copyWith(gameplayZones: [...map.gameplayZones, normalized]);
 }
 
@@ -71,6 +62,7 @@ MapData updateGameplayZoneOnMap(
   GameplayZoneKind? kind,
   MapRect? area,
   int? priority,
+  Object? cellMask = _kUnset,
 
   /// Passer `null` pour effacer le payload, `_kUnset` (défaut) pour conserver.
   Object? encounter = _kUnset,
@@ -94,12 +86,16 @@ MapData updateGameplayZoneOnMap(
   if (!identical(encounter, _kUnset)) {
     draft = draft.copyWith(encounter: encounter as EncounterZonePayload?);
   }
+  if (!identical(cellMask, _kUnset)) {
+    draft = draft.copyWith(cellMask: cellMask as List<GridPos>?);
+  }
   if (!identical(movement, _kUnset)) {
     draft = draft.copyWith(movement: movement as MovementZonePayload?);
   }
   if (!identical(movementEffect, _kUnset)) {
     draft = draft.copyWith(
-        movementEffect: movementEffect as MovementEffectZonePayload?);
+      movementEffect: movementEffect as MovementEffectZonePayload?,
+    );
   }
   if (!identical(hazard, _kUnset)) {
     draft = draft.copyWith(hazard: hazard as HazardZonePayload?);
@@ -121,8 +117,10 @@ MapData updateGameplayZoneOnMap(
     excludedZoneId: current.id,
     duplicateIdLabel: 'Gameplay zone ID already exists',
   );
-  final updated =
-      List<MapGameplayZone>.from(map.gameplayZones, growable: false);
+  final updated = List<MapGameplayZone>.from(
+    map.gameplayZones,
+    growable: false,
+  );
   updated[index] = next;
   return map.copyWith(gameplayZones: updated);
 }
@@ -159,10 +157,7 @@ MapData resizeGameplayZoneOnMap(
   );
 }
 
-MapData removeGameplayZoneFromMap(
-  MapData map, {
-  required String zoneId,
-}) {
+MapData removeGameplayZoneFromMap(MapData map, {required String zoneId}) {
   final index = map.gameplayZones.indexWhere((z) => z.id == zoneId);
   if (index < 0) throw ValidationException('Gameplay zone not found: $zoneId');
   final updated = List<MapGameplayZone>.from(map.gameplayZones, growable: true)
@@ -178,10 +173,7 @@ MapData removeGameplayZoneFromMap(
 const Object _kUnset = Object();
 
 MapGameplayZone _normalizeZone(MapGameplayZone zone) {
-  return zone.copyWith(
-    id: zone.id.trim(),
-    name: zone.name.trim(),
-  );
+  return zone.copyWith(id: zone.id.trim(), name: zone.name.trim());
 }
 
 void _validateZone(
@@ -195,9 +187,7 @@ void _validateZone(
     throw const ValidationException('Gameplay zone ID cannot be empty');
   }
 
-  if (map.gameplayZones.any(
-    (z) => z.id == id && z.id != excludedZoneId,
-  )) {
+  if (map.gameplayZones.any((z) => z.id == id && z.id != excludedZoneId)) {
     throw ValidationException('$duplicateIdLabel: $id');
   }
 
@@ -216,12 +206,14 @@ void _validateZone(
       'with size (${area.size.width}x${area.size.height})',
     );
   }
+  validateGameplayZoneCellMask(zone);
   final specialProps = zone.special?.properties;
   if (specialProps != null) {
     for (final key in specialProps.keys) {
       if (key.trim().isEmpty) {
         throw ValidationException(
-            'Gameplay zone $id has an empty special property key');
+          'Gameplay zone $id has an empty special property key',
+        );
       }
     }
   }
@@ -243,4 +235,31 @@ bool _containsPos(MapRect rect, GridPos pos) {
       pos.y >= rect.pos.y &&
       pos.x < rect.pos.x + rect.size.width &&
       pos.y < rect.pos.y + rect.size.height;
+}
+
+bool gameplayZoneContainsPosition(MapGameplayZone zone, GridPos position) {
+  if (!_containsPos(zone.area, position)) return false;
+  final mask = zone.cellMask;
+  if (mask == null) return true;
+  return mask.contains(
+    GridPos(x: position.x - zone.area.pos.x, y: position.y - zone.area.pos.y),
+  );
+}
+
+void validateGameplayZoneCellMask(MapGameplayZone zone) {
+  final mask = zone.cellMask;
+  if (mask == null) return;
+  if (zone.kind != GameplayZoneKind.encounter || mask.isEmpty) {
+    throw ValidationException('Gameplay zone ${zone.id} has invalid cell mask');
+  }
+  if (mask.toSet().length != mask.length ||
+      mask.any(
+        (cell) =>
+            cell.x < 0 ||
+            cell.y < 0 ||
+            cell.x >= zone.area.size.width ||
+            cell.y >= zone.area.size.height,
+      )) {
+    throw ValidationException('Gameplay zone ${zone.id} has invalid cell mask');
+  }
 }

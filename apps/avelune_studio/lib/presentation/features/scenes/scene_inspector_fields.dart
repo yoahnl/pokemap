@@ -189,20 +189,38 @@ extension _SceneInspectorFields on SceneInspector {
     }
     if (value is SceneBattlePayload) {
       return [
-        StudioSelect(
-          label: 'Dresseur',
-          value: value.trainerId,
-          options: {for (final t in project.trainers) t.id: t.name},
-          onChanged: (id) => edit(
-            (scene) => updateSceneBattlePayload(
-              scene,
-              nodeId: node.id,
-              trainerId: id,
-              battleKind: value.battleKind,
-              battleTemplateId: value.battleTemplateId,
-            ).updatedScene,
+        if (value.battleKind == 'wild')
+          StudioSelect(
+            label: 'Rencontre unique',
+            value: value.battleTemplateId,
+            options: {
+              for (final table in project.encounterTables)
+                if (table.tags.contains('studio:unique')) table.id: table.name,
+            },
+            onChanged: (id) => edit(
+              (scene) => updateSceneBattlePayload(
+                scene,
+                nodeId: node.id,
+                battleKind: 'wild',
+                battleTemplateId: id,
+              ).updatedScene,
+            ),
+          )
+        else
+          StudioSelect(
+            label: 'Dresseur',
+            value: value.trainerId,
+            options: {for (final t in project.trainers) t.id: t.name},
+            onChanged: (id) => edit(
+              (scene) => updateSceneBattlePayload(
+                scene,
+                nodeId: node.id,
+                trainerId: id,
+                battleKind: value.battleKind,
+                battleTemplateId: value.battleTemplateId,
+              ).updatedScene,
+            ),
           ),
-        ),
         Text(
           'Résultats : ${authorableSceneOutputPortsForNodeInGraph(node, session.current.graph).map((p) => p.id).join(', ')}',
         ),

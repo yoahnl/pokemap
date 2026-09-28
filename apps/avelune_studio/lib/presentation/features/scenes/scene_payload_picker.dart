@@ -32,10 +32,28 @@ Future<SceneNodePayload?> chooseScenePayload(
           ),
       if (kind == SceneNodeKind.battle)
         for (final t in project.trainers)
-          t.id: (
+          'trainer:${t.id}': (
             t.name,
             SceneBattlePayload(trainerId: t.id, battleKind: 'trainer'),
           ),
+      if (kind == SceneNodeKind.battle)
+        for (final table in project.encounterTables)
+          if (table.tags.contains('studio:unique') &&
+              table.entries.length == 1 &&
+              table.entries.single.minLevel == table.entries.single.maxLevel)
+            'unique:${table.id}': (
+              'Rencontre unique : ${table.name}',
+              SceneBattlePayload(
+                battleKind: 'wild',
+                battleTemplateId: table.id,
+                declaredOutcomes: const [
+                  'victory',
+                  'captured',
+                  'defeat',
+                  'runaway',
+                ],
+              ),
+            ),
     };
     return AlertDialog(
       title: Text(

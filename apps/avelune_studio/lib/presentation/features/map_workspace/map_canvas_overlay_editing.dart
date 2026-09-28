@@ -5,6 +5,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import '../../theme/studio_tokens.dart';
 import 'map_canvas_overlay.dart';
 import 'map_canvas_stroke.dart';
+import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
 import 'map_workspace_view_state.dart';
 
@@ -16,6 +17,7 @@ MapCanvasOverlay buildEditingOverlay({
   required MapWorkspaceViewState view,
   required MapCharacterGesture? gesture,
   required MapCanvasStroke? stroke,
+  required MapEncounterCellStroke? encounterStroke,
   required GridPos? preview,
   required double cellWidth,
   required double cellHeight,
@@ -57,6 +59,6 @@ MapCanvasOverlay buildEditingOverlay({
     color: StudioColors.of(context).canvasSelection,
     labelBackground: colors.surface,
     labelForeground: colors.onSurface,
-    strokeCells: List.of(stroke?.cells ?? []),
+    strokeCells: [...?stroke?.cells, ...?encounterStroke?.cells],
   );
 }

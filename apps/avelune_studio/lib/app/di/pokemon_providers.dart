@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_combat_port.dart';
 
 final pokemonPortProvider = Provider.autoDispose
     .family<PokemonWorkspacePort, ProjectSession>(
@@ -12,6 +13,12 @@ final pokemonCommercePortProvider = Provider.autoDispose
     .family<PokemonCommercePort, ProjectSession>(
       (ref, session) =>
           throw StateError('Pokemon commerce port must be configured'),
+    );
+
+final pokemonCombatPortProvider = Provider.autoDispose
+    .family<PokemonCombatPort, ProjectSession>(
+      (ref, session) =>
+          throw StateError('Pokemon combat port must be configured'),
     );
 
 final pokemonJsonPickerProvider = Provider<Future<String?> Function()>(

@@ -211,4 +211,76 @@ void main() {
     expect(document.current.gameplayZones, hasLength(1));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('case-by-case drag creates one undoable mask with a hole', (
+    tester,
+  ) async {
+    view.tool = StudioMapTool.encounterPaint;
+    await host(tester);
+
+    final stroke = await tester.startGesture(cell(tester, 2, 2));
+    await stroke.moveTo(cell(tester, 4, 2));
+    await stroke.moveTo(cell(tester, 4, 4));
+    await stroke.up();
+    await tester.pump();
+
+    final zone = document.current.gameplayZones.single;
+    expect(zone.cellMask, hasLength(5));
+    expect(zone.area.size, const GridSize(width: 3, height: 3));
+    expect(
+      gameplayZoneContainsPosition(zone, const GridPos(x: 3, y: 3)),
+      isFalse,
+    );
+    expect(document.undoCount, 1);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.zone),
+      zone.id,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('erasing a painted case preserves its owner and undo history', (
+    tester,
+  ) async {
+    view.tool = StudioMapTool.encounterPaint;
+    await host(tester);
+    final paint = await tester.startGesture(cell(tester, 2, 2));
+    await paint.moveTo(cell(tester, 4, 2));
+    await paint.up();
+    final owner = document.current.gameplayZones.single.id;
+
+    view.tool = StudioMapTool.encounterErase;
+    await tester.pump();
+    await tester.tapAt(cell(tester, 3, 2));
+    await tester.pump();
+
+    final zone = document.current.gameplayZones.single;
+    expect(zone.id, owner);
+    expect(zone.cellMask, hasLength(2));
+    expect(
+      gameplayZoneContainsPosition(zone, const GridPos(x: 3, y: 2)),
+      isFalse,
+    );
+    expect(document.undoCount, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('retyping a painted encounter drops its encounter mask', (
+    tester,
+  ) async {
+    view.tool = StudioMapTool.encounterPaint;
+    await host(tester);
+    await tester.tapAt(cell(tester, 2, 2));
+    await tester.pump();
+    final zone = document.current.gameplayZones.single;
+
+    GameplayZoneEditingCommands(
+      document,
+      workspaceProject,
+    ).retype(zone.id, GameplayZoneKind.hazard);
+
+    expect(document.current.gameplayZones.single.kind, GameplayZoneKind.hazard);
+    expect(document.current.gameplayZones.single.cellMask, isNull);
+    expect(document.current.gameplayZones.single.area, zone.area);
+  });
 }

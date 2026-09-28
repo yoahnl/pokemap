@@ -678,7 +678,7 @@ packages:
     source: path
     version: "0.1.0"
   map_gameplay:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       path: "../../packages/map_gameplay"
       relative: true

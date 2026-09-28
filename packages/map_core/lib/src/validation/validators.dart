@@ -22,6 +22,7 @@ import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import '../operations/map_entities.dart';
+import '../operations/map_gameplay_zones.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
 import '../operations/smart_tile_catalog_validation.dart';
@@ -2942,6 +2943,7 @@ class MapValidator {
           'Gameplay zone $zoneId area extends outside map bounds',
         );
       }
+      validateGameplayZoneCellMask(zone);
     }
     _validateUniqueIds(
       map.gameplayZones,

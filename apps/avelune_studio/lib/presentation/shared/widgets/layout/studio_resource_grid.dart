@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 class StudioResourceGrid extends StatelessWidget {
   const StudioResourceGrid({

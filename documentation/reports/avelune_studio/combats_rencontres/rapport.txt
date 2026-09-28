@@ -1,0 +1,176 @@
+# Avelune Studio — Combats et Rencontres
+
+## Périmètre et audit initial
+
+Base observée au démarrage : `4ebaf5d93520df3882b1b09ffa24556026db64ef`, branche `main`, worktree propre. Le HEAD a avancé pendant ce travail à `db83dffb0527eba654f7e2f12181c3ee05e3c995` par deux commits concurrents consacrés au splash Avelune. Aucun checkout, reset ou autre écriture Git n'a été fait ici ; ces changements ont été préservés. Les quatre maquettes fournies ont été ouvertes visuellement avant l'implémentation. Le projet personnel du Train n'a pas été ouvert en écriture.
+
+| Parcours | Déjà opérationnel | Partiellement présent | Manquait dans Studio |
+| --- | --- | --- | --- |
+| Rencontres sauvages | Modèle de table, résolution et zone rectangulaire | Choix de table dans Carte, Smart Tile lié au matériau | Édition de table, sélection manuelle exacte des cases et parcours de réouverture |
+| Dresseurs | Modèle, handoff runtime et combat de scène | Sélecteur de dresseur dans Histoire | Fiche d'équipe, sélecteurs guidés, liens et garde-brouillon dans Studio |
+| Rencontres uniques | Combat sauvage scénarisé à table fixe | Bloc Combat wild et résultats de scène | Création guidée, distinction des tables de zone, consommation persistante par identité de rencontre |
+
+Les zones `MapGameplayZone` n'exprimaient que `MapRect`. Le choix local est un `cellMask` relatif au rectangle englobant, porté par une seule zone : l'identité, la priorité, le déplacement, l'historique et l'export restent ceux du propriétaire existant. Un trou du masque n'est jamais une case active. Aucun objet zone par case ni couplage implicite à l'herbe graphique n'a été ajouté. Le moteur de combat n'a pas été réécrit. Les lots FG-102, FG-107 et FG-108 étaient `TODO` dans la roadmap ; celle-ci n'a pas été modifiée.
+
+## Ce qui fonctionne
+
+- **Rencontres sauvages.** Pokémon → Combats donne accès aux tables, à la recherche, aux espèces du projet, niveaux, poids et probabilité par pas. Carte propose Rectangle, Case par case et Effacer. La peinture et l'effacement suivent les cases traversées ; un trait est une opération annulable. Le masque exact est sérialisé, validé et consommé par la résolution de rencontre et les choix d'ambiance. La dernière case ne peut être effacée implicitement : supprimer la zone est une action explicite. Les anciennes zones sans masque restent rectangulaires. Une table réservée aux rencontres uniques n'est pas proposée pour la peinture de zone.
+- **Dresseurs.** Création avec nom guidé, équipe, formes, niveaux, attaques et objets tenus issus des catalogues disponibles. Carte peut associer un PNJ au dresseur ; Histoire garde le déclenchement, les branches et les conséquences. Les liens et erreurs de références restent visibles. Sauvegarde et réouverture utilisent les mutations canoniques, les révisions et les gardes de brouillon existants.
+- **Rencontres uniques.** Création d'une table fixe identifiée comme unique, puis choix dans le bloc Combat wild d'une scène. Victoire ou capture consomme l'identité de table ; défaite ou fuite laisse une nouvelle tentative. Une autre scène ne peut pas rejouer la même table consommée après rechargement. La garde est évaluée au moment où le bloc Combat est atteint : une branche non empruntée n'interdit pas le reste de la scène. Le Player inscrit la consommation dès son retour de combat gagné ou capturé, avant les nœuds narratifs suivants.
+
+Les quatre captures de fixture sont dans [`captures/`](captures/) : bibliothèque sauvage, dresseur, unique et cases peintes. Elles ont été produites par le véritable hôte widget Studio avec son cadre Avelune, puis comparées aux maquettes. La hiérarchie en trois zones et les deux outils sont visibles. La fixture emploie peu de médias et ne remplace pas une acceptation artistique ou une manipulation native indépendante.
+
+## Preuves exécutées
+
+| Répertoire | Commande | Résultat |
+| --- | --- | --- |
+| `packages/map_core` | `dart test test/painted_encounter_zone_test.dart test/encounter_contract_test.dart -r compact` | 12 tests passent |
+| `packages/map_core` | `dart test -r expanded` | `+4687 ~1 -4`, exit 1. Échecs isolés ci-dessous. |
+| `packages/map_gameplay` | `dart test test/encounter_resolution_contract_test.dart test/narrative_event_execution_coordinator_test.dart -r expanded` | 12 tests passent |
+| `packages/map_gameplay` | `dart test -r expanded` | `+606: All tests passed!` |
+| `packages/map_authoring` | `dart test test/domains/gameplay/campaign_content_authoring_test.dart test/parity/full_authoring_parity_test.dart -r expanded` | 22 tests passent |
+| `packages/map_runtime` | `flutter test --no-pub test/narrative_scene_runtime_execution_test.dart test/scene_event_runtime_hook_test.dart test/playable_map_game_post_battle_progression_integration_test.dart -r expanded` | 44 tests passent |
+| `packages/map_runtime` | `flutter test --no-pub test/scene_wild_battle_request_test.dart test/wild_battle_end_to_end_flow_test.dart` | 28 tests passent |
+| `apps/avelune_studio` | `AVELUNE_CAPTURE_DIR=…/captures flutter test --no-pub test/pokemon/pokemon_combat_host_test.dart -r expanded` | 1 parcours hôte passe, 4 PNG 1536 × 1024 produits |
+| `apps/avelune_studio` | `flutter test --no-pub test/pokemon/pokemon_combat_responsive_test.dart` | 1 test 1280 × 800 avec texte agrandi passe |
+| `apps/avelune_studio` | `flutter test --no-pub test/architecture --concurrency=2 -r compact` | 12 tests passent |
+| `apps/avelune_studio` | `flutter test --no-pub --concurrency=2 -r expanded` sur les sources finales | `10:22 +979 ~2: All tests passed!` |
+| `apps/avelune_studio` | `flutter analyze --no-pub` | No issues found |
+| `packages/map_runtime` | `flutter analyze --no-pub lib/src/application/narrative_scene_runtime_execution.dart test/narrative_scene_runtime_execution_test.dart` | No issues found |
+| `packages/map_runtime` | `flutter analyze --no-pub` | 2 informations hors périmètre, dans `battle_mobile_command_overlay.dart` et `tool/import_battle_se_assets.dart` ; exit 1 |
+| `packages/map_core` | `dart analyze` | exit 0, 122 informations de lint non bloquantes |
+| `packages/map_gameplay` | `dart analyze` | exit 0, 1 information de lint non bloquante |
+| `packages/map_authoring` | `dart analyze` | No issues found |
+| `tools/pokemap_mcp` | `npm test` (`npm run build` puis tests Node) | exit 0 ; le filtrage de sortie ne conserve pas de total fiable |
+| Dépôt | `dart format --output=none --set-exit-if-changed` sur les 73 fichiers Dart changés | 0 fichier à reformater |
+| `apps/avelune_studio` | `flutter build macos --debug --no-pub` | `✓ Built build/macos/Build/Products/Debug/Avelune Studio.app` |
+| Dépôt | `bash tools/scripts/check_markdown_hygiene.sh` | `Markdown hygiene: no new Markdown files.` |
+
+Le test hôte Studio crée et sauvegarde table, dresseur et unique, pose une zone peinte et un PNJ, rouvre via un propriétaire indépendant, charge ensuite le même projet dans le Player et constate les entrées en combat sauvage et dresseur. Il ne joue pas ces deux combats jusqu'à leur résultat. Les résultats de scène et le retour de combat sont testés séparément dans `map_runtime`. Il ne s'agit ni d'un replay natif manuel, ni d'une preuve que chaque branche narrative du projet Train fonctionne.
+
+La suite complète `map_core` échoue aussi en isolation sur quatre cas : `project_item_reference_index_test.dart` (17 références attendues, 18 présentes), `scene_runtime_dry_run_preview_test.dart` (les conséquences `grantRailCurrency` et `grantRailStamp` sont absentes de la projection), `beta_playability_composition_test.dart` (`project_regional_map_validator.dart` n'a pas de place déclarée dans le gate), `cinematic_media_contract_fixture_test.dart` (durée 3 200 ms attendue, 2 900 ms présente). Les quatre tests et les implémentations qu'ils ciblent sont inchangés dans ce diff ; le test d'aperçu de scène ne passe pas par `updateSceneBattlePayload`, seule zone de `scene_authoring_operations.dart` modifiée fonctionnellement ici. Leur caractère antérieur n'a pas été prouvé par exécution d'un snapshot propre, donc ils restent des échecs de la suite actuelle, hors du parcours Combats. Aucun attendu n'a été modifié pour les masquer.
+
+## Limites et suivi
+
+- La configuration des suites narratives reste dans Histoire. Les fiches Pokémon montrent les références et permettent de rejoindre leur propriétaire, sans dupliquer l'éditeur de scène.
+- Les médias manquants de la fixture restent manquants dans les captures. Aucun légendaire fictif ni illustration de maquette n'a été intégré comme asset de jeu.
+- Les tests prouvent une branche non visitée et le refus d'une table déjà consommée. L'exécuteur de scène pur ne peut pas, à lui seul, persister le résultat d'un combat dont le callback hôte a déjà produit des effets avant un échec ultérieur ; dans le Player réel, `PlayableMapGame._onBattleFinished` inscrit immédiatement le drapeau après une victoire/capture validée. Ce chemin particulier suivi d'un échec narratif n'a pas de replay natif indépendant dans cette livraison.
+- La parité MCP a été vérifiée au niveau du catalogue d'actions canoniques ; une recette de transport MCP spécifique au nouveau masque de cases n'est pas démontrée. La parité de ce sous-parcours reste `PARTIAL`.
+- FG-102, FG-107 et FG-108 ne sont pas proposés comme `DONE` : le chemin livré est réel, mais la recette complète victoire/défaite/capture depuis la même fixture Studio, puis sauvegarde/rechargement Player, et la validation visuelle de Yoahn restent ouvertes. La roadmap n'a pas été écrite.
+
+## Passes et auto-critique
+
+- **Audit / Architecture** — réemploi de `map_core`, `map_authoring`, des contrôleurs Studio, de Histoire et de `map_runtime` ; aucun moteur parallèle.
+- **Implémentation** — masque exact sur une zone, éditeurs de combat dans Pokémon, liens Carte/Histoire et consommation par table.
+- **Tests** — contrats, erreurs, réouverture indépendante, véritable hôte Studio et chargement Player ; la fin complète du combat de la fixture demeure une limite.
+- **Build / Validation** — architecture, analyses, formatage, build macOS et suite Studio sont consignés avec leurs résultats exacts dans ce rapport.
+- **Critique indépendante** — a détecté le replay par une autre scène, l'identifiant technique imposé et la garde trop large sur une branche non visitée. Ces trois défauts ont été corrigés. Elle a aussi identifié la limite de preuve après un combat gagné suivi d'un échec de scène ; la garantie du Player vient de l'écriture au retour du combat, pas d'une transaction atomique de toute la scène.
+
+Le risque principal encore ouvert est la validation native et visuelle sur un projet représentatif avec médias complets. Aucun statut `DONE` n'est demandé avant cette revue. Le ticket de suivi appartient au domaine AS-E08 Post Bêta et doit rester au plus à `TO REVIEW`.
+
+## Inventaire des fichiers et zones changées
+
+Le diff Git donne les lignes exactes de chaque zone. Les fichiers manuels restent sous la limite d'architecture de 300 lignes. Les tests ci-dessous traversent les propriétaires réels quand leur nom contient `host` ou `canvas`.
+
+| Fichier | Zone / raison / impact |
+| --- | --- |
+| `apps/avelune_studio/lib/app/di/pokemon_providers.dart` | Composition et injection du contrôleur Combats. |
+| `apps/avelune_studio/lib/app/studio_bootstrap.dart` | Initialisation du contrôleur Combats du projet. |
+| `apps/avelune_studio/lib/features/characters/application/character_editing_commands.dart` | Commande d'association PNJ ↔ dresseur. |
+| `apps/avelune_studio/lib/features/map_workspace/application/gameplay_zone_editing_commands.dart` | Peinture groupée, effacement et mutation canonique de zone. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart` | Lecture, identité et mutations de tables/dresseurs. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_drafts.dart` | Brouillons des trois familles de combat. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_validation.dart` | Noms guidés, IDs dérivés et validation. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_controller.dart` | Cycle de vie, garde-brouillons et rafraîchissement des combats. |
+| `apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_owner_commands.dart` | Sauvegarde du propriétaire actif via le workspace. |
+| `apps/avelune_studio/lib/features/pokemon/data/local_pokemon_combat_adapter.dart` | Lecture locale et authoring canonique de combats. |
+| `apps/avelune_studio/lib/features/pokemon/domain/pokemon_combat_port.dart` | Contrat de lecture/écriture sans I/O dans la présentation. |
+| `apps/avelune_studio/lib/features/pokemon/domain/pokemon_workspace_models.dart` | Vue locale Combats dans la navigation Pokémon. |
+| `apps/avelune_studio/lib/presentation/features/characters/character_inspector.dart` | Sélecteur guidé de dresseur dans l'inspecteur PNJ. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay.dart` | Affichage des zones et des cellules exactes. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay_editing.dart` | Gestes de sélection/édition des zones. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_zone_paint.dart` | Calcul et application de traits de cases. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_creation_tools.dart` | Modes Rectangle, Case par case et Effacer. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_encounter_cell_stroke.dart` | Accumulation des cellules d'un seul geste undoable. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_painted_encounter_overlay.dart` | Surbrillance exacte des cellules, y compris trous. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_tile_palette.dart` | Défilement local de palette en hauteur réduite. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart` | Raccordement canvas des traits et sélections. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_gestures.dart` | Gestes canvas séparés des autres outils. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart` | Détail de la zone sélectionnée. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_palette_column.dart` | Répartition responsive outils/palette. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart` | Déclaration des parties et mise à jour d'espace dans le State. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart` | Mode de dessin courant conservé dans la vue. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/map_zone_inspector.dart` | Affichage d'une zone rectangulaire ou peinte. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart` | Cycle de vie des données de combat. |
+| `apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart` | Navigation et rafraîchissement des références Combats. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_context_panel.dart` | Contexte et diagnostic des références. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_detail_header.dart` | En-tête et actions de fiche. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_list.dart` | Liste, recherche et création. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart` | Trois vues locales Combats et composition. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_reference_list.dart` | Liens entrants depuis Carte et Histoire. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_references.dart` | Projection des références croisées. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_species_picker.dart` | Sélecteurs d'espèces, formes, attaques et objets. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart` | Fiche de table sauvage ou unique. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_entry.dart` | Ligne de rencontre : espèce, niveaux, poids. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_detail.dart` | Fiche dresseur et équipe. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart` | Raccordement de la page Combats. |
+| `apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_tabs.dart` | Onglets Pokémon et défilement local avec texte agrandi. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_inspector_fields.dart` | Champs et résultats du bloc Combat de scène. |
+| `apps/avelune_studio/lib/presentation/features/scenes/scene_payload_picker.dart` | Choix guidé de la rencontre unique. |
+| `apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart` | Fourniture du contrôleur Combats au vrai hôte. |
+| `apps/avelune_studio/test/characters/character_editing_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/characters/character_widgets_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/map_workspace/gameplay_zone_canvas_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/map_workspace/gameplay_zone_table_commands_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/pokemon/pokemon_combat_host_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/pokemon/pokemon_combat_scene_picker_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/support/combat_project_fixture.dart` | Fixture temporaire Studio → Player avec deux cartes. |
+| `apps/avelune_studio/test/support/map_host_fixture.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `apps/avelune_studio/test/support/ui_pokemon_combat_port.dart` | Port de test branché au véritable hôte. |
+| `documentation/reports/avelune_studio/combats_rencontres/captures/combat-01-rencontres-sauvages.png` | Capture du véritable hôte widget Studio ; preuve visuelle. |
+| `documentation/reports/avelune_studio/combats_rencontres/captures/combat-02-dresseurs.png` | Capture du véritable hôte widget Studio ; preuve visuelle. |
+| `documentation/reports/avelune_studio/combats_rencontres/captures/combat-03-rencontres-uniques.png` | Capture du véritable hôte widget Studio ; preuve visuelle. |
+| `documentation/reports/avelune_studio/combats_rencontres/captures/combat-04-cases-peintes.png` | Capture du véritable hôte widget Studio ; preuve visuelle. |
+| `documentation/reports/avelune_studio/combats_rencontres/rapport.txt` | Rapport consolidé de périmètre, preuves, limites et diff. |
+| `packages/map_core/lib/map_core_domain.dart` | Export public de l'opération de peinture. |
+| `packages/map_core/lib/src/authoring/scene_authoring_operations.dart` | Validation et édition des charges Combat de scène. |
+| `packages/map_core/lib/src/encounters/encounter_contract.dart` | Résolution exacte d'une zone peinte. |
+| `packages/map_core/lib/src/models/map_data.dart` | Champ canonique MapGameplayZone.cellMask. |
+| `packages/map_core/lib/src/models/map_data.freezed.dart` | Code généré pour cellMask. |
+| `packages/map_core/lib/src/models/map_data.g.dart` | Codec JSON généré pour cellMask. |
+| `packages/map_core/lib/src/operations/map_gameplay_zones.dart` | Mutation, bornes et priorité de zones. |
+| `packages/map_core/lib/src/operations/map_painted_gameplay_zones.dart` | Opération pure de peinture, bornes, masque et refus d'une zone vide. |
+| `packages/map_core/lib/src/validation/validators.dart` | Validation d'un masque de cases. |
+| `packages/map_core/test/painted_encounter_zone_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `packages/map_gameplay/lib/src/narrative_event_execution_coordinator.dart` | Propagation des issues de combat scénarisé. |
+| `packages/map_gameplay/test/encounter_resolution_contract_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `packages/map_gameplay/test/narrative_event_execution_coordinator_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `packages/map_runtime/lib/src/application/narrative_scene_runtime_execution.dart` | Garde des rencontres uniques atteintes et drapeau par table. |
+| `packages/map_runtime/lib/src/presentation/flame/battle_background_resolver.dart` | Choix de fond selon la case réellement couverte. |
+| `packages/map_runtime/lib/src/presentation/flame/battle_music_resolver.dart` | Choix de musique selon la case réellement couverte. |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Handoff trainer/wild et consommation unique au retour du combat. |
+| `packages/map_runtime/test/narrative_scene_runtime_execution_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+| `packages/map_runtime/test/scene_event_runtime_hook_test.dart` | Test ciblé du parcours, des erreurs ou de la non-régression associé à ce fichier. |
+
+## État final
+
+HEAD final observé : `db83dffb0527eba654f7e2f12181c3ee05e3c995` sur `main`. `git status --short --untracked-files=all` montre 45 fichiers suivis modifiés et 33 fichiers non suivis ; les 78 chemins sont inventoriés ci-dessus, dont quatre captures et ce rapport. `git diff --stat` sur les seuls fichiers suivis indique `45 files changed, 1200 insertions(+), 373 deletions(-)`. `git diff --check` : exit 0, aucune erreur d'espacement. `bash tools/scripts/check_markdown_hygiene.sh` : exit 0. Aucune écriture Git réalisée.
+
+Le ticket [AS-E08 Post Bêta](https://app.notion.com/p/3e6197a7bfa5811d98ffe52d7c85a844) a été mis à `TO REVIEW` avec les résultats et limites ; la lecture de retour confirme la propriété et le contenu. Il n'est pas marqué `DONE`. Prochaine validation demandée à Yoahn : qualité visuelle des quatre écrans, puis partie native Player jusqu'aux issues des trois combats et rechargement. Les quatre échecs `map_core` et la recette MCP spécifique au masque restent signalés, sans les convertir en travaux de ce lot.
+
+## Complément — preuve du paquet installé, 28 septembre 2026
+
+La reprise part de `5817280cc1f319a6f2d73fdf098176b32a557272` sur `main`, avec 279 chemins déjà modifiés ou nouveaux. Aucun checkout ni écriture Git n'a été effectué. Les sources de la Carte, des Combats et du Player issues du travail local ont été conservées. Le contrôle préalable a établi que le test hôte chargeait directement le projet auteur ; il ne prouvait pas que l'installateur et le Player utilisaient le paquet distribué. Le risque principal était de déclarer l'export jouable sur cette seule base.
+
+Le test `apps/pokemap_hub/test/features/installation/avelune_studio_combat_player_e2e_test.dart` utilise le vrai hôte Studio pour créer la table sauvage, le dresseur et son attaque, puis peindre une case et lier le PNJ. Il exporte par l'interface, vérifie que le dossier auteur n'a pas changé, masque ce dossier, installe le `.avelunegame` via `GamePackageInstaller`, résout l'installation par `InstalledGameLaunchResolver` et déclenche dans `PlayableMapGame` les combats sauvage et dresseur. Les requêtes portent les identités attendues `jardin_sauvage`, `sproutle`, `chef_gare` et `combat-guide`. Le paquet et la bibliothèque Player sont temporaires et supprimés en fin de test. La fixture a deux cartes ; le test d'export existant vérifie séparément dialogue et passage entre elles depuis l'installation.
+
+La première exécution a révélé deux limites de la fixture, puis un écart de contrat. Son Bulbizarre initial ne satisfaisait pas la validation de publication ; elle reprend les documents et médias complets de la fixture Golden Item System. Un dresseur sans attaque était enregistrable dans Studio mais refusé à l'export ; `pokemon_combat_validation.dart` refuse désormais cette sauvegarde en conservant le brouillon, et `pokemon_combat_host_test.dart` vérifie le refus puis l'ajout d'une attaque et la sauvegarde. Enfin, la fixture d'export narrative employait `EventSystemMode.v2Only`, qui ferme intentionnellement l'interaction native d'un PNJ sans événement V2. Le test combat la met en `dualRead`, mode où le lien direct PNJ → dresseur est autorisé. Le runtime V2 n'a pas été assoupli pour faire passer le test : un projet V2 uniquement doit relier le PNJ à un événement et à une scène Combat dans Histoire.
+
+Fichiers touchés par ce complément : `apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_validation.dart` (validation des attaques de l'équipe), `apps/avelune_studio/test/pokemon/pokemon_combat_host_test.dart` (refus et correction dans le vrai hôte), `apps/pokemap_hub/pubspec.yaml` et sa résolution `pubspec.lock` (dépendance de test directe à `map_gameplay`), et le nouveau test d'installation ci-dessus. Le `pubspec.yaml` et le lock du Hub comportaient déjà d'autres changements locaux de version et de SDK ; ils n'ont pas été réécrits. Aucun autre moteur ou écran n'a été modifié dans ce complément.
+
+Vérifications sur les sources finales : `flutter analyze --no-pub` dans Studio et Hub : « No issues found » pour les deux. Le test Hub combat installé : `+1`, vert ; le test Hub export/dialogue/passage existant : `+1`, vert. Le test ciblé Studio Combats avec responsive, sélecteur de scène et architecture : `+14 -1` ; l'unique échec est le garde de 300 lignes sur `pokemon_workspace_controller.dart` (312), `studio_home_screen.dart` (317) et `home_visual_test.dart` (312), tous déjà présents dans le worktree. La suite Studio complète, lancée une fois avec `--concurrency=2`, termine `+1058 ~3 -1` sur ce même garde. `flutter build macos --debug --no-pub` réussit et produit `build/macos/Build/Products/Debug/PokeMap.app` ; l'avertissement Swift `allowedFileTypes` provient de `file_selector_macos`. La suite Hub complète termine `+412 -17` : ses échecs observés comprennent des fixtures sans `pokemon.ruleset` explicite et des comparaisons golden ; ni ces fixtures ni les écrans concernés ne sont modifiés par ce complément. Un succès isolé du nouveau parcours ne transforme pas cette suite en réussite globale. `npm test` dans `tools/pokemap_mcp` termine avec 83 tests réussis, 0 échec ; `pokemap_describe` répond avec 360 actions, dont `campaign.encounter_table.upsert` et `gameplay_zone.update`. Le transport spécifique du masque de cases reste non certifié. `dart format --output=none --set-exit-if-changed` sur les fichiers Dart touchés, `git diff --check` et `check_markdown_hygiene.sh` passent.
+
+Passes de revue : architecture — réemploi des propriétaires et formats existants, sans changement runtime ; implémentation — validation locale et fixture en mode cohérent avec le lien PNJ direct ; tests — parcours auteur → paquet → installation → combat, avec dossier auteur masqué ; build — analyses et build réussis, suites complètes non vertes signalées ; critique — ce test démarre deux combats, il ne joue pas leurs tours jusqu'à victoire, capture ou défaite et ne prouve pas un événement V2 de dresseur. Les quatre captures Studio antérieures restent représentatives de l'interface, mais aucune nouvelle manipulation native ou acceptation visuelle indépendante n'a été réalisée. FG-102, FG-107 et FG-108 restent ouverts en attente de ces preuves. Aucun nouvel attendu métier n'a été modifié pour masquer les échecs voisins.
+
+État Git final du complément : HEAD `5817280cc1f319a6f2d73fdf098176b32a557272`, branche `main`, 279 chemins modifiés ou nouveaux dans le worktree partagé. Le diff suivi global affiche 175 fichiers, dont de nombreux chantiers concurrents hors de ce complément. Les 21 PNG de comparaison modifiés par les échecs golden du Hub ont été remis à leurs octets HEAD après identification ; ils ne figurent plus dans l'état final. `git diff --check` et le contrôle de formatage final ne signalent aucun écart. Aucun commit ni push.
