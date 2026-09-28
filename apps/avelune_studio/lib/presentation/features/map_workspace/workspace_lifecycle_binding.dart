@@ -13,6 +13,18 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
                 widget.pokemonCommercePort!,
                 changed: _changed,
               ),
+        combat: widget.pokemonCombatPort == null
+            ? null
+            : PokemonCombatController(
+                widget.pokemonCombatPort!,
+                changed: _changed,
+                projectChanged: (manifest) {
+                  final current = _controller.project;
+                  if (current != null && current != manifest) {
+                    _controller.acceptResources(current, manifest);
+                  }
+                },
+              ),
       );
     }
   }

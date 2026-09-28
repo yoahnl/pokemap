@@ -55,6 +55,12 @@ void main() {
       committed.narrativeEventProgress.consumedNarrativeEventIds,
       {_eventA},
     );
+    expect(
+      GameState.fromJson(committed.toJson())
+          .narrativeEventProgress
+          .consumedNarrativeEventIds,
+      {_eventA},
+    );
     final pending =
         committed.narrativeEventProgress.pendingNarrativeOutcomeDeliveries;
     expect(pending.map((value) => value.deliveryId), [_deliveryA, _deliveryB]);
@@ -157,6 +163,36 @@ void main() {
     await coordinator.execute(authority: authority);
 
     expect(callbacks, 2);
+    expect(
+      (await transactions.read())
+          .narrativeEventProgress
+          .consumedNarrativeEventIds,
+      isEmpty,
+    );
+  });
+
+  test(
+      'one-shot event remains available when its unique battle is not consumed',
+      () async {
+    final transactions =
+        NarrativeEventStateTransactions(const GameState(saveId: 'save'));
+    final coordinator = NarrativeEventExecutionCoordinator(
+      activityPort: NoopNarrativeEventActivityPort(),
+      stateTransactions: transactions,
+      planner: NarrativeEventDispatchPlanner(),
+      executeScene: (request) async => NarrativeSceneExecutionResult.completed(
+        updatedGameState: request.gameState,
+        qualifiedOutcomes: const [],
+        consumeOneShot: false,
+      ),
+      executionIdFactory: () => _executionA,
+      correlationIdFactory: () => _correlationA,
+      deliveryIdFactory: () => _deliveryA,
+    );
+
+    final result = await coordinator.execute(authority: _authority());
+
+    expect(result, isA<NarrativeEventExecutionSucceeded>());
     expect(
       (await transactions.read())
           .narrativeEventProgress

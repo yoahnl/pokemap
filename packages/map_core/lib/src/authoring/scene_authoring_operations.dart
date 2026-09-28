@@ -490,8 +490,7 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   SceneNode node,
 ) {
   final payload = node.payload;
-  if (payload is SceneActionPayload &&
-      payload.preSessionInteraction != null) {
+  if (payload is SceneActionPayload && payload.preSessionInteraction != null) {
     final interaction = payload.preSessionInteraction!;
     return [
       for (final outputPortId in interaction.outputPortIds)
@@ -937,7 +936,7 @@ SceneEndPayloadUpdateResult updateSceneEndPayload(
 SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   SceneAsset scene, {
   required String nodeId,
-  required String trainerId,
+  String? trainerId,
   String battleKind = 'trainer',
   String? battleTemplateId,
 }) {
@@ -950,38 +949,44 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
       'Scene payload editing V0 can only update battle nodes.',
     );
   }
-  final normalizedTrainerId = _trimRequired(
-    trainerId,
-    'trainerId',
-    'Trainer id is required by Scene payload editing V0.',
-  );
   final normalizedBattleKind = battleKind.trim();
-  if (normalizedBattleKind != 'trainer' && normalizedBattleKind != 'static') {
+  if (normalizedBattleKind != 'trainer' &&
+      normalizedBattleKind != 'static' &&
+      normalizedBattleKind != 'wild') {
     throw ArgumentError.value(
       battleKind,
       'battleKind',
-      'Battle kind must be trainer or static.',
+      'Battle kind must be trainer, static or wild.',
     );
   }
+  final normalizedTrainerId = normalizedBattleKind == 'wild'
+      ? null
+      : _trimRequired(
+          trainerId ?? '',
+          'trainerId',
+          'Trainer id is required by this battle kind.',
+        );
   final normalizedBattleTemplateId = battleTemplateId?.trim();
-  if (normalizedBattleKind == 'static' &&
+  if ((normalizedBattleKind == 'static' || normalizedBattleKind == 'wild') &&
       (normalizedBattleTemplateId == null ||
           normalizedBattleTemplateId.isEmpty)) {
     throw ArgumentError.value(
       battleTemplateId,
       'battleTemplateId',
-      'Static battles require a stable battle template reference.',
+      'This battle requires a stable battle template reference.',
     );
   }
   final currentPayload = node.payload as SceneBattlePayload;
   final updatedPayload = SceneBattlePayload(
     battleKind: normalizedBattleKind,
     trainerId: normalizedTrainerId,
-    battleTemplateId: normalizedBattleKind == 'static'
+    battleTemplateId: normalizedBattleKind != 'trainer'
         ? normalizedBattleTemplateId
         : null,
     npcEntityId: currentPayload.npcEntityId,
-    declaredOutcomes: const ['victory', 'defeat'],
+    declaredOutcomes: normalizedBattleKind == 'wild'
+        ? const ['victory', 'captured', 'defeat', 'runaway']
+        : const ['victory', 'defeat'],
   );
   final updatedNode = SceneNode(
     id: node.id,
@@ -1261,14 +1266,15 @@ updateScenePresentationInteractionCueBinding(
   // Re-linking the same pair must keep the authored branches: only a change
   // of target discards them, because the routes speak about that target's
   // output ports (BETA-CIN-079).
-  final preservedRoutes = payload.interactionCueBindings
-      .where(
-        (binding) =>
-            binding.markerId == normalizedMarkerId &&
-            binding.awaitableNodeId == normalizedAwaitableNodeId,
-      )
-      .map((binding) => binding.outcomeRoutes)
-      .firstOrNull ??
+  final preservedRoutes =
+      payload.interactionCueBindings
+          .where(
+            (binding) =>
+                binding.markerId == normalizedMarkerId &&
+                binding.awaitableNodeId == normalizedAwaitableNodeId,
+          )
+          .map((binding) => binding.outcomeRoutes)
+          .firstOrNull ??
       const <ScenePresentationCueOutcomeRoute>[];
   final updatedBindings = <ScenePresentationInteractionCueBinding>[
     for (final binding in payload.interactionCueBindings)
@@ -1396,8 +1402,7 @@ List<String> scenePresentationCueOutputPortIds(
       .where((candidate) => candidate.id == awaitableNodeId)
       .firstOrNull;
   final payload = node?.payload;
-  if (payload is SceneActionPayload &&
-      payload.preSessionInteraction != null) {
+  if (payload is SceneActionPayload && payload.preSessionInteraction != null) {
     return payload.preSessionInteraction!.outputPortIds;
   }
   if (payload is SceneYarnDialoguePayload) {

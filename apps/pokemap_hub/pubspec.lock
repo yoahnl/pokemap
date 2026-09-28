@@ -103,7 +103,7 @@ packages:
       path: "../avelune_studio"
       relative: true
     source: path
-    version: "0.3.8+308"
+    version: "0.3.11+311"
   boolean_selector:
     dependency: transitive
     description:
@@ -678,7 +678,7 @@ packages:
     source: path
     version: "0.1.0"
   map_gameplay:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       path: "../../packages/map_gameplay"
       relative: true

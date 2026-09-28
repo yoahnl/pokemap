@@ -987,6 +987,8 @@ String _portId(SceneBattleRuntimeOutcomePort port) {
   return switch (port) {
     SceneBattleRuntimeOutcomePort.victory => 'victory',
     SceneBattleRuntimeOutcomePort.defeat => 'defeat',
+    SceneBattleRuntimeOutcomePort.captured => 'captured',
+    SceneBattleRuntimeOutcomePort.runaway => 'runaway',
   };
 }
 

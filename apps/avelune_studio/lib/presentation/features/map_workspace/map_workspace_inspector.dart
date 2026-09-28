@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -142,6 +143,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                       'Tracez une zone sur la carte pour lui associer une interaction.',
                     StudioMapTool.gameplayZone =>
                       'Tracez une zone de jeu : rencontres, déplacement, effet ou danger.',
+                    StudioMapTool.encounterPaint =>
+                      'Cliquez ou glissez pour peindre les cases de rencontre.',
+                    StudioMapTool.encounterErase =>
+                      'Cliquez ou glissez pour retirer les cases de rencontre.',
                     StudioMapTool.erase =>
                       'Cliquez ou faites glisser pour effacer avec la gomme.',
                   }),

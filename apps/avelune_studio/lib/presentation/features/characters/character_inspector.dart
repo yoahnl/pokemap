@@ -154,6 +154,30 @@ class _CharacterInspectorState extends State<CharacterInspector> {
             () => _commands.update(entity.id, blocks: !entity.blocksMovement),
           ),
         ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          key: ValueKey('trainer-${entity.id}-${npc.trainerId}'),
+          initialValue: npc.trainerId ?? '',
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Combat de dresseur'),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('Aucun combat')),
+            if (npc.trainerId != null &&
+                !widget.project.trainers.any((t) => t.id == npc.trainerId))
+              DropdownMenuItem(
+                value: npc.trainerId,
+                child: Text('Dresseur introuvable : ${npc.trainerId}'),
+              ),
+            for (final trainer in widget.project.trainers)
+              DropdownMenuItem(value: trainer.id, child: Text(trainer.name)),
+          ],
+          onChanged: (trainerId) => _change(
+            () => _commands.assignTrainer(
+              entity.id,
+              trainerId?.isEmpty == true ? null : trainerId,
+            ),
+          ),
+        ),
         const SizedBox(height: 18),
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),

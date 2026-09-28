@@ -53,11 +53,13 @@ sealed class NarrativeSceneExecutionResult {
     required GameState updatedGameState,
     required List<NarrativeOutcomeRef> qualifiedOutcomes,
     SceneFinishGameConsequence? gameCompletion,
+    bool consumeOneShot = true,
   }) {
     return NarrativeSceneExecutionCompleted(
       updatedGameState: updatedGameState,
       qualifiedOutcomes: qualifiedOutcomes,
       gameCompletion: gameCompletion,
+      consumeOneShot: consumeOneShot,
     );
   }
 
@@ -76,11 +78,13 @@ final class NarrativeSceneExecutionCompleted
     required this.updatedGameState,
     required List<NarrativeOutcomeRef> qualifiedOutcomes,
     this.gameCompletion,
+    this.consumeOneShot = true,
   }) : qualifiedOutcomes = List.unmodifiable(qualifiedOutcomes);
 
   final GameState updatedGameState;
   final List<NarrativeOutcomeRef> qualifiedOutcomes;
   final SceneFinishGameConsequence? gameCompletion;
+  final bool consumeOneShot;
 }
 
 final class NarrativeSceneExecutionFailed
@@ -320,7 +324,8 @@ final class NarrativeEventExecutionCoordinator {
   }) {
     final progress = completed.updatedGameState.narrativeEventProgress;
     final consumed = {...progress.consumedNarrativeEventIds};
-    if (handled.reusePolicy == NarrativeEventReusePolicy.oneShot) {
+    if (handled.reusePolicy == NarrativeEventReusePolicy.oneShot &&
+        completed.consumeOneShot) {
       consumed.add(handled.eventId);
     }
     final depth = authority.occurrence.depth == null

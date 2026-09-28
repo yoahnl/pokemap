@@ -367,6 +367,7 @@ export 'src/operations/map_entity_collision_footprint.dart';
 export 'src/operations/map_triggers.dart';
 export 'src/operations/map_warps.dart';
 export 'src/operations/map_gameplay_zones.dart';
+export 'src/operations/map_painted_gameplay_zones.dart';
 export 'src/operations/map_map_metadata.dart';
 export 'src/operations/game_state_persistence.dart';
 export 'src/operations/narrative_fact_runtime.dart';

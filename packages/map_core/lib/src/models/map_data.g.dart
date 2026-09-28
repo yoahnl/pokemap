@@ -101,6 +101,9 @@ _MapGameplayZone _$MapGameplayZoneFromJson(
   name: json['name'] as String? ?? '',
   kind: $enumDecode(_$GameplayZoneKindEnumMap, json['kind']),
   area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
+  cellMask: (json['cellMask'] as List<dynamic>?)
+      ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+      .toList(),
   priority: (json['priority'] as num?)?.toInt() ?? 0,
   encounter: json['encounter'] == null
       ? null
@@ -134,6 +137,7 @@ Map<String, dynamic> _$MapGameplayZoneToJson(_MapGameplayZone instance) =>
       'name': instance.name,
       'kind': _$GameplayZoneKindEnumMap[instance.kind]!,
       'area': instance.area.toJson(),
+      'cellMask': ?instance.cellMask?.map((e) => e.toJson()).toList(),
       'priority': instance.priority,
       'encounter': instance.encounter?.toJson(),
       'movement': instance.movement?.toJson(),

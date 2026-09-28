@@ -12,6 +12,7 @@ import 'pokemon_species_library.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_workspace_tabs.dart';
 import 'pokemon_commerce_page.dart';
+import 'pokemon_combat_page.dart';
 import 'pokemon_draft_dialog.dart';
 
 class PokemonWorkspacePage extends StatefulWidget {
@@ -107,7 +108,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
             StudioPageHeader(
               title: 'Pokémon',
               description:
-                  'Espèces, attaques, objets et boutiques du projet courant.',
+                  'Espèces, attaques, objets, boutiques et combats du projet courant.',
               actions: [
                 if (showPokedexActions && widget.pickJson != null)
                   StudioButton(
@@ -186,6 +187,20 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         pickJson: widget.pickJson,
                         onOpenReference: widget.onOpenReference,
                         onViewRequested: _requestViewChange,
+                      ),
+              )
+            else if (controller.view == PokemonWorkspaceView.combats)
+              Expanded(
+                child: controller.combat == null
+                    ? const PokemonEmptyState(
+                        title: 'Combats indisponibles',
+                        description:
+                            'Ce projet ne fournit pas la préparation des combats.',
+                      )
+                    : PokemonCombatPage(
+                        combat: controller.combat!,
+                        index: index,
+                        onOpenReference: widget.onOpenReference,
                       ),
               )
             else if (controller.view == PokemonWorkspaceView.moves)

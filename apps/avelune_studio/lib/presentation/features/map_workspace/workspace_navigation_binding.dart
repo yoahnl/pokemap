@@ -1,6 +1,17 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
+  void _enterSpace(WorkspaceSpace space) {
+    if (mounted) {
+      _space = space;
+      _changed();
+    }
+  }
+
+  Future<void> _close() async {
+    if (await _allowCloseWithExport() && mounted) await widget.onClose();
+  }
+
   Future<void> _openPokemonReference(String kind, String id) async {
     if (!await _allowLeavePokemon() || !mounted) return;
     if (kind == 'scene') {
@@ -73,9 +84,16 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
         space == WorkspaceSpace.pokemon &&
         _space != WorkspaceSpace.pokemon &&
         _pokemon?.commerce?.snapshot != null;
+    final refreshCombat =
+        space == WorkspaceSpace.pokemon &&
+        _space != WorkspaceSpace.pokemon &&
+        _pokemon?.combat?.snapshot != null;
     _enterSpace(space);
     if (refreshCommerce) {
       unawaited(_pokemon!.commerce!.load(refresh: true));
+    }
+    if (refreshCombat) {
+      unawaited(_pokemon!.combat!.load(refresh: true));
     }
   }
 

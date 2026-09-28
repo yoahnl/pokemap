@@ -22,7 +22,9 @@ class GameplayZoneEditingCommands {
   List<MapGameplayZone> at(GridPos position) =>
       findAllGameplayZonesAtPos(document.current, position);
 
-  List<ProjectEncounterTable> encounterTables() => project.encounterTables;
+  List<ProjectEncounterTable> encounterTables() => project.encounterTables
+      .where((table) => !table.tags.contains('studio:unique'))
+      .toList(growable: false);
 
   ProjectEncounterTable? tableOf(MapGameplayZone zone) {
     final id = zone.encounter?.encounterTableId;
@@ -36,9 +38,17 @@ class GameplayZoneEditingCommands {
     if (id == null || id.isEmpty) {
       return 'Sans table de rencontres, cette zone ne déclenche rien.';
     }
-    return tableOf(zone) == null
-        ? 'La table de rencontres n’existe plus dans le projet.'
-        : null;
+    final table = tableOf(zone);
+    if (table == null) {
+      return 'La table de rencontres n’existe plus dans le projet.';
+    }
+    if (table.tags.contains('studio:unique')) {
+      return 'Une rencontre unique doit être déclenchée depuis Histoire.';
+    }
+    if (table.encounterKind != zone.encounter?.encounterKind) {
+      return 'Le type de cette zone ne correspond pas à sa table.';
+    }
+    return null;
   }
 
   MapGameplayZone place(GameplayZoneKind kind, MapRect area) {
@@ -67,6 +77,42 @@ class GameplayZoneEditingCommands {
     return zone;
   }
 
+  MapGameplayZone? paintEncounterCells(
+    Iterable<GridPos> cells, {
+    required bool erase,
+    String? selectedZoneId,
+  }) {
+    final positions = cells.toSet();
+    if (positions.isEmpty) return null;
+    final selectedZone = selectedZoneId == null
+        ? null
+        : selected(selectedZoneId);
+    if (selectedZone != null &&
+        selectedZone.kind == GameplayZoneKind.encounter) {
+      document.commit(
+        paintEncounterZoneCells(
+          document.current,
+          zoneId: selectedZone.id,
+          cells: positions,
+          erase: erase,
+        ),
+      );
+      return selected(selectedZone.id);
+    }
+    if (erase) return null;
+    final area = paintedEncounterBounds(positions);
+    final zone = MapGameplayZone(
+      id: _id(),
+      name: defaultZoneName(GameplayZoneKind.encounter),
+      kind: GameplayZoneKind.encounter,
+      area: area,
+      cellMask: paintedEncounterMask(positions, area),
+      encounter: const EncounterZonePayload(),
+    );
+    document.commit(addGameplayZoneToMap(document.current, zone: zone));
+    return zone;
+  }
+
   void retype(String id, GameplayZoneKind kind) {
     final zone = selected(id);
     if (zone == null || zone.kind == kind) return;
@@ -75,6 +121,7 @@ class GameplayZoneEditingCommands {
         document.current,
         zoneId: id,
         kind: kind,
+        cellMask: kind == GameplayZoneKind.encounter ? zone.cellMask : null,
         name: zone.name == defaultZoneName(zone.kind)
             ? defaultZoneName(kind)
             : zone.name,
@@ -123,13 +170,20 @@ class GameplayZoneEditingCommands {
   }) {
     final payload = selected(id)?.encounter;
     if (payload == null) return;
+    final selectedTable = tableId == null
+        ? null
+        : encounterTables().where((table) => table.id == tableId).firstOrNull;
+    if (tableId != null && selectedTable == null) return;
     document.commit(
       updateGameplayZoneOnMap(
         document.current,
         zoneId: id,
         encounter: payload.copyWith(
           encounterTableId: tableId ?? payload.encounterTableId,
-          encounterKind: encounterKind ?? payload.encounterKind,
+          encounterKind:
+              encounterKind ??
+              selectedTable?.encounterKind ??
+              payload.encounterKind,
         ),
       ),
     );

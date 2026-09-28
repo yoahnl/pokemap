@@ -906,7 +906,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final project = _bundle.manifest;
     final registry = project.eventRegistry;
     if (registry != null &&
-        (registry.mode != EventSystemMode.legacyOnly || registry.hasLocalRuntimeAuthority)) {
+        (registry.mode != EventSystemMode.legacyOnly ||
+            registry.hasLocalRuntimeAuthority)) {
       await _narrativeRuntimeSnapshotFor(project);
     }
     final preparation = _readInteractionAuthority(occurrence)!;
@@ -1118,7 +1119,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
     final session = _NarrativeSceneWorkingSession(request.gameState);
-    final defersMapActivation = _narrativeStateTransactions.deferAfterCurrentCommit(
+    final defersMapActivation =
+        _narrativeStateTransactions.deferAfterCurrentCommit(
       (committedGameState) {
         final activation = session.deferredMapActivation;
         if (activation == null) return;
@@ -1176,6 +1178,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           updatedGameState: hydratedGameState,
           qualifiedOutcomes: result.qualifiedOutcomes,
           gameCompletion: gameCompletion,
+          consumeOneShot: result.consumeOneShot,
         );
       }
       await session.rollback();
@@ -1738,8 +1741,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // - `GameplayWorldState` reste la source canonique des positions *commitées*.
   // - pendant une interpolation visuelle d'un pas PNJ, on réserve aussi les
   //   cellules de destination pour éviter les traversées joueur<->PNJ / PNJ<->PNJ.
-  final Map<String, ({Set<GridPos> cells, PixelRect? contactRect})> _scriptedNpcReservedOccupiedCellsByEntity =
-      {};
+  final Map<String, ({Set<GridPos> cells, PixelRect? contactRect})>
+      _scriptedNpcReservedOccupiedCellsByEntity = {};
   double _runtimeClockMs = 0;
   int _debugEncounterCheckCount = 0;
   _EncounterCheckMarker? _lastEncounterCheckMarker;
@@ -2390,8 +2393,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   RuntimeOverworldInteractionSnapshot get overworldInteractionSnapshot =>
       _readOverworldInteractionSnapshot();
 
-  ValueListenable<RuntimeOverworldInteractionSnapshot> get overworldInteractions =>
-      _overworldInteractions;
+  ValueListenable<RuntimeOverworldInteractionSnapshot>
+      get overworldInteractions => _overworldInteractions;
 
   RuntimeOverworldInteractionRequest? hitTestOverworldInteraction(
       Offset canvasPosition) {
@@ -2401,8 +2404,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (action == null || activeMap == null) return null;
     final point = Vector2(canvasPosition.dx, canvasPosition.dy);
     if (!containsLocalPoint(point) ||
-        !camera.viewport.containsLocalPoint(
-            camera.viewport.globalToLocal(point))) {
+        !camera.viewport
+            .containsLocalPoint(camera.viewport.globalToLocal(point))) {
       return null;
     }
     final mapPosition =
@@ -2417,7 +2420,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return target.contains(mapPosition.toOffset()) ? action.request : null;
   }
 
-  bool dispatchOverworldInteraction(RuntimeOverworldInteractionRequest request) {
+  bool dispatchOverworldInteraction(
+      RuntimeOverworldInteractionRequest request) {
     final interaction =
         _resolveOverworldInteraction() ?? _resolveHiddenItemTapInteraction();
     if (interaction == null || interaction.action.request != request) {
@@ -4818,9 +4822,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             attemptedY >= _world.map.size.height);
 
     final previousPlayerPos = _world.player.pos;
-    final result = stepGameplayWorld(_world, intent,
+    final result = stepGameplayWorld(
+      _world,
+      intent,
       characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
-        .map((reservation) => reservation.contactRect).whereType<PixelRect>(),
+          .map((reservation) => reservation.contactRect)
+          .whereType<PixelRect>(),
     );
     _world = result.world;
     _syncGameStateFromWorld();
@@ -7941,7 +7948,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final battleStartSePath =
         _bundle.manifest.battleAudio?.battleStartSePath?.trim();
     if (battleStartSePath != null && battleStartSePath.isNotEmpty) {
-      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer)).playProjectFile(
+      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer))
+          .playProjectFile(
         p.normalize(
           p.join(_bundle.projectRootDirectory, battleStartSePath),
         ),
@@ -8229,7 +8237,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // test `debugOpenBattleForTest` et tout chemin sans transition
           // montent la scène immédiatement jouable, comme avant BAT-016.
           introEnabled: _battleTransitionOverlay != null,
-          playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer)).play,
+          playSfx: (_battleSfxPlayer ??=
+                  FlameAudioBattleSfxPlayer(mixer: _audioMixer))
+              .play,
           // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
           // (assets/pokemon/cries/<espèce>.ogg, 721 fichiers dans le Train),
           // pas des assets embarqués — d'où le chemin projet. Un cri absent
@@ -8524,7 +8534,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         const SceneBattleRuntimeOutcomeResult.completed(
           port: SceneBattleRuntimeOutcomePort.defeat,
         ),
-      BattleOutcomeType.runaway => const SceneBattleRuntimeOutcomeResult.completed(
+      BattleOutcomeType.runaway =>
+        const SceneBattleRuntimeOutcomeResult.completed(
           port: SceneBattleRuntimeOutcomePort.runaway,
         ),
       BattleOutcomeType.captured =>
@@ -9464,6 +9475,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           captureAttemptReceipt: _captureAttemptReceipt,
           storyFlagsManager: _storyFlags,
         ));
+      }
+
+      if (!postBattleFailed &&
+          hostedByNarrativeScene &&
+          (outcome.isVictory || outcome.isCaptured) &&
+          activeBattleContext.request is WildBattleStartRequest) {
+        final wildRequest =
+            activeBattleContext.request as WildBattleStartRequest;
+        if (_bundle.manifest.encounterTables.any(
+          (table) =>
+              table.id == wildRequest.tableId &&
+              table.tags.contains('studio:unique'),
+        )) {
+          _replaceBattleRuntimeGameState(_storyFlags.set(
+            _battleRuntimeGameState,
+            uniqueEncounterConsumedFlag(wildRequest.tableId),
+          ));
+        }
       }
 
       if (outcome.isDefeat && !postBattleFailed) {
@@ -11169,7 +11198,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
-      return evaluateSceneInventoryCondition(source: source, gameState: gameState)
+      return evaluateSceneInventoryCondition(
+              source: source, gameState: gameState)
           ? 'true'
           : 'false';
     }
@@ -14763,10 +14793,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos toAnchorPos,
   }) {
     if (entityId.trim() == 'player') {
-      _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (cells: <GridPos>{
-        GridPos(x: fromAnchorPos.x, y: fromAnchorPos.y),
-        GridPos(x: toAnchorPos.x, y: toAnchorPos.y),
-      }, contactRect: null);
+      _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (
+        cells: <GridPos>{
+          GridPos(x: fromAnchorPos.x, y: fromAnchorPos.y),
+          GridPos(x: toAnchorPos.x, y: toAnchorPos.y),
+        },
+        contactRect: null
+      );
       return;
     }
     final entity = _world.map.entities
@@ -14785,17 +14818,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
       return;
     }
-    final fromRect = resolveEntityCollisionRectPx(entity.copyWith(pos: fromAnchorPos),
-      tileWidthPx: _world.tileWidthPx, tileHeightPx: _world.tileHeightPx);
-    final toRect = resolveEntityCollisionRectPx(entity.copyWith(pos: toAnchorPos),
-      tileWidthPx: _world.tileWidthPx, tileHeightPx: _world.tileHeightPx);
+    final fromRect = resolveEntityCollisionRectPx(
+        entity.copyWith(pos: fromAnchorPos),
+        tileWidthPx: _world.tileWidthPx,
+        tileHeightPx: _world.tileHeightPx);
+    final toRect = resolveEntityCollisionRectPx(
+        entity.copyWith(pos: toAnchorPos),
+        tileWidthPx: _world.tileWidthPx,
+        tileHeightPx: _world.tileHeightPx);
     final left = math.min(fromRect.leftPx, toRect.leftPx);
     final top = math.min(fromRect.topPx, toRect.topPx);
     _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (
       cells: reserved,
-      contactRect: PixelRect(leftPx: left, topPx: top,
-        widthPx: math.max(fromRect.leftPx + fromRect.widthPx, toRect.leftPx + toRect.widthPx) - left,
-        heightPx: math.max(fromRect.topPx + fromRect.heightPx, toRect.topPx + toRect.heightPx) - top),
+      contactRect: PixelRect(
+          leftPx: left,
+          topPx: top,
+          widthPx: math.max(fromRect.leftPx + fromRect.widthPx,
+                  toRect.leftPx + toRect.widthPx) -
+              left,
+          heightPx: math.max(fromRect.topPx + fromRect.heightPx,
+                  toRect.topPx + toRect.heightPx) -
+              top),
     );
   }
 

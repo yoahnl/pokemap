@@ -36,6 +36,7 @@ import 'ui08_workspace_harness.dart';
 import 'ui12_widget_world_port.dart';
 import 'ui_pokemon_port.dart';
 import 'ui_pokemon_commerce_port.dart';
+import 'ui_pokemon_combat_port.dart';
 
 part 'map_host_fixture_disk.dart';
 part 'map_host_fixture_navigation.dart';
@@ -135,6 +136,7 @@ class MapHostFixture {
           reader: pokemonReader,
         ),
         pokemonCommercePort: UiPokemonCommercePort.forFixture(source, tester),
+        pokemonCombatPort: UiPokemonCombatPort.forFixture(source, tester),
         pokemonJsonPicker: pokemonJsonPicker,
         pokemonPngPicker: pokemonPngPicker,
         home: navigation,

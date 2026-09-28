@@ -31,6 +31,13 @@ void main() {
           guide,
           guide.copyWith(id: 'traveler', name: 'Voyageuse'),
         ],
+        trainers: [
+          const ProjectTrainerEntry(
+            id: 'alice',
+            name: 'Alice',
+            trainerClass: 'Dresseuse',
+          ),
+        ],
       );
       final view = MapWorkspaceViewState()..paletteTab = 'Personnages';
       final search = TextEditingController();
@@ -110,6 +117,13 @@ void main() {
       await tester.tap(find.text('Bloque le passage'));
       await tester.pump();
       expect(commands.selected(selected)!.blocksMovement, isFalse);
+      final trainerPicker = find.byType(DropdownButtonFormField<String>);
+      await tester.ensureVisible(trainerPicker);
+      await tester.tap(trainerPicker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Alice').last);
+      await tester.pumpAndSettle();
+      expect(commands.selected(selected)!.npc!.trainerId, 'alice');
       await tester.ensureVisible(find.text('Écrire son interaction'));
       await tester.tap(find.text('Écrire son interaction'));
       expect(edited!.id, selected);

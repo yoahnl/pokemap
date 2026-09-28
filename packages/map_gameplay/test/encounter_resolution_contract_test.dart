@@ -42,6 +42,34 @@ void main() {
       expect(first.encounter?.toJson(), reversed.encounter?.toJson());
     });
 
+    test('painted cells win overlaps without activating bounding-box holes',
+        () {
+      final painted = _zone(id: 'painted', tableId: 'alpha', priority: 4)
+          .copyWith(cellMask: const [
+        GridPos(x: 0, y: 0),
+        GridPos(x: 1, y: 1),
+        GridPos(x: 3, y: 3),
+      ]);
+      final rectangle = _zone(id: 'rectangle', tableId: 'beta');
+      final project = _project();
+      final inside = _check(_world([rectangle, painted]), project, seed: 5);
+      final hole = _check(
+        _world([rectangle, painted], playerPos: const GridPos(x: 3, y: 2)),
+        project,
+        seed: 5,
+      );
+      final outside = _check(
+        _world([painted], playerPos: const GridPos(x: 0, y: 0)),
+        project,
+        seed: 5,
+      );
+      expect(inside.sourceId, 'painted');
+      expect(inside.status, GameplayEncounterCheckStatus.triggered);
+      expect(hole.sourceId, 'rectangle');
+      expect(hole.status, GameplayEncounterCheckStatus.triggered);
+      expect(outside.status, GameplayEncounterCheckStatus.noSource);
+    });
+
     test('selects a canonical zone when equal-priority payloads are identical',
         () {
       final project = _project();
@@ -264,7 +292,10 @@ ProjectManifest _project() {
   );
 }
 
-GameplayWorldState _world(Iterable<MapGameplayZone> zones) {
+GameplayWorldState _world(
+  Iterable<MapGameplayZone> zones, {
+  GridPos playerPos = const GridPos(x: 2, y: 2),
+}) {
   final project = _project();
   return GameplayWorldState.initial(
     map: MapData(
@@ -274,7 +305,7 @@ GameplayWorldState _world(Iterable<MapGameplayZone> zones) {
       size: const GridSize(width: 10, height: 10),
       gameplayZones: zones.toList(growable: false),
     ),
-    playerPos: const GridPos(x: 2, y: 2),
+    playerPos: playerPos,
     project: project,
   );
 }

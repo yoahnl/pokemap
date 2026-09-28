@@ -50,6 +50,8 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
           '${area.size.width} × ${area.size.height} cases '
           'depuis ${area.pos.x}, ${area.pos.y}',
         ),
+        if (zone.cellMask != null)
+          Text('${zone.cellMask!.length} cases actives, avec trous possibles'),
         const SizedBox(height: 12),
         StudioCommitField(
           key: ValueKey('zone-name-$owner'),

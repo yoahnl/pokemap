@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';

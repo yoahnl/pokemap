@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/feedback/studio_empty_state.dart';

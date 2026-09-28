@@ -6,19 +6,27 @@ import '../domain/pokemon_import_models.dart';
 import '../domain/pokemon_moves_sync_models.dart';
 import '../domain/pokemon_external_import_models.dart';
 import 'pokemon_commerce_controller.dart';
+import 'pokemon_combat_controller.dart';
 
 part 'pokemon_learnset_commands.dart';
 part 'pokemon_moves_sync_commands.dart';
 part 'pokemon_import_commands.dart';
 part 'pokemon_external_commands.dart';
 part 'pokemon_workspace_queries.dart';
+part 'pokemon_workspace_owner_commands.dart';
 
 final class PokemonWorkspaceController {
-  PokemonWorkspaceController(this.port, {required this.changed, this.commerce});
+  PokemonWorkspaceController(
+    this.port, {
+    required this.changed,
+    this.commerce,
+    this.combat,
+  });
 
   final PokemonWorkspacePort port;
   final void Function() changed;
   final PokemonCommerceController? commerce;
+  final PokemonCombatController? combat;
   final _drafts = <String, PokemonSpeciesDraft>{};
   PokemonWorkspaceIndex? index;
   PokemonWorkspaceView view = PokemonWorkspaceView.pokedex;
@@ -56,14 +64,18 @@ final class PokemonWorkspaceController {
       syncing ||
       externalBusy ||
       commerce?.saving == true ||
-      commerce?.importing == true;
+      commerce?.importing == true ||
+      combat?.operationActive == true;
   bool get mutationActive =>
       saving ||
       committing ||
       commerce?.saving == true ||
-      commerce?.importing == true;
+      commerce?.importing == true ||
+      combat?.saving == true;
   bool get hasPendingChanges =>
-      _drafts.values.any((draft) => draft.dirty) || commerce?.dirty == true;
+      _drafts.values.any((draft) => draft.dirty) ||
+      commerce?.dirty == true ||
+      combat?.dirty == true;
   PokemonSpeciesDraft? get selectedDraft => _drafts[selectedId];
 
   List<PokemonMoveSummary> get visibleMoves {
@@ -156,6 +168,7 @@ final class PokemonWorkspaceController {
       final owner = commerce;
       if (owner != null) owner.load();
     }
+    if (value == PokemonWorkspaceView.combats) combat?.load();
     return true;
   }
 
@@ -228,62 +241,6 @@ final class PokemonWorkspaceController {
     _notify();
   }
 
-  bool get activeOwnerDirty => switch (view) {
-    PokemonWorkspaceView.pokedex => selectedDraft?.dirty == true,
-    PokemonWorkspaceView.items =>
-      commerce?.item != null && commerce?.dirty == true,
-    PokemonWorkspaceView.shops =>
-      commerce?.shop != null && commerce?.dirty == true,
-    PokemonWorkspaceView.moves => false,
-  };
-
-  bool discardActiveOwner() {
-    if (mutationActive || !activeOwnerDirty) return false;
-    if (view == PokemonWorkspaceView.pokedex) {
-      discardSelectedSpecies();
-    } else {
-      commerce!.discardSelected();
-    }
-    return true;
-  }
-
-  Future<bool> saveActiveOwner() async {
-    if (!hasPendingChanges) return true;
-    final dirtySpecies = _drafts.values.where((draft) => draft.dirty).length;
-    final dirtyCommerce = commerce?.dirty == true ? 1 : 0;
-    if (!activeOwnerDirty || dirtySpecies + dirtyCommerce != 1) {
-      error = 'Un autre brouillon Pokémon reste ouvert. Revenez à sa fiche.';
-      _notify();
-      return false;
-    }
-    if (view == PokemonWorkspaceView.items ||
-        view == PokemonWorkspaceView.shops) {
-      return commerce!.save();
-    }
-    final draft = selectedDraft;
-    if (saving) return false;
-    if (draft == null) return false;
-    final id = draft.id;
-    saving = true;
-    lastSavedSpeciesId = null;
-    error = null;
-    _notify();
-    try {
-      final saved = await port.save(draft);
-      if (_disposed) return false;
-      _drafts[id] = PokemonSpeciesDraft(saved);
-      await load(refresh: true);
-      if (!_disposed) lastSavedSpeciesId = id;
-      return !_disposed;
-    } on Object catch (failure) {
-      if (!_disposed) error = 'Enregistrement refusé : $failure';
-      return false;
-    } finally {
-      saving = false;
-      _notify();
-    }
-  }
-
   bool _current(int request) => !_disposed && request == _request;
 
   void _notify() {
@@ -294,5 +251,6 @@ final class PokemonWorkspaceController {
     _disposed = true;
     _request++;
     commerce?.dispose();
+    combat?.dispose();
   }
 }

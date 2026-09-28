@@ -16,29 +16,32 @@ class PokemonWorkspaceTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final (view, label) in const [
-          (PokemonWorkspaceView.pokedex, 'Pokédex'),
-          (PokemonWorkspaceView.moves, 'Attaques'),
-          (PokemonWorkspaceView.items, 'Objets'),
-          (PokemonWorkspaceView.shops, 'Boutiques'),
-        ])
-          Padding(
-            padding: const EdgeInsets.only(right: 7),
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: controller.view == view
-                    ? colors.primaryContainer
-                    : colors.surfaceContainer,
-                foregroundColor: colors.onSurface,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (view, label) in const [
+            (PokemonWorkspaceView.pokedex, 'Pokédex'),
+            (PokemonWorkspaceView.moves, 'Attaques'),
+            (PokemonWorkspaceView.items, 'Objets'),
+            (PokemonWorkspaceView.shops, 'Boutiques'),
+            (PokemonWorkspaceView.combats, 'Combats'),
+          ])
+            Padding(
+              padding: const EdgeInsets.only(right: 7),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: controller.view == view
+                      ? colors.primaryContainer
+                      : colors.surfaceContainer,
+                  foregroundColor: colors.onSurface,
+                ),
+                onPressed: () => onViewRequested(view),
+                child: Text(label),
               ),
-              onPressed: () => onViewRequested(view),
-              child: Text(label),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -28,6 +28,8 @@ enum StudioMapTool {
   sign,
   zone,
   gameplayZone,
+  encounterPaint,
+  encounterErase,
   erase,
   pan,
 }
