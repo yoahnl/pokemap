@@ -32,7 +32,8 @@ final class StudioMapResources
         CinematicWorkspaceVisuals,
         CinematicMediaWorkspaceVisuals,
         PresentationMediaWorkspaceVisuals,
-        MapBorderPreviewVisuals {
+        MapBorderPreviewVisuals,
+        MapWorkspacePreviewVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
@@ -172,23 +173,7 @@ final class StudioMapResources
       }
       setActiveMap(_activeMap!);
     }
-    final terrain = _terrainPreset;
-    final character = _characterBrush;
-    if (character != null) {
-      setCharacterBrush(
-        updated.characters
-            .where((entry) => entry.id == character.id)
-            .firstOrNull,
-      );
-    } else if (terrain != null) {
-      setTerrainBrush(
-        updated.smartTileCatalog.presets
-            .where((item) => item.id == terrain.id)
-            .firstOrNull,
-      );
-    } else {
-      setBrush(elements[_brushElement?.id], _brushTile);
-    }
+    _refreshBrushAfterCatalog(updated);
     _notify();
   }
 
@@ -285,8 +270,18 @@ final class StudioMapResources
   @override
   Widget canvas(MapData map) => StudioMapVisual(map: map, resources: this);
   @override
+  Widget previewCanvas(MapData map) =>
+      StudioMapVisual(map: map, resources: this, preview: true);
+  @override
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       StudioResourceThumbnail(element: element, resources: this, size: size);
+  @override
+  Widget placementPreview(ProjectElementEntry element, Size size) =>
+      StudioResourceThumbnail(
+        element: element,
+        resources: this,
+        canvasSize: size,
+      );
   @override
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
       StudioResourceThumbnail(tile: tile, resources: this, size: size);

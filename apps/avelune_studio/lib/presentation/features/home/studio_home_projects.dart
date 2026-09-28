@@ -106,6 +106,7 @@ class StudioHomeResume extends StatelessWidget {
   const StudioHomeResume({
     super.key,
     required this.maps,
+    this.previewBuilder,
     required this.onMap,
     required this.hasProject,
     required this.busy,
@@ -113,6 +114,7 @@ class StudioHomeResume extends StatelessWidget {
     this.maxPreview = 4,
   });
   final List<({String id, String name})> maps;
+  final Widget Function(String)? previewBuilder;
   final ValueChanged<String> onMap;
   final bool hasProject, busy;
   final VoidCallback? onAllMaps;
@@ -171,21 +173,23 @@ class StudioHomeResume extends StatelessWidget {
                             context,
                           ).colorScheme.surfaceContainerLow,
                           alignment: Alignment.center,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.map_outlined,
-                                color: StudioColors.of(context).success,
-                                size: 32,
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Aperçu indisponible',
-                                style: TextStyle(fontSize: 11),
-                              ),
-                            ],
-                          ),
+                          child: previewBuilder == null
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.map_outlined,
+                                      color: StudioColors.of(context).success,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'Aperçu indisponible',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                  ],
+                                )
+                              : previewBuilder!(map.id),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(10),

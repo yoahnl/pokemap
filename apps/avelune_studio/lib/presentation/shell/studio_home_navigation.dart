@@ -8,6 +8,7 @@ class StudioHomeNavigation extends ChangeNotifier {
   bool visible = true;
   bool canTest = false;
   List<StudioHomeMap> maps = const [];
+  Widget Function(String)? mapPreviewBuilder;
   Future<bool> Function()? allowSwitch;
   void Function(String, String?)? onNavigate;
   (String, String?)? _pending;
@@ -43,12 +44,14 @@ class StudioHomeNavigation extends ChangeNotifier {
   void publish({
     required List<StudioHomeMap> availableMaps,
     required bool testAvailable,
+    Widget Function(String)? previewBuilder,
     required void Function(String, String?) navigate,
     required Future<bool> Function() guard,
   }) {
     if (_disposed) return;
     maps = availableMaps;
     canTest = testAvailable;
+    mapPreviewBuilder = previewBuilder;
     onNavigate = navigate;
     allowSwitch = guard;
     final pending = _pending;
@@ -60,6 +63,7 @@ class StudioHomeNavigation extends ChangeNotifier {
   void reset() {
     maps = const [];
     canTest = false;
+    mapPreviewBuilder = null;
     onNavigate = null;
     allowSwitch = null;
     _pending = null;

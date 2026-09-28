@@ -23,6 +23,7 @@ class StudioHomeScreen extends StatefulWidget {
     required this.onRecent,
     required this.onRemoveRecent,
     this.maps = const [],
+    this.mapPreviewBuilder,
     required this.onMap,
     this.status,
     this.statusAtTop = false,
@@ -37,6 +38,7 @@ class StudioHomeScreen extends StatefulWidget {
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
   final List<({String id, String name})> maps;
+  final Widget Function(String)? mapPreviewBuilder;
   final Widget? status;
   final bool statusAtTop;
   final TextEditingController? searchController;
@@ -195,6 +197,7 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
       );
       final resume = StudioHomeResume(
         maps: maps,
+        previewBuilder: widget.mapPreviewBuilder,
         onMap: widget.onMap,
         onAllMaps: () => widget.onDestination('map'),
         hasProject: widget.projectName != null,

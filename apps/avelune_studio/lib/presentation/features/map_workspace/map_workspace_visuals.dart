@@ -7,6 +7,7 @@ import 'workspace_resource_diagnostic.dart';
 abstract interface class MapWorkspaceVisuals implements Listenable {
   Widget canvas(MapData map);
   Widget thumbnail(ProjectElementEntry element, {double size = 48});
+  Widget placementPreview(ProjectElementEntry element, Size size);
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48});
   List<WorkspaceResourceDiagnostic> get diagnostics;
   Set<String> get activeResourceIds;
@@ -15,6 +16,10 @@ abstract interface class MapWorkspaceVisuals implements Listenable {
   Future<void> retryResources(Iterable<String> resourceIds);
   List<String> get warnings;
   Future<void> dispose();
+}
+
+abstract interface class MapWorkspacePreviewVisuals {
+  Widget previewCanvas(MapData map);
 }
 
 typedef LoadWorkspaceVisuals =

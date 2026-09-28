@@ -58,7 +58,6 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_selection
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
@@ -67,6 +66,7 @@ import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
 import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
+import 'studio_home_map_preview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shell/studio_home_navigation.dart';
