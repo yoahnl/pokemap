@@ -383,7 +383,7 @@ void main() {
       find.byType(PlayerRuntimeSplashSurface),
     );
     expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
-    expect(surface.ambientProgress, isNot(ambientAtHold));
+    expect(surface.ambientProgress, ambientAtHold);
 
     await tester.pumpWidget(
       _app(

@@ -67,6 +67,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
 
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
+  static const _splashMovieRevealDuration = Duration(milliseconds: 2600);
+
   final _gameplayViewportKey = GlobalKey();
   RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>?
   _startupCoordinator;
@@ -122,6 +124,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_useSplashMovie) return;
+    _precacheSplashImages();
+  }
+
+  void _precacheSplashImages() {
     if (_splashImagesRequested) return;
     _splashImagesRequested = true;
     final images = <ImageProvider>[
@@ -183,11 +190,20 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             return;
           }
           _splashMovie = movie;
+          setState(() {});
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted) return;
           await movie.play();
           if (mounted) setState(() => _splashAnimationReady = true);
           return;
         } on Object {
+          if (identical(_splashMovie, movie)) {
+            _splashMovie = null;
+            if (mounted) setState(() {});
+          }
+          if (!mounted) return;
           await movie.dispose();
+          _precacheSplashImages();
         }
       }
       await _splashImagesReady.future;
@@ -208,6 +224,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             saveRepositoryFactory: widget.saveRepositoryFactory,
             preferencesRepository: widget.preferencesRepository,
             preferencesRead: _preferencesRead,
+            startupWorkGate:
+                _useSplashMovie
+                    ? _splashSequenceStarted.then(
+                      (_) => Future<void>.delayed(_splashMovieRevealDuration),
+                    )
+                    : null,
             audioMixer: _audioMixer,
             splashJingle: _splashJingle,
             controlProfileRepository: widget.controlProfileRepository,

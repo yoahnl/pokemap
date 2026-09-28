@@ -64,6 +64,7 @@ final class HubRuntimeStartupBootstrap
     this.presentationFrameDeltas,
     this.presentationBeforeTerminal,
     this.preferencesRead,
+    this.startupWorkGate,
     this.audioMixer,
     this.splashJingle,
   });
@@ -83,6 +84,7 @@ final class HubRuntimeStartupBootstrap
   final RuntimePresentationFrameDeltas? presentationFrameDeltas;
   final RuntimePresentationBeforeTerminal? presentationBeforeTerminal;
   final Future<HubPreferencesRead>? preferencesRead;
+  final Future<void>? startupWorkGate;
   final RuntimeAudioMixer? audioMixer;
   final RuntimeSplashJingleController? splashJingle;
 
@@ -92,6 +94,7 @@ final class HubRuntimeStartupBootstrap
   }) async {
     HubInstalledPresentationRuntime? presentationRuntime;
     try {
+      if (startupWorkGate != null) await startupWorkGate;
       final launch = await launchResolver.resolve(game);
       onStageCompleted(RuntimeStartupBootstrapStage.projectResolution);
 

@@ -10,12 +10,50 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
 
 void main() {
+  test(
+    'waits until the splash reveal finishes before preparing the game',
+    () async {
+      final reveal = Completer<void>();
+      final launch = Completer<InstalledGameLaunchContext>();
+      final resolver = _PendingLaunchResolver(launch.future);
+      final bootstrap = HubRuntimeStartupBootstrap(
+        supportRoot: Directory.systemTemp,
+        saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+        preferencesRepository: _UnusedPreferencesRepository(),
+        controlProfileRepository: _UnusedControlProfileRepository(),
+        launchResolver: resolver,
+        game: _game(),
+        onHubRequested: () async {},
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+        stopIntroPlayback: () async {},
+        defaultProfileDisplayNameForLocale: (_) => 'Joueur',
+        diagnosticLogFile: File('/dev/null'),
+        startupWorkGate: reveal.future,
+      );
+
+      final preparation = bootstrap.prepare(onStageCompleted: (_) {});
+      await Future<void>.delayed(Duration.zero);
+      expect(resolver.resolveCalls, 0);
+
+      reveal.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(resolver.resolveCalls, 1);
+      launch.completeError(StateError('bootstrap test completed'));
+      await expectLater(
+        preparation,
+        throwsA(isA<RuntimeStartupBootstrapException>()),
+      );
+    },
+  );
+
   testWidgets('loads the game while motion waits for the jingle to start', (
     tester,
   ) async {
@@ -223,12 +261,16 @@ final class _PendingPreferencesRepository
 }
 
 final class _PendingLaunchResolver implements SessionLaunchRepositoryInterface {
-  const _PendingLaunchResolver(this.pending);
+  _PendingLaunchResolver(this.pending);
 
   final Future<InstalledGameLaunchContext> pending;
+  int resolveCalls = 0;
 
   @override
-  Future<InstalledGameLaunchContext> resolve(InstalledGame game) => pending;
+  Future<InstalledGameLaunchContext> resolve(InstalledGame game) {
+    resolveCalls++;
+    return pending;
+  }
 }
 
 final class _UnusedPreferencesRepository

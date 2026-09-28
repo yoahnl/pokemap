@@ -96,6 +96,28 @@ final class LibraryVisualGateTests: XCTestCase {
         attachScreenshot(of: app, name: "handoff-flutter")
     }
 
+    func testTrainSplashReachesTitle() throws {
+        let app = XCUIApplication()
+        app.launch()
+        app.swipeUp()
+
+        let train = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Le train de 17h42, voir la fiche")
+        ).firstMatch
+        guard train.waitForExistence(timeout: 20) else {
+            throw XCTSkip("Installer Le train de 17h42 pour vérifier son démarrage.")
+        }
+
+        train.tap()
+        let play = app.buttons["Jouer"].exists ? app.buttons["Jouer"] : app.buttons["Reprendre"]
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        play.tap()
+        XCTAssertFalse(app.statusBars.firstMatch.exists)
+        attachScreenshot(of: app, name: "train-splash")
+        XCTAssertTrue(app.staticTexts["Le train de 17h42"].waitForExistence(timeout: 15))
+        attachScreenshot(of: app, name: "train-after-splash")
+    }
+
     private func findCover(in app: XCUIApplication) -> XCUIElement {
         app.swipeUp()
         let cover = app.buttons.matching(

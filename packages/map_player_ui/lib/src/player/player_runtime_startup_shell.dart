@@ -257,7 +257,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           _splashAmbientAnimation,
           _splashFinishAnimation,
         ]),
-        builder: (context, _) => PlayerRuntimeSplashSurface(
+        child: widget.splashCinematic,
+        builder: (context, cinematic) => PlayerRuntimeSplashSurface(
           branding: widget.branding,
           progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
           animationProgress:
@@ -267,7 +268,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           loadingLabel: _runtimeStartupLoadingLabel(widget.snapshot),
           logo: widget.splashLogo,
           wordmark: widget.splashWordmark,
-          cinematic: widget.splashCinematic,
+          cinematic: cinematic,
           reducedMotion: widget.reducedMotion,
         ),
       );
@@ -299,11 +300,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       _splashFinishAnimation.stop(canceled: false);
       return;
     }
-    if (!_splashAmbientAnimation.isAnimating) {
-      _splashAmbientAnimation.repeat();
-    }
     final loadingProgress =
         widget.splashLoadingProgress ?? widget.snapshot.progress;
+    if (loadingProgress <= 0) {
+      if (!_splashAmbientAnimation.isAnimating) {
+        _splashAmbientAnimation.repeat();
+      }
+    } else {
+      _splashAmbientAnimation.stop(canceled: false);
+    }
     final target = loadingProgress >= 1 ? 1.0 : kPlayerSplashHoldProgress;
     if (loadingProgress < 1) {
       _splashFinishAnimation.stop(canceled: false);
