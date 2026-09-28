@@ -3,6 +3,48 @@ import XCTest
 
 @MainActor
 final class GameLibraryTests: XCTestCase {
+    func testLibraryStartsLoadingBeforeTheFirstResponse() {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+
+        XCTAssertEqual(viewModel.libraryState, .loading)
+        XCTAssertTrue(viewModel.games.isEmpty)
+    }
+
+    func testSuccessfulLoadRevealsTheRealLibraryState() async {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+        useCase.result = .success([Game(payload: ["gameId": "train", "title": "Le train de 17h42"])!])
+
+        await viewModel.refresh()
+
+        XCTAssertEqual(viewModel.libraryState, .loaded)
+        XCTAssertEqual(viewModel.games.map(\.id), ["train"])
+
+        useCase.result = .success([])
+        await viewModel.refresh()
+
+        XCTAssertEqual(viewModel.libraryState, .loaded)
+        XCTAssertTrue(viewModel.games.isEmpty)
+    }
+
+    func testFailedFirstLoadCanRetryWithoutShowingAnEmptyLibrary() async {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+        useCase.result = .failure(LibraryTestError.unavailable)
+
+        await viewModel.refresh()
+
+        XCTAssertEqual(viewModel.libraryState, .failed)
+        XCTAssertTrue(viewModel.games.isEmpty)
+
+        useCase.result = .success([Game(payload: ["gameId": "train", "title": "Le train de 17h42"])!])
+        await viewModel.refresh()
+
+        XCTAssertEqual(viewModel.libraryState, .loaded)
+        XCTAssertEqual(viewModel.games.map(\.id), ["train"])
+    }
+
     func testArtworkFallbacksPreserveOlderPackages() {
         let game = Game(payload: ["gameId": "old", "title": "Ancien jeu", "iconPath": "/icon.png"])
 
@@ -66,5 +108,26 @@ final class GameLibraryTests: XCTestCase {
         XCTAssertEqual(Game.featuredOrder([]).count, 0)
         XCTAssertEqual(Game.featuredOrder([games[0]]).map(\.id), ["first"])
         XCTAssertEqual(Game.featuredOrder(games).map(\.id), ["second", "first", "third"])
+    }
+}
+
+private enum LibraryTestError: Error {
+    case unavailable
+}
+
+@MainActor
+private final class LibraryUseCaseStub: LoadLibraryUseCase, InstallGameUseCase {
+    var result: Result<[Game], Error> = .success([])
+
+    func execute() async throws -> [Game] {
+        try result.get()
+    }
+
+    func install(packagePath: String) async throws -> Game {
+        throw LibraryTestError.unavailable
+    }
+
+    func uninstall(_ game: Game) async throws -> [Game] {
+        throw LibraryTestError.unavailable
     }
 }

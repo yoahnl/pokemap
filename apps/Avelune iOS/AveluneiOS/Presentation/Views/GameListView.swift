@@ -19,15 +19,23 @@ struct GameListView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 26) {
-                    Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
-                        .font(.subheadline)
-                        .foregroundStyle(AveluneTheme.muted)
-                        .padding(.horizontal, 24)
-
-                    if viewModel.games.isEmpty {
-                        emptyLibrary
+                    if viewModel.libraryState == .loading {
+                        LibraryLoadingView()
+                            .padding(.horizontal, 24)
+                    } else if viewModel.libraryState == .failed {
+                        failedLibrary
                             .padding(.horizontal, 24)
                     } else {
+                        Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
+                            .font(.subheadline)
+                            .foregroundStyle(AveluneTheme.muted)
+                            .padding(.horizontal, 24)
+                    }
+
+                    if viewModel.libraryState == .loaded && viewModel.games.isEmpty {
+                        emptyLibrary
+                            .padding(.horizontal, 24)
+                    } else if viewModel.libraryState == .loaded {
                         FeaturedGamesView(
                             games: Game.featuredOrder(viewModel.games),
                             navigationTransition: navigationTransition,
@@ -200,6 +208,138 @@ struct GameListView: View {
         .padding(.vertical, 28)
         .background(AveluneTheme.surface, in: RoundedRectangle(cornerRadius: 30))
         .overlay(RoundedRectangle(cornerRadius: 30).stroke(AveluneTheme.border))
+    }
+
+    private var failedLibrary: some View {
+        VStack(spacing: 18) {
+            Image("AveluneMoon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 104, height: 104)
+                .accessibilityHidden(true)
+
+            Text("La bibliothèque ne s’ouvre pas")
+                .font(.system(size: 25, weight: .bold, design: .rounded))
+                .foregroundStyle(AveluneTheme.text)
+
+            Text("Impossible de retrouver vos jeux pour le moment. Réessayons.")
+                .font(.subheadline)
+                .foregroundStyle(AveluneTheme.muted)
+                .multilineTextAlignment(.center)
+
+            if let detail = viewModel.libraryLoadError {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(AveluneTheme.muted)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
+
+            Button {
+                Task { await viewModel.refresh() }
+            } label: {
+                Label("Réessayer", systemImage: "arrow.clockwise")
+                    .font(.system(.headline, design: .rounded))
+                    .frame(maxWidth: .infinity)
+            }
+            .aveluneGlassButton(prominent: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(28)
+        .background(AveluneTheme.surface, in: RoundedRectangle(cornerRadius: 30))
+        .overlay(RoundedRectangle(cornerRadius: 30).stroke(AveluneTheme.border))
+        .accessibilityIdentifier("library-load-failed")
+    }
+}
+
+private struct LibraryLoadingView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isOrbiting = false
+
+    var body: some View {
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [AveluneTheme.lilac.opacity(0.28), AveluneTheme.cyan.opacity(0.12), .clear],
+                            center: .center,
+                            startRadius: 12,
+                            endRadius: 125
+                        )
+                    )
+                    .frame(width: 250, height: 250)
+
+                Circle()
+                    .stroke(AveluneTheme.border, lineWidth: 1)
+                    .frame(width: 214, height: 214)
+
+                Circle()
+                    .trim(from: 0.03, to: 0.42)
+                    .stroke(
+                        AngularGradient(
+                            colors: [AveluneTheme.rose, AveluneTheme.lilac, AveluneTheme.cyan, AveluneTheme.mint],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .frame(width: 214, height: 214)
+                    .rotationEffect(.degrees(isOrbiting ? 360 : 0))
+                    .animation(reduceMotion ? nil : .linear(duration: 7).repeatForever(autoreverses: false), value: isOrbiting)
+
+                Circle()
+                    .trim(from: 0.48, to: 0.82)
+                    .stroke(
+                        AngularGradient(
+                            colors: [AveluneTheme.cyan, AveluneTheme.mint, AveluneTheme.rose],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                    )
+                    .frame(width: 176, height: 176)
+                    .rotationEffect(.degrees(isOrbiting ? -360 : 0))
+                    .animation(reduceMotion ? nil : .linear(duration: 10).repeatForever(autoreverses: false), value: isOrbiting)
+
+                Image("AveluneMoon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 136, height: 136)
+                    .shadow(color: AveluneTheme.lilac.opacity(0.25), radius: 20)
+
+                Circle()
+                    .fill(AveluneTheme.rose)
+                    .frame(width: 7, height: 7)
+                    .offset(x: -110, y: -50)
+
+                Circle()
+                    .fill(AveluneTheme.mint)
+                    .frame(width: 5, height: 5)
+                    .offset(x: 111, y: 48)
+            }
+            .frame(height: 260)
+
+            Text("Vos mondes se rassemblent")
+                .font(.system(size: 25, weight: .bold, design: .rounded))
+                .foregroundStyle(AveluneTheme.text)
+                .multilineTextAlignment(.center)
+
+            Text("On prépare votre bibliothèque…")
+                .font(.subheadline)
+                .foregroundStyle(AveluneTheme.muted)
+                .multilineTextAlignment(.center)
+
+            Capsule()
+                .fill(AveluneTheme.accent)
+                .frame(width: 78, height: 3)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 42)
+        .onAppear { isOrbiting = !reduceMotion }
+        .onChange(of: reduceMotion) { _, isReduced in isOrbiting = !isReduced }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Chargement de la bibliothèque Avelune")
+        .accessibilityIdentifier("library-loading")
     }
 }
 
