@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/home/domain/recent_studio_project.dart';
 import 'package:avelune_studio/presentation/features/home/studio_home_screen.dart';
+import 'package:avelune_studio/presentation/features/home/studio_home_projects.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -10,6 +11,53 @@ import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
 
 void main() {
+  for (final textScale in [1.0, 1.5]) {
+    testWidgets('map cards align with one and two line titles at $textScale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(900, 500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+            child: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 700,
+                  child: StudioHomeResume(
+                    maps: const [
+                      (id: 'short', name: 'UwU'),
+                      (
+                        id: 'long',
+                        name:
+                            'Route de Hanazuki — Sentier des premières rencontres',
+                      ),
+                    ],
+                    onMap: (_) {},
+                    hasProject: true,
+                    busy: false,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final buttons = find.widgetWithText(StudioButton, 'Ouvrir');
+      expect(buttons, findsNWidgets(2));
+      expect(
+        tester.getTopLeft(buttons.at(0)).dy,
+        tester.getTopLeft(buttons.at(1)).dy,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final size in [
     const Size(1536, 1024),
     const Size(1440, 900),
@@ -256,7 +304,9 @@ void main() {
     );
     expect(find.text('Projet 99'), findsOneWidget);
     await tester.tap(find.text('Voir toutes les cartes (10)'));
-    expect(routes.last, 'map');
+    await tester.pumpAndSettle();
+    expect(find.text('Toutes les cartes (10)'), findsOneWidget);
+    expect(routes, isEmpty);
     expect(tester.takeException(), isNull);
   });
 }

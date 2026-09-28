@@ -157,64 +157,11 @@ class StudioHomeResume extends StatelessWidget {
               for (final map in maps.take(maxPreview))
                 SizedBox(
                   width: (constraints.maxWidth - (count - 1) * 10) / count,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          height: 100,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLow,
-                          alignment: Alignment.center,
-                          child: previewBuilder == null
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.map_outlined,
-                                      color: StudioColors.of(context).success,
-                                      size: 32,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    const Text(
-                                      'Aperçu indisponible',
-                                      style: TextStyle(fontSize: 11),
-                                    ),
-                                  ],
-                                )
-                              : previewBuilder!(map.id),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                map.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              StudioButton(
-                                label: 'Ouvrir',
-                                secondary: true,
-                                onPressed: busy ? null : () => onMap(map.id),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: StudioHomeMapCard(
+                    map: map,
+                    previewBuilder: previewBuilder,
+                    onMap: onMap,
+                    busy: busy,
                   ),
                 ),
             ],
@@ -223,4 +170,88 @@ class StudioHomeResume extends StatelessWidget {
       ),
     ],
   );
+}
+
+class StudioHomeMapCard extends StatelessWidget {
+  const StudioHomeMapCard({
+    super.key,
+    required this.map,
+    required this.onMap,
+    required this.busy,
+    this.previewBuilder,
+  });
+
+  final ({String id, String name}) map;
+  final ValueChanged<String> onMap;
+  final bool busy;
+  final Widget Function(String)? previewBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = DefaultTextStyle.of(context).style;
+    final titleHeight =
+        MediaQuery.textScalerOf(context).scale(titleStyle.fontSize ?? 14) *
+        (titleStyle.height ?? 1.5) *
+        2;
+    return DecoratedBox(
+      key: ValueKey('home-map-card-${map.id}'),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 100,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            alignment: Alignment.center,
+            child: previewBuilder == null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.map_outlined,
+                        color: StudioColors.of(context).success,
+                        size: 32,
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Aperçu indisponible',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  )
+                : previewBuilder!(map.id),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: titleHeight,
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      map.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                StudioButton(
+                  label: 'Ouvrir',
+                  secondary: true,
+                  onPressed: busy ? null : () => onMap(map.id),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
