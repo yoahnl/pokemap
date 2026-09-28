@@ -9,9 +9,17 @@ enum InstallationStage: String, Identifiable {
     var id: String { rawValue }
 }
 
+enum LibraryLoadState {
+    case loading
+    case loaded
+    case failed
+}
+
 @MainActor
 final class GameListViewModel: ObservableObject {
     @Published private(set) var games: [Game] = []
+    @Published private(set) var libraryState: LibraryLoadState = .loading
+    @Published private(set) var libraryLoadError: String?
     @Published private(set) var isBusy = false
     @Published private(set) var installationStage: InstallationStage?
     @Published private(set) var installationName: String?
@@ -26,10 +34,23 @@ final class GameListViewModel: ObservableObject {
     }
 
     func refresh() async {
+        let isInitialLoad = libraryState != .loaded
+        if isInitialLoad {
+            libraryState = .loading
+            libraryLoadError = nil
+        }
+
         do {
             games = try await loadLibraryUseCase.execute()
+            libraryState = .loaded
+            libraryLoadError = nil
         } catch {
-            errorMessage = error.localizedDescription
+            if isInitialLoad {
+                libraryLoadError = error.localizedDescription
+                libraryState = .failed
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -55,6 +76,8 @@ final class GameListViewModel: ObservableObject {
             _ = try await installGameUseCase.install(packagePath: packagePath)
             installationStage = .finishing
             games = try await loadLibraryUseCase.execute()
+            libraryState = .loaded
+            libraryLoadError = nil
         } catch {
             errorMessage = error.localizedDescription
         }
