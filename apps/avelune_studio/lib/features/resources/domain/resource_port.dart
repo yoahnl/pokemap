@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:map_core/map_core_domain.dart';
 
 final class ResourceImageImport {
@@ -12,6 +13,18 @@ final class ResourceImageImport {
   final String name;
   final int tileWidth;
   final int tileHeight;
+}
+
+final class CharacterPortraitImport {
+  const CharacterPortraitImport({
+    required this.sourcePath,
+    required this.characterId,
+    required this.portraitStateId,
+  });
+
+  final String sourcePath;
+  final String characterId;
+  final String portraitStateId;
 }
 
 final class ResourceMutationReceipt {
@@ -34,6 +47,15 @@ final class ResourceMutationReceipt {
 
 abstract interface class ResourcePort {
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request);
+
+  Future<ResourceMutationReceipt> importCharacterPortrait(
+    CharacterPortraitImport request,
+  );
+
+  Future<Uint8List?> readCharacterPortrait(
+    String characterId,
+    String portraitStateId,
+  );
 
   Future<ResourceMutationReceipt> mutate(
     String actionId,

@@ -24,6 +24,7 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onEdit,
     required this.onTerrain,
     required this.onImport,
+    this.onCharacters,
     required this.onBack,
     this.openMaps = const [],
     this.targetMapName,
@@ -40,6 +41,7 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem> onEdit;
   final ValueChanged<ResourceItem> onTerrain;
   final VoidCallback onImport;
+  final VoidCallback? onCharacters;
   final VoidCallback onBack;
   final String? targetMapName;
   final bool canUse;
@@ -174,6 +176,13 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                   ? null
                   : 'Vos décors, terrains et images, prêts à donner vie à la carte.',
               actions: [
+                if (widget.onCharacters != null)
+                  StudioButton(
+                    label: 'Personnages',
+                    icon: Icons.person_outline,
+                    secondary: true,
+                    onPressed: widget.onCharacters,
+                  ),
                 StudioButton(
                   label: widget.targetMapName == null
                       ? 'Retour à la carte'

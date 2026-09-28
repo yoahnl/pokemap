@@ -172,29 +172,18 @@ final class StudioMapResources
       }
       setActiveMap(_activeMap!);
     }
-    final terrain = _terrainPreset;
-    final character = _characterBrush;
-    if (character != null) {
-      setCharacterBrush(
-        updated.characters
-            .where((entry) => entry.id == character.id)
-            .firstOrNull,
-      );
-    } else if (terrain != null) {
-      setTerrainBrush(
-        updated.smartTileCatalog.presets
-            .where((item) => item.id == terrain.id)
-            .firstOrNull,
-      );
-    } else {
-      setBrush(elements[_brushElement?.id], _brushTile);
-    }
+    _refreshBrushAfterCatalog(updated);
     _notify();
   }
 
   @override
   Widget atlasPreview(String tilesetId) =>
       StudioAtlasPreview(resources: this, tilesetId: tilesetId);
+
+  @override
+  ProjectRegularAtlasTilesetSource? characterAtlas(
+    ProjectCharacterEntry character,
+  ) => _characterAtlas(character);
 
   @override
   void setActiveMap(MapData map) => _setActiveMap(map);
@@ -233,11 +222,20 @@ final class StudioMapResources
     ProjectCharacterEntry character, {
     double size = 48,
     EntityFacing facing = EntityFacing.south,
-  }) => StudioCharacterThumbnail(
-    resources: this,
-    character: character,
+  }) => _characterThumbnail(character, size: size, facing: facing);
+  @override
+  Widget characterAnimationThumbnail(
+    ProjectCharacterEntry character, {
+    required double size,
+    required EntityFacing facing,
+    required CharacterAnimationState state,
+    required int elapsedMs,
+  }) => _characterThumbnail(
+    character,
     size: size,
     facing: facing,
+    state: state,
+    elapsedMs: elapsedMs,
   );
   void release(Object owner) => store.release(owner);
 
@@ -249,12 +247,11 @@ final class StudioMapResources
     CharacterAnimationState animationState = CharacterAnimationState.idle,
     int elapsedMs = 0,
     CharacterCustomAnimationClip? customAnimation,
-  }) => StudioCharacterThumbnail(
-    resources: this,
-    character: character,
+  }) => _characterThumbnail(
+    character,
     size: size,
     facing: facing,
-    animationState: animationState,
+    state: animationState,
     elapsedMs: elapsedMs,
     customAnimation: customAnimation,
   );

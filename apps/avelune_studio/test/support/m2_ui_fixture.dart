@@ -59,46 +59,52 @@ class M2UiFixture {
     );
   }
 
-  Widget app(WidgetTester tester, {double textScale = 1}) => MaterialApp(
+  Widget app(
+    WidgetTester tester, {
+    double textScale = 1,
+    PickResourceImage? imagePicker,
+  }) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(textScale)),
-      child: child!,
+    builder: (context, child) => RepaintBoundary(
+      key: captureKey,
+      child: MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
     ),
     theme: studioTheme(),
-    home: RepaintBoundary(
-      key: captureKey,
-      child: MapWorkspaceScreen(
-        controller: controller,
-        loadVisuals: (session, manifest) async =>
-            visuals = await StudioMapResources.load(session, manifest),
-        resourcePort: WidgetResourcePort(resources, tester),
-        imagePicker: () async {
-          final bytes = exampleAtlasPng();
-          final file = File(
-            '${directory.parent.path}/${directory.uri.pathSegments.where((s) => s.isNotEmpty).last}-source.png',
-          );
-          await file.writeAsBytes(bytes);
-          return PickedResourceImage(
-            file.path,
-            'Planche M2',
-            Uint8List.fromList(bytes),
-            160,
-            64,
-          );
-        },
-        runtimeBuilder: (entry, revision, close) => StudioPlaytestView(
-          session: session,
-          entry: entry,
-          expectedRevision: revision,
-          port: port,
-          onClose: close,
-        ),
-        onClose: () async {},
-        registerExitGuard: (_) {},
+    home: MapWorkspaceScreen(
+      controller: controller,
+      loadVisuals: (session, manifest) async =>
+          visuals = await StudioMapResources.load(session, manifest),
+      resourcePort: WidgetResourcePort(resources, tester),
+      imagePicker:
+          imagePicker ??
+          () async {
+            final bytes = exampleAtlasPng();
+            final file = File(
+              '${directory.parent.path}/${directory.uri.pathSegments.where((s) => s.isNotEmpty).last}-source.png',
+            );
+            await file.writeAsBytes(bytes);
+            return PickedResourceImage(
+              file.path,
+              'Planche M2',
+              Uint8List.fromList(bytes),
+              160,
+              64,
+            );
+          },
+      runtimeBuilder: (entry, revision, close) => StudioPlaytestView(
+        session: session,
+        entry: entry,
+        expectedRevision: revision,
+        port: port,
+        onClose: close,
       ),
+      onClose: () async {},
+      registerExitGuard: (_) {},
     ),
   );
   Future<void> dispose() async {
@@ -160,6 +166,18 @@ class WidgetResourcePort implements ResourcePort {
   Future<ResourceMutationReceipt> importImage(
     ResourceImageImport request,
   ) async => run(() => port.importImage(request));
+  @override
+  Future<ResourceMutationReceipt> importCharacterPortrait(
+    CharacterPortraitImport request,
+  ) async => run(() => port.importCharacterPortrait(request));
+  @override
+  Future<Uint8List?> readCharacterPortrait(
+    String characterId,
+    String stateId,
+  ) => WidgetResourcePort.serial<Uint8List?>(
+    tester,
+    () => port.readCharacterPortrait(characterId, stateId),
+  );
   @override
   Future<ResourceMutationReceipt> mutate(
     String action,
