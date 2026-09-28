@@ -72,7 +72,72 @@ const terrainConnectionNames = [
   'Bord droit',
   'Bord haut',
   'Centre',
+  'Coin extérieur haut gauche',
+  'Coin extérieur haut droit',
+  'Coin extérieur bas gauche',
+  'Coin extérieur bas droit',
 ];
+
+int terrainRuleAt(
+  Set<GridPos> cells,
+  GridPos position, {
+  required bool withOuterCorners,
+}) {
+  final x = position.x, y = position.y;
+  final mask =
+      (cells.contains(GridPos(x: x, y: y - 1)) ? 1 : 0) |
+      (cells.contains(GridPos(x: x + 1, y: y)) ? 2 : 0) |
+      (cells.contains(GridPos(x: x, y: y + 1)) ? 4 : 0) |
+      (cells.contains(GridPos(x: x - 1, y: y)) ? 8 : 0);
+  if (mask != 15 || !withOuterCorners) return mask;
+  final missing = <int>[
+    if (!cells.contains(GridPos(x: x - 1, y: y - 1))) 16,
+    if (!cells.contains(GridPos(x: x + 1, y: y - 1))) 17,
+    if (!cells.contains(GridPos(x: x - 1, y: y + 1))) 18,
+    if (!cells.contains(GridPos(x: x + 1, y: y + 1))) 19,
+  ];
+  return missing.length == 1 ? missing.single : mask;
+}
+
+SmartTileRule terrainOuterCornerRule(
+  int index,
+  SmartTileFrameRef? frame,
+  String materialId,
+) {
+  if (index < 16 || index > 19) {
+    throw RangeError.range(index, 16, 19);
+  }
+  SmartTileSlotMatch corner(int slot) => index == slot
+      ? const SmartTileSlotMatch.empty()
+      : const SmartTileSlotMatch.same();
+  return SmartTileRule(
+    id: 'connection-$index',
+    centerMatch: SmartTileSlotMatch.material(materialId),
+    signature: SmartTileSignature(
+      northEdge: const SmartTileSlotMatch.same(),
+      eastEdge: const SmartTileSlotMatch.same(),
+      southEdge: const SmartTileSlotMatch.same(),
+      westEdge: const SmartTileSlotMatch.same(),
+      northWestCorner: corner(16),
+      northEastCorner: corner(17),
+      southWestCorner: corner(18),
+      southEastCorner: corner(19),
+    ),
+    candidates: frame == null
+        ? []
+        : [
+            SmartTileCandidate(
+              id: 'piece-$index',
+              label: terrainConnectionNames[index],
+              parts: [
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(frame: frame),
+                ),
+              ],
+            ),
+          ],
+  );
+}
 
 SmartTileRule terrainConnectionRule(
   int mask,

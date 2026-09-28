@@ -46,7 +46,7 @@ class TerrainDraftController {
   int get assignedCount =>
       draft.rules.where((r) => r.candidates.isNotEmpty).length;
   List<int> get missingRules => [
-    for (var i = 0; i < 16; i++)
+    for (var i = 0; i < draft.rules.length; i++)
       if (draft.rules[i].candidates.isEmpty) i,
   ];
   ProjectSmartTilePreset? get publishedPreset => manifest
@@ -68,6 +68,7 @@ class TerrainDraftController {
   ProjectSmartTileAtlas get atlas =>
       draft.atlases.firstWhere((a) => a.id == draft.primaryAtlasId);
   SmartTileFrameRef? frameFor(int rule) {
+    if (rule < 0 || rule >= draft.rules.length) return null;
     final parts = draft.rules[rule].candidates.firstOrNull?.parts;
     final source = parts?.firstOrNull?.source;
     return source is SmartTileFrameSource ? source.frame : null;
@@ -114,25 +115,46 @@ class TerrainDraftController {
 
   void assign(int column, int row) {
     atlas.sourceRectFor(column: column, row: row);
-    final rules = List<SmartTileRule>.of(draft.rules);
-    rules[selectedRule] = terrainConnectionRule(
-      selectedRule,
-      SmartTileFrameRef(atlasId: atlas.id, column: column, row: row),
-      draft.defaultMaterialId!,
+    final expanded = selectedRule >= 16 && draft.rules.length == 16;
+    final rules = <SmartTileRule>[
+      ...draft.rules,
+      if (expanded)
+        for (var index = 16; index < 20; index++)
+          terrainOuterCornerRule(index, null, draft.defaultMaterialId!),
+    ];
+    final frame = SmartTileFrameRef(
+      atlasId: atlas.id,
+      column: column,
+      row: row,
     );
-    _record(draft.copyWith(rules: rules));
+    rules[selectedRule] = selectedRule < 16
+        ? terrainConnectionRule(selectedRule, frame, draft.defaultMaterialId!)
+        : terrainOuterCornerRule(selectedRule, frame, draft.defaultMaterialId!);
+    _record(
+      draft.copyWith(
+        rules: rules,
+        topology: expanded ? SmartTileTopology.blob8 : draft.topology,
+        templateHint: expanded
+            ? SmartTileTemplateHint.blob47
+            : draft.templateHint,
+        guideId: expanded ? 'avelune-path20-v1' : draft.guideId,
+      ),
+    );
   }
 
   void removeAssignment([int? rule]) {
     final index = rule ?? selectedRule;
+    if (index >= draft.rules.length) return;
     final rules = List<SmartTileRule>.of(draft.rules);
-    rules[index] = terrainConnectionRule(index, null, draft.defaultMaterialId!);
+    rules[index] = index < 16
+        ? terrainConnectionRule(index, null, draft.defaultMaterialId!)
+        : terrainOuterCornerRule(index, null, draft.defaultMaterialId!);
     _record(draft.copyWith(rules: rules));
   }
 
   void selectNextMissing() {
-    for (var step = 1; step <= 16; step++) {
-      final index = (selectedRule + step) % 16;
+    for (var step = 1; step <= draft.rules.length; step++) {
+      final index = (selectedRule + step) % draft.rules.length;
       if (draft.rules[index].candidates.isEmpty) {
         selectedRule = index;
         return;
@@ -186,12 +208,11 @@ class TerrainDraftController {
 
   void inspect(GridPos position) {
     if (!scratch.contains(position)) return;
-    final x = position.x, y = position.y;
-    selectedRule =
-        (scratch.contains(GridPos(x: x, y: y - 1)) ? 1 : 0) |
-        (scratch.contains(GridPos(x: x + 1, y: y)) ? 2 : 0) |
-        (scratch.contains(GridPos(x: x, y: y + 1)) ? 4 : 0) |
-        (scratch.contains(GridPos(x: x - 1, y: y)) ? 8 : 0);
+    selectedRule = terrainRuleAt(
+      scratch,
+      position,
+      withOuterCorners: draft.rules.length == 20,
+    );
   }
 
   void _resolve() {
@@ -231,7 +252,7 @@ class TerrainDraftController {
       draft = draft.copyWith(sourcePresetId: draft.targetPresetId);
     }
     if (publish && !complete) {
-      error = 'Associez les 16 raccords avant de publier.';
+      error = 'Associez les ${draft.rules.length} raccords avant de publier.';
       return false;
     }
     busy = true;

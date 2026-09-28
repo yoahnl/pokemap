@@ -8,6 +8,7 @@ import 'resource_navigation.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
+import 'border_creation_dialog.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -110,6 +111,25 @@ class ResourceWorkspacePane extends StatelessWidget {
               onUse: n.onUse,
               onEdit: n.edit,
               onTerrain: n.prepareTerrain,
+              onCreateBorder: () => showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BorderCreationDialog(
+                  navigation: n,
+                  project: n.workspace.project!,
+                  visuals: visuals,
+                ),
+              ),
+              onResumeBorder: (record) => showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BorderCreationDialog(
+                  navigation: n,
+                  project: n.workspace.project!,
+                  visuals: visuals,
+                  initialRecord: record,
+                ),
+              ),
               terrainDrafts: n.pendingTerrainDrafts,
               onResumeTerrain: n.resumeTerrain,
               canEditTerrain: n.canEditTerrain,

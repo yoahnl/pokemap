@@ -4,6 +4,7 @@ import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../../features/terrains/domain/terrain_connections.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/atlas_selection_view.dart';
+import 'terrain_scratch_view.dart';
 
 class TerrainSourcePanel extends StatelessWidget {
   const TerrainSourcePanel({
@@ -14,6 +15,8 @@ class TerrainSourcePanel extends StatelessWidget {
     required this.transform,
     required this.onChanged,
     required this.onAssign,
+    required this.frameBuilder,
+    this.selectedSource,
   });
   final TerrainDraftController model;
   final TextEditingController name;
@@ -21,6 +24,8 @@ class TerrainSourcePanel extends StatelessWidget {
   final TransformationController transform;
   final VoidCallback onChanged;
   final ValueChanged<TilesetSourceRect> onAssign;
+  final TerrainFrameBuilder frameBuilder;
+  final TilesetSourceRect? selectedSource;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +65,36 @@ class TerrainSourcePanel extends StatelessWidget {
               : 'Cliquez sur une autre case pour le remplacer.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (selectedSource case final selected?) ...[
+          const SizedBox(height: 8),
+          LongPressDraggable<TilesetSourceRect>(
+            data: selected,
+            feedback: Material(
+              elevation: 5,
+              child: frameBuilder(
+                SmartTileFrameRef(
+                  atlasId: model.atlas.id,
+                  column: selected.x,
+                  row: selected.y,
+                ),
+                56,
+              ),
+            ),
+            child: ListTile(
+              dense: true,
+              leading: frameBuilder(
+                SmartTileFrameRef(
+                  atlasId: model.atlas.id,
+                  column: selected.x,
+                  row: selected.y,
+                ),
+                40,
+              ),
+              title: const Text('Pièce prête à poser'),
+              subtitle: const Text('Glissez-la sur le patron'),
+            ),
+          ),
+        ],
         Expanded(
           child: source is ProjectRegularAtlasTilesetSource
               ? AtlasSelectionView(

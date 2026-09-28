@@ -14,6 +14,65 @@ import 'resource_fixture.dart';
 
 void main() {
   test(
+    'outer corner publishes and resolves after independent reopen',
+    () async {
+      final fixture = await ResourceFixture.create();
+      addTearDown(fixture.dispose);
+      final imported = await fixture.import();
+      final draft = TerrainDraftController(
+        manifest: imported.manifest,
+        atlas: terrainAtlas(imported.manifest.tilesets.single, 'corner-atlas'),
+        id: 'corner-path',
+        name: 'Chemin à coins extérieurs',
+      );
+      for (var index = 0; index < 20; index++) {
+        draft.selectedRule = index;
+        draft.assign(index < 16 ? 0 : 1, 0);
+      }
+      final compilation = compileSmartTileAuthoringDraft(
+        draft: draft.draft,
+        catalog: imported.manifest.smartTileCatalog,
+        manifest: imported.manifest,
+      );
+      expect(
+        compilation,
+        isA<SmartTileDraftCompilationSuccess>(),
+        reason: compilation is SmartTileDraftCompilationFailure
+            ? compilation.diagnostics
+                  .map((diagnostic) => diagnostic.code)
+                  .join(', ')
+            : null,
+      );
+      final saved = await draft.save((action, values) async {
+        final receipt = await fixture.resources.mutate(action, values);
+        return receipt.manifest;
+      }, publish: true);
+      expect(saved, isTrue, reason: draft.error);
+      final reader = LocalMapWorkspaceAdapter();
+      final manifest = await reader.loadProject(fixture.session);
+      final preset = manifest.smartTileCatalog.presets.single;
+      expect(preset.rules, hasLength(20));
+      expect(terrainDraftForPreset(manifest, preset), isNotNull);
+      final document = await reader.loadMap(
+        fixture.session,
+        ResourceFixture.entry,
+      );
+      final positions = [
+        for (var y = 0; y < 3; y++)
+          for (var x = 0; x < 3; x++)
+            if (x != 0 || y != 0) GridPos(x: x, y: y),
+      ];
+      final painted = applyTerrainStroke(
+        map: document.map,
+        manifest: manifest,
+        preset: preset,
+        cells: positions,
+      );
+      expect(_resolve(painted, manifest).ruleId, 'connection-16');
+    },
+  );
+
+  test(
     'draft, publish, paint, erase, save and fresh reopen use canonical resources',
     () async {
       final fixture = await ResourceFixture.create();

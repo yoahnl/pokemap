@@ -2,10 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:map_core/map_core_domain.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/ui04_terrain_atlas.dart';
 
@@ -51,14 +52,17 @@ void main() {
           ),
         );
       });
-      n.prepareTerrain(
-        resourceCatalog(
-          f.controller.project!,
-        ).firstWhere((item) => item.name == 'Chemins — atlas d’essai'),
-      );
+      n.showLibrary();
+      await pumpIo(tester);
+      await tester.tap(find.text('Créer un chemin'));
+      await pumpIo(tester);
+      expect(find.text('Choisir l’image du chemin'), findsOneWidget);
+      await f.capture(tester, '00-creation-chemin-visible');
+      await tester.tap(find.text('Chemins — atlas d’essai').last);
       await pumpIo(tester);
       final model = n.terrain!;
       final id = model.draft.targetPresetId;
+      await f.capture(tester, '00b-patron-chemin-vide');
       Future<void> capture(String name) async {
         await tester.pumpAndSettle();
         await f.capture(tester, name);
@@ -178,6 +182,42 @@ void main() {
       expect(document.current, dirtyMap);
       expect(document.dirty, isTrue);
       expect(f.controller.project!.smartTileCatalog.presets.single.id, id);
+      Offset mapCell(int x, int y) =>
+          canvas + Offset(size * (x + .5), size * (y + .5));
+      final horizontal = await tester.startGesture(mapCell(4, 6));
+      await horizontal.moveTo(mapCell(9, 6));
+      await horizontal.up();
+      await tester.pump();
+      final firstPath = document.current;
+      final corner = await tester.startGesture(mapCell(9, 6));
+      await corner.moveTo(mapCell(9, 9));
+      await corner.up();
+      await tester.pump();
+      final completePath = document.current;
+      final layer = completePath.layers.whereType<SmartTileLayer>().single;
+      final mapWidth = completePath.size.width;
+      for (var x = 4; x <= 9; x++) {
+        expect(layer.field.semanticCells[6 * mapWidth + x], isNonZero);
+      }
+      for (var y = 7; y <= 9; y++) {
+        expect(layer.field.semanticCells[y * mapWidth + 9], isNonZero);
+      }
+      await tester.tap(find.byKey(const ValueKey('Annuler')));
+      await tester.pump();
+      expect(document.current, firstPath);
+      await tester.tap(find.byKey(const ValueKey('Rétablir')));
+      await tester.pump();
+      expect(document.current, completePath);
+      await tester.tap(find.byKey(const ValueKey('Enregistrer')));
+      await pumpIo(tester);
+      expect(document.dirty, isFalse);
+      await tester.runAsync(() async {
+        final fresh = LocalMapWorkspaceAdapter();
+        final project = await fresh.loadProject(f.session);
+        final reopened = await fresh.loadMap(f.session, project.maps.first);
+        expect(reopened.map, completePath);
+      });
+      await capture('06-chemin-enregistre');
       await tester.pumpWidget(const SizedBox());
       await pumpIo(tester);
     },

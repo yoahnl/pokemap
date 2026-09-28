@@ -123,4 +123,44 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Terrain d’essai'), findsOneWidget);
   });
+
+  testWidgets('outer corner can be assigned and undone through the pattern', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final model = terrainDraft();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: TerrainEditorScreen(
+            controller: model,
+            image: const SizedBox(),
+            frameBuilder: (_, _) => const SizedBox(),
+            onMutate: (_, _) async => model.manifest,
+            onUse: (_) {},
+            onClose: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('terrain-rule-16')));
+    await tester.tap(find.byKey(const ValueKey('terrain-rule-16')));
+    final source = tester.getRect(
+      find.byKey(const ValueKey('atlas-selection')),
+    );
+    await tester.tapAt(
+      source.topLeft + Offset(11 * source.width / 78, 16 * source.height / 110),
+    );
+    await tester.pump();
+    expect(model.draft.rules, hasLength(20));
+    expect(model.frameFor(16), isNotNull);
+    await tester.tap(find.byTooltip('Annuler la préparation'));
+    await tester.pump();
+    expect(model.draft.rules, hasLength(16));
+    expect(model.frameFor(16), isNull);
+  });
 }
