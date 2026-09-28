@@ -75,6 +75,15 @@ class StudioHomeTools extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final scale = MediaQuery.textScalerOf(context).scale(1);
+            final titleStyle = DefaultTextStyle.of(context).style;
+            final titleHeight =
+                MediaQuery.textScalerOf(
+                  context,
+                ).scale(titleStyle.fontSize ?? 14) *
+                (titleStyle.height ?? 1.5) *
+                2;
+            final descriptionHeight =
+                MediaQuery.textScalerOf(context).scale(12) * 1.5 * 3;
             final count = constraints.maxWidth >= 870 * scale
                 ? 6
                 : constraints.maxWidth >= 430
@@ -124,20 +133,36 @@ class StudioHomeTools extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(height: dense ? 6 : 12),
-                                Text(
-                                  tool.$1,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
+                                SizedBox(
+                                  height: titleHeight,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Text(
+                                      tool.$1,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 if (!dense) ...[
                                   const SizedBox(height: 6),
-                                  Text(
-                                    tool.$2,
-                                    style: TextStyle(
-                                      color: colors.onSurfaceVariant,
-                                      fontSize: 12,
-                                      height: 1.5,
+                                  SizedBox(
+                                    height: descriptionHeight,
+                                    child: Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Text(
+                                        tool.$2,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: colors.onSurfaceVariant,
+                                          fontSize: 12,
+                                          height: 1.5,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
