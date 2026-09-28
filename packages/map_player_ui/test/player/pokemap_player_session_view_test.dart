@@ -1068,6 +1068,7 @@ void main() {
     ]) {
       controller.publish(_snapshot(revision: 2 + phase.index, phase: phase));
       await tester.pump();
+      await tester.pump();
 
       expect(
         _surfaceFinder(phase),
@@ -1777,6 +1778,69 @@ void main() {
     await tester.tap(find.text('Annuler'));
     expect(controller.commands.single.action, RuntimePlayerAction.cancel);
     expect(controller.commands.single.snapshotRevision, 11);
+  });
+
+  testWidgets('uses host artwork while loading and mounting the first map',
+      (tester) async {
+    const logo = AssetImage(
+      'assets/splash/eclipse_disc.png',
+      package: 'map_player_ui',
+    );
+    const wordmark = AssetImage(
+      'assets/splash/eclipse_orbit_soft.png',
+      package: 'map_player_ui',
+    );
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.loadingSession,
+    ));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked,
+    ));
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+
+    await tester.pumpWidget(_app(_view(
+      controller,
+      gameplayInputAuthority: authority,
+      loadingLogo: logo,
+      loadingWordmark: wordmark,
+    )));
+
+    expect(
+      (tester.widget<Image>(find.byKey(const ValueKey('runtime-player-loading-logo'))).image
+              as ResizeImage)
+          .imageProvider,
+      logo,
+    );
+    expect(
+      (tester.widget<Image>(find.byKey(const ValueKey('runtime-player-loading-wordmark'))).image
+              as ResizeImage)
+          .imageProvider,
+      wordmark,
+    );
+    expect(find.text('A V E L U N E'), findsNothing);
+
+    controller.publish(_snapshot(
+      revision: 2,
+      phase: RuntimePlayerPhase.playing,
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+      ],
+    ));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('runtime-player-loading-logo')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-player-loading-wordmark')),
+        findsOneWidget);
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('runtime-player-loading-art')),
+        findsNothing);
   });
 
   testWidgets('names the real map mounting stage in the player language',
@@ -3243,6 +3307,8 @@ PokeMapPlayerSessionView _view(
   Stream<NormalizedGamepadEvent>? normalizedControllerInputEvents,
   ValueListenable<Set<String>>? connectedControllerIds,
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
+  ImageProvider? loadingLogo,
+  ImageProvider? loadingWordmark,
   ValueListenable<RuntimeOverworldInteractionSnapshot>? overworldInteractions,
   RuntimeOverworldInteractionRequest? Function(Offset)? hitTestOverworldInteraction,
   bool Function(RuntimeOverworldInteractionRequest)? onOverworldInteraction,
@@ -3274,6 +3340,8 @@ PokeMapPlayerSessionView _view(
     touchControlsAvailable: touchControlsAvailable,
     gameplayInputRoute: gameplayInputRoute,
     gameplayInputAuthority: gameplayInputAuthority,
+    loadingLogo: loadingLogo,
+    loadingWordmark: loadingWordmark,
     overworldInteractions: overworldInteractions,
     hitTestOverworldInteraction: hitTestOverworldInteraction,
     onOverworldInteraction: onOverworldInteraction,
