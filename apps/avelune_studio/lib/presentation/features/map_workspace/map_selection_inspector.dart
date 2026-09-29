@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/characters/application/character_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
@@ -97,7 +97,8 @@ class MapSelectionInspector extends StatelessWidget {
                   SizedBox(
                     height: (entities.length + decors.length == 1) ? 65 : 130,
                     child: ListView.builder(
-                      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+                      scrollCacheExtent:
+                          const rendering.ScrollCacheExtent.pixels(0),
                       itemCount: entities.length + decors.length,
                       itemBuilder: (context, i) {
                         if (i < entities.length) {

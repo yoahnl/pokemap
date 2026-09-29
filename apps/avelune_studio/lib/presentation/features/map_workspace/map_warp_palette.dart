@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/feedback/studio_empty_state.dart';
@@ -38,7 +38,7 @@ class MapWarpPalette extends StatelessWidget {
         Expanded(
           child: GridView.builder(
             key: const PageStorageKey('warp-destinations'),
-            scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+            scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisExtent:

@@ -41,6 +41,10 @@ final class LocalResourceAdapter implements ResourcePort {
   };
 
   @override
+  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
+      _createBorder(this, request);
+
+  @override
   Future<ResourceMutationReceipt> importCharacterPortrait(
     CharacterPortraitImport request,
   ) => _importCharacterPortrait(this, request);
@@ -55,10 +59,6 @@ final class LocalResourceAdapter implements ResourcePort {
     String characterId,
     String stateId,
   ) => _readCharacterPortrait(this, characterId, stateId);
-
-  @override
-  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
-      _createBorder(this, request);
 
   @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>

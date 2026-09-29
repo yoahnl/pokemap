@@ -81,7 +81,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
       );
     }
     return isAuthoredMapPlacedElement(instance) &&
-        !_environmentOwnedIds.contains(instance.id);
+        !_environmentOwnedIds.contains(instance.id) &&
+        widget.project.elements.any(
+          (element) => element.id == instance.elementId,
+        );
   }
 
   void _beginDecor(

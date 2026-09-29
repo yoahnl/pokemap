@@ -178,7 +178,6 @@ final class StudioMapResources
   @override
   Widget atlasPreview(String tilesetId) =>
       StudioAtlasPreview(resources: this, tilesetId: tilesetId);
-
   @override
   ProjectRegularAtlasTilesetSource? characterAtlas(
     ProjectCharacterEntry character,
@@ -186,7 +185,6 @@ final class StudioMapResources
 
   @override
   void setActiveMap(MapData map) => _setActiveMap(map);
-
   @override
   void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) =>
       _setBrush(element, tile);
@@ -205,16 +203,8 @@ final class StudioMapResources
 
   void retain(Object owner, Set<String> ids) => store.retain(owner, ids);
   @override
-  void setCharacterBrush(ProjectCharacterEntry? character) {
-    if (_disposed) return;
-    _characterBrush = character;
-    _terrainPreset = null;
-    _brushElement = null;
-    _brushTile = null;
-    _brushIds = character == null ? {} : characterResourceIds(character);
-    store.priority = {...activeResourceIds, ..._brushIds};
-    store.retain(_brushOwner, _brushIds);
-  }
+  void setCharacterBrush(ProjectCharacterEntry? character) =>
+      _setCharacterBrush(character);
 
   @override
   Widget characterThumbnail(

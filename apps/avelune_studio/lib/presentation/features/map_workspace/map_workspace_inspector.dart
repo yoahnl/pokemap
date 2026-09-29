@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -101,7 +101,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
     return StudioSidebar(
       width: widget.width,
       child: CustomScrollView(
-        scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+        scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
         slivers: [
           SliverToBoxAdapter(
             child: Column(
@@ -161,7 +161,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     StudioMapTool.gameplayZone =>
                       'Tracez une zone de jeu : rencontres, déplacement, effet ou danger.',
                     StudioMapTool.encounterPaint =>
-                      'Peignez les cases des rencontres. Un glissé forme une seule modification annulable.',
+                      'Cliquez ou glissez pour peindre les cases de rencontre.',
                     StudioMapTool.encounterErase =>
                       'Retirez les cases peintes de la zone de rencontres sélectionnée.',
                     StudioMapTool.border =>

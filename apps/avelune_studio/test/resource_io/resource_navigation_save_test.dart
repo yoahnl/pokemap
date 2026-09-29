@@ -169,6 +169,10 @@ final class _ControlledResources implements ResourcePort {
       throw UnimplementedError();
 
   @override
+  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
+      throw UnimplementedError();
+
+  @override
   Future<ResourceMutationReceipt> importCharacterPortrait(
     CharacterPortraitImport request,
   ) => throw UnimplementedError();
@@ -183,10 +187,6 @@ final class _ControlledResources implements ResourcePort {
     String characterId,
     String stateId,
   ) => throw UnimplementedError();
-
-  @override
-  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
-      throw UnimplementedError();
 
   @override
   Future<ResourceMutationReceipt> mutate(

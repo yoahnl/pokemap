@@ -15,6 +15,26 @@ final class ResourceImageImport {
   final int tileHeight;
 }
 
+final class BorderCreationRequest {
+  const BorderCreationRequest({
+    required this.name,
+    this.capElementId,
+    this.straightElementId,
+    this.cornerElementId,
+    this.blueprintId,
+    this.publish = true,
+    this.acceptedWarningCodes = const [],
+  });
+
+  final String name;
+  final String? capElementId;
+  final String? straightElementId;
+  final String? cornerElementId;
+  final String? blueprintId;
+  final bool publish;
+  final List<String> acceptedWarningCodes;
+}
+
 final class CharacterPortraitImport {
   const CharacterPortraitImport({
     required this.sourcePath,
@@ -45,26 +65,6 @@ final class CharacterAnimationImport {
   final int poseHeight;
 }
 
-final class BorderCreationRequest {
-  const BorderCreationRequest({
-    required this.name,
-    this.capElementId,
-    this.straightElementId,
-    this.cornerElementId,
-    this.blueprintId,
-    this.publish = true,
-    this.acceptedWarningCodes = const [],
-  });
-
-  final String name;
-  final String? capElementId;
-  final String? straightElementId;
-  final String? cornerElementId;
-  final String? blueprintId;
-  final bool publish;
-  final List<String> acceptedWarningCodes;
-}
-
 final class ResourceMutationReceipt {
   const ResourceMutationReceipt({
     required this.before,
@@ -86,6 +86,8 @@ final class ResourceMutationReceipt {
 abstract interface class ResourcePort {
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request);
 
+  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request);
+
   Future<ResourceMutationReceipt> importCharacterPortrait(
     CharacterPortraitImport request,
   );
@@ -98,8 +100,6 @@ abstract interface class ResourcePort {
     String characterId,
     String portraitStateId,
   );
-
-  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request);
 
   Future<ResourceMutationReceipt> mutate(
     String actionId,

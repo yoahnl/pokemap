@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
@@ -94,7 +94,7 @@ class ResourceCatalogView extends StatelessWidget {
     }
     return ListView.builder(
       controller: scroll,
-      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+      scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
       itemCount: items.length,
       padding: const EdgeInsets.all(12),
       itemBuilder: (context, index) {

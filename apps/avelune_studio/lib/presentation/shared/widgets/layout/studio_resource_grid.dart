@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 
 class StudioResourceGrid extends StatelessWidget {
   const StudioResourceGrid({
@@ -17,7 +17,7 @@ class StudioResourceGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GridView.builder(
     controller: controller,
-    scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+    scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
     padding: const EdgeInsets.all(12),
     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
       maxCrossAxisExtent: 230,

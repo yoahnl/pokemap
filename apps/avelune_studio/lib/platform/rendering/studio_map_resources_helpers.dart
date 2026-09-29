@@ -17,6 +17,17 @@ extension StudioMapResourcesHelpers on StudioMapResources {
           ),
       ]);
 
+  void _setCharacterBrush(ProjectCharacterEntry? character) {
+    if (_disposed) return;
+    _characterBrush = character;
+    _terrainPreset = null;
+    _brushElement = null;
+    _brushTile = null;
+    _brushIds = character == null ? {} : characterResourceIds(character);
+    store.priority = {...activeResourceIds, ..._brushIds};
+    store.retain(_brushOwner, _brushIds);
+  }
+
   ProjectRegularAtlasTilesetSource? _characterAtlas(
     ProjectCharacterEntry character,
   ) {

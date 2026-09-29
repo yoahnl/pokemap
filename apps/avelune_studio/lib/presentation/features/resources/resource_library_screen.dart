@@ -139,7 +139,6 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
           close?.call();
         },
       );
-
   void showDetail(ResourceItem item) => showWorkspaceCompactPanel(
     context,
     title: 'Détail de la ressource',

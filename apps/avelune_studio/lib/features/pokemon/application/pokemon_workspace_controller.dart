@@ -12,6 +12,7 @@ part 'pokemon_learnset_commands.dart';
 part 'pokemon_moves_sync_commands.dart';
 part 'pokemon_import_commands.dart';
 part 'pokemon_external_commands.dart';
+part 'pokemon_workspace_queries.dart';
 part 'pokemon_workspace_owner_commands.dart';
 
 final class PokemonWorkspaceController {
@@ -76,21 +77,6 @@ final class PokemonWorkspaceController {
       commerce?.dirty == true ||
       combat?.dirty == true;
   PokemonSpeciesDraft? get selectedDraft => _drafts[selectedId];
-
-  List<PokemonSpeciesSummary> get visibleSpecies {
-    final needle = search.trim().toLowerCase();
-    return [
-      for (final entry in index?.entries ?? const <PokemonSpeciesSummary>[])
-        if ((needle.isEmpty ||
-                entry.name.toLowerCase().contains(needle) ||
-                entry.id.toLowerCase().contains(needle)) &&
-            (typeFilter == null || entry.types.contains(typeFilter)) &&
-            (generationFilter == null ||
-                entry.generation == generationFilter) &&
-            (enabledFilter == null || entry.enabled == enabledFilter))
-          entry,
-    ];
-  }
 
   List<PokemonMoveSummary> get visibleMoves {
     final needle = moveSearch.trim().toLowerCase();

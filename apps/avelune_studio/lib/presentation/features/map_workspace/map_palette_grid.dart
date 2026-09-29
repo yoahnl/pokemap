@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 
 class MapPaletteGrid extends StatefulWidget {
   const MapPaletteGrid({
@@ -32,7 +32,7 @@ class _MapPaletteGridState extends State<MapPaletteGrid> {
   @override
   Widget build(BuildContext context) => GridView.builder(
     controller: _scroll,
-    scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+    scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: widget.columns,
       mainAxisExtent:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import '../map_workspace/map_workspace_visuals.dart';
@@ -96,7 +96,7 @@ class _CharacterPaletteState extends State<CharacterPalette> {
             : GridView.builder(
                 controller: _scroll,
                 key: const PageStorageKey('character-catalog'),
-                scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+                scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisExtent:
