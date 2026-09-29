@@ -45,7 +45,7 @@ void main() {
         jsonEncode(
           const ProjectManifest(
             name: 'Asset Blob Reverification',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
                 id: 'map',
@@ -64,7 +64,7 @@ void main() {
           const MapData(
             id: 'map',
             name: 'Map',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             size: GridSize(width: 1, height: 1),
           ).toJson(),
         ),
@@ -129,7 +129,7 @@ void main() {
         jsonEncode(
           const ProjectManifest(
             name: 'Blob Stat Budget',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
                 id: 'map',
@@ -147,7 +147,7 @@ void main() {
           const MapData(
             id: 'map',
             name: 'Map',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             size: GridSize(width: 1, height: 1),
           ).toJson(),
         ),
@@ -206,7 +206,7 @@ void main() {
           const MapData(
             id: 'map',
             name: 'Renamed',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             size: GridSize(width: 1, height: 1),
           ).toJson(),
         ),
@@ -226,7 +226,7 @@ void main() {
         jsonEncode(
           const ProjectManifest(
             name: 'Revision Content Binding',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
                 id: 'map',
@@ -245,7 +245,7 @@ void main() {
               MapData(
                 id: 'map',
                 name: name,
-                version: ProjectVersion.v6,
+                version: ProjectVersion.v8,
                 size: const GridSize(width: 1, height: 1),
               ).toJson(),
             ),
@@ -830,7 +830,7 @@ Future<Directory> _writeProject(
       await Directory(_join(project.path, 'maps')).create(recursive: true);
   final manifest = {
     'name': 'Snapshot Test',
-    'version': 'v6',
+    'version': 'v8',
     'pokemon': ProjectPokemonConfig(
       ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     ).toJson(),
@@ -879,7 +879,7 @@ Map<String, Object?> _mapJson(String id) => {
       'id': id,
       'name': id,
       'size': {'width': 2, 'height': 2},
-      'version': 'v6',
+      'version': 'v8',
       'layers': <Object?>[],
     };
 

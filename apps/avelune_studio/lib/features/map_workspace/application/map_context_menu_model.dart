@@ -94,7 +94,10 @@ List<MapContextTarget> mapContextTargetsAt(
         label: _warpLabel(project, warp),
         kindLabel: 'Passage',
       ),
-    for (final decor in MapEditingCommands(document, project).stack(position))
+    for (final decor in MapEditingCommands(
+      document,
+      project,
+    ).contextStack(position))
       MapContextTarget(
         mapId: mapId,
         family: MapContextFamily.decor,

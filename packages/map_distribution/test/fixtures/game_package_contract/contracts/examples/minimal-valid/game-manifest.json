@@ -9,7 +9,7 @@
   "compatibility": {
     "minHubVersion": "1.0.0",
     "runtimeApi": ">=1.0.0 <2.0.0",
-    "projectFormat": "v6",
+    "projectFormat": "v8",
     "saveFormat": 1,
     "compatibilityId": "main",
     "requiredCapabilities": []
@@ -21,12 +21,12 @@
   "content": {
     "fileCount": 1,
     "totalBytes": 588,
-    "treeSha256": "89359d6842296f5217ba941cb9e81794201945cb40ecbb30e4162bf1f572cba4",
+    "treeSha256": "de56b2d187c50017e99d8eca981c174fc22a3ad1e339d3303a3bbc15ff68e0da",
     "files": [
       {
         "path": "project/project.json",
         "size": 588,
-        "sha256": "2cbd1528bf720b0359ded6ecf02c07d6b31a21ec02d769b3b4bba127fc7704e9",
+        "sha256": "666dc8ad1b8d1c562701e266f996e4eedad9df1ff2ff7c90862e24ca5ffaaabc",
         "mediaType": "application/json"
       }
     ]

@@ -308,7 +308,7 @@ void main() {
       addTearDown(fixture.dispose);
       final projectFile = File(p.join(fixture.root.path, 'project.json'));
       final project = fixture.project.copyWith(
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         cinematics: [
           CinematicAsset(
             id: 'world-a',
@@ -2028,7 +2028,7 @@ SceneAsset _pauseMenuVisibilityScene() => SceneAsset(
 
 ProjectManifest _cin033EditorManifest() => ProjectManifest(
   name: 'CIN-033 editor fixture',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'alpha',
@@ -2552,7 +2552,7 @@ final class _MutationFixture {
       id: 'alpha',
       name: 'Alpha',
       size: GridSize(width: 2, height: 2),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(id: 'l_base', name: 'Base', cells: [0, 0, 0, 0]),
@@ -2612,7 +2612,7 @@ final class _MutationFixture {
     final root = await Directory.systemTemp.createTemp('pmcp_smart_editor_');
     final project = ProjectManifest(
       name: 'Smart Tile editor fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [
         ProjectMapEntry(id: 'm01', name: 'M01', relativePath: 'maps/m01.json'),
       ],
@@ -2687,7 +2687,7 @@ final class _MutationFixture {
       id: 'm01',
       name: 'M01',
       size: GridSize(width: 3, height: 3),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

@@ -9,8 +9,8 @@ import '../../ports/artifact_store.dart';
 void validatePresentationPublicationBase(
     ProjectSnapshot snapshot, String id, Map<String, Object?> p) {
   final project = snapshot.manifest;
-  if (project.version != ProjectVersion.v7) {
-    throw StateError('Les présentations nécessitent un projet v7.');
+  if (project.version != ProjectVersion.v8) {
+    throw StateError('Les présentations nécessitent un projet v8.');
   }
   final current =
       project.presentationCinematics.where((a) => a.id == id).firstOrNull;

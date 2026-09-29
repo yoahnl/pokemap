@@ -259,7 +259,7 @@ final class _CanonicalCoastFixture {
   MapData mapWithFeature(BorderFeature feature) => MapData(
         id: 'canonical-organic-coast',
         name: 'Canonical organic coast',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: _mapWidth, height: _mapHeight),
         properties: const <String, dynamic>{
           'tileLayerOrder': 'bottom_to_top',
@@ -288,7 +288,7 @@ final class _CanonicalCoastFixture {
 
   ProjectManifest get project => ProjectManifest(
         name: 'Canonical coast golden',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         borderCatalog: ProjectBorderCatalog(visualSnapshots: snapshots),

@@ -2,6 +2,22 @@ import 'package:map_core/map_core.dart';
 
 const int kProjectElementFrameDurationFallbackMs = 200;
 
+TilesetVisualFrame pickPlacedProjectElementFrame(
+  MapPlacedElement instance,
+  List<TilesetVisualFrame> frames,
+  int elapsedMs,
+) {
+  if (frames.isEmpty) return pickProjectElementFrame(frames, elapsedMs);
+  return frames[resolvePlacedElementAnimationFrameIndex(
+    frameDurationsMs: frames
+        .map(projectElementFrameDurationMs)
+        .toList(growable: false),
+    elapsedMs: elapsedMs.toDouble(),
+    animation: instance.animation,
+    deterministicSeed: stableHash32(instance.id),
+  )];
+}
+
 int projectElementFrameDurationMs(TilesetVisualFrame frame) {
   final duration = frame.durationMs;
   if (duration == null || duration <= 0) {

@@ -1,6 +1,8 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_placed_element_origin.dart';
+import '../models/project_manifest.dart';
 import '../models/shadow.dart';
 import 'map_placed_element_footprint.dart';
 
@@ -123,12 +125,129 @@ MapData setMapPlacedElementQuarterTurns(
   if (map.placedElements[index].quarterTurns == quarterTurns) {
     return map;
   }
-  final next = List<MapPlacedElement>.of(
-    map.placedElements,
-    growable: false,
+  final next = List<MapPlacedElement>.of(map.placedElements, growable: false);
+  final current = next[index];
+  final size = current.pixelSize;
+  next[index] = current.copyWith(
+    quarterTurns: quarterTurns,
+    pixelSize: size != null && (current.quarterTurns - quarterTurns).isOdd
+        ? PixelSize(width: size.height, height: size.width)
+        : size,
   );
-  next[index] = next[index].copyWith(quarterTurns: quarterTurns);
   return map.copyWith(placedElements: next);
+}
+
+MapData setMapPlacedElementGeometry(
+  MapData map, {
+  required ProjectManifest manifest,
+  required String instanceId,
+  required int pixelX,
+  required int pixelY,
+  required PixelSize? pixelSize,
+}) {
+  final index = map.placedElements.indexWhere(
+    (entry) => entry.id == instanceId.trim(),
+  );
+  if (index < 0) {
+    throw ValidationException('Placed element instance not found: $instanceId');
+  }
+  final instance = map.placedElements[index];
+  final element = manifest.elements
+      .where((entry) => entry.id == instance.elementId)
+      .firstOrNull;
+  if (element == null) {
+    throw const ValidationException(
+      'Placed element visual definition is missing',
+    );
+  }
+  final updated = resolveMapPlacedElementGeometryCandidate(
+    instance: instance,
+    element: element,
+    mapSize: map.size,
+    tileSize: PixelSize(
+      width: manifest.settings.tileWidth,
+      height: manifest.settings.tileHeight,
+    ),
+    environmentOwnedIds: environmentOwnedMapPlacedElementIds(map),
+    pixelX: pixelX,
+    pixelY: pixelY,
+    pixelSize: pixelSize,
+  );
+  if (updated == instance) return map;
+  final next = List<MapPlacedElement>.of(map.placedElements, growable: false);
+  next[index] = updated;
+  return map.copyWith(placedElements: next);
+}
+
+MapPlacedElement resolveMapPlacedElementGeometryCandidate({
+  required MapPlacedElement instance,
+  required ProjectElementEntry element,
+  required GridSize mapSize,
+  required PixelSize tileSize,
+  required Set<String> environmentOwnedIds,
+  required int pixelX,
+  required int pixelY,
+  required PixelSize? pixelSize,
+}) {
+  if (environmentOwnedIds.contains(instance.id)) {
+    throw const ValidationException(
+      'Environment-owned placed elements cannot be transformed',
+    );
+  }
+  if (!isAuthoredMapPlacedElement(instance)) {
+    throw const ValidationException(
+      'Pixel transformations require an authored placed element',
+    );
+  }
+  if (element.frames.isEmpty) {
+    throw const ValidationException(
+      'Placed element visual definition is missing',
+    );
+  }
+  final updated = normalizeMapPlacedElementGeometry(
+    instance.copyWith(
+      pos: const GridPos(x: 0, y: 0),
+      pixelOffset: PixelOffset(x: pixelX, y: pixelY),
+      pixelSize: pixelSize,
+    ),
+    tileSize: tileSize,
+  );
+  validateMapPlacedElementGeometryBounds(
+    geometry: resolveMapPlacedElementGeometry(
+      instance: updated,
+      element: element,
+      tileSize: tileSize,
+    ),
+    mapSize: mapSize,
+    tileSize: tileSize,
+  );
+  return updated;
+}
+
+MapData detachMapPlacedElementFromTileProjection(
+  MapData map, {
+  required String instanceId,
+}) {
+  final instance = map.placedElements
+      .where((entry) => entry.id == instanceId.trim())
+      .firstOrNull;
+  if (instance == null) {
+    throw ValidationException('Placed element instance not found: $instanceId');
+  }
+  if (environmentOwnedMapPlacedElementIds(map).contains(instance.id) ||
+      instance.properties[pokemapPlacementOriginProperty]?.trim() ==
+          pokemapPlacementOriginEnvironment) {
+    throw const ValidationException(
+      'Environment-owned placed elements cannot be detached',
+    );
+  }
+  return upsertMapPlacedElement(
+    map,
+    instance: instance.copyWith(properties: {
+      ...instance.properties,
+      pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+    }),
+  );
 }
 
 MapData rotateMapPlacedElement(

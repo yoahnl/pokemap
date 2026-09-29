@@ -148,7 +148,7 @@ final _coordinator = BorderStudioPublicationCoordinator(
 
 ProjectManifest _manifest() => const ProjectManifest(
   name: 'ERW connected-line certification',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   settings: ProjectSettings(tileWidth: 32, tileHeight: 32),
   tilesets: <ProjectTilesetEntry>[

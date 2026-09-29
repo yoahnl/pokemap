@@ -110,7 +110,7 @@ void main() {
 
 ProjectManifest _project() => const ProjectManifest(
       name: 'smart-tiles-project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );

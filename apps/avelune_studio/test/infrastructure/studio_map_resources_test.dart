@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../tool/create_example_project.dart';
@@ -30,6 +32,86 @@ void main() {
     );
   });
   tearDown(() async => directory.delete(recursive: true));
+
+  testWidgets(
+    'canvas preview paints transformed decor and collisions like committed geometry',
+    (tester) async {
+      final source = exampleMap('preview', 'Preview');
+      final map = source.copyWith(
+        placedElements: [
+          source.placedElements.first.copyWith(
+            properties: const {
+              pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+            },
+          ),
+        ],
+      );
+      final instance = map.placedElements.single;
+      final transformed = setMapPlacedElementGeometry(
+        map,
+        manifest: manifest,
+        instanceId: instance.id,
+        pixelX: 131,
+        pixelY: 81,
+        pixelSize: const PixelSize(width: 37, height: 25),
+      );
+      final resources = (await tester.runAsync(() async {
+        final value = await StudioMapResources.load(session, manifest);
+        value.setActiveMap(map);
+        await value.settled;
+        return value;
+      }))!;
+      final key = GlobalKey();
+      Future<List<int>> render(
+        MapData data,
+        MapPlacedElement? candidate,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Align(
+              alignment: Alignment.topLeft,
+              child: RepaintBoundary(
+                key: key,
+                child: Builder(
+                  builder: (context) => SizedBox(
+                    width: 768,
+                    height: 512,
+                    child: resources.canvas(
+                      data,
+                      placedElementPreview: candidate,
+                      collisionColor: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        return (await tester.runAsync(() async {
+          final image =
+              await (key.currentContext!.findRenderObject()!
+                      as RenderRepaintBoundary)
+                  .toImage();
+          final bytes = await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          );
+          image.dispose();
+          return bytes!.buffer.asUint8List().toList();
+        }))!;
+      }
+
+      final before = await render(map, null);
+      final preview = await render(map, transformed.placedElements.single);
+      expect(preview, isNot(before));
+      expect(await render(map, null), before);
+      final committed = await render(transformed, null);
+      expect(preview, committed);
+      expect(map.placedElements.single, instance);
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(resources.dispose);
+    },
+  );
 
   test('example is two real maps with atlas, decor and character', () async {
     expect(manifest.maps, hasLength(2));

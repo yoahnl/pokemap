@@ -13712,6 +13712,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     final backgroundLayers = MapLayersComponent(
       bundle: preparedBundle,
+      separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
       npcMapPresencePredicate: npcPred,
@@ -13731,6 +13732,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final foregroundLayers = MapLayersComponent(
       bundle: preparedBundle,
+      separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
       showCollisionOverlay: false,
@@ -13777,6 +13779,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
     );
     for (final instruction in occlusionInstructions) {
+      if (!backgroundLayers
+          .usesPlacedElementOcclusionPatch(instruction.placedElementId)) {
+        continue;
+      }
       final tilesetImage = tileImagesById[instruction.tilesetId];
       if (tilesetImage == null) {
         continue;
@@ -13784,9 +13790,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final patch = PlacedElementOcclusionPatchComponent(
         instruction: instruction,
         tilesetImage: tilesetImage,
+        overlayReplacesPatch: true,
         overlayPainter: backgroundLayers
             .placedElementOcclusionOverlayPainter(instruction.placedElementId),
         visibleWorldRectProvider: () => camera.visibleWorldRect,
+        visualWorldRectProvider: () {
+          final instance = placedElementById[instruction.placedElementId];
+          final rect = instance == null
+              ? null
+              : backgroundLayers.displayedPlacedElementRect(instance);
+          return rect?.shift(
+              Offset(backgroundLayers.position.x, backgroundLayers.position.y));
+        },
         frameProvider: () {
           final instance = placedElementById[instruction.placedElementId];
           if (instance == null) return null;
@@ -13811,6 +13826,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         },
       );
       occlusionPatches.add(patch);
+      backgroundLayers.setPlacedElementOcclusionPath(
+          instruction.placedElementId, patch.localOcclusionPath);
+      foregroundLayers.setPlacedElementOcclusionPath(
+          instruction.placedElementId, patch.localOcclusionPath);
       await world.add(patch);
     }
 

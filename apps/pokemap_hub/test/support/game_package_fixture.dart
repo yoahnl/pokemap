@@ -10,8 +10,8 @@ GamePackageHostCompatibility testHostCompatibility() =>
       hubVersion: Version.parse('1.0.0'),
       runtimeApiVersion: Version.parse('1.0.0'),
       capabilities: const <String>{'map@1', 'overworld.menu@1'},
-      supportedProjectFormats: <String>{ProjectVersion.v6.name},
-      currentProjectFormat: ProjectVersion.v6.name,
+      supportedProjectFormats: <String>{ProjectVersion.v8.name},
+      currentProjectFormat: ProjectVersion.v8.name,
       supportedSaveFormats: const <int>{1},
     );
 
@@ -23,7 +23,7 @@ Future<File> writeTestPackage(
   String projectName = 'Adventure',
   int extraFiles = 0,
   String minHubVersion = '1.0.0',
-  String projectFormat = 'v6',
+  String projectFormat = 'v8',
   List<String> requiredCapabilities = const <String>[],
   Map<String, List<int>> additionalPayloadFiles = const <String, List<int>>{},
 }) async {

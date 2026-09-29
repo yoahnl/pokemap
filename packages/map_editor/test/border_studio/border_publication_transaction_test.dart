@@ -717,7 +717,7 @@ BorderPublicationRequest _completeCoreRequest() {
     ),
   );
   final next = previous.copyWith(
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     borderCatalog: ProjectBorderCatalog(
       records: <BorderBlueprintRecord>[nextRecord],
       visualSnapshots: snapshots,

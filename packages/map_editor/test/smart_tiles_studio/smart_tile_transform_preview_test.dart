@@ -244,7 +244,7 @@ Future<List<int>> _pixelAt(ui.Image image, int x, int y) async {
 const _map = MapData(
   id: 'smart-transform-preview',
   name: 'Smart transform preview',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -260,7 +260,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Smart transform preview',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -342,7 +342,7 @@ final _manifest = ProjectManifest(
   const map = MapData(
     id: 'actor-occlusion-preview',
     name: 'Actor occlusion preview',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[
       SmartTileLayer(
@@ -426,13 +426,13 @@ final _manifest = ProjectManifest(
   const map = MapData(
     id: 'geometry-map',
     name: 'Geometry map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[layer],
   );
   final manifest = ProjectManifest(
     name: 'Geometry editor',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(

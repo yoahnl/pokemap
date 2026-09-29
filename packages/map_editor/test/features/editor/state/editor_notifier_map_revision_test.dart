@@ -436,7 +436,7 @@ ProjectManifest _project({required bool projectWithMap}) => ProjectManifest(
 MapData _map({required String name}) => MapData(
       id: 'alpha',
       name: name,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 2),
       tilesetId: 'base_tiles',
       layers: const <MapLayer>[

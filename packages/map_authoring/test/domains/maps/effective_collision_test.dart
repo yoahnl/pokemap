@@ -9,6 +9,102 @@ import 'package:test/test.dart';
 
 void main() {
   group('EffectiveCollisionInspector', () {
+    test('projects every moved collision pixel and deduplicates provenance',
+        () {
+      final fixture = _collisionFixture();
+      final element = fixture.manifest.elements.single.copyWith(
+          collisionProfile: ElementCollisionProfile(
+              collisionMask: ElementCollisionPixelMask(
+                  widthPx: 16,
+                  heightPx: 16,
+                  dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+                      widthPx: 16,
+                      heightPx: 16,
+                      solidPixels: List<bool>.generate(
+                          256, (i) => i == 0 || i == 32)))));
+      final manifest = fixture.manifest.copyWith(
+          elements: [element],
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16));
+      final map =
+          fixture.map.copyWith(layers: [], entities: [], placedElements: [
+        fixture.map.placedElements.single.copyWith(
+            properties: {
+              pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored
+            },
+            pixelOffset: const PixelOffset(x: 15, y: 15),
+            pixelSize: const PixelSize(width: 1, height: 1))
+      ]);
+      const inspector = EffectiveCollisionInspector();
+      expect(
+          inspector
+              .queryAt(
+                  manifest: manifest, map: map, pos: const GridPos(x: 1, y: 0))
+              .contributions
+              .length,
+          1);
+      expect(
+          inspector
+              .queryAt(
+                  manifest: manifest, map: map, pos: const GridPos(x: 2, y: 0))
+              .isBlocked,
+          isFalse);
+    });
+
+    test('moved cell profiles free old cells and occupy resized cells', () {
+      final fixture = _collisionFixture();
+      final manifest = fixture.manifest.copyWith(
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16));
+      final map =
+          fixture.map.copyWith(layers: [], entities: [], placedElements: [
+        fixture.map.placedElements.single.copyWith(
+            pos: const GridPos(x: 2, y: 1),
+            properties: {
+              pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored
+            },
+            pixelOffset: const PixelOffset(x: 1, y: 1),
+            pixelSize: const PixelSize(width: 17, height: 1))
+      ]);
+      const inspector = EffectiveCollisionInspector();
+      expect(
+          inspector
+              .queryAt(
+                  manifest: manifest, map: map, pos: const GridPos(x: 1, y: 0))
+              .isBlocked,
+          isFalse);
+      expect(
+          inspector
+              .queryAt(
+                  manifest: manifest, map: map, pos: const GridPos(x: 3, y: 1))
+              .contributions
+              .length,
+          1);
+      expect(
+          inspector
+              .queryAt(
+                  manifest: manifest, map: map, pos: const GridPos(x: 2, y: 2))
+              .isBlocked,
+          isFalse);
+    });
+
+    test(
+        'invalid collision masks report an error without falling back to cells',
+        () {
+      final fixture = _collisionFixture();
+      final manifest = fixture.manifest.copyWith(elements: [
+        fixture.manifest.elements.single.copyWith(
+            collisionProfile: const ElementCollisionProfile(
+                cells: [GridPos(x: 0, y: 0)],
+                collisionMask: ElementCollisionPixelMask(
+                    widthPx: 16, heightPx: 16, dataBase64: 'AA==')))
+      ]);
+      expect(
+          () => const EffectiveCollisionInspector().queryAt(
+              manifest: manifest,
+              map: fixture.map,
+              pos: const GridPos(x: 1, y: 0)),
+          throwsFormatException);
+    });
+
     test('explains layer, placed-element profile and entity provenance', () {
       final fixture = _collisionFixture();
       const inspector = EffectiveCollisionInspector();

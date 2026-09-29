@@ -102,6 +102,7 @@ MapCanvasObjectTarget? resolveSelectedCanvasObjectTarget({
     return _placedElementTarget(
       instance,
       entry: entry,
+      settings: project?.settings,
       editorAnimationTimeMs: editorAnimationTimeMs,
     );
   }
@@ -122,11 +123,7 @@ final class MapCanvasObjectHitTest {
     required GridPos position,
     int editorAnimationTimeMs = 0,
   }) {
-    if (!_containsCell(
-      position,
-      const GridPos(x: 0, y: 0),
-      map.size,
-    )) {
+    if (!_containsCell(position, const GridPos(x: 0, y: 0), map.size)) {
       return const <MapCanvasObjectTarget>[];
     }
 
@@ -152,6 +149,7 @@ final class MapCanvasObjectHitTest {
             painted,
             map: map,
             layer: step.layer! as TileLayer,
+            project: project,
             elementsById: elementsById,
             position: position,
             foregroundPass: false,
@@ -170,6 +168,7 @@ final class MapCanvasObjectHitTest {
               painted,
               map: map,
               layer: layer,
+              project: project,
               elementsById: elementsById,
               position: position,
               foregroundPass: true,
@@ -223,12 +222,13 @@ final class MapCanvasObjectHitTest {
     List<MapCanvasObjectTarget> out, {
     required MapData map,
     required TileLayer layer,
+    required ProjectManifest? project,
     required Map<String, ProjectElementEntry> elementsById,
     required GridPos position,
     required bool foregroundPass,
     required int editorAnimationTimeMs,
   }) {
-    if (layer.opacity <= 0) {
+    if (layer.opacity <= 0 || project == null) {
       return;
     }
     final explicitForeground = _isExplicitForegroundLayer(layer);
@@ -245,33 +245,93 @@ final class MapCanvasObjectHitTest {
       final target = _placedElementTarget(
         instance,
         entry: entry,
+        settings: project.settings,
         layerId: layer.id,
         editorAnimationTimeMs: editorAnimationTimeMs,
       );
-      final size = target.size;
-      if (!_containsCell(position, instance.pos, size)) {
-        continue;
-      }
-      final localX = position.x - instance.pos.x;
-      final localY = position.y - instance.pos.y;
-      final transform = _placedElementTransform(
-        instance,
-        entry: entry,
-        editorAnimationTimeMs: editorAnimationTimeMs,
+      final tile = PixelSize(
+        width: project.settings.tileWidth,
+        height: project.settings.tileHeight,
       );
-      final sourceCell = transform.destinationToSource(
-        GridPos(x: localX, y: localY),
-      );
-      if (!_isPlacedCellInPass(
+      final geometry = resolveMapPlacedElementGeometry(
         instance: instance,
-        entry: entry,
-        localX: sourceCell.x,
-        localY: sourceCell.y,
-        explicitForeground: explicitForeground,
-        foregroundPass: foregroundPass,
+        element: entry,
+        tileSize: tile,
+      );
+      final frame = pickPlacedProjectElementFrame(
+        instance,
+        entry.frames,
+        editorAnimationTimeMs,
+      );
+      final tilesetId = frame.tilesetId.trim().isEmpty
+          ? entry.tilesetId
+          : frame.tilesetId;
+      final visual = resolveMapPlacedElementVisualRect(
+        geometry: geometry,
+        tilesetSource: project.tilesets
+            .where((e) => e.id == tilesetId)
+            .firstOrNull
+            ?.source,
+      );
+      final queryLeft = position.x * tile.width,
+          queryTop = position.y * tile.height;
+      bool overlaps(PixelRect rect) =>
+          rect.widthPx > 0 &&
+          rect.heightPx > 0 &&
+          visual.leftPx + rect.leftPx < queryLeft + tile.width &&
+          visual.leftPx + rect.leftPx + rect.widthPx > queryLeft &&
+          visual.topPx + rect.topPx < queryTop + tile.height &&
+          visual.topPx + rect.topPx + rect.heightPx > queryTop;
+      if (!overlaps(
+        PixelRect(
+          leftPx: 0,
+          topPx: 0,
+          widthPx: geometry.pixelSize.width,
+          heightPx: geometry.pixelSize.height,
+        ),
       )) {
         continue;
       }
+      final transform = QuarterTurnPixelTransform(
+        sourcePixelSize: GridSize(
+          width: frame.source.width * tile.width,
+          height: frame.source.height * tile.height,
+        ),
+        destinationPixelSize: GridSize(
+          width: geometry.pixelSize.width,
+          height: geometry.pixelSize.height,
+        ),
+        quarterTurns: instance.quarterTurns,
+      );
+      var hit = false;
+      cells:
+      for (var y = 0; y < frame.source.height; y++) {
+        for (var x = 0; x < frame.source.width; x++) {
+          if (_isPlacedCellInPass(
+                instance: instance,
+                entry: entry,
+                localX: x,
+                localY: y,
+                explicitForeground: explicitForeground,
+                foregroundPass: foregroundPass,
+              ) &&
+              overlaps(
+                transform.sourcePixelRectToDestinationPixelRect(
+                  PixelRect(
+                    leftPx: x * tile.width,
+                    topPx: y * tile.height,
+                    widthPx: tile.width,
+                    heightPx: tile.height,
+                  ),
+                ),
+              )) {
+            hit = true;
+            break cells;
+          }
+        }
+      }
+      if (!hit) continue;
+      out.removeWhere(target.sameIdentity);
       out.add(target);
     }
   }
@@ -360,8 +420,9 @@ final class MapCanvasObjectHitTest {
     if (explicitForeground) {
       return foregroundPass;
     }
-    final collisionCells =
-        instance.applyCollision ? entry.collisionProfile?.cells : null;
+    final collisionCells = instance.applyCollision
+        ? entry.collisionProfile?.cells
+        : null;
     if (collisionCells == null || collisionCells.isEmpty) {
       return !foregroundPass;
     }
@@ -410,6 +471,7 @@ final class MapCanvasObjectHitTest {
 MapCanvasObjectTarget _placedElementTarget(
   MapPlacedElement instance, {
   required ProjectElementEntry? entry,
+  required ProjectSettings? settings,
   required int editorAnimationTimeMs,
   String? layerId,
 }) {
@@ -423,7 +485,16 @@ MapCanvasObjectTarget _placedElementTarget(
     id: instance.id,
     layerId: layerId ?? instance.layerId.trim(),
     anchor: instance.pos,
-    size: transform.destinationSize,
+    size: entry == null || settings == null
+        ? transform.destinationSize
+        : resolveMapPlacedElementGeometry(
+            instance: instance,
+            element: entry,
+            tileSize: PixelSize(
+              width: settings.tileWidth,
+              height: settings.tileHeight,
+            ),
+          ).cellBounds.size,
   );
 }
 
@@ -434,7 +505,11 @@ QuarterTurnGridTransform _placedElementTransform(
 }) {
   final source = entry == null || entry.frames.isEmpty
       ? null
-      : pickProjectElementFrame(entry.frames, editorAnimationTimeMs).source;
+      : pickPlacedProjectElementFrame(
+          instance,
+          entry.frames,
+          editorAnimationTimeMs,
+        ).source;
   return QuarterTurnGridTransform(
     sourceSize: GridSize(
       width: source == null || source.width <= 0 ? 1 : source.width,

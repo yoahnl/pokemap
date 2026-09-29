@@ -5123,7 +5123,7 @@ ProjectManifest _projectWithPreSessionPresentations() {
   );
   return ProjectManifest(
     name: 'Scenes preSession test',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const [],
     tilesets: const [],
     scenes: [scene],

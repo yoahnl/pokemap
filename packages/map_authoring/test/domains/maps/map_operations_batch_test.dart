@@ -124,7 +124,7 @@ void main() {
         jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
       );
       expect(updated.layers, hasLength(5));
-      expect(updated.version, ProjectVersion.v6);
+      expect(updated.version, ProjectVersion.v8);
       expect(
         _resolvedLocalIds(updated.layers.first as TileLayer),
         everyElement(11),
@@ -431,7 +431,7 @@ void main() {
         map.layers.whereType<ObjectLayer>().single.purpose,
         MapLayerPurpose.data,
       );
-      expect(map.version, ProjectVersion.v6);
+      expect(map.version, ProjectVersion.v8);
     });
 
     test('applies one transaction receipt and undoes the complete batch',
@@ -566,7 +566,7 @@ final class _TransactionSetup {
     final map = _map();
     final manifest = ProjectManifest(
       name: 'Map Batch Transaction Fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [
         ProjectMapEntry(
           id: 'fixture',
@@ -664,10 +664,10 @@ ProjectSnapshot _snapshot(MapData map) {
     SmartTileMixedField() => SmartTileTopology.wang8,
     SmartTileCellField() || null => SmartTileTopology.cardinal4,
   };
-  final isNativeSmartTileProject = map.version == ProjectVersion.v6;
+  final isNativeSmartTileProject = map.version == ProjectVersion.v8;
   final manifest = ProjectManifest(
     name: 'Batch Fixture',
-    version: isNativeSmartTileProject ? ProjectVersion.v6 : ProjectVersion.v6,
+    version: isNativeSmartTileProject ? ProjectVersion.v8 : ProjectVersion.v8,
     maps: const [
       ProjectMapEntry(
         id: 'fixture',
@@ -767,7 +767,7 @@ MapData _map() => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 4, height: 3),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(
@@ -782,7 +782,7 @@ MapData _nativeSmartTileV5Map(SmartTileField field) => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 2, height: 2),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         const MapLayer.tile(
@@ -805,7 +805,7 @@ MapData _legacyPaletteMap() => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 4, height: 3),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

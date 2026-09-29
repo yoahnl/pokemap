@@ -15,7 +15,6 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_instruction_collection.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
-import 'placed_element_collision_clip.dart';
 import 'runtime_map_layer_paint_order.dart';
 import 'smart_tile_animation_activation_controller.dart';
 import 'smart_tile_visual_renderer.dart';
@@ -114,6 +113,7 @@ class MapLayersComponent extends PositionComponent {
     required this.tileImagesByTilesetId,
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
+    this.separatePlacedElementOcclusion = false,
     this.npcMapPresencePredicate,
     this.mapEntityPresencePredicate,
     this.shadowCollectionProvider,
@@ -151,12 +151,186 @@ class MapLayersComponent extends PositionComponent {
   }
 
   final RuntimeMapBundle bundle;
+  final bool separatePlacedElementOcclusion;
+  final _occlusionPaths = <String, Path>{};
   late final List<MapPlacedElement> _orderedPlacedElements =
       sortMapPlacedElementsForPainting(bundle.map.placedElements);
   late final Map<String, int> _placedElementOrderById = {
     for (var i = 0; i < _orderedPlacedElements.length; i++)
       _orderedPlacedElements[i].id: i,
   };
+  final Map<String, List<MapPlacedElement>> _laterOverlappingById = {};
+  MapPlacedElement? _preview;
+  final _placedPlans = QuarterTurnPixelPlanCache();
+  int get debugPlacedElementPlanPreparationCount =>
+      _placedPlans.preparationCount;
+  int get debugPlacedElementPlanBytes => _placedPlans.bytes;
+  final Map<ProjectElementEntry, PreparedMapPlacedElementCollision?>
+      _collisionRects = {};
+  int _collisionPreparationCount = 0;
+  int get debugCollisionPreparationCount => _collisionPreparationCount;
+  int get debugCollisionCacheBytes => _collisionRects.values
+      .fold(0, (sum, entry) => sum + (entry?.retainedBytes ?? 0));
+  int get debugCollisionCacheEntries => _collisionRects.length;
+
+  PixelSize get _tileSize => PixelSize(
+      width: bundle.manifest.settings.tileWidth,
+      height: bundle.manifest.settings.tileHeight);
+
+  MapPlacedElementGeometry _geometry(
+          MapPlacedElement instance, ProjectElementEntry element) =>
+      resolveMapPlacedElementGeometry(
+          instance: instance, element: element, tileSize: _tileSize);
+
+  Rect _worldRect(PixelRect rect) => Rect.fromLTWH(
+      rect.leftPx * bundle.cellWidth / _tileSize.width,
+      rect.topPx * bundle.cellHeight / _tileSize.height,
+      rect.widthPx * bundle.cellWidth / _tileSize.width,
+      rect.heightPx * bundle.cellHeight / _tileSize.height);
+
+  Rect _visualBounds(MapPlacedElement instance) {
+    final element = _elementById[instance.elementId];
+    if (element == null) return Rect.zero;
+    return _worldRect(resolveMapPlacedElementVisualBounds(
+        instance: instance,
+        element: element,
+        manifest: bundle.manifest,
+        tilesetSources: _tilesetSourceById));
+  }
+
+  MapPlacedElement _effective(MapPlacedElement instance) =>
+      _preview?.id == instance.id ? _preview! : instance;
+
+  Rect _collisionBounds(MapPlacedElement instance) {
+    final element = _elementById[instance.elementId];
+    if (element == null) return Rect.zero;
+    final geometry = _geometry(instance, element);
+    var bounds = _worldRect(geometry.logicalRect);
+    if (instance.quarterTurns != 0) return bounds;
+    final profile = element.collisionProfile;
+    final mask = profile?.collisionMask;
+    final sx = bounds.width / geometry.naturalPixelSize.width;
+    final sy = bounds.height / geometry.naturalPixelSize.height;
+    if (mask != null) {
+      return Rect.fromLTWH(
+          bounds.left, bounds.top, mask.widthPx * sx, mask.heightPx * sy);
+    }
+    for (final cell in profile?.cells ?? const <GridPos>[]) {
+      bounds = bounds.expandToInclude(Rect.fromLTWH(
+          geometry.logicalRect.leftPx * bundle.cellWidth / _tileSize.width +
+              cell.x * _tileSize.width * sx,
+          geometry.logicalRect.topPx * bundle.cellHeight / _tileSize.height +
+              cell.y * _tileSize.height * sy,
+          _tileSize.width * sx,
+          _tileSize.height * sy));
+    }
+    return bounds;
+  }
+
+  late final _collisionSpatialIndex =
+      _RuntimeSpatialIndex<MapPlacedElement>.build(
+          items: _orderedPlacedElements,
+          boundsOf: _collisionBounds,
+          bucketWidth: bundle.cellWidth * 16,
+          bucketHeight: bundle.cellHeight * 16);
+
+  List<MapPlacedElement> _placedCandidates(Rect? rect) {
+    final preview = _preview;
+    final originals = _placedElementSpatialIndex.query(rect);
+    if (preview == null) return originals;
+    final result = [
+      for (final item in originals)
+        if (item.id != preview.id) item
+    ];
+    if (rect == null || _intersects(_visualBounds(preview), rect)) {
+      result.add(preview);
+    }
+    result.sort((a, b) => _placedElementOrderById[a.id]!
+        .compareTo(_placedElementOrderById[b.id]!));
+    return result;
+  }
+
+  void setPlacedElementPreview(MapPlacedElement? instance) {
+    if (_preview == instance) return;
+    if (instance != null) {
+      final index = _placedElementOrderById[instance.id];
+      final original = index == null ? null : _orderedPlacedElements[index];
+      if (original == null ||
+          original.elementId != instance.elementId ||
+          original.layerId != instance.layerId) {
+        throw ArgumentError(
+            'Preview must transform an existing placed element');
+      }
+      _geometry(instance, _elementById[instance.elementId]!);
+    }
+    for (final changed in [_preview, instance].nonNulls) {
+      final original =
+          _orderedPlacedElements[_placedElementOrderById[changed.id]!];
+      for (final bounds in [_visualBounds(changed), _visualBounds(original)]) {
+        for (final candidate in _placedElementSpatialIndex.query(bounds)) {
+          _laterOverlappingById.remove(candidate.id);
+        }
+      }
+      _laterOverlappingById.remove(changed.id);
+    }
+    _preview = instance;
+  }
+
+  void dispose() {
+    _placedPlans.dispose();
+    _collisionRects.clear();
+    _occlusionPaths.clear();
+    _laterOverlappingById.clear();
+  }
+
+  void _drawPlacedPixels(Canvas canvas,
+      {required RuntimeTilesetImage image,
+      required Rect sourceRect,
+      required Rect destinationRect,
+      required GridSize sourcePixelSize,
+      required GridSize destinationPixelSize,
+      required int quarterTurns,
+      required Paint paint,
+      Object? maskKey,
+      QuarterTurnSourcePixelPredicate? includeSourcePixel}) {
+    final plan = _placedPlans.obtain(
+        image: image,
+        sourceRect: sourceRect,
+        sourceSize: sourcePixelSize,
+        destinationSize: destinationPixelSize,
+        quarterTurns: quarterTurns,
+        maskKey: maskKey,
+        includeSourcePixel: includeSourcePixel);
+    canvas.save();
+    try {
+      canvas.translate(destinationRect.left, destinationRect.top);
+      canvas.scale(destinationRect.width / destinationPixelSize.width,
+          destinationRect.height / destinationPixelSize.height);
+      final layered = paint.color != const Color(0xffffffff) ||
+          paint.colorFilter != null ||
+          paint.blendMode != BlendMode.srcOver;
+      if (layered) {
+        canvas.saveLayer(
+            Rect.fromLTWH(0, 0, destinationPixelSize.width.toDouble(),
+                destinationPixelSize.height.toDouble()),
+            paint);
+      }
+      try {
+        plan.draw(canvas);
+      } finally {
+        if (layered) canvas.restore();
+      }
+    } finally {
+      canvas.restore();
+    }
+  }
+
+  @override
+  void onRemove() {
+    dispose();
+    super.onRemove();
+  }
+
   final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
@@ -168,7 +342,7 @@ class MapLayersComponent extends PositionComponent {
   /// Si non null, les entités projet rejetées ne sont pas peintes. Ce filtre
   /// couvre aussi les objets et props pilotés par les World Rules.
   MapEntityPresencePredicate? mapEntityPresencePredicate;
-  final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
+  ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
@@ -382,12 +556,17 @@ class MapLayersComponent extends PositionComponent {
     final counter = observer == null ? null : _MapLayersRenderCounter();
     final watch = observer == null ? null : (Stopwatch()..start());
     _activeRenderCounter = counter;
+    canvas.save();
+    if (_visibleLocalRect != null) {
+      canvas.clipRect(_visibleLocalRect!, doAntiAlias: false);
+    }
     try {
       super.render(canvas);
       for (final step in _runtimeLayerPaintOrder.steps) {
         _renderVisualCompositionStep(canvas, step);
       }
     } finally {
+      canvas.restore();
       _activeRenderCounter = null;
       watch?.stop();
     }
@@ -829,6 +1008,7 @@ class MapLayersComponent extends PositionComponent {
   }
 
   TilesetVisualFrame? displayedPlacedElementFrame(MapPlacedElement instance) {
+    instance = _effective(instance);
     final element = _elementById[instance.elementId.trim()];
     if (element == null || element.frames.isEmpty) return null;
     return _pickPlacedElementFrame(
@@ -836,6 +1016,18 @@ class MapLayersComponent extends PositionComponent {
       frames: element.frames,
       elapsedMs: (_animElapsed * 1000).toInt(),
     );
+  }
+
+  Rect? displayedPlacedElementRect(MapPlacedElement instance) {
+    instance = _effective(instance);
+    final element = _elementById[instance.elementId];
+    final frame = displayedPlacedElementFrame(instance);
+    if (element == null || frame == null) return null;
+    final tilesetId =
+        frame.tilesetId.trim().isEmpty ? element.tilesetId : frame.tilesetId;
+    return _worldRect(resolveMapPlacedElementVisualRect(
+        geometry: _geometry(instance, element),
+        tilesetSource: _tilesetSourceById[tilesetId]));
   }
 
   void _paintTileLayer(Canvas canvas, TileLayer layer) {
@@ -1107,43 +1299,115 @@ class MapLayersComponent extends PositionComponent {
   void Function(Canvas)? placedElementOcclusionOverlayPainter(String ownerId) {
     final index = _placedElementOrderById[ownerId];
     if (index == null) return null;
-    final owner = _orderedPlacedElements[index];
+    final owner = _effective(_orderedPlacedElements[index]);
     final element = _elementById[owner.elementId];
-    if (element == null || owner.opacity != 1) return null;
+    if (element == null) return null;
     final layer =
         bundle.map.layers.where((l) => l.id == owner.layerId).firstOrNull;
-    if (layer == null || !layer.isVisible || layer.opacity != 1) return null;
-    final footprint =
-        resolveMapPlacedElementFootprint(instance: owner, element: element);
-    final left = owner.pos.x * bundle.cellWidth;
-    final top = owner.pos.y * bundle.cellHeight;
-    final bounds = Rect.fromLTWH(
-        left,
-        top,
-        footprint.destinationSize.width * bundle.cellWidth,
-        footprint.destinationSize.height * bundle.cellHeight);
-    final overlays = _placedElementSpatialIndex
-        .query(bounds)
-        .where((candidate) =>
-            candidate.layerId == owner.layerId &&
-            (_placedElementOrderById[candidate.id] ?? -1) > index &&
-            candidate.opacity > 0)
-        .toList(growable: false);
-    if (overlays.isEmpty) return null;
+    if (layer == null || !layer.isVisible) return null;
     return (canvas) {
+      final current = _effective(_orderedPlacedElements[index]);
+      final bounds = displayedPlacedElementRect(current);
+      if (bounds == null) return;
+      final masks = _placedCandidates(bounds)
+          .where((candidate) =>
+              candidate.layerId == owner.layerId &&
+              _hasActiveOcclusionPath(candidate))
+          .toList(growable: false);
+      if (!masks.any((candidate) => candidate.id == ownerId)) return;
+      final overlays = _placedCandidates(bounds)
+          .where((candidate) =>
+              candidate.layerId == owner.layerId && candidate.opacity > 0)
+          .toList(growable: false);
+      if (overlays.isEmpty) return;
       canvas.save();
       try {
-        canvas.translate(-left, -top);
-        _paintPlacedElementsForLayer(canvas,
-            layerId: layer.id,
-            layerName: layer.name,
-            opacity: layer.opacity,
-            candidates: overlays,
-            compositeOverlay: true);
+        canvas.translate(-bounds.left, -bounds.top);
+        _clipOutsideOcclusionPaths(canvas, bounds, masks.where((candidate) {
+          final other = displayedPlacedElementRect(candidate)!;
+          return other.bottom > bounds.bottom ||
+              (other.bottom == bounds.bottom &&
+                  _placedElementOrderById[candidate.id]! > index);
+        }));
+        for (final candidate in overlays) {
+          final reserved = masks.where((mask) =>
+              _placedElementOrderById[mask.id]! <=
+              _placedElementOrderById[candidate.id]!);
+          if (reserved.isEmpty) continue;
+          canvas.save();
+          canvas.clipPath(_occlusionPath(reserved), doAntiAlias: false);
+          _paintPlacedElementsForLayer(canvas,
+              layerId: layer.id,
+              layerName: layer.name,
+              opacity: layer.opacity,
+              candidates: [candidate],
+              compositeOverlay: true);
+          canvas.restore();
+        }
       } finally {
         canvas.restore();
       }
     };
+  }
+
+  void setPlacedElementOcclusionPath(String id, Path? path) {
+    if (path == null) {
+      _occlusionPaths.remove(id);
+    } else {
+      _occlusionPaths[id] = path;
+    }
+  }
+
+  bool _hasActiveOcclusionPath(MapPlacedElement instance) {
+    if (!_occlusionPaths.containsKey(instance.id) || instance.opacity <= 0) {
+      return false;
+    }
+    final frame = displayedPlacedElementFrame(instance);
+    if (frame == null) return false;
+    final tilesetId = frame.tilesetId.trim().isEmpty
+        ? _elementById[instance.elementId]?.tilesetId
+        : frame.tilesetId.trim();
+    final image = tileImagesByTilesetId[tilesetId];
+    final settings = bundle.manifest.settings;
+    return image != null &&
+        image.containsSourceRect(Rect.fromLTWH(
+            (frame.source.x * settings.tileWidth).toDouble(),
+            (frame.source.y * settings.tileHeight).toDouble(),
+            (frame.source.width * settings.tileWidth).toDouble(),
+            (frame.source.height * settings.tileHeight).toDouble()));
+  }
+
+  Path _occlusionPath(Iterable<MapPlacedElement> masks) {
+    final result = Path();
+    for (final mask in masks) {
+      final rect = displayedPlacedElementRect(mask);
+      final path = _occlusionPaths[mask.id];
+      if (rect == null || path == null) continue;
+      result.addPath(path, rect.topLeft);
+    }
+    return result;
+  }
+
+  void _clipOutsideOcclusionPaths(
+      Canvas canvas, Rect bounds, Iterable<MapPlacedElement> masks) {
+    for (final mask in masks) {
+      final outside = Path()
+        ..fillType = PathFillType.evenOdd
+        ..addRect(bounds)
+        ..addPath(_occlusionPath([mask]), Offset.zero);
+      canvas.clipPath(outside, doAntiAlias: false);
+    }
+  }
+
+  bool usesPlacedElementOcclusionPatch(String id) {
+    final index = _placedElementOrderById[id];
+    if (index == null) return false;
+    final instance = _orderedPlacedElements[index];
+    final layer =
+        bundle.map.layers.where((e) => e.id == instance.layerId).firstOrNull;
+    return layer != null &&
+        !_isExplicitForegroundTileLayer(
+            layerId: layer.id, layerName: layer.name);
   }
 
   void _paintPlacedElementsForLayer(
@@ -1153,6 +1417,8 @@ class MapLayersComponent extends PositionComponent {
     required double opacity,
     List<MapPlacedElement>? candidates,
     bool compositeOverlay = false,
+    BlendMode? blendMode,
+    bool binaryAlphaMask = false,
   }) {
     if (bundle.map.placedElements.isEmpty || opacity <= 0) {
       return;
@@ -1169,16 +1435,14 @@ class MapLayersComponent extends PositionComponent {
     if (tw <= 0 || th <= 0) {
       return;
     }
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
     final paint = Paint()
       ..isAntiAlias = false
-      ..filterQuality = FilterQuality.none;
+      ..filterQuality = FilterQuality.none
+      ..blendMode = blendMode ?? BlendMode.srcOver;
     final visibleRect = _visibleLocalRect;
 
-    final placedCandidates =
-        candidates ?? _placedElementSpatialIndex.query(visibleRect);
+    final placedCandidates = candidates ?? _placedCandidates(visibleRect);
     _activeRenderCounter?.placedElementCandidateVisits +=
         placedCandidates.length;
     for (final instance in placedCandidates) {
@@ -1190,7 +1454,36 @@ class MapLayersComponent extends PositionComponent {
       if (effectiveOpacity <= 0) {
         continue;
       }
-      paint.color = Color.fromRGBO(255, 255, 255, effectiveOpacity);
+      paint.color = Color.fromRGBO(
+        255,
+        255,
+        255,
+        binaryAlphaMask ? 1 : effectiveOpacity,
+      );
+      paint.colorFilter = binaryAlphaMask
+          ? const ColorFilter.matrix([
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              255,
+              0,
+            ])
+          : null;
       final entry = _elementById[instance.elementId.trim()];
       if (entry == null || entry.frames.isEmpty) {
         continue;
@@ -1216,6 +1509,7 @@ class MapLayersComponent extends PositionComponent {
         sourceSize: GridSize(width: source.width, height: source.height),
         quarterTurns: instance.quarterTurns,
       );
+      final geometry = _geometry(instance, entry);
       final collisionCells =
           instance.applyCollision ? entry.collisionProfile?.cells : null;
       final hasForegroundSplit = !compositeOverlay &&
@@ -1227,27 +1521,31 @@ class MapLayersComponent extends PositionComponent {
       if (!explicitForeground &&
           renderPass == MapLayerRenderPass.foreground &&
           !hasForegroundSplit &&
-          !isPlayingOneShot) {
+          !isPlayingOneShot &&
+          !compositeOverlay) {
         continue;
-      }
-      // Viewport culling pour les éléments placés.
-      if (visibleRect != null) {
-        final dstLeft = instance.pos.x * cw;
-        final dstTop = instance.pos.y * ch;
-        final dstRight = dstLeft + gridTransform.destinationSize.width * cw;
-        final dstBottom = dstTop + gridTransform.destinationSize.height * ch;
-        if (dstRight < visibleRect.left ||
-            dstLeft > visibleRect.right ||
-            dstBottom < visibleRect.top ||
-            dstTop > visibleRect.bottom) {
-          continue;
-        }
       }
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
           : entry.tilesetId.trim();
       if (tilesetId.isEmpty) {
         continue;
+      }
+      final tilesetSource = _tilesetSourceById[tilesetId];
+      final dst = _worldRect(resolveMapPlacedElementVisualRect(
+          geometry: geometry, tilesetSource: tilesetSource));
+      // Viewport culling pour les éléments placés.
+      if (visibleRect != null) {
+        final dstLeft = dst.left;
+        final dstTop = dst.top;
+        final dstRight = dst.right;
+        final dstBottom = dst.bottom;
+        if (dstRight < visibleRect.left ||
+            dstLeft > visibleRect.right ||
+            dstBottom < visibleRect.top ||
+            dstTop > visibleRect.bottom) {
+          continue;
+        }
       }
       final image = tileImagesByTilesetId[tilesetId];
       if (image == null) {
@@ -1262,35 +1560,94 @@ class MapLayersComponent extends PositionComponent {
       if (!image.containsSourceRect(src)) {
         continue;
       }
-      final dst = Rect.fromLTWH(
-        instance.pos.x * cw,
-        instance.pos.y * ch,
-        gridTransform.destinationSize.width * cw,
-        gridTransform.destinationSize.height * ch,
-      );
+      final laterOverlapping = hasForegroundSplit
+          ? _laterOverlappingById.putIfAbsent(
+              instance.id,
+              () => _placedCandidates(_visualBounds(instance))
+                  .where((candidate) =>
+                      candidate.id != instance.id &&
+                      candidate.layerId == layerId &&
+                      candidate.opacity > 0 &&
+                      (_placedElementOrderById[candidate.id] ?? -1) >
+                          (_placedElementOrderById[instance.id] ?? -1))
+                  .toList(growable: false),
+            )
+          : const <MapPlacedElement>[];
       final sourcePixelSize = GridSize(
         width: source.width * tw,
         height: source.height * th,
       );
       final destinationPixelSize = GridSize(
-        width: gridTransform.destinationSize.width * tw,
-        height: gridTransform.destinationSize.height * th,
+        width: geometry.pixelSize.width,
+        height: geometry.pixelSize.height,
       );
-      if (hasForegroundSplit && !isPlayingOneShot) {
-        final clip = buildPlacedElementCollisionClip(
+      final eraseLater = renderPass == MapLayerRenderPass.foreground &&
+          laterOverlapping.isNotEmpty;
+      void drawSplit({required bool includeCollisionCells}) {
+        final cells = collisionCells!.toSet();
+        _drawPlacedPixels(
+          canvas,
+          image: image,
+          sourceRect: src,
           destinationRect: dst,
-          sourceGridSize: GridSize(
-            width: source.width,
-            height: source.height,
-          ),
+          sourcePixelSize: sourcePixelSize,
+          destinationPixelSize: destinationPixelSize,
           quarterTurns: gridTransform.quarterTurns,
-          collisionCells: collisionCells,
-          includeCollisionCells: renderPass == MapLayerRenderPass.background,
+          paint: paint,
+          maskKey: (entry.collisionProfile, includeCollisionCells),
+          includeSourcePixel: (pixel) =>
+              cells.contains(GridPos(x: pixel.x ~/ tw, y: pixel.y ~/ th)) ==
+              includeCollisionCells,
         );
+      }
+
+      final reserved = separatePlacedElementOcclusion &&
+              _occlusionPaths.isNotEmpty &&
+              !explicitForeground &&
+              !compositeOverlay
+          ? _placedCandidates(dst)
+              .where((candidate) =>
+                  candidate.layerId == layerId &&
+                  _placedElementOrderById[candidate.id]! <=
+                      _placedElementOrderById[instance.id]! &&
+                  _hasActiveOcclusionPath(candidate))
+              .toList(growable: false)
+          : const <MapPlacedElement>[];
+      if (reserved.isNotEmpty) {
         canvas.save();
-        try {
-          canvas.clipPath(clip.path, doAntiAlias: false);
-          drawQuarterTurnPixels(
+        _clipOutsideOcclusionPaths(canvas, dst, reserved);
+      }
+      if (eraseLater) canvas.saveLayer(dst, Paint());
+      try {
+        if (hasForegroundSplit && !isPlayingOneShot) {
+          drawSplit(
+            includeCollisionCells: renderPass == MapLayerRenderPass.background,
+          );
+          if (renderPass == MapLayerRenderPass.background &&
+              laterOverlapping.isNotEmpty) {
+            canvas.saveLayer(dst, Paint());
+            try {
+              drawSplit(includeCollisionCells: false);
+              canvas.saveLayer(dst, Paint()..blendMode = BlendMode.dstIn);
+              try {
+                _paintPlacedElementsForLayer(
+                  canvas,
+                  layerId: layerId,
+                  layerName: layerName,
+                  opacity: opacity,
+                  candidates: laterOverlapping,
+                  compositeOverlay: true,
+                  binaryAlphaMask: true,
+                );
+              } finally {
+                canvas.restore();
+              }
+            } finally {
+              canvas.restore();
+            }
+          }
+        } else {
+          _drawPlacedPixels(
             canvas,
             image: image,
             sourceRect: src,
@@ -1300,20 +1657,24 @@ class MapLayersComponent extends PositionComponent {
             quarterTurns: gridTransform.quarterTurns,
             paint: paint,
           );
-        } finally {
+        }
+        if (eraseLater) {
+          _paintPlacedElementsForLayer(
+            canvas,
+            layerId: layerId,
+            layerName: layerName,
+            opacity: opacity,
+            candidates: laterOverlapping,
+            compositeOverlay: true,
+            blendMode: BlendMode.dstOut,
+            binaryAlphaMask: true,
+          );
+        }
+      } finally {
+        if (eraseLater) canvas.restore();
+        if (reserved.isNotEmpty) {
           canvas.restore();
         }
-      } else {
-        drawQuarterTurnPixels(
-          canvas,
-          image: image,
-          sourceRect: src,
-          destinationRect: dst,
-          sourcePixelSize: sourcePixelSize,
-          destinationPixelSize: destinationPixelSize,
-          quarterTurns: gridTransform.quarterTurns,
-          paint: paint,
-        );
       }
     }
   }
@@ -1588,12 +1949,35 @@ class MapLayersComponent extends PositionComponent {
     final elements = <String, ProjectElementEntry>{
       for (final element in bundle.manifest.elements) element.id: element,
     };
+    final sources = {
+      for (final entry in bundle.manifest.tilesets) entry.id: entry.source
+    };
     return _RuntimeSpatialIndex<MapPlacedElement>.build(
       items: sortMapPlacedElementsForPainting(bundle.map.placedElements),
       bucketWidth: bundle.cellWidth * 8,
       bucketHeight: bundle.cellHeight * 8,
       boundsOf: (instance) {
         final element = elements[instance.elementId];
+        if (element != null && element.frames.isNotEmpty) {
+          final rect = resolveMapPlacedElementVisualBounds(
+              instance: instance,
+              element: element,
+              manifest: bundle.manifest,
+              tilesetSources: sources);
+          return Rect.fromLTWH(
+              rect.leftPx *
+                  bundle.cellWidth /
+                  bundle.manifest.settings.tileWidth,
+              rect.topPx *
+                  bundle.cellHeight /
+                  bundle.manifest.settings.tileHeight,
+              rect.widthPx *
+                  bundle.cellWidth /
+                  bundle.manifest.settings.tileWidth,
+              rect.heightPx *
+                  bundle.cellHeight /
+                  bundle.manifest.settings.tileHeight);
+        }
         var width = 1;
         var height = 1;
         for (final frame in element?.frames ?? const <TilesetVisualFrame>[]) {
@@ -1771,108 +2155,52 @@ class MapLayersComponent extends PositionComponent {
     }
   }
 
-  void _paintPlacedElementsCollisionOverlay(Canvas canvas) {
-    final w = bundle.map.size.width;
-    final h = bundle.map.size.height;
-    if (w <= 0 || h <= 0) {
-      return;
-    }
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final paint = Paint()..color = const Color.fromRGBO(255, 153, 0, 0.30);
-    final elementById = _elementById;
-    final tileWidth = bundle.manifest.settings.tileWidth;
-    final tileHeight = bundle.manifest.settings.tileHeight;
-    final pixelScaleX = tileWidth > 0 ? cw / tileWidth : 1.0;
-    final pixelScaleY = tileHeight > 0 ? ch / tileHeight : 1.0;
-    final mapWidthPx = w * cw;
-    final mapHeightPx = h * ch;
-    final placedCandidates =
-        _placedElementSpatialIndex.query(_visibleLocalRect);
-    _activeRenderCounter?.placedElementCandidateVisits +=
-        placedCandidates.length;
-    for (final instance in placedCandidates) {
-      if (!instance.applyCollision) {
-        continue;
-      }
-      final element = elementById[instance.elementId];
-      final profile = element?.collisionProfile;
-      if (element == null || element.frames.isEmpty || profile == null) {
-        continue;
-      }
-      final footprint = resolveMapPlacedElementFootprint(
-        instance: instance,
-        element: element,
-      );
-      final worldLeftPx = instance.pos.x * cw;
-      final worldTopPx = instance.pos.y * ch;
-      // Overlay debug : masque **collision** (blocage), pas l’occlusion.
-      final collisionMask = profile.collisionMask;
-      if (collisionMask != null) {
-        if (collisionMask.widthPx <= 0 || collisionMask.heightPx <= 0) {
-          continue;
-        }
-        List<bool> maskPixels;
-        try {
-          maskPixels = ElementCollisionMaskCodec.decodePackedBits(
-            widthPx: collisionMask.widthPx,
-            heightPx: collisionMask.heightPx,
-            dataBase64: collisionMask.dataBase64,
-          );
-        } catch (_) {
-          continue;
-        }
-        final destinationPixelSize = GridSize(
-          width: footprint.quarterTurns == 0
-              ? collisionMask.widthPx
-              : footprint.destinationSize.width * tileWidth,
-          height: footprint.quarterTurns == 0
-              ? collisionMask.heightPx
-              : footprint.destinationSize.height * tileHeight,
-        );
-        final pixelTransform = QuarterTurnPixelTransform(
-          sourcePixelSize: GridSize(
-            width: collisionMask.widthPx,
-            height: collisionMask.heightPx,
-          ),
-          destinationPixelSize: destinationPixelSize,
-          quarterTurns: footprint.quarterTurns,
-        );
-        for (var py = 0; py < destinationPixelSize.height; py++) {
-          for (var px = 0; px < destinationPixelSize.width; px++) {
-            final source = pixelTransform.destinationPixelToSourcePixel(
-              GridPos(x: px, y: py),
-            );
-            final idx = source.y * collisionMask.widthPx + source.x;
-            if (idx < 0 || idx >= maskPixels.length || !maskPixels[idx]) {
-              continue;
-            }
-            final dx = worldLeftPx + px * pixelScaleX;
-            final dy = worldTopPx + py * pixelScaleY;
-            if (dx + pixelScaleX <= 0 ||
-                dy + pixelScaleY <= 0 ||
-                dx >= mapWidthPx ||
-                dy >= mapHeightPx) {
-              continue;
-            }
-            canvas.drawRect(
-              Rect.fromLTWH(dx, dy, pixelScaleX, pixelScaleY),
-              paint,
-            );
-          }
-        }
-        continue;
-      }
+  Color collisionOverlayColor = const Color.fromRGBO(255, 153, 0, 0.30);
 
-      // Fallback legacy: profils sans masque collision pixel.
-      for (final local in profile.cells) {
-        final destination = footprint.sourceToDestination(local);
-        final x = instance.pos.x + destination.x;
-        final y = instance.pos.y + destination.y;
-        if (x < 0 || y < 0 || x >= w || y >= h) {
+  void _paintPlacedElementsCollisionOverlay(Canvas canvas) {
+    final paint = Paint()..color = collisionOverlayColor;
+    final mapBounds = Rect.fromLTWH(
+        0,
+        0,
+        bundle.map.size.width * bundle.cellWidth,
+        bundle.map.size.height * bundle.cellHeight);
+    final preview = _preview;
+    final candidates = [
+      for (final original in _collisionSpatialIndex.query(_visibleLocalRect))
+        if (original.id != preview?.id) original,
+      if (preview != null &&
+          (_visibleLocalRect == null ||
+              _collisionBounds(preview).overlaps(_visibleLocalRect!)))
+        preview,
+    ];
+    for (final instance in candidates) {
+      final element = _elementById[instance.elementId];
+      if (element == null || !instance.applyCollision) continue;
+      final prepared = _collisionRects.putIfAbsent(element, () {
+        while (_collisionRects.length >= 64) {
+          _collisionRects.remove(_collisionRects.keys.first);
+        }
+        _collisionPreparationCount++;
+        try {
+          return PreparedMapPlacedElementCollision(
+              element: element, tileSize: _tileSize);
+        } on FormatException {
+          return null;
+        }
+      });
+      if (prepared == null) continue;
+      while (debugCollisionCacheBytes > 1024 * 1024 &&
+          _collisionRects.isNotEmpty) {
+        _collisionRects.remove(_collisionRects.keys.first);
+      }
+      for (final rect in prepared.resolve(instance)) {
+        final world = _worldRect(rect).intersect(mapBounds);
+        if (world.isEmpty ||
+            (_visibleLocalRect != null &&
+                !world.overlaps(_visibleLocalRect!))) {
           continue;
         }
-        canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw, ch), paint);
+        canvas.drawRect(world, paint);
       }
     }
   }

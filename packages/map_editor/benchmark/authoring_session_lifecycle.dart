@@ -149,7 +149,7 @@ const _map = MapData(
   id: 'alpha',
   name: 'Alpha',
   size: GridSize(width: 2, height: 2),
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   visualStack: MapVisualStackConfig.canonicalV1,
   layers: [
     MapLayer.tile(id: 'l_base', name: 'Base', cells: [0, 0, 0, 0]),

@@ -160,7 +160,7 @@ Future<_ImportMeasurement> _measureImport(
   try {
     final manifest = ProjectManifest(
       name: 'Rich transactional import benchmark',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

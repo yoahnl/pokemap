@@ -418,7 +418,7 @@ async function writeFixture(root: string): Promise<void> {
     join(root, "project.json"),
     JSON.stringify({
       name: "MCP item fixture",
-      version: "v6",
+      version: "v8",
       maps: [
         {
           id: "lab",
@@ -440,7 +440,7 @@ async function writeFixture(root: string): Promise<void> {
     JSON.stringify({
       id: "lab",
       name: "Lab",
-      version: "v6",
+      version: "v8",
       size: { width: 3, height: 3 },
       entities: [
         {

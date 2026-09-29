@@ -351,7 +351,7 @@ Future<void> _pumpPanel(
 
 ProjectManifest _project() => ProjectManifest(
   name: 'Presentation add panel',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   presentationCinematics: <PresentationCinematicAsset>[

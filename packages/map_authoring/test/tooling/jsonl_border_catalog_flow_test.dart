@@ -201,7 +201,7 @@ final class _Harness {
     );
     final manifest = ProjectManifest(
       name: 'Border catalog transport fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       elements: const <ProjectElementEntry>[

@@ -66,10 +66,10 @@ final class PresentationCinematicTemplateActions {
         'The requested Presentation cinematic template action is unsupported.',
       );
     }
-    if (context.snapshot.manifest.version != ProjectVersion.v7) {
+    if (context.snapshot.manifest.version != ProjectVersion.v8) {
       throw PresentationCinematicTemplateAuthoringException(
         'presentation_cinematic_template.project_version_unsupported',
-        'Presentation cinematic templates require ProjectVersion.v7.',
+        'Presentation cinematic templates require ProjectVersion.v8.',
       );
     }
     final parameters = context.request.parameters;

@@ -1,10 +1,106 @@
 part of 'map_workspace_canvas.dart';
 
 extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
+  void _cancel() {
+    _start = null;
+    _preview = null;
+    _hoverCell = null;
+    _moving = null;
+    _armed = false;
+    _stroke = null;
+    _encounterStroke = null;
+    _gestureSource = null;
+    _characterGesture = null;
+    _panPointer = null;
+    _panPosition = null;
+    _decorDraft = null;
+    _decorPointer = null;
+    _nudgeKeys.clear();
+    _gestureTool = null;
+  }
+
+  void _translateViewport(Offset delta) {
+    final matrix = Matrix4.copy(widget.view.transform.value);
+    matrix.storage[12] += delta.dx;
+    matrix.storage[13] += delta.dy;
+    widget.view.transform.value = matrix;
+  }
+
+  void _pointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent ||
+        event.kind != PointerDeviceKind.trackpad) {
+      return;
+    }
+    GestureBinding.instance.pointerSignalResolver.register(
+      event,
+      (_) => _translateViewport(-event.scrollDelta),
+    );
+  }
+
+  void _hover(PointerHoverEvent event) {
+    final position = _cell(event.localPosition);
+    final cell =
+        widget.view.tool == StudioMapTool.place && widget.view.brush != null
+        ? position
+        : null;
+    if (cell != _hoverCell) _mutateGesture(() => _hoverCell = cell);
+  }
+
+  void _move(PointerMoveEvent event) {
+    if (_decorPointer == event.pointer && _decorDraft != null) {
+      _decorDraft!.move(
+        _pixelOffset(event.localPosition),
+        precise: HardwareKeyboard.instance.isShiftPressed,
+      );
+      _refreshDecor();
+      return;
+    }
+    if (_panPointer == event.pointer && _panPosition != null) {
+      _translateViewport(event.position - _panPosition!);
+      _panPosition = event.position;
+      return;
+    }
+    if (_characterGesture != null) {
+      _mutateGesture(() => _characterGesture!.move(_cell(event.localPosition)));
+      return;
+    }
+    final start = _start;
+    if (start == null) return;
+    final cell = _cell(event.localPosition);
+    if (_encounterStroke != null) {
+      _mutateGesture(() => _encounterStroke!.paint(cell));
+      return;
+    }
+    if (_stroke != null) {
+      _paint(cell);
+      return;
+    }
+    final moving = _moving;
+    if (moving != null) {
+      _mutateGesture(
+        () => _preview = GridPos(
+          x: moving.pos.x + cell.x - start.x,
+          y: moving.pos.y + cell.y - start.y,
+        ),
+      );
+    }
+  }
+
   void _down(PointerDownEvent event) {
-    if (event.buttons == kSecondaryButton) {
-      // Never reaches the painting, placement or erasing path.
+    if (event.buttons == kMiddleMouseButton ||
+        (event.buttons == kPrimaryButton &&
+            HardwareKeyboard.instance.isLogicalKeyPressed(
+              LogicalKeyboardKey.space,
+            ))) {
       _cancel();
+      _panPointer = event.pointer;
+      _panPosition = event.position;
+      return;
+    }
+    if (event.buttons == kSecondaryButton) {
+      _cancel();
+      widget.document.stackPosition = _cell(event.localPosition);
+      widget.document.stackPixelPosition = _pixel(event.localPosition);
       widget.onContextMenu?.call(_cell(event.localPosition), event.position);
       return;
     }
@@ -15,6 +111,27 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _focus.requestFocus();
     final cell = _cell(event.localPosition);
     final armed = widget.view.armedDecorIn(widget.document.current);
+    final selected = widget.document.selected;
+    if (widget.view.tool == StudioMapTool.select &&
+        armed == null &&
+        selected != null &&
+        _canTransform(selected)) {
+      final element = widget.project.elements
+          .where((e) => e.id == selected.elementId)
+          .firstOrNull;
+      if (element != null) {
+        final rect = decorLogicalRect(selected, element, widget.project);
+        final radius = 7 / widget.view.transform.value.getMaxScaleOnAxis();
+        for (final handle in DecorResizeHandle.values) {
+          if ((handle.point(rect) - event.localPosition).distance <= radius) {
+            _beginDecor(selected, event.localPosition, handle: handle);
+            _decorPointer = event.pointer;
+            _refreshGesture();
+            return;
+          }
+        }
+      }
+    }
     if (armed == null) {
       try {
         _characterGesture = MapCharacterGesture.start(
@@ -53,7 +170,7 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       _cancel();
       widget.onChanged();
     } else if (tool == StudioMapTool.select) {
-      final hits = _commands.stack(cell);
+      final hits = _commands.stackAtPixel(_pixel(event.localPosition));
       final held = widget.view.selectedFor(
         widget.document.current.id,
         MapSelectionFamily.decor,
@@ -67,14 +184,22 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       final moving = _moving;
       if (moving == null) {
         widget.view.clearSelection(widget.document);
+        _cancel();
+        _panPointer = event.pointer;
+        _panPosition = event.position;
       } else {
         widget.view.select(
           widget.document,
           MapSelectionFamily.decor,
           moving.id,
         );
+        if (_canTransform(moving)) {
+          _beginDecor(moving, event.localPosition);
+          _decorPointer = event.pointer;
+        }
       }
       widget.document.stackPosition = cell;
+      widget.document.stackPixelPosition = _pixel(event.localPosition);
       widget.onChanged();
     } else {
       try {

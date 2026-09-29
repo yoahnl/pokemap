@@ -49,7 +49,7 @@ void main() {
 const _map = MapData(
   id: 'room',
   name: 'Room',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(

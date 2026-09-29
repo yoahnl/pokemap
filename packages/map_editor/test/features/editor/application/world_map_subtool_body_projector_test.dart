@@ -383,7 +383,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(

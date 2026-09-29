@@ -96,9 +96,9 @@ class LocalPresentationAdapter implements PresentationPort {
         );
         try {
           final snapshot = await connection.read();
-          if (snapshot.manifest.version != ProjectVersion.v7) {
+          if (snapshot.manifest.version != ProjectVersion.v8) {
             throw const PresentationFailure(
-              'Les présentations nécessitent un projet v7.',
+              'Les présentations nécessitent un projet v8.',
             );
           }
           return LocalPresentationProjection(snapshot, project);
@@ -111,9 +111,9 @@ class LocalPresentationAdapter implements PresentationPort {
         .where((a) => a.id == id)
         .firstOrNull;
     if (asset == null) return null;
-    if (snapshot.manifest.version != ProjectVersion.v7) {
+    if (snapshot.manifest.version != ProjectVersion.v8) {
       throw const PresentationFailure(
-        'Les présentations nécessitent un projet v7.',
+        'Les présentations nécessitent un projet v8.',
       );
     }
     final projection = LocalPresentationProjection(snapshot, snapshot.manifest);

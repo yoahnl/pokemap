@@ -23,6 +23,25 @@ void main() {
   group('GamePackageCompatibilityEvaluator', () {
     const evaluator = GamePackageCompatibilityEvaluator();
 
+    test('v8 packages fail closed on old hosts and accept on v8 hosts', () {
+      final package = _manifest(projectFormat: 'v8');
+      for (final version in ['v7', 'v8']) {
+        final formatHost = GamePackageHostCompatibility(
+          hubVersion: host.hubVersion,
+          runtimeApiVersion: host.runtimeApiVersion,
+          capabilities: host.capabilities,
+          supportedProjectFormats: {version},
+          currentProjectFormat: version,
+          supportedSaveFormats: host.supportedSaveFormats,
+        );
+        final result = evaluator.evaluate(package, formatHost);
+        expect(result.decision, version == 'v8'
+            ? GamePackageCompatibilityDecision.accept
+            : GamePackageCompatibilityDecision.reject);
+        expect(result.code, version == 'v8' ? isNull : 'projectFormatUnsupported');
+      }
+    });
+
     test('reproduces Phase 0 accept and migration decisions', () {
       expect(
         evaluator.evaluate(_manifest(), host),

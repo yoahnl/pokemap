@@ -11,6 +11,32 @@ import 'package:map_editor/src/infrastructure/repositories/narrative_event_spati
 import 'support/event_registry_persistence_fixtures.dart';
 
 void main() {
+  test('spatial journal commit inspect and cleanup preserve transformed decor', () async {
+    final map = _beforeMap.copyWith(layers: [MapLayer.tile(id: 'decor', name: 'Decor', cells: List.filled(48, 0))],
+      placedElements: const [MapPlacedElement(id: 'placed', layerId: 'decor', elementId: 'prop', pos: GridPos(x: 2, y: 2),
+        pixelOffset: PixelOffset(x: 3, y: 5), pixelSize: PixelSize(width: 7, height: 11), quarterTurns: 1,
+        properties: {pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored})]);
+    final fixture = await createPersistenceFixture(map: map,
+      registry: persistenceRegistry(records: [persistenceDraft()]), extraRoot: {
+        'tilesets': [const ProjectTilesetEntry(id: 'tiles', name: 'Tiles', relativePath: 'tiles.png').toJson()],
+        'elementCategories': [const ProjectElementCategory(id: 'props', name: 'Props').toJson()],
+        'elements': [const ProjectElementEntry(id: 'prop', name: 'Prop', categoryId: 'props', tilesetId: 'tiles',
+          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))]).toJson()],
+      });
+    addTearDown(fixture.dispose);
+    final repository = NarrativeEventSpatialLinkJournalRepository();
+    final result = await repository.commitMap(NarrativeEventSpatialLinkMapCommitRequest(
+      projectPath: fixture.projectPath, projectRevision: fixture.revision, operationId: 'transformed-link',
+      eventId: persistenceEventA, eventRecordFingerprintBefore: _eventRecordFingerprintBefore,
+      beforeMap: map, afterMap: map.copyWith(entities: const [_entity]), source: _source,
+      sourceOwnerJson: _ownerJson, sourceOwnerFingerprint: _ownerFingerprint));
+    expect(result.status, NarrativeEventSpatialLinkOperationStatus.mapCommitted);
+    expect((await repository.inspectProject(fixture.projectPath)).journal, isNotNull);
+    final cleaned = await repository.cleanupSource(projectPath: fixture.projectPath,
+      operationId: 'transformed-link', confirmed: true);
+    expect(cleaned.status, NarrativeEventSpatialLinkOperationStatus.cleaned);
+    expect((await _readMap(fixture)).placedElements, map.placedElements);
+  });
   group('NS-EVENT-V2-25 spatial link journal repository', () {
     test('commits one source with a strict durable mapCommitted journal',
         () async {

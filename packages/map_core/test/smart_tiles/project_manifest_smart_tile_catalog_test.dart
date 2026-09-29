@@ -22,7 +22,7 @@ void main() {
         jsonDecode(jsonEncode(decoded.toJson())) as Map<String, dynamic>,
       );
 
-      expect(roundTripped.version, ProjectVersion.v6);
+      expect(roundTripped.version, ProjectVersion.v8);
       expect(roundTripped.smartTileCatalog.isEmpty, isTrue);
     });
 
@@ -73,7 +73,7 @@ final ProjectSmartTileCatalog _nonEmptyCatalog = ProjectSmartTileCatalog(
 Map<String, dynamic> _minimalManifestJson() {
   return <String, dynamic>{
     'name': 'Smart Tiles test project',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
   };

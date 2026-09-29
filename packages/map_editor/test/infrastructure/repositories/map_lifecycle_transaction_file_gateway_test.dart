@@ -325,7 +325,9 @@ final class _Fixture {
 const _before = ProjectManifest(
   name: 'DS-05',
   maps: <ProjectMapEntry>[],
-  tilesets: <ProjectTilesetEntry>[],
+  tilesets: [ProjectTilesetEntry(id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')],
+  elementCategories: [ProjectElementCategory(id: 'props', name: 'Props')],
+  elements: [_element],
 );
 
 const _after = ProjectManifest(
@@ -337,12 +339,20 @@ const _after = ProjectManifest(
       relativePath: 'maps/beta.json',
     ),
   ],
-  tilesets: <ProjectTilesetEntry>[],
+  tilesets: [ProjectTilesetEntry(id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')],
+  elementCategories: [ProjectElementCategory(id: 'props', name: 'Props')],
+  elements: [_element],
 );
+
+const _element = ProjectElementEntry(id: 'prop', name: 'Prop', categoryId: 'props', tilesetId: 'tiles',
+  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))]);
 
 const _target = MapData(
   id: 'beta',
   name: 'Beta',
   size: GridSize(width: 2, height: 2),
-  layers: <MapLayer>[],
+  layers: [MapLayer.tile(id: 'decor', name: 'Decor', cells: [0, 0, 0, 0])],
+  placedElements: [MapPlacedElement(id: 'placed', layerId: 'decor', elementId: 'prop', pos: GridPos(x: 0, y: 0),
+    pixelOffset: PixelOffset(x: 3, y: 5), pixelSize: PixelSize(width: 7, height: 11), quarterTurns: 1,
+    properties: {pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored})],
 );

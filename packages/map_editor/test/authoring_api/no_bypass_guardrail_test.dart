@@ -53,7 +53,7 @@ void main() {
     });
     const manifest = ProjectManifest(
       name: 'PMCP-085 editor golden receipt',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: [],
       tilesets: [],
     );

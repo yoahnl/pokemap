@@ -5,10 +5,10 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectManifest Presentation cinematic ownership', () {
-    test('keeps v6 projects without Presentation data readable', () {
-      final manifest = ProjectManifest.fromJson(_projectJson(version: 'v6'));
+    test('keeps v8 projects without Presentation data readable', () {
+      final manifest = ProjectManifest.fromJson(_projectJson(version: 'v8'));
 
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.presentationCinematics, isEmpty);
       expect(manifest.toJson(), isNot(contains('presentationCinematics')));
       expect(ProjectManifest.fromJson(manifest.toJson()), manifest);
@@ -25,8 +25,8 @@ void main() {
             (error) => error.message,
             'message',
             allOf(
-              contains('cinematic_v2_project_v7_required'),
-              contains(r'$.presentationCinematics'),
+              contains('project_version_unsupported'),
+              contains(r'$.version'),
               contains('actual=v6'),
             ),
           ),
@@ -34,10 +34,10 @@ void main() {
       );
     });
 
-    test('round-trips Presentation data only under project v7', () {
+    test('round-trips Presentation data only under project v8', () {
       final source = ProjectManifest(
         name: 'Presentation project',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         presentationCinematics: [_presentation('opening')],
@@ -47,9 +47,9 @@ void main() {
           jsonDecode(jsonEncode(source.toJson())) as Map<String, dynamic>;
       final decoded = ProjectManifest.fromJson(json);
 
-      expect(json['version'], 'v7');
+      expect(json['version'], 'v8');
       expect(json['presentationCinematics'], hasLength(1));
-      expect(decoded.version, ProjectVersion.v7);
+      expect(decoded.version, ProjectVersion.v8);
       expect(decoded.presentationCinematics, source.presentationCinematics);
       expect(decoded.toJson(), source.toJson());
     });
@@ -57,7 +57,7 @@ void main() {
     test('keeps world and Presentation cinematic families disjoint', () {
       final manifest = ProjectManifest(
         name: 'Two cinematic families',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         cinematics: [_worldCinematic()],
@@ -82,7 +82,7 @@ void main() {
 
       expect(
         () => ProjectManifest.fromJson({
-          ..._projectJson(version: 'v7'),
+          ..._projectJson(version: 'v8'),
           'presentationCinematics': [duplicate, duplicate],
         }),
         throwsA(
@@ -100,21 +100,21 @@ void main() {
 
     test('rejects an unknown future project version before decoding', () {
       expect(
-        () => ProjectManifest.fromJson(_projectJson(version: 'v8')),
+        () => ProjectManifest.fromJson(_projectJson(version: 'v9')),
         throwsA(
           isA<FormatException>().having(
             (error) => error.message,
             'message',
             allOf(
               contains('project_version_unsupported'),
-              contains('actual=v8'),
+              contains('actual=v9'),
             ),
           ),
         ),
       );
     });
 
-    test('project validation accepts both canonical manifest generations', () {
+    test('project validation rejects the old generation and accepts v8', () {
       final v6 = ProjectManifest(
         name: 'V6 project',
         version: ProjectVersion.v6,
@@ -123,13 +123,13 @@ void main() {
       );
       final v7 = ProjectManifest(
         name: 'V7 project',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         presentationCinematics: [_presentation('opening')],
       );
 
-      expect(() => ProjectValidator.validate(v6), returnsNormally);
+      expect(() => ProjectValidator.validate(v6), throwsA(isA<ValidationException>()));
       expect(() => ProjectValidator.validate(v7), returnsNormally);
     });
 
@@ -148,7 +148,7 @@ void main() {
           isA<ValidationException>().having(
             (error) => error.code,
             'code',
-            'cinematic_v2_project_v7_required',
+            'project_version_unsupported',
           ),
         ),
       );
@@ -157,7 +157,7 @@ void main() {
     test('project validation rejects duplicate in-memory Presentation ids', () {
       final duplicate = ProjectManifest(
         name: 'Duplicate project',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         presentationCinematics: [
@@ -178,7 +178,7 @@ void main() {
       );
     });
 
-    test('keeps map documents restricted to v6', () {
+    test('rejects old v7 map documents', () {
       expect(
         () => MapData.fromJson(<String, dynamic>{
           'id': 'map',
@@ -191,7 +191,7 @@ void main() {
           isA<FormatException>().having(
             (error) => error.message,
             'message',
-            contains('smart_tile_v6_map_required'),
+            contains('map_version_unsupported'),
           ),
         ),
       );

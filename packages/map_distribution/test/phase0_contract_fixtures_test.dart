@@ -55,7 +55,7 @@ void main() {
       expect(manifest.gameId, entry.value, reason: fixture.path);
       expect(
         manifest.compatibility.projectFormat,
-        'v6',
+        'v8',
         reason: fixture.path,
       );
     }

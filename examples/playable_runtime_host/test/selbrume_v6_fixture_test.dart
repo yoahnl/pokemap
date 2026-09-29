@@ -27,7 +27,7 @@ void main() {
         isA<FormatException>().having(
           (error) => error.message,
           'message',
-          contains('smart_tile_v6_project_required'),
+          contains('project_version_unsupported'),
         ),
       ),
     );
@@ -41,7 +41,7 @@ void main() {
       final rawProject =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
 
-      expect(rawProject['version'], 'v7');
+      expect(rawProject['version'], 'v8');
       for (final field in const <String>[
         'terrainCategories',
         'pathCategories',
@@ -89,7 +89,7 @@ void main() {
       final project = snapshot.manifest;
 
       ProjectValidator.validate(project);
-      expect(project.version, ProjectVersion.v7);
+      expect(project.version, ProjectVersion.v8);
       expect(project.maps, hasLength(10));
       expect(project.dialogues, hasLength(24));
       expect(project.scenarios, hasLength(3));
@@ -129,7 +129,7 @@ void main() {
                   ).readAsString(),
                 )
                 as Map<String, dynamic>;
-        expect(rawMap['version'], 'v6');
+        expect(rawMap['version'], 'v8');
         for (final layer
             in (rawMap['layers'] as List<dynamic>)
                 .cast<Map<String, dynamic>>()) {
@@ -143,7 +143,7 @@ void main() {
           }
         }
         MapValidator.validate(map, projectDialogueContext: project);
-        expect(map.version, ProjectVersion.v6);
+        expect(map.version, ProjectVersion.v8);
         expect(
           map.layers.map((layer) => layer.runtimeType),
           isNot(contains(anyOf('terrain', 'path', 'surface'))),
@@ -211,7 +211,7 @@ void main() {
       final exportedProject = ProjectManifest.fromJson(
         jsonDecode(jsonEncode(project.toJson())) as Map<String, dynamic>,
       );
-      expect(exportedProject.version, ProjectVersion.v7);
+      expect(exportedProject.version, ProjectVersion.v8);
       expect(
         exportedProject.maps.map((entry) => entry.id),
         orderedEquals(project.maps.map((entry) => entry.id)),
@@ -220,7 +220,7 @@ void main() {
         final exportedMap = MapData.fromJson(
           jsonDecode(jsonEncode(map.toJson())) as Map<String, dynamic>,
         );
-        expect(exportedMap.version, ProjectVersion.v6);
+        expect(exportedMap.version, ProjectVersion.v8);
         expect(exportedMap.warps, map.warps);
         expect(exportedMap.entities, map.entities);
         expect(exportedMap.triggers, map.triggers);

@@ -208,6 +208,13 @@ MapData _map({
               paramsOverride: params ?? _params,
               generatedPlacementIds: generatedPlacementIds,
             ),
+          ],
+        ),
+      ),
+      MapLayer.environment(
+        id: 'env-other',
+        name: 'Other environment',
+        content: EnvironmentLayerContent(targetTileLayerId: 'tiles', areas: [
             EnvironmentArea(
               id: 'other',
               name: 'Other',
@@ -289,9 +296,7 @@ MapData _mapWithNonTileActiveLayer() {
 EnvironmentArea _areaById(MapData map, String areaId) {
   return map.layers
       .whereType<EnvironmentLayer>()
-      .single
-      .content
-      .areas
+      .expand((layer) => layer.content.areas)
       .singleWhere((area) => area.id == areaId);
 }
 

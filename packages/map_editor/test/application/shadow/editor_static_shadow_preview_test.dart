@@ -1,10 +1,227 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/shadow/static_placed_element_shadow_runtime_resolver.dart';
 import 'package:map_editor/src/application/shadow/editor_shadow_light_preview.dart';
 import 'package:map_editor/src/application/shadow/editor_shadow_preview_projection_index.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 
 void main() {
+  test(
+    'placed index bounds allocation for distant atlas frames and huge natural sprites',
+    () {
+      final base = _manifest().copyWith(
+        shadowCatalog: const ProjectShadowCatalog.empty(),
+      );
+      final normal = base.elements.first.copyWith(shadow: null);
+      final distant = normal.copyWith(
+        id: 'distant',
+        frames: [
+          normal.frames.first,
+          normal.frames.first.copyWith(tilesetId: 'distant-atlas'),
+        ],
+      );
+      final huge = normal.copyWith(
+        id: 'huge',
+        frames: const [
+          TilesetVisualFrame(
+            source: TilesetSourceRect(
+              x: 0,
+              y: 0,
+              width: 1000000,
+              height: 1000000,
+            ),
+          ),
+        ],
+      );
+      final manifest = base.copyWith(
+        elements: [normal, distant, huge],
+        tilesets: [
+          ...base.tilesets,
+          const ProjectTilesetEntry(
+            id: 'distant-atlas',
+            name: 'Distant',
+            relativePath: 'far.png',
+            source: ProjectTilesetSource.regularAtlas(
+              assetId: 'far',
+              pixelWidth: 32,
+              pixelHeight: 64,
+              tileWidth: 16,
+              tileHeight: 16,
+              pixelOffsetX: 160000000,
+              pixelOffsetY: 160000000,
+            ),
+          ),
+        ],
+      );
+      final near = MapPlacedElement(
+        id: 'near',
+        layerId: 'layer',
+        elementId: normal.id,
+        pos: const GridPos(x: 0, y: 0),
+      );
+      final far = near.copyWith(id: 'far', elementId: distant.id);
+      final giant = near.copyWith(
+        id: 'giant',
+        elementId: huge.id,
+        pos: const GridPos(x: 20000000, y: 0),
+      );
+      final projection = EditorShadowPreviewProjectionOwner().projectionFor(
+        manifest: manifest,
+        map: _map(placedElements: [near, far, giant]),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      expect(
+        projection.debugPlacedElementIndexedCellCount,
+        lessThanOrEqualTo(256),
+      );
+      expect(projection.debugPlacedElementGlobalCandidateCount, 2);
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: 0,
+            top: 0,
+            right: 1,
+            bottom: 1,
+          ),
+        ),
+        [near, far],
+      );
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: 10000000,
+            top: 10000000,
+            right: 10000001,
+            bottom: 10000001,
+          ),
+        ),
+        [far],
+      );
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: 20000000,
+            top: 0,
+            right: 20000001,
+            bottom: 1,
+          ),
+        ),
+        [giant],
+      );
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: -2,
+            top: -2,
+            right: -1,
+            bottom: -1,
+          ),
+        ),
+        isEmpty,
+      );
+    },
+  );
+  test(
+    'projection includes alternate atlas bounds beyond the primary anchor',
+    () {
+      final base = _manifest();
+      final entry = base.elements.first;
+      final manifest = base.copyWith(
+        elements: [
+          entry.copyWith(
+            frames: [
+              entry.frames.first,
+              entry.frames.first.copyWith(tilesetId: 'offset'),
+            ],
+          ),
+        ],
+        tilesets: [
+          ...base.tilesets,
+          const ProjectTilesetEntry(
+            id: 'offset',
+            name: 'Offset',
+            relativePath: 'offset.png',
+            source: ProjectTilesetSource.regularAtlas(
+              assetId: 'offset',
+              pixelWidth: 32,
+              pixelHeight: 64,
+              tileWidth: 16,
+              tileHeight: 16,
+              pixelOffsetX: -64,
+            ),
+          ),
+        ],
+      );
+      final instance = MapPlacedElement(
+        id: 'visible-alternate',
+        layerId: 'layer',
+        elementId: entry.id,
+        pos: const GridPos(x: 7, y: 2),
+        pixelOffset: const PixelOffset(x: 1, y: 1),
+        pixelSize: const PixelSize(width: 7, height: 11),
+        properties: const {
+          pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+        },
+      );
+      final projection = EditorShadowPreviewProjectionOwner().projectionFor(
+        manifest: manifest,
+        map: _map(placedElements: [instance]),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: 3,
+            top: 2,
+            right: 4,
+            bottom: 3,
+          ),
+        ),
+        [instance],
+      );
+      expect(
+        projection.placedElementsIn(
+          const EditorShadowPreviewCellViewport(
+            left: 0,
+            top: 0,
+            right: 2,
+            bottom: 1,
+          ),
+        ),
+        isEmpty,
+      );
+    },
+  );
+  test(
+    'pixel offset translates static shadow and custom geometry changes footprint',
+    () {
+      final map = _map();
+      final placed = map.placedElements.single.copyWith(
+        properties: const {
+          pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+        },
+      );
+      EditorStaticShadowPreviewInstruction build(MapPlacedElement instance) =>
+          buildEditorStaticShadowPreviewInstructions(
+            manifest: _manifest(),
+            map: map.copyWith(placedElements: [instance]),
+            tileWidth: 16,
+            tileHeight: 16,
+          ).single;
+      final before = build(placed);
+      final shifted = build(
+        placed.copyWith(pixelOffset: const PixelOffset(x: 1, y: 2)),
+      );
+      expect(shifted.left - before.left, closeTo(1, 1e-9));
+      expect(shifted.top - before.top, closeTo(2, 1e-9));
+      final resized = build(
+        placed.copyWith(pixelSize: const PixelSize(width: 7, height: 11)),
+      );
+      expect(resized.width, lessThan(before.width));
+    },
+  );
   group('buildEditorStaticShadowPreviewInstructions', () {
     test('builds a projected groundStatic instruction', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
@@ -27,55 +244,56 @@ void main() {
     });
 
     test(
-        'filters by exact projected bounds and keeps an off-viewport caster shadow',
-        () {
-      final map = _map(
-        shadowOverride: MapPlacedElementShadowOverride(
-          mode: ShadowOverrideMode.custom,
-          offsetX: 128,
-        ),
-      );
-      final unfiltered = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(),
-        map: map,
-        tileWidth: 16,
-        tileHeight: 16,
-      ).single;
-      final viewport = EditorShadowPreviewViewport(
-        left: unfiltered.left + unfiltered.width - 1,
-        top: unfiltered.top + 1,
-        right: unfiltered.left + unfiltered.width + 1,
-        bottom: unfiltered.top + 2,
-      );
-
-      expect(viewport.left, greaterThan(48), reason: 'caster right edge');
-      expect(
-        buildEditorStaticShadowPreviewInstructions(
-          manifest: _manifest(),
-          map: map,
-          tileWidth: 16,
-          tileHeight: 16,
-          viewport: viewport,
-        ),
-        hasLength(1),
-      );
-      expect(
-        buildEditorStaticShadowPreviewInstructions(
-          manifest: _manifest(),
-          map: map,
-          tileWidth: 16,
-          tileHeight: 16,
-          viewport: EditorShadowPreviewViewport(
-            left: unfiltered.left + unfiltered.width,
-            top: unfiltered.top,
-            right: unfiltered.left + unfiltered.width + 8,
-            bottom: unfiltered.top + unfiltered.height,
+      'filters by exact projected bounds and keeps an off-viewport caster shadow',
+      () {
+        final map = _map(
+          shadowOverride: MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            offsetX: 128,
           ),
-        ),
-        isEmpty,
-        reason: 'touching the exact right edge is not an intersection',
-      );
-    });
+        );
+        final unfiltered = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: map,
+          tileWidth: 16,
+          tileHeight: 16,
+        ).single;
+        final viewport = EditorShadowPreviewViewport(
+          left: unfiltered.left + unfiltered.width - 1,
+          top: unfiltered.top + 1,
+          right: unfiltered.left + unfiltered.width + 1,
+          bottom: unfiltered.top + 2,
+        );
+
+        expect(viewport.left, greaterThan(48), reason: 'caster right edge');
+        expect(
+          buildEditorStaticShadowPreviewInstructions(
+            manifest: _manifest(),
+            map: map,
+            tileWidth: 16,
+            tileHeight: 16,
+            viewport: viewport,
+          ),
+          hasLength(1),
+        );
+        expect(
+          buildEditorStaticShadowPreviewInstructions(
+            manifest: _manifest(),
+            map: map,
+            tileWidth: 16,
+            tileHeight: 16,
+            viewport: EditorShadowPreviewViewport(
+              left: unfiltered.left + unfiltered.width,
+              top: unfiltered.top,
+              right: unfiltered.left + unfiltered.width + 8,
+              bottom: unfiltered.top + unfiltered.height,
+            ),
+          ),
+          isEmpty,
+          reason: 'touching the exact right edge is not an intersection',
+        );
+      },
+    );
 
     test('returns no instructions for an empty viewport', () {
       expect(
@@ -95,97 +313,109 @@ void main() {
       );
     });
 
-    test('projection owner reuses revisions and indexes visible source order',
-        () {
-      final owner = EditorShadowPreviewProjectionOwner();
-      final map = _map(
-        placedElements: const <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'near',
-            layerId: 'layer',
-            elementId: 'stand',
-            pos: GridPos(x: 1, y: 2),
+    test(
+      'projection owner reuses revisions and indexes visible source order',
+      () {
+        final owner = EditorShadowPreviewProjectionOwner();
+        final map = _map(
+          placedElements: const <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'near',
+              layerId: 'layer',
+              elementId: 'stand',
+              pos: GridPos(x: 1, y: 2),
+            ),
+            MapPlacedElement(
+              id: 'far',
+              layerId: 'layer',
+              elementId: 'stand',
+              pos: GridPos(x: 7, y: 7),
+            ),
+          ],
+        );
+        final manifest = _manifest();
+        final first = owner.projectionFor(
+          manifest: manifest,
+          map: map,
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+        final cached = owner.projectionFor(
+          manifest: manifest,
+          map: map,
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        expect(identical(cached, first), isTrue);
+        expect(first.staticInstructionCount, 2);
+        expect(
+          first
+              .placedElementsIn(
+                const EditorShadowPreviewCellViewport(
+                  left: 0,
+                  top: 0,
+                  right: 4,
+                  bottom: 6,
+                ),
+              )
+              .map((element) => element.id),
+          <String>['near'],
+        );
+        expect(
+          first
+              .staticInstructionsIn(
+                const EditorShadowPreviewViewport(
+                  left: 0,
+                  top: 0,
+                  right: 64,
+                  bottom: 96,
+                ),
+              )
+              .map((instruction) => instruction.instanceId),
+          <String>['near'],
+        );
+
+        final refreshed = owner.projectionFor(
+          manifest: manifest,
+          map: map.copyWith(name: 'Changed identity'),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+        expect(identical(refreshed, first), isFalse);
+      },
+    );
+
+    test(
+      'uses the rotated destination footprint without rotating world light',
+      () {
+        final rotated = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: _map(quarterTurns: 1),
+          tileWidth: 16,
+          tileHeight: 16,
+        ).single;
+
+        final expected = resolveStaticPlacedElementShadowRuntimeInstruction(
+          StaticPlacedElementShadowRuntimeInput(
+            resolvedConfig: _resolvedConfig(),
+            metrics: StaticPlacedElementShadowRuntimeMetrics(
+              worldLeft: 16,
+              worldTop: 32,
+              visualWidth: 64,
+              visualHeight: 32,
+              sourceVisualWidth: 32,
+              sourceVisualHeight: 64,
+              quarterTurns: 1,
+            ),
           ),
-          MapPlacedElement(
-            id: 'far',
-            layerId: 'layer',
-            elementId: 'stand',
-            pos: GridPos(x: 7, y: 7),
-          ),
-        ],
-      );
-      final manifest = _manifest();
-      final first = owner.projectionFor(
-        manifest: manifest,
-        map: map,
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-      final cached = owner.projectionFor(
-        manifest: manifest,
-        map: map,
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      expect(identical(cached, first), isTrue);
-      expect(first.staticInstructionCount, 2);
-      expect(
-        first
-            .placedElementsIn(
-              const EditorShadowPreviewCellViewport(
-                left: 0,
-                top: 0,
-                right: 4,
-                bottom: 6,
-              ),
-            )
-            .map((element) => element.id),
-        <String>['near'],
-      );
-      expect(
-        first
-            .staticInstructionsIn(
-              const EditorShadowPreviewViewport(
-                left: 0,
-                top: 0,
-                right: 64,
-                bottom: 96,
-              ),
-            )
-            .map((instruction) => instruction.instanceId),
-        <String>['near'],
-      );
-
-      final refreshed = owner.projectionFor(
-        manifest: manifest,
-        map: map.copyWith(name: 'Changed identity'),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-      expect(identical(refreshed, first), isFalse);
-    });
-
-    test('uses the rotated destination footprint without rotating world light',
-        () {
-      final rotated = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(),
-        map: _map(quarterTurns: 1),
-        tileWidth: 16,
-        tileHeight: 16,
-      ).single;
-
-      _expectProjectedInstructionMatchesCore(
-        instruction: rotated,
-        shadowConfig: _resolvedConfig(),
-        metrics: StaticShadowVisualMetrics(
-          left: 16,
-          top: 32,
-          visualWidth: 64,
-          visualHeight: 32,
-        ),
-      );
-    });
+        )!;
+        expect(rotated.left, closeTo(expected.worldLeft, .001));
+        expect(rotated.top, closeTo(expected.worldTop, .001));
+        expect(rotated.width, closeTo(expected.width, .001));
+        expect(rotated.height, closeTo(expected.height, .001));
+      },
+    );
 
     test('neutral light preview matches the runtime default projection', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
@@ -246,25 +476,27 @@ void main() {
       expect(_farCenterY(evening), greaterThan(_nearCenterY(evening)));
     });
 
-    test('contactBlob groundStatic produces a projected preview instruction',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          profile: _profile(
-            'base_shadow',
-            mode: ShadowCasterMode.contactBlob,
+    test(
+      'contactBlob groundStatic produces a projected preview instruction',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            profile: _profile(
+              'base_shadow',
+              mode: ShadowCasterMode.contactBlob,
+            ),
           ),
-        ),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
 
-      expect(
-        instructions.single.shape,
-        EditorStaticShadowPreviewShapeKind.projectedPolygon,
-      );
-    });
+        expect(
+          instructions.single.shape,
+          EditorStaticShadowPreviewShapeKind.projectedPolygon,
+        );
+      },
+    );
 
     test('ignores empty catalog and missing profiles', () {
       expect(
@@ -423,103 +655,109 @@ void main() {
     });
 
     test(
-        'skips legacy static shadow preview when same element has resolvable projected building shadow',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          projectedBuildingShadow: _projectedConfig(),
-          includeProjectedPreset: true,
-        ),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      expect(instructions, isEmpty);
-    });
-
-    test(
-        'skips legacy static shadow preview when same element has resolvable footprint projected building shadow',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          projectedBuildingShadow: _projectedConfig(
-            presetId: 'pokemon-building-shadow-footprint-v0',
+      'skips legacy static shadow preview when same element has resolvable projected building shadow',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            projectedBuildingShadow: _projectedConfig(),
+            includeProjectedPreset: true,
           ),
-          includeProjectedPreset: true,
-          projectedPreset: _projectedFootprintPreset(),
-        ),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
 
-      expect(instructions, isEmpty);
-    });
+        expect(instructions, isEmpty);
+      },
+    );
 
     test(
-        'keeps legacy static shadow preview when element has no projected building shadow',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      expect(instructions, hasLength(1));
-    });
-
-    test(
-        'keeps legacy static shadow preview when projected building shadow is disabled',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          projectedBuildingShadow: _projectedConfig(enabled: false),
-          includeProjectedPreset: true,
-        ),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      expect(instructions, hasLength(1));
-    });
-
-    test(
-        'keeps legacy static shadow preview when projected building shadow preset is missing',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(projectedBuildingShadow: _projectedConfig()),
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
-
-      expect(instructions, hasLength(1));
-    });
-
-    test(
-        'skips custom placed legacy shadow preview override when same element has resolvable projected building shadow',
-        () {
-      final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          projectedBuildingShadow: _projectedConfig(),
-          includeProjectedPreset: true,
-        ),
-        map: _map(
-          shadowOverride: MapPlacedElementShadowOverride(
-            mode: ShadowOverrideMode.custom,
-            shadowProfileId: 'base_shadow',
-            opacity: 0.2,
+      'skips legacy static shadow preview when same element has resolvable footprint projected building shadow',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            projectedBuildingShadow: _projectedConfig(
+              presetId: 'pokemon-building-shadow-footprint-v0',
+            ),
+            includeProjectedPreset: true,
+            projectedPreset: _projectedFootprintPreset(),
           ),
-        ),
-        tileWidth: 16,
-        tileHeight: 16,
-      );
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
 
-      expect(instructions, isEmpty);
-    });
+        expect(instructions, isEmpty);
+      },
+    );
+
+    test(
+      'keeps legacy static shadow preview when element has no projected building shadow',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        expect(instructions, hasLength(1));
+      },
+    );
+
+    test(
+      'keeps legacy static shadow preview when projected building shadow is disabled',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            projectedBuildingShadow: _projectedConfig(enabled: false),
+            includeProjectedPreset: true,
+          ),
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        expect(instructions, hasLength(1));
+      },
+    );
+
+    test(
+      'keeps legacy static shadow preview when projected building shadow preset is missing',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(projectedBuildingShadow: _projectedConfig()),
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        expect(instructions, hasLength(1));
+      },
+    );
+
+    test(
+      'skips custom placed legacy shadow preview override when same element has resolvable projected building shadow',
+      () {
+        final instructions = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            projectedBuildingShadow: _projectedConfig(),
+            includeProjectedPreset: true,
+          ),
+          map: _map(
+            shadowOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+              shadowProfileId: 'base_shadow',
+              opacity: 0.2,
+            ),
+          ),
+          tileWidth: 16,
+          tileHeight: 16,
+        );
+
+        expect(instructions, isEmpty);
+      },
+    );
 
     test('uses element footprint for preview anchor and size', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
@@ -723,104 +961,105 @@ void main() {
     });
 
     test(
-        'building contact ledge ignores light direction but keeps opacity preview',
-        () {
-      final manifest = _manifest(
-        elementShadow: ProjectElementShadowConfig(
-          castsShadow: true,
-          shadowProfileId: 'base_shadow',
-          family: StaticShadowFamily.building,
-          footprint: StaticShadowFootprintConfig(
-            footprintWidthRatio: 0.25,
-            footprintHeightRatio: 0.08,
+      'building contact ledge ignores light direction but keeps opacity preview',
+      () {
+        final manifest = _manifest(
+          elementShadow: ProjectElementShadowConfig(
+            castsShadow: true,
+            shadowProfileId: 'base_shadow',
+            family: StaticShadowFamily.building,
+            footprint: StaticShadowFootprintConfig(
+              footprintWidthRatio: 0.25,
+              footprintHeightRatio: 0.08,
+            ),
           ),
-        ),
-      );
-      final neutral = buildEditorStaticShadowPreviewInstructions(
-        manifest: manifest,
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-        lightPreviewPreset: editorShadowLightPreviewPresetById('neutral'),
-      ).single;
-      final morning = buildEditorStaticShadowPreviewInstructions(
-        manifest: manifest,
-        map: _map(),
-        tileWidth: 16,
-        tileHeight: 16,
-        lightPreviewPreset: editorShadowLightPreviewPresetById('morning'),
-      ).single;
+        );
+        final neutral = buildEditorStaticShadowPreviewInstructions(
+          manifest: manifest,
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+          lightPreviewPreset: editorShadowLightPreviewPresetById('neutral'),
+        ).single;
+        final morning = buildEditorStaticShadowPreviewInstructions(
+          manifest: manifest,
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+          lightPreviewPreset: editorShadowLightPreviewPresetById('morning'),
+        ).single;
 
-      expect(morning.polygonPoints, neutral.polygonPoints);
-      expect(morning.left, closeTo(neutral.left, 0.001));
-      expect(morning.top, closeTo(neutral.top, 0.001));
-      expect(morning.width, closeTo(neutral.width, 0.001));
-      expect(morning.height, closeTo(neutral.height, 0.001));
-      expect(morning.opacity, closeTo(0.315, 0.001));
-    });
+        expect(morning.polygonPoints, neutral.polygonPoints);
+        expect(morning.left, closeTo(neutral.left, 0.001));
+        expect(morning.top, closeTo(neutral.top, 0.001));
+        expect(morning.width, closeTo(neutral.width, 0.001));
+        expect(morning.height, closeTo(neutral.height, 0.001));
+        expect(morning.opacity, closeTo(0.315, 0.001));
+      },
+    );
 
-    test('custom profile overrides source profile and null profile inherits it',
-        () {
-      final overrideProfile = _profile(
-        'wide_shadow',
-        scaleX: 1.5,
-        opacity: 0.1,
-        colorHexRgb: '112233',
-      );
-      final overridden = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          catalog: ProjectShadowCatalog(
-            profiles: [_profile('base_shadow'), overrideProfile],
-          ),
-        ),
-        map: _map(
-          shadowOverride: MapPlacedElementShadowOverride(
-            mode: ShadowOverrideMode.custom,
-            shadowProfileId: 'wide_shadow',
-          ),
-        ),
-        tileWidth: 16,
-        tileHeight: 16,
-      ).single;
-
-      expect(overridden.opacity, 0.1);
-      expect(overridden.colorHexRgb, '112233');
-      _expectProjectedInstructionMatchesCore(
-        instruction: overridden,
-        shadowConfig: _resolvedConfig(
-          shadowProfileId: 'wide_shadow',
+    test(
+      'custom profile overrides source profile and null profile inherits it',
+      () {
+        final overrideProfile = _profile(
+          'wide_shadow',
           scaleX: 1.5,
           opacity: 0.1,
           colorHexRgb: '112233',
-        ),
-        metrics: _defaultMetrics(),
-        opacity: 0.1,
-      );
-
-      final inherited = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(),
-        map: _map(
-          shadowOverride: MapPlacedElementShadowOverride(
-            mode: ShadowOverrideMode.custom,
+        );
+        final overridden = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(
+            catalog: ProjectShadowCatalog(
+              profiles: [_profile('base_shadow'), overrideProfile],
+            ),
           ),
-        ),
-        tileWidth: 16,
-        tileHeight: 16,
-      ).single;
+          map: _map(
+            shadowOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+              shadowProfileId: 'wide_shadow',
+            ),
+          ),
+          tileWidth: 16,
+          tileHeight: 16,
+        ).single;
 
-      expect(inherited.colorHexRgb, '000000');
-      _expectProjectedInstructionMatchesCore(
-        instruction: inherited,
-        shadowConfig: _resolvedConfig(),
-        metrics: _defaultMetrics(),
-      );
-    });
+        expect(overridden.opacity, 0.1);
+        expect(overridden.colorHexRgb, '112233');
+        _expectProjectedInstructionMatchesCore(
+          instruction: overridden,
+          shadowConfig: _resolvedConfig(
+            shadowProfileId: 'wide_shadow',
+            scaleX: 1.5,
+            opacity: 0.1,
+            colorHexRgb: '112233',
+          ),
+          metrics: _defaultMetrics(),
+          opacity: 0.1,
+        );
+
+        final inherited = buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: _map(
+            shadowOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+            ),
+          ),
+          tileWidth: 16,
+          tileHeight: 16,
+        ).single;
+
+        expect(inherited.colorHexRgb, '000000');
+        _expectProjectedInstructionMatchesCore(
+          instruction: inherited,
+          shadowConfig: _resolvedConfig(),
+          metrics: _defaultMetrics(),
+        );
+      },
+    );
 
     test('preserves source order and opacity zero instructions', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
-        manifest: _manifest(
-          profile: _profile('base_shadow', opacity: 0),
-        ),
+        manifest: _manifest(profile: _profile('base_shadow', opacity: 0)),
         map: _map(
           placedElements: const [
             MapPlacedElement(
@@ -950,7 +1189,9 @@ void _expectProjectedInstructionMatchesCore({
   final bounds = _testBounds(projected.points);
 
   expect(
-      instruction.shape, EditorStaticShadowPreviewShapeKind.projectedPolygon);
+    instruction.shape,
+    EditorStaticShadowPreviewShapeKind.projectedPolygon,
+  );
   expect(instruction.opacity, closeTo(opacity, 0.001));
   expect(instruction.left, closeTo(bounds.left, 0.001));
   expect(instruction.top, closeTo(bounds.top, 0.001));
@@ -959,9 +1200,13 @@ void _expectProjectedInstructionMatchesCore({
   expect(instruction.polygonPoints, hasLength(projected.points.length));
   for (var i = 0; i < projected.points.length; i += 1) {
     expect(
-        instruction.polygonPoints[i].x, closeTo(projected.points[i].x, 0.001));
+      instruction.polygonPoints[i].x,
+      closeTo(projected.points[i].x, 0.001),
+    );
     expect(
-        instruction.polygonPoints[i].y, closeTo(projected.points[i].y, 0.001));
+      instruction.polygonPoints[i].y,
+      closeTo(projected.points[i].y, 0.001),
+    );
   }
 }
 
@@ -1122,10 +1367,9 @@ ProjectManifest _manifest({
     name: 'Project',
     maps: const [],
     tilesets: const [],
-    shadowCatalog: catalog ??
-        ProjectShadowCatalog(
-          profiles: [profile ?? _profile('base_shadow')],
-        ),
+    shadowCatalog:
+        catalog ??
+        ProjectShadowCatalog(profiles: [profile ?? _profile('base_shadow')]),
     projectedBuildingShadowCatalog: includeProjectedPreset
         ? ProjectBuildingShadowPresetCatalog(
             presets: [projectedPreset ?? _projectedPreset()],
@@ -1137,7 +1381,8 @@ ProjectManifest _manifest({
         name: 'Stand',
         tilesetId: 'tiles',
         categoryId: 'props',
-        frames: frames ??
+        frames:
+            frames ??
             const [
               TilesetVisualFrame(
                 source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 4),
@@ -1146,10 +1391,10 @@ ProjectManifest _manifest({
         shadow: omitElementShadow
             ? null
             : elementShadow ??
-                ProjectElementShadowConfig(
-                  castsShadow: true,
-                  shadowProfileId: 'base_shadow',
-                ),
+                  ProjectElementShadowConfig(
+                    castsShadow: true,
+                    shadowProfileId: 'base_shadow',
+                  ),
         projectedBuildingShadow: projectedBuildingShadow,
       ),
     ],
@@ -1174,7 +1419,8 @@ MapData _map({
         cells: List<int>.filled(64, 0),
       ),
     ],
-    placedElements: placedElements ??
+    placedElements:
+        placedElements ??
         [
           MapPlacedElement(
             id: 'layer::1::2',
@@ -1229,10 +1475,7 @@ ProjectBuildingShadowPreset _projectedPreset() {
       nearWidthRatio: 1,
       farWidthRatio: 0.5,
     ),
-    appearance: ProjectedShadowAppearance(
-      opacity: 0.18,
-      colorHexRgb: '123ABC',
-    ),
+    appearance: ProjectedShadowAppearance(opacity: 0.18, colorHexRgb: '123ABC'),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }
@@ -1249,10 +1492,7 @@ ProjectBuildingShadowPreset _projectedFootprintPreset() {
       farWidthRatio: 0.5,
     ),
     footprint: ProjectedShadowFootprintTuning(),
-    appearance: ProjectedShadowAppearance(
-      opacity: 0.28,
-      colorHexRgb: '606060',
-    ),
+    appearance: ProjectedShadowAppearance(opacity: 0.28, colorHexRgb: '606060'),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }

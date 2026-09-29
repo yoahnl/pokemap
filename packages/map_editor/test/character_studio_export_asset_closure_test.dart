@@ -56,7 +56,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Character Studio export',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         characterStudioCatalog: const ProjectCharacterStudioCatalog(
@@ -204,7 +204,7 @@ void main() {
         File(p.join(source.path, 'project.json')),
         ProjectManifest(
           name: 'Character Studio missing asset',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: const [],
           tilesets: const [],
         ).toJson(),

@@ -95,7 +95,7 @@ void main() {
     await source.writeAsBytes(_onePixelPng, flush: true);
     const manifest = ProjectManifest(
       name: 'Smart Tile source integration',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -160,7 +160,7 @@ final class _FakeGateway implements SmartTileSourceAssetGateway {
   String revision = 'r0';
   ProjectManifest manifest = const ProjectManifest(
     name: 'test',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
   );

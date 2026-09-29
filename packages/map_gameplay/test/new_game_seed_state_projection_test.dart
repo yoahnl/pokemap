@@ -318,7 +318,7 @@ ProjectManifest _project({
 }) {
   return ProjectManifest(
     name: 'Seed projection fixture',
-    version: preSessionSceneId == null ? ProjectVersion.v6 : ProjectVersion.v7,
+    version: preSessionSceneId == null ? ProjectVersion.v8 : ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map_start',

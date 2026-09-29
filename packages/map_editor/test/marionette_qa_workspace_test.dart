@@ -150,7 +150,7 @@ void main() {
 void _writeProject(Directory root) {
   final maps = Directory(p.join(root.path, 'maps'))..createSync();
   File(p.join(root.path, 'project.json')).writeAsStringSync(
-    '{"name":"Desktop QA","version":"v6","maps":[],"tilesets":[]}',
+    '{"name":"Desktop QA","version":"v8","maps":[],"tilesets":[]}',
   );
   File(p.join(maps.path, 'start.json')).writeAsStringSync('{"id":"start"}\n');
 }

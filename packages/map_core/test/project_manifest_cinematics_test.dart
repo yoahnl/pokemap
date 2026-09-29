@@ -396,7 +396,7 @@ final Matcher _throwsDecode = throwsA(
 Map<String, dynamic> _minimalProjectJson() {
   return {
     'name': 'Project',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
   };

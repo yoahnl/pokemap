@@ -9,7 +9,7 @@ void main() {
       id: 'map',
       name: 'Map',
       size: mapSize,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
     );
 
     expect(
@@ -41,7 +41,7 @@ void main() {
         id: 'map',
         name: 'Map',
         size: mapSize,
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         layers: <MapLayer>[source],
       );
 
@@ -50,7 +50,7 @@ void main() {
         layer: source.copyWith(name: 'Normalized'),
       );
 
-      expect(result.version, ProjectVersion.v6);
+      expect(result.version, ProjectVersion.v8);
       expect((result.layers.single as SmartTileLayer).name, 'Normalized');
     });
   });
@@ -465,7 +465,7 @@ void main() {
         final source = MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: mapSize,
           layers: <MapLayer>[_layer(field)],
         );

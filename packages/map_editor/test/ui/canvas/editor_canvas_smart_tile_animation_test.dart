@@ -97,7 +97,7 @@ void main() {
         const onEnterMap = MapData(
           id: 'on-enter-map',
           name: 'On enter map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -211,7 +211,7 @@ void main() {
       const map = MapData(
         id: 'water-map',
         name: 'Water map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           SmartTileLayer(
@@ -299,7 +299,7 @@ void main() {
       const map = MapData(
         id: 'flower-map',
         name: 'Flower map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           SmartTileLayer(

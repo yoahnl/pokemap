@@ -116,7 +116,7 @@ void main() {
 
 ProjectManifest _manifest() => ProjectManifest(
   name: 'Presentation timeline gateway',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   presentationCinematics: <PresentationCinematicAsset>[

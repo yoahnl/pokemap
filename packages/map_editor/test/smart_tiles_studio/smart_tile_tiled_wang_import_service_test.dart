@@ -46,7 +46,7 @@ void main() {
       ).create();
       const manifest = ProjectManifest(
         name: 'ERW collection proof',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
       );
@@ -276,7 +276,7 @@ void main() {
     await tsx.writeAsString(_tsx);
     const manifest = ProjectManifest(
       name: 'Tiled editor integration',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -361,7 +361,7 @@ void main() {
     await tsx.writeAsString(_collectionTsx);
     const manifest = ProjectManifest(
       name: 'Tiled collection integration',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -616,7 +616,7 @@ final class _Gateway implements SmartTileSourceAssetGateway {
   final List<String> stagedPaths = <String>[];
   final ProjectManifest manifest = const ProjectManifest(
     name: 'Project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
   );

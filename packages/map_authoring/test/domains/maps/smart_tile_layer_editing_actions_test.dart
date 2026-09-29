@@ -104,13 +104,13 @@ void main() {
   MapData map = const MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 2, height: 2),
   ),
 }) {
   final manifest = ProjectManifest(
     name: 'Layer fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

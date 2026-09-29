@@ -18,6 +18,9 @@ final class StaticPlacedElementShadowRuntimeMetrics {
     this.anchorYRatio = 1.0,
     this.baseWidthMultiplier = 0.75,
     this.baseHeightMultiplier = 0.25,
+    this.sourceVisualWidth,
+    this.sourceVisualHeight,
+    this.quarterTurns = 0,
   }) {
     _validateFinite(worldLeft, 'worldLeft');
     _validateFinite(worldTop, 'worldTop');
@@ -37,6 +40,9 @@ final class StaticPlacedElementShadowRuntimeMetrics {
   final double anchorYRatio;
   final double baseWidthMultiplier;
   final double baseHeightMultiplier;
+  final double? sourceVisualWidth;
+  final double? sourceVisualHeight;
+  final int quarterTurns;
 
   @override
   bool operator ==(Object other) =>
@@ -49,7 +55,10 @@ final class StaticPlacedElementShadowRuntimeMetrics {
           other.anchorXRatio == anchorXRatio &&
           other.anchorYRatio == anchorYRatio &&
           other.baseWidthMultiplier == baseWidthMultiplier &&
-          other.baseHeightMultiplier == baseHeightMultiplier;
+          other.baseHeightMultiplier == baseHeightMultiplier &&
+          other.sourceVisualWidth == sourceVisualWidth &&
+          other.sourceVisualHeight == sourceVisualHeight &&
+          other.quarterTurns == quarterTurns;
 
   @override
   int get hashCode => Object.hash(
@@ -61,6 +70,9 @@ final class StaticPlacedElementShadowRuntimeMetrics {
         anchorYRatio,
         baseWidthMultiplier,
         baseHeightMultiplier,
+        sourceVisualWidth,
+        sourceVisualHeight,
+        quarterTurns,
       );
 }
 
@@ -110,16 +122,12 @@ ShadowRuntimeAnchor staticPlacedElementShadowAnchorFromMetrics(
   StaticShadowFootprintConfig? elementFootprint,
   StaticShadowFootprintConfig? overrideFootprint,
 }) {
-  final legacyAndElementFootprint = _mergeLegacyAndElementFootprint(
-    metrics: metrics,
-    elementFootprint: elementFootprint,
-  );
-  final geometry = resolveStaticShadowGeometry(
-    metrics: _visualMetricsFromRuntimeMetrics(metrics),
-    shadowConfig: shadowConfig ?? _identityShadowConfig,
-    elementFootprint: legacyAndElementFootprint,
-    overrideFootprint: overrideFootprint,
-  );
+  final geometry = _resolveStaticPlacedElementBaseGeometry(
+      StaticPlacedElementShadowRuntimeInput(
+          metrics: metrics,
+          resolvedConfig: shadowConfig ?? _identityShadowConfig,
+          elementFootprint: elementFootprint,
+          overrideFootprint: overrideFootprint));
 
   return ShadowRuntimeAnchor(
     worldX: geometry.anchorX,
@@ -163,7 +171,7 @@ ShadowRuntimeRenderInstruction?
 
   final projectedGeometry = resolveProjectedStaticShadowGeometry(
     baseGeometry: baseGeometry,
-    metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+    metrics: _projectionMetrics(input.metrics),
     projectionSpec: resolveStaticShadowFamilyProjectionSpec(
       family: family,
     ),
@@ -206,7 +214,7 @@ ShadowRuntimeRenderInstruction _resolveBuildingContactLedgeRuntimeInstruction(
 ) {
   final ledgeGeometry = resolveBuildingStaticShadowContactLedgeGeometry(
     baseGeometry: baseGeometry,
-    metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+    metrics: _projectionMetrics(input.metrics),
   );
   final points = _runtimePointsFromProjection(ledgeGeometry);
   final bounds = _boundsFromRuntimePoints(points);
@@ -284,13 +292,59 @@ ResolvedStaticShadowGeometry _resolveStaticPlacedElementBaseGeometry(
     metrics: input.metrics,
     elementFootprint: input.elementFootprint,
   );
-  return resolveStaticShadowGeometry(
-    metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+  final metrics = input.metrics;
+  final sourceWidth = metrics.sourceVisualWidth;
+  final sourceHeight = metrics.sourceVisualHeight;
+  final geometry = resolveStaticShadowGeometry(
+    metrics: sourceWidth == null || sourceHeight == null
+        ? _visualMetricsFromRuntimeMetrics(metrics)
+        : StaticShadowVisualMetrics(
+            left: 0,
+            top: 0,
+            visualWidth: sourceWidth,
+            visualHeight: sourceHeight),
     shadowConfig: input.resolvedConfig,
     elementFootprint: legacyAndElementFootprint,
     overrideFootprint: input.overrideFootprint,
   );
+  if (sourceWidth == null || sourceHeight == null) return geometry;
+  final u = geometry.anchorX / sourceWidth;
+  final v = geometry.anchorY / sourceHeight;
+  final (x, y) = switch (metrics.quarterTurns) {
+    0 => (u, v),
+    1 => (1 - v, u),
+    2 => (1 - u, 1 - v),
+    _ => (v, 1 - u),
+  };
+  final anchorX = metrics.worldLeft + x * metrics.visualWidth;
+  final anchorY = metrics.worldTop + y * metrics.visualHeight;
+  final odd = metrics.quarterTurns.isOdd;
+  final sx = metrics.visualWidth / (odd ? sourceHeight : sourceWidth);
+  final sy = metrics.visualHeight / (odd ? sourceWidth : sourceHeight);
+  final width = (odd ? geometry.height : geometry.width) * sx;
+  final height = (odd ? geometry.width : geometry.height) * sy;
+  final centerX = anchorX + input.resolvedConfig.offsetX;
+  final centerY = anchorY + input.resolvedConfig.offsetY;
+  return ResolvedStaticShadowGeometry(
+      anchorX: anchorX,
+      anchorY: anchorY,
+      baseWidth: (odd ? geometry.baseHeight : geometry.baseWidth) * sx,
+      baseHeight: (odd ? geometry.baseWidth : geometry.baseHeight) * sy,
+      centerX: centerX,
+      centerY: centerY,
+      width: width,
+      height: height,
+      left: centerX - width / 2,
+      top: centerY - height / 2);
 }
+
+StaticShadowVisualMetrics _projectionMetrics(
+        StaticPlacedElementShadowRuntimeMetrics metrics) =>
+    StaticShadowVisualMetrics(
+        left: metrics.worldLeft,
+        top: metrics.worldTop,
+        visualWidth: metrics.sourceVisualWidth ?? metrics.visualWidth,
+        visualHeight: metrics.sourceVisualHeight ?? metrics.visualHeight);
 
 StaticShadowVisualMetrics _visualMetricsFromRuntimeMetrics(
   StaticPlacedElementShadowRuntimeMetrics metrics,

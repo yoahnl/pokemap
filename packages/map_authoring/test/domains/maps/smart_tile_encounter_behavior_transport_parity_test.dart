@@ -381,7 +381,7 @@ final class _EncounterBehaviorHarness {
 ProjectManifest _manifest() {
   return ProjectManifest(
     name: 'Smart Tile encounter transport fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'route',
@@ -486,7 +486,7 @@ MapData _map() {
   return const MapData(
     id: 'route',
     name: 'Route',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[
       SmartTileLayer(

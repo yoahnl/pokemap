@@ -9,6 +9,190 @@ import 'package:map_runtime/src/presentation/flame/quarter_turn_pixel_renderer.d
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('bounded fallback reuses visible tiles and releases evicted plans',
+      () async {
+    const source = GridSize(width: 3, height: 2);
+    final atlas = await _atlas(source);
+    addTearDown(atlas.image.dispose);
+    final cache = QuarterTurnPixelPlanCache(maxEntries: 1, maxBytes: 64);
+    addTearDown(cache.dispose);
+    var samples = 0;
+    final plan = cache.obtain(
+        image: atlas.runtimeImage,
+        sourceRect: const ui.Rect.fromLTWH(0, 0, 3, 2),
+        sourceSize: source,
+        destinationSize: const GridSize(width: 1, height: 1048576),
+        quarterTurns: 3,
+        maskKey: 'all',
+        includeSourcePixel: (_) {
+          samples++;
+          return true;
+        });
+    expect(cache.bytes, lessThanOrEqualTo(64));
+    Future<void> draw() async {
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder)
+        ..clipRect(const ui.Rect.fromLTWH(0, 0, 1, 4));
+      plan.draw(canvas);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(1, 4);
+      picture.dispose();
+      expect(
+          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!
+              .getUint8(3),
+          255);
+      image.dispose();
+    }
+
+    await draw();
+    final first = samples;
+    await draw();
+    expect(samples, first);
+    expect(cache.preparationCount, 1);
+    cache.obtain(
+        image: atlas.runtimeImage,
+        sourceRect: const ui.Rect.fromLTWH(0, 0, 3, 2),
+        sourceSize: source,
+        destinationSize: const GridSize(width: 2, height: 3),
+        quarterTurns: 1);
+    expect(plan.isDisposed, isTrue);
+    expect(cache.bytes, lessThanOrEqualTo(64));
+    cache.dispose();
+    expect(cache.bytes, 0);
+  });
+
+  test('odd reduction and mixed axes match every exact source sample',
+      () async {
+    const source = GridSize(width: 7, height: 5);
+    final atlas = await _atlas(source);
+    addTearDown(atlas.image.dispose);
+    for (final target in const [
+      GridSize(width: 2, height: 1),
+      GridSize(width: 3, height: 11),
+      GridSize(width: 13, height: 2)
+    ]) {
+      for (var q = 0; q < 4; q++) {
+        final rendered = await _render(atlas.runtimeImage,
+            sourceSize: source,
+            destinationSize: target,
+            quarterTurns: q,
+            includeSourcePixel: (p) => (p.x + p.y).isEven);
+        final bytes = (await rendered.image
+            .toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final transform = QuarterTurnPixelTransform(
+            sourcePixelSize: source,
+            destinationPixelSize: target,
+            quarterTurns: q);
+        for (var y = 0; y < target.height; y++) {
+          for (var x = 0; x < target.width; x++) {
+            final p =
+                transform.destinationPixelToSourcePixel(GridPos(x: x, y: y));
+            expect(_rgbaAt(bytes, width: target.width, x: x, y: y),
+                (p.x + p.y).isEven ? _sourceRgba(p.x, p.y) : [0, 0, 0, 0],
+                reason: '$target q$q ($x,$y)');
+          }
+        }
+        rendered.image.dispose();
+      }
+    }
+  });
+
+  test('upscale sampling work follows source partitions', () async {
+    const sourceSize = GridSize(width: 3, height: 2);
+    final atlas = await _atlas(sourceSize);
+    addTearDown(atlas.image.dispose);
+    var samples = 0;
+    final rendered = await _render(atlas.runtimeImage,
+        sourceSize: sourceSize,
+        destinationSize: const GridSize(width: 127, height: 129),
+        quarterTurns: 1, includeSourcePixel: (_) {
+      samples++;
+      return true;
+    });
+    addTearDown(rendered.image.dispose);
+    expect(samples, lessThanOrEqualTo(6));
+    expect(rendered.result.drawRunCount, lessThanOrEqualTo(6));
+    expect(rendered.result.includedDestinationPixelCount, 127 * 129);
+  });
+
+  test('project pixel sampling survives display zoom for every rotation',
+      () async {
+    const sourceSize = GridSize(width: 3, height: 2);
+    const target = GridSize(width: 5, height: 3);
+    final atlas = await _atlas(sourceSize);
+    addTearDown(atlas.image.dispose);
+    for (final zoom in [.5, 1.5, 2.0, 3.0]) {
+      final width = (target.width * zoom).ceil();
+      final height = (target.height * zoom).ceil();
+      for (var q = 0; q < 4; q++) {
+        final recorder = ui.PictureRecorder();
+        drawQuarterTurnPixels(ui.Canvas(recorder),
+            image: atlas.runtimeImage,
+            sourceRect: const ui.Rect.fromLTWH(0, 0, 3, 2),
+            destinationRect: ui.Rect.fromLTWH(
+                0, 0, target.width * zoom, target.height * zoom),
+            sourcePixelSize: sourceSize,
+            destinationPixelSize: target,
+            quarterTurns: q,
+            paint: ui.Paint()
+              ..isAntiAlias = false
+              ..filterQuality = ui.FilterQuality.none);
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(width, height);
+        picture.dispose();
+        final bytes =
+            (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        final transform = QuarterTurnPixelTransform(
+            sourcePixelSize: sourceSize,
+            destinationPixelSize: target,
+            quarterTurns: q);
+        final projectRecorder = ui.PictureRecorder();
+        final projectCanvas = ui.Canvas(projectRecorder);
+        for (var py = 0; py < target.height; py++) {
+          for (var px = 0; px < target.width; px++) {
+            final source =
+                transform.destinationPixelToSourcePixel(GridPos(x: px, y: py));
+            final rgba = _sourceRgba(source.x, source.y);
+            projectCanvas.drawRect(
+                ui.Rect.fromLTWH(px.toDouble(), py.toDouble(), 1, 1),
+                ui.Paint()
+                  ..isAntiAlias = false
+                  ..color =
+                      ui.Color.fromARGB(rgba[3], rgba[0], rgba[1], rgba[2]));
+          }
+        }
+        final projectPicture = projectRecorder.endRecording();
+        final projectImage =
+            await projectPicture.toImage(target.width, target.height);
+        projectPicture.dispose();
+        final zoomRecorder = ui.PictureRecorder();
+        ui.Canvas(zoomRecorder).drawImageRect(
+            projectImage,
+            ui.Rect.fromLTWH(
+                0, 0, target.width.toDouble(), target.height.toDouble()),
+            ui.Rect.fromLTWH(0, 0, target.width * zoom, target.height * zoom),
+            ui.Paint()
+              ..isAntiAlias = false
+              ..filterQuality = ui.FilterQuality.none);
+        final zoomPicture = zoomRecorder.endRecording();
+        final reference = await zoomPicture.toImage(width, height);
+        zoomPicture.dispose();
+        projectImage.dispose();
+        final expected =
+            (await reference.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        for (var y = 0; y < height; y++) {
+          for (var x = 0; x < width; x++) {
+            expect(_rgbaAt(bytes, width: width, x: x, y: y),
+                _rgbaAt(expected, width: width, x: x, y: y),
+                reason: 'zoom$zoom q$q ($x,$y)');
+          }
+        }
+        reference.dispose();
+        image.dispose();
+      }
+    }
+  });
+
   test('uses one draw run for pure q0-q3 pixel rotations', () async {
     const sourceSize = GridSize(width: 3, height: 2);
     final atlas = await _atlas(sourceSize);
@@ -308,7 +492,12 @@ Future<
 }
 
 List<int> _sourceRgba(int x, int y) {
-  return <int>[30 + x * 30, 40 + y * 80, 60 + x * 15 + y * 20, 255];
+  return <int>[
+    (30 + x * 30) % 256,
+    (40 + y * 80) % 256,
+    (60 + x * 15 + y * 20) % 256,
+    255
+  ];
 }
 
 List<int> _rgbaAt(

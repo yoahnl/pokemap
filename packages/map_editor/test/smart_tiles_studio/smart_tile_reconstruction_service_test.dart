@@ -165,7 +165,7 @@ SmartTileReconstructionCanonicalSnapshot _snapshot(
 MapData _map() => const MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         MapLayer.tile(

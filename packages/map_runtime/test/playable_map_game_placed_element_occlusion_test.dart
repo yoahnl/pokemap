@@ -17,6 +17,88 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame placed element occlusion patches', () {
+    test('translucent owner and later prop match ordinary composition',
+        () async {
+      final source = _bundle();
+      final prop = source.manifest.elements.single.copyWith(
+          id: 'prop',
+          collisionProfile: null,
+          frames: const [
+            TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))
+          ]);
+      final bundle = source.copyWith(
+          manifest: source.manifest
+              .copyWith(elements: [...source.manifest.elements, prop]),
+          map: source.map.copyWith(layers: const [
+            MapLayer.tile(id: 'objects', name: 'Objects', cells: [])
+          ], placedElements: [
+            source.map.placedElements.single.copyWith(opacity: .5),
+            source.map.placedElements.single
+                .copyWith(id: 'prop-1', elementId: 'prop', opacity: .5),
+          ]));
+      final game = _game(bundle: bundle, twoFrameAsset: true);
+      final reference = _game(
+          bundle: bundle.copyWith(
+              manifest: bundle.manifest.copyWith(
+                  elements: bundle.manifest.elements
+                      .map((e) => e.copyWith(collisionProfile: null))
+                      .toList())),
+          twoFrameAsset: true);
+      await _load(game);
+      await _load(reference);
+      Future<List<int>> sample(PlayableMapGame current) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        _layers(current, MapLayerRenderPass.background).render(canvas);
+        for (final patch in _occlusionPatches(current)) {
+          patch.renderTree(canvas);
+        }
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(128, 128);
+        final result = await pixelAt(image, 32, 32);
+        image.dispose();
+        picture.dispose();
+        return result;
+      }
+
+      expect(await sample(game), await sample(reference));
+    });
+    test('missing primary image leaves the loaded animation frame intact',
+        () async {
+      final source = _bundle();
+      final element = source.manifest.elements.single
+          .copyWith(tilesetId: 'absent', frames: const [
+        TilesetVisualFrame(
+            tilesetId: 'absent',
+            source: TilesetSourceRect(x: 0, y: 0),
+            durationMs: 100),
+        TilesetVisualFrame(
+            tilesetId: 'entity',
+            source: TilesetSourceRect(x: 0, y: 0),
+            durationMs: 100),
+      ]);
+      final game = _game(
+          bundle: source.copyWith(
+              manifest: source.manifest.copyWith(elements: [element]),
+              map: source.map.copyWith(layers: const [
+                MapLayer.tile(id: 'objects', name: 'Objects', cells: [])
+              ], placedElements: [
+                source.map.placedElements.single.copyWith(
+                    animation: const MapPlacedElementAnimation(
+                        enabled: true,
+                        mode: MapPlacedElementAnimationMode.loop))
+              ])));
+      await _load(game);
+      expect(_occlusionPatches(game), isEmpty);
+      game.update(.11);
+      final recorder = ui.PictureRecorder();
+      _layers(game, MapLayerRenderPass.background).render(Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(128, 128);
+      expect(await pixelAt(image, 32, 32), rgba(255, 0, 0, 255));
+      image.dispose();
+      picture.dispose();
+    });
     for (final overlayAfter in [false, true]) {
       for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
         test(

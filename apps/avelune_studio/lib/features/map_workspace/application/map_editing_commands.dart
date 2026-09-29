@@ -28,6 +28,9 @@ class MapEditingCommands {
       layerId: layer.id,
       elementId: element.id,
       pos: position,
+      properties: const {
+        pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+      },
       visualOrder:
           map.placedElements
               .where((e) => e.layerId == layer.id)
@@ -41,6 +44,7 @@ class MapEditingCommands {
     document.commit(upsertMapPlacedElement(map, instance: instance));
     document.selectedId = id;
     document.stackPosition = position;
+    document.stackPixelPosition = null;
     return id;
   }
 
@@ -49,6 +53,12 @@ class MapEditingCommands {
         .where((element) => element.id == id)
         .firstOrNull;
     if (instance == null) return;
+    if (environmentOwnedMapPlacedElementIds(document.current).contains(id) ||
+        instance.properties[pokemapPlacementOriginProperty]?.trim() ==
+            pokemapPlacementOriginEnvironment) {
+      document.error = 'Ce décor est piloté par une zone d’environnement.';
+      return;
+    }
     final element = project.elements
         .where((element) => element.id == instance.elementId)
         .firstOrNull;
@@ -62,12 +72,53 @@ class MapEditingCommands {
       ),
     );
     document.stackPosition = position;
+    document.stackPixelPosition = null;
   }
 
   void deleteSelected() {
     final id = document.selectedId;
     if (id == null) return;
     document.commit(removeMapPlacedElement(document.current, instanceId: id));
+  }
+
+  bool setGeometry(
+    String id, {
+    required int x,
+    required int y,
+    required PixelSize? size,
+  }) {
+    try {
+      document.commit(
+        setMapPlacedElementGeometry(
+          document.current,
+          manifest: project,
+          instanceId: id,
+          pixelX: x,
+          pixelY: y,
+          pixelSize: size,
+        ),
+      );
+      document.stackPosition = document.selected?.pos;
+      document.stackPixelPosition = PixelPosition(leftPx: x, topPx: y);
+      return true;
+    } on ValidationException {
+      document.error =
+          'Ce décor dépasse les limites de la carte ou sa taille autorisée.';
+      return false;
+    }
+  }
+
+  void detach(String id) {
+    try {
+      document.commit(
+        detachMapPlacedElementFromTileProjection(
+          document.current,
+          instanceId: id,
+        ),
+      );
+    } on ValidationException {
+      document.error = 'Ce décor est piloté par une zone d’environnement.';
+    }
   }
 
   void reorder({required bool forward}) {
@@ -97,12 +148,22 @@ class MapEditingCommands {
         .where((element) => element.id == instanceId)
         .firstOrNull;
     if (source == null) return 'Ce décor n’est plus sur la carte.';
-    final peers = mapPlacedElementsAt(
-      document.current,
-      project,
-      at,
-      layerId: source.layerId,
-    );
+    final pixel = document.stackPosition == at
+        ? document.stackPixelPosition
+        : null;
+    final peers = pixel != null
+        ? mapPlacedElementsAtPixel(
+            document.current,
+            project,
+            pixel,
+            layerId: source.layerId,
+          )
+        : mapPlacedElementsAt(
+            document.current,
+            project,
+            at,
+            layerId: source.layerId,
+          );
     if (!peers.any((element) => element.id == instanceId)) {
       return 'Ce décor n’occupe plus cet emplacement.';
     }
@@ -136,7 +197,12 @@ class MapEditingCommands {
         manifest: project,
         instanceId: instanceId,
         forward: forward,
-        at: at,
+        at: document.stackPosition == at && document.stackPixelPosition != null
+            ? null
+            : at,
+        atPixel: document.stackPosition == at
+            ? document.stackPixelPosition
+            : null,
       );
     } on ValidationException {
       return document.current;
@@ -152,7 +218,8 @@ class MapEditingCommands {
         manifest: project,
         instanceId: id,
         forward: forward,
-        at: document.stackPosition,
+        at: document.stackPixelPosition == null ? document.stackPosition : null,
+        atPixel: document.stackPixelPosition,
       );
     } on ValidationException {
       return document.current;
@@ -165,7 +232,29 @@ class MapEditingCommands {
     position,
   ).reversed.toList();
 
-  TileLayer supportLayer(MapData map) {
+  List<MapPlacedElement> stackAtPixel(PixelPosition position) =>
+      mapPlacedElementsAtPixel(
+        document.current,
+        project,
+        position,
+      ).reversed.toList();
+
+  List<MapPlacedElement> contextStack(GridPos position) =>
+      document.stackPosition == position && document.stackPixelPosition != null
+      ? stackAtPixel(document.stackPixelPosition!)
+      : stack(position);
+
+  TileLayer supportLayer(MapData map, {String? preferredLayerId}) {
+    final preferred = map.layers
+        .whereType<TileLayer>()
+        .where(
+          (layer) =>
+              layer.id == preferredLayerId &&
+              layer.isVisible &&
+              layer.purpose == MapLayerPurpose.visual,
+        )
+        .firstOrNull;
+    if (preferred != null) return preferred;
     final plan = buildMapVisualCompositionPlan(map).plan;
     final layers = plan?.visibleTileLayersInPaintOrder ?? <TileLayer>[];
     for (final layer in layers.reversed) {
@@ -188,13 +277,23 @@ class MapEditingCommands {
   }
 
   bool _fits(MapPlacedElement instance, ProjectElementEntry entry) {
-    final size = resolveMapPlacedElementFootprint(
-      instance: instance,
-      element: entry,
-    ).destinationSize;
-    return instance.pos.x >= 0 &&
-        instance.pos.y >= 0 &&
-        instance.pos.x + size.width <= document.current.size.width &&
-        instance.pos.y + size.height <= document.current.size.height;
+    final tileSize = PixelSize(
+      width: project.settings.tileWidth,
+      height: project.settings.tileHeight,
+    );
+    try {
+      validateMapPlacedElementGeometryBounds(
+        geometry: resolveMapPlacedElementGeometry(
+          instance: instance,
+          element: entry,
+          tileSize: tileSize,
+        ),
+        mapSize: document.current.size,
+        tileSize: tileSize,
+      );
+      return true;
+    } on ValidationException {
+      return false;
+    }
   }
 }

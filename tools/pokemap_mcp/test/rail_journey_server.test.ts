@@ -241,7 +241,7 @@ function mapDocument(
     id,
     name,
     size: { width: 10, height: 10 },
-    version: "v6",
+    version: "v8",
     layers: [{ runtimeType: "object", id: "doors", name: "Doors" }],
     placedElements,
   };

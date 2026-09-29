@@ -127,12 +127,21 @@ final class RuntimeTilesetImage {
     required List<RuntimeTilesetChunk> chunks,
     required this.width,
     required this.height,
+    this.ownsImages = true,
   })  : _images = List<ui.Image>.unmodifiable(images),
         chunks = List<RuntimeTilesetChunk>.unmodifiable(chunks) {
     assert(_images.length == this.chunks.length);
   }
 
+  factory RuntimeTilesetImage.borrowed(ui.Image image) =>
+      RuntimeTilesetImage(images: [
+        image
+      ], chunks: [
+        RuntimeTilesetChunk(top: 0, height: image.height, width: image.width)
+      ], width: image.width, height: image.height, ownsImages: false);
+
   final List<ui.Image> _images;
+  final bool ownsImages;
   final List<RuntimeTilesetChunk> chunks;
   final int width;
   final int height;
@@ -143,6 +152,7 @@ final class RuntimeTilesetImage {
 
   @visibleForTesting
   bool get debugDisposed => _isDisposed;
+  bool get isDisposed => _isDisposed;
 
   bool containsSourceRect(ui.Rect sourceRect) {
     return sourceRect.left >= 0 &&
@@ -196,6 +206,7 @@ final class RuntimeTilesetImage {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    if (!ownsImages) return;
     for (final image in _images) {
       image.dispose();
     }

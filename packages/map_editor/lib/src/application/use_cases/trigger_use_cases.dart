@@ -3,13 +3,11 @@ import 'package:map_core/map_core.dart';
 class AddTriggerToMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required MapTrigger trigger,
   }) {
-    final updated = addTriggerToMap(
-      map,
-      trigger: trigger,
-    );
-    MapValidator.validate(updated);
+    final updated = addTriggerToMap(map, trigger: trigger);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -17,6 +15,7 @@ class AddTriggerToMapUseCase {
 class UpdateTriggerOnMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String triggerId,
     String? id,
     String? name,
@@ -33,7 +32,7 @@ class UpdateTriggerOnMapUseCase {
       area: area,
       properties: properties,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -41,13 +40,11 @@ class UpdateTriggerOnMapUseCase {
 class DeleteTriggerFromMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String triggerId,
   }) {
-    final updated = removeTriggerFromMap(
-      map,
-      triggerId: triggerId,
-    );
-    MapValidator.validate(updated);
+    final updated = removeTriggerFromMap(map, triggerId: triggerId);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }

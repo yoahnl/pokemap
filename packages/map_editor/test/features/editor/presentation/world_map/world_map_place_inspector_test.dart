@@ -676,7 +676,7 @@ final _v2OnlyProject = ProjectManifest(
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(

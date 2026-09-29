@@ -56,10 +56,11 @@ enum MapLifecycleTransactionCheckpoint {
   beforeJournalCleared,
 }
 
-typedef MapLifecycleTransactionFaultInjector = FutureOr<void> Function(
-  MapLifecycleTransactionCheckpoint checkpoint,
-  MapLifecycleTransactionRecord record,
-);
+typedef MapLifecycleTransactionFaultInjector =
+    FutureOr<void> Function(
+      MapLifecycleTransactionCheckpoint checkpoint,
+      MapLifecycleTransactionRecord record,
+    );
 
 /// Fault-injection sentinel that represents process termination.
 ///
@@ -72,10 +73,8 @@ final class MapLifecycleSimulatedCrash implements Exception {
 }
 
 final class MapLifecycleProjectSnapshot {
-  MapLifecycleProjectSnapshot({
-    required this.project,
-    required String revision,
-  }) : revision = requireMapDocumentRevision(revision);
+  MapLifecycleProjectSnapshot({required this.project, required String revision})
+    : revision = requireMapDocumentRevision(revision);
 
   final ProjectManifest project;
   final String revision;
@@ -200,14 +199,15 @@ final class MapLifecycleTransactionRecord {
     this.targetPath,
     this.targetMap,
     String? targetRevision,
-  })  : projectBeforeRevision =
-            requireMapDocumentRevision(projectBeforeRevision),
-        sourceRevision = sourceRevision == null
-            ? null
-            : requireMapDocumentRevision(sourceRevision),
-        targetRevision = targetRevision == null
-            ? null
-            : requireMapDocumentRevision(targetRevision) {
+  }) : projectBeforeRevision = requireMapDocumentRevision(
+         projectBeforeRevision,
+       ),
+       sourceRevision = sourceRevision == null
+           ? null
+           : requireMapDocumentRevision(sourceRevision),
+       targetRevision = targetRevision == null
+           ? null
+           : requireMapDocumentRevision(targetRevision) {
     _validateShape();
   }
 
@@ -249,13 +249,9 @@ final class MapLifecycleTransactionRecord {
     );
   }
 
-  factory MapLifecycleTransactionRecord.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory MapLifecycleTransactionRecord.fromJson(Map<String, dynamic> json) {
     if (json['schemaVersion'] != schemaVersion) {
-      throw const FormatException(
-        'Unsupported map lifecycle journal schema.',
-      );
+      throw const FormatException('Unsupported map lifecycle journal schema.');
     }
     final operation = _enumByName(
       MapLifecycleOperation.values,
@@ -279,7 +275,9 @@ final class MapLifecycleTransactionRecord {
         : MapData.fromJson(_jsonObject(targetMapJson, 'targetMap'));
     ProjectValidator.validate(beforeProject);
     ProjectValidator.validate(afterProject);
-    if (targetMap != null) MapValidator.validate(targetMap);
+    if (targetMap != null) {
+      MapValidator.validate(targetMap, projectDialogueContext: afterProject);
+    }
     return MapLifecycleTransactionRecord._(
       transactionId: _requiredString(json['transactionId'], 'transactionId'),
       operation: operation,
@@ -338,20 +336,20 @@ final class MapLifecycleTransactionRecord {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'schemaVersion': schemaVersion,
-        'transactionId': transactionId,
-        'operation': operation.name,
-        'status': status.name,
-        'projectPath': projectPath,
-        'projectBeforeRevision': projectBeforeRevision,
-        'beforeProject': beforeProject.toJson(),
-        'afterProject': afterProject.toJson(),
-        'sourcePath': sourcePath,
-        'sourceRevision': sourceRevision,
-        'targetPath': targetPath,
-        'targetMap': targetMap?.toJson(),
-        'targetRevision': targetRevision,
-      };
+    'schemaVersion': schemaVersion,
+    'transactionId': transactionId,
+    'operation': operation.name,
+    'status': status.name,
+    'projectPath': projectPath,
+    'projectBeforeRevision': projectBeforeRevision,
+    'beforeProject': beforeProject.toJson(),
+    'afterProject': afterProject.toJson(),
+    'sourcePath': sourcePath,
+    'sourceRevision': sourceRevision,
+    'targetPath': targetPath,
+    'targetMap': targetMap?.toJson(),
+    'targetRevision': targetRevision,
+  };
 
   void _validateShape() {
     if (transactionId.trim().isEmpty ||
@@ -452,9 +450,7 @@ abstract interface class MapLifecycleTransactionGateway {
 
   Future<void> clearJournal(String canonicalProjectPath);
 
-  Future<MapLifecycleProjectSnapshot> readProject(
-    String canonicalProjectPath,
-  );
+  Future<MapLifecycleProjectSnapshot> readProject(String canonicalProjectPath);
 
   Future<MapLifecycleProjectSnapshot> writeProject(
     String canonicalProjectPath, {
@@ -470,12 +466,10 @@ abstract interface class MapLifecycleTransactionGateway {
     MapData map,
     String path, {
     required MapDocumentWritePrecondition precondition,
+    ProjectManifest? projectDialogueContext,
   });
 
-  Future<void> deleteMap(
-    String path, {
-    required String expectedRevision,
-  });
+  Future<void> deleteMap(String path, {required String expectedRevision});
 }
 
 /// Durable lifecycle orchestration for create, duplicate, rename and delete.
@@ -484,10 +478,7 @@ abstract interface class MapLifecycleTransactionGateway {
 /// forward. It never guesses across independently changed project/map bytes:
 /// such divergence keeps the journal and raises a product-visible block.
 final class MapLifecycleTransactionCoordinator {
-  const MapLifecycleTransactionCoordinator(
-    this.gateway, {
-    this.faultInjector,
-  });
+  const MapLifecycleTransactionCoordinator(this.gateway, {this.faultInjector});
 
   final MapLifecycleTransactionGateway gateway;
   final MapLifecycleTransactionFaultInjector? faultInjector;
@@ -598,9 +589,7 @@ final class MapLifecycleTransactionCoordinator {
       );
     }
     if (record == null) {
-      return const MapLifecycleRecoveryResult(
-        MapLifecycleRecoveryStatus.clear,
-      );
+      return const MapLifecycleRecoveryResult(MapLifecycleRecoveryStatus.clear);
     }
     if (p.normalize(record.projectPath) != p.normalize(canonicalProjectPath)) {
       _blocked(
@@ -720,10 +709,7 @@ final class MapLifecycleTransactionCoordinator {
       );
     }
 
-    record = await _advance(
-      record,
-      MapLifecycleTransactionStatus.committed,
-    );
+    record = await _advance(record, MapLifecycleTransactionStatus.committed);
     await _checkpoint(
       MapLifecycleTransactionCheckpoint.beforeJournalCleared,
       record,
@@ -767,6 +753,7 @@ final class MapLifecycleTransactionCoordinator {
       targetMap,
       targetPath,
       precondition: const MapDocumentWritePrecondition.absent(),
+      projectDialogueContext: record.afterProject,
     );
     if (saved.revision != expectedRevision || saved.map != targetMap) {
       _blocked(
@@ -787,10 +774,7 @@ final class MapLifecycleTransactionCoordinator {
         'La source "$sourcePath" a changé avant sa suppression.',
       );
     }
-    await gateway.deleteMap(
-      sourcePath,
-      expectedRevision: sourceRevision,
-    );
+    await gateway.deleteMap(sourcePath, expectedRevision: sourceRevision);
     if (await gateway.readMap(sourcePath) != null) {
       _blocked(
         record.projectPath,
@@ -898,10 +882,7 @@ void _validateLifecycleDelta({
         targetRelativePath: targetRelativePath!,
       );
       if (operation == MapLifecycleOperation.duplicate) {
-        _requireUniqueSourceEntry(
-          beforeProject.maps,
-          sourceRelativePath!,
-        );
+        _requireUniqueSourceEntry(beforeProject.maps, sourceRelativePath!);
       }
       break;
     case MapLifecycleOperation.rename:
@@ -917,9 +898,7 @@ void _validateLifecycleDelta({
       for (var index = 0; index < beforeProject.maps.length; index += 1) {
         if (index == sourceIndex) continue;
         if (beforeProject.maps[index] != afterProject.maps[index]) {
-          throw const FormatException(
-            'Rename changed an unrelated map entry.',
-          );
+          throw const FormatException('Rename changed an unrelated map entry.');
         }
       }
       final expectedRenamedEntry = beforeProject.maps[sourceIndex].copyWith(
@@ -1031,11 +1010,7 @@ void _requireProjectMapPaths(
   }
 }
 
-T _enumByName<T extends Enum>(
-  List<T> values,
-  Object? source,
-  String field,
-) {
+T _enumByName<T extends Enum>(List<T> values, Object? source, String field) {
   if (source is! String) {
     throw FormatException('$field must be a string.');
   }

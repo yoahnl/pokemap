@@ -923,7 +923,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Coordinator project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,

@@ -256,7 +256,7 @@ void main() {
 
 ProjectManifest _manifestWithDraft() => ProjectManifest(
   name: 'Original project with draft',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   borderCatalog: ProjectBorderCatalog(

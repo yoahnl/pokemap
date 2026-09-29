@@ -30,7 +30,7 @@ void main() {
         final decoded = MapData.fromJson(json);
 
         expect(decoded, map);
-        expect(json['version'], 'v6');
+        expect(json['version'], 'v8');
         final layerJson =
             (json['layers'] as List<Object?>).single as Map<String, dynamic>;
         final fieldJson = layerJson['field'] as Map<String, dynamic>;
@@ -187,7 +187,7 @@ void main() {
   group('Smart Tile persisted identifier validation', () {
     final manifest = ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -258,7 +258,7 @@ void main() {
 MapData _mapV5({required SmartTileField field}) => MapData(
       id: 'field-map',
       name: 'Field map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 1),
       layers: <MapLayer>[
         MapLayer.smartTile(
@@ -279,7 +279,7 @@ MapData _canonicalIdentifierMap({
     MapData(
       id: 'canonical-id-map',
       name: 'Canonical id map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         MapLayer.smartTile(

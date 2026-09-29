@@ -28,11 +28,7 @@ final class MapCanvasObjectMoveStartCapability {
   const MapCanvasObjectMoveStartCapability.blocked({
     required MapCanvasObjectMoveRejection rejection,
     required String reason,
-  }) : this._(
-          allowed: false,
-          rejection: rejection,
-          reason: reason,
-        );
+  }) : this._(allowed: false, rejection: rejection, reason: reason);
 
   final bool allowed;
   final MapCanvasObjectMoveRejection? rejection;
@@ -165,9 +161,7 @@ final class MapCanvasObjectMovePlanner {
       );
     }
     if (!_isInBounds(sourceTarget.anchor, sourceTarget.size, map.size)) {
-      return _blockedMoveStart(
-        MapCanvasObjectMoveRejection.sourceOutOfBounds,
-      );
+      return _blockedMoveStart(MapCanvasObjectMoveRejection.sourceOutOfBounds);
     }
     if (placed?.properties[pokemapPlacementOriginProperty] ==
             pokemapPlacementOriginTileIndex &&
@@ -195,10 +189,7 @@ final class MapCanvasObjectMovePlanner {
         ? _findPlacedElement(map, target.id)
         : null;
     if (placed != null && _isEnvironmentGenerated(map, placed)) {
-      final moveSize = _placedElementMoveSize(
-        project: project,
-        placed: placed,
-      );
+      final moveSize = _placedElementMoveSize(project: project, placed: placed);
       final sourceTarget = MapCanvasObjectTarget(
         kind: MapCanvasObjectKind.placedElement,
         id: placed.id,
@@ -349,10 +340,7 @@ final class MapCanvasObjectMovePlanner {
           _tileAt(
             layer.cells,
             map.size,
-            GridPos(
-              x: placed.pos.x + localX,
-              y: placed.pos.y + localY,
-            ),
+            GridPos(x: placed.pos.x + localX, y: placed.pos.y + localY),
           ),
     ];
     final expectedTileCount = map.size.width * map.size.height;
@@ -429,8 +417,9 @@ final class MapCanvasObjectMovePlanner {
         !_isInBounds(placed.pos, patternSize, map.size)) {
       return null;
     }
-    final layerIndex =
-        map.layers.indexWhere((entry) => entry.id == placed.layerId);
+    final layerIndex = map.layers.indexWhere(
+      (entry) => entry.id == placed.layerId,
+    );
     if (layerIndex < 0 || map.layers[layerIndex] is! TileLayer) {
       return null;
     }
@@ -453,11 +442,7 @@ final class MapCanvasObjectMovePlanner {
     } on Object {
       return null;
     }
-    return (
-      patternSize: patternSize,
-      layerIndex: layerIndex,
-      layer: layer,
-    );
+    return (patternSize: patternSize, layerIndex: layerIndex, layer: layer);
   }
 }
 
@@ -486,10 +471,7 @@ MapCanvasObjectTarget? _resolveTarget({
       final placed = _findPlacedElement(map, requested.id);
       final size = placed == null
           ? null
-          : _placedElementMoveSize(
-              project: project,
-              placed: placed,
-            );
+          : _placedElementMoveSize(project: project, placed: placed);
       if (placed == null || size == null) return null;
       return MapCanvasObjectTarget(
         kind: requested.kind,
@@ -518,8 +500,11 @@ MapCanvasObjectTarget? _resolveTarget({
         size: const GridSize(width: 1, height: 1),
       );
     case MapCanvasObjectKind.gameplayZone:
-      final zone =
-          _findById(map.gameplayZones, requested.id, (entry) => entry.id);
+      final zone = _findById(
+        map.gameplayZones,
+        requested.id,
+        (entry) => entry.id,
+      );
       if (zone == null) return null;
       return MapCanvasObjectTarget(
         kind: requested.kind,
@@ -528,8 +513,11 @@ MapCanvasObjectTarget? _resolveTarget({
         size: zone.area.size,
       );
     case MapCanvasObjectKind.trigger:
-      final trigger =
-          _findById(map.triggers, requested.id, (entry) => entry.id);
+      final trigger = _findById(
+        map.triggers,
+        requested.id,
+        (entry) => entry.id,
+      );
       if (trigger == null) return null;
       return MapCanvasObjectTarget(
         kind: requested.kind,
@@ -556,11 +544,14 @@ MapData? _movePositionOnly({
 }) {
   switch (target.kind) {
     case MapCanvasObjectKind.placedElement:
-      final index =
-          map.placedElements.indexWhere((entry) => entry.id == target.id);
+      final index = map.placedElements.indexWhere(
+        (entry) => entry.id == target.id,
+      );
       if (index < 0) return null;
-      final next =
-          List<MapPlacedElement>.from(map.placedElements, growable: false);
+      final next = List<MapPlacedElement>.from(
+        map.placedElements,
+        growable: false,
+      );
       next[index] = next[index].copyWith(pos: destinationAnchor);
       return map.copyWith(placedElements: next);
     case MapCanvasObjectKind.entity:
@@ -582,11 +573,14 @@ MapData? _movePositionOnly({
       );
       return map.copyWith(events: next);
     case MapCanvasObjectKind.gameplayZone:
-      final index =
-          map.gameplayZones.indexWhere((entry) => entry.id == target.id);
+      final index = map.gameplayZones.indexWhere(
+        (entry) => entry.id == target.id,
+      );
       if (index < 0) return null;
-      final next =
-          List<MapGameplayZone>.from(map.gameplayZones, growable: false);
+      final next = List<MapGameplayZone>.from(
+        map.gameplayZones,
+        growable: false,
+      );
       final zone = next[index];
       next[index] = zone.copyWith(
         area: zone.area.copyWith(pos: destinationAnchor),
@@ -619,8 +613,11 @@ GridSize? _placedElementSize(
   MapPlacedElement placed,
 ) {
   if (project == null) return null;
-  final element =
-      _findById(project.elements, placed.elementId, (entry) => entry.id);
+  final element = _findById(
+    project.elements,
+    placed.elementId,
+    (entry) => entry.id,
+  );
   if (element == null || element.frames.isEmpty) return null;
   final source = element.frames.primarySource;
   return GridSize(
@@ -639,14 +636,21 @@ GridSize? _placedElementMoveSize({
       pokemapPlacementOriginTileIndex) {
     return primarySize;
   }
-  final element =
-      _findById(project!.elements, placed.elementId, (entry) => entry.id);
+  final element = _findById(
+    project!.elements,
+    placed.elementId,
+    (entry) => entry.id,
+  );
   if (element == null) return null;
   try {
-    return resolveMapPlacedElementFootprint(
+    return resolveMapPlacedElementGeometry(
       instance: placed,
       element: element,
-    ).destinationSize;
+      tileSize: PixelSize(
+        width: project.settings.tileWidth,
+        height: project.settings.tileHeight,
+      ),
+    ).cellBounds.size;
   } on Object {
     return null;
   }
@@ -666,10 +670,7 @@ bool _isEnvironmentGenerated(MapData map, MapPlacedElement placement) {
   return false;
 }
 
-MapCanvasObjectTarget _atAnchor(
-  MapCanvasObjectTarget source,
-  GridPos anchor,
-) {
+MapCanvasObjectTarget _atAnchor(MapCanvasObjectTarget source, GridPos anchor) {
   return MapCanvasObjectTarget(
     kind: source.kind,
     id: source.id,

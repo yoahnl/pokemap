@@ -67,7 +67,7 @@ MapData surfaceTestMap({
   return MapData(
     id: 'surface-test',
     name: 'Surface Test',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 1, height: 1),
     layers: layers,
     entities: entities,

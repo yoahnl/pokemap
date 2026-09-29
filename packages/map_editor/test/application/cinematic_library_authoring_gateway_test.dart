@@ -140,7 +140,7 @@ void main() {
     });
     final project = ProjectManifest(
       name: 'Final Presentation deletion',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[
@@ -201,7 +201,7 @@ void main() {
 
 ProjectManifest _project() => ProjectManifest(
   name: 'Library gateway',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   cinematicLibraryCatalog: CinematicLibraryCatalog(

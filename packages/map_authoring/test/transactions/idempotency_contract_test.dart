@@ -477,7 +477,7 @@ void main() {
       addTearDown(() => root.delete(recursive: true));
       const manifest = ProjectManifest(
         name: 'Idempotency Attach Fixture',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
       );

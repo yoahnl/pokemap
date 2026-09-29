@@ -72,7 +72,7 @@ String _fingerprint(String path, List<int> bytes) =>
 
 final _manifestJson = jsonEncode({
   'name': 'Projection',
-  'version': 'v6',
+  'version': 'v8',
   'pokemon': ProjectPokemonConfig(
     ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   ).toJson(),
@@ -86,7 +86,7 @@ String _mapJson(String name) => '''
 {
   "id": "alpha",
   "name": "$name",
-  "version": "v6",
+  "version": "v8",
   "size": {"width": 1, "height": 1},
   "layers": []
 }

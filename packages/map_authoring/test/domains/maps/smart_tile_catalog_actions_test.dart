@@ -169,7 +169,7 @@ void main() {
         map: const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
         ),
         drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
@@ -207,7 +207,7 @@ void main() {
     });
 
     test('preserves a v7 manifest through a Smart Tile mutation', () {
-      final fixture = _fixture(projectVersion: ProjectVersion.v7);
+      final fixture = _fixture(projectVersion: ProjectVersion.v8);
 
       final draft = const SmartTileCatalogActions().build(
         _context(
@@ -229,7 +229,7 @@ void main() {
         ) as Map<String, dynamic>,
       );
 
-      expect(projectedManifest.version, ProjectVersion.v7);
+      expect(projectedManifest.version, ProjectVersion.v8);
     });
 
     test('upserts a reusable visual pattern without losing drafts', () {
@@ -384,7 +384,7 @@ void main() {
         map: const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             MapLayer.smartTile(
@@ -423,14 +423,14 @@ void main() {
   MapData map = const MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
   ),
   ProjectSmartTilePreset? preset,
   List<ProjectSmartTileAnimation> animations = const [],
   List<ProjectSmartTilePattern> patterns = const [],
   List<ProjectSmartTileAuthoringDraft> drafts = const [],
-  ProjectVersion projectVersion = ProjectVersion.v6,
+  ProjectVersion projectVersion = ProjectVersion.v8,
 }) {
   final artifact = ContentArtifactRef.fromBytes(
     _pngBytes,

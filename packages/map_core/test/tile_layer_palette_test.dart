@@ -40,7 +40,7 @@ void main() {
         'id': 'legacy',
         'name': 'Legacy',
         'size': <String, Object?>{'width': 2, 'height': 2},
-        'version': 'v6',
+        'version': 'v8',
         'tilesetId': 'terrain',
         'layers': <Object?>[
           <String, Object?>{

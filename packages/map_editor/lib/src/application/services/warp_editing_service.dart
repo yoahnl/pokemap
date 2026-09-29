@@ -33,12 +33,12 @@ class WarpEditingService {
     required ValidateWarpTargetMapUseCase validateWarpTargetMapUseCase,
     required CreateReciprocalWarpUseCase createReciprocalWarpUseCase,
     required WarpEditingCoordinator warpEditingCoordinator,
-  })  : _addWarpToMapUseCase = addWarpToMapUseCase,
-        _updateWarpOnMapUseCase = updateWarpOnMapUseCase,
-        _deleteWarpFromMapUseCase = deleteWarpFromMapUseCase,
-        _validateWarpTargetMapUseCase = validateWarpTargetMapUseCase,
-        _createReciprocalWarpUseCase = createReciprocalWarpUseCase,
-        _warpEditingCoordinator = warpEditingCoordinator;
+  }) : _addWarpToMapUseCase = addWarpToMapUseCase,
+       _updateWarpOnMapUseCase = updateWarpOnMapUseCase,
+       _deleteWarpFromMapUseCase = deleteWarpFromMapUseCase,
+       _validateWarpTargetMapUseCase = validateWarpTargetMapUseCase,
+       _createReciprocalWarpUseCase = createReciprocalWarpUseCase,
+       _warpEditingCoordinator = warpEditingCoordinator;
 
   final AddWarpToMapUseCase _addWarpToMapUseCase;
   final UpdateWarpOnMapUseCase _updateWarpOnMapUseCase;
@@ -47,25 +47,16 @@ class WarpEditingService {
   final CreateReciprocalWarpUseCase _createReciprocalWarpUseCase;
   final WarpEditingCoordinator _warpEditingCoordinator;
 
-  MapWarp? findSelectedWarp(
-    MapData? map,
-    String? selectedWarpId,
-  ) {
+  MapWarp? findSelectedWarp(MapData? map, String? selectedWarpId) {
     if (map == null || selectedWarpId == null) return null;
     return _warpEditingCoordinator.findWarpById(map, selectedWarpId);
   }
 
-  MapWarp? findWarpAtPos(
-    MapData map,
-    GridPos pos,
-  ) {
+  MapWarp? findWarpAtPos(MapData map, GridPos pos) {
     return _warpEditingCoordinator.findWarpAtPos(map, pos);
   }
 
-  MapWarp requireSelectedWarp(
-    MapData map,
-    String? selectedWarpId,
-  ) {
+  MapWarp requireSelectedWarp(MapData map, String? selectedWarpId) {
     if (selectedWarpId == null || selectedWarpId.trim().isEmpty) {
       throw const EditorInvalidOperationException('No warp selected');
     }
@@ -83,11 +74,12 @@ class WarpEditingService {
   ) {
     final warp = _warpEditingCoordinator.createDefaultWarp(map, pos);
     _validateWarpTargetMapUseCase.execute(project, warp.targetMapId);
-    final updated = _addWarpToMapUseCase.execute(map, warp: warp);
-    return WarpCreationResult(
-      updatedMap: updated,
-      createdWarp: warp,
+    final updated = _addWarpToMapUseCase.execute(
+      map,
+      manifest: project,
+      warp: warp,
     );
+    return WarpCreationResult(updatedMap: updated, createdWarp: warp);
   }
 
   WarpUpdateResult updateWarp(
@@ -110,6 +102,7 @@ class WarpEditingService {
     _validateWarpTargetMapUseCase.execute(project, effectiveTargetMapId);
     final updated = _updateWarpOnMapUseCase.execute(
       map,
+      manifest: project,
       warpId: warpId,
       id: id,
       pos: pos,
@@ -119,8 +112,9 @@ class WarpEditingService {
       allowedApproachFacings: allowedApproachFacings,
       triggerPadding: triggerPadding,
     );
-    final nextSelectedWarpId =
-        id?.trim().isNotEmpty == true ? id!.trim() : warpId;
+    final nextSelectedWarpId = id?.trim().isNotEmpty == true
+        ? id!.trim()
+        : warpId;
     return WarpUpdateResult(
       updatedMap: updated,
       selectedWarpId: nextSelectedWarpId,
@@ -129,10 +123,12 @@ class WarpEditingService {
 
   MapData deleteWarp(
     MapData map, {
+    ProjectManifest? manifest,
     required String warpId,
   }) {
     return _deleteWarpFromMapUseCase.execute(
       map,
+      manifest: manifest,
       warpId: warpId,
     );
   }

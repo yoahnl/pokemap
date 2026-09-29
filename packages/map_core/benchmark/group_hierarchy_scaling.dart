@@ -84,7 +84,7 @@ Future<void> main(List<String> arguments) async {
 
 ProjectManifest _manifest(int size) => ProjectManifest(
       name: 'Hierarchy benchmark $size',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       groups: List<ProjectMapGroup>.generate(

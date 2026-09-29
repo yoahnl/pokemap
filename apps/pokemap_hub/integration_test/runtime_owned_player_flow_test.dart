@@ -312,8 +312,8 @@ GamePackageHostCompatibility _hostCompatibility() =>
         'overworld.menu@1',
         'world.shop@1',
       },
-      supportedProjectFormats: const <String>{'v6'},
-      currentProjectFormat: 'v6',
+      supportedProjectFormats: const <String>{'v8'},
+      currentProjectFormat: 'v8',
       supportedSaveFormats: const <int>{1},
     );
 
@@ -328,7 +328,7 @@ Future<File> _buildFixturePackage(Directory root) async {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse('0.1.0'),
       runtimeApiExpression: '>=1.4.0 <2.0.0',
-      projectFormat: 'v6',
+      projectFormat: 'v8',
       saveFormat: 1,
       compatibilityId: 'runtime-player-v6',
       requiredCapabilities: const <String>['overworld.menu@1', 'world.shop@1'],

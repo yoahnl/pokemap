@@ -35,7 +35,7 @@ void preflightNativeSmartTileMutation({
   if (!_isSupportedProjectManifestVersion(projectedManifest.version)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Smart Tile authoring requires ProjectVersion.v6 or v7.',
+      'Smart Tile authoring requires ProjectVersion.v8.',
       details: <String, Object?>{
         'projectVersion': projectedManifest.version.name,
       },
@@ -45,9 +45,9 @@ void preflightNativeSmartTileMutation({
   try {
     ProjectValidator.validate(projectedManifest);
     for (final map in maps) {
-      if (map.version != ProjectVersion.v6) {
+      if (map.version != ProjectVersion.v8) {
         throw ValidationException(
-          'Map "${map.id}" is not a Smart Tiles-only v6 map.',
+          'Map "${map.id}" is not a v8 map.',
           code: 'smart_tile_native_project_version_required',
           details: <String, Object?>{
             'mapId': map.id,
@@ -92,7 +92,7 @@ void requireExistingNativeSmartTileProject(
   if (!_isSupportedProjectManifestVersion(snapshot.manifest.version)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Native Smart Tile maintenance requires a ProjectVersion.v6 or v7 '
+      'Native Smart Tile maintenance requires a ProjectVersion.v8 '
           'manifest.',
       details: <String, Object?>{
         'projectVersion': snapshot.manifest.version.name,
@@ -102,10 +102,10 @@ void requireExistingNativeSmartTileProject(
     );
   }
   for (final map in snapshot.maps) {
-    if (map.version != ProjectVersion.v6) {
+    if (map.version != ProjectVersion.v8) {
       throw semanticFailure(
         'smart_tile_native_project_version_required',
-        'Native Smart Tile maintenance requires ProjectVersion.v6 maps.',
+        'Native Smart Tile maintenance requires ProjectVersion.v8 maps.',
         details: <String, Object?>{
           'mapId': map.id,
           'mapVersion': map.version.name,
@@ -118,7 +118,7 @@ void requireExistingNativeSmartTileProject(
 }
 
 bool _isSupportedProjectManifestVersion(ProjectVersion version) =>
-    version == ProjectVersion.v6 || version == ProjectVersion.v7;
+    version == ProjectVersion.v8;
 
 void _requireCompleteMapSnapshot(ProjectSnapshot snapshot) {
   final manifestIds = <String>{};

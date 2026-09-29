@@ -81,12 +81,13 @@ TileLayerEnvironmentRegenerationResult _regenerateOrShuffle(
     areaId: areaId,
   );
   final previousSeed = target.area.seed;
-  final clear =
-      ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase().execute(
-    map,
-    tileLayerId: target.tileLayer.id,
-    areaId: target.area.id,
-  );
+  final clear = ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase()
+      .execute(
+        map,
+        manifest: manifest,
+        tileLayerId: target.tileLayer.id,
+        areaId: target.area.id,
+      );
 
   var working = clear.map;
   var currentSeed = previousSeed;
@@ -97,6 +98,7 @@ TileLayerEnvironmentRegenerationResult _regenerateOrShuffle(
       environmentLayerId: target.environmentLayer.id,
       areaId: target.area.id,
       seed: currentSeed,
+      manifest: manifest,
     );
     if (!seed.isSuccess) {
       throw EditorValidationException(seed.failureMessage ?? 'Seed invalide');

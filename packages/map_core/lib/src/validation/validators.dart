@@ -9,6 +9,7 @@ import '../models/items/project_item_catalog.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
+import '../models/map_placed_element_origin.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
@@ -96,32 +97,10 @@ class ProjectValidator {
     Iterable<MapData>? maps,
     ProjectItemCatalog? itemCatalog,
   }) {
-    if (manifest.version != ProjectVersion.v6 &&
-        manifest.version != ProjectVersion.v7) {
+    if (manifest.version != ProjectVersion.v8) {
       throw const ValidationException(
-        'Projects require ProjectVersion.v6 or ProjectVersion.v7',
-        code: 'smart_tile_v6_project_required',
-      );
-    }
-    if (manifest.version == ProjectVersion.v6 &&
-        manifest.presentationCinematics.isNotEmpty) {
-      throw const ValidationException(
-        'Presentation cinematics require ProjectVersion.v7',
-        code: 'cinematic_v2_project_v7_required',
-      );
-    }
-    if (manifest.version == ProjectVersion.v6 &&
-        !manifest.cinematicLibraryCatalog.isEmpty) {
-      throw const ValidationException(
-        'Cinematic library catalog requires ProjectVersion.v7',
-        code: 'cinematic_v2_project_v7_required',
-      );
-    }
-    if (manifest.version == ProjectVersion.v6 &&
-        (manifest.newGame.preSessionSceneId?.trim().isNotEmpty ?? false)) {
-      throw const ValidationException(
-        'New Game preSession entrypoint requires ProjectVersion.v7',
-        code: 'cinematic_v2_project_v7_required',
+        'Projects require ProjectVersion.v8',
+        code: 'project_version_unsupported',
       );
     }
     _validateCinematicLibrary(manifest);
@@ -2569,10 +2548,10 @@ class MapValidator {
         'Map $mapId has invalid size: ${map.size.width}x${map.size.height}',
       );
     }
-    if (map.version != ProjectVersion.v6) {
+    if (map.version != ProjectVersion.v8) {
       throw const ValidationException(
-        'Smart Tiles-only maps require ProjectVersion.v6',
-        code: 'smart_tile_v6_map_required',
+        'Smart Tiles-only maps require ProjectVersion.v8',
+        code: 'map_version_unsupported',
       );
     }
     final smartTileTerrainProviderIds = map.layers
@@ -2590,9 +2569,9 @@ class MapValidator {
     }
     final visualStack = map.visualStack;
     if (visualStack != null) {
-      if (map.version != ProjectVersion.v6) {
+      if (map.version != ProjectVersion.v8) {
         throw const ValidationException(
-          'visualStack requires ProjectVersion.v6',
+          'visualStack requires ProjectVersion.v8',
         );
       }
     }
@@ -2680,6 +2659,7 @@ class MapValidator {
               element.id: element,
           };
 
+    final environmentOwnedIds = environmentOwnedMapPlacedElementIds(map);
     for (final instance in map.placedElements) {
       _validatePlacedElement(
         map: map,
@@ -2687,6 +2667,7 @@ class MapValidator {
         layerById: layerById,
         elementById: elementById,
         projectDialogueContext: projectDialogueContext,
+        environmentOwnedIds: environmentOwnedIds,
       );
     }
     _validateUniqueIds(
@@ -3880,6 +3861,7 @@ class MapValidator {
     MapData map,
     MapPlacedElement instance, {
     ProjectManifest? projectDialogueContext,
+    Set<String>? environmentOwnedIds,
   }) {
     final layer = map.layers
         .where((candidate) => candidate.id == instance.layerId)
@@ -3893,6 +3875,8 @@ class MapValidator {
       layerById: <String, MapLayer>{?layer?.id: layer!},
       elementById: <String, ProjectElementEntry>{?element?.id: element!},
       projectDialogueContext: projectDialogueContext,
+      environmentOwnedIds:
+          environmentOwnedIds ?? environmentOwnedMapPlacedElementIds(map),
     );
   }
 
@@ -3902,6 +3886,7 @@ class MapValidator {
     required Map<String, MapLayer> layerById,
     required Map<String, ProjectElementEntry> elementById,
     required ProjectManifest? projectDialogueContext,
+    required Set<String> environmentOwnedIds,
   }) {
     final instanceId = _requireNonBlank(
       instance.id,
@@ -3916,6 +3901,20 @@ class MapValidator {
       'Placed element instance $instanceId has empty elementId',
     );
     final sourceElement = elementById[elementId];
+    final tileSize = projectDialogueContext == null
+        ? null
+        : PixelSize(
+            width: projectDialogueContext.settings.tileWidth,
+            height: projectDialogueContext.settings.tileHeight,
+          );
+    validateMapPlacedElementPixelGeometry(instance, tileSize: tileSize);
+    if (environmentOwnedIds.contains(instance.id) &&
+        (instance.pixelOffset != const PixelOffset(x: 0, y: 0) ||
+            instance.pixelSize != null)) {
+      throw const ValidationException(
+        'Environment-owned placed elements cannot be transformed',
+      );
+    }
     final layer = layerById[layerId];
     if (layer == null) {
       throw ValidationException(
@@ -4154,19 +4153,16 @@ class MapValidator {
           'Placed element instance $instanceId references unknown element: $elementId',
         );
       }
-      final footprint = resolveMapPlacedElementFootprint(
+      final geometry = resolveMapPlacedElementGeometry(
         instance: instance,
         element: element,
-      ).destinationSize;
-      final right = instance.pos.x + footprint.width;
-      final bottom = instance.pos.y + footprint.height;
-      if (right > map.size.width || bottom > map.size.height) {
-        throw ValidationException(
-          'Placed element instance $instanceId footprint '
-          '${footprint.width}x${footprint.height} exceeds map bounds from '
-          'origin (${instance.pos.x}, ${instance.pos.y})',
-        );
-      }
+        tileSize: tileSize!,
+      );
+      validateMapPlacedElementGeometryBounds(
+        geometry: geometry,
+        mapSize: map.size,
+        tileSize: tileSize,
+      );
       if (animation != null && animation.enabled && element.frames.isEmpty) {
         throw ValidationException(
           'Placed element instance $instanceId enables animation but source element $elementId has no frames',

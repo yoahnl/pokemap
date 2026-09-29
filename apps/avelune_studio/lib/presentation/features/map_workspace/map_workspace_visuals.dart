@@ -5,7 +5,11 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'workspace_resource_diagnostic.dart';
 
 abstract interface class MapWorkspaceVisuals implements Listenable {
-  Widget canvas(MapData map);
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  });
   Widget thumbnail(ProjectElementEntry element, {double size = 48});
   Widget placementPreview(ProjectElementEntry element, Size size);
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48});

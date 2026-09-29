@@ -2530,7 +2530,7 @@ ProjectSmartTilePreset _publishedSmartTilePreset(String id) =>
 
 ProjectManifest _project() => ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       elements: <ProjectElementEntry>[

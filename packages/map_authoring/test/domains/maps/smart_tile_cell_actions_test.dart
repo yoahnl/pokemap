@@ -641,7 +641,7 @@ AuthoringMutationDraft _build(
   final map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: mapSize,
     layers: <MapLayer>[
       MapLayer.smartTile(
@@ -689,7 +689,7 @@ AuthoringMutationDraft _build(
   };
   final manifest = ProjectManifest(
     name: 'Cell actions fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

@@ -29,11 +29,15 @@ class StudioMapVisual extends StatefulWidget {
     required this.map,
     required this.resources,
     this.preview = false,
+    this.placedElementPreview,
+    this.collisionColor,
   });
 
   final MapData map;
   final StudioMapResources resources;
   final bool preview;
+  final MapPlacedElement? placedElementPreview;
+  final Color? collisionColor;
 
   @override
   State<StudioMapVisual> createState() => _StudioMapVisualState();
@@ -45,6 +49,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
   int _catalogVersion = -1;
   BorderRuntimeAssetBundle? _borderAssets;
   StudioBorderPreview? _previewBorders;
+  MapPlacedElement? _appliedPreview;
 
   StudioBorderPreview get _borders =>
       _previewBorders ?? widget.resources.borderPreview;
@@ -79,6 +84,18 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
     _borderAssets = _borders.assetsFor(widget.map);
     _catalogVersion = widget.resources.catalogVersion;
     widget.resources.addListener(_changed);
+    _syncDecorPreview();
+  }
+
+  void _syncDecorPreview() {
+    final candidate = widget.placedElementPreview;
+    if (candidate == _appliedPreview) return;
+    _appliedPreview = candidate;
+    if (candidate == null) {
+      renderer.clearPlacedElementPreview();
+    } else {
+      renderer.setPlacedElementPreview(candidate);
+    }
   }
 
   void _changed() {
@@ -91,6 +108,8 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         !identical(_borderAssets, _borders.assetsFor(widget.map))) {
       _catalogVersion = widget.resources.catalogVersion;
       _borderAssets = _borders.assetsFor(widget.map);
+      renderer.dispose();
+      _appliedPreview = null;
       setState(
         () => renderer = createStudioMapRenderer(
           widget.map,
@@ -107,6 +126,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         );
       }
     });
+    _syncDecorPreview();
   }
 
   @override
@@ -114,6 +134,8 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.map, widget.map) ||
         !identical(oldWidget.resources, widget.resources)) {
+      renderer.dispose();
+      _appliedPreview = null;
       oldWidget.resources.release(_owner);
       oldWidget.resources.removeListener(_changed);
       if (widget.preview &&
@@ -139,10 +161,12 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
       )..update(0);
       _borderAssets = _borders.assetsFor(widget.map);
     }
+    _syncDecorPreview();
   }
 
   @override
   void dispose() {
+    renderer.dispose();
     widget.resources.removeListener(_changed);
     widget.resources.release(_owner);
     if (_previewBorders != null) unawaited(_previewBorders!.dispose());
@@ -152,16 +176,26 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
   @override
   Widget build(BuildContext context) {
     final settings = widget.resources.manifest.settings;
+    renderer.setCollisionOverlay(
+      visible: widget.collisionColor != null,
+      color: widget.collisionColor ?? Theme.of(context).colorScheme.error,
+    );
     final paint = CustomPaint(
       size: Size(
         widget.map.size.width * settings.tileWidth * settings.displayScale,
         widget.map.size.height * settings.tileHeight * settings.displayScale,
       ),
-      painter: _MapPainter(renderer, widget.resources),
+      painter: _MapPainter(
+        renderer,
+        widget.resources,
+        widget.placedElementPreview,
+        widget.collisionColor,
+      ),
       foregroundPainter: _MissingResourcePainter(
         widget.map,
         widget.resources,
         Theme.of(context).colorScheme.error,
+        widget.placedElementPreview,
       ),
     );
     return paint;
@@ -169,11 +203,12 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
 }
 
 class _MissingResourcePainter extends CustomPainter {
-  _MissingResourcePainter(this.map, this.resources, this.color)
+  _MissingResourcePainter(this.map, this.resources, this.color, this.preview)
     : super(repaint: resources);
   final MapData map;
   final StudioMapResources resources;
   final Color color;
+  final MapPlacedElement? preview;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -186,7 +221,8 @@ class _MissingResourcePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final clip = canvas.getLocalClipBounds();
-    for (final instance in map.placedElements) {
+    for (final original in map.placedElements) {
+      final instance = preview?.id == original.id ? preview! : original;
       final element = elements[instance.elementId];
       final frame = element?.frames.firstOrNull;
       final id = frame == null || frame.tilesetId.isEmpty
@@ -194,12 +230,26 @@ class _MissingResourcePainter extends CustomPainter {
           : frame.tilesetId;
       if (frame != null && resources.images.containsKey(id)) continue;
       if (id == null || !resources.hasFailure({id})) continue;
-      final rect = Rect.fromLTWH(
-        instance.pos.x * width,
-        instance.pos.y * height,
-        (frame?.source.width ?? 1) * width,
-        (frame?.source.height ?? 1) * height,
-      );
+      final bounds = element == null
+          ? null
+          : resolveMapPlacedElementVisualBounds(
+              instance: instance,
+              element: element,
+              manifest: resources.manifest,
+            );
+      final rect = bounds == null
+          ? Rect.fromLTWH(
+              instance.pos.x * width,
+              instance.pos.y * height,
+              width.toDouble(),
+              height.toDouble(),
+            )
+          : Rect.fromLTWH(
+              bounds.leftPx * settings.displayScale.toDouble(),
+              bounds.topPx * settings.displayScale.toDouble(),
+              bounds.widthPx * settings.displayScale.toDouble(),
+              bounds.heightPx * settings.displayScale.toDouble(),
+            );
       if (!clip.overlaps(rect)) continue;
       canvas.drawRect(rect, paint);
       canvas.drawLine(rect.topLeft, rect.bottomRight, paint);
@@ -211,13 +261,20 @@ class _MissingResourcePainter extends CustomPainter {
   bool shouldRepaint(_MissingResourcePainter oldDelegate) =>
       map != oldDelegate.map ||
       resources != oldDelegate.resources ||
+      preview != oldDelegate.preview ||
       color != oldDelegate.color;
 }
 
 class _MapPainter extends CustomPainter {
-  _MapPainter(this.renderer, StudioMapResources resources)
-    : super(repaint: resources);
+  _MapPainter(
+    this.renderer,
+    StudioMapResources resources,
+    this.preview,
+    this.collisionColor,
+  ) : super(repaint: resources);
   final RuntimeAuthoringMapRenderer renderer;
+  final MapPlacedElement? preview;
+  final Color? collisionColor;
 
   @override
   void paint(Canvas canvas, Size size) => renderer.paint(
@@ -227,5 +284,7 @@ class _MapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MapPainter oldDelegate) =>
-      renderer != oldDelegate.renderer;
+      renderer != oldDelegate.renderer ||
+      preview != oldDelegate.preview ||
+      collisionColor != oldDelegate.collisionColor;
 }

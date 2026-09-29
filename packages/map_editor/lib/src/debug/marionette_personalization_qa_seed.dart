@@ -78,7 +78,7 @@ abstract final class MarionettePersonalizationQaSeed {
 
   static final Map<String, Object?> _manifest = <String, Object?>{
     'name': 'QA Personalization Studio',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[
       <String, Object?>{
         'id': 'qa_village',
@@ -266,7 +266,7 @@ abstract final class MarionettePersonalizationQaSeed {
     'id': 'qa_village',
     'name': 'Village QA',
     'size': <String, Object?>{'width': 1, 'height': 1},
-    'version': 'v6',
+    'version': 'v8',
     'tilesetId': 'qa-stage',
     'layers': <Object?>[
       <String, Object?>{

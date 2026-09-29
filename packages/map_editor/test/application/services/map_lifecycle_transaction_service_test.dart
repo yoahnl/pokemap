@@ -190,7 +190,7 @@ void main() {
           'a journal', () async {
         final fixture = _Fixture();
         final futureSource = fixture.source.copyWith(
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig(semanticsVersion: 99),
         );
         fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);
@@ -227,7 +227,7 @@ void main() {
         () async {
       final fixture = _Fixture();
       final futureSource = fixture.source.copyWith(
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         visualStack: MapVisualStackConfig(semanticsVersion: 99),
       );
       fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);
@@ -588,6 +588,7 @@ final class _MemoryGateway implements MapLifecycleTransactionGateway {
     MapData map,
     String path, {
     required MapDocumentWritePrecondition precondition,
+    ProjectManifest? projectDialogueContext,
   }) async {
     final current = maps[path];
     switch (precondition) {

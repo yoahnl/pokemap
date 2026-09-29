@@ -514,7 +514,7 @@ class _HarnessState extends State<_Harness> {
 
 ProjectManifest _project() => ProjectManifest(
   name: 'Library fixture',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const [],
   tilesets: const [],
   cinematics: [

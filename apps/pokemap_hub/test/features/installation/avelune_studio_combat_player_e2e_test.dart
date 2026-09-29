@@ -351,8 +351,8 @@ GamePackageHostCompatibility _compatibility() => GamePackageHostCompatibility(
     'overworld.menu@1',
     'world.shop@1',
   },
-  supportedProjectFormats: const {'v6', 'v7'},
-  currentProjectFormat: 'v6',
+  supportedProjectFormats: const {'v8'},
+  currentProjectFormat: 'v8',
   supportedSaveFormats: const {1},
 );
 

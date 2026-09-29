@@ -41,7 +41,7 @@ void main() {
           const MapData(
             id: 'map',
             name: 'Map',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             size: GridSize(width: 4, height: 4),
             layers: <MapLayer>[layer],
           ),
@@ -62,7 +62,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           ObjectLayer(

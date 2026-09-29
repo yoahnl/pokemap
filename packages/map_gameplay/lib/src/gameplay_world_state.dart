@@ -130,30 +130,48 @@ class GameplayWorldState {
       actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onAction,
       ),
       enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onEnter,
       ),
       bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onBump,
       ),
       exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onExit,
       ),
       nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
       ),
       placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
       ),
       waterCellCache: _buildWaterCellCache(map),
       tileWidth: tileWidth,
@@ -216,30 +234,48 @@ class GameplayWorldState {
       actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onAction,
       ),
       enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onEnter,
       ),
       bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onBump,
       ),
       exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
         trigger: MapPlacedElementTriggerType.onExit,
       ),
       nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
       ),
       placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
         map,
         project: project,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
       ),
       waterCellCache: _buildWaterCellCache(map),
       tileWidth: tileWidth,
@@ -845,57 +881,23 @@ WorldCollisionStorage _buildStaticCollisionStorage(
     }
     final element = elementById[instance.elementId];
     final profile = element?.collisionProfile;
-    // Masque **collision** uniquement (JSON historique : `pixelMask`).
-    final mask = profile?.collisionMask;
-    // Missing project data and non-positive legacy masks keep their historical
-    // no-mask branch. Neither may reach the strict canonical transforms.
     if (element == null ||
-        mask == null ||
-        mask.widthPx <= 0 ||
-        mask.heightPx <= 0) {
+        profile == null ||
+        (profile.collisionMask == null && !_hasPixelGeometry(instance))) {
       continue;
     }
-    final footprint = resolveMapPlacedElementFootprint(
-      instance: instance,
-      element: element,
-    );
-    final sourcePixelSize = GridSize(
-      width: mask.widthPx,
-      height: mask.heightPx,
-    );
-    final maxSafeInteger = BigInt.from(9007199254740991);
-    final destinationWidth = footprint.quarterTurns == 0
-        ? BigInt.from(mask.widthPx)
-        : BigInt.from(footprint.destinationSize.width) *
-            BigInt.from(safeTileWidth);
-    final destinationHeight = footprint.quarterTurns == 0
-        ? BigInt.from(mask.heightPx)
-        : BigInt.from(footprint.destinationSize.height) *
-            BigInt.from(safeTileHeight);
-    final worldLeft = BigInt.from(instance.pos.x) * BigInt.from(safeTileWidth);
-    final worldTop = BigInt.from(instance.pos.y) * BigInt.from(safeTileHeight);
-    if (destinationWidth <= BigInt.zero ||
-        destinationHeight <= BigInt.zero ||
-        destinationWidth > maxSafeInteger ||
-        destinationHeight > maxSafeInteger ||
-        worldLeft.abs() > maxSafeInteger ||
-        worldTop.abs() > maxSafeInteger) {
+    try {
+      for (final rect in resolveMapPlacedElementCollisionRects(
+          instance: instance,
+          element: element,
+          tileSize: PixelSize(width: safeTileWidth, height: safeTileHeight))) {
+        storage.stampRect(rect);
+      }
+    } on FormatException {
+      continue;
+    } on ValidationException {
       continue;
     }
-    final destinationPixelSize = GridSize(
-      width: destinationWidth.toInt(),
-      height: destinationHeight.toInt(),
-    );
-    storage.stampPackedMask(
-      leftPx: worldLeft.toInt(),
-      topPx: worldTop.toInt(),
-      mask: mask,
-      transform: QuarterTurnPixelTransform(
-        sourcePixelSize: sourcePixelSize,
-        destinationPixelSize: destinationPixelSize,
-        quarterTurns: footprint.quarterTurns,
-      ),
-    );
   }
 
   return storage.build();
@@ -921,7 +923,10 @@ List<bool> _buildPlacedElementCellCollisionCache(
     final profile = element?.collisionProfile;
     // An unresolved element has never contributed collision cells. Keep that
     // branch ahead of the strict footprint resolver for legacy map safety.
-    if (element == null || profile == null || profile.collisionMask != null) {
+    if (element == null ||
+        profile == null ||
+        profile.collisionMask != null ||
+        _hasPixelGeometry(instance)) {
       continue;
     }
     final footprint = resolveMapPlacedElementFootprint(
@@ -940,6 +945,11 @@ List<bool> _buildPlacedElementCellCollisionCache(
   }
   return List<bool>.unmodifiable(cache);
 }
+
+bool _hasPixelGeometry(MapPlacedElement instance) =>
+    instance.pixelOffset.x != 0 ||
+    instance.pixelOffset.y != 0 ||
+    instance.pixelSize != null;
 
 List<bool> _buildWaterCellCache(MapData map) {
   final size = map.size.width * map.size.height;
@@ -1115,6 +1125,7 @@ Map<int, MapEntity> _buildEntityByPos(
 Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
   MapData map, {
   required ProjectManifest? project,
+  required PixelSize tileSize,
   required MapPlacedElementTriggerType trigger,
 }) {
   final w = map.size.width;
@@ -1130,9 +1141,10 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
     if (behaviors.isEmpty) {
       continue;
     }
-    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
-    final width = footprint.width;
-    final height = footprint.height;
+    final footprint =
+        _resolvePlacedElementCellBounds(instance, elementById, tileSize);
+    final width = footprint.size.width;
+    final height = footprint.size.height;
     for (final behavior in behaviors) {
       if (!behavior.enabled) {
         continue;
@@ -1142,8 +1154,8 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
       }
       for (var localY = 0; localY < height; localY++) {
         for (var localX = 0; localX < width; localX++) {
-          final x = instance.pos.x + localX;
-          final y = instance.pos.y + localY;
+          final x = footprint.pos.x + localX;
+          final y = footprint.pos.y + localY;
           if (x < 0 || y < 0 || x >= w || y >= h) {
             continue;
           }
@@ -1165,6 +1177,7 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
 Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
   MapData map, {
   required ProjectManifest? project,
+  required PixelSize tileSize,
 }) {
   final w = map.size.width;
   final h = map.size.height;
@@ -1179,11 +1192,12 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
     if (behaviors.isEmpty) {
       continue;
     }
-    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
-    final width = footprint.width;
-    final height = footprint.height;
-    final minX = instance.pos.x;
-    final minY = instance.pos.y;
+    final footprint =
+        _resolvePlacedElementCellBounds(instance, elementById, tileSize);
+    final width = footprint.size.width;
+    final height = footprint.size.height;
+    final minX = footprint.pos.x;
+    final minY = footprint.pos.y;
     final maxX = minX + width - 1;
     final maxY = minY + height - 1;
     for (final behavior in behaviors) {
@@ -1195,8 +1209,8 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
       }
       for (var localY = 0; localY < height; localY++) {
         for (var localX = 0; localX < width; localX++) {
-          final x = instance.pos.x + localX;
-          final y = instance.pos.y + localY;
+          final x = minX + localX;
+          final y = minY + localY;
           final neighbors = <(int, int)>[
             (x - 1, y),
             (x + 1, y),
@@ -1231,6 +1245,7 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
 Map<int, Set<String>> _buildPlacedElementCoverageByPos(
   MapData map, {
   required ProjectManifest? project,
+  required PixelSize tileSize,
 }) {
   final w = map.size.width;
   final h = map.size.height;
@@ -1241,19 +1256,20 @@ Map<int, Set<String>> _buildPlacedElementCoverageByPos(
           for (final entry in project.elements) entry.id: entry,
         };
   for (final instance in map.placedElements) {
-    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
-    final width = footprint.width;
-    final height = footprint.height;
-    final startLocalX = instance.pos.x < 0 ? -instance.pos.x : 0;
-    final startLocalY = instance.pos.y < 0 ? -instance.pos.y : 0;
-    final visibleWidth = w - instance.pos.x;
-    final visibleHeight = h - instance.pos.y;
+    final footprint =
+        _resolvePlacedElementCellBounds(instance, elementById, tileSize);
+    final width = footprint.size.width;
+    final height = footprint.size.height;
+    final startLocalX = footprint.pos.x < 0 ? -footprint.pos.x : 0;
+    final startLocalY = footprint.pos.y < 0 ? -footprint.pos.y : 0;
+    final visibleWidth = w - footprint.pos.x;
+    final visibleHeight = h - footprint.pos.y;
     final endLocalX = width < visibleWidth ? width : visibleWidth;
     final endLocalY = height < visibleHeight ? height : visibleHeight;
     for (var localY = startLocalY; localY < endLocalY; localY++) {
       for (var localX = startLocalX; localX < endLocalX; localX++) {
-        final x = instance.pos.x + localX;
-        final y = instance.pos.y + localY;
+        final x = footprint.pos.x + localX;
+        final y = footprint.pos.y + localY;
         final index = y * w + x;
         result.putIfAbsent(index, () => <String>{}).add(instance.id);
       }
@@ -1262,21 +1278,29 @@ Map<int, Set<String>> _buildPlacedElementCoverageByPos(
   return result;
 }
 
-GridSize _resolvePlacedElementFootprintSize(
+MapRect _resolvePlacedElementCellBounds(
   MapPlacedElement instance,
   Map<String, ProjectElementEntry> elementById,
+  PixelSize tileSize,
 ) {
   final element = elementById[instance.elementId];
   // Gameplay historically treats unresolved placed elements as one cell.
   // Preserve that branch before the strict shared transform so project-less
   // worlds cannot fail merely because quarterTurns contains unvalidated data.
   if (element == null) {
-    return const GridSize(width: 1, height: 1);
+    return MapRect(
+        pos: instance.pos, size: const GridSize(width: 1, height: 1));
   }
-  return resolveMapPlacedElementFootprint(
-    instance: instance,
-    element: element,
-  ).destinationSize;
+  if (!_hasPixelGeometry(instance)) {
+    return MapRect(
+        pos: instance.pos,
+        size: resolveMapPlacedElementFootprint(
+                instance: instance, element: element)
+            .destinationSize);
+  }
+  return resolveMapPlacedElementGeometry(
+          instance: instance, element: element, tileSize: tileSize)
+      .cellBounds;
 }
 
 bool _isEntityBlockingCandidate(MapEntity entity) {

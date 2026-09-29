@@ -992,6 +992,7 @@ class EditorNotifier extends _$EditorNotifier
         project,
         name: name,
         settings: settings,
+        activeMap: state.activeMap,
       );
       state = state.copyWith(
         project: updated,
@@ -1324,7 +1325,8 @@ class EditorNotifier extends _$EditorNotifier
     final currentBehavior = currentLayer.encounterBehavior;
     final priorityUnchanged =
         priority == null || currentBehavior?.priority == priority;
-    final transitionsUnchanged = battleTransitionIds == null ||
+    final transitionsUnchanged =
+        battleTransitionIds == null ||
         _sameTransitionIds(
           currentBehavior?.encounter.battleTransitionIds ?? const <String>[],
           battleTransitionIds,
@@ -3503,7 +3505,11 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       if (kind == NarrativeEventPhysicalSourceKind.zone1x1) {
-        final result = _triggerEditingService.addTriggerAt(beforeMap, position);
+        final result = _triggerEditingService.addTriggerAt(
+          beforeMap,
+          position,
+          manifest: state.project,
+        );
         final trigger = result.createdTrigger;
         return NarrativeEventCreatedSourceProposal(
           physicalKind: kind,
@@ -3536,12 +3542,18 @@ class EditorNotifier extends _$EditorNotifier
         beforeMap,
         position,
         kind: entityKind,
+        manifest: state.project,
       );
       var afterMap = added.updatedMap;
       var entity = added.createdEntity;
       if (kind == NarrativeEventPhysicalSourceKind.invisible) {
         afterMap = _entityEditingService
-            .updateEntity(afterMap, entityId: entity.id, blocksMovement: false)
+            .updateEntity(
+              afterMap,
+              entityId: entity.id,
+              blocksMovement: false,
+              manifest: state.project,
+            )
             .updatedMap;
         entity = afterMap.entities.firstWhere(
           (candidate) => candidate.id == entity.id,
@@ -6634,7 +6646,12 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final result = ref
           .read(addMapLayerUseCaseProvider)
-          .execute(map, kind: MapLayerKind.object, name: 'Événements');
+          .execute(
+            map,
+            kind: MapLayerKind.object,
+            name: 'Événements',
+            manifest: state.project,
+          );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.map,
@@ -7595,7 +7612,12 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final result = _entityEditingService.addEntityAt(map, pos, kind: kind);
+      final result = _entityEditingService.addEntityAt(
+        map,
+        pos,
+        kind: kind,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.updatedMap,
@@ -7836,6 +7858,7 @@ class EditorNotifier extends _$EditorNotifier
         item: item,
         spawn: spawn,
         editorVisual: editorVisual,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -7880,6 +7903,7 @@ class EditorNotifier extends _$EditorNotifier
       final updated = _entityEditingService.deleteEntity(
         map,
         entityId: entityId,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -7912,7 +7936,11 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final result = _triggerEditingService.addTriggerAt(map, pos);
+      final result = _triggerEditingService.addTriggerAt(
+        map,
+        pos,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.updatedMap,
@@ -8010,6 +8038,7 @@ class EditorNotifier extends _$EditorNotifier
         type: type,
         area: area,
         properties: properties,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -8050,6 +8079,7 @@ class EditorNotifier extends _$EditorNotifier
       final updated = _triggerEditingService.deleteTrigger(
         map,
         triggerId: triggerId,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -8092,7 +8122,11 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final result = _gameplayZoneEditingService.addZoneAt(map, pos);
+      final result = _gameplayZoneEditingService.addZoneAt(
+        map,
+        pos,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.updatedMap,
@@ -8178,6 +8212,7 @@ class EditorNotifier extends _$EditorNotifier
         movementEffect: movementEffect,
         hazard: hazard,
         special: special,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -8247,6 +8282,7 @@ class EditorNotifier extends _$EditorNotifier
       final updated = _gameplayZoneEditingService.deleteZone(
         map,
         zoneId: zoneId,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -8283,6 +8319,7 @@ class EditorNotifier extends _$EditorNotifier
       final result = _gameplayZoneEditingService.addZoneInRect(
         map,
         clampedArea,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -8515,7 +8552,11 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final updated = _warpEditingService.deleteWarp(map, warpId: warpId);
+      final updated = _warpEditingService.deleteWarp(
+        map,
+        warpId: warpId,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -10167,6 +10208,7 @@ class EditorNotifier extends _$EditorNotifier
         kind: kind,
         name: name,
         insertIndex: insertIndex,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -10386,6 +10428,7 @@ class EditorNotifier extends _$EditorNotifier
         map,
         environmentLayerId: environmentLayerId,
         targetTileLayerId: targetTileLayerId,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -10424,6 +10467,7 @@ class EditorNotifier extends _$EditorNotifier
       final result = EnableTileLayerEnvironmentAttachmentUseCase().execute(
         map,
         tileLayerId: layerId,
+        manifest: state.project,
       );
       if (!result.created) {
         state = state.copyWith(
@@ -10524,6 +10568,7 @@ class EditorNotifier extends _$EditorNotifier
           tileLayerId: layerId,
           areaId: areaId,
           paramsOverride: params,
+          manifest: state.project,
         );
       },
     );
@@ -10538,6 +10583,7 @@ class EditorNotifier extends _$EditorNotifier
           map,
           tileLayerId: layerId,
           areaId: areaId,
+          manifest: state.project,
         );
       },
     );
@@ -10552,6 +10598,7 @@ class EditorNotifier extends _$EditorNotifier
           tileLayerId: layerId,
           areaId: areaId,
           seed: seed,
+          manifest: state.project,
         );
       },
     );
@@ -10762,7 +10809,12 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final result = ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase()
-          .execute(map, tileLayerId: layerId, areaId: areaId);
+          .execute(
+            map,
+            tileLayerId: layerId,
+            areaId: areaId,
+            manifest: state.project,
+          );
       if (result.clearedReferenceCount == 0) {
         state = state.copyWith(
           activeLayerId: result.tileLayerId,
@@ -11520,6 +11572,7 @@ class EditorNotifier extends _$EditorNotifier
       map,
       environmentLayerId: envId,
       areaId: aid,
+      manifest: state.project,
     );
     if (result.hasErrors) {
       final first = result.issues.firstWhere(
@@ -11652,6 +11705,7 @@ class EditorNotifier extends _$EditorNotifier
         working,
         environmentLayerId: envId,
         areaId: aid,
+        manifest: state.project,
       );
       if (clearR.hasErrors) {
         final first = clearR.issues.firstWhere(
@@ -11697,6 +11751,7 @@ class EditorNotifier extends _$EditorNotifier
         environmentLayerId: envId,
         areaId: aid,
         seed: nextS,
+        manifest: manifest,
       );
       if (!seedRes.isSuccess) {
         state = state.copyWith(
@@ -11822,6 +11877,7 @@ class EditorNotifier extends _$EditorNotifier
         center: pos,
         brushSize: ref.read(environmentMaskBrushSizeProvider),
         isActive: isActive,
+        manifest: state.project,
       );
       if (identical(updated, map)) {
         return;
@@ -11845,7 +11901,12 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(renameMapLayerUseCaseProvider);
-      final updated = useCase.execute(map, layerId: layerId, name: name);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        name: name,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -11866,7 +11927,11 @@ class EditorNotifier extends _$EditorNotifier
     if (removedIndex < 0) return;
     try {
       final useCase = ref.read(deleteMapLayerUseCaseProvider);
-      final updated = useCase.execute(map, layerId: layerId);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        manifest: state.project,
+      );
       final removedPlacements =
           updated.placedElements.length < map.placedElements.length;
       final nextActiveLayerId = state.activeLayerId == layerId
@@ -11908,7 +11973,7 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(deleteAllMapLayersUseCaseProvider);
-      final updated = useCase.execute(map);
+      final updated = useCase.execute(map, manifest: state.project);
       final removedPlacements =
           updated.placedElements.length < map.placedElements.length;
       _applyMapMutation(
@@ -12011,10 +12076,13 @@ class EditorNotifier extends _$EditorNotifier
     required MapData updatedMap,
   }) {
     try {
-      MapValidator.validate(updatedMap);
+      MapValidator.validate(updatedMap, projectDialogueContext: state.project);
     } catch (updatedError, updatedStackTrace) {
       try {
-        MapValidator.validate(previousMap);
+        MapValidator.validate(
+          previousMap,
+          projectDialogueContext: state.project,
+        );
       } catch (_) {
         // Reordering preserves every layer instance and only changes their
         // order. Keep repairable legacy maps editable when they already carry
@@ -12050,6 +12118,7 @@ class EditorNotifier extends _$EditorNotifier
         map,
         layerId: layerId,
         direction: direction,
+        manifest: state.project,
       );
       if (updated != map) {
         _applyMapMutation(
@@ -12077,6 +12146,7 @@ class EditorNotifier extends _$EditorNotifier
         map,
         oldIndex: oldIndex,
         newIndex: newIndex,
+        manifest: state.project,
       );
       if (updated != map) {
         _applyMapMutation(
@@ -12113,6 +12183,7 @@ class EditorNotifier extends _$EditorNotifier
         map,
         layerId: layerId,
         isVisible: isVisible,
+        manifest: state.project,
       );
       _applyMapMutation(
         previousMap: map,
@@ -12136,7 +12207,12 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(setMapLayerOpacityUseCaseProvider);
-      final updated = useCase.execute(map, layerId: layerId, opacity: opacity);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        opacity: opacity,
+        manifest: state.project,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -13828,7 +13904,10 @@ class EditorNotifier extends _$EditorNotifier
     );
     if (generatedDeletion != null) {
       try {
-        MapValidator.validate(generatedDeletion);
+        MapValidator.validate(
+          generatedDeletion,
+          projectDialogueContext: state.project,
+        );
         _applyMapMutation(
           previousMap: map,
           updatedMap: generatedDeletion,
@@ -14136,7 +14215,7 @@ class EditorNotifier extends _$EditorNotifier
         return false;
       }
       try {
-        MapValidator.validate(updatedMap);
+        MapValidator.validate(updatedMap, projectDialogueContext: project);
         _applyMapMutation(
           previousMap: map,
           updatedMap: updatedMap,

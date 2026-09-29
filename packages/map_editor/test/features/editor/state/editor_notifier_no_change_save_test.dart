@@ -104,7 +104,7 @@ final class _Fixture {
 
 ProjectManifest _project() => const ProjectManifest(
       name: 'No change save',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'alpha',
@@ -118,7 +118,7 @@ ProjectManifest _project() => const ProjectManifest(
 MapData _map() => const MapData(
       id: 'alpha',
       name: 'Alpha',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       layers: <MapLayer>[
         TileLayer(

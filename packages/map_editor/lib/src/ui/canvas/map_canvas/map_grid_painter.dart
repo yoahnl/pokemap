@@ -81,6 +81,7 @@ Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
   final mapHeight = map.size.height;
 
   for (final instance in placedElements ?? map.placedElements) {
+    if (isAuthoredMapPlacedElement(instance)) continue;
     final layer = tileLayerById[instance.layerId];
     if (layer == null) {
       continue;
@@ -402,6 +403,10 @@ class MapGridPainter extends CustomPainter {
   final Color? rotationPreviewRejectedColor;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final ProjectManifest? project;
+  late final Map<String, ProjectTilesetSource?> _placedTilesetSources = {
+    for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
+      tileset.id: tileset.source,
+  };
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
   final EditorCanvasPictureCacheOwner? pictureCacheOwner;
@@ -1461,38 +1466,20 @@ class MapGridPainter extends CustomPainter {
     if (projectContext == null) {
       return;
     }
-    TilesetSourceRect? source;
-    for (final entry in projectContext.elements) {
-      if (entry.id == selectedInstance.elementId && entry.frames.isNotEmpty) {
-        source = entityEditorPickPlacedElementFrame(
-          selectedInstance,
-          entry.frames,
-          effectiveAnimationMs,
-        ).source;
-        break;
-      }
-    }
-    final width = source?.width ?? 1;
-    final height = source?.height ?? 1;
-    if (width <= 0 || height <= 0) {
-      return;
-    }
-    final persistedTransform = QuarterTurnGridTransform(
-      sourceSize: GridSize(width: width, height: height),
-      quarterTurns: selectedInstance.quarterTurns,
-    );
+    final entry = projectContext.elements
+        .where((e) => e.id == selectedInstance!.elementId)
+        .firstOrNull;
+    if (entry == null) return;
     final preview = placedElementRotationPreview;
-    final destinationSize =
+    final selected =
         preview?.instance?.id == selectedInstance.id &&
             preview?.previewFootprint != null
-        ? preview!.previewFootprint!.destinationSize
-        : persistedTransform.destinationSize;
-    final rect = Rect.fromLTWH(
-      selectedInstance.pos.x * tileWidth,
-      selectedInstance.pos.y * tileHeight,
-      destinationSize.width * tileWidth,
-      destinationSize.height * tileHeight,
-    );
+        ? _rotatedPreviewInstance(
+            selectedInstance,
+            preview!.previewFootprint!.quarterTurns,
+          )
+        : selectedInstance;
+    final rect = _placedLogicalRect(selected, entry);
     final fill = Paint()
       ..color = PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.17)
       ..style = PaintingStyle.fill;
@@ -2723,6 +2710,7 @@ class MapGridPainter extends CustomPainter {
     final layerId = layer.id.trim();
     final out = <int>{};
     for (final instance in placedElements) {
+      if (isAuthoredMapPlacedElement(instance)) continue;
       if (instance.layerId.trim() != layerId) {
         continue;
       }
@@ -2848,163 +2836,95 @@ class MapGridPainter extends CustomPainter {
     if (tilesetImage == null) {
       return;
     }
-
-    final source = frame.source;
-    final width = source.width <= 0 ? 1 : source.width;
-    final height = source.height <= 0 ? 1 : source.height;
-    final transform = QuarterTurnGridTransform(
-      sourceSize: GridSize(width: width, height: height),
-      quarterTurns: instance.quarterTurns,
+    final geometry = resolveMapPlacedElementGeometry(
+      instance: instance,
+      element: entry,
+      tileSize: PixelSize(width: sourceTileWidth, height: sourceTileHeight),
     );
+    final visual = resolveMapPlacedElementVisualRect(
+      geometry: geometry,
+      tilesetSource: _placedTilesetSources[tilesetId],
+    );
+    final source = frame.source;
+    final src = Rect.fromLTWH(
+      (source.x * sourceTileWidth).toDouble(),
+      (source.y * sourceTileHeight).toDouble(),
+      (source.width * sourceTileWidth).toDouble(),
+      (source.height * sourceTileHeight).toDouble(),
+    );
+    final dst = Rect.fromLTWH(
+      visual.leftPx * tileWidth / sourceTileWidth,
+      visual.topPx * tileHeight / sourceTileHeight,
+      visual.widthPx * tileWidth / sourceTileWidth,
+      visual.heightPx * tileHeight / sourceTileHeight,
+    );
+    final image = RuntimeTilesetImage.borrowed(tilesetImage);
+    final collisionCells = instance.applyCollision
+        ? entry.collisionProfile?.cells.toSet()
+        : null;
+    final split =
+        !ignoreRenderPassSplit &&
+        collisionCells != null &&
+        collisionCells.isNotEmpty;
+    if (!ignoreRenderPassSplit &&
+        !split &&
+        renderPass == _EditorMapTileRenderPass.foreground) {
+      return;
+    }
     final resolvedOpacity = (opacity * instance.opacity)
         .clamp(0.0, 1.0)
         .toDouble();
-
-    for (var localY = 0; localY < height; localY++) {
-      for (var localX = 0; localX < width; localX++) {
-        if (!ignoreRenderPassSplit &&
-            !_shouldPaintPlacedElementCellInRenderPass(
-              instance: instance,
-              entry: entry,
-              localX: localX,
-              localY: localY,
-              foregroundPass: renderPass == _EditorMapTileRenderPass.foreground,
-            )) {
-          continue;
-        }
-
-        final destination = transform.sourceToDestination(
-          GridPos(x: localX, y: localY),
-        );
-        final x = instance.pos.x + destination.x;
-        final y = instance.pos.y + destination.y;
-        if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
-          continue;
-        }
-
-        final sourceX = (source.x + localX) * sourceTileWidth;
-        final sourceY = (source.y + localY) * sourceTileHeight;
-        if (sourceX < 0 ||
-            sourceY < 0 ||
-            sourceX + sourceTileWidth > tilesetImage.width ||
-            sourceY + sourceTileHeight > tilesetImage.height) {
-          continue;
-        }
-
-        final srcRect = Rect.fromLTWH(
-          sourceX.toDouble(),
-          sourceY.toDouble(),
-          sourceTileWidth.toDouble(),
-          sourceTileHeight.toDouble(),
-        );
-        final dstRect = Rect.fromLTWH(
-          x * tileWidth,
-          y * tileHeight,
-          tileWidth,
-          tileHeight,
-        );
-        _drawPlacedElementImageRect(
-          canvas,
-          tilesetImage,
-          srcRect,
-          dstRect,
-          opacity: resolvedOpacity,
-          highlight: highlight,
-          quarterTurns: transform.quarterTurns,
-        );
-      }
-    }
-  }
-
-  void _drawPlacedElementImageRect(
-    Canvas canvas,
-    ui.Image image,
-    Rect srcRect,
-    Rect dstRect, {
-    required double opacity,
-    bool highlight = false,
-    required int quarterTurns,
-  }) {
-    if (opacity >= 1) {
-      _drawQuarterTurnImageRect(
+    void draw(Paint paint) {
+      drawQuarterTurnPixels(
         canvas,
-        image,
-        srcRect,
-        dstRect,
-        quarterTurns: quarterTurns,
-        paint: Paint(),
+        image: image,
+        sourceRect: src,
+        destinationRect: dst,
+        sourcePixelSize: GridSize(
+          width: src.width.toInt(),
+          height: src.height.toInt(),
+        ),
+        destinationPixelSize: GridSize(
+          width: geometry.pixelSize.width,
+          height: geometry.pixelSize.height,
+        ),
+        quarterTurns: instance.quarterTurns,
+        paint: paint
+          ..isAntiAlias = false
+          ..filterQuality = ui.FilterQuality.none,
+        includeSourcePixel: !split
+            ? null
+            : (pixel) =>
+                  collisionCells.contains(
+                    GridPos(
+                      x: pixel.x ~/ sourceTileWidth,
+                      y: pixel.y ~/ sourceTileHeight,
+                    ),
+                  ) ==
+                  (renderPass == _EditorMapTileRenderPass.background),
       );
-      if (highlight) {
-        _drawQuarterTurnImageRect(
-          canvas,
-          image,
-          srcRect,
-          dstRect,
-          quarterTurns: quarterTurns,
-          paint: Paint()
-            ..colorFilter = ui.ColorFilter.mode(
-              PokeMapLegacyColors.white.withValues(alpha: 0.45),
-              ui.BlendMode.srcATop,
-            ),
-        );
-      }
-      return;
     }
-    canvas.saveLayer(
-      dstRect,
-      Paint()..color = PokeMapLegacyColors.white.withValues(alpha: opacity),
-    );
-    _drawQuarterTurnImageRect(
-      canvas,
-      image,
-      srcRect,
-      dstRect,
-      quarterTurns: quarterTurns,
-      paint: Paint(),
-    );
+
+    if (resolvedOpacity < 1) {
+      canvas.saveLayer(
+        dst,
+        Paint()
+          ..color = PokeMapLegacyColors.white.withValues(
+            alpha: resolvedOpacity,
+          ),
+      );
+    }
+    draw(Paint());
     if (highlight) {
-      _drawQuarterTurnImageRect(
-        canvas,
-        image,
-        srcRect,
-        dstRect,
-        quarterTurns: quarterTurns,
-        paint: Paint()
+      draw(
+        Paint()
           ..colorFilter = ui.ColorFilter.mode(
-            PokeMapLegacyColors.white.withValues(alpha: 0.45),
+            PokeMapLegacyColors.white.withValues(alpha: .45),
             ui.BlendMode.srcATop,
           ),
       );
     }
-    canvas.restore();
-  }
-
-  void _drawQuarterTurnImageRect(
-    Canvas canvas,
-    ui.Image image,
-    Rect srcRect,
-    Rect dstRect, {
-    required int quarterTurns,
-    required Paint paint,
-  }) {
-    paint
-      ..isAntiAlias = false
-      ..filterQuality = ui.FilterQuality.none;
-    if (quarterTurns == 0) {
-      canvas.drawImageRect(image, srcRect, dstRect, paint);
-      return;
-    }
-    canvas.save();
-    canvas.clipRect(dstRect);
-    canvas.translate(dstRect.center.dx, dstRect.center.dy);
-    canvas.rotate(quarterTurns * math.pi / 2);
-    final normalizedDestination = Rect.fromCenter(
-      center: Offset.zero,
-      width: quarterTurns.isOdd ? dstRect.height : dstRect.width,
-      height: quarterTurns.isOdd ? dstRect.width : dstRect.height,
-    );
-    canvas.drawImageRect(image, srcRect, normalizedDestination, paint);
-    canvas.restore();
+    if (resolvedOpacity < 1) canvas.restore();
   }
 
   void _paintEnvironmentGeneratedAddPreview(Canvas canvas) {
@@ -3049,7 +2969,7 @@ class MapGridPainter extends CustomPainter {
     final elementById = <String, ProjectElementEntry>{
       for (final entry in projectContext.elements) entry.id: entry,
     };
-    final projected = instance.copyWith(quarterTurns: footprint.quarterTurns);
+    final projected = _rotatedPreviewInstance(instance, footprint.quarterTurns);
     final previewColor = preview.rejection == null
         ? rotationPreviewAcceptedColor
         : rotationPreviewRejectedColor;
@@ -3072,6 +2992,33 @@ class MapGridPainter extends CustomPainter {
     );
   }
 
+  MapPlacedElement _rotatedPreviewInstance(MapPlacedElement instance, int q) {
+    final size = instance.pixelSize;
+    return instance.copyWith(
+      quarterTurns: q,
+      pixelSize: size != null && (instance.quarterTurns - q).isOdd
+          ? PixelSize(width: size.height, height: size.width)
+          : size,
+    );
+  }
+
+  Rect _placedLogicalRect(
+    MapPlacedElement instance,
+    ProjectElementEntry entry,
+  ) {
+    final rect = resolveMapPlacedElementGeometry(
+      instance: instance,
+      element: entry,
+      tileSize: PixelSize(width: sourceTileWidth, height: sourceTileHeight),
+    ).logicalRect;
+    return Rect.fromLTWH(
+      rect.leftPx * tileWidth / sourceTileWidth,
+      rect.topPx * tileHeight / sourceTileHeight,
+      rect.widthPx * tileWidth / sourceTileWidth,
+      rect.heightPx * tileHeight / sourceTileHeight,
+    );
+  }
+
   void _paintPlacedElementFootprintHint(
     Canvas canvas,
     MapPlacedElement instance, {
@@ -3081,18 +3028,14 @@ class MapGridPainter extends CustomPainter {
     required double strokeAlpha,
   }) {
     final entry = elementById[instance.elementId.trim()];
-    final destinationSize = entry == null
-        ? const GridSize(width: 1, height: 1)
-        : resolveMapPlacedElementFootprint(
-            instance: instance,
-            element: entry,
-          ).destinationSize;
-    final rect = Rect.fromLTWH(
-      instance.pos.x * tileWidth,
-      instance.pos.y * tileHeight,
-      destinationSize.width * tileWidth,
-      destinationSize.height * tileHeight,
-    );
+    final rect = entry == null
+        ? Rect.fromLTWH(
+            instance.pos.x * tileWidth,
+            instance.pos.y * tileHeight,
+            tileWidth,
+            tileHeight,
+          )
+        : _placedLogicalRect(instance, entry);
     canvas.drawRect(
       rect,
       Paint()
@@ -3106,29 +3049,6 @@ class MapGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
-  }
-
-  bool _shouldPaintPlacedElementCellInRenderPass({
-    required MapPlacedElement instance,
-    required ProjectElementEntry entry,
-    required int localX,
-    required int localY,
-    required bool foregroundPass,
-  }) {
-    final collisionCells = instance.applyCollision
-        ? entry.collisionProfile?.cells
-        : null;
-    if (collisionCells == null || collisionCells.isEmpty) {
-      return !foregroundPass;
-    }
-    var isCollisionCell = false;
-    for (final cell in collisionCells) {
-      if (cell.x == localX && cell.y == localY) {
-        isCollisionCell = true;
-        break;
-      }
-    }
-    return foregroundPass ? !isCollisionCell : isCollisionCell;
   }
 
   void _paintCollisionLayer(

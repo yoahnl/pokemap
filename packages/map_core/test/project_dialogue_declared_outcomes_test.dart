@@ -243,7 +243,7 @@ Map<String, Object?> _projectJson({
 }) {
   return {
     'name': 'Dialogue outcomes test',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
     'dialogues': [

@@ -115,7 +115,7 @@ void main() {
         (tester) async {
       final before = ProjectManifest(
         name: 'Projet',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         presentationCinematics: [

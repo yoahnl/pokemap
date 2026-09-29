@@ -96,10 +96,10 @@ final class CinematicLibraryActions {
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
-    if (context.snapshot.manifest.version != ProjectVersion.v7) {
+    if (context.snapshot.manifest.version != ProjectVersion.v8) {
       throw CinematicLibraryAuthoringException(
-        'cinematic_library.project_v7_required',
-        'Cinematic library authoring requires ProjectVersion.v7.',
+        'cinematic_library.project_v8_required',
+        'Cinematic library authoring requires ProjectVersion.v8.',
         details: {
           'projectVersion': context.snapshot.manifest.version.name,
         },

@@ -264,7 +264,7 @@ final class _ShortcutHarness {
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 6, height: 6),
   layers: <MapLayer>[
     TileLayer(
@@ -322,7 +322,7 @@ const _map = MapData(
 
 const _project = ProjectManifest(
   name: 'Rotation shortcuts',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

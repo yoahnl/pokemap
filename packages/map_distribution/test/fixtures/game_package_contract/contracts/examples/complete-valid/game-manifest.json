@@ -14,7 +14,7 @@
   "compatibility": {
     "minHubVersion": "1.0.0",
     "runtimeApi": ">=1.1.0 <2.0.0",
-    "projectFormat": "v6",
+    "projectFormat": "v8",
     "saveFormat": 1,
     "compatibilityId": "campaign-v1",
     "requiredCapabilities": ["dialogue.choices@1", "overworld.menu@1"]
@@ -31,7 +31,7 @@
   "content": {
     "fileCount": 3,
     "totalBytes": 664,
-    "treeSha256": "06d4cff8ef45aed08705011d65cd43b0edd5b9cf91bba2c288499e6f1bc76eea",
+    "treeSha256": "4ad228ea4c1fdae66098c27a5b8f033207acb7d103472656c03dac4df786ceff",
     "files": [
       {
         "path": "legal/CREDITS.txt",
@@ -48,7 +48,7 @@
       {
         "path": "project/project.json",
         "size": 588,
-        "sha256": "2cbd1528bf720b0359ded6ecf02c07d6b31a21ec02d769b3b4bba127fc7704e9",
+        "sha256": "666dc8ad1b8d1c562701e266f996e4eedad9df1ff2ff7c90862e24ca5ffaaabc",
         "mediaType": "application/json"
       }
     ]

@@ -66,9 +66,9 @@ void main() {
   }
 
   test(
-      'placement rejects v6, invalid folder and unknown fields before any write',
+      'placement rejects invalid folder and unknown fields before any write',
       () async {
-    for (final version in [ProjectVersion.v6, ProjectVersion.v7]) {
+    for (final version in [ProjectVersion.v8]) {
       final f = await _Fixture.create(version: version);
       addTearDown(f.dispose);
       final before = await f.file.readAsBytes();
@@ -135,7 +135,7 @@ class _Fixture {
   File get file => File('${directory.path}/project.json');
 
   static Future<_Fixture> create(
-      {ProjectVersion version = ProjectVersion.v7}) async {
+      {ProjectVersion version = ProjectVersion.v8}) async {
     final directory =
         await Directory.systemTemp.createTemp('cinematic_atomic_');
     await File('${directory.path}/project.json').writeAsString(jsonEncode(

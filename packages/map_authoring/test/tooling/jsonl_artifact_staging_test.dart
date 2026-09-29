@@ -181,7 +181,7 @@ final class _Fixture {
     final root = await Directory.systemTemp.createTemp('jsonl-artifact-');
     final manifest = ProjectManifest(
       name: 'JSONL artifact fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
     );

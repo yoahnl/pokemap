@@ -221,7 +221,7 @@ ProjectManifest _projectedManifest(AuthoringMutationDraft draft) {
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Create and link fixture',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     scenes: <SceneAsset>[

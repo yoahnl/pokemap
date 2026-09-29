@@ -49,8 +49,9 @@ class ImportProjectTilesetUseCase {
       libraryFolderId = null;
     }
     if (libraryFolderId != null) {
-      final folderOk =
-          project.tilesetFolders.any((f) => f.id == libraryFolderId);
+      final folderOk = project.tilesetFolders.any(
+        (f) => f.id == libraryFolderId,
+      );
       if (!folderOk) {
         throw EditorNotFoundException(
           'Tileset folder not found: $libraryFolderId',
@@ -170,8 +171,9 @@ class UpdateProjectTilesetUseCase {
       final fid = folderId.trim();
       nextFolderId = fid.isEmpty ? null : fid;
       if (nextFolderId != null) {
-        final folderOk =
-            project.tilesetFolders.any((f) => f.id == nextFolderId);
+        final folderOk = project.tilesetFolders.any(
+          (f) => f.id == nextFolderId,
+        );
         if (!folderOk) {
           throw EditorNotFoundException(
             'Tileset folder not found: $nextFolderId',
@@ -199,20 +201,22 @@ class UpdateProjectTilesetUseCase {
       );
     }
 
-    final updatedTilesets = project.tilesets.map((tileset) {
-      if (tileset.id != tilesetId) return tileset;
-      return tileset.copyWith(
-        name: name?.trim().isNotEmpty == true ? name!.trim() : tileset.name,
-        scope: nextScope,
-        groupId: nextGroupId,
-        isWorldTileset: nextWorld,
-        sortOrder: nextSort,
-        folderId: nextFolderId,
-        transparentColor: clearTransparentColor
-            ? null
-            : transparentColor ?? tileset.transparentColor,
-      );
-    }).toList(growable: false);
+    final updatedTilesets = project.tilesets
+        .map((tileset) {
+          if (tileset.id != tilesetId) return tileset;
+          return tileset.copyWith(
+            name: name?.trim().isNotEmpty == true ? name!.trim() : tileset.name,
+            scope: nextScope,
+            groupId: nextGroupId,
+            isWorldTileset: nextWorld,
+            sortOrder: nextSort,
+            folderId: nextFolderId,
+            transparentColor: clearTransparentColor
+                ? null
+                : transparentColor ?? tileset.transparentColor,
+          );
+        })
+        .toList(growable: false);
 
     final updatedProject = project.copyWith(tilesets: updatedTilesets);
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
@@ -241,9 +245,8 @@ class DeleteProjectTilesetUseCase {
       final mapPath = workspace.resolveMapPath(mapEntry.relativePath);
       final map = await _mapRepo.loadMap(mapPath);
       final isUsedByLayer = map.layers.whereType<TileLayer>().any(
-            (layer) =>
-                layer.palette.any((entry) => entry.tilesetId == tilesetId),
-          );
+        (layer) => layer.palette.any((entry) => entry.tilesetId == tilesetId),
+      );
       final isUsedByLegacyMapField = map.tilesetId.trim() == tilesetId;
       if (isUsedByLayer || isUsedByLegacyMapField) {
         throw EditorConflictException(
@@ -252,13 +255,14 @@ class DeleteProjectTilesetUseCase {
       }
     }
 
-    final remainingTilesets =
-        project.tilesets.where((tileset) => tileset.id != tilesetId).toList();
-    final updatedProject = project.copyWith(
-      tilesets: remainingTilesets,
-    );
+    final remainingTilesets = project.tilesets
+        .where((tileset) => tileset.id != tilesetId)
+        .toList();
+    final updatedProject = project.copyWith(tilesets: remainingTilesets);
     await _projectRepo.saveProject(
-        updatedProject, workspace.projectManifestPath);
+      updatedProject,
+      workspace.projectManifestPath,
+    );
 
     final stillUsedPath = remainingTilesets.any(
       (tileset) => tileset.relativePath == target.relativePath,
@@ -301,8 +305,7 @@ class ReorderProjectTilesetUseCase {
       if (normFolder(tileset.folderId) != targetFolder) return false;
       if (target.scope == TilesetScope.global) return true;
       return tileset.groupId == target.groupId;
-    }).toList()
-      ..sort(compareTilesets);
+    }).toList()..sort(compareTilesets);
 
     final index = bucket.indexWhere((tileset) => tileset.id == tilesetId);
     if (index < 0) return project;
@@ -317,11 +320,13 @@ class ReorderProjectTilesetUseCase {
       orderById[bucket[i].id] = i;
     }
 
-    final updatedTilesets = project.tilesets.map((tileset) {
-      final nextSort = orderById[tileset.id];
-      if (nextSort == null) return tileset;
-      return tileset.copyWith(sortOrder: nextSort);
-    }).toList(growable: false);
+    final updatedTilesets = project.tilesets
+        .map((tileset) {
+          final nextSort = orderById[tileset.id];
+          if (nextSort == null) return tileset;
+          return tileset.copyWith(sortOrder: nextSort);
+        })
+        .toList(growable: false);
 
     final updatedProject = project.copyWith(tilesets: updatedTilesets);
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
@@ -345,22 +350,27 @@ class ResolveAssignableTilesetsForMapUseCase {
       final nextGroup = project.groups.firstWhere(
         (group) => group.id == cursor,
         orElse: () => throw EditorNotFoundException(
-            'Unknown group referenced by map: $cursor'),
+          'Unknown group referenced by map: $cursor',
+        ),
       );
       cursor = nextGroup.parentGroupId;
     }
 
-    final global = project.tilesets
-        .where((tileset) => tileset.scope == TilesetScope.global)
-        .toList(growable: false)
-      ..sort(compareTilesets);
-    final grouped = project.tilesets
-        .where((tileset) =>
-            tileset.scope == TilesetScope.group &&
-            tileset.groupId != null &&
-            allowedGroupIds.contains(tileset.groupId))
-        .toList(growable: false)
-      ..sort(compareTilesets);
+    final global =
+        project.tilesets
+            .where((tileset) => tileset.scope == TilesetScope.global)
+            .toList(growable: false)
+          ..sort(compareTilesets);
+    final grouped =
+        project.tilesets
+            .where(
+              (tileset) =>
+                  tileset.scope == TilesetScope.group &&
+                  tileset.groupId != null &&
+                  allowedGroupIds.contains(tileset.groupId),
+            )
+            .toList(growable: false)
+          ..sort(compareTilesets);
 
     final result = <ProjectTilesetEntry>[];
     final added = <String>{};
@@ -386,13 +396,8 @@ class AssignTilesetToMapUseCase {
     String layerId,
     String tilesetId,
   ) async {
-    final updatedMap = prepare(
-      project,
-      map,
-      layerId,
-      tilesetId,
-    );
-    await _mapRepo.saveMap(updatedMap, mapPath);
+    final updatedMap = prepare(project, map, layerId, tilesetId);
+    await _mapRepo.saveMap(updatedMap, mapPath, projectDialogueContext: project);
     return updatedMap;
   }
 
@@ -404,12 +409,7 @@ class AssignTilesetToMapUseCase {
     String tilesetId, {
     required String? expectedRevision,
   }) async {
-    final updatedMap = prepare(
-      project,
-      map,
-      layerId,
-      tilesetId,
-    );
+    final updatedMap = prepare(project, map, layerId, tilesetId);
     if (_mapRepo case RevisionedMapRepository revisioned) {
       if (expectedRevision == null) {
         throw const EditorConflictException(
@@ -421,10 +421,11 @@ class AssignTilesetToMapUseCase {
         updatedMap,
         mapPath,
         precondition: MapDocumentWritePrecondition.revision(expectedRevision),
+        projectDialogueContext: project,
       );
       return (map: updatedMap, revision: saved.revision);
     }
-    await _mapRepo.saveMap(updatedMap, mapPath);
+    await _mapRepo.saveMap(updatedMap, mapPath, projectDialogueContext: project);
     return (map: updatedMap, revision: null);
   }
 
@@ -459,7 +460,7 @@ class AssignTilesetToMapUseCase {
     final updatedMap = map.copyWith(
       tilesetId: map.tilesetId.trim().isEmpty ? tilesetId : map.tilesetId,
     );
-    MapValidator.validate(updatedMap);
+    MapValidator.validate(updatedMap, projectDialogueContext: project);
     return updatedMap;
   }
 }
@@ -477,18 +478,23 @@ class UpsertTilesetPaletteEntryUseCase {
     required String tilesetId,
     required TilesetPaletteEntry entry,
   }) async {
-    final updatedTilesets = project.tilesets.map((tileset) {
-      if (tileset.id != tilesetId) return tileset;
-      final entries = List<TilesetPaletteEntry>.from(tileset.paletteEntries);
-      final index =
-          entries.indexWhere((paletteEntry) => paletteEntry.id == entry.id);
-      if (index >= 0) {
-        entries[index] = entry;
-      } else {
-        entries.add(entry);
-      }
-      return tileset.copyWith(paletteEntries: entries);
-    }).toList(growable: false);
+    final updatedTilesets = project.tilesets
+        .map((tileset) {
+          if (tileset.id != tilesetId) return tileset;
+          final entries = List<TilesetPaletteEntry>.from(
+            tileset.paletteEntries,
+          );
+          final index = entries.indexWhere(
+            (paletteEntry) => paletteEntry.id == entry.id,
+          );
+          if (index >= 0) {
+            entries[index] = entry;
+          } else {
+            entries.add(entry);
+          }
+          return tileset.copyWith(paletteEntries: entries);
+        })
+        .toList(growable: false);
 
     final updated = project.copyWith(tilesets: updatedTilesets);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -549,11 +555,14 @@ class CreateTilesetPaletteEntryUseCase {
       recommendedLayerId: recommendedLayerId,
     );
 
-    final updatedTilesets = project.tilesets.map((candidate) {
-      if (candidate.id != tilesetId) return candidate;
-      return candidate
-          .copyWith(paletteEntries: [...candidate.paletteEntries, entry]);
-    }).toList(growable: false);
+    final updatedTilesets = project.tilesets
+        .map((candidate) {
+          if (candidate.id != tilesetId) return candidate;
+          return candidate.copyWith(
+            paletteEntries: [...candidate.paletteEntries, entry],
+          );
+        })
+        .toList(growable: false);
     final updated = project.copyWith(tilesets: updatedTilesets);
 
     await _repo.saveProject(updated, workspace.projectManifestPath);

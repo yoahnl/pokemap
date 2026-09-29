@@ -28,6 +28,7 @@ final class CinematicMapBackdropLayerBitmapInstruction {
     required this.destinationHeightPx,
     this.flipX = false,
     this.tileId,
+    this.includeSourcePixel,
   });
 
   final String id;
@@ -50,6 +51,7 @@ final class CinematicMapBackdropLayerBitmapInstruction {
   final int destinationHeightPx;
   final bool flipX;
   final int? tileId;
+  final bool Function(GridPos)? includeSourcePixel;
 }
 
 final class CinematicMapBackdropLayerRenderPlan {
@@ -302,6 +304,7 @@ Map<String, Set<int>> buildCinematicBackdropForegroundTileCellIndices({
 }) {
   final masks = <String, Set<int>>{};
   for (final placement in map.placedElements) {
+    if (isAuthoredMapPlacedElement(placement)) continue;
     final element = _elementById(manifest, placement.elementId);
     if (element == null || element.frames.isEmpty) {
       continue;
@@ -776,70 +779,86 @@ int _appendPlacedElementInstructions({
       layer,
     );
     final layerIndex = mapData.layers.indexOf(layer);
-    final transform = QuarterTurnGridTransform(
-      sourceSize: GridSize(width: source.width, height: source.height),
-      quarterTurns: placement.quarterTurns,
+    final geometry = resolveMapPlacedElementGeometry(
+      instance: placement,
+      element: element,
+      tileSize: PixelSize(width: tileWidth, height: tileHeight),
     );
-    for (var localY = 0; localY < source.height; localY += 1) {
-      for (var localX = 0; localX < source.width; localX += 1) {
-        final localPos = GridPos(x: localX, y: localY);
-        final destinationLocal = transform.sourceToDestination(localPos);
-        final x = placement.pos.x + destinationLocal.x;
-        final y = placement.pos.y + destinationLocal.y;
-        if (!_containsCell(mapData, x, y)) {
-          continue;
-        }
-        final renderPass = isForegroundElement
-            ? CinematicMapBackdropRenderPass.placedForeground
-            : (splitByCollision && !collisionCells.contains(localPos)
-                  ? CinematicMapBackdropRenderPass.placedForeground
-                  : CinematicMapBackdropRenderPass.placedBackground);
-        final sourceRect = _tileSourceRect(
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          x: source.x + localX,
-          y: source.y + localY,
-          width: 1,
-          height: 1,
+    final visual = resolveMapPlacedElementVisualRect(
+      geometry: geometry,
+      tilesetSource: manifest.tilesets
+          .where((e) => e.id == tilesetId)
+          .firstOrNull
+          ?.source,
+    );
+    final passes = isForegroundElement
+        ? [CinematicMapBackdropRenderPass.placedForeground]
+        : [
+            CinematicMapBackdropRenderPass.placedBackground,
+            if (splitByCollision)
+              CinematicMapBackdropRenderPass.placedForeground,
+          ];
+    for (final renderPass in passes) {
+      final sourceRect = _tileSourceRect(
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        x: source.x,
+        y: source.y,
+        width: source.width,
+        height: source.height,
+      );
+      if (!_sourceRectFits(asset, sourceRect)) {
+        _addDiagnostic(
+          diagnostics,
+          code: 'placedElementSourceRectOutOfBounds',
+          message: 'Element ${element.id} hors atlas pour $tilesetId.',
+          layerId: placement.layerId,
+          tilesetId: tilesetId,
         );
-        if (!_sourceRectFits(asset, sourceRect)) {
-          _addDiagnostic(
-            diagnostics,
-            code: 'placedElementSourceRectOutOfBounds',
-            message: 'Element ${element.id} hors atlas pour $tilesetId.',
-            layerId: placement.layerId,
-            tilesetId: tilesetId,
-          );
-          continue;
-        }
-        final sourceFamily = generatedPlacementIds.contains(placement.id)
-            ? 'environment'
-            : 'placedElement';
-        instructions.add(
-          CinematicMapBackdropLayerBitmapInstruction(
-            id: '${placement.id}:$localX:$localY',
-            layerId: placement.layerId,
-            layerLabel: layer.name,
-            layerKind: CinematicMapBackdropLayerKind.object,
-            renderPass: renderPass,
-            zOrder: nextZ,
-            tilesetId: tilesetId,
-            sourceRect: sourceRect,
-            destinationRect: _cellDestinationRect(x, y, tileWidth, tileHeight),
-            opacity: _opacity(layer.opacity * placement.opacity),
-            sourceFamily: sourceFamily,
-            sourceId: placement.id,
-            elementBottomY:
-                placement.pos.y + transform.destinationSize.height.toDouble(),
-            elementX: placement.pos.x.toDouble(),
-            layerIndex: layerIndex,
-            quarterTurns: placement.quarterTurns,
-            destinationWidthPx: tileWidth,
-            destinationHeightPx: tileHeight,
-          ),
-        );
-        nextZ += 1;
+        continue;
       }
+      final sourceFamily = generatedPlacementIds.contains(placement.id)
+          ? 'environment'
+          : 'placedElement';
+      instructions.add(
+        CinematicMapBackdropLayerBitmapInstruction(
+          id: '${placement.id}:${renderPass.name}',
+          layerId: placement.layerId,
+          layerLabel: layer.name,
+          layerKind: CinematicMapBackdropLayerKind.object,
+          renderPass: renderPass,
+          zOrder: nextZ,
+          tilesetId: tilesetId,
+          sourceRect: sourceRect,
+          destinationRect: ui.Rect.fromLTWH(
+            visual.leftPx.toDouble(),
+            visual.topPx.toDouble(),
+            visual.widthPx.toDouble(),
+            visual.heightPx.toDouble(),
+          ),
+          opacity: _opacity(layer.opacity * placement.opacity),
+          sourceFamily: sourceFamily,
+          sourceId: placement.id,
+          elementBottomY: (visual.topPx + visual.heightPx) / tileHeight,
+          elementX: visual.leftPx / tileWidth,
+          layerIndex: layerIndex,
+          quarterTurns: placement.quarterTurns,
+          destinationWidthPx: geometry.pixelSize.width,
+          destinationHeightPx: geometry.pixelSize.height,
+          includeSourcePixel: !splitByCollision || isForegroundElement
+              ? null
+              : (pixel) =>
+                    collisionCells.contains(
+                      GridPos(
+                        x: pixel.x ~/ tileWidth,
+                        y: pixel.y ~/ tileHeight,
+                      ),
+                    ) ==
+                    (renderPass ==
+                        CinematicMapBackdropRenderPass.placedBackground),
+        ),
+      );
+      nextZ += 1;
     }
   }
   return nextZ;

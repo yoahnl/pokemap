@@ -7,7 +7,7 @@
   "compatibility": {
     "minHubVersion": "1.0.0",
     "runtimeApi": ">=1.0.0 <2.0.0",
-    "projectFormat": "v6",
+    "projectFormat": "v8",
     "saveFormat": 1,
     "compatibilityId": "main",
     "requiredCapabilities": []

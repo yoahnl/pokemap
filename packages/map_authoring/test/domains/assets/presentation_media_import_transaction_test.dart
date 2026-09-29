@@ -219,7 +219,7 @@ final class _ImportSetup {
     );
     final manifest = ProjectManifest(
       name: 'Presentation media import fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

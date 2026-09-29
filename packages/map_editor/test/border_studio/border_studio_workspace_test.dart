@@ -670,7 +670,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Border Studio UI',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
     elements: elements,

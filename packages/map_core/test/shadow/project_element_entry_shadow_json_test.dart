@@ -85,7 +85,7 @@ void main() {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, Object?>{
           'name': 'Project',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
           'elements': <Object?>[_elementJson()],

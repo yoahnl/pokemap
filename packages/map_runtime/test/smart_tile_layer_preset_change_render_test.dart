@@ -241,7 +241,7 @@ final class _PresetChangeRenderFixture {
 const _map = MapData(
   id: 'map',
   name: 'Preset render map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 3, height: 2),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -274,7 +274,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Preset render project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
   ],

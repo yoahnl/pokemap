@@ -173,7 +173,7 @@ ProjectSnapshot _snapshot() {
   const map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[
       MapLayer.smartTile(
@@ -196,7 +196,7 @@ ProjectSnapshot _snapshot() {
   );
   final manifest = ProjectManifest(
     name: 'Query fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

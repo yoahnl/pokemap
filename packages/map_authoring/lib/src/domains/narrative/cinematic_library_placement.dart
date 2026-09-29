@@ -7,10 +7,10 @@ ProjectManifest placePublishedCinematic(
   String cinematicId,
   Map<String, dynamic> placement,
 ) {
-  if (project.version != ProjectVersion.v7) {
+  if (project.version != ProjectVersion.v8) {
     throw NarrativeAuthoringException(
-      'cinematic_library.project_v7_required',
-      'Cinematic library actions require project version 7.',
+      'cinematic_library.project_v8_required',
+      'Cinematic library actions require project version 8.',
       details: {'projectVersion': project.version.name},
     );
   }

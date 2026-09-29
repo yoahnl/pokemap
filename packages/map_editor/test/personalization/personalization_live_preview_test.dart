@@ -935,7 +935,7 @@ final _projectContexts = <PersonalizationPreviewContextOption>[
         'id': 'vermeil_village',
         'name': 'Village de Vermeil',
         'size': <String, Object?>{'width': 12, 'height': 8},
-        'version': 'v6',
+        'version': 'v8',
       },
     },
   ),

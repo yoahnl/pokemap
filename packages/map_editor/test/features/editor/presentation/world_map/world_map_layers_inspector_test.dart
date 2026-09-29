@@ -99,7 +99,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(id: 'tiles', name: 'Tuiles', cells: <int>[0]),
@@ -206,7 +206,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -329,7 +329,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol', cells: <int>[0]),
@@ -416,7 +416,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol principal', cells: <int>[0]),
@@ -526,7 +526,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -588,7 +588,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(
@@ -668,7 +668,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -1910,7 +1910,7 @@ TileLayer _tile(String id, String name) {
 
 final _smartTileProject = ProjectManifest(
   name: 'Smart project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

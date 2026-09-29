@@ -138,7 +138,7 @@ SmartTilesRichMapFixture generateSmartTilesRichMapFixture({
   final map = MapData(
     id: mapId,
     name: 'Smart Tiles rich ${extent}x$extent',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: extent, height: extent),
     layers: <MapLayer>[
       SmartTileLayer(
@@ -209,7 +209,7 @@ SmartTilesRichMapFixture generateSmartTilesRichMapFixture({
   final catalog = _richCatalog();
   final manifest = ProjectManifest(
     name: 'Smart Tiles rich benchmark',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: mapId,

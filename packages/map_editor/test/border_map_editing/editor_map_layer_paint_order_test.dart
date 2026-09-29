@@ -12,7 +12,7 @@ void main() {
           id: 'canonical',
           name: 'Canonical',
           size: GridSize(width: 1, height: 1),
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig.canonicalV1,
           properties: <String, dynamic>{
             'tileLayerOrder': 'bottom_to_top',
@@ -41,7 +41,7 @@ void main() {
           id: 'canonical-border',
           name: 'Canonical with hidden Border',
           size: GridSize(width: 1, height: 1),
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig.canonicalV1,
           layers: <MapLayer>[
             SmartTileLayer(
@@ -85,7 +85,7 @@ void main() {
           id: 'future',
           name: 'Future',
           size: const GridSize(width: 1, height: 1),
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig(semanticsVersion: 99),
           layers: const <MapLayer>[
             TileLayer(id: 'tiles', name: 'Tiles'),
@@ -104,7 +104,7 @@ void main() {
           id: 'data-layer-inspection',
           name: 'Data layer inspection',
           size: GridSize(width: 1, height: 1),
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig.canonicalV1,
           layers: <MapLayer>[
             TileLayer(
@@ -187,7 +187,7 @@ void main() {
         const MapData(
           id: 'smart-tiles',
           name: 'Smart Tiles',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig.canonicalV1,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
@@ -225,7 +225,7 @@ void main() {
         const MapData(
           id: 'sentinels',
           name: 'Sentinels',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             CollisionLayer(id: 'collision', name: 'Collision'),

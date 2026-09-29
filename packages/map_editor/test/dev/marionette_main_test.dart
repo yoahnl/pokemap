@@ -372,7 +372,7 @@ BorderPrimitiveDraft _primitive({
 MapData _mapWithBorderFeature() => MapData(
   id: 'marionette-map',
   name: 'Marionette map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     MapLayer.border(

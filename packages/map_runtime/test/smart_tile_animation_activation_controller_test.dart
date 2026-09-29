@@ -205,7 +205,7 @@ void main() {
     map: MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 1),
       layers: <MapLayer>[layer],
     ),

@@ -160,7 +160,7 @@ final class MemoryRuntimeNewGameFlowPort implements RuntimeNewGameFlowPort {
   }) {
     project = ProjectManifest(
       name: 'Runtime Player Test',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'start_map',
@@ -183,7 +183,7 @@ final class MemoryRuntimeNewGameFlowPort implements RuntimeNewGameFlowPort {
         id: 'start_map',
         name: 'Start',
         size: GridSize(width: 4, height: 4),
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         mapMetadata: MapMetadata(defaultSpawnId: 'spawn_start'),
         entities: <MapEntity>[
           MapEntity(

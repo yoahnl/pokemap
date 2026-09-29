@@ -1157,14 +1157,14 @@ Future<ProviderContainer> _pumpWorkspace(
 
 ProjectManifest _emptyManifest() => const ProjectManifest(
   name: 'Border Studio UI',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
 );
 
 ProjectManifest _manifestWithAsset() => const ProjectManifest(
   name: 'Border Studio UI',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -1191,7 +1191,7 @@ ProjectManifest _manifestWithAsset() => const ProjectManifest(
 
 ProjectManifest _manifestWithConnectedLineNetwork() => const ProjectManifest(
   name: 'Connected line repair UI',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -1240,7 +1240,7 @@ ProjectManifest _manifestWithConnectedLineNetwork() => const ProjectManifest(
 
 ProjectManifest _manifestWithDraft() => ProjectManifest(
   name: 'Border Studio UI',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   borderCatalog: ProjectBorderCatalog(
@@ -1272,7 +1272,7 @@ ProjectManifest _manifestWithDraft() => ProjectManifest(
 
 ProjectManifest _manifestWithSharedPrimitiveIds() => ProjectManifest(
   name: 'Border Studio guarded assets',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

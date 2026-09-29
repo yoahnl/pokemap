@@ -222,7 +222,7 @@ void main() {
   test('deletes the final Presentation cinematic and its placement', () {
     final manifest = ProjectManifest(
       name: 'Presentation only',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
       presentationCinematics: [
@@ -259,7 +259,7 @@ void main() {
   test('deletes the final world cinematic without retaining its placement', () {
     final manifest = ProjectManifest(
       name: 'World only',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
       cinematics: [
@@ -509,7 +509,7 @@ void main() {
         isA<CinematicLibraryAuthoringException>().having(
           (error) => error.code,
           'code',
-          'cinematic_library.project_v7_required',
+          'cinematic_library.project_v8_required',
         ),
       ),
     );
@@ -539,7 +539,7 @@ ProjectSnapshot _snapshot({ProjectManifest? manifest}) {
   final effectiveManifest = manifest ??
       ProjectManifest(
         name: 'Cinematic library',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const [],
         tilesets: const [],
         cinematics: [

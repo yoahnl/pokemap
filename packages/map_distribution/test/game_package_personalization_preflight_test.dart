@@ -266,7 +266,7 @@ Map<String, List<int>> _validPayload() => <String, List<int>>{
       'project/project.json': utf8.encode(
         jsonEncode(<String, Object?>{
           'name': 'Personalization Golden',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
           'pokemon': const ProjectPokemonConfig(
@@ -300,7 +300,7 @@ Map<String, List<int>> _windowOnlyPayload() => <String, List<int>>{
       'project/project.json': utf8.encode(
         jsonEncode(<String, Object?>{
           'name': 'Window-only fixture',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
           'pokemon': const ProjectPokemonConfig(
@@ -321,7 +321,7 @@ GamePackageManifest _windowOnlyManifest(
       compatibility: GamePackageCompatibility(
         minHubVersion: Version(1, 0, 0),
         runtimeApiExpression: '>=1.0.0 <2.0.0',
-        projectFormat: 'v6',
+        projectFormat: 'v8',
         saveFormat: 1,
         compatibilityId: 'main',
         requiredCapabilities: const <String>[],
@@ -415,7 +415,7 @@ GamePackageManifest _manifest({
       compatibility: GamePackageCompatibility(
         minHubVersion: Version(1, 0, 0),
         runtimeApiExpression: '>=1.0.0 <2.0.0',
-        projectFormat: 'v6',
+        projectFormat: 'v8',
         saveFormat: 1,
         compatibilityId: 'main',
         requiredCapabilities: const <String>[],
@@ -474,7 +474,7 @@ GamePackageManifest _manifestV2({required GamePackageContent content}) {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version(1, 0, 0),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
-      projectFormat: 'v6',
+      projectFormat: 'v8',
       saveFormat: 1,
       compatibilityId: 'main',
       requiredCapabilities: const <String>[],

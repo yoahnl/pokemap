@@ -832,7 +832,7 @@ final class _GoldenHarness {
     final root = await Directory.systemTemp.createTemp('pmcp085_$suffix');
     final manifest = ProjectManifest(
       name: 'PMCP-085 golden receipt',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
     );

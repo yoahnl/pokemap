@@ -488,7 +488,7 @@ final class _EditorPerformanceFixture {
     final tilesetPath = p.join(root.path, 'tilesets', 'profile.png');
     final manifest = ProjectManifest(
       name: 'RM-00 editor profile',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'performance',

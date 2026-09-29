@@ -2,6 +2,7 @@ import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
+import '../models/map_placed_element_origin.dart';
 import '../models/project_manifest.dart';
 import '../models/smart_tile_field.dart';
 import '../operations/smart_tile_layer_operations.dart';
@@ -525,12 +526,15 @@ final class MapDeltaValidator {
     String layerId,
   ) {
     var count = 0;
+    final environmentOwnedIds =
+        environmentOwnedMapPlacedElementIds(context.after);
     for (final instance in context.after.placedElements) {
       if (instance.layerId == layerId) {
         MapValidator.validatePlacedElement(
           context.after,
           instance,
           projectDialogueContext: context.project,
+          environmentOwnedIds: environmentOwnedIds,
         );
         count++;
       }

@@ -579,7 +579,7 @@ void main() {
       final root = await createAuthorProject(
         withDialogue: false,
         withCanonicalPokemon: true,
-        projectVersion: ProjectVersion.v7,
+        projectVersion: ProjectVersion.v8,
       );
       addTearDown(() => root.delete(recursive: true));
       final fixture = await _configurePresentationCinematicMedia(root);
@@ -690,7 +690,7 @@ void main() {
       final root = await createAuthorProject(
         withDialogue: false,
         withCanonicalPokemon: false,
-        projectVersion: ProjectVersion.v7,
+        projectVersion: ProjectVersion.v8,
       );
       addTearDown(() => root.delete(recursive: true));
       await _configurePresentationCinematicMedia(root);
@@ -735,7 +735,7 @@ void main() {
     final root = await createAuthorProject(
       withDialogue: false,
       withCanonicalPokemon: false,
-      projectVersion: ProjectVersion.v7,
+      projectVersion: ProjectVersion.v8,
     );
     addTearDown(() => root.delete(recursive: true));
     await _configurePresentationCinematicMedia(root);

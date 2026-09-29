@@ -6,7 +6,7 @@ void main() {
   test('lists native v6 records without any legacy project data', () {
     final manifest = ProjectManifest(
       name: 'native library',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -47,7 +47,7 @@ void main() {
   test('an empty v6 catalog exposes no synthetic legacy entries', () {
     const manifest = ProjectManifest(
       name: 'empty library',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -60,7 +60,7 @@ void main() {
   test('lists canonical drafts as resumable no-code records', () {
     final manifest = ProjectManifest(
       name: 'draft library',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -89,7 +89,7 @@ void main() {
   test('lists reusable patterns as native no-code records', () {
     final manifest = ProjectManifest(
       name: 'pattern library',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(

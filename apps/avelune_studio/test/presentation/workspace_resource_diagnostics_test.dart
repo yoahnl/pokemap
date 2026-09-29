@@ -166,7 +166,11 @@ class _Visuals implements MapWorkspaceVisuals {
   void removeListener(VoidCallback listener) =>
       _changes.removeListener(listener);
   @override
-  Widget canvas(MapData map) => const SizedBox.expand();
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) => const SizedBox.expand();
   @override
   void setActiveMap(MapData map) {}
   @override

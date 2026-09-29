@@ -16,7 +16,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 1, height: 1),
     );
     notifier.state = EditorState(
@@ -58,7 +58,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 1, height: 1),
       layers: [layer],
     );
@@ -132,7 +132,7 @@ void main() {
     final source = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 128, height: 128),
       layers: <MapLayer>[
         MapLayer.smartTile(
@@ -218,7 +218,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 1, height: 1),
       layers: [layer],
     );
@@ -312,7 +312,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 4, height: 3),
       layers: <MapLayer>[layer],
     );
@@ -386,7 +386,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: mapSize,
       layers: <MapLayer>[layer],
     );
@@ -415,7 +415,7 @@ void main() {
 
 final _project = ProjectManifest(
   name: 'Project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

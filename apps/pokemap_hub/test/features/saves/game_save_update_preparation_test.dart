@@ -92,7 +92,7 @@ GamePackageManifest _manifest({
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse('1.0.0'),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
-      projectFormat: 'v6',
+      projectFormat: 'v8',
       saveFormat: saveFormat,
       compatibilityId: compatibilityId,
       requiredCapabilities: const <String>[],

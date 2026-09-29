@@ -17,9 +17,9 @@ final class NarrativeEventSpatialLinkJournalRepository
     DateTime Function()? clock,
     this.faultInjector,
     NarrativeEventRegistryPersistence? eventRegistryPersistence,
-  })  : _clock = clock ?? DateTime.now,
-        _eventRegistryPersistence =
-            eventRegistryPersistence ?? NarrativeEventRegistryPersistence();
+  }) : _clock = clock ?? DateTime.now,
+       _eventRegistryPersistence =
+           eventRegistryPersistence ?? NarrativeEventRegistryPersistence();
 
   static const journalPrefix = '.pokemap-event-spatial-link-';
   static const journalSuffix = '.journal.json';
@@ -107,6 +107,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       diskBefore = decodeValidatedNarrativeEventAuthoringMap(
         beforeBytes,
         mapPath,
+        project: project.manifest,
       );
     } on Object catch (error) {
       return _blocked('invalidMap', 'La map courante est invalide: $error');
@@ -126,10 +127,13 @@ final class NarrativeEventSpatialLinkJournalRepository
       verifiedAfter = decodeValidatedNarrativeEventAuthoringMap(
         afterBytes,
         mapPath,
+        project: project.manifest,
       );
     } on Object catch (error) {
       return _blocked(
-          'invalidAfterMap', 'La map proposée est invalide: $error');
+        'invalidAfterMap',
+        'La map proposée est invalide: $error',
+      );
     }
     final diskOwnerIssue = _exactOwnerIssue(
       map: verifiedAfter,
@@ -168,9 +172,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       cleanupMarker: NarrativeEventSpatialLinkCleanupMarker.none,
     );
     await _writeJournal(journal);
-    await _checkpoint(
-      NarrativeEventSpatialLinkCheckpoint.afterJournalPrepared,
-    );
+    await _checkpoint(NarrativeEventSpatialLinkCheckpoint.afterJournalPrepared);
     await _writeBytesFlushed(paths.mapTempPath, afterBytes);
     await _checkpoint(NarrativeEventSpatialLinkCheckpoint.afterMapTempFlush);
     final tempHash = narrativeEventBytesFingerprint(
@@ -231,6 +233,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       committedMap = decodeValidatedNarrativeEventAuthoringMap(
         committedBytes,
         mapPath,
+        project: project.manifest,
       );
     } on Object catch (error) {
       return _blocked(
@@ -313,9 +316,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       final decoded = decodeNarrativeEventJsonStrict(
         await File(journalPath).readAsString(),
       );
-      journal = NarrativeEventSpatialLinkJournal.fromJson(
-        _jsonObject(decoded),
-      );
+      journal = NarrativeEventSpatialLinkJournal.fromJson(_jsonObject(decoded));
     } on Object catch (error) {
       return _inspectionBlocked(
         'invalidJournal',
@@ -335,6 +336,19 @@ final class NarrativeEventSpatialLinkJournalRepository
         issues: [pathIssue],
       );
     }
+    late final ValidatedNarrativeEventAuthoringProject project;
+    try {
+      project = decodeValidatedNarrativeEventAuthoringProject(
+        await File(projectPath).readAsBytes(),
+      );
+    } on Object catch (error) {
+      return _inspectionBlocked(
+        'inspectionReadFailure',
+        'Le projet ne peut pas être relu: $error',
+        journalPath,
+        journal: journal,
+      );
+    }
     late final List<int> mapBytes;
     late final MapData map;
     try {
@@ -342,6 +356,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       map = decodeValidatedNarrativeEventAuthoringMap(
         mapBytes,
         journal.mapPath,
+        project: project.manifest,
       );
     } on Object catch (error) {
       return _inspectionBlocked(
@@ -405,19 +420,6 @@ final class NarrativeEventSpatialLinkJournalRepository
         journal: journal,
       );
     }
-    late final ValidatedNarrativeEventAuthoringProject project;
-    try {
-      project = decodeValidatedNarrativeEventAuthoringProject(
-        await File(projectPath).readAsBytes(),
-      );
-    } on Object catch (error) {
-      return _inspectionBlocked(
-        'inspectionReadFailure',
-        'Le projet ne peut pas être relu: $error',
-        journalPath,
-        journal: journal,
-      );
-    }
     if (owner.kind == _OwnerStateKind.modified) {
       return _inspectionBlocked(
         'sourceFingerprintMismatch',
@@ -426,8 +428,10 @@ final class NarrativeEventSpatialLinkJournalRepository
         journal: journal,
       );
     }
-    final targetEventRecord =
-        _eventRecord(project.manifest.eventRegistry, journal.eventId);
+    final targetEventRecord = _eventRecord(
+      project.manifest.eventRegistry,
+      journal.eventId,
+    );
     if (targetEventRecord == null) {
       return _inspectionBlocked(
         'eventRecordMissing',
@@ -579,7 +583,8 @@ final class NarrativeEventSpatialLinkJournalRepository
             postPromotion,
           );
         case NarrativeEventSpatialLinkInspectionStatus.eventAlreadyLinked:
-          final completed = journal.state ==
+          final completed =
+              journal.state ==
                   NarrativeEventSpatialLinkJournalState.eventCommitted
               ? journal
               : journal.markEventCommitted(_clock().toUtc());
@@ -648,8 +653,8 @@ final class NarrativeEventSpatialLinkJournalRepository
       }
       final completed =
           journal.state == NarrativeEventSpatialLinkJournalState.eventCommitted
-              ? journal
-              : journal.markEventCommitted(_clock().toUtc());
+          ? journal
+          : journal.markEventCommitted(_clock().toUtc());
       await _writeJournal(completed);
       return NarrativeEventSpatialLinkOperationResult(
         status: NarrativeEventSpatialLinkOperationStatus.eventCommitted,
@@ -742,8 +747,9 @@ final class NarrativeEventSpatialLinkJournalRepository
         );
       }
       final cleanupProjectBytes = await File(project.path!).readAsBytes();
-      final cleanupProjectRevision =
-          narrativeEventBytesFingerprint(cleanupProjectBytes);
+      final cleanupProjectRevision = narrativeEventBytesFingerprint(
+        cleanupProjectBytes,
+      );
       final cleanupProject = decodeValidatedNarrativeEventAuthoringProject(
         cleanupProjectBytes,
       ).manifest;
@@ -781,6 +787,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       final currentMap = decodeValidatedNarrativeEventAuthoringMap(
         mapBytes,
         journal.mapPath,
+        project: cleanupProject,
       );
       final ownerIssue = _exactOwnerIssue(
         map: currentMap,
@@ -808,6 +815,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       decodeValidatedNarrativeEventAuthoringMap(
         cleanedBytes,
         journal.mapPath,
+        project: cleanupProject,
       );
       await _writeBytesFlushed(journal.mapTempPath, cleanedBytes);
       final tempHash = narrativeEventBytesFingerprint(
@@ -888,6 +896,7 @@ final class NarrativeEventSpatialLinkJournalRepository
       final committedMap = decodeValidatedNarrativeEventAuthoringMap(
         committedBytes,
         journal.mapPath,
+        project: cleanupProject,
       );
       if (_ownerState(
             map: committedMap,
@@ -918,18 +927,22 @@ final class NarrativeEventSpatialLinkJournalRepository
     final input = File(p.normalize(File(projectPath).absolute.path));
     final type = await FileSystemEntity.type(input.path, followLinks: false);
     if (type == FileSystemEntityType.link) {
-      return _PathResolution.issue(_issue(
-        'symbolicLinkRefused',
-        'Le manifest ne peut pas être un lien symbolique.',
-        input.path,
-      ));
+      return _PathResolution.issue(
+        _issue(
+          'symbolicLinkRefused',
+          'Le manifest ne peut pas être un lien symbolique.',
+          input.path,
+        ),
+      );
     }
     if (type != FileSystemEntityType.file) {
-      return _PathResolution.issue(_issue(
-        'projectMissing',
-        'Le manifest du projet est introuvable.',
-        input.path,
-      ));
+      return _PathResolution.issue(
+        _issue(
+          'projectMissing',
+          'Le manifest du projet est introuvable.',
+          input.path,
+        ),
+      );
     }
     return _PathResolution.path(
       p.normalize(await input.resolveSymbolicLinks()),
@@ -943,57 +956,57 @@ final class NarrativeEventSpatialLinkJournalRepository
   }) async {
     final matching = project.maps.where((entry) => entry.id == mapId).toList();
     if (matching.length != 1) {
-      return _PathResolution.issue(_issue(
-        'mapManifestIdentityMismatch',
-        'La map $mapId doit apparaître exactement une fois dans le manifest.',
-        projectPath,
-      ));
+      return _PathResolution.issue(
+        _issue(
+          'mapManifestIdentityMismatch',
+          'La map $mapId doit apparaître exactement une fois dans le manifest.',
+          projectPath,
+        ),
+      );
     }
     final relativePath = matching.single.relativePath;
     if (p.isAbsolute(relativePath) ||
         p.split(relativePath).any((part) => part == '..')) {
-      return _PathResolution.issue(_issue(
-        'unsafeMapPath',
-        'Le chemin de map doit rester relatif au projet.',
-        relativePath,
-      ));
+      return _PathResolution.issue(
+        _issue(
+          'unsafeMapPath',
+          'Le chemin de map doit rester relatif au projet.',
+          relativePath,
+        ),
+      );
     }
     final projectRoot = p.dirname(projectPath);
     final candidate = p.normalize(p.join(projectRoot, relativePath));
     if (!p.isWithin(projectRoot, candidate)) {
-      return _PathResolution.issue(_issue(
-        'unsafeMapPath',
-        'Le chemin de map sort du projet.',
-        candidate,
-      ));
+      return _PathResolution.issue(
+        _issue('unsafeMapPath', 'Le chemin de map sort du projet.', candidate),
+      );
     }
     var cursor = projectRoot;
     for (final part in p.split(p.relative(candidate, from: projectRoot))) {
       cursor = p.join(cursor, part);
       final type = await FileSystemEntity.type(cursor, followLinks: false);
       if (type == FileSystemEntityType.link) {
-        return _PathResolution.issue(_issue(
-          'symbolicLinkRefused',
-          'Les liens symboliques sont refusés pour la map.',
-          cursor,
-        ));
+        return _PathResolution.issue(
+          _issue(
+            'symbolicLinkRefused',
+            'Les liens symboliques sont refusés pour la map.',
+            cursor,
+          ),
+        );
       }
     }
     if (await FileSystemEntity.type(candidate, followLinks: false) !=
         FileSystemEntityType.file) {
-      return _PathResolution.issue(_issue(
-        'mapMissing',
-        'La map $mapId est introuvable.',
-        candidate,
-      ));
+      return _PathResolution.issue(
+        _issue('mapMissing', 'La map $mapId est introuvable.', candidate),
+      );
     }
     final canonical = p.normalize(await File(candidate).resolveSymbolicLinks());
     if (!p.isWithin(projectRoot, canonical)) {
-      return _PathResolution.issue(_issue(
-        'unsafeMapPath',
-        'La map résolue sort du projet.',
-        canonical,
-      ));
+      return _PathResolution.issue(
+        _issue('unsafeMapPath', 'La map résolue sort du projet.', canonical),
+      );
     }
     return _PathResolution.path(canonical);
   }
@@ -1063,13 +1076,13 @@ final class NarrativeEventSpatialLinkJournalRepository
     return switch (owner.kind) {
       _OwnerStateKind.exact => null,
       _OwnerStateKind.absent => _issue(
-          'sourceUnexpectedlyAbsent',
-          'La source physique attendue est absente.',
-        ),
+        'sourceUnexpectedlyAbsent',
+        'La source physique attendue est absente.',
+      ),
       _OwnerStateKind.modified => _issue(
-          'sourceFingerprintMismatch',
-          'La source physique ne correspond pas à son fingerprint.',
-        ),
+        'sourceFingerprintMismatch',
+        'La source physique ne correspond pas à son fingerprint.',
+      ),
     };
   }
 
@@ -1132,7 +1145,8 @@ final class NarrativeEventSpatialLinkJournalRepository
     NarrativeEventRegistry? registry,
     String eventId,
   ) {
-    final records = registry?.records.where((record) => record.id == eventId) ??
+    final records =
+        registry?.records.where((record) => record.id == eventId) ??
         const <NarrativeEventRecord>[];
     if (records.length != 1) return null;
     return records.single;
@@ -1199,8 +1213,9 @@ final class NarrativeEventSpatialLinkJournalRepository
     final projectBytes = await File(projectPath).readAsBytes();
     late final ProjectManifest project;
     try {
-      project =
-          decodeValidatedNarrativeEventAuthoringProject(projectBytes).manifest;
+      project = decodeValidatedNarrativeEventAuthoringProject(
+        projectBytes,
+      ).manifest;
     } on Object catch (error) {
       return _issue(
         'invalidProject',
@@ -1271,7 +1286,10 @@ final class NarrativeEventSpatialLinkJournalRepository
     final safe = _safeOperationId(operationId);
     if (safe == null) {
       throw ArgumentError.value(
-          operationId, 'operationId', 'must be path-safe');
+        operationId,
+        'operationId',
+        'must be path-safe',
+      );
     }
     final stem = '${_projectArtifactPrefix(projectPath)}$safe';
     final journalPath = p.normalize(
@@ -1293,9 +1311,7 @@ final class NarrativeEventSpatialLinkJournalRepository
     return '$journalPrefix$key-';
   }
 
-  Future<void> _writeJournal(
-    NarrativeEventSpatialLinkJournal journal,
-  ) async {
+  Future<void> _writeJournal(NarrativeEventSpatialLinkJournal journal) async {
     final paths = _pathsFor(
       projectPath: journal.projectPath,
       mapPath: journal.mapPath,
@@ -1530,8 +1546,7 @@ final class _PathResolution {
 
   factory _PathResolution.issue(
     NarrativeEventSpatialLinkInspectionIssue issue,
-  ) =>
-      _PathResolution._(issue: issue);
+  ) => _PathResolution._(issue: issue);
 
   final String? path;
   final NarrativeEventSpatialLinkInspectionIssue? issue;

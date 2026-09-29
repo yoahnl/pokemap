@@ -27,7 +27,7 @@ abstract class MapData with _$MapData {
     required String id,
     required String name,
     required GridSize size,
-    @Default(ProjectVersion.v6) ProjectVersion version,
+    @Default(ProjectVersion.v8) ProjectVersion version,
     @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
@@ -46,10 +46,10 @@ abstract class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
+    _preflightSmartTileMapJson(json);
     final canonical = migrateEnvironmentSingleAreaMapJson(
       _migrateLegacyTileLayers(json),
     );
-    _preflightSmartTileMapJson(canonical);
     if (canonical.containsKey('visualStack')) {
       final visualStack = canonical['visualStack'];
       if (visualStack is! Map<String, dynamic>) {
@@ -57,12 +57,12 @@ abstract class MapData with _$MapData {
       }
     }
     final map = _$MapDataFromJson(canonical);
-    if (map.visualStack != null && map.version != ProjectVersion.v6) {
+    if (map.visualStack != null && map.version != ProjectVersion.v8) {
       throw const FormatException(
-        r'$.version: visualStack requires ProjectVersion.v6',
+        r'$.version: visualStack requires ProjectVersion.v8',
       );
     }
-    if (map.version != ProjectVersion.v6) {
+    if (map.version != ProjectVersion.v8) {
       final smartTileIndex = map.layers.indexWhere(
         (layer) => layer is SmartTileLayer,
       );
@@ -70,7 +70,7 @@ abstract class MapData with _$MapData {
         throw FormatException(
           r'$.layers['
           '$smartTileIndex].runtimeType: Smart Tile layers require '
-          'ProjectVersion.v6',
+          'ProjectVersion.v8',
         );
       }
     }
@@ -103,11 +103,11 @@ Map<String, dynamic> _migrateLegacyTileLayers(Map<String, dynamic> json) {
 }
 
 void _preflightSmartTileMapJson(Map<String, dynamic> json) {
-  final version = json['version'] ?? 'v1';
-  if (version != 'v6') {
+  final version = json['version'];
+  if (version != 'v8') {
     throw FormatException(
-      r'$.version: smart_tile_v6_map_required '
-      '(expected=v6, actual=$version)',
+      r'$.version: map_version_unsupported '
+      '(expected=v8, actual=$version)',
     );
   }
   final layers = json['layers'];
@@ -130,7 +130,7 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
       throw FormatException(
         r'$.layers['
         '$index]: smart_tile_v6_legacy_payload_unsupported '
-        '(version=v6, variant=smart_tile)',
+        '(version=v8, variant=smart_tile)',
       );
     }
     if (runtimeType == 'terrain' ||
@@ -139,14 +139,14 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
       throw FormatException(
         r'$.layers['
         '$index].runtimeType: smart_tile_v6_legacy_layer_unsupported '
-        '(version=v6, variant=$runtimeType)',
+        '(version=v8, variant=$runtimeType)',
       );
     }
     if (runtimeType == 'smart_tile' && rawLayer['field'] is! Map) {
       throw FormatException(
         r'$.layers['
         '$index].field: smart_tile_v6_field_required '
-        '(version=v6, variant=smart_tile)',
+        '(version=v8, variant=smart_tile)',
       );
     }
   }
@@ -226,6 +226,8 @@ abstract class MapPlacedElement with _$MapPlacedElement {
     required String layerId,
     required String elementId,
     required GridPos pos,
+    @Default(PixelOffset(x: 0, y: 0)) PixelOffset pixelOffset,
+    @JsonKey(includeIfNull: false) PixelSize? pixelSize,
     @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)
     @Default(0)
     int visualOrder,

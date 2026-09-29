@@ -22,6 +22,7 @@ final class EnableTileLayerEnvironmentAttachmentResult {
 class EnableTileLayerEnvironmentAttachmentUseCase {
   EnableTileLayerEnvironmentAttachmentResult execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String tileLayerId,
   }) {
     final tid = tileLayerId.trim();
@@ -59,10 +60,7 @@ class EnableTileLayerEnvironmentAttachmentUseCase {
     final environmentLayer = MapLayer.environment(
       id: environmentLayerId,
       name: _environmentLayerName(tileLayer.name),
-      content: EnvironmentLayerContent(
-        targetTileLayerId: tid,
-        areas: const [],
-      ),
+      content: EnvironmentLayerContent(targetTileLayerId: tid, areas: const []),
     );
 
     final updatedLayers = List<MapLayer>.from(map.layers, growable: true)
@@ -70,7 +68,7 @@ class EnableTileLayerEnvironmentAttachmentUseCase {
     final updatedMap = map.copyWith(layers: updatedLayers);
 
     try {
-      MapValidator.validate(updatedMap);
+      MapValidator.validate(updatedMap, projectDialogueContext: manifest);
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);
     }
@@ -170,7 +168,7 @@ class CreateTileLayerEnvironmentAreaUseCase {
           areas: <EnvironmentArea>[area],
         ),
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);
     }
@@ -216,10 +214,7 @@ String _environmentLayerName(String tileLayerName) {
   return 'Environnement - $normalized';
 }
 
-String _uniqueEnvironmentLayerId(
-  MapData map, {
-  required String tileLayerName,
-}) {
+String _uniqueEnvironmentLayerId(MapData map, {required String tileLayerName}) {
   final existingIds = map.layers.map((layer) => layer.id).toSet();
   final slug = _slugify(tileLayerName);
   final base = slug.isEmpty ? 'l_environment' : 'l_environment_$slug';

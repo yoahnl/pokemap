@@ -2,7 +2,7 @@
   "id": "vermeil_village",
   "name": "Village de Vermeil",
   "size": {"width": 1, "height": 1},
-  "version": "v6",
+  "version": "v8",
   "tilesetId": "vermeil-stage",
   "layers": [
     {

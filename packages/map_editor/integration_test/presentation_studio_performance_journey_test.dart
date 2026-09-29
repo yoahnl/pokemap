@@ -524,7 +524,7 @@ Future<_AuthoringSessionEvidence> _measureAuthoringSession() async {
 
 ProjectManifest _sessionManifest() => ProjectManifest(
   name: 'CIN-060 session',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   presentationCinematics: <PresentationCinematicAsset>[

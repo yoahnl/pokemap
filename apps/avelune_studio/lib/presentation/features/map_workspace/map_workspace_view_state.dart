@@ -78,6 +78,8 @@ class MapWorkspaceViewState {
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = false;
+  bool lockDecorProportions = false;
+  bool showDecorCollision = false;
   bool paletteTiles = false;
   bool revealPalette = false;
   bool revealInspector = false;

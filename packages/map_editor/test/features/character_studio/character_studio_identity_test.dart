@@ -115,7 +115,7 @@ void main() {
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Character Studio',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(

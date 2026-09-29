@@ -26,7 +26,7 @@ MapCanvasOverlay buildEditingOverlay({
   return MapCanvasOverlay(
     map: map,
     project: project,
-    selected: document.selected,
+    selected: view.tool == StudioMapTool.select ? null : document.selected,
     selectedEntity: map.entities
         .where(
           (entity) =>

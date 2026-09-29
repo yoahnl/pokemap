@@ -486,7 +486,7 @@ final class _InertContentPort implements PresentationFrameContentPort {
 
 ProjectManifest _manifest({bool bindScene = true}) => ProjectManifest(
       name: 'CIN-080 studio',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[

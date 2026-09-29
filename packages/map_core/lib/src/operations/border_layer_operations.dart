@@ -198,7 +198,7 @@ MapData _updateBorderLayer(
   final layers = List<MapLayer>.from(map.layers, growable: false);
   layers[index] = update(layer);
   return map.copyWith(
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     layers: layers,
   );
 }

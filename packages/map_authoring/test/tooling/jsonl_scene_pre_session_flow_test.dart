@@ -93,7 +93,7 @@ final class _Harness {
     await Directory('${root.path}/maps').create(recursive: true);
     final manifest = ProjectManifest(
       name: 'Pre-session transport fixture',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map_start',
@@ -138,7 +138,7 @@ final class _Harness {
         const MapData(
           id: 'map_start',
           name: 'Départ',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 2, height: 2),
           layers: <MapLayer>[
             MapLayer.tile(

@@ -200,7 +200,7 @@ ProjectManifest _instantiate({
 ProjectSnapshot _snapshot() {
   final manifest = ProjectManifest(
     name: 'Presentation template fixture',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
   );

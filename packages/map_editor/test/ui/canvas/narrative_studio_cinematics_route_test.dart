@@ -1005,7 +1005,7 @@ final class _FailingManifestGateway
 ProjectManifest _cinematicsProject() {
   return ProjectManifest(
     name: 'Cinématiques route fixture',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     cinematics: <CinematicAsset>[

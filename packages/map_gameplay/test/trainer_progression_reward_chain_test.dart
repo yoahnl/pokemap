@@ -90,7 +90,7 @@ ProjectManifest _projectWithConditionalGrass() => ProjectManifest(
 MapData _mapWithGrass() => const MapData(
       id: 'harbor',
       name: 'Harbor',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 3),
       gameplayZones: <MapGameplayZone>[
         MapGameplayZone(

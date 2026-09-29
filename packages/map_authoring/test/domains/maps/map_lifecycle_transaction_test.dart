@@ -489,7 +489,7 @@ final class _Setup {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
       name: 'Lifecycle Transaction Fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: [
         for (final map in maps)
           ProjectMapEntry(
@@ -655,7 +655,7 @@ MapData _map(String id) => MapData(
       id: id,
       name: id,
       size: const GridSize(width: 2, height: 2),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

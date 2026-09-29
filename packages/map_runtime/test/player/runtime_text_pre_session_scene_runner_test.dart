@@ -19,7 +19,7 @@ Bienvenue à Avelune.
 ''');
     final project = ProjectManifest(
       name: 'Text preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       dialogues: const <ProjectDialogueEntry>[
@@ -76,7 +76,7 @@ Bienvenue à Avelune.
   test('awaits a Presentation cinematic before continuing the Scene', () async {
     final project = ProjectManifest(
       name: 'Presentation preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[
@@ -129,7 +129,7 @@ Bienvenue à Avelune.
       () async {
     final project = ProjectManifest(
       name: 'Structured preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       scenes: <SceneAsset>[_structuredInteractionScene()],
@@ -204,7 +204,7 @@ Bienvenue à Avelune.
   test('routes a declined confirmation through its typed output', () async {
     final project = ProjectManifest(
       name: 'Confirmation preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       scenes: <SceneAsset>[_confirmationScene()],
@@ -252,7 +252,7 @@ Bienvenue à Avelune.
       () async {
     final project = ProjectManifest(
       name: 'Presentation interaction',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[
@@ -349,7 +349,7 @@ Enchanté {{draft.playerName}} !
 ''');
     final project = ProjectManifest(
       name: 'Interpolated preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       dialogues: const <ProjectDialogueEntry>[
@@ -442,7 +442,7 @@ Il ajuste ses lunettes.
 ''');
     final project = ProjectManifest(
       name: 'Yarn cue preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       dialogues: const <ProjectDialogueEntry>[
@@ -522,7 +522,7 @@ Il ajuste ses lunettes.
       () async {
     final project = ProjectManifest(
       name: 'Confirmation branch preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[
@@ -615,7 +615,7 @@ Il ajuste ses lunettes.
       () async {
     final project = ProjectManifest(
       name: 'Loop preSession',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[

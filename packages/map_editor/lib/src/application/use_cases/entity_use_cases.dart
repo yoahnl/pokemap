@@ -3,13 +3,11 @@ import 'package:map_core/map_core.dart';
 class AddEntityToMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required MapEntity entity,
   }) {
-    final updated = addEntityToMap(
-      map,
-      entity: entity,
-    );
-    MapValidator.validate(updated);
+    final updated = addEntityToMap(map, entity: entity);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -17,6 +15,7 @@ class AddEntityToMapUseCase {
 class UpdateEntityOnMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String entityId,
     String? id,
     String? name,
@@ -47,7 +46,7 @@ class UpdateEntityOnMapUseCase {
       spawn: spawn ?? mapEntityTypedPayloadUnset,
       editorVisual: editorVisual ?? mapEntityTypedPayloadUnset,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -55,13 +54,11 @@ class UpdateEntityOnMapUseCase {
 class DeleteEntityFromMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String entityId,
   }) {
-    final updated = removeEntityFromMap(
-      map,
-      entityId: entityId,
-    );
-    MapValidator.validate(updated);
+    final updated = removeEntityFromMap(map, entityId: entityId);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }

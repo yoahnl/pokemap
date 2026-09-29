@@ -136,7 +136,7 @@ MapData _map() {
     id: 'region-map',
     name: 'Region Map',
     size: const GridSize(width: 4, height: 3),
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     layers: [
       MapLayer.tile(
         id: 'ground',

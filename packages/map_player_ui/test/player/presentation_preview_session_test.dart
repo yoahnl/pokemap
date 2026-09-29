@@ -653,7 +653,7 @@ Future<void> _pumpUntil(bool Function() condition) async {
 
 ProjectManifest _manifest() => ProjectManifest(
       name: 'CIN-080 preview',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[

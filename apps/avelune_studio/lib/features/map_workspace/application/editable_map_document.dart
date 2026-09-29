@@ -11,6 +11,7 @@ class EditableMapDocument {
   MapData saved;
   String? selectedId;
   GridPos? stackPosition;
+  PixelPosition? stackPixelPosition;
   bool saving = false;
   String? error;
   final _history = const MapHistoryCoordinator();

@@ -146,7 +146,7 @@ _Fixture _fixture({required int entries, required int zones}) {
   final map = MapData(
     id: 'benchmark_map',
     name: 'Benchmark map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: zones * 4, height: 4),
     gameplayZones: gameplayZones,
   );

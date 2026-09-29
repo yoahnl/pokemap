@@ -603,8 +603,8 @@ GamePackageHostCompatibility _hostCompatibility() =>
       hubVersion: Version(1, 0, 0),
       runtimeApiVersion: Version(1, 0, 0),
       capabilities: const <String>{'map@1'},
-      supportedProjectFormats: <String>{ProjectVersion.v6.name},
-      currentProjectFormat: ProjectVersion.v6.name,
+      supportedProjectFormats: <String>{ProjectVersion.v8.name},
+      currentProjectFormat: ProjectVersion.v8.name,
       supportedSaveFormats: const <int>{1},
     );
 
@@ -646,7 +646,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version(1, 0, 0),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
-      projectFormat: ProjectVersion.v6.name,
+      projectFormat: ProjectVersion.v8.name,
       saveFormat: 1,
       compatibilityId: 'main',
       requiredCapabilities: const <String>['map@1'],

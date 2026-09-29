@@ -12,20 +12,20 @@ void main() {
     final compatibility = aveluneHostCompatibility();
 
     expect(compatibility.supportedProjectFormats, <String>{
-      ProjectVersion.v7.name,
+      ProjectVersion.v8.name,
     });
-    expect(compatibility.currentProjectFormat, ProjectVersion.v7.name);
+    expect(compatibility.currentProjectFormat, ProjectVersion.v8.name);
   });
 
-  test('accepts a package using the current v7 project format', () async {
+  test('accepts a package using the current v8 project format', () async {
     final temporary = await Directory.systemTemp.createTemp(
-      'avelune-v7-package-',
+      'avelune-v8-package-',
     );
     addTearDown(() => temporary.delete(recursive: true));
     final package = await writeTestPackage(
       temporary,
       minHubVersion: '0.1.0',
-      projectFormat: ProjectVersion.v7.name,
+      projectFormat: ProjectVersion.v8.name,
     );
 
     final inspection = GamePackageInspector(

@@ -9,7 +9,7 @@ void main() {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, dynamic>{
           'name': 'Legacy character project',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[
             <String, Object?>{
@@ -29,7 +29,7 @@ void main() {
         },
       );
 
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.characters, hasLength(1));
       expect(
         manifest.characters.single,

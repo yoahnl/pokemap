@@ -24,7 +24,7 @@ void main() {
       });
       const project = ProjectManifest(
         name: 'BETA-ENC-001 editor fixture',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
             id: 'forest',
@@ -37,7 +37,7 @@ void main() {
       const map = MapData(
         id: 'forest',
         name: 'Forest',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 8, height: 8),
       );
       final projectPath = p.join(root.path, 'project.json');

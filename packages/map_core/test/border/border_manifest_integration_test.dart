@@ -13,7 +13,7 @@ void main() {
       );
       final encoded = manifest.toJson();
 
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.borderCatalog, const ProjectBorderCatalog.empty());
       expect(encoded.containsKey('borderCatalog'), isFalse);
       expect(projectJson.containsKey('borderCatalog'), isFalse);
@@ -86,7 +86,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Border V2',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         borderCatalog: catalog,
@@ -96,7 +96,7 @@ void main() {
       final wire = jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>;
       final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(wire);
 
-      expect(encoded['version'], 'v6');
+      expect(encoded['version'], 'v8');
       expect(encoded['borderCatalog'], encodeProjectBorderCatalogJson(catalog));
       expect(decoded, manifest);
       expect(decoded.borderCatalog.records.single.id, 'coast');
@@ -123,7 +123,7 @@ void main() {
 
 Map<String, dynamic> _minimalManifestJson() => <String, dynamic>{
   'name': 'Project',
-  'version': 'v6',
+  'version': 'v8',
   'maps': <Object?>[],
   'tilesets': <Object?>[],
 };

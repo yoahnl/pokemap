@@ -322,7 +322,7 @@ void main() {
               'project/project.json': utf8.encode(
                 jsonEncode(<String, Object?>{
                   'name': 'Inspector Test',
-                  'version': 'v6',
+                  'version': 'v8',
                   'maps': <Object?>[],
                   'tilesets': <Object?>[],
                   'pokemon': const ProjectPokemonConfig(
@@ -405,8 +405,8 @@ void main() {
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('1.4.0'),
             capabilities: const <String>{},
-            supportedProjectFormats: const <String>{'v6'},
-            currentProjectFormat: 'v6',
+            supportedProjectFormats: const <String>{'v8'},
+            currentProjectFormat: 'v8',
             supportedSaveFormats: const <int>{1},
           ),
         ).inspect(tampered),
@@ -419,8 +419,8 @@ void main() {
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('3.0.0'),
             capabilities: const <String>{},
-            supportedProjectFormats: const <String>{'v6'},
-            currentProjectFormat: 'v6',
+            supportedProjectFormats: const <String>{'v8'},
+            currentProjectFormat: 'v8',
             supportedSaveFormats: const <int>{1},
           ),
         ).inspect(tampered);
@@ -1004,7 +1004,7 @@ void main() {
                 'project/project.json': utf8.encode(
                   jsonEncode(<String, Object?>{
                     'name': 'Too deep',
-                    'version': 'v6',
+                    'version': 'v8',
                     'maps': <Object?>[],
                     'tilesets': <Object?>[],
                     'groups': <Object?>[
@@ -1361,7 +1361,7 @@ final class _SparseSegment {
 List<int> _validProjectBytes({String name = 'Inspector Test'}) => utf8.encode(
   jsonEncode(<String, Object?>{
     'name': name,
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
     'pokemon': const ProjectPokemonConfig(
@@ -1396,7 +1396,7 @@ GamePackageBuildResult _build(Map<String, List<int>> payload) {
       'compatibility': <String, Object?>{
         'minHubVersion': '1.0.0',
         'runtimeApi': '>=1.0.0 <2.0.0',
-        'projectFormat': 'v6',
+        'projectFormat': 'v8',
         'saveFormat': 1,
         'compatibilityId': 'main',
         'requiredCapabilities': <String>[],
@@ -1429,7 +1429,7 @@ List<int> _rawPackage(
     'compatibility': <String, Object?>{
       'minHubVersion': '1.0.0',
       'runtimeApi': '>=1.0.0 <2.0.0',
-      'projectFormat': 'v6',
+      'projectFormat': 'v8',
       'saveFormat': 1,
       'compatibilityId': 'main',
       'requiredCapabilities': <String>[],

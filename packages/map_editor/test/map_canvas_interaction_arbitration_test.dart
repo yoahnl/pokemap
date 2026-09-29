@@ -233,7 +233,7 @@ void main() {
         (tester) async {
       final project = ProjectManifest(
         name: 'Smart Tile shape project',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         smartTileCatalog: ProjectSmartTileCatalog(
@@ -280,7 +280,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 4, height: 2),
         layers: <MapLayer>[layer],
       );

@@ -14,7 +14,7 @@ void main() {
     final map = MapData(
       id: 'tile-before-border',
       name: 'Tile before Border',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -53,7 +53,7 @@ void main() {
     final map = MapData(
       id: 'two-borders',
       name: 'Two Borders',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -211,7 +211,7 @@ void main() {
     final current = MapData(
       id: owner.id,
       name: 'Other map with same id',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
     );
     final preview = BorderPreviewTransaction(
@@ -428,7 +428,7 @@ ProjectManifest _manifest({
 }) =>
     ProjectManifest(
       name: 'Border order',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       elements: elements,
@@ -446,7 +446,7 @@ MapData _borderMap({
     MapData(
       id: 'border-map',
       name: 'Border map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: width, height: 1),
       properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
       layers: <MapLayer>[

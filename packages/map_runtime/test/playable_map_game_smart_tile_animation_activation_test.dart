@@ -94,7 +94,7 @@ final _bundle = RuntimeMapBundle(
 final _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 3, height: 1),
   layers: const <MapLayer>[
     SmartTileLayer(
@@ -111,7 +111,7 @@ final _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Triggered Smart Tile Runtime',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map',

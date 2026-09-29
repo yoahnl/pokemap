@@ -370,7 +370,7 @@ final class _CanonicalSnapshotFixture {
     final manifestBytes = utf8.encode(
       jsonEncode({
         'name': 'Snapshot Concurrency Characterization',
-        'version': 'v6',
+        'version': 'v8',
         'pokemon': ProjectPokemonConfig(
           ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ).toJson(),
@@ -429,7 +429,7 @@ final class _CanonicalSnapshotFixture {
     final manifestBytes = utf8.encode(
       jsonEncode({
         'name': 'Bounded Snapshot Concurrency',
-        'version': 'v6',
+        'version': 'v8',
         'pokemon': ProjectPokemonConfig(
           ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ).toJson(),
@@ -481,7 +481,7 @@ List<int> _mapBytes(String id, {String? name}) => utf8.encode(
         'id': id,
         'name': name ?? id,
         'size': {'width': 2, 'height': 2},
-        'version': 'v6',
+        'version': 'v8',
         'layers': <Object?>[],
       }),
     );

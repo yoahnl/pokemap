@@ -198,7 +198,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 2),
       layers: <MapLayer>[applied.layer],
     );
@@ -237,7 +237,7 @@ void main() {
     final validMap = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 2),
       layers: <MapLayer>[applied.layer],
     );
@@ -279,7 +279,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 2),
       layers: <MapLayer>[patterned],
     );

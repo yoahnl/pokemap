@@ -220,7 +220,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
   final projectedLayers = List<MapLayer>.from(target.layers, growable: true)
     ..insert(targetIndex, layer);
   final projectedMap = target.copyWith(
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     layers: List<MapLayer>.unmodifiable(projectedLayers),
   );
 

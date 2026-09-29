@@ -523,7 +523,7 @@ MapGridCullingDebugSnapshot _paintSmartTileCullingFixture({
   final map = MapData(
     id: 'smart-$mapExtent',
     name: 'Smart $mapExtent',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: mapExtent, height: mapExtent),
     layers: <MapLayer>[layer],
   );
@@ -716,7 +716,7 @@ MapData _cullingMap() {
   return MapData(
     id: 'culling-map',
     name: 'Culling map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: size,
     layers: <MapLayer>[
       TileLayer(
@@ -787,7 +787,7 @@ const _project = ProjectManifest(
 
 final _smartTileProject = ProjectManifest(
   name: 'Smart tile performance',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

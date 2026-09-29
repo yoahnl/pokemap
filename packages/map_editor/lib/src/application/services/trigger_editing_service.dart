@@ -30,37 +30,28 @@ class TriggerEditingService {
     required UpdateTriggerOnMapUseCase updateTriggerOnMapUseCase,
     required DeleteTriggerFromMapUseCase deleteTriggerFromMapUseCase,
     required TriggerEditingCoordinator triggerEditingCoordinator,
-  })  : _addTriggerToMapUseCase = addTriggerToMapUseCase,
-        _updateTriggerOnMapUseCase = updateTriggerOnMapUseCase,
-        _deleteTriggerFromMapUseCase = deleteTriggerFromMapUseCase,
-        _triggerEditingCoordinator = triggerEditingCoordinator;
+  }) : _addTriggerToMapUseCase = addTriggerToMapUseCase,
+       _updateTriggerOnMapUseCase = updateTriggerOnMapUseCase,
+       _deleteTriggerFromMapUseCase = deleteTriggerFromMapUseCase,
+       _triggerEditingCoordinator = triggerEditingCoordinator;
 
   final AddTriggerToMapUseCase _addTriggerToMapUseCase;
   final UpdateTriggerOnMapUseCase _updateTriggerOnMapUseCase;
   final DeleteTriggerFromMapUseCase _deleteTriggerFromMapUseCase;
   final TriggerEditingCoordinator _triggerEditingCoordinator;
 
-  MapTrigger? findSelectedTrigger(
-    MapData? map,
-    String? selectedTriggerId,
-  ) {
+  MapTrigger? findSelectedTrigger(MapData? map, String? selectedTriggerId) {
     if (map == null || selectedTriggerId == null) {
       return null;
     }
     return _triggerEditingCoordinator.findTriggerById(map, selectedTriggerId);
   }
 
-  MapTrigger? findTriggerAtPos(
-    MapData map,
-    GridPos pos,
-  ) {
+  MapTrigger? findTriggerAtPos(MapData map, GridPos pos) {
     return _triggerEditingCoordinator.findTriggerAtPos(map, pos);
   }
 
-  MapTrigger requireSelectedTrigger(
-    MapData map,
-    String? selectedTriggerId,
-  ) {
+  MapTrigger requireSelectedTrigger(MapData map, String? selectedTriggerId) {
     if (selectedTriggerId == null || selectedTriggerId.trim().isEmpty) {
       throw const EditorInvalidOperationException('No trigger selected');
     }
@@ -78,18 +69,21 @@ class TriggerEditingService {
 
   TriggerCreationResult addTriggerAt(
     MapData map,
-    GridPos pos,
-  ) {
+    GridPos pos, {
+    ProjectManifest? manifest,
+  }) {
     final trigger = _triggerEditingCoordinator.createDefaultTrigger(map, pos);
-    final updated = _addTriggerToMapUseCase.execute(map, trigger: trigger);
-    return TriggerCreationResult(
-      updatedMap: updated,
-      createdTrigger: trigger,
+    final updated = _addTriggerToMapUseCase.execute(
+      map,
+      manifest: manifest,
+      trigger: trigger,
     );
+    return TriggerCreationResult(updatedMap: updated, createdTrigger: trigger);
   }
 
   TriggerUpdateResult updateTrigger(
     MapData map, {
+    ProjectManifest? manifest,
     required String triggerId,
     String? id,
     String? name,
@@ -99,6 +93,7 @@ class TriggerEditingService {
   }) {
     final updated = _updateTriggerOnMapUseCase.execute(
       map,
+      manifest: manifest,
       triggerId: triggerId,
       id: id,
       name: name,
@@ -106,8 +101,9 @@ class TriggerEditingService {
       area: area,
       properties: properties,
     );
-    final nextSelectedTriggerId =
-        id?.trim().isNotEmpty == true ? id!.trim() : triggerId;
+    final nextSelectedTriggerId = id?.trim().isNotEmpty == true
+        ? id!.trim()
+        : triggerId;
     return TriggerUpdateResult(
       updatedMap: updated,
       selectedTriggerId: nextSelectedTriggerId,
@@ -116,10 +112,12 @@ class TriggerEditingService {
 
   MapData deleteTrigger(
     MapData map, {
+    ProjectManifest? manifest,
     required String triggerId,
   }) {
     return _deleteTriggerFromMapUseCase.execute(
       map,
+      manifest: manifest,
       triggerId: triggerId,
     );
   }

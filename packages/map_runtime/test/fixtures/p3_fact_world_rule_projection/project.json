@@ -1,6 +1,6 @@
 {
   "name": "P3 Fact World Rule Projection",
-  "version": "v6",
+  "version": "v8",
   "pokemon": {
     "ruleset": {
       "schemaVersion": 1,

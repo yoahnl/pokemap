@@ -295,7 +295,7 @@ void _expectCompleteGallery(BorderStudioPublicationPreview preview) {
 
 ProjectManifest _sourceManifest() => ProjectManifest(
       name: 'BORD-03 end-to-end project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[
         ProjectTilesetEntry(

@@ -1,4 +1,5 @@
 import 'package:avelune_studio/features/cinematics/domain/cinematic_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -113,20 +114,15 @@ void main() {
   );
 
   test(
-    'new library entry refuses version six without migration or write',
+    'opening version six refuses before editing without migration or write',
     () async {
-      final f = await CinematicAdapterFixture.create(
-        version: ProjectVersion.v6,
-      );
+      final f = await CinematicAdapterFixture.create();
       addTearDown(f.dispose);
+      await f.writeManifest((await f.readManifest()).copyWith(version: ProjectVersion.v6));
       final bytes = await f.file('project.json').readAsBytes();
       await expectLater(
-        f.adapter().publish(
-          id: 'draft',
-          base: null,
-          asset: CinematicAdapterFixture.asset('draft'),
-        ),
-        throwsA(isA<CinematicFailure>()),
+        f.maps.loadProject(f.session),
+        throwsA(isA<MapWorkspaceFailure>()),
       );
       expect(await f.file('project.json').readAsBytes(), bytes);
     },

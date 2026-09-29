@@ -238,7 +238,7 @@ void main() {
             .having(
               (error) => error.message,
               'message',
-              contains('smart_tile_v6_project_required'),
+              contains('project_version_unsupported'),
             )
             .having(
               (error) => error.message,
@@ -462,7 +462,7 @@ Future<SmartTilePublicationResult> _publishLibraryAfterDraftReopen({
 Future<void> _writeProject(Directory root) async {
   const manifest = ProjectManifest(
     name: 'STN-04 golden project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',
@@ -475,7 +475,7 @@ Future<void> _writeProject(Directory root) async {
   const map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 2, height: 2),
     visualStack: MapVisualStackConfig.canonicalV1,
   );

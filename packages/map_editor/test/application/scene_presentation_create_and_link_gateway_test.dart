@@ -220,7 +220,7 @@ List<CinematicLibraryFolder> _folders() => <CinematicLibraryFolder>[
 
 ProjectManifest _project() => ProjectManifest(
   name: 'Create and link gateway',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   cinematicLibraryCatalog: CinematicLibraryCatalog(folders: _folders()),

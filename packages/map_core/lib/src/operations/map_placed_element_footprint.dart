@@ -1,6 +1,259 @@
+import '../collision/pixel_rect.dart';
+import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_placed_element_origin.dart';
 import '../models/project_manifest.dart';
+import '../models/project_tileset_source.dart';
+
+const int maxMapPlacedElementPixelArea = 1048576;
+
+final class MapPlacedElementGeometry {
+  const MapPlacedElementGeometry({
+    required this.logicalRect,
+    required this.naturalPixelSize,
+    required this.pixelSize,
+    required this.cellBounds,
+  });
+
+  final PixelRect logicalRect;
+  final PixelSize naturalPixelSize;
+  final PixelSize pixelSize;
+  final MapRect cellBounds;
+}
+
+MapPlacedElementGeometry resolveMapPlacedElementGeometry({
+  required MapPlacedElement instance,
+  required ProjectElementEntry element,
+  required PixelSize tileSize,
+}) {
+  validateMapPlacedElementPixelGeometry(instance, tileSize: tileSize);
+  final footprint = resolveMapPlacedElementFootprint(
+    instance: instance,
+    element: element,
+  ).destinationSize;
+  final naturalSize = PixelSize(
+    width: _checkedPixelProduct(footprint.width, tileSize.width),
+    height: _checkedPixelProduct(footprint.height, tileSize.height),
+  );
+  final size = instance.pixelSize ?? naturalSize;
+  final left = _checkedPixelSum(
+    _checkedPixelProduct(instance.pos.x, tileSize.width),
+    instance.pixelOffset.x,
+  );
+  final top = _checkedPixelSum(
+    _checkedPixelProduct(instance.pos.y, tileSize.height),
+    instance.pixelOffset.y,
+  );
+  final right = _checkedPixelSum(left, size.width);
+  final bottom = _checkedPixelSum(top, size.height);
+  final cellX = _pixelFloorDivide(left, tileSize.width);
+  final cellY = _pixelFloorDivide(top, tileSize.height);
+  return MapPlacedElementGeometry(
+    logicalRect: PixelRect(
+      leftPx: left,
+      topPx: top,
+      widthPx: size.width,
+      heightPx: size.height,
+    ),
+    naturalPixelSize: naturalSize,
+    pixelSize: size,
+    cellBounds: MapRect(
+      pos: GridPos(x: cellX, y: cellY),
+      size: GridSize(
+        width: _pixelFloorDivide(right - 1, tileSize.width) + 1 - cellX,
+        height: _pixelFloorDivide(bottom - 1, tileSize.height) + 1 - cellY,
+      ),
+    ),
+  );
+}
+
+MapPlacedElement normalizeMapPlacedElementGeometry(
+  MapPlacedElement instance, {
+  required PixelSize tileSize,
+}) {
+  _requirePixelSize(tileSize);
+  final x = _checkedPixelSum(
+    _checkedPixelProduct(instance.pos.x, tileSize.width),
+    instance.pixelOffset.x,
+  );
+  final y = _checkedPixelSum(
+    _checkedPixelProduct(instance.pos.y, tileSize.height),
+    instance.pixelOffset.y,
+  );
+  return instance.copyWith(
+    pos: GridPos(
+      x: _pixelFloorDivide(x, tileSize.width),
+      y: _pixelFloorDivide(y, tileSize.height),
+    ),
+    pixelOffset: PixelOffset(x: x % tileSize.width, y: y % tileSize.height),
+  );
+}
+
+PixelRect resolveMapPlacedElementVisualRect({
+  required MapPlacedElementGeometry geometry,
+  required ProjectTilesetSource? tilesetSource,
+}) {
+  final rect = geometry.logicalRect;
+  if (tilesetSource is! ProjectRegularAtlasTilesetSource) return rect;
+  final left = _checkedPixelSum(rect.leftPx, tilesetSource.pixelOffsetX);
+  final top = _checkedPixelSum(rect.topPx, tilesetSource.pixelOffsetY);
+  _checkedPixelSum(left, rect.widthPx);
+  _checkedPixelSum(top, rect.heightPx);
+  return PixelRect(
+    leftPx: left,
+    topPx: top,
+    widthPx: rect.widthPx,
+    heightPx: rect.heightPx,
+  );
+}
+
+PixelRect resolveMapPlacedElementVisualBounds({
+  required MapPlacedElement instance,
+  required ProjectElementEntry element,
+  required ProjectManifest manifest,
+  Map<String, ProjectTilesetSource?>? tilesetSources,
+}) {
+  final geometry = resolveMapPlacedElementGeometry(
+    instance: instance,
+    element: element,
+    tileSize: PixelSize(
+      width: manifest.settings.tileWidth,
+      height: manifest.settings.tileHeight,
+    ),
+  );
+  final sources = tilesetSources ?? {
+    for (final tileset in manifest.tilesets) tileset.id: tileset.source,
+  };
+  PixelRect? bounds;
+  for (final frame in element.frames) {
+    final tilesetId = frame.tilesetId.trim().isEmpty
+        ? element.tilesetId.trim()
+        : frame.tilesetId.trim();
+    final rect = resolveMapPlacedElementVisualRect(
+      geometry: geometry,
+      tilesetSource: sources[tilesetId],
+    );
+    final current = bounds;
+    if (current == null) {
+      bounds = rect;
+      continue;
+    }
+    final left = current.leftPx < rect.leftPx ? current.leftPx : rect.leftPx;
+    final top = current.topPx < rect.topPx ? current.topPx : rect.topPx;
+    final right = current.leftPx + current.widthPx > rect.leftPx + rect.widthPx
+        ? current.leftPx + current.widthPx
+        : rect.leftPx + rect.widthPx;
+    final bottom = current.topPx + current.heightPx > rect.topPx + rect.heightPx
+        ? current.topPx + current.heightPx
+        : rect.topPx + rect.heightPx;
+    bounds = PixelRect(
+      leftPx: left,
+      topPx: top,
+      widthPx: _checkedPixelSum(right, -left),
+      heightPx: _checkedPixelSum(bottom, -top),
+    );
+  }
+  return bounds ?? geometry.logicalRect;
+}
+
+void validateMapPlacedElementPixelGeometry(
+  MapPlacedElement instance, {
+  PixelSize? tileSize,
+}) {
+  final offset = instance.pixelOffset;
+  _requireExactPixelInteger(offset.x);
+  _requireExactPixelInteger(offset.y);
+  final size = instance.pixelSize;
+  if (size != null) {
+    _requirePixelSize(size);
+    if (size.width > maxMapPlacedElementPixelArea ~/ size.height) {
+      throw const ValidationException(
+        'Placed element custom pixel area exceeds $maxMapPlacedElementPixelArea pixels',
+      );
+    }
+  }
+  final transformed = offset.x != 0 || offset.y != 0 || size != null;
+  if (transformed && !isAuthoredMapPlacedElement(instance)) {
+    throw const ValidationException(
+      'Pixel transformations require an authored placed element',
+    );
+  }
+  if (tileSize == null) {
+    if (transformed) {
+      throw const ValidationException(
+        'Pixel transformation validation requires project tile dimensions',
+      );
+    }
+    return;
+  }
+  _requirePixelSize(tileSize);
+  if (offset.x < 0 ||
+      offset.y < 0 ||
+      offset.x >= tileSize.width ||
+      offset.y >= tileSize.height) {
+    throw const ValidationException(
+      'Placed element pixel offsets must be normalized',
+    );
+  }
+}
+
+void validateMapPlacedElementGeometryBounds({
+  required MapPlacedElementGeometry geometry,
+  required GridSize mapSize,
+  required PixelSize tileSize,
+}) {
+  final width = _checkedPixelProduct(mapSize.width, tileSize.width);
+  final height = _checkedPixelProduct(mapSize.height, tileSize.height);
+  final rect = geometry.logicalRect;
+  if (rect.leftPx < 0 ||
+      rect.topPx < 0 ||
+      rect.leftPx + rect.widthPx > width ||
+      rect.topPx + rect.heightPx > height) {
+    throw const ValidationException(
+      'Placed element pixel footprint exceeds map bounds',
+    );
+  }
+}
+
+void _requirePixelSize(PixelSize size) {
+  _requireExactPixelInteger(size.width);
+  _requireExactPixelInteger(size.height);
+  if (size.width < 1 || size.height < 1) {
+    throw const ValidationException('Pixel dimensions must be positive');
+  }
+}
+
+int _pixelFloorDivide(int value, int divisor) =>
+    value ~/ divisor - (value < 0 && value % divisor != 0 ? 1 : 0);
+
+void _requireExactPixelInteger(int value) {
+  if (value < -_maxExactlyRepresentableWebInteger ||
+      value > _maxExactlyRepresentableWebInteger) {
+    throw const ValidationException(
+      'Pixel geometry exceeds exact integer representation',
+    );
+  }
+}
+
+int _checkedPixelProduct(int a, int b) {
+  _requireExactPixelInteger(a);
+  _requireExactPixelInteger(b);
+  if (b != 0 && a.abs() > _maxExactlyRepresentableWebInteger ~/ b.abs()) {
+    throw const ValidationException(
+      'Pixel geometry exceeds exact integer representation',
+    );
+  }
+  return a * b;
+}
+
+int _checkedPixelSum(int a, int b) {
+  _requireExactPixelInteger(a);
+  _requireExactPixelInteger(b);
+  final result = a + b;
+  _requireExactPixelInteger(result);
+  return result;
+}
 
 /// Wraps an arbitrary quarter-turn count into the canonical `0..3` range.
 ///
@@ -146,6 +399,62 @@ final class QuarterTurnPixelTransform {
   /// Canonical clockwise quarter turns in `0..3`.
   final int quarterTurns;
 
+  PixelRect sourcePixelRectToDestinationPixelRect(PixelRect source) {
+    if (source.leftPx < 0 ||
+        source.topPx < 0 ||
+        source.widthPx <= 0 ||
+        source.heightPx <= 0 ||
+        source.widthPx > sourcePixelSize.width - source.leftPx ||
+        source.heightPx > sourcePixelSize.height - source.topPx) {
+      throw RangeError('Source pixel rectangle is outside the source bitmap');
+    }
+    final xLength = quarterTurns.isEven
+        ? destinationPixelSize.width
+        : destinationPixelSize.height;
+    final yLength = quarterTurns.isEven
+        ? destinationPixelSize.height
+        : destinationPixelSize.width;
+    var left = _inversePixelCenterBoundary(
+      source.leftPx,
+      sourcePixelSize.width,
+      xLength,
+    );
+    var right = _inversePixelCenterBoundary(
+      source.leftPx + source.widthPx,
+      sourcePixelSize.width,
+      xLength,
+    );
+    var top = _inversePixelCenterBoundary(
+      source.topPx,
+      sourcePixelSize.height,
+      yLength,
+    );
+    var bottom = _inversePixelCenterBoundary(
+      source.topPx + source.heightPx,
+      sourcePixelSize.height,
+      yLength,
+    );
+    if (quarterTurns == 2 || quarterTurns == 3) {
+      (left, right) = (xLength - right, xLength - left);
+    }
+    if (quarterTurns == 1 || quarterTurns == 2) {
+      (top, bottom) = (yLength - bottom, yLength - top);
+    }
+    return quarterTurns.isEven
+        ? PixelRect(
+            leftPx: left,
+            topPx: top,
+            widthPx: right - left,
+            heightPx: bottom - top,
+          )
+        : PixelRect(
+            leftPx: top,
+            topPx: left,
+            widthPx: bottom - top,
+            heightPx: right - left,
+          );
+  }
+
   /// Inverse-samples one in-bounds destination pixel into the source bitmap.
   GridPos destinationPixelToSourcePixel(GridPos destination) {
     _requireCoordinateInBounds(
@@ -212,6 +521,35 @@ final class QuarterTurnPixelTransform {
 }
 
 const int _maxExactlyRepresentableWebInteger = 9007199254740991;
+
+int _inversePixelCenterBoundary(
+  int boundary,
+  int sourceLength,
+  int destinationLength,
+) {
+  if (sourceLength <= _maxExactlyRepresentableWebInteger ~/ 2 &&
+      destinationLength <= _maxExactlyRepresentableWebInteger ~/ 2 &&
+      (boundary == 0 ||
+          destinationLength * 2 <=
+              _maxExactlyRepresentableWebInteger ~/ boundary)) {
+    final numerator = destinationLength * 2 * boundary - sourceLength;
+    final denominator = sourceLength * 2;
+    final value =
+        numerator ~/ denominator +
+        (numerator > 0 && numerator % denominator != 0 ? 1 : 0);
+    return value.clamp(0, destinationLength);
+  }
+  final numerator =
+      BigInt.from(destinationLength) * BigInt.two * BigInt.from(boundary) -
+      BigInt.from(sourceLength);
+  final denominator = BigInt.from(sourceLength) * BigInt.two;
+  final value =
+      numerator ~/ denominator +
+      (numerator > BigInt.zero && numerator % denominator != BigInt.zero
+          ? BigInt.one
+          : BigInt.zero);
+  return value.toInt().clamp(0, destinationLength);
+}
 
 /// Evaluates an exact normalized center without floating-point intermediates.
 ///

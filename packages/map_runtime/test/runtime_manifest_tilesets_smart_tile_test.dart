@@ -8,7 +8,7 @@ void main() {
       const map = MapData(
         id: 'object-tilesets',
         name: 'Object tilesets',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           ObjectLayer(
@@ -38,7 +38,7 @@ void main() {
       const map = MapData(
         id: 'route-1',
         name: 'Route 1',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         tilesetId: 'base-world',
         size: GridSize(width: 4, height: 4),
         layers: <MapLayer>[
@@ -73,7 +73,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Smart Tile Runtime',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[
           ProjectTilesetEntry(
@@ -309,7 +309,7 @@ void main() {
       const baseMap = MapData(
         id: 'border-runtime',
         name: 'Border Runtime',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         tilesetId: 'base-world',
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
@@ -334,7 +334,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Border Runtime',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[
           ProjectTilesetEntry(

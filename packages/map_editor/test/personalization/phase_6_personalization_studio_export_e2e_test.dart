@@ -53,7 +53,7 @@ void main() {
           'id': 'map.start',
           'name': 'Aube',
           'size': <String, Object?>{'width': 5, 'height': 4},
-          'version': 'v6',
+          'version': 'v8',
           'layers': <Object?>[],
           'entities': <Object?>[
             <String, Object?>{

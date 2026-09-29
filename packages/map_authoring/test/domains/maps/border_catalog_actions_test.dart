@@ -425,7 +425,7 @@ void main() {
   final artifacts = MemoryArtifactStore(maximumArtifactBytes: 1024 * 1024);
   final manifest = ProjectManifest(
     name: 'Border catalog fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,

@@ -5,6 +5,7 @@ import '../errors/application_errors.dart';
 class SetTileLayerEnvironmentAreaParamsOverrideUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String tileLayerId,
     required String areaId,
     required EnvironmentGenerationParams paramsOverride,
@@ -16,6 +17,7 @@ class SetTileLayerEnvironmentAreaParamsOverrideUseCase {
     );
     return _replaceTargetArea(
       map,
+      manifest: manifest,
       environmentLayer: target.environmentLayer,
       areaId: target.area.id,
       updatedArea: EnvironmentArea(
@@ -34,6 +36,7 @@ class SetTileLayerEnvironmentAreaParamsOverrideUseCase {
 class ResetTileLayerEnvironmentAreaParamsOverrideUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String tileLayerId,
     required String areaId,
   }) {
@@ -44,6 +47,7 @@ class ResetTileLayerEnvironmentAreaParamsOverrideUseCase {
     );
     return _replaceTargetArea(
       map,
+      manifest: manifest,
       environmentLayer: target.environmentLayer,
       areaId: target.area.id,
       updatedArea: EnvironmentArea(
@@ -61,13 +65,15 @@ class ResetTileLayerEnvironmentAreaParamsOverrideUseCase {
 class SetTileLayerEnvironmentAreaSeedForTileLayerUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String tileLayerId,
     required String areaId,
     required int seed,
   }) {
     if (seed < 0) {
       throw const EditorValidationException(
-          'EnvironmentArea seed must be >= 0');
+        'EnvironmentArea seed must be >= 0',
+      );
     }
     final target = _resolveTarget(
       map,
@@ -76,6 +82,7 @@ class SetTileLayerEnvironmentAreaSeedForTileLayerUseCase {
     );
     return _replaceTargetArea(
       map,
+      manifest: manifest,
       environmentLayer: target.environmentLayer,
       areaId: target.area.id,
       updatedArea: EnvironmentArea(
@@ -103,7 +110,8 @@ _TileLayerEnvironmentAreaTarget _resolveTarget(
   final aid = areaId.trim();
   if (aid.isEmpty) {
     throw const EditorValidationException(
-        'Environment area id cannot be empty');
+      'Environment area id cannot be empty',
+    );
   }
 
   final tileLayer = _findLayerById(map, tid);
@@ -134,6 +142,7 @@ _TileLayerEnvironmentAreaTarget _resolveTarget(
 
 MapData _replaceTargetArea(
   MapData map, {
+  ProjectManifest? manifest,
   required EnvironmentLayer environmentLayer,
   required String areaId,
   required EnvironmentArea updatedArea,
@@ -153,7 +162,7 @@ MapData _replaceTargetArea(
       layerId: environmentLayer.id,
       content: nextContent,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   } on ValidationException catch (e) {
     throw EditorValidationException(e.message);

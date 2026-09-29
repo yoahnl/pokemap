@@ -77,13 +77,13 @@ void main() {
             ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           ),
         );
-        expect(manifest.version, ProjectVersion.v7);
+        expect(manifest.version, ProjectVersion.v8);
 
         final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
         final json =
             jsonDecode(await projectFile.readAsString())
                 as Map<String, dynamic>;
-        expect(json['version'], 'v7');
+        expect(json['version'], 'v8');
         final pokemon = json['pokemon'] as Map<String, dynamic>;
 
         expect(

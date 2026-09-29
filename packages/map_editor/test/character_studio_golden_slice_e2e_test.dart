@@ -128,7 +128,7 @@ void main() {
       expect(query['items'], hasLength(1));
       final reopened = await _readManifest(root);
       final elia = reopened.characters.single;
-      expect(reopened.version, ProjectVersion.v6);
+      expect(reopened.version, ProjectVersion.v8);
       expect(reopened.settings.defaultPlayerCharacterId, 'elia');
       expect(
         reopened.characterStudioCatalog.portraitStates.single.id,

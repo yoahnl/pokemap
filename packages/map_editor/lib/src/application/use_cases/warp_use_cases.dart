@@ -9,13 +9,11 @@ import '../services/project_map_id_policy.dart';
 class AddWarpToMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required MapWarp warp,
   }) {
-    final updated = addWarpToMap(
-      map,
-      warp: warp,
-    );
-    MapValidator.validate(updated);
+    final updated = addWarpToMap(map, warp: warp);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -23,6 +21,7 @@ class AddWarpToMapUseCase {
 class UpdateWarpOnMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String warpId,
     String? id,
     GridPos? pos,
@@ -43,7 +42,7 @@ class UpdateWarpOnMapUseCase {
       allowedApproachFacings: allowedApproachFacings,
       triggerPadding: triggerPadding,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -51,22 +50,17 @@ class UpdateWarpOnMapUseCase {
 class DeleteWarpFromMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String warpId,
   }) {
-    final updated = removeWarpFromMap(
-      map,
-      warpId: warpId,
-    );
-    MapValidator.validate(updated);
+    final updated = removeWarpFromMap(map, warpId: warpId);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
 
 class ValidateWarpTargetMapUseCase {
-  ProjectMapEntry execute(
-    ProjectManifest project,
-    String targetMapId,
-  ) {
+  ProjectMapEntry execute(ProjectManifest project, String targetMapId) {
     final normalizedTargetMapId = targetMapId.trim();
     if (normalizedTargetMapId.isEmpty) {
       throw const EditorValidationException('Warp target map cannot be empty');
@@ -77,7 +71,8 @@ class ValidateWarpTargetMapUseCase {
       }
     }
     throw EditorNotFoundException(
-        'Warp target map not found in project: $normalizedTargetMapId');
+      'Warp target map not found in project: $normalizedTargetMapId',
+    );
   }
 }
 
@@ -114,7 +109,8 @@ class CreateReciprocalWarpUseCase {
     final targetMapEntry = project.maps.firstWhere(
       (entry) => entry.id == targetMapId,
       orElse: () => throw EditorNotFoundException(
-          'Warp target map not found in project: $targetMapId'),
+        'Warp target map not found in project: $targetMapId',
+      ),
     );
 
     final targetIsSourceMap = targetMapEntry.id == sourceMap.id;
@@ -146,14 +142,17 @@ class CreateReciprocalWarpUseCase {
         destinationPos.x >= targetMap.size.width ||
         destinationPos.y >= targetMap.size.height) {
       throw EditorValidationException(
-          'Warp destination is out of bounds in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
+        'Warp destination is out of bounds in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})',
+      );
     }
 
-    final hasWarpAtDestination =
-        targetMap.warps.any((warp) => warp.pos == destinationPos);
+    final hasWarpAtDestination = targetMap.warps.any(
+      (warp) => warp.pos == destinationPos,
+    );
     if (hasWarpAtDestination) {
       throw EditorConflictException(
-          'A warp already exists in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
+        'A warp already exists in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})',
+      );
     }
 
     final reciprocalWarp = MapWarp(
@@ -168,7 +167,7 @@ class CreateReciprocalWarpUseCase {
       triggerPadding: sourceWarp.triggerPadding,
     );
     final updatedTargetMap = addWarpToMap(targetMap, warp: reciprocalWarp);
-    MapValidator.validate(updatedTargetMap);
+    MapValidator.validate(updatedTargetMap, projectDialogueContext: project);
 
     if (!targetIsSourceMap) {
       final targetMapPath = fs.resolveMapPath(targetMapEntry.relativePath);
@@ -183,9 +182,14 @@ class CreateReciprocalWarpUseCase {
           updatedTargetMap,
           targetMapPath,
           precondition: MapDocumentWritePrecondition.revision(expectedRevision),
+          projectDialogueContext: project,
         );
       } else {
-        await _mapRepo.saveMap(updatedTargetMap, targetMapPath);
+        await _mapRepo.saveMap(
+          updatedTargetMap,
+          targetMapPath,
+          projectDialogueContext: project,
+        );
       }
     }
 

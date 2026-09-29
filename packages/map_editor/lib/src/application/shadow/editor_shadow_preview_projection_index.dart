@@ -31,23 +31,23 @@ final class EditorShadowPreviewProjection {
     required MapData map,
     required List<EditorStaticShadowPreviewInstruction> staticInstructions,
     required List<EditorStaticShadowPreviewInstruction>
-        projectedBuildingInstructions,
+    projectedBuildingInstructions,
     required double bucketWidth,
     required double bucketHeight,
-  })  : _placedElementIndex = _EditorPlacedElementViewportIndex(
-          manifest: manifest,
-          map: map,
-        ),
-        _staticIndex = _EditorShadowPreviewInstructionIndex(
-          instructions: staticInstructions,
-          bucketWidth: bucketWidth,
-          bucketHeight: bucketHeight,
-        ),
-        _projectedBuildingIndex = _EditorShadowPreviewInstructionIndex(
-          instructions: projectedBuildingInstructions,
-          bucketWidth: bucketWidth,
-          bucketHeight: bucketHeight,
-        );
+  }) : _placedElementIndex = _EditorPlacedElementViewportIndex(
+         manifest: manifest,
+         map: map,
+       ),
+       _staticIndex = _EditorShadowPreviewInstructionIndex(
+         instructions: staticInstructions,
+         bucketWidth: bucketWidth,
+         bucketHeight: bucketHeight,
+       ),
+       _projectedBuildingIndex = _EditorShadowPreviewInstructionIndex(
+         instructions: projectedBuildingInstructions,
+         bucketWidth: bucketWidth,
+         bucketHeight: bucketHeight,
+       );
 
   final _EditorPlacedElementViewportIndex _placedElementIndex;
   final _EditorShadowPreviewInstructionIndex _staticIndex;
@@ -55,22 +55,25 @@ final class EditorShadowPreviewProjection {
 
   int get staticInstructionCount => _staticIndex.length;
 
+  int get debugPlacedElementIndexedCellCount =>
+      _placedElementIndex._elementIndicesByCell.length;
+
+  int get debugPlacedElementGlobalCandidateCount =>
+      _placedElementIndex._globalBounds.length;
+
   int get projectedBuildingInstructionCount => _projectedBuildingIndex.length;
 
   List<MapPlacedElement> placedElementsIn(
     EditorShadowPreviewCellViewport viewport,
-  ) =>
-      _placedElementIndex.elementsIn(viewport);
+  ) => _placedElementIndex.elementsIn(viewport);
 
   List<EditorStaticShadowPreviewInstruction> staticInstructionsIn(
     EditorShadowPreviewViewport viewport,
-  ) =>
-      _staticIndex.instructionsIn(viewport);
+  ) => _staticIndex.instructionsIn(viewport);
 
   List<EditorStaticShadowPreviewInstruction> projectedBuildingInstructionsIn(
     EditorShadowPreviewViewport viewport,
-  ) =>
-      _projectedBuildingIndex.instructionsIn(viewport);
+  ) => _projectedBuildingIndex.instructionsIn(viewport);
 }
 
 /// Retains the projection index while map and project value identities stay
@@ -115,11 +118,11 @@ final class EditorShadowPreviewProjectionOwner {
       ),
       projectedBuildingInstructions:
           buildEditorProjectedBuildingShadowPreviewInstructions(
-        manifest: manifest,
-        map: map,
-        tileWidth: tileWidth,
-        tileHeight: tileHeight,
-      ),
+            manifest: manifest,
+            map: map,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+          ),
       bucketWidth: tileWidth,
       bucketHeight: tileHeight,
     );
@@ -146,22 +149,30 @@ final class _EditorPlacedElementViewportIndex {
   _EditorPlacedElementViewportIndex({
     required ProjectManifest manifest,
     required MapData map,
-  })  : _elements = List<MapPlacedElement>.unmodifiable(map.placedElements),
-        _elementIndicesByCell = _indexPlacedElements(
-          manifest: manifest,
-          map: map,
-        );
+  }) : _elements = List<MapPlacedElement>.unmodifiable(map.placedElements) {
+    _elementIndicesByCell = _indexPlacedElements(
+      manifest: manifest,
+      map: map,
+      globalBounds: _globalBounds,
+    );
+  }
 
   final List<MapPlacedElement> _elements;
-  final Map<(int, int), List<int>> _elementIndicesByCell;
+  late final Map<(int, int), List<int>> _elementIndicesByCell;
+  final Map<int, EditorShadowPreviewCellViewport> _globalBounds = {};
 
-  List<MapPlacedElement> elementsIn(
-    EditorShadowPreviewCellViewport viewport,
-  ) {
+  List<MapPlacedElement> elementsIn(EditorShadowPreviewCellViewport viewport) {
     if (viewport.isEmpty || _elements.isEmpty) {
       return const <MapPlacedElement>[];
     }
-    final candidateIndices = <int>{};
+    final candidateIndices = <int>{
+      for (final entry in _globalBounds.entries)
+        if (entry.value.left < viewport.right &&
+            entry.value.right > viewport.left &&
+            entry.value.top < viewport.bottom &&
+            entry.value.bottom > viewport.top)
+          entry.key,
+    };
     for (var y = viewport.top; y < viewport.bottom; y += 1) {
       for (var x = viewport.left; x < viewport.right; x += 1) {
         final cell = _elementIndicesByCell[(x, y)];
@@ -185,16 +196,16 @@ final class _EditorShadowPreviewInstructionIndex {
     required List<EditorStaticShadowPreviewInstruction> instructions,
     required this.bucketWidth,
     required this.bucketHeight,
-  })  : assert(bucketWidth.isFinite && bucketWidth > 0),
-        assert(bucketHeight.isFinite && bucketHeight > 0),
-        _instructions = List<EditorStaticShadowPreviewInstruction>.unmodifiable(
-          instructions,
-        ),
-        _instructionIndicesByBucket = _indexInstructions(
-          instructions: instructions,
-          bucketWidth: bucketWidth,
-          bucketHeight: bucketHeight,
-        );
+  }) : assert(bucketWidth.isFinite && bucketWidth > 0),
+       assert(bucketHeight.isFinite && bucketHeight > 0),
+       _instructions = List<EditorStaticShadowPreviewInstruction>.unmodifiable(
+         instructions,
+       ),
+       _instructionIndicesByBucket = _indexInstructions(
+         instructions: instructions,
+         bucketWidth: bucketWidth,
+         bucketHeight: bucketHeight,
+       );
 
   final double bucketWidth;
   final double bucketHeight;
@@ -258,9 +269,13 @@ Map<(int, int), List<int>> _indexInstructions({
 Map<(int, int), List<int>> _indexPlacedElements({
   required ProjectManifest manifest,
   required MapData map,
+  required Map<int, EditorShadowPreviewCellViewport> globalBounds,
 }) {
   final elementById = <String, ProjectElementEntry>{
     for (final element in manifest.elements) element.id: element,
+  };
+  final tilesetSources = {
+    for (final tileset in manifest.tilesets) tileset.id: tileset.source,
   };
   final result = <(int, int), List<int>>{};
   for (var index = 0; index < map.placedElements.length; index += 1) {
@@ -269,16 +284,31 @@ Map<(int, int), List<int>> _indexPlacedElements({
     if (element == null || element.frames.isEmpty) {
       continue;
     }
-    final footprint = resolveMapPlacedElementFootprint(
+    final bounds = resolveMapPlacedElementVisualBounds(
       instance: instance,
       element: element,
-    ).destinationSize;
-    for (var y = instance.pos.y;
-        y < instance.pos.y + footprint.height;
-        y += 1) {
-      for (var x = instance.pos.x;
-          x < instance.pos.x + footprint.width;
-          x += 1) {
+      manifest: manifest,
+      tilesetSources: tilesetSources,
+    );
+    final startX = (bounds.leftPx / manifest.settings.tileWidth).floor();
+    final endX =
+        ((bounds.leftPx + bounds.widthPx) / manifest.settings.tileWidth).ceil();
+    final startY = (bounds.topPx / manifest.settings.tileHeight).floor();
+    final endY =
+        ((bounds.topPx + bounds.heightPx) / manifest.settings.tileHeight)
+            .ceil();
+    if (endX <= startX || endY <= startY) continue;
+    if (endX - startX > 256 ~/ (endY - startY)) {
+      globalBounds[index] = EditorShadowPreviewCellViewport(
+        left: startX,
+        top: startY,
+        right: endX,
+        bottom: endY,
+      );
+      continue;
+    }
+    for (var y = startY; y < endY; y++) {
+      for (var x = startX; x < endX; x++) {
         result.putIfAbsent((x, y), () => <int>[]).add(index);
       }
     }

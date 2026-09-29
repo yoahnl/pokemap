@@ -282,7 +282,7 @@ final class _FakeGateway implements SmartTileDraftPersistenceGateway {
         snapshotRevision: _revision,
         manifest: ProjectManifest(
           name: 'Fixture',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
           smartTileCatalog: ProjectSmartTileCatalog(

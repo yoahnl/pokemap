@@ -2,18 +2,12 @@ import 'package:map_core/map_core.dart';
 
 import 'editor_shadow_light_preview.dart';
 
-enum EditorStaticShadowPreviewShapeKind {
-  oval,
-  projectedPolygon,
-}
+enum EditorStaticShadowPreviewShapeKind { oval, projectedPolygon }
 
 final _colorHexRgbPattern = RegExp(r'^[0-9a-fA-F]{6}$');
 
 final class EditorStaticShadowPreviewPoint {
-  EditorStaticShadowPreviewPoint({
-    required this.x,
-    required this.y,
-  }) {
+  EditorStaticShadowPreviewPoint({required this.x, required this.y}) {
     _validateFinite(x, 'EditorStaticShadowPreviewPoint.x');
     _validateFinite(y, 'EditorStaticShadowPreviewPoint.y');
   }
@@ -42,8 +36,9 @@ final class EditorStaticShadowPreviewInstruction {
     required this.opacity,
     required this.colorHexRgb,
     Iterable<EditorStaticShadowPreviewPoint> polygonPoints = const [],
-  }) : polygonPoints =
-            List<EditorStaticShadowPreviewPoint>.unmodifiable(polygonPoints) {
+  }) : polygonPoints = List<EditorStaticShadowPreviewPoint>.unmodifiable(
+         polygonPoints,
+       ) {
     _validateNonBlank(
       instanceId,
       'EditorStaticShadowPreviewInstruction.instanceId',
@@ -95,17 +90,17 @@ final class EditorStaticShadowPreviewInstruction {
 
   @override
   int get hashCode => Object.hash(
-        instanceId,
-        elementId,
-        shape,
-        left,
-        top,
-        width,
-        height,
-        opacity,
-        colorHexRgb,
-        Object.hashAll(polygonPoints),
-      );
+    instanceId,
+    elementId,
+    shape,
+    left,
+    top,
+    width,
+    height,
+    opacity,
+    colorHexRgb,
+    Object.hashAll(polygonPoints),
+  );
 }
 
 /// Half-open world-pixel bounds used to select editor shadow previews.
@@ -161,7 +156,7 @@ final class EditorShadowPreviewViewport {
 }
 
 List<EditorStaticShadowPreviewInstruction>
-    buildEditorStaticShadowPreviewInstructions({
+buildEditorStaticShadowPreviewInstructions({
   required ProjectManifest manifest,
   required MapData map,
   required double tileWidth,
@@ -210,9 +205,13 @@ List<EditorStaticShadowPreviewInstruction>
     if (source.width <= 0 || source.height <= 0) {
       continue;
     }
-    final transform = QuarterTurnGridTransform(
-      sourceSize: GridSize(width: source.width, height: source.height),
-      quarterTurns: placed.quarterTurns,
+    final target = resolveMapPlacedElementGeometry(
+      instance: placed,
+      element: element,
+      tileSize: PixelSize(
+        width: manifest.settings.tileWidth,
+        height: manifest.settings.tileHeight,
+      ),
     );
 
     final resolution = resolveShadowConfig(
@@ -227,23 +226,60 @@ List<EditorStaticShadowPreviewInstruction>
       continue;
     }
 
-    // Light direction remains in world space; only the caster's occupied
-    // destination rectangle changes when the placed visual rotates.
-    final visualWidth = transform.destinationSize.width * tileWidth;
-    final visualHeight = transform.destinationSize.height * tileHeight;
-    final baseLeft = placed.pos.x * tileWidth;
-    final baseTop = placed.pos.y * tileHeight;
+    final visualWidth =
+        target.pixelSize.width * tileWidth / manifest.settings.tileWidth;
+    final visualHeight =
+        target.pixelSize.height * tileHeight / manifest.settings.tileHeight;
+    final baseLeft =
+        target.logicalRect.leftPx * tileWidth / manifest.settings.tileWidth;
+    final baseTop =
+        target.logicalRect.topPx * tileHeight / manifest.settings.tileHeight;
+    final sourceWidth = source.width * tileWidth;
+    final sourceHeight = source.height * tileHeight;
     final metrics = StaticShadowVisualMetrics(
       left: baseLeft,
       top: baseTop,
-      visualWidth: visualWidth,
-      visualHeight: visualHeight,
+      visualWidth: sourceWidth,
+      visualHeight: sourceHeight,
     );
-    final geometry = resolveStaticShadowGeometry(
-      metrics: metrics,
+    final natural = resolveStaticShadowGeometry(
+      metrics: StaticShadowVisualMetrics(
+        left: 0,
+        top: 0,
+        visualWidth: sourceWidth,
+        visualHeight: sourceHeight,
+      ),
       shadowConfig: resolved,
       elementFootprint: element.shadow?.footprint,
       overrideFootprint: placed.shadowOverride?.footprint,
+    );
+    final u = natural.anchorX / sourceWidth, v = natural.anchorY / sourceHeight;
+    final (x, y) = switch (placed.quarterTurns) {
+      0 => (u, v),
+      1 => (1 - v, u),
+      2 => (1 - u, 1 - v),
+      _ => (v, 1 - u),
+    };
+    final anchorX = baseLeft + x * visualWidth,
+        anchorY = baseTop + y * visualHeight;
+    final odd = placed.quarterTurns.isOdd;
+    final sx = visualWidth / (odd ? sourceHeight : sourceWidth),
+        sy = visualHeight / (odd ? sourceWidth : sourceHeight);
+    final width = (odd ? natural.height : natural.width) * sx,
+        height = (odd ? natural.width : natural.height) * sy;
+    final centerX = anchorX + resolved.offsetX,
+        centerY = anchorY + resolved.offsetY;
+    final geometry = ResolvedStaticShadowGeometry(
+      anchorX: anchorX,
+      anchorY: anchorY,
+      baseWidth: (odd ? natural.baseHeight : natural.baseWidth) * sx,
+      baseHeight: (odd ? natural.baseWidth : natural.baseHeight) * sy,
+      centerX: centerX,
+      centerY: centerY,
+      width: width,
+      height: height,
+      left: centerX - width / 2,
+      top: centerY - height / 2,
     );
     final family = resolveStaticShadowFamily(
       elementFamily: element.shadow?.family,
@@ -306,9 +342,7 @@ bool _hasResolvableProjectedBuildingShadow({
   if (config == null || !config.enabled) {
     return false;
   }
-  return manifest.projectedBuildingShadowCatalog.presetById(
-        config.presetId,
-      ) !=
+  return manifest.projectedBuildingShadowCatalog.presetById(config.presetId) !=
       null;
 }
 
@@ -328,9 +362,11 @@ StaticShadowProjectionSpec _projectionSpecForEditorLightPreview(
         ? preset.directionY
         : defaultStaticShadowProjectionDirectionY,
     lengthRatio: lengthRatio,
-    nearWidthMultiplier: defaultStaticShadowProjectionNearWidthMultiplier *
+    nearWidthMultiplier:
+        defaultStaticShadowProjectionNearWidthMultiplier *
         preset.scaleXMultiplier,
-    farWidthMultiplier: defaultStaticShadowProjectionFarWidthMultiplier *
+    farWidthMultiplier:
+        defaultStaticShadowProjectionFarWidthMultiplier *
         preset.scaleXMultiplier,
   );
 }

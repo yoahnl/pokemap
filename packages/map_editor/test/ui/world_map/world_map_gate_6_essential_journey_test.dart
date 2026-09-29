@@ -527,7 +527,7 @@ final class _ImmediateEditorImageCache extends EditorImageCache {
 final _map = MapData(
   id: 'gate-6-map',
   name: 'Gate 6 realistic map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: const GridSize(width: 8, height: 8),
   layers: <MapLayer>[
@@ -570,7 +570,7 @@ final _initialState = EditorState(
   activeMapPath: '/tmp/pokemap-gate-6-certification/maps/gate-6-map.json',
   project: const ProjectManifest(
     name: 'Gate 6 certification',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'gate-6-map',

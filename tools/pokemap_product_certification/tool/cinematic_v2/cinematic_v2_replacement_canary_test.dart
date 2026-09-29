@@ -342,7 +342,7 @@ Future<void> _writeAuthorProject(Directory root) async {
       const MapData(
         id: 'map.start',
         name: 'Start',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
         mapMetadata: MapMetadata(defaultSpawnId: 'spawn.player'),
         entities: <MapEntity>[
@@ -468,7 +468,7 @@ Future<void> _writeReferencedPokemonAssets(Directory root) async {
 
 ProjectManifest _project() => ProjectManifest(
   name: 'CIN-042 Canary',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map.start',
@@ -671,8 +671,8 @@ GamePackageHostCompatibility _hostCompatibility(
   hubVersion: Version.parse('1.2.0'),
   runtimeApiVersion: Version.parse('1.4.0'),
   capabilities: requiredCapabilities.toSet(),
-  supportedProjectFormats: const <String>{'v7'},
-  currentProjectFormat: 'v7',
+  supportedProjectFormats: const <String>{'v8'},
+  currentProjectFormat: 'v8',
   supportedSaveFormats: const <int>{1},
 );
 

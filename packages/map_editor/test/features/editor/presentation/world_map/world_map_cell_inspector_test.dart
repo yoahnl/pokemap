@@ -183,7 +183,7 @@ const _project = ProjectManifest(
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(

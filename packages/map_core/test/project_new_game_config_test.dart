@@ -3,10 +3,10 @@ import 'package:test/test.dart';
 
 void main() {
   group('Project new game config', () {
-    test('legacy manifests default to a disabled config', () {
+    test('manifests without newGame default to a disabled config', () {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         'name': 'legacy',
-        'version': 'v6',
+        'version': 'v8',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       });
@@ -233,7 +233,7 @@ void main() {
       );
     });
 
-    test('requires project v7 when a pre-session entrypoint is present', () {
+    test('requires project v8 when a pre-session entrypoint is present', () {
       final json = _manifest(
         const ProjectNewGameConfig(
           enabled: true,
@@ -250,8 +250,8 @@ void main() {
             (error) => error.message,
             'message',
             allOf(
-              contains('cinematic_v2_project_v7_required'),
-              contains(r'$.newGame.preSessionSceneId'),
+              contains('project_version_unsupported'),
+              contains(r'$.version'),
             ),
           ),
         ),
@@ -286,7 +286,7 @@ void main() {
       );
     });
 
-    test('keeps a v7 project without an entrypoint valid', () {
+    test('keeps a v8 project without an entrypoint valid', () {
       final manifest = _manifest(
         const ProjectNewGameConfig(enabled: true, startMapId: 'map_start'),
       );
@@ -306,7 +306,7 @@ ProjectManifest _manifest(
 }) {
   return ProjectManifest(
     name: 'new game config test',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const [
       ProjectMapEntry(
         id: 'map_start',

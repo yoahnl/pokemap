@@ -635,7 +635,7 @@ final class _SeededEditorNotifier extends EditorNotifier {
 
 ProjectManifest _projectWithMap() => const ProjectManifest(
   name: 'Placement project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[
     ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
     ProjectMapEntry(
@@ -679,7 +679,7 @@ ProjectManifest _projectWithMap() => const ProjectManifest(
 MapData _mapForCanonicalPlacement() => MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: const GridSize(width: 128, height: 128),
   layers: <MapLayer>[

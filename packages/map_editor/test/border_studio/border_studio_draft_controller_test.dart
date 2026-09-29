@@ -1294,7 +1294,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Border test',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map-1',

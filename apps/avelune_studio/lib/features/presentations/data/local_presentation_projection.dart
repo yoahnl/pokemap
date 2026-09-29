@@ -108,9 +108,9 @@ class LocalPresentationProjection implements PresentationDraftProjection {
     required String templateId,
     required int durationUs,
   }) {
-    if (manifest.version != ProjectVersion.v7) {
+    if (manifest.version != ProjectVersion.v8) {
       throw const PresentationFailure(
-        'Les présentations nécessitent un projet v7.',
+        'Les présentations nécessitent un projet v8.',
       );
     }
     final template = PresentationCinematicTemplateCatalog.canonical().require(

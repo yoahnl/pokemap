@@ -10,6 +10,7 @@ import '../services/environment_mask_brush_footprint_resolver.dart';
 class PaintEnvironmentAreaMaskCellUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String environmentLayerId,
     required String areaId,
     required GridPos pos,
@@ -115,7 +116,7 @@ class PaintEnvironmentAreaMaskCellUseCase {
         layerId: envId,
         content: nextContent,
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
       return updated;
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);
@@ -126,6 +127,7 @@ class PaintEnvironmentAreaMaskCellUseCase {
 class PaintEnvironmentAreaMaskBrushStrokeUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String environmentLayerId,
     required String areaId,
     required GridPos center,
@@ -234,7 +236,7 @@ class PaintEnvironmentAreaMaskBrushStrokeUseCase {
         layerId: envId,
         content: nextContent,
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
       return updated;
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);

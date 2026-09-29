@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
+import 'map_decor_geometry_panel.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -67,7 +68,9 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
   Widget build(BuildContext context) {
     final commands = MapEditingCommands(document, project);
     final position = document.stackPosition;
-    final stack = position == null
+    final stack = document.stackPixelPosition != null
+        ? commands.stackAtPixel(document.stackPixelPosition!)
+        : position == null
         ? <MapPlacedElement>[]
         : commands.stack(position);
     final selected = document.selected;
@@ -191,6 +194,18 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     'Ordre local entre décors compatibles. Les collisions restent inchangées.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  if (entry != null) ...[
+                    const SizedBox(height: 12),
+                    MapDecorGeometryPanel(
+                      key: ValueKey('decor-geometry-${selected.id}'),
+                      document: document,
+                      project: project,
+                      instance: selected,
+                      element: entry,
+                      view: view,
+                      onChanged: onChanged,
+                    ),
+                  ],
                 ],
                 if (stack.isNotEmpty) ...[
                   const SizedBox(height: 20),

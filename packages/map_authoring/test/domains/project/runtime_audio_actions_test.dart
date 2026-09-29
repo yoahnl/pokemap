@@ -76,7 +76,7 @@ final class _Harness {
     await Directory('${root.path}/assets/music').create(recursive: true);
     final manifest = ProjectManifest(
       name: 'Audio fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: [
         ProjectMapEntry(
             id: 'route', name: 'Route', relativePath: 'maps/route.json')
@@ -86,7 +86,7 @@ final class _Harness {
     const map = MapData(
       id: 'route',
       name: 'Route',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       layers: [],
       mapMetadata: MapMetadata(displayName: 'Route', tags: ['outdoor']),

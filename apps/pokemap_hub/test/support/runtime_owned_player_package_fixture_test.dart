@@ -39,8 +39,8 @@ void main() {
     final project = _fixtureProject();
     final map = _fixtureMap();
 
-    expect(project.version, ProjectVersion.v6);
-    expect(map.version, ProjectVersion.v6);
+    expect(project.version, ProjectVersion.v8);
+    expect(map.version, ProjectVersion.v8);
     ProjectValidator.validate(project);
     MapValidator.validate(map, projectDialogueContext: project);
 
@@ -54,8 +54,8 @@ void main() {
       ),
       mapId: 'runtime_harbor',
     );
-    expect(bundle.manifest.version, ProjectVersion.v6);
-    expect(bundle.map.version, ProjectVersion.v6);
+    expect(bundle.manifest.version, ProjectVersion.v8);
+    expect(bundle.map.version, ProjectVersion.v8);
 
     for (final scene in project.scenes) {
       final report = diagnoseSceneAgainstProject(
@@ -103,7 +103,7 @@ void main() {
         isA<FormatException>().having(
           (error) => error.toString(),
           'message',
-          contains('smart_tile_v6_project_required'),
+          contains('project_version_unsupported'),
         ),
       ),
     );
@@ -113,7 +113,7 @@ void main() {
         isA<FormatException>().having(
           (error) => error.toString(),
           'message',
-          contains('smart_tile_v6_map_required'),
+          contains('map_version_unsupported'),
         ),
       ),
     );

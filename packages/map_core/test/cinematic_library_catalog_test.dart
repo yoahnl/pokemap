@@ -45,7 +45,7 @@ void main() {
     );
     final manifest = ProjectManifest(
       name: 'Cinematics',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
       cinematicLibraryCatalog: catalog,
@@ -396,7 +396,7 @@ void main() {
     );
   });
 
-  test('gates persisted catalogs to v7 and validates asset references', () {
+  test('gates persisted catalogs to v8 and validates asset references', () {
     expect(
       ProjectManifest(
         name: 'V6',
@@ -419,7 +419,7 @@ void main() {
     );
     final invalid = ProjectManifest(
       name: 'V7',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
       cinematicLibraryCatalog: CinematicLibraryCatalog(

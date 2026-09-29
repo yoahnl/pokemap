@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime_authoring.dart';
 
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_render_pass.dart';
@@ -90,13 +92,29 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
     required double scaleY,
     required Paint paint,
   }) {
-    if (instruction.quarterTurns == 0 && !instruction.flipX) {
-      canvas.drawImageRect(
-        image,
-        instruction.sourceRect,
-        destination,
-        paint,
+    if (instruction.sourceFamily == 'placedElement' ||
+        instruction.sourceFamily == 'environment') {
+      drawQuarterTurnPixels(
+        canvas,
+        image: RuntimeTilesetImage.borrowed(image),
+        sourceRect: instruction.sourceRect,
+        destinationRect: destination,
+        sourcePixelSize: GridSize(
+          width: instruction.sourceRect.width.toInt(),
+          height: instruction.sourceRect.height.toInt(),
+        ),
+        destinationPixelSize: GridSize(
+          width: instruction.destinationWidthPx,
+          height: instruction.destinationHeightPx,
+        ),
+        quarterTurns: instruction.quarterTurns,
+        paint: paint,
+        includeSourcePixel: instruction.includeSourcePixel,
       );
+      return;
+    }
+    if (instruction.quarterTurns == 0 && !instruction.flipX) {
+      canvas.drawImageRect(image, instruction.sourceRect, destination, paint);
       return;
     }
 

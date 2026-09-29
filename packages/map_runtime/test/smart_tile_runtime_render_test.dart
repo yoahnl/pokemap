@@ -327,13 +327,13 @@ Future<RuntimeTilesetImage> _solidRuntimeImage({
   const map = MapData(
     id: 'geometry-map',
     name: 'Geometry map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[layer],
   );
   final manifest = ProjectManifest(
     name: 'Geometry runtime',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -405,7 +405,7 @@ Future<RuntimeTilesetImage> _solidRuntimeImage({
 const _map = MapData(
   id: 'smart-map',
   name: 'Smart Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -421,7 +421,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Smart Runtime',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

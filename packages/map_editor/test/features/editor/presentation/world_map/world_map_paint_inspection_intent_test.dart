@@ -210,7 +210,7 @@ const _project = ProjectManifest(
 const _mapA = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -227,7 +227,7 @@ const _mapA = MapData(
 const _mapB = MapData(
   id: 'map-b',
   name: 'Map B',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     BorderLayer(id: 'border', name: 'Border'),

@@ -343,7 +343,7 @@ final class StoneChainVisualFixture {
     final map = MapData(
       id: 'stone-chain-visual-${resolution.visualCase.id}',
       name: resolution.visualCase.id,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: stoneChainVisualMapSize,
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',

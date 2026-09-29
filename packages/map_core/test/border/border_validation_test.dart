@@ -680,7 +680,7 @@ List<String> _codes(BorderDiagnosticsReport report) =>
 
 ProjectManifest _project({bool includeSnapshot = true}) => ProjectManifest(
       name: 'Project',
-      version: includeSnapshot ? ProjectVersion.v6 : ProjectVersion.v6,
+      version: includeSnapshot ? ProjectVersion.v8 : ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: includeSnapshot

@@ -314,32 +314,35 @@ final class EffectiveCollisionInspector {
       final element = elementById[instance.elementId];
       final profile = element?.collisionProfile;
       if (element == null || profile == null) continue;
-      final footprint = resolveMapPlacedElementFootprint(
-        instance: instance,
-        element: element,
-      );
       final mask = profile.collisionMask;
       if (mask != null) {
         performanceObserver?.incrementCounter(
           AuthoringPerformanceCounterName.base64Decode,
         );
       }
-      final sourceCells = mask == null
-          ? profile.cells
-          : ElementCollisionMaskCodec.cellsFromPixelMask(
-              mask: mask,
-              tileWidth: manifest.settings.tileWidth,
-              tileHeight: manifest.settings.tileHeight,
-              sourceWidthInTiles: footprint.sourceSize.width,
-              sourceHeightInTiles: footprint.sourceSize.height,
-            );
-      for (final sourceCell in sourceCells) {
-        final destination = footprint.sourceToDestination(sourceCell);
+      final tileWidth = manifest.settings.tileWidth;
+      final tileHeight = manifest.settings.tileHeight;
+      final covered = <GridPos>{};
+      for (final rect in resolveMapPlacedElementCollisionRects(
+          instance: instance,
+          element: element,
+          tileSize: PixelSize(width: tileWidth, height: tileHeight))) {
+        final left = rect.leftPx.clamp(0, map.size.width * tileWidth);
+        final top = rect.topPx.clamp(0, map.size.height * tileHeight);
+        final right =
+            (rect.leftPx + rect.widthPx).clamp(0, map.size.width * tileWidth);
+        final bottom =
+            (rect.topPx + rect.heightPx).clamp(0, map.size.height * tileHeight);
+        if (left >= right || top >= bottom) continue;
+        for (var y = top ~/ tileHeight; y <= (bottom - 1) ~/ tileHeight; y++) {
+          for (var x = left ~/ tileWidth; x <= (right - 1) ~/ tileWidth; x++) {
+            covered.add(GridPos(x: x, y: y));
+          }
+        }
+      }
+      for (final cell in covered) {
         add(
-          GridPos(
-            x: instance.pos.x + destination.x,
-            y: instance.pos.y + destination.y,
-          ),
+          cell,
           CollisionContribution(
             kind: mask == null
                 ? CollisionProvenanceKind.placedElementProfile

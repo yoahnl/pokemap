@@ -14,7 +14,11 @@ import 'terrain_creation_test.dart'
 class _PreviewVisuals extends WorkspaceTestVisuals {
   MapData? painted;
   @override
-  Widget canvas(MapData map) {
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) {
     painted = map;
     return const SizedBox.expand();
   }
