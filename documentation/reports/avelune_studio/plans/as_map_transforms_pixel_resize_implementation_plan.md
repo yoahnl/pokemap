@@ -1182,3 +1182,32 @@ Les zones fonctionnelles principales sont le modèle/codec/validateur et la géo
 ```
 
 </details>
+
+### Publication Avelune Studio 0.3.14 — 30 septembre 2026
+
+Yoahn autorise explicitement commit, push et publication par la CI. Le checkout principal est enregistré par le commit source `23052557d`. Le `main` distant a avancé séparément jusqu’à `2e1bc223a` (Studio 0.3.13) ; intégration dans un worktree géré, sans modifier le checkout principal. Le cherry-pick produit `793a256df` après six résolutions ciblées.
+
+Conflits résolus : `map_editing_commands.dart`, `map_workspace_canvas.dart`, `map_workspace_canvas_gestures.dart`, `map_placed_element_visual_order.dart`, `map_grid_painter.dart`, `map_layers_component.dart`. Les gestes de transformation, la composition et l’échantillonnage sont conservés ; la garde distante de compatibilité des contextes de rendu reste présente et sa sélection est adaptée aux pixels. Les références aux outils de dessin de bordures et `eraseDecor`, présents dans l’ancienne branche locale mais absents du `main` distant, ne sont pas importées. Les outils effectivement publiés de bordures et personnages restent disponibles.
+
+Passes : implémentation Studio (`resize_studio`) et runtime/painter (`resize_runtime`) gelées ; audit/critique indépendant (`plan_critique`) favorable sans finding bloquant. Tests et build pilotés par root. Aucun changement du workflow CI, aucun nouveau Markdown. Seul autre fichier produit pour la release : `apps/avelune_studio/pubspec.yaml`, version `0.3.13+313` → `0.3.14+314`.
+
+Vérification sur le worktree intégré, Flutter local 3.47.5 :
+
+| Reçu | Commande depuis le package | Résultat |
+| --- | --- | --- |
+| `release014-core` | map_core : `dart test test/placed_element_visual_order_test.dart test/map_placed_element_geometry_test.dart test/map_placed_element_collision_geometry_test.dart test/project_transform_format_v8_test.dart --reporter expanded` | 40 succès |
+| `release014-release-tests` | Studio : `flutter test test/release --reporter expanded --concurrency=1` | 10 succès |
+| `release014-studio-final` | Studio : `flutter test test/map_workspace/decor_transform_host_test.dart test/map_workspace/decor_move_host_test.dart test/map_workspace/inspector_fields_undo_test.dart test/map_workspace/context_menu_host_test.dart test/infrastructure/studio_map_resources_test.dart --reporter expanded --concurrency=1` | 39 succès |
+| `release014-context` | Studio : `flutter test test/map_workspace/context_keyboard_test.dart test/map_workspace/context_identity_host_test.dart test/characters/character_canvas_test.dart test/presentation/border_creation_journey_test.dart --reporter expanded --concurrency=1` | 11 succès |
+| `release014-runtime` | map_runtime : `flutter test test/placed_element_transform_render_test.dart test/playable_map_game_placed_element_occlusion_test.dart test/static_placed_element_occlusion_patch_resolution_test.dart test/runtime_authoring_map_renderer_order_test.dart test/map_layers_component_performance_profile_test.dart --reporter expanded --concurrency=1` | 55 succès |
+| `release014-painter` | map_editor : `flutter test test/map_grid_painter_test.dart test/cinematic_map_backdrop_placed_element_rotation_test.dart --reporter expanded --concurrency=1` | 30 succès |
+| `release014-studio-analysis` | Studio : `flutter analyze --no-pub` | Aucun problème |
+| `release014-build` | Studio : `flutter build macos --release --no-pub` | `Built build/macos/Build/Products/Release/Avelune Studio.app (128.1MB)` |
+
+Tous les reçus ci-dessus terminent avec exit 0 ; les tests et analyse n’ont aucun processus possédé restant. Les enfants `ibtoold` 15053/15054/15055 du build sont identifiés par UID/date/commande, arrêtés par TERM et leur sortie contrôlée. Avertissements Apple dans les dépendances ; aucune erreur de build.
+
+La première commande de tests Studio incluait à tort `decor_order_e2e_test.dart`, absent du `main` distant : 39 succès et un échec de chargement « Does not exist », sans échec comportemental. La commande corrigée ci-dessus est verte. Aucun test hors périmètre n’est importé pour masquer cet échec de commande.
+
+Depuis map_core, `dart analyze lib/src/operations/map_placed_element_visual_order.dart` : aucun problème. Depuis map_editor, `dart run tool/release/validate_release_version.dart --tag pokemap-v0.3.14 --pubspec ../../apps/avelune_studio/pubspec.yaml --previous-build 313` : `Validated PokeMap Editor 0.3.14 build 314.`, exit 0. Appcast stable relu : 0.3.13/build313 ; tag 0.3.14 absent avant publication. Le workflow distant épingle Flutter 3.48.0-0.4.pre ; ses propres contrôles restent requis avant publication effective.
+
+État avant intégration : checkout principal 500 chemins correspondant exactement à l’inventaire approuvé ; après commit source, checkout principal propre. Worktree avant commit de release : seul le pubspec et cette mise à jour de preuve sont modifiés. `git diff --check` et `bash tools/scripts/check_markdown_hygiene.sh` : exit 0. Les limites natives, v8 strict et conversion de grille restent celles du lot ; aucune validation visuelle ajoutée par cette publication. La CI et les URLs de distribution sont suivies dans le même ticket Notion.
