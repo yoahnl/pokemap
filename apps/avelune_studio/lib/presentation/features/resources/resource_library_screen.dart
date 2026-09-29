@@ -41,14 +41,10 @@ class ResourceLibraryScreen extends StatefulWidget {
   final List<MapData> openMaps;
   final MapWorkspaceVisuals visuals;
   final ResourceLibraryState state;
-  final ValueChanged<ResourceItem> onUse;
-  final ValueChanged<ResourceItem> onEdit;
-  final ValueChanged<ResourceItem> onTerrain;
-  final VoidCallback onCreateBorder;
+  final ValueChanged<ResourceItem> onUse, onEdit, onTerrain;
+  final VoidCallback onCreateBorder, onImport, onBack;
   final ValueChanged<BorderBlueprintRecord> onResumeBorder;
-  final VoidCallback onImport;
   final VoidCallback? onCharacters;
-  final VoidCallback onBack;
   final String? targetMapName;
   final bool canUse;
   final List<ProjectSmartTileAuthoringDraft> terrainDrafts;
@@ -139,7 +135,6 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
           close?.call();
         },
       );
-
   void showDetail(ResourceItem item) => showWorkspaceCompactPanel(
     context,
     title: 'Détail de la ressource',

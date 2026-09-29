@@ -171,6 +171,7 @@ class WidgetResourcePort implements ResourcePort {
     BorderCreationRequest request,
   ) async => run(() => port.createBorder(request));
 
+  @override
   Future<ResourceMutationReceipt> importCharacterPortrait(
     CharacterPortraitImport request,
   ) async => run(() => port.importCharacterPortrait(request));
