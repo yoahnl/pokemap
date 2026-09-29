@@ -237,7 +237,7 @@ final class CharacterStudioController extends ChangeNotifier {
             'kind': 'system',
             'state': key.$1.name,
             'direction': key.$2.name,
-            if (frames.isNotEmpty) 'sourceAssetId': null,
+            if (frames.isNotEmpty) 'sourceAssetId': draft.sourceAssetIdFor(key),
             if (frames.isNotEmpty)
               'frames': [for (final frame in frames) frame.toJson()],
           },

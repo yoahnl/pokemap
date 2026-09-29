@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'character_studio_controller.dart';
 import '../../../features/characters/application/character_studio_draft.dart';
-import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
 import 'character_studio_source_panel.dart';
 import 'character_studio_frame_thumbnail.dart';
 import 'character_studio_matrix_actions.dart';
+import 'character_studio_dedicated_controls.dart';
+import 'character_studio_frame_target.dart';
+import 'character_studio_dedicated_only_panel.dart';
 
 class CharacterStudioAnimationPanel extends StatefulWidget {
   const CharacterStudioAnimationPanel({
@@ -20,6 +22,7 @@ class CharacterStudioAnimationPanel extends StatefulWidget {
     required this.visuals,
     required this.elapsedMs,
     required this.compact,
+    required this.onImportDedicated,
   });
 
   final ProjectManifest project;
@@ -29,6 +32,7 @@ class CharacterStudioAnimationPanel extends StatefulWidget {
   final MapWorkspaceVisuals visuals;
   final int elapsedMs;
   final bool compact;
+  final void Function(CharacterAnimationState, EntityFacing) onImportDedicated;
 
   @override
   State<CharacterStudioAnimationPanel> createState() =>
@@ -77,13 +81,13 @@ class _CharacterStudioAnimationPanelState
       final hasAtlas = widget.project.tilesets.any(
         (entry) => entry.id == widget.character.tilesetId,
       );
-      return _surface('Planche indisponible', [
-        Text(
-          hasAtlas
-              ? 'La planche de ce personnage ne peut pas être lue. Les animations existantes sont conservées.'
-              : 'Ce personnage utilise des images dédiées. La planche guidée accepte une source de type atlas ; ses animations existantes sont conservées.',
-        ),
-      ]);
+      return CharacterStudioDedicatedOnlyPanel(
+        hasAtlas: hasAtlas,
+        draft: widget.draft,
+        controller: widget.controller,
+        visuals: widget.visuals,
+        onImport: widget.onImportDedicated,
+      );
     }
     return widget.compact
         ? ListView(
@@ -185,7 +189,14 @@ class _CharacterStudioAnimationPanelState
                                   for (var index = 0; index < count; index++)
                                     SizedBox(
                                       width: cellWidth,
-                                      child: _target(direction.$1, index),
+                                      child: CharacterStudioFrameTarget(
+                                        direction: direction.$1,
+                                        index: index,
+                                        draft: widget.draft,
+                                        controller: widget.controller,
+                                        visuals: widget.visuals,
+                                        pickedSource: _pickedSource,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -207,55 +218,14 @@ class _CharacterStudioAnimationPanelState
         source: source,
         draft: widget.draft,
         controller: widget.controller,
+        onImportDedicated: widget.onImportDedicated,
+      ),
+      CharacterStudioDedicatedControls(
+        draft: widget.draft,
+        controller: widget.controller,
+        visuals: widget.visuals,
       ),
     ]);
-  }
-
-  Widget _target(EntityFacing direction, int index) {
-    final key = (widget.controller.animationState, direction);
-    final frames = widget.draft.framesFor(key);
-    final frame = index < frames.length ? frames[index] : null;
-    return Padding(
-      padding: const EdgeInsets.all(3),
-      child: DragTarget<TilesetSourceRect>(
-        onAcceptWithDetails: (details) =>
-            widget.controller.assign(direction, index, details.data),
-        builder: (context, candidates, rejected) => Material(
-          color: candidates.isNotEmpty || _pickedSource != null && frame == null
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerLow,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
-          child: Tooltip(
-            message: frame == null
-                ? 'Déposer ou choisir une pose'
-                : 'Maintenir pour retirer cette pose',
-            child: InkWell(
-              key: ValueKey('character-slot-${direction.name}-$index'),
-              onTap: _pickedSource == null
-                  ? null
-                  : () => widget.controller.assign(
-                      direction,
-                      index,
-                      _pickedSource!,
-                    ),
-              onLongPress: frame == null
-                  ? null
-                  : () => widget.controller.clear(direction, index),
-              child: StudioAssetPreview(
-                child: frame == null
-                    ? const Icon(Icons.add_photo_alternate_outlined)
-                    : _frame(frame, direction, size: 78),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _frame(

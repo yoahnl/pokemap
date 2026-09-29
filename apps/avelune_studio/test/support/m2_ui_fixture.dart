@@ -171,6 +171,10 @@ class WidgetResourcePort implements ResourcePort {
     CharacterPortraitImport request,
   ) async => run(() => port.importCharacterPortrait(request));
   @override
+  Future<ResourceMutationReceipt> importCharacterAnimation(
+    CharacterAnimationImport request,
+  ) async => run(() => port.importCharacterAnimation(request));
+  @override
   Future<Uint8List?> readCharacterPortrait(
     String characterId,
     String stateId,

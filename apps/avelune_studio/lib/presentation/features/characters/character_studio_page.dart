@@ -27,6 +27,7 @@ class CharacterStudioPage extends StatefulWidget {
     required this.onImport,
     required this.port,
     required this.onImportPortrait,
+    required this.onImportAnimation,
   });
 
   final ProjectManifest project;
@@ -36,6 +37,7 @@ class CharacterStudioPage extends StatefulWidget {
   final VoidCallback onImport;
   final ResourcePort port;
   final ValueChanged<String> onImportPortrait;
+  final void Function(CharacterAnimationState, EntityFacing) onImportAnimation;
 
   @override
   State<CharacterStudioPage> createState() => _CharacterStudioPageState();
@@ -196,6 +198,7 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
         visuals: widget.visuals,
         elapsedMs: _elapsedMs,
         compact: compact,
+        onImportDedicated: widget.onImportAnimation,
       );
     }
     if (widget.controller.section == CharacterStudioSection.portraits) {
