@@ -11,6 +11,7 @@ import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
 import '../support/m3_story_fixture.dart';
 import '../support/map_host_fixture.dart';
+import '../support/map_tool_menu.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 
 void main() {
@@ -112,7 +113,7 @@ void main() {
         prepareSource: prepareGameExportFixture,
         gameExportPicker: (_) async => target,
       );
-      await tester.tap(find.byTooltip('Dessiner une zone d’histoire'));
+      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
       await pumpIo(tester, frames: 4);
       await f.drag(3, 11, 5, 13);
       await pumpIo(tester, frames: 10);

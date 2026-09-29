@@ -56,21 +56,38 @@ List<MapPlacedElement> mapPlacedElementsAt(
   };
   final result = hits.where((e) => byLayer.containsKey(e.layerId)).toList();
   final stableRanks = {for (final (index, hit) in hits.indexed) hit.id: index};
+  final phases = <String, int>{};
+  for (final (index, hit) in hits.indexed) {
+    final layer = byLayer[hit.layerId];
+    if (layer == null) continue;
+    if (mapTileLayerIsExplicitForeground(layer)) {
+      phases[hit.id] = 1;
+      continue;
+    }
+    final element = elements[hit.elementId]!;
+    final collision = element.collisionProfile;
+    final frame = element.frames.primarySource;
+    if (!hit.applyCollision ||
+        collision?.occlusionMask != null ||
+        collision?.cells.isNotEmpty != true ||
+        (frame.width <= 1 && frame.height <= 1)) {
+      phases[hit.id] = 0;
+      continue;
+    }
+    final transform = resolveMapPlacedElementFootprint(
+      instance: hit,
+      element: element,
+    );
+    final source = transform.destinationToSource(
+      GridPos(x: position.x - hit.pos.x, y: position.y - hit.pos.y),
+    );
+    final covered = hits
+        .skip(index + 1)
+        .any((candidate) => candidate.layerId == hit.layerId);
+    phases[hit.id] = collision!.cells.contains(source) || covered ? 0 : 1;
+  }
   result.sort((a, b) {
-    final phase =
-        _foregroundAt(
-          a,
-          elements[a.elementId]!,
-          byLayer[a.layerId]!,
-          position,
-        ).compareTo(
-          _foregroundAt(
-            b,
-            elements[b.elementId]!,
-            byLayer[b.layerId]!,
-            position,
-          ),
-        );
+    final phase = phases[a.id]!.compareTo(phases[b.id]!);
     if (phase != 0) return phase;
     final layer = layerRanks[a.layerId]!.compareTo(layerRanks[b.layerId]!);
     return layer != 0
@@ -134,17 +151,17 @@ MapData moveMapPlacedElementVisualOrder(
   final neighborIndex = index + (forward ? 1 : -1);
   if (neighborIndex < 0 || neighborIndex >= local.length) return map;
   final neighbor = local[neighborIndex];
-  if (_context(neighbor, elements[neighbor.elementId]!) !=
-      _context(source, sourceElement)) {
-    return map;
-  }
   final sourceIndex = candidates.indexWhere((e) => e.id == source.id);
   final targetIndex = candidates.indexWhere((e) => e.id == neighbor.id);
   final reordered = List<MapPlacedElement>.of(candidates);
-  reordered.removeAt(sourceIndex);
-  reordered.insert(targetIndex, source);
+  reordered[sourceIndex] = neighbor;
+  reordered[targetIndex] = source;
+  final distinctRanks =
+      candidates.map((entry) => entry.visualOrder).toSet().length ==
+      candidates.length;
   final ranks = {
-    for (final (index, value) in reordered.indexed) value.id: index,
+    for (final (index, value) in reordered.indexed)
+      value.id: distinctRanks ? candidates[index].visualOrder : index,
   };
   return map.copyWith(
     placedElements: [
@@ -182,34 +199,6 @@ bool mapTileLayerIsExplicitForeground(MapLayer layer) {
     }
   }
   return false;
-}
-
-int _foregroundAt(
-  MapPlacedElement instance,
-  ProjectElementEntry element,
-  MapLayer layer,
-  GridPos position,
-) {
-  if (mapTileLayerIsExplicitForeground(layer)) return 1;
-  if (_context(instance, element) != 1) return 0;
-  final transform = resolveMapPlacedElementFootprint(
-    instance: instance,
-    element: element,
-  );
-  final source = transform.destinationToSource(
-    GridPos(x: position.x - instance.pos.x, y: position.y - instance.pos.y),
-  );
-  return element.collisionProfile!.cells.contains(source) ? 0 : 1;
-}
-
-int _context(MapPlacedElement instance, ProjectElementEntry element) {
-  if (element.collisionProfile?.occlusionMask != null) return 2;
-  final frame = element.frames.primarySource;
-  return instance.applyCollision &&
-          (frame.width > 1 || frame.height > 1) &&
-          element.collisionProfile?.cells.isNotEmpty == true
-      ? 1
-      : 0;
 }
 
 bool _overlaps(

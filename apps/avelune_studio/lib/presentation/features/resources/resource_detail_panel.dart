@@ -236,7 +236,9 @@ class ResourceDetailPanel extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       StudioButton(
-        label: 'Créer un terrain automatique',
+        key: const ValueKey('resource-create-path'),
+        label: 'Créer un chemin automatique',
+        icon: Icons.route_outlined,
         secondary: true,
         onPressed: terrainSourceCompatibilityProblem(tileset) == null
             ? () => onTerrain(entry)

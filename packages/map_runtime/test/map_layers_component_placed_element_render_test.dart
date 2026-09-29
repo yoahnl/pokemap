@@ -60,6 +60,64 @@ void main() {
       expect(await pixelAt(image, 16, 16), rgba(41, 179, 74, 255));
     });
 
+    test('applies the atlas pixel offset to a placed element', () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: const MapData(
+            id: 'offset-placed-element-map',
+            name: 'Offset Placed Element Map',
+            size: GridSize(width: 1, height: 1),
+            layers: [
+              MapLayer.tile(id: 'decor', name: 'Decor', cells: [0])
+            ],
+            placedElements: [
+              MapPlacedElement(
+                id: 'stairs-1',
+                layerId: 'decor',
+                elementId: 'stairs',
+                pos: GridPos(x: 0, y: 0),
+              ),
+            ],
+          ),
+          tilesets: const [
+            ProjectTilesetEntry(
+              id: 'stairs-tileset',
+              name: 'Stairs Tileset',
+              relativePath: 'tilesets/stairs.png',
+              source: ProjectRegularAtlasTilesetSource(
+                assetId: 'stairs-asset',
+                pixelWidth: 32,
+                pixelHeight: 32,
+                tileWidth: 32,
+                tileHeight: 32,
+                pixelOffsetY: 4,
+              ),
+            ),
+          ],
+          elements: const [
+            ProjectElementEntry(
+              id: 'stairs',
+              name: 'Stairs',
+              tilesetId: 'stairs-tileset',
+              categoryId: 'architecture',
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+              ],
+            ),
+          ],
+        ),
+        tileImagesByTilesetId: {
+          'stairs-tileset':
+              await runtimeTilesetImage(const [Color(0xFF29B34A)]),
+        },
+      );
+
+      final image = await _renderComponent(component);
+
+      expect(await pixelAt(image, 16, 2), rgba(0, 0, 0, 0));
+      expect(await pixelAt(image, 16, 6), rgba(41, 179, 74, 255));
+    });
+
     test('does not render a placed element whose instance opacity is zero',
         () async {
       final component = MapLayersComponent(

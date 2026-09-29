@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
+import 'map_decor_animation_panel.dart';
 import 'map_decor_order_panel.dart';
 import 'map_decor_selection_summary.dart';
 import 'map_workspace_inspector.dart';
@@ -36,7 +37,7 @@ class MapDecorInspectorTabs extends StatefulWidget {
 }
 
 class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
-  bool _showOrder = false;
+  String _tab = 'properties';
 
   @override
   Widget build(BuildContext context) {
@@ -53,13 +54,26 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
             ),
           ),
         if (selected != null)
-          StudioTabs<bool>(
-            items: const {false: 'Propriétés', true: 'Ordre'},
-            selected: _showOrder,
-            onChanged: (value) => setState(() => _showOrder = value),
+          StudioTabs<String>(
+            items: const {
+              'properties': 'Propriétés',
+              'order': 'Ordre',
+              'animation': 'Animation',
+            },
+            selected: _tab,
+            onChanged: (value) => setState(() => _tab = value),
           ),
         Expanded(
-          child: _showOrder && selected != null
+          child: _tab == 'animation' && selected != null
+              ? StudioSidebar(
+                  width: widget.width,
+                  child: MapDecorAnimationPanel(
+                    document: widget.document,
+                    project: widget.project,
+                    onChanged: widget.onChanged,
+                  ),
+                )
+              : _tab == 'order' && selected != null
               ? StudioSidebar(
                   width: widget.width,
                   child: MapDecorOrderPanel(

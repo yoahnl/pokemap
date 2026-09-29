@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:map_core/map_core_domain.dart';
 
 typedef StudioHomeMap = ({String id, String name});
 
@@ -8,6 +9,8 @@ class StudioHomeNavigation extends ChangeNotifier {
   bool visible = true;
   bool canTest = false;
   List<StudioHomeMap> maps = const [];
+  ProjectManifest? mapLibrary;
+  Widget Function(String)? mapPreviewBuilder;
   Future<bool> Function()? allowSwitch;
   void Function(String, String?)? onNavigate;
   (String, String?)? _pending;
@@ -42,13 +45,17 @@ class StudioHomeNavigation extends ChangeNotifier {
 
   void publish({
     required List<StudioHomeMap> availableMaps,
+    ProjectManifest? library,
     required bool testAvailable,
+    Widget Function(String)? previewBuilder,
     required void Function(String, String?) navigate,
     required Future<bool> Function() guard,
   }) {
     if (_disposed) return;
     maps = availableMaps;
+    mapLibrary = library;
     canTest = testAvailable;
+    mapPreviewBuilder = previewBuilder;
     onNavigate = navigate;
     allowSwitch = guard;
     final pending = _pending;
@@ -59,7 +66,9 @@ class StudioHomeNavigation extends ChangeNotifier {
 
   void reset() {
     maps = const [];
+    mapLibrary = null;
     canTest = false;
+    mapPreviewBuilder = null;
     onNavigate = null;
     allowSwitch = null;
     _pending = null;

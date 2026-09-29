@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:map_authoring/map_authoring.dart' show MapAuthoringException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
@@ -9,8 +10,10 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/resource_port.dart';
+import 'border_resource_sources.dart';
 import 'resource_no_change.dart';
 
+part 'local_border_resource_adapter.dart';
 part 'local_resource_character_operations.dart';
 
 final class LocalResourceAdapter implements ResourcePort {
@@ -25,6 +28,8 @@ final class LocalResourceAdapter implements ResourcePort {
     'element.upsert',
     'smart_tile.preset.draft.upsert',
     'smart_tile.preset.publish',
+    'border.blueprint.draft.upsert',
+    'border.blueprint.publish',
     'map.library.reorganize',
     'characterStudio.character.create',
     'characterStudio.character.update',
@@ -52,6 +57,10 @@ final class LocalResourceAdapter implements ResourcePort {
   ) => _readCharacterPortrait(this, characterId, stateId);
 
   @override
+  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
+      _createBorder(this, request);
+
+  @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>
       _importResourceImage(this, request);
 
@@ -70,6 +79,8 @@ final class LocalResourceAdapter implements ResourcePort {
     Map<String, Object?> Function(ProjectManifest manifest) parameters, {
     String? sourcePath,
     String? createdTilesetId,
+    List<BorderResourcePrimitive>? borderSources,
+    String? expectedBeforeRevision,
   }) => mapAdapter.withResourceMutation(() async {
     try {
       if (_disposed || !_actions.contains(actionId)) {
@@ -78,6 +89,12 @@ final class LocalResourceAdapter implements ResourcePort {
         );
       }
       final before = await mapAdapter.resourceBaseline(session);
+      if (expectedBeforeRevision != null &&
+          before.revision != expectedBeforeRevision) {
+        throw const ResourceFailure(
+          'Le projet a changé pendant la préparation. Reprenez la bordure.',
+        );
+      }
       final fields = Map<String, Object?>.from(parameters(before.manifest));
       if (resourceMutationIsUnchanged(before.manifest, actionId, fields)) {
         await mapAdapter.resourceBaseline(session);
@@ -111,6 +128,7 @@ final class LocalResourceAdapter implements ResourcePort {
         artifactStore: artifacts,
       );
       String? artifactHandle;
+      final stagedHandles = <String>{};
       var attached = false;
       try {
         if (sourcePath != null) {
@@ -120,7 +138,40 @@ final class LocalResourceAdapter implements ResourcePort {
             declaredMediaType: 'image/png',
           );
           artifactHandle = staged.reference.handle;
+          stagedHandles.add(artifactHandle);
           fields['artifactHandle'] = artifactHandle;
+        }
+        if (borderSources != null) {
+          final handlesByPath = <String, String>{};
+          fields['primitiveSources'] = <Object?>[
+            for (final source in borderSources)
+              <String, Object?>{
+                'primitiveId': source.draft.id,
+                'frames': <Object?>[
+                  for (final frame in source.frames)
+                    <String, Object?>{
+                      'artifactHandle': await _stageBorderFrame(
+                        api,
+                        artifacts,
+                        frame,
+                        handlesByPath,
+                        stagedHandles,
+                      ),
+                      'sourceProjectRelativePath': frame.relativePath,
+                      'sourceRectPx': <String, int>{
+                        'x': frame.rect.x,
+                        'y': frame.rect.y,
+                        'width': frame.rect.width,
+                        'height': frame.rect.height,
+                      },
+                      if (frame.durationMs != null)
+                        'durationMs': frame.durationMs,
+                      if (frame.transparentColorArgb != null)
+                        'transparentColorArgb': frame.transparentColorArgb,
+                    },
+                ],
+              },
+          ];
         }
         await api.attachProject(
           projectRootPath: session.directoryPath,
@@ -224,14 +275,16 @@ final class LocalResourceAdapter implements ResourcePort {
         );
         return receipt;
       } finally {
-        if (artifactHandle != null) await artifacts.release(artifactHandle);
+        for (final handle in stagedHandles) {
+          await artifacts.release(handle);
+        }
         if (attached) await api.detachWorkspace(opened.workspaceHandle);
         handles.closeWorkspace(opened.workspaceHandle);
       }
     } on ResourceFailure {
       rethrow;
     } on Object catch (error) {
-      throw ResourceFailure('La ressource n’a pas été publiée : $error');
+      throw _resourceFailure(error);
     }
   });
 

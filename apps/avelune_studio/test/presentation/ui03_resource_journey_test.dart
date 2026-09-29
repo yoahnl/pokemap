@@ -14,6 +14,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resourc
 import '../support/m2_ui_fixture.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/ui03_resource_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets('UI03 real previews selection search return and compact detail', (
@@ -68,7 +69,7 @@ void main() {
         .transformationController!
         .value
         .clone();
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     final n = tester
         .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
@@ -112,7 +113,7 @@ void main() {
     expect(offset, greaterThan(100));
     await tester.tap(find.text('Carte : Jardin des essais'));
     await tester.pump();
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     expect(n.library.offset, closeTo(offset, 1));
     await tester.tap(find.byKey(const ValueKey('resource-use')));
@@ -127,7 +128,7 @@ void main() {
     expect(palette.view.transform.value, transform);
     await paintAndUndo();
 
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await tester.tap(find.text('Images et tuiles'));
     await pumpIo(tester);
@@ -149,7 +150,7 @@ void main() {
     expect(tileView.tool, StudioMapTool.paint);
     await paintAndUndo();
 
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await tester.tap(find.text('Terrains'));
     await pumpIo(tester);
@@ -165,7 +166,7 @@ void main() {
     await paintAndUndo();
     await f.capture(tester, '06-retour-carte');
 
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await tester.tap(find.text('Décors'));
     await tester.pump();

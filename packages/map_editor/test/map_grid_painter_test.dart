@@ -13,6 +13,90 @@ import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_animation_need
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
+    test('applies the atlas pixel offset to a placed element', () async {
+      const map = MapData(
+        id: 'offset-placed-element',
+        name: 'Offset placed element',
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          TileLayer(id: 'decor', name: 'Decor', cells: <int>[0]),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'stairs-1',
+            layerId: 'decor',
+            elementId: 'stairs',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Offset placed element',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'stairs-tileset',
+            name: 'Stairs tileset',
+            relativePath: 'tilesets/stairs.png',
+            source: ProjectRegularAtlasTilesetSource(
+              assetId: 'stairs-asset',
+              pixelWidth: 32,
+              pixelHeight: 32,
+              tileWidth: 32,
+              tileHeight: 32,
+              pixelOffsetY: 4,
+            ),
+          ),
+        ],
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'stairs',
+            name: 'Stairs',
+            tilesetId: 'stairs-tileset',
+            categoryId: 'architecture',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+      );
+      final tilesetImage = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFF29B34A),
+      );
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: <String, ui.Image?>{'stairs-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{'stairs-tileset': 1},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        project: project,
+        showGrid: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(32, 32));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+
+      expect(_rgbaAt(pixels, 32, 16, 2), <int>[0, 0, 0, 0]);
+      expect(_rgbaAt(pixels, 32, 16, 6), <int>[41, 179, 74, 255]);
+
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
+
     test('keeps painting maps that contain a Smart Tile layer', () {
       const map = MapData(
         id: 'smart-tile-map',

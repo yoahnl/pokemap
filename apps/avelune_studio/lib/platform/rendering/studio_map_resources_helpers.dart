@@ -1,6 +1,22 @@
 part of 'studio_map_resources.dart';
 
 extension StudioMapResourcesHelpers on StudioMapResources {
+  Future<void> get _resourcesSettled async {
+    await Future.wait([store.settled, borderPreview.settled]);
+  }
+
+  List<WorkspaceResourceDiagnostic> get _resourceDiagnostics =>
+      List.unmodifiable([
+        ..._diagnostics.values,
+        if (borderPreview.issue case final issue?)
+          WorkspaceResourceDiagnostic(
+            resourceId: 'border:${_activeMap?.id}',
+            name: 'Bordures de la carte',
+            cause: WorkspaceResourceCause.readFailure,
+            detail: issue,
+          ),
+      ]);
+
   ProjectRegularAtlasTilesetSource? _characterAtlas(
     ProjectCharacterEntry character,
   ) {

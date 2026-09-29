@@ -74,4 +74,47 @@ void main() {
       expect(map.triggers, restored.triggers);
     },
   );
+
+  test('fitted map keeps zone outlines without unreadable labels', () async {
+    final transform = TransformationController()
+      ..value = (Matrix4.identity()..scaleByDouble(.5, .5, 1, 1));
+    final painter = MapCanvasOverlay(
+      map: workspaceMap('a').copyWith(
+        triggers: const [
+          MapTrigger(
+            id: 'story',
+            name: 'Accueil du quai',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 1, y: 1),
+              size: GridSize(width: 4, height: 2),
+            ),
+          ),
+        ],
+      ),
+      project: workspaceProject,
+      selected: null,
+      cellWidth: 32,
+      cellHeight: 32,
+      grid: false,
+      color: const Color(0xff00ff00),
+      labelBackground: const Color(0xff0000ff),
+      labelForeground: const Color(0xffffffff),
+      transform: transform,
+    );
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)
+      ..clipRect(const Rect.fromLTWH(0, 0, 256, 128));
+    painter.paint(canvas, const Size(256, 128));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(256, 128);
+    picture.dispose();
+    final bytes = (await image.toByteData())!.buffer.asUint8List();
+    image.dispose();
+    List<int> pixel(int x, int y) =>
+        bytes.sublist((y * 256 + x) * 4, (y * 256 + x) * 4 + 4);
+    expect(pixel(32, 80)[1], greaterThan(150));
+    expect(pixel(36, 35)[3], 0);
+    transform.dispose();
+  });
 }

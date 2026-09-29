@@ -46,7 +46,16 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
           for (final entry in _controller.project?.maps ?? <ProjectMapEntry>[])
             (id: entry.id, name: entry.name),
         ],
+        library: _controller.project,
         testAvailable: _controller.active != null && !_actions.busy,
+        previewBuilder: (id) => StudioHomeMapPreview(
+          key: ValueKey(
+            'home-map-preview-${_controller.session.sessionId}-$id',
+          ),
+          controller: _controller,
+          visuals: _visuals!,
+          mapId: id,
+        ),
         navigate: _navigateFromHome,
         guard: _allowCloseWithExport,
       );

@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 
 enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
 
@@ -30,18 +31,25 @@ enum StudioMapTool {
   gameplayZone,
   encounterPaint,
   encounterErase,
+  collisionPaint,
+  collisionErase,
+  border,
   erase,
+  eraseDecor,
   pan,
 }
 
 class MapWorkspaceViewState {
   final transform = TransformationController();
+  double get scale => transform.value.entry(0, 0).abs();
   StudioMapTool tool = StudioMapTool.select;
   ProjectElementEntry? brush;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
   ProjectCharacterEntry? character;
   ProjectMapEntry? warpDestination;
+  String? borderBlueprintId;
+  MapBorderDrawingDraft? borderDraft;
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
 
@@ -94,12 +102,15 @@ class MapWorkspaceViewState {
   Offset? Function(GridPos)? globalOfCell;
 
   void fitViewport(Size viewport, Size content) {
+    final widthScale = viewport.width / content.width;
+    final heightScale = viewport.height / content.height;
+    final fillWidth =
+        viewport.width >= 900 &&
+        widthScale > heightScale &&
+        widthScale <= heightScale * 1.2;
     final scale = math.min(
       1.0,
-      math.min(
-        viewport.width / content.width,
-        viewport.height / content.height,
-      ),
+      fillWidth ? widthScale : math.min(widthScale, heightScale),
     );
     transform.value = Matrix4.identity()
       ..translateByDouble(
@@ -137,7 +148,7 @@ class MapWorkspaceViewState {
   }
 
   void centerCell(GridPos cell, Size viewport, Size tile) {
-    final scale = transform.value.getMaxScaleOnAxis();
+    final scale = this.scale;
     transform.value = Matrix4.identity()
       ..translateByDouble(
         viewport.width / 2 - (cell.x + .5) * tile.width * scale,

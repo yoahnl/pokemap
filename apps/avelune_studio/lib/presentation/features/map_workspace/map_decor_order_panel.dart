@@ -90,7 +90,7 @@ class MapDecorOrderPanel extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Devant en haut · seuls les décors du même calque et du même contexte de rendu peuvent échanger leur ordre.',
+          'Devant en haut · les décors de ce calque peuvent échanger leur ordre à cet emplacement.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),

@@ -76,6 +76,20 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
         .where((category) => category.id == entry?.categoryId)
         .firstOrNull;
     final rank = stack.indexWhere((e) => e.id == selected?.id);
+    final forwardReason = selected == null
+        ? null
+        : commands.reorderProblemAt(
+            instanceId: selected.id,
+            at: position ?? selected.pos,
+            forward: true,
+          );
+    final backwardReason = selected == null
+        ? null
+        : commands.reorderProblemAt(
+            instanceId: selected.id,
+            at: position ?? selected.pos,
+            forward: false,
+          );
     void change(void Function() action) {
       action();
       onChanged();
@@ -147,8 +161,16 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                       'Peignez les cases des rencontres. Un glissé forme une seule modification annulable.',
                     StudioMapTool.encounterErase =>
                       'Retirez les cases peintes de la zone de rencontres sélectionnée.',
+                    StudioMapTool.border =>
+                      'Cliquez pour poser des points et faire des angles. Terminez le tracé dans la barre au-dessus de la carte.',
                     StudioMapTool.erase =>
-                      'Cliquez ou faites glisser pour effacer avec la gomme.',
+                      'Effacez les tuiles et terrains sous le curseur. La gomme de décors se choisit dans les outils supplémentaires.',
+                    StudioMapTool.eraseDecor =>
+                      'Cliquez sur un décor pour effacer celui qui apparaît au premier plan.',
+                    StudioMapTool.collisionPaint =>
+                      'Cliquez ou glissez pour bloquer les cases. Le trait est annulable en une fois.',
+                    StudioMapTool.collisionErase =>
+                      'Cliquez ou glissez pour libérer les cases bloquées.',
                   }),
                 ],
                 if (selected != null) ...[
@@ -168,13 +190,18 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   ],
                   const SizedBox(height: 8),
                   StudioDepthControl(
-                    onForward: commands.canReorder(forward: true)
+                    onForward: forwardReason == null
                         ? () => change(() => commands.reorder(forward: true))
                         : null,
-                    onBackward: commands.canReorder(forward: false)
+                    onBackward: backwardReason == null
                         ? () => change(() => commands.reorder(forward: false))
                         : null,
                   ),
+                  if (forwardReason != null && backwardReason != null)
+                    Text(
+                      forwardReason,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   Row(
                     children: [
                       const SizedBox(width: 10),

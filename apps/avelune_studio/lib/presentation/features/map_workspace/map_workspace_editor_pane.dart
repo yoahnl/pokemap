@@ -9,6 +9,7 @@ import 'map_workspace_palette_dock.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'map_border_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 
 class MapWorkspaceEditorPane extends StatefulWidget {
@@ -71,8 +72,8 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                       if (widget.showToolStrip)
                         Padding(
                           padding: EdgeInsets.only(
-                            left: widget.showNavigator && !_navigatorCollapsed
-                                ? 252
+                            left: widget.showNavigator
+                                ? (_navigatorCollapsed ? 48 : 252)
                                 : 0,
                           ),
                           child: MapWorkspaceToolStrip(
@@ -81,6 +82,33 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                             onChanged: widget.onToolChanged,
                             onMoreTools: widget.onMoreTools,
                             onResources: widget.onResources,
+                            onUndo: widget.document.canUndo
+                                ? () {
+                                    widget.controller.restore(redo: false);
+                                    widget.onChanged();
+                                  }
+                                : null,
+                            onRedo: widget.document.canRedo
+                                ? () {
+                                    widget.controller.restore(redo: true);
+                                    widget.onChanged();
+                                  }
+                                : null,
+                          ),
+                        ),
+                      if (widget.view.tool == StudioMapTool.border)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: widget.showNavigator && !_navigatorCollapsed
+                                ? 252
+                                : 0,
+                          ),
+                          child: MapBorderToolPanel(
+                            document: widget.document,
+                            project: widget.project,
+                            view: widget.view,
+                            onChanged: widget.onChanged,
+                            onCreateModel: widget.onResources,
                           ),
                         ),
                       Expanded(

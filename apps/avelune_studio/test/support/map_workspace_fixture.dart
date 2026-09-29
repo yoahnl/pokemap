@@ -132,6 +132,9 @@ class WorkspaceTestVisuals implements MapWorkspaceVisuals {
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       SizedBox(width: size, height: size);
   @override
+  Widget placementPreview(ProjectElementEntry element, Size size) =>
+      SizedBox.fromSize(size: size);
+  @override
   List<String> get warnings => [];
   @override
   Future<void> dispose() async {

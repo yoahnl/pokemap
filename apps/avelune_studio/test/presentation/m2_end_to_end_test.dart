@@ -9,6 +9,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_catalog_
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import '../support/m2_ui_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets('real import decor terrain save reload and runtime journey', (
@@ -55,7 +56,7 @@ void main() {
         .transformationController!
         .value
         .clone();
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await f.capture(tester, '01-bibliotheque');
     await tester.tap(find.text('Importer une image'));
@@ -122,14 +123,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('Passer derrière')));
     await tester.pump();
     await f.capture(tester, '04-empilement');
-    await tester.tap(find.text('Gérer les ressources'));
+    await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await tester.tap(find.text('Images et tuiles'));
     await tester.pump();
     await tester.tap(find.text('Planche M2').first);
     await pumpIo(tester);
-    await tester.ensureVisible(find.text('Créer un terrain automatique'));
-    await tester.tap(find.text('Créer un terrain automatique'));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('resource-create-path')),
+    );
+    await tester.tap(find.byKey(const ValueKey('resource-create-path')));
     await tester.pump();
     expect(find.byType(TerrainEditorScreen), findsOneWidget);
     for (var rule = 0; rule < 16; rule++) {
@@ -155,9 +158,9 @@ void main() {
     await tester.tap(find.text('Publier et peindre'));
     await pumpIo(tester, frames: 80);
     expect(find.byKey(const ValueKey('map-canvas')), findsOneWidget);
-    await tester.tap(find.byTooltip('Déplacer la vue'));
+    await chooseMapExtraTool(tester, 'Déplacer la vue');
     await tester.pump();
-    await tester.tap(find.byTooltip('Peindre'));
+    await chooseMapExtraTool(tester, 'Peindre');
     await tester.pump();
     final stroke = await tester.startGesture(cell(4, 10));
     await stroke.moveTo(cell(12, 10));

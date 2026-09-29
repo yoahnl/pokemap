@@ -239,6 +239,15 @@ Ticket lifecycle:
 - `DONE` is reserved for the user's explicit decision after review, even when every automated criterion is green;
 - keep the implementation evidence, readiness, verdict, remaining criteria, commit, and branch fields accurate when moving the ticket to `TO REVIEW`.
 
+### Ticket creation exclusions
+
+Do not create new Notion tickets for:
+
+- creating, decorating, populating, importing, or repairing a specific map, level, interior, route, village, station, port, forest, house, lighthouse, or other level content;
+- repairing a bug, regression, failed test, broken workflow, or isolated technical defect.
+
+Map content belongs in the project data and its technical or review evidence, not in the PokeMap product backlog. Bug repairs belong in the existing feature, release, review, or incident context when one exists; do not create a standalone ticket merely to track the repair. If no existing context can hold the work and a new ticket appears necessary, stop and request Yoahn's explicit decision before creating it. Generic authoring capabilities and reusable bug-prevention mechanisms remain ticketable when they are product scope rather than one-off content or repair work.
+
 ---
 
 ## 7. Git Safety

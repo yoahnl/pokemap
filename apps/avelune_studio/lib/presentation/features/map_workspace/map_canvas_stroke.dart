@@ -13,6 +13,7 @@ class MapCanvasStroke {
     this.tile,
     this.materialId,
     this.terrain,
+    this.collision,
   ) : preview = buffer.sourceMap;
 
   static MapCanvasStroke? start({
@@ -29,14 +30,81 @@ class MapCanvasStroke {
       return null;
     }
     final erase = view.tool == StudioMapTool.erase;
+    final collision =
+        view.tool == StudioMapTool.collisionPaint ||
+        view.tool == StudioMapTool.collisionErase;
+    if (collision) {
+      var prepared = map;
+      var layer = prepared.layers
+          .whereType<CollisionLayer>()
+          .where((item) => item.isVisible)
+          .lastOrNull;
+      if (layer == null && view.tool == StudioMapTool.collisionErase) {
+        return null;
+      }
+      if (layer == null) {
+        var id = 'studio-collisions';
+        var suffix = 1;
+        while (prepared.layers.any((item) => item.id == id)) {
+          id = 'studio-collisions-${suffix++}';
+        }
+        prepared = addMapLayer(
+          prepared,
+          kind: MapLayerKind.collision,
+          id: id,
+          name: 'Collisions',
+        );
+        layer = prepared.layers.whereType<CollisionLayer>().last;
+      }
+      final stroke = MapCanvasStroke._(
+        MapCellStrokeBuffer.collision(sourceMap: prepared, layerId: layer.id),
+        project,
+        view.tool == StudioMapTool.collisionErase,
+        null,
+        null,
+        false,
+        true,
+      );
+      stroke.paint(origin);
+      return stroke;
+    }
+    if (erase) {
+      final layer = map.layers.reversed
+          .whereType<SmartTileLayer>()
+          .where(
+            (item) =>
+                item.isVisible &&
+                smartTileMaterialIdAt(
+                      item,
+                      mapSize: map.size,
+                      x: origin.x,
+                      y: origin.y,
+                    ) !=
+                    null,
+          )
+          .firstOrNull;
+      if (layer != null) {
+        final stroke = MapCanvasStroke._(
+          MapCellStrokeBuffer.smartTile(sourceMap: map, layerId: layer.id),
+          project,
+          true,
+          null,
+          null,
+          true,
+          false,
+        );
+        stroke.paint(origin);
+        return stroke;
+      }
+    }
     final preset = view.terrain;
-    if (preset != null && (view.tool == StudioMapTool.terrain || erase)) {
+    if (preset != null && view.tool == StudioMapTool.terrain) {
       final prepared = applyTerrainStroke(
         map: map,
         manifest: project,
         preset: preset,
         cells: [origin],
-        erase: erase,
+        erase: false,
       );
       final layer = prepared.layers
           .whereType<SmartTileLayer>()
@@ -50,6 +118,7 @@ class MapCanvasStroke {
         null,
         preset.defaultMaterialId,
         true,
+        false,
       );
       stroke.paint(origin);
       return stroke;
@@ -67,6 +136,7 @@ class MapCanvasStroke {
               null,
         )
         .firstOrNull;
+    if (erase && occupied == null) return null;
     final layer = erase && occupied != null
         ? occupied
         : commands.supportLayer(map);
@@ -85,6 +155,7 @@ class MapCanvasStroke {
       view.tile,
       null,
       false,
+      false,
     );
     stroke.paint(origin);
     return stroke;
@@ -96,6 +167,7 @@ class MapCanvasStroke {
   final TileLayerPaletteEntry? tile;
   final String? materialId;
   final bool terrain;
+  final bool collision;
   MapData preview;
   final List<GridPos> cells = [];
 
@@ -109,7 +181,13 @@ class MapCanvasStroke {
       return;
     }
     final revision = buffer.revision;
-    if (terrain) {
+    if (collision) {
+      buffer.setCollisions(
+        origin: cell,
+        patternSize: const GridSize(width: 1, height: 1),
+        value: !erase,
+      );
+    } else if (terrain) {
       buffer.setSmartTileMaterialAt(
         origin: cell,
         materialId: erase ? null : materialId,

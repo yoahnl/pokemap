@@ -175,6 +175,9 @@ class _Visuals implements MapWorkspaceVisuals {
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       SizedBox(width: size, height: size);
   @override
+  Widget placementPreview(ProjectElementEntry element, Size size) =>
+      SizedBox.fromSize(size: size);
+  @override
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
       SizedBox(width: size, height: size);
   @override

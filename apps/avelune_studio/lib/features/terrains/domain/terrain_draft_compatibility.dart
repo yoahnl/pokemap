@@ -43,7 +43,9 @@ ProjectSmartTileAuthoringDraft? terrainDraftForPreset(
     categoryId: preset.categoryId,
     usage: preset.usage,
     lastStage: SmartTileAuthoringStage.connections,
-    guideId: 'avelune-cardinal4-v1',
+    guideId: preset.topology == SmartTileTopology.blob8
+        ? 'avelune-path20-v1'
+        : 'avelune-cardinal4-v1',
     sourceTilesetIds: [atlas.tilesetId],
     atlases: [atlas],
     primaryAtlasId: atlas.id,
@@ -116,9 +118,17 @@ String? terrainDraftCompatibilityProblem(
   ProjectManifest manifest,
   ProjectSmartTileAuthoringDraft draft,
 ) {
-  if (draft.guideId != 'avelune-cardinal4-v1' ||
-      draft.topology != SmartTileTopology.cardinal4 ||
-      draft.templateHint != SmartTileTemplateHint.edge16 ||
+  final extended =
+      draft.guideId == 'avelune-path20-v1' &&
+      draft.topology == SmartTileTopology.blob8 &&
+      draft.templateHint == SmartTileTemplateHint.blob47 &&
+      draft.rules.length == 20;
+  final cardinal =
+      draft.guideId == 'avelune-cardinal4-v1' &&
+      draft.topology == SmartTileTopology.cardinal4 &&
+      draft.templateHint == SmartTileTemplateHint.edge16 &&
+      draft.rules.length == 16;
+  if (!(cardinal || extended) ||
       draft.boundaryPolicy != SmartTileBoundaryPolicy.empty ||
       draft.transformPolicy != const SmartTileTransformPolicy() ||
       draft.coverageProfile !=
@@ -127,7 +137,6 @@ String? terrainDraftCompatibilityProblem(
           ) ||
       draft.fallbackRuleId != null ||
       draft.animations.isNotEmpty ||
-      draft.rules.length != 16 ||
       draft.atlases.length != 1 ||
       draft.materials.length != 1 ||
       draft.materials.single.isEmpty ||
@@ -169,6 +178,27 @@ String? terrainDraftCompatibilityProblem(
     }
     if (rule != terrainConnectionRule(mask, frame, draft.defaultMaterialId!)) {
       return advancedTerrainPreparationMessage;
+    }
+  }
+  if (extended) {
+    for (var index = 16; index < 20; index++) {
+      final rule = draft.rules[index];
+      final part = rule.candidates.firstOrNull?.parts.firstOrNull?.source;
+      final frame = part is SmartTileFrameSource ? part.frame : null;
+      if (frame != null &&
+          (frame.atlasId != atlas.id ||
+              frame.columnSpan != 1 ||
+              frame.rowSpan != 1 ||
+              frame.column < 0 ||
+              frame.row < 0 ||
+              frame.column >= atlas.columns ||
+              frame.row >= atlas.rows)) {
+        return advancedTerrainPreparationMessage;
+      }
+      if (rule !=
+          terrainOuterCornerRule(index, frame, draft.defaultMaterialId!)) {
+        return advancedTerrainPreparationMessage;
+      }
     }
   }
   return null;

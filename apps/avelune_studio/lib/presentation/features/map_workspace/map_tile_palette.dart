@@ -80,66 +80,82 @@ class MapTilePalette extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child:
-              source is ProjectRegularAtlasTilesetSource &&
-                  source.columns > 0 &&
-                  source.rows > 0 &&
-                  visuals is ResourceWorkspaceVisuals
-              ? AtlasSelectionView(
-                  compact: true,
-                  key: ValueKey('palette-atlas-view-${atlas.id}'),
-                  transformationController: view.paletteAtlasTransforms
-                      .putIfAbsent(atlas.id, TransformationController.new),
-                  initiallyFitted: view.fittedPaletteAtlases.contains(atlas.id),
-                  onFitted: () => view.fittedPaletteAtlases.add(atlas.id),
-                  source: source,
-                  selected: TilesetSourceRect(
-                    x: selected % source.columns,
-                    y: selected ~/ source.columns,
-                  ),
-                  image: (visuals as ResourceWorkspaceVisuals).atlasPreview(
-                    atlas.id,
-                  ),
-                  singleCell: true,
-                  onSelected: (r) => pick(
-                    TileLayerPaletteEntry(
-                      tilesetId: atlas.id,
-                      localTileId: r.y * source.columns + r.x,
-                    ),
-                  ),
-                )
-              : Column(
-                  children: [
-                    if (source is! ProjectImageCollectionTilesetSource)
-                      const Text(
-                        'Source incomplète : tuiles déjà utilisées sur cette carte.',
-                      ),
-                    Expanded(
-                      child: GridView.builder(
-                        key: const ValueKey('tile-palette'),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 8,
-                              crossAxisSpacing: 8,
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: SizedBox(
+                height: constraints.maxHeight < 160
+                    ? 160
+                    : constraints.maxHeight,
+                child:
+                    source is ProjectRegularAtlasTilesetSource &&
+                        source.columns > 0 &&
+                        source.rows > 0 &&
+                        visuals is ResourceWorkspaceVisuals
+                    ? AtlasSelectionView(
+                        compact: true,
+                        key: ValueKey('palette-atlas-view-${atlas.id}'),
+                        transformationController: view.paletteAtlasTransforms
+                            .putIfAbsent(
+                              atlas.id,
+                              TransformationController.new,
                             ),
-                        itemCount: ids.length,
-                        itemBuilder: (context, i) {
-                          final tile = TileLayerPaletteEntry(
+                        initiallyFitted: view.fittedPaletteAtlases.contains(
+                          atlas.id,
+                        ),
+                        onFitted: () => view.fittedPaletteAtlases.add(atlas.id),
+                        source: source,
+                        selected: TilesetSourceRect(
+                          x: selected % source.columns,
+                          y: selected ~/ source.columns,
+                        ),
+                        image: (visuals as ResourceWorkspaceVisuals)
+                            .atlasPreview(atlas.id),
+                        singleCell: true,
+                        onSelected: (r) => pick(
+                          TileLayerPaletteEntry(
                             tilesetId: atlas.id,
-                            localTileId: ids[i],
-                          );
-                          return StudioPaletteCard(
-                            name: 'Tuile ${ids[i] + 1}',
-                            preview: visuals.tileThumbnail(tile, size: 72),
-                            selected: view.tile == tile,
-                            onTap: () => pick(tile),
-                          );
-                        },
+                            localTileId: r.y * source.columns + r.x,
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          if (source is! ProjectImageCollectionTilesetSource)
+                            const Text(
+                              'Source incomplète : tuiles déjà utilisées sur cette carte.',
+                            ),
+                          Expanded(
+                            child: GridView.builder(
+                              key: const ValueKey('tile-palette'),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 8,
+                                  ),
+                              itemCount: ids.length,
+                              itemBuilder: (context, i) {
+                                final tile = TileLayerPaletteEntry(
+                                  tilesetId: atlas.id,
+                                  localTileId: ids[i],
+                                );
+                                return StudioPaletteCard(
+                                  name: 'Tuile ${ids[i] + 1}',
+                                  preview: visuals.tileThumbnail(
+                                    tile,
+                                    size: 72,
+                                  ),
+                                  selected: view.tile == tile,
+                                  onTap: () => pick(tile),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

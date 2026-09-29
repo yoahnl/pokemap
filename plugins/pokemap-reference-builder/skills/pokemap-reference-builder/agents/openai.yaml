@@ -1,8 +1,8 @@
 interface:
   display_name: "PokeMap Reference Builder"
-  short_description: "Rebuild exterior maps from reference images"
+  short_description: "Rebuild exterior maps and prototype interior shells"
   brand_color: "#4E8F67"
-  default_prompt: "Use $pokemap-reference-builder to decode this exterior reference and rebuild it as an editable PokeMap map."
+  default_prompt: "Use $pokemap-reference-builder to reconstruct this map from its reference, or prototype an interior floor and wall shell in HTML before authoring."
 dependencies:
   tools:
     - type: "mcp"

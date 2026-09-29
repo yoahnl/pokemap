@@ -119,8 +119,8 @@ class MapLayersComponent extends PositionComponent {
     this.shadowCollectionProvider,
     this.shadowRenderer = const ShadowRuntimeRenderer(),
     this.borderAssets,
-    this.borderRenderer = const BorderRuntimeRenderer(),
     this.renderBorders = true,
+    this.borderRenderer = const BorderRuntimeRenderer(),
     this.debugOnRenderProfile,
     this.smartTileAnimationController,
   })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
@@ -157,6 +157,7 @@ class MapLayersComponent extends PositionComponent {
     for (var i = 0; i < _orderedPlacedElements.length; i++)
       _orderedPlacedElements[i].id: i,
   };
+  final Map<String, List<MapPlacedElement>> _laterOverlappingById = {};
   final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
@@ -171,8 +172,8 @@ class MapLayersComponent extends PositionComponent {
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
-  final BorderRuntimeRenderer borderRenderer;
   final bool renderBorders;
+  final BorderRuntimeRenderer borderRenderer;
   final MapLayersRenderProfileObserver? debugOnRenderProfile;
   final SmartTileAnimationActivationController? smartTileAnimationController;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
@@ -1153,6 +1154,8 @@ class MapLayersComponent extends PositionComponent {
     required double opacity,
     List<MapPlacedElement>? candidates,
     bool compositeOverlay = false,
+    BlendMode? blendMode,
+    bool binaryAlphaMask = false,
   }) {
     if (bundle.map.placedElements.isEmpty || opacity <= 0) {
       return;
@@ -1174,7 +1177,8 @@ class MapLayersComponent extends PositionComponent {
     final elapsedMs = (_animElapsed * 1000).toInt();
     final paint = Paint()
       ..isAntiAlias = false
-      ..filterQuality = FilterQuality.none;
+      ..filterQuality = FilterQuality.none
+      ..blendMode = blendMode ?? BlendMode.srcOver;
     final visibleRect = _visibleLocalRect;
 
     final placedCandidates =
@@ -1190,7 +1194,36 @@ class MapLayersComponent extends PositionComponent {
       if (effectiveOpacity <= 0) {
         continue;
       }
-      paint.color = Color.fromRGBO(255, 255, 255, effectiveOpacity);
+      paint.color = Color.fromRGBO(
+        255,
+        255,
+        255,
+        binaryAlphaMask ? 1 : effectiveOpacity,
+      );
+      paint.colorFilter = binaryAlphaMask
+          ? const ColorFilter.matrix([
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              0,
+              255,
+              0,
+            ])
+          : null;
       final entry = _elementById[instance.elementId.trim()];
       if (entry == null || entry.frames.isEmpty) {
         continue;
@@ -1227,13 +1260,27 @@ class MapLayersComponent extends PositionComponent {
       if (!explicitForeground &&
           renderPass == MapLayerRenderPass.foreground &&
           !hasForegroundSplit &&
-          !isPlayingOneShot) {
+          !isPlayingOneShot &&
+          !compositeOverlay) {
         continue;
       }
+      final tilesetId = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        continue;
+      }
+      final tilesetSource = _tilesetSourceById[tilesetId];
+      final offsetX = tilesetSource is ProjectRegularAtlasTilesetSource
+          ? tilesetSource.pixelOffsetX * cw / tw
+          : 0.0;
+      final offsetY = tilesetSource is ProjectRegularAtlasTilesetSource
+          ? tilesetSource.pixelOffsetY * ch / th
+          : 0.0;
       // Viewport culling pour les éléments placés.
       if (visibleRect != null) {
-        final dstLeft = instance.pos.x * cw;
-        final dstTop = instance.pos.y * ch;
+        final dstLeft = instance.pos.x * cw + offsetX;
+        final dstTop = instance.pos.y * ch + offsetY;
         final dstRight = dstLeft + gridTransform.destinationSize.width * cw;
         final dstBottom = dstTop + gridTransform.destinationSize.height * ch;
         if (dstRight < visibleRect.left ||
@@ -1242,12 +1289,6 @@ class MapLayersComponent extends PositionComponent {
             dstTop > visibleRect.bottom) {
           continue;
         }
-      }
-      final tilesetId = frame.tilesetId.trim().isNotEmpty
-          ? frame.tilesetId.trim()
-          : entry.tilesetId.trim();
-      if (tilesetId.isEmpty) {
-        continue;
       }
       final image = tileImagesByTilesetId[tilesetId];
       if (image == null) {
@@ -1263,11 +1304,25 @@ class MapLayersComponent extends PositionComponent {
         continue;
       }
       final dst = Rect.fromLTWH(
-        instance.pos.x * cw,
-        instance.pos.y * ch,
+        instance.pos.x * cw + offsetX,
+        instance.pos.y * ch + offsetY,
         gridTransform.destinationSize.width * cw,
         gridTransform.destinationSize.height * ch,
       );
+      final laterOverlapping = hasForegroundSplit
+          ? _laterOverlappingById.putIfAbsent(
+              instance.id,
+              () => _placedElementSpatialIndex
+                  .query(dst)
+                  .where((candidate) =>
+                      candidate.id != instance.id &&
+                      candidate.layerId == layerId &&
+                      candidate.opacity > 0 &&
+                      (_placedElementOrderById[candidate.id] ?? -1) >
+                          (_placedElementOrderById[instance.id] ?? -1))
+                  .toList(growable: false),
+            )
+          : const <MapPlacedElement>[];
       final sourcePixelSize = GridSize(
         width: source.width * tw,
         height: source.height * th,
@@ -1276,7 +1331,9 @@ class MapLayersComponent extends PositionComponent {
         width: gridTransform.destinationSize.width * tw,
         height: gridTransform.destinationSize.height * th,
       );
-      if (hasForegroundSplit && !isPlayingOneShot) {
+      final eraseLater = renderPass == MapLayerRenderPass.foreground &&
+          laterOverlapping.isNotEmpty;
+      void drawSplit({required bool includeCollisionCells}) {
         final clip = buildPlacedElementCollisionClip(
           destinationRect: dst,
           sourceGridSize: GridSize(
@@ -1284,8 +1341,8 @@ class MapLayersComponent extends PositionComponent {
             height: source.height,
           ),
           quarterTurns: gridTransform.quarterTurns,
-          collisionCells: collisionCells,
-          includeCollisionCells: renderPass == MapLayerRenderPass.background,
+          collisionCells: collisionCells!,
+          includeCollisionCells: includeCollisionCells,
         );
         canvas.save();
         try {
@@ -1303,17 +1360,63 @@ class MapLayersComponent extends PositionComponent {
         } finally {
           canvas.restore();
         }
-      } else {
-        drawQuarterTurnPixels(
-          canvas,
-          image: image,
-          sourceRect: src,
-          destinationRect: dst,
-          sourcePixelSize: sourcePixelSize,
-          destinationPixelSize: destinationPixelSize,
-          quarterTurns: gridTransform.quarterTurns,
-          paint: paint,
-        );
+      }
+
+      if (eraseLater) canvas.saveLayer(dst, Paint());
+      try {
+        if (hasForegroundSplit && !isPlayingOneShot) {
+          drawSplit(
+            includeCollisionCells: renderPass == MapLayerRenderPass.background,
+          );
+          if (renderPass == MapLayerRenderPass.background &&
+              laterOverlapping.isNotEmpty) {
+            canvas.saveLayer(dst, Paint());
+            try {
+              drawSplit(includeCollisionCells: false);
+              canvas.saveLayer(dst, Paint()..blendMode = BlendMode.dstIn);
+              try {
+                _paintPlacedElementsForLayer(
+                  canvas,
+                  layerId: layerId,
+                  layerName: layerName,
+                  opacity: opacity,
+                  candidates: laterOverlapping,
+                  compositeOverlay: true,
+                  binaryAlphaMask: true,
+                );
+              } finally {
+                canvas.restore();
+              }
+            } finally {
+              canvas.restore();
+            }
+          }
+        } else {
+          drawQuarterTurnPixels(
+            canvas,
+            image: image,
+            sourceRect: src,
+            destinationRect: dst,
+            sourcePixelSize: sourcePixelSize,
+            destinationPixelSize: destinationPixelSize,
+            quarterTurns: gridTransform.quarterTurns,
+            paint: paint,
+          );
+        }
+        if (eraseLater) {
+          _paintPlacedElementsForLayer(
+            canvas,
+            layerId: layerId,
+            layerName: layerName,
+            opacity: opacity,
+            candidates: laterOverlapping,
+            compositeOverlay: true,
+            blendMode: BlendMode.dstOut,
+            binaryAlphaMask: true,
+          );
+        }
+      } finally {
+        if (eraseLater) canvas.restore();
       }
     }
   }

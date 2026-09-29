@@ -37,6 +37,10 @@ opening a route, changing an empty margin, or rebuilding a wall from reusable
 modules is valid when the result remains faithful to the place. Exact spatial or
 pixel matching is required only when the owner explicitly asks for it.
 
+When the owner asks for a close reconstruction, measure the reference before
+substituting assets. A familiar object name is not evidence that its footprint,
+anchor, perspective, category, palette, or contact shadow matches the image.
+
 A reference must never become a full-map runtime layer merely to reproduce its
 appearance. Reconstruct the place with surfaces, borders, openings, architecture,
 props, collisions, and occlusion layers that remain independently editable.
@@ -52,6 +56,8 @@ props, collisions, and occlusion layers that remain independently editable.
 - Never call a script preview sufficient; inspect an actual editor render and runtime render.
 - Never hide missing assets with black voids, oversized sprites, clipping, or unexplained emptiness.
 - Never claim artistic success from valid JSON, hashes, test counts, or human politeness.
+- Never start a fidelity rebuild from an unverified or stale current render.
+- Never repaint a surface that already matches just because nearby furniture fails.
 
 An explicit owner-approved backdrop exception may waive the full-canvas rule. Record
 the element ID and reason; it never waives bounds, navigation, or runtime proof.
@@ -75,7 +81,34 @@ python3 skills/creating-pokemap-maps-from-reference/scripts/create_reference_bri
 
 Stop while any required brief field is `TODO`.
 
-### 2. Pass scale and topology gates
+For a rebuild, record the exact current map revision and render provenance. Re-render
+when the comparison image may be stale. Record entities, connections, warps, and
+interactions from map data even when they are invisible in a static render.
+
+### 2. Map the reference before authoring
+
+Make a side-by-side board at equal apparent scale. Mark the useful image bounds,
+target map size, grid origin, pixels per cell on each axis, and uncertainty. Do not
+force a square source grid when the illustration is stretched or irregular.
+
+Use separate, switchable overlays for:
+
+1. **Surfaces:** continuous floor/path, other ground such as a reserve, north and
+   side walls, lower south wall, doorway/threshold, and out-of-map space. Record
+   wall height, material, palette samples, texture rhythm, and transition seams.
+2. **Major objects:** source bounding box in pixels, projected cell footprint and
+   ground anchor, current element ID/category/footprint/position, perspective,
+   and contact shadow. Decide `reuse`, `normalize`, `gap`, or `remove` for each
+   mismatch; a gap may require a new asset at the measured size.
+3. **Circulation:** clear approach from each entry to destinations and actors;
+   distinguish sprite overhang from blocking ground contact.
+
+Compare each surface with the current render before proposing a change. Similar
+sampled color does not prove matching texture, but an object mismatch is not a
+reason to discard a matching floor. If the source footprint and existing asset
+differ materially, fix the asset at target size before placement.
+
+### 3. Pass scale and topology gates
 
 Create the grid-off scale board required by `map-quality-gates.md`. Reject implausible
 player/door/furniture/building/rail relationships before map assembly.
@@ -84,14 +117,14 @@ Draw the functional graph next: entries, exits, interactions, story reservations
 main route, optional branches, occluders, and collisions. Every required target must
 be reachable from the primary entry.
 
-### 3. Resolve assets deliberately
+### 4. Resolve assets deliberately
 
 Match each visual need to an approved asset. Record `reuse`, `normalize`, or `gap`.
 Create raster art only for a named gap and only after scale and footprint are fixed.
 Keep transparent art independently bounded, free of chroma fringe, and aligned to the
 project grid. Do not use a new image to bypass modular authoring.
 
-### 4. Author natively
+### 5. Author natively
 
 Use tile/path/surface data for repeatable ground, modular placed elements for
 architecture and props, Environment for eligible natural masses, and separate
@@ -103,7 +136,11 @@ plan/apply workflow. If a required authoring feature is absent from the live cat
 record an MCP parity gap instead of writing around it. Implement deterministic asset
 generators with a check-only mode when a generator is required.
 
-### 5. Validate before polishing
+Build in reviewable passes: floor and modular walls first, then large furniture and
+storage masses, then small details. Render and compare at the same apparent scale
+after each pass. Preserve existing gameplay contracts while moving visual pieces.
+
+### 6. Validate before polishing
 
 Run the structural validator with every required route endpoint:
 
@@ -116,7 +153,7 @@ python3 skills/creating-pokemap-maps-from-reference/scripts/validate_authored_ma
 Fix every error. Warnings require written disposition. Do not add a
 `--allow-full-canvas-element` exception merely to make validation green.
 
-### 6. Prove the real result
+### 7. Prove the real result
 
 Produce the mandatory capture pack: native overview, scale board, collision overlay,
 one-cell padded-canvas edge test, actual runtime render, and same-crop comparison.

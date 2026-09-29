@@ -18,6 +18,7 @@ import 'map_warp_inspector.dart';
 import 'map_decor_inspector_tabs.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'map_connection_panel.dart';
 
 class MapSelectionInspector extends StatelessWidget {
   const MapSelectionInspector({
@@ -31,6 +32,8 @@ class MapSelectionInspector extends StatelessWidget {
     required this.onEditElement,
     this.onEditInteraction,
     this.onOpenMap,
+    this.onLinkMaps,
+    this.onUnlinkMaps,
     this.referenceGuard,
     this.width = 300,
   });
@@ -42,6 +45,8 @@ class MapSelectionInspector extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<String>? onOpenMap;
+  final Future<void> Function(MapConnectionDirection, String, int)? onLinkMaps;
+  final Future<void> Function(MapConnectionDirection)? onUnlinkMaps;
   final MapReferenceGuard? referenceGuard;
   final double width;
 
@@ -207,6 +212,24 @@ class MapSelectionInspector extends StatelessWidget {
                           onChanged();
                         },
                         onOpenDestination: onOpenMap,
+                      ),
+                    ),
+                  )
+                : view.paletteTab == 'Passages' &&
+                      (view.tool == StudioMapTool.select ||
+                          view.tool == StudioMapTool.warp) &&
+                      onLinkMaps != null &&
+                      onUnlinkMaps != null &&
+                      selected == null
+                ? StudioSidebar(
+                    width: width,
+                    child: SingleChildScrollView(
+                      child: MapConnectionPanel(
+                        key: ValueKey('map-connection-${document.base.mapId}'),
+                        map: document.current,
+                        project: project,
+                        onLink: onLinkMaps!,
+                        onUnlink: onUnlinkMaps!,
                       ),
                     ),
                   )

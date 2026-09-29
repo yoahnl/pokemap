@@ -7,6 +7,7 @@ import '../features/pokemon/data/local_pokemon_combat_adapter.dart';
 import '../platform/files/native_pokemon_json_picker.dart';
 import '../platform/files/native_pokemon_png_picker.dart';
 import '../platform/files/native_game_export_picker.dart';
+import '../platform/files/scoped_project_session_adapter.dart';
 import 'package:flutter/widgets.dart';
 import '../features/cinematics/data/local_cinematic_adapter.dart';
 import '../features/presentations/data/local_presentation_adapter.dart';
@@ -26,6 +27,7 @@ import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/platform/files/native_project_directory_picker.dart';
 import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
@@ -45,14 +47,21 @@ class StudioBootstrap extends StatelessWidget {
       if (debugSession != null)
         projectSessionControllerProvider.overrideWithValue(debugSession!),
       recentProjectsPortProvider.overrideWith((ref) => studioRecentProjects()),
-      projectSessionPortProvider.overrideWith(
-        (ref) => LocalProjectSessionAdapter(),
-      ),
+      projectSessionPortProvider.overrideWith((ref) {
+        final local = LocalProjectSessionAdapter();
+        return Platform.isMacOS ? ScopedProjectSessionAdapter(local) : local;
+      }),
       projectDirectoryPickerProvider.overrideWithValue(
         const NativeProjectDirectoryPicker().choose,
       ),
       mapWorkspacePortProvider.overrideWith(
         (ref, session) => LocalMapWorkspaceAdapter(),
+      ),
+      mapConnectionPortProvider.overrideWith(
+        (ref, session) => LocalMapConnectionAdapter(
+          ref.watch(mapWorkspacePortProvider(session))
+              as LocalMapWorkspaceAdapter,
+        ),
       ),
       resourcePortProvider.overrideWith((ref, session) {
         final port = LocalResourceAdapter(

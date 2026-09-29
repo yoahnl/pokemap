@@ -1,9 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay_editing.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
@@ -12,6 +15,7 @@ import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
 
 part 'map_workspace_canvas_gestures.dart';
+part 'map_workspace_canvas_border.dart';
 
 class MapWorkspaceCanvas extends StatefulWidget {
   const MapWorkspaceCanvas({
@@ -39,13 +43,17 @@ class MapWorkspaceCanvas extends StatefulWidget {
 
 class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   void _refreshGesture() => setState(() {});
+  void _mutateGesture(VoidCallback action) => setState(action);
   final _focus = FocusNode();
   final _surface = GlobalKey();
   GridPos? _start;
   GridPos? _preview;
+  GridPos? _hoverCell;
   MapPlacedElement? _moving;
   bool _armed = false;
   MapCanvasStroke? _stroke;
+  int? _panPointer;
+  Offset? _panPosition;
   MapEncounterCellStroke? _encounterStroke;
   MapData? _gestureSource;
   MapCharacterGesture? _characterGesture;
@@ -63,11 +71,24 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.view.borderDraft?.mapId != null &&
+        widget.view.borderDraft!.mapId != widget.document.current.id) {
+      widget.view.borderDraft = null;
+    }
+  }
+
+  @override
   void didUpdateWidget(MapWorkspaceCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.document != widget.document ||
         oldWidget.gestureGeneration != widget.gestureGeneration) {
       _cancel();
+    }
+    if (widget.view.borderDraft?.mapId != null &&
+        widget.view.borderDraft!.mapId != widget.document.current.id) {
+      widget.view.borderDraft = null;
     }
   }
 
@@ -76,34 +97,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     setState(() {});
   }
 
-  void _move(PointerMoveEvent event) {
-    if (_characterGesture != null) {
-      setState(() => _characterGesture!.move(_cell(event.localPosition)));
-      return;
-    }
-    final start = _start;
-    if (start == null) return;
-    final cell = _cell(event.localPosition);
-    if (_encounterStroke != null) {
-      setState(() => _encounterStroke!.paint(cell));
-      return;
-    }
-    if (_stroke != null) {
-      _paint(cell);
-      return;
-    }
-    final moving = _moving;
-    if (moving != null) {
-      setState(
-        () => _preview = GridPos(
-          x: moving.pos.x + cell.x - start.x,
-          y: moving.pos.y + cell.y - start.y,
-        ),
-      );
-    }
-  }
-
   void _up(PointerUpEvent event) {
+    if (_panPointer == event.pointer) {
+      _panPointer = null;
+      _panPosition = null;
+      return;
+    }
     if (_characterGesture != null) {
       final zone = _characterGesture!.commit();
       setState(_cancel);
@@ -154,17 +153,6 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     widget.onChanged();
   }
 
-  void _cancel() {
-    _start = null;
-    _preview = null;
-    _moving = null;
-    _armed = false;
-    _stroke = null;
-    _encounterStroke = null;
-    _gestureSource = null;
-    _characterGesture = null;
-  }
-
   @override
   void dispose() {
     _focus.dispose();
@@ -174,6 +162,21 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   @override
   Widget build(BuildContext context) {
     final map = widget.document.current;
+    final brush = widget.view.tool == StudioMapTool.place
+        ? widget.view.brush
+        : null;
+    final hover = brush == null ? null : _hoverCell;
+    final footprint = brush == null
+        ? null
+        : resolveMapPlacedElementFootprint(
+            instance: MapPlacedElement(
+              id: 'preview',
+              layerId: '',
+              elementId: brush.id,
+              pos: hover ?? const GridPos(x: 0, y: 0),
+            ),
+            element: brush,
+          ).destinationSize;
     return LayoutBuilder(
       builder: (context, constraints) {
         widget.view.attachViewport(
@@ -195,44 +198,96 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
             panEnabled: widget.view.tool == StudioMapTool.pan,
             child: Focus(
               focusNode: _focus,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                key: const ValueKey('map-canvas'),
-                onPointerDown: _down,
-                onPointerMove: _move,
-                onPointerUp: _up,
-                onPointerCancel: (_) => setState(_cancel),
-                child: SizedBox(
-                  key: _surface,
-                  width: map.size.width * _width,
-                  height: map.size.height * _height,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: widget.visuals.canvas(
-                          _characterGesture?.preview ?? _stroke?.preview ?? map,
+              onKeyEvent: (node, event) {
+                if (widget.view.tool == StudioMapTool.border &&
+                    event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.enter) {
+                  _finishBorder();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              child: MouseRegion(
+                onExit: (_) {
+                  final draft = widget.view.borderDraft;
+                  if (_hoverCell != null || draft?.hover != null) {
+                    setState(() {
+                      _hoverCell = null;
+                      if (draft != null) {
+                        widget.view.borderDraft = draft.pointAt(null);
+                      }
+                    });
+                  }
+                },
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  key: const ValueKey('map-canvas'),
+                  onPointerDown: _down,
+                  onPointerHover: _hover,
+                  onPointerMove: _move,
+                  onPointerSignal: _pointerSignal,
+                  onPointerUp: _up,
+                  onPointerCancel: (_) => setState(_cancel),
+                  child: SizedBox(
+                    key: _surface,
+                    width: map.size.width * _width,
+                    height: map.size.height * _height,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: widget.visuals.canvas(
+                            _characterGesture?.preview ??
+                                _stroke?.preview ??
+                                map,
+                          ),
                         ),
-                      ),
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: CustomPaint(
-                            painter: buildEditingOverlay(
-                              context: context,
-                              map: map,
-                              project: widget.project,
-                              document: widget.document,
-                              view: widget.view,
-                              gesture: _characterGesture,
-                              stroke: _stroke,
-                              encounterStroke: _encounterStroke,
-                              preview: _preview,
-                              cellWidth: _width,
-                              cellHeight: _height,
+                        if (hover != null && footprint != null)
+                          Positioned(
+                            left: hover.x * _width,
+                            top: hover.y * _height,
+                            child: IgnorePointer(
+                              child: Opacity(
+                                key: const ValueKey('decor-placement-preview'),
+                                opacity: .72,
+                                child: widget.visuals.placementPreview(
+                                  brush!,
+                                  Size(
+                                    footprint.width * _width,
+                                    footprint.height * _height,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: buildEditingOverlay(
+                                context: context,
+                                map: map,
+                                project: widget.project,
+                                document: widget.document,
+                                view: widget.view,
+                                gesture: _characterGesture,
+                                stroke: _stroke,
+                                encounterStroke: _encounterStroke,
+                                borderDraft:
+                                    widget.view.tool == StudioMapTool.border
+                                    ? widget.view.borderDraft
+                                    : null,
+                                borderCursor:
+                                    widget.view.tool == StudioMapTool.border
+                                    ? _hoverCell
+                                    : null,
+                                preview: _preview,
+                                cellWidth: _width,
+                                cellHeight: _height,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

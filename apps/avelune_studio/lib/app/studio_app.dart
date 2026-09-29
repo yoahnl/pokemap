@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/updates/studio_update_host.dart';
 import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
@@ -38,13 +39,21 @@ class _StudioAppState extends ConsumerState<StudioApp> {
     _session = ref.read(projectSessionControllerProvider);
     _lifecycle = AppLifecycleListener(
       onExitRequested: () async {
-        if (_exitGuard != null && !await _exitGuard!()) {
-          return AppExitResponse.cancel;
-        }
-        await _session.dispose();
-        return AppExitResponse.exit;
+        return await _prepareForUpdate()
+            ? AppExitResponse.exit
+            : AppExitResponse.cancel;
       },
     );
+  }
+
+  Future<bool> _prepareForUpdate() async {
+    if (!await _canRestartUpdate()) return false;
+    await _session.dispose();
+    return true;
+  }
+
+  Future<bool> _canRestartUpdate() async {
+    return _exitGuard == null || await _exitGuard!();
   }
 
   @override
@@ -61,22 +70,25 @@ class _StudioAppState extends ConsumerState<StudioApp> {
     locale: const Locale('fr'),
     supportedLocales: const [Locale('fr')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    home: ProjectSessionScreen(
-      recentProjects: ref.watch(recentProjectsPortProvider),
-      session: _session,
-      chooseDirectory: ref.watch(projectDirectoryPickerProvider),
-      workspaceBuilder: widget.workspaceBuilder == null
-          ? null
-          : (session, close) =>
-                widget.workspaceBuilder!(session, close, (guard) {
-                  if (guard != null) {
-                    _exitGuard = guard;
-                    _guardSession = session.sessionId;
-                  } else if (_guardSession == session.sessionId) {
-                    _exitGuard = null;
-                    _guardSession = null;
-                  }
-                }),
+    home: StudioUpdateHost(
+      onRestartRequested: _canRestartUpdate,
+      child: ProjectSessionScreen(
+        recentProjects: ref.watch(recentProjectsPortProvider),
+        session: _session,
+        chooseDirectory: ref.watch(projectDirectoryPickerProvider),
+        workspaceBuilder: widget.workspaceBuilder == null
+            ? null
+            : (session, close) =>
+                  widget.workspaceBuilder!(session, close, (guard) {
+                    if (guard != null) {
+                      _exitGuard = guard;
+                      _guardSession = session.sessionId;
+                    } else if (_guardSession == session.sessionId) {
+                      _exitGuard = null;
+                      _guardSession = null;
+                    }
+                  }),
+      ),
     ),
   );
 }

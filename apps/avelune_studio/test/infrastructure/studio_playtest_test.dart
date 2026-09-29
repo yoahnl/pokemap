@@ -1,14 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/platform/playtest/studio_playtest_start.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/game.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:path/path.dart' as p;
 
 import '../../tool/create_example_project.dart';
 
@@ -22,6 +26,33 @@ void main() {
     expect(await second.exists(), isFalse);
     await first.delete();
     expect(await first.load(), isNull);
+  });
+
+  test('a broken authored spawn is not replaced by a test fallback', () async {
+    final project = ProjectManifest(
+      name: 'Broken spawn',
+      maps: const [
+        ProjectMapEntry(id: 'start', name: 'Start', relativePath: 'start.json'),
+        ProjectMapEntry(id: 'other', name: 'Other', relativePath: 'other.json'),
+      ],
+      tilesets: const [],
+      newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'start'),
+    );
+    final bundle = RuntimeMapBundle(
+      manifest: project,
+      map: const MapData(
+        id: 'other',
+        name: 'Other',
+        size: GridSize(width: 4, height: 4),
+        mapMetadata: MapMetadata(defaultSpawnId: 'missing'),
+      ),
+      projectRootDirectory: '/unused',
+      tilesetAbsolutePathsById: const {},
+    );
+    await expectLater(
+      prepareStudioPlaytestStart(bundle, '/unused/project.json'),
+      throwsA(isA<GameplaySpawnResolutionException>()),
+    );
   });
 
   testWidgets('revision conflict refuses runtime before file bundle load', (
@@ -121,6 +152,120 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
+  });
+
+  testWidgets('selected map without a spawn starts an isolated test game', (
+    tester,
+  ) async {
+    late Directory directory;
+    late ProjectSession session;
+    late ProjectMapEntry entry;
+    late MapWorkspaceDocument document;
+    late String projectBefore;
+    late String mapBefore;
+    var port = LocalMapWorkspaceAdapter();
+    await tester.runAsync(() async {
+      directory = await Directory.systemTemp.createTemp('studio_other_map_');
+      await writeExampleProject(directory);
+      session = ProjectSession(
+        sessionId: 'other-map-test',
+        name: 'Two maps',
+        directoryPath: await directory.resolveSymbolicLinks(),
+      );
+      final project = await port.loadProject(session);
+      final configured = project.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'jardin',
+          startSpawnId: 'depart',
+          startingMoney: 75,
+        ),
+      );
+      await File(
+        p.join(directory.path, 'project.json'),
+      ).writeAsString(jsonEncode(configured.toJson()));
+      final otherMap = exampleMap(
+        'clairiere',
+        'Clairière',
+        alternate: true,
+      ).copyWith(entities: const []);
+      await File(
+        p.join(directory.path, 'maps', 'clairiere.json'),
+      ).writeAsString(jsonEncode(otherMap.toJson()));
+      projectBefore = await File(
+        p.join(directory.path, 'project.json'),
+      ).readAsString();
+      mapBefore = await File(
+        p.join(directory.path, 'maps', 'clairiere.json'),
+      ).readAsString();
+      port = LocalMapWorkspaceAdapter();
+      await port.loadProject(session);
+      entry = configured.maps.firstWhere((map) => map.id == 'clairiere');
+      document = await port.loadMap(session, entry);
+    });
+    addTearDown(() => directory.delete(recursive: true));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StudioPlaytestView(
+            session: session,
+            entry: entry,
+            expectedRevision: document.revision,
+            port: port,
+            onClose: () {},
+          ),
+        ),
+      ),
+    );
+    PlayableMapGame? game;
+    for (var attempt = 0; attempt < 300; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      final finder = find.byType(GameWidget<PlayableMapGame>);
+      if (finder.evaluate().isNotEmpty) {
+        game = tester.widget<GameWidget<PlayableMapGame>>(finder).game;
+        if (game!.isLoaded && !game.debugIsMapActivationDispatchInFlight) break;
+      }
+    }
+    expect(find.textContaining('Expected authored start map'), findsNothing);
+    expect(game, isNotNull);
+    expect(game!.isLoaded, isTrue);
+    expect(game.gameStateSnapshot.currentMapId, 'clairiere');
+    expect(game.gameStateSnapshot.trainerProfile.money, 75);
+    final position = game.debugPlayerGridPosition;
+    expect(position, isNotNull);
+    expect(position.x, inInclusiveRange(0, document.map.size.width - 1));
+    expect(position.y, inInclusiveRange(0, document.map.size.height - 1));
+    await tester.tap(find.text('Nouvelle partie'));
+    for (var attempt = 0; attempt < 300; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      final finder = find.byType(GameWidget<PlayableMapGame>);
+      if (finder.evaluate().isNotEmpty) {
+        game = tester.widget<GameWidget<PlayableMapGame>>(finder).game;
+        if (game!.isLoaded && !game.debugIsMapActivationDispatchInFlight) break;
+      }
+    }
+    expect(game!.gameStateSnapshot.currentMapId, 'clairiere');
+    expect(game.gameStateSnapshot.trainerProfile.money, 75);
+    await tester.runAsync(() async {
+      expect(
+        await File(p.join(directory.path, 'project.json')).readAsString(),
+        projectBefore,
+      );
+      expect(
+        await File(
+          p.join(directory.path, 'maps', 'clairiere.json'),
+        ).readAsString(),
+        mapBefore,
+      );
+    });
+    await tester.pumpWidget(const SizedBox());
   });
 }
 

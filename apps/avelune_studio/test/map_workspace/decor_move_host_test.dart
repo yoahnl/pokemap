@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/map_host_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 Finder get hint => find.textContaining('Faites glisser');
 
@@ -119,6 +120,80 @@ void main() {
   );
 
   testWidgets(
+    'zoom controls and centering preserve the scale below 100 %',
+    (tester) async {
+      final f = await MapHostFixture.open(tester);
+      await tester.tap(find.byKey(const ValueKey('Zoom arrière')));
+      await pumpFrames(tester);
+
+      expect(f.transform.entry(0, 0), closeTo(.8, .001));
+      expect(find.text('80 %'), findsOneWidget);
+
+      final view = tester
+          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .view;
+      view.centerCell(
+        const GridPos(x: 6, y: 5),
+        const Size(900, 600),
+        const Size(32, 32),
+      );
+      await pumpFrames(tester);
+      expect(f.transform.entry(0, 0), closeTo(.8, .001));
+      expect(find.text('80 %'), findsOneWidget);
+
+      view.transform.value = Matrix4.identity()..scaleByDouble(.1, .1, 1, 1);
+      await pumpFrames(tester);
+      await tester.tap(find.byKey(const ValueKey('Zoom avant')));
+      await pumpFrames(tester);
+      expect(f.transform.entry(0, 0), closeTo(.125, .001));
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  testWidgets(
+    'placing and moving outside the map explain the refusal without losing history',
+    (tester) async {
+      final f = await MapHostFixture.open(tester);
+      final before = f.document.current;
+      final steps = f.document.undoCount;
+
+      await tester.tap(find.byKey(const ValueKey('decor-arbre')));
+      await pumpFrames(tester);
+      await f.tapCell(23, 15);
+
+      expect(f.document.current, before);
+      expect(f.document.undoCount, steps);
+      expect(f.document.error, contains('dépasse les limites'));
+      expect(find.textContaining('dépasse les limites'), findsOneWidget);
+
+      await f.tapCell(20, 10);
+      expect(
+        f.document.current.placedElements.length,
+        before.placedElements.length + 1,
+      );
+      expect(f.document.error, isNull);
+      final placed = f.document.current.placedElements.last;
+
+      await f.rightClick(20, 10);
+      await f.choose('Déplacer');
+      await f.drag(20, 10, 23, 15);
+
+      expect(f.document.current.placedElements.last.pos, placed.pos);
+      expect(f.document.error, contains('dépasse les limites'));
+      expect(f.document.undoCount, steps + 1);
+
+      await f.drag(20, 10, 18, 9);
+      expect(
+        f.document.current.placedElements.last.pos,
+        const GridPos(x: 18, y: 9),
+      );
+      expect(f.document.error, isNull);
+      expect(f.document.undoCount, steps + 2);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  testWidgets(
     'Escape during the preview cancels the move without a mutation',
     (tester) async {
       final f = await MapHostFixture.open(tester);
@@ -178,14 +253,10 @@ void main() {
       await f.choose('Déplacer');
       expect(hint, findsOneWidget);
 
-      await tester.tap(find.byTooltip('Dessiner une zone de jeu'));
+      await chooseMapExtraTool(tester, 'Dessiner une zone de jeu');
       await pumpFrames(tester);
       expect(hint, findsNothing, reason: 'the instruction no longer applies');
-      await tester.tap(
-        find.byWidgetPredicate(
-          (widget) => widget is StudioTool && widget.label == 'Sélectionner',
-        ),
-      );
+      await tester.tap(find.byKey(const ValueKey('Sélectionner')));
       await pumpFrames(tester);
       await f.drag(13, 7, 13, 9);
 

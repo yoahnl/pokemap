@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import '../resources/resource_catalog.dart';
-import '../resources/resource_category_filter.dart';
 import '../resources/resource_category_tree.dart';
 import '../resources/resource_preview.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
@@ -13,6 +11,7 @@ import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_panels.dart';
 import 'map_workspace_palette_dock_header.dart';
+import 'map_workspace_palette_dock_filters.dart';
 
 class MapWorkspacePaletteDock extends StatefulWidget {
   const MapWorkspacePaletteDock({
@@ -72,7 +71,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
     }).toList();
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
     return Container(
-      height: _collapsed ? 48 : _height,
+      height: _collapsed ? 72 : _height,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
@@ -138,103 +137,88 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             )
           else if (!_collapsed)
             Expanded(
-              child: Row(
+              child: Column(
                 children: [
-                  if (tree.nodes.isNotEmpty || tree.uncategorized > 0) ...[
-                    SizedBox(
-                      width: 228,
-                      child: ResourceCategoryFilter(
-                        tree: tree,
-                        selected: selectedCategory,
-                        compact: true,
-                        onChanged: (value) {
-                          if (resourceKind == ResourceKind.decors) {
-                            widget.view.decorCategoryId = value;
-                          } else {
-                            widget.view.terrainCategoryId = value;
-                          }
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                  MapWorkspacePaletteDockFilters(
+                    tree: tree,
+                    selected: selectedCategory,
+                    search: widget.search,
+                    onCategoryChanged: (value) {
+                      if (resourceKind == ResourceKind.decors) {
+                        widget.view.decorCategoryId = value;
+                      } else {
+                        widget.view.terrainCategoryId = value;
+                      }
+                      setState(() {});
+                    },
+                    onSearchChanged: () => setState(() {}),
+                  ),
                   Expanded(
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 44,
-                          child: StudioSearchField(
-                            controller: widget.search,
-                            label: kind == 'Décors'
-                                ? 'Rechercher un décor'
-                                : 'Rechercher un terrain',
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Expanded(
-                          child: visible.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    'Aucune ressource dans cette catégorie.',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                )
-                              : ListView.builder(
-                                  key: ValueKey('dock-$kind-$selectedCategory'),
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: visible.length,
-                                  itemBuilder: (context, index) {
-                                    final item = visible[index];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: SizedBox(
-                                        width: 122,
-                                        child: StudioPaletteCard(
-                                          key: ValueKey(
-                                            item.element != null
-                                                ? 'decor-${item.id}'
-                                                : 'terrain-${item.id}',
-                                          ),
-                                          name: item.name,
-                                          maxNameLines: 2,
-                                          preview: item.element != null
-                                              ? widget.visuals.thumbnail(
-                                                  item.element!,
-                                                  size: 74,
-                                                )
-                                              : resourcePreview(
-                                                  item,
-                                                  widget.project,
-                                                  widget.visuals,
-                                                  size: 74,
-                                                ),
-                                          selected: item.element != null
-                                              ? widget.view.brush?.id == item.id
-                                              : widget.view.terrain?.id ==
-                                                    item.id,
-                                          onTap: () {
-                                            final view = widget.view;
-                                            view.brush = item.element;
-                                            view.terrain = item.terrain;
-                                            view.tile = null;
-                                            view.character = null;
-                                            view.tool = item.element != null
-                                                ? StudioMapTool.place
-                                                : StudioMapTool.terrain;
-                                            widget.onChanged();
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
+                    child: visible.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Aucune ressource dans cette catégorie.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final rows = (constraints.maxHeight / 100)
+                                  .floor()
+                                  .clamp(1, 3);
+                              return GridView.builder(
+                                key: ValueKey(
+                                  'dock-$kind-$selectedCategory-$rows',
                                 ),
-                        ),
-                      ],
-                    ),
+                                scrollDirection: Axis.horizontal,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: rows,
+                                      mainAxisExtent: 122,
+                                      crossAxisSpacing: 8,
+                                      mainAxisSpacing: 8,
+                                    ),
+                                itemCount: visible.length,
+                                itemBuilder: (context, index) {
+                                  final item = visible[index];
+                                  return StudioPaletteCard(
+                                    key: ValueKey(
+                                      item.element != null
+                                          ? 'decor-${item.id}'
+                                          : 'terrain-${item.id}',
+                                    ),
+                                    name: item.name,
+                                    maxNameLines: 2,
+                                    preview: item.element != null
+                                        ? widget.visuals.thumbnail(
+                                            item.element!,
+                                            size: 74,
+                                          )
+                                        : resourcePreview(
+                                            item,
+                                            widget.project,
+                                            widget.visuals,
+                                            size: 74,
+                                          ),
+                                    selected: item.element != null
+                                        ? widget.view.brush?.id == item.id
+                                        : widget.view.terrain?.id == item.id,
+                                    onTap: () {
+                                      final view = widget.view;
+                                      view.brush = item.element;
+                                      view.terrain = item.terrain;
+                                      view.tile = null;
+                                      view.character = null;
+                                      view.tool = item.element != null
+                                          ? StudioMapTool.place
+                                          : StudioMapTool.terrain;
+                                      widget.onChanged();
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),

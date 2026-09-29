@@ -32,7 +32,8 @@ final class StudioMapResources
         CinematicWorkspaceVisuals,
         CinematicMediaWorkspaceVisuals,
         PresentationMediaWorkspaceVisuals,
-        MapBorderPreviewVisuals {
+        MapBorderPreviewVisuals,
+        MapWorkspacePreviewVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
@@ -86,9 +87,7 @@ final class StudioMapResources
   Set<String> activeResourceIds = {};
   Map<String, RuntimeTilesetImage> get images => store.images;
   int get decodedBytes => store.decodedBytes;
-  Future<void> get settled async {
-    await Future.wait([store.settled, borderPreview.settled]);
-  }
+  Future<void> get settled => _resourcesSettled;
 
   static Future<StudioMapResources> load(
     ProjectSession session,
@@ -261,16 +260,7 @@ final class StudioMapResources
       _retryResources(resourceIds);
 
   @override
-  List<WorkspaceResourceDiagnostic> get diagnostics => List.unmodifiable([
-    ..._diagnostics.values,
-    if (borderPreview.issue case final issue?)
-      WorkspaceResourceDiagnostic(
-        resourceId: 'border:${_activeMap?.id}',
-        name: 'Bordures de la carte',
-        cause: WorkspaceResourceCause.readFailure,
-        detail: issue,
-      ),
-  ]);
+  List<WorkspaceResourceDiagnostic> get diagnostics => _resourceDiagnostics;
   @override
   List<String> get warnings =>
       diagnostics.map((item) => '${item.name} : ${item.message}').toList();
@@ -282,8 +272,18 @@ final class StudioMapResources
   @override
   Widget canvas(MapData map) => StudioMapVisual(map: map, resources: this);
   @override
+  Widget previewCanvas(MapData map) =>
+      StudioMapVisual(map: map, resources: this, preview: true);
+  @override
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       StudioResourceThumbnail(element: element, resources: this, size: size);
+  @override
+  Widget placementPreview(ProjectElementEntry element, Size size) =>
+      StudioResourceThumbnail(
+        element: element,
+        resources: this,
+        canvasSize: size,
+      );
   @override
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
       StudioResourceThumbnail(tile: tile, resources: this, size: size);

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "apps/pokemap_hub/**"
+      - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
       - "tools/pokemap_product_certification/**"
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - "apps/pokemap_hub/**"
+      - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
       - "tools/pokemap_product_certification/**"
@@ -25,8 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: 3.46.0-0.3.pre
-  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+  FLUTTER_VERSION: 3.47.5
+  FLUTTER_REVISION: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
 
 jobs:
   repository-contracts:
@@ -77,3 +79,13 @@ jobs:
             test/tileset_grid_metrics_test.dart \
             test/map_editing_controller_test.dart
           flutter analyze --no-pub lib test/release
+      - name: Studio smoke and static checks
+        working-directory: apps/avelune_studio
+        run: |
+          flutter pub get
+          flutter test --no-pub --timeout 2m \
+            test/app/studio_bootstrap_test.dart \
+            test/home/recent_projects_test.dart \
+            test/project_session/scoped_project_session_adapter_test.dart \
+            test/presentation/studio_app_test.dart
+          flutter analyze --no-pub lib

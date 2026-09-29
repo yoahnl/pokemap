@@ -6,8 +6,10 @@ import 'package:avelune_studio/features/project_session/data/local_project_sessi
 import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/studio_home_map_preview.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/capture_m3_widget.dart';
@@ -64,10 +66,35 @@ void main() {
           name: 'Carte de démonstration non enregistrée',
         ),
       );
+      expect(
+        find.byType(StudioHomeMapPreview, skipOffstage: false),
+        findsNothing,
+      );
       tester
           .widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout))
           .onHome!();
       await tester.pumpAndSettle();
+      await pumpIo(tester, frames: 60);
+      final previews = find.byType(StudioHomeMapPreview);
+      expect(previews, findsNWidgets(fixture.controller.project!.maps.length));
+      final canvases = find.descendant(
+        of: previews,
+        matching: find.byType(StudioMapVisual),
+      );
+      expect(canvases, findsNWidgets(fixture.controller.project!.maps.length));
+      expect(
+        tester
+            .widgetList<StudioMapVisual>(canvases)
+            .every((visual) => visual.preview),
+        isTrue,
+      );
+      expect(
+        tester
+            .widgetList<StudioMapVisual>(canvases)
+            .any((visual) => identical(visual.map, document.current)),
+        isTrue,
+      );
+      expect(find.text('Aperçu indisponible'), findsNothing);
       await captureM3Widget(tester, key, 'ui01-active-project');
       expect(fixture.controller.active, same(document));
       expect(document.dirty, isTrue);

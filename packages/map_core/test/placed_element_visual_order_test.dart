@@ -2,7 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('incompatible split decoration is not crossed by a local step', () {
+  test('overlapping decors exchange rank across collision render contexts', () {
     final manifest = _manifest.copyWith(
       elements: [
         ..._manifest.elements,
@@ -16,21 +16,57 @@ void main() {
     );
     final map = _map().copyWith(
       placedElements: [
-        _instance('a'),
-        _instance('split').copyWith(elementId: 'split'),
-        _instance('b'),
+        _instance('tree').copyWith(elementId: 'split'),
+        _instance('rock'),
       ],
     );
-    expect(
-      moveMapPlacedElementVisualOrder(
+    final moved = moveMapPlacedElementVisualOrder(
+      map,
+      manifest: manifest,
+      instanceId: 'rock',
+      forward: false,
+      at: const GridPos(x: 1, y: 1),
+    );
+    expect(_ids(sortMapPlacedElementsForPainting(moved.placedElements)), [
+      'rock',
+      'tree',
+    ]);
+  });
+
+  test(
+    'one step crosses the neighboring decoration regardless of collision',
+    () {
+      final manifest = _manifest.copyWith(
+        elements: [
+          ..._manifest.elements,
+          _manifest.elements.last.copyWith(
+            id: 'split',
+            collisionProfile: const ElementCollisionProfile(
+              cells: [GridPos(x: 0, y: 0)],
+            ),
+          ),
+        ],
+      );
+      final map = _map().copyWith(
+        placedElements: [
+          _instance('a'),
+          _instance('split').copyWith(elementId: 'split'),
+          _instance('b'),
+        ],
+      );
+      final moved = moveMapPlacedElementVisualOrder(
         map,
         manifest: manifest,
         instanceId: 'a',
         forward: true,
-      ),
-      same(map),
-    );
-  });
+      );
+      expect(_ids(sortMapPlacedElementsForPainting(moved.placedElements)), [
+        'split',
+        'a',
+        'b',
+      ]);
+    },
+  );
 
   test('visual rank round trips independently of list and properties', () {
     final source = _instance('a').copyWith(visualOrder: -4);
@@ -239,6 +275,39 @@ void main() {
       );
     },
   );
+
+  test('an uncovered tree crown stays above a later visual layer', () {
+    final manifest = _manifest.copyWith(
+      elements: [
+        ..._manifest.elements,
+        _manifest.elements.last.copyWith(
+          id: 'tree',
+          collisionProfile: const ElementCollisionProfile(
+            cells: [GridPos(x: 0, y: 1)],
+          ),
+          frames: const [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+            ),
+          ],
+        ),
+      ],
+    );
+    final map = _map().copyWith(
+      layers: [
+        MapLayer.tile(id: 'later', name: 'Later', cells: List.filled(100, 0)),
+        MapLayer.tile(id: 'decor', name: 'Decor', cells: List.filled(100, 0)),
+      ],
+      placedElements: [
+        _instance('tree').copyWith(elementId: 'tree'),
+        _instance('later').copyWith(layerId: 'later'),
+      ],
+    );
+    expect(
+      _ids(mapPlacedElementsAt(map, manifest, const GridPos(x: 1, y: 1))),
+      ['later', 'tree'],
+    );
+  });
 }
 
 List<String> _ids(Iterable<MapPlacedElement> values) =>

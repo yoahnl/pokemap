@@ -33,7 +33,6 @@ class MapLibraryNavigator extends StatefulWidget {
   final OrganizeMapLibrary? onOrganize;
   final VoidCallback? onCollapse;
   final double width;
-
   @override
   State<MapLibraryNavigator> createState() => _MapLibraryNavigatorState();
 }
@@ -42,12 +41,11 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
   final _search = TextEditingController();
   final _collapsed = <String>{};
   final _selected = <String>{};
-  var _creating = false;
-  var _selecting = false;
-  var _busy = false;
-  var _name = '';
-  var _parent = '';
-  var _destination = '';
+  var _creating = false,
+      _selecting = false,
+      _busy = false,
+      _searchExpanded = false;
+  var _name = '', _parent = '', _destination = '';
   String? _error;
 
   @override
@@ -183,6 +181,15 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                 ),
               ),
               StudioTool(
+                label: 'Rechercher une carte',
+                icon: _searchExpanded ? Icons.close : Icons.search,
+                selected: _searchExpanded,
+                onPressed: () {
+                  setState(() => _searchExpanded = !_searchExpanded);
+                  if (!_searchExpanded) _search.clear();
+                },
+              ),
+              StudioTool(
                 label: 'Nouveau dossier',
                 icon: Icons.create_new_folder_outlined,
                 onPressed: _busy || widget.onOrganize == null
@@ -208,12 +215,14 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          StudioSearchField(
-            controller: _search,
-            label: 'Rechercher une carte',
-            onChanged: (_) => setState(() {}),
-          ),
+          if (_searchExpanded) ...[
+            const SizedBox(height: 8),
+            StudioSearchField(
+              controller: _search,
+              label: 'Rechercher une carte',
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
           if (_creating) ...[
             const SizedBox(height: 8),
             MapFolderCreationForm(

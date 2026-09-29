@@ -185,6 +185,10 @@ final class _ControlledResources implements ResourcePort {
   ) => throw UnimplementedError();
 
   @override
+  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
+      throw UnimplementedError();
+
+  @override
   Future<ResourceMutationReceipt> mutate(
     String actionId,
     Map<String, Object?> parameters,

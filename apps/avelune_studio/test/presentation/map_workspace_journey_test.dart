@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   late WorkspaceMemoryPort port;
@@ -207,6 +208,8 @@ void main() {
       expect(document.undoCount, 1);
       await tester.tap(find.byTooltip('Afficher les cartes'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Rechercher une carte'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(TextField).first);
       await tester.enterText(find.byType(TextField).first, 'arbres');
       await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
@@ -259,10 +262,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
-
-  testWidgets('eraser reaches visible ground beneath an empty decor support', (
-    tester,
-  ) async {
+  testWidgets('eraser reaches ground beneath empty decor', (tester) async {
     await open(tester);
     final document = controller.active!;
     final ground = (document.current.layers.single as TileLayer).copyWith(
@@ -283,7 +283,7 @@ void main() {
     controller.notify();
     await tester.pumpAndSettle();
     final history = document.undoCount;
-    await tester.tap(find.byKey(const ValueKey('Gomme de tuiles')));
+    await chooseMapExtraTool(tester, 'Gomme de tuiles');
     await tester.tapAt(cell(tester, 4, 4));
     await tester.pumpAndSettle();
     final erased = document.current.layers.whereType<TileLayer>().firstWhere(

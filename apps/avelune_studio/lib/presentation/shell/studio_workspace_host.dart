@@ -24,6 +24,7 @@ class StudioWorkspaceHost extends ConsumerWidget {
     return MapWorkspaceScreen(
       home: StudioHomeScope.of(context),
       controller: controller,
+      mapConnectionPort: ref.watch(mapConnectionPortProvider(session)),
       resourcePort: ref.watch(resourcePortProvider(session)),
       pokemonPort: ref.watch(pokemonPortProvider(session)),
       pokemonCommercePort: ref.watch(pokemonCommercePortProvider(session)),

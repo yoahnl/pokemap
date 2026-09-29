@@ -5,10 +5,13 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = Avelune Studio
+PRODUCT_NAME = PokeMap
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = app.avelune.aveluneStudio
+PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 app.avelune. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Avelune Studio. All rights reserved.
+
+POKEMAP_SPARKLE_PUBLIC_ED_KEY =
+#include? "UpdateKeys.xcconfig"

@@ -110,6 +110,12 @@ class MapCreationTools extends StatelessWidget {
                 onPressed: () => activate(StudioMapTool.gameplayZone),
               ),
               StudioTool(
+                label: 'Tracer une bordure',
+                icon: Icons.timeline,
+                selected: view.tool == StudioMapTool.border,
+                onPressed: () => activate(StudioMapTool.border),
+              ),
+              StudioTool(
                 label: 'Dessiner une zone d’histoire',
                 icon: Icons.crop_square,
                 selected: view.tool == StudioMapTool.zone,

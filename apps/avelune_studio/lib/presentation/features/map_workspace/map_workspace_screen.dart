@@ -56,11 +56,11 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_selection_context.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
@@ -69,11 +69,11 @@ import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
 import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
+import 'studio_home_map_preview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
-
 part 'workspace_home_binding.dart';
 part 'workspace_story_binding.dart';
 part 'workspace_progression_binding.dart';
@@ -90,6 +90,7 @@ part 'workspace_world_binding.dart';
 part 'workspace_verification_binding.dart';
 part 'workspace_export_binding.dart';
 part 'workspace_map_library_binding.dart';
+part 'workspace_connection_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -100,6 +101,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
+    this.mapConnectionPort,
     this.pokemonPort,
     this.pokemonCommercePort,
     this.pokemonCombatPort,
@@ -123,6 +125,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final MapWorkspaceController controller;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
+  final MapConnectionPort? mapConnectionPort;
   final PokemonWorkspacePort? pokemonPort;
   final PokemonCommercePort? pokemonCommercePort;
   final PokemonCombatPort? pokemonCombatPort;
@@ -197,7 +200,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
-  String? _resourceError;
+  String? _resourceError, _connectionError;
+  bool _connectionBusy = false;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
   int _navigationRequest = 0;

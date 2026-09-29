@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 
 import '../../theme/studio_tokens.dart';
 import 'map_canvas_overlay.dart';
@@ -18,13 +19,15 @@ MapCanvasOverlay buildEditingOverlay({
   required MapCharacterGesture? gesture,
   required MapCanvasStroke? stroke,
   required MapEncounterCellStroke? encounterStroke,
+  required MapBorderDrawingDraft? borderDraft,
+  required GridPos? borderCursor,
   required GridPos? preview,
   required double cellWidth,
   required double cellHeight,
 }) {
   final colors = Theme.of(context).colorScheme;
   return MapCanvasOverlay(
-    map: map,
+    map: stroke?.collision == true ? stroke!.preview : map,
     project: project,
     selected: document.selected,
     selectedEntity: map.entities
@@ -56,9 +59,17 @@ MapCanvasOverlay buildEditingOverlay({
     cellWidth: cellWidth,
     cellHeight: cellHeight,
     grid: view.grid,
+    transform: view.transform,
     color: StudioColors.of(context).canvasSelection,
     labelBackground: colors.surface,
     labelForeground: colors.onSurface,
+    collisionColor:
+        view.tool == StudioMapTool.collisionPaint ||
+            view.tool == StudioMapTool.collisionErase
+        ? colors.error
+        : null,
     strokeCells: [...?stroke?.cells, ...?encounterStroke?.cells],
+    borderDraft: borderDraft,
+    borderCursor: borderCursor,
   );
 }

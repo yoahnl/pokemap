@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:avelune_studio/features/home/application/recent_projects_controller.dart';
+import 'package:avelune_studio/features/home/data/legacy_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/home/data/local_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/home/domain/recent_studio_project.dart';
@@ -63,6 +64,86 @@ void main() {
       expect(await manifest.readAsString(), 'unchanged');
       expect(await personal.exists(), isTrue);
       expect(await Directory('${root.path}/settings').list().length, 1);
+    },
+  );
+
+  test(
+    'imports the last PokeMap project without modifying its files',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'studio-legacy-recents-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final project = await Directory('${root.path}/Legacy Adventure').create();
+      final manifest = File('${project.path}/project.json');
+      await manifest.writeAsString('unchanged');
+      final storage = '${root.path}/settings/recent-projects.json';
+      final adapter = LegacyRecentProjectsAdapter(
+        storage,
+        resolveLegacyManifest: () async => manifest.path,
+        clock: () => DateTime.utc(2026, 9, 27),
+      );
+
+      final imported = await adapter.load();
+
+      expect(imported.single.name, 'Legacy Adventure');
+      expect(imported.single.directoryPath, project.path);
+      expect(imported.single.lastOpenedAt, DateTime.utc(2026, 9, 27));
+      expect(await File(storage).exists(), isTrue);
+      expect(await manifest.readAsString(), 'unchanged');
+    },
+  );
+
+  test(
+    'reactivates legacy access without restoring a removed recent',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'studio-legacy-recents-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final project = await Directory('${root.path}/Legacy Adventure').create();
+      final manifest = File('${project.path}/project.json');
+      await manifest.writeAsString('{}');
+      var resolves = 0;
+      final adapter = LegacyRecentProjectsAdapter(
+        '${root.path}/settings/recent-projects.json',
+        resolveLegacyManifest: () async {
+          resolves++;
+          return manifest.path;
+        },
+      );
+
+      expect(await adapter.load(), hasLength(1));
+      await adapter.save([]);
+      expect(await adapter.load(), isEmpty);
+      expect(resolves, 2);
+    },
+  );
+
+  test(
+    'keeps Studio recents when the legacy bookmark is unavailable',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'studio-legacy-recents-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final storage = '${root.path}/settings/recent-projects.json';
+      final local = LocalRecentProjectsAdapter(storage);
+      await local.save([
+        RecentStudioProject(
+          name: 'Studio',
+          directoryPath: '/studio-project',
+          lastOpenedAt: DateTime.utc(2026, 9, 27),
+        ),
+      ]);
+      final before = await File(storage).readAsString();
+      final adapter = LegacyRecentProjectsAdapter(
+        storage,
+        resolveLegacyManifest: () async => throw StateError('No bookmark'),
+      );
+
+      expect((await adapter.load()).single.directoryPath, '/studio-project');
+      expect(await File(storage).readAsString(), before);
     },
   );
 

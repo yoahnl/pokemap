@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/map_host_fixture.dart';
+import '../support/map_tool_menu.dart';
 import '../support/ui05_narrative_fixture.dart';
 
 class HeldNarrativePort implements NarrativePort {
@@ -54,7 +55,7 @@ void main() {
     (tester) async {
       final f = await MapHostFixture.open(tester);
       final NarrativeWorkspaceController narrative = await f.narrativeOwner();
-      await tester.tap(find.byTooltip('Dessiner une zone d’histoire'));
+      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
       await pumpIo(tester, frames: 4);
       await f.drag(3, 11, 5, 13);
       await pumpIo(tester, frames: 12);
@@ -107,7 +108,7 @@ void main() {
     (tester) async {
       final f = await MapHostFixture.open(tester);
       final narrative = await f.narrativeOwner();
-      await tester.tap(find.byTooltip('Dessiner une zone d’histoire'));
+      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
       await pumpIo(tester, frames: 4);
       await f.drag(3, 11, 5, 13);
       await pumpIo(tester, frames: 12);

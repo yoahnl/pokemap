@@ -8,8 +8,11 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,6 +146,41 @@ void main() {
           }
           expect(tester.takeException(), isNull);
           await _capture(capture, 'train-$mapId-carte-palette-empilement');
+          if (Platform.environment['AVELUNE_CAPTURE_CATEGORIES'] == '1') {
+            await tester.tap(find.text('Catégories').last);
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+            await _capture(capture, 'train-$mapId-categories');
+          }
+          final previewElementId =
+              Platform.environment['AVELUNE_CAPTURE_PLACEMENT_ELEMENT_ID'];
+          if (previewElementId != null) {
+            final element = manifest.elements.singleWhere(
+              (item) => item.id == previewElementId,
+            );
+            final view = tester
+                .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+                .view;
+            view.brush = element;
+            view.tool = StudioMapTool.place;
+            resources!.setBrush(element, null);
+            controller.notify();
+            await _settle(tester, resources!);
+            final mouse = TestPointer(44, PointerDeviceKind.mouse);
+            await tester.sendEventToBinding(
+              mouse.hover(
+                tester.getCenter(find.byKey(const ValueKey('map-viewport'))) +
+                    const Offset(-40, -110),
+              ),
+            );
+            await tester.pump();
+            expect(
+              find.byKey(const ValueKey('decor-placement-preview')),
+              findsOneWidget,
+            );
+            expect(document.dirty, isFalse);
+            await _capture(capture, 'train-$mapId-carte-avant-pose');
+          }
           final diagnostics = resources!.diagnostics;
           if (diagnostics.isNotEmpty) {
             await tester.tap(find.byKey(const ValueKey('resource-details')));

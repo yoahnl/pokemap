@@ -5,6 +5,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
+import 'studio_playtest_start.dart';
 
 export 'studio_playtest_session.dart';
 
@@ -56,10 +57,15 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     if (bundle.map != document.map) {
       throw StateError('La carte a changé pendant la préparation du test.');
     }
+    final initialGameState = await prepareStudioPlaytestStart(
+      bundle,
+      projectPath,
+    );
     if (!mounted) throw StateError('Test fermé');
     final game = PlayableMapGame(
       bundle: bundle,
       projectFilePath: projectPath,
+      initialGameState: initialGameState,
       saveRepository: _saves,
       initialMapActivationReason: MapActivationReason.initialBoot,
     );

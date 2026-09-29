@@ -402,6 +402,10 @@ class MapGridPainter extends CustomPainter {
   final Color? rotationPreviewRejectedColor;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final ProjectManifest? project;
+  late final Map<String, ProjectTilesetSource?> _placedTilesetSources = {
+    for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
+      tileset.id: tileset.source,
+  };
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
   final EditorCanvasPictureCacheOwner? pictureCacheOwner;
@@ -2848,6 +2852,13 @@ class MapGridPainter extends CustomPainter {
     if (tilesetImage == null) {
       return;
     }
+    final tilesetSource = _placedTilesetSources[tilesetId];
+    final offsetX = tilesetSource is ProjectRegularAtlasTilesetSource
+        ? tilesetSource.pixelOffsetX * tileWidth / sourceTileWidth
+        : 0.0;
+    final offsetY = tilesetSource is ProjectRegularAtlasTilesetSource
+        ? tilesetSource.pixelOffsetY * tileHeight / sourceTileHeight
+        : 0.0;
 
     final source = frame.source;
     final width = source.width <= 0 ? 1 : source.width;
@@ -2898,8 +2909,8 @@ class MapGridPainter extends CustomPainter {
           sourceTileHeight.toDouble(),
         );
         final dstRect = Rect.fromLTWH(
-          x * tileWidth,
-          y * tileHeight,
+          x * tileWidth + offsetX,
+          y * tileHeight + offsetY,
           tileWidth,
           tileHeight,
         );

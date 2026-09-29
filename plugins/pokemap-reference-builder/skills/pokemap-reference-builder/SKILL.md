@@ -1,11 +1,13 @@
 ---
 name: pokemap-reference-builder
-description: Use when reconstructing an editable exterior PokeMap/Avelune map from a reference, creating correctly sized missing props or buildings, or measuring PSDK object assets as reusable dimensional templates. Map reconstruction supports exteriors; asset measurement also covers interior furniture.
+description: Use when reconstructing an editable exterior PokeMap/Avelune map from a reference, prototyping an interior's floor and wall shell in HTML before authoring, creating missing assets, or measuring PSDK object templates. Native reconstruction supports exteriors; the interior mode is a review prototype.
 ---
 
 # PokeMap Reference Builder
 
 Convert a visual reference into an editable PokeMap composition. The reference guides geometry and visual hierarchy; it is never imported as a runtime background.
+
+For an **interior floor-and-wall HTML prototype**, read [the interior shell workflow](references/visual-review-checkpoints.md#interior-floor-and-wall-html-prototype). It is a read-only visual gate before native authoring, not the exterior blueprint pipeline and not permission to change the game project. The exterior instructions below remain for native exterior reconstruction.
 
 ## Object measurements and asset templates
 
@@ -56,7 +58,7 @@ Obtain or infer:
 - the target map ID or approval to create one;
 - map width and height in 32 px cells.
 
-If map dimensions are not explicit, propose them from the reference and viewport goal, then obtain approval before mutation. This workflow supports exterior maps only.
+If map dimensions are not explicit, propose them from the reference and viewport goal, then obtain approval before mutation. The native reconstruction workflow below supports exterior maps only; the interior HTML mode has its own read-only inputs and stopping point.
 
 ## Start with capability discovery
 
@@ -92,6 +94,8 @@ For player-scale comparisons, resolve the actual character and animation source 
 For forest masks, check whether the live generator treats active cells as placement origins or full canopy coverage. At high density, scan-order spacing can produce rows even with a large variation setting: probability variation is not position jitter. Test a small native-scale patch against the reference, including overlapping canopies and understory. Use the existing Environment contract with bounds-safe, obstacle-aware masks; do not replace it with a flattened forest bitmap. Dense canopy and clean gameplay clearance need separate checks.
 
 For relief, record which plateau each bank belongs to, the visible cliff faces, water level and waterfall contact. A shoreline alone does not reproduce an elevated river bank. Keep these families editable and inspect representative bank/terrain junctions before populating the whole map.
+
+For an accepted stair-and-path junction that needs a small visual adjustment, preserve the approved grid placement and network geometry. Follow the stair and railing checks in [the review checkpoints](references/visual-review-checkpoints.md) before changing neighboring terrain.
 
 When improving this workflow after user feedback, persist the reproducible measurement or check that would have caught the actual error. Validate it on the rejected baseline and the new candidate. Do not invent a speed gain or treat fresh structural tests as artistic acceptance.
 

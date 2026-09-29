@@ -10,7 +10,10 @@ class MapEditingCommands {
 
   String? place(ProjectElementEntry element, GridPos position) {
     var map = document.current;
-    final layer = supportLayer(map);
+    final layer = supportLayer(
+      map,
+      preferredLayerId: element.recommendedLayerId,
+    );
     if (!map.layers.any((entry) => entry.id == layer.id)) {
       final layers = [...map.layers];
       layers.insert(
@@ -37,7 +40,10 @@ class MapEditingCommands {
               ) +
           1,
     );
-    if (!_fits(instance, element)) return null;
+    if (!_fits(instance, element)) {
+      document.error = 'Ce décor dépasse les limites de la carte.';
+      return null;
+    }
     document.commit(upsertMapPlacedElement(map, instance: instance));
     document.selectedId = id;
     document.stackPosition = position;
@@ -52,7 +58,12 @@ class MapEditingCommands {
     final element = project.elements
         .where((element) => element.id == instance.elementId)
         .firstOrNull;
-    if (element == null || !_fits(instance.copyWith(pos: position), element)) {
+    if (element == null) {
+      document.error = 'Ce décor n’est plus disponible dans le projet.';
+      return;
+    }
+    if (!_fits(instance.copyWith(pos: position), element)) {
+      document.error = 'Ce décor dépasse les limites de la carte.';
       return;
     }
     document.commit(
@@ -110,11 +121,11 @@ class MapEditingCommands {
       return 'Aucun autre décor sur ce calque à cet emplacement.';
     }
     if (!canReorderAt(instanceId: instanceId, at: at, forward: !forward)) {
-      return 'Les autres décors de ce calque ont un comportement de rendu non interchangeable.';
+      return 'Aucun autre décor réordonnable à cet emplacement.';
     }
     return forward
-        ? 'Ce décor est déjà devant ses voisins réordonnables.'
-        : 'Ce décor est déjà derrière ses voisins réordonnables.';
+        ? 'Ce décor est déjà devant les autres décors de ce calque.'
+        : 'Ce décor est déjà derrière les autres décors de ce calque.';
   }
 
   void reorderAt({
@@ -165,7 +176,17 @@ class MapEditingCommands {
     position,
   ).reversed.toList();
 
-  TileLayer supportLayer(MapData map) {
+  TileLayer supportLayer(MapData map, {String? preferredLayerId}) {
+    final preferred = map.layers
+        .whereType<TileLayer>()
+        .where(
+          (layer) =>
+              layer.id == preferredLayerId &&
+              layer.isVisible &&
+              layer.purpose == MapLayerPurpose.visual,
+        )
+        .firstOrNull;
+    if (preferred != null) return preferred;
     final plan = buildMapVisualCompositionPlan(map).plan;
     final layers = plan?.visibleTileLayersInPaintOrder ?? <TileLayer>[];
     for (final layer in layers.reversed) {

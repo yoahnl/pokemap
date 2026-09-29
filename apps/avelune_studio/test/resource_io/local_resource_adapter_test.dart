@@ -12,7 +12,6 @@ void main() {
   late ResourceFixture fixture;
   setUp(() async => fixture = await ResourceFixture.create());
   tearDown(() => fixture.dispose());
-
   test('cancel before validation publishes no file or resource', () async {
     final before = await fixture.manifestFile.readAsBytes();
     final files = await fixture.root
@@ -70,6 +69,69 @@ void main() {
       );
     },
   );
+
+  test(
+    'creates and publishes a drawable border from project elements',
+    () async {
+      final imported = await fixture.import();
+      final tilesetId = imported.createdTilesetId!;
+      for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
+        await fixture.resources.saveElement(
+          fixture
+              .element(tilesetId, id: id)
+              .copyWith(
+                name: id,
+                frames: [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
+                ],
+              ),
+        );
+      }
+
+      final receipt = await fixture.resources.createBorder(
+        const BorderCreationRequest(
+          name: 'Clôture du jardin',
+          capElementId: 'cap',
+          straightElementId: 'straight',
+          cornerElementId: 'corner',
+        ),
+      );
+
+      expect(receipt.manifest.borderCatalog.records, hasLength(1));
+      final published = receipt.manifest.borderCatalog.records.single;
+      expect(published.latestPublished?.definition.name, 'Clôture du jardin');
+      expect(published.latestPublished?.definition.primitives, hasLength(3));
+      final reopened = await LocalMapWorkspaceAdapter().loadProject(
+        fixture.session,
+      );
+      expect(reopened.borderCatalog.records.single.latestPublished, isNotNull);
+    },
+  );
+
+  test('missing border image leaves no draft behind', () async {
+    final imported = await fixture.import();
+    final tilesetId = imported.createdTilesetId!;
+    for (final id in ['cap', 'straight', 'corner']) {
+      await fixture.resources.saveElement(fixture.element(tilesetId, id: id));
+    }
+    final path = imported.manifest.tilesets.single.relativePath;
+    await File('${fixture.root.path}/$path').delete();
+    await expectLater(
+      fixture.resources.createBorder(
+        const BorderCreationRequest(
+          name: 'Clôture',
+          capElementId: 'cap',
+          straightElementId: 'straight',
+          cornerElementId: 'corner',
+        ),
+      ),
+      throwsA(isA<ResourceFailure>()),
+    );
+    final project = await LocalMapWorkspaceAdapter().loadProject(
+      fixture.session,
+    );
+    expect(project.borderCatalog.records, isEmpty);
+  });
 
   test(
     'first decor category and definition commit together; variant preserves original',

@@ -10,6 +10,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         ) ??
         _controller.error ??
         document?.error ??
+        _connectionError ??
         _resourceError;
     return CallbackShortcuts(
       bindings: workspaceShortcuts(
@@ -32,6 +33,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                     _actions.testing ||
                     _actions.closing ||
                     _resources?.busy == true ||
+                    _connectionBusy ||
                     _narrative?.saving == true,
                 child: SafeArea(
                   child: Column(
@@ -109,6 +111,12 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onOrganizeMaps: _resources == null
                               ? null
                               : _organizeMaps,
+                          onLinkMaps: widget.mapConnectionPort == null
+                              ? null
+                              : _linkMaps,
+                          onUnlinkMaps: widget.mapConnectionPort == null
+                              ? null
+                              : _unlinkMaps,
                           onSave: document == null || document.saving
                               ? null
                               : _saveWorkspaceDocument,

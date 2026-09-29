@@ -20,7 +20,7 @@ extension _MapCanvasZonePaint on MapCanvasOverlay {
           cellHeight: cellHeight,
           color: color,
           labelColor: labelForeground ?? color,
-          showLabel: cellWidth >= 28,
+          showLabel: _showLabels,
           selected: zone.id == selectedZoneId,
         );
         continue;

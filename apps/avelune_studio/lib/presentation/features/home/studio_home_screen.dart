@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'studio_home_hero.dart';
+import 'studio_home_all_maps.dart';
 import 'studio_home_projects.dart';
 import 'studio_home_tools.dart';
 
@@ -23,6 +25,8 @@ class StudioHomeScreen extends StatefulWidget {
     required this.onRecent,
     required this.onRemoveRecent,
     this.maps = const [],
+    this.mapLibrary,
+    this.mapPreviewBuilder,
     required this.onMap,
     this.status,
     this.statusAtTop = false,
@@ -37,6 +41,8 @@ class StudioHomeScreen extends StatefulWidget {
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
   final List<({String id, String name})> maps;
+  final ProjectManifest? mapLibrary;
+  final Widget Function(String)? mapPreviewBuilder;
   final Widget? status;
   final bool statusAtTop;
   final TextEditingController? searchController;
@@ -50,6 +56,7 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
   late final _search = widget.searchController ?? TextEditingController();
   final _contentScroll = ScrollController();
   String _query = '';
+  bool _showAllMaps = false;
 
   @override
   void initState() {
@@ -66,6 +73,7 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.statusAtTop != widget.statusAtTop ||
         oldWidget.projectName != widget.projectName) {
+      if (oldWidget.projectName != widget.projectName) _showAllMaps = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _contentScroll.hasClients) _contentScroll.jumpTo(0);
       });
@@ -195,8 +203,12 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
       );
       final resume = StudioHomeResume(
         maps: maps,
+        previewBuilder: widget.mapPreviewBuilder,
         onMap: widget.onMap,
-        onAllMaps: () => widget.onDestination('map'),
+        onAllMaps: () {
+          _search.clear();
+          setState(() => _showAllMaps = true);
+        },
         hasProject: widget.projectName != null,
         busy: widget.busy,
         maxPreview: narrow ? 2 : 4,
@@ -280,7 +292,26 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
       busy: widget.busy,
       canTest: widget.canTest,
       onClose: widget.onClose,
-      child: LayoutBuilder(builder: (context, bounds) => content(bounds)),
+      child: _showAllMaps
+          ? StudioHomeAllMaps(
+              maps:
+                  widget.mapLibrary?.maps ??
+                  [
+                    for (final map in widget.maps)
+                      ProjectMapEntry(
+                        id: map.id,
+                        name: map.name,
+                        relativePath: '',
+                      ),
+                  ],
+              groups: widget.mapLibrary?.groups ?? const [],
+              onMap: widget.onMap,
+              onBack: () => setState(() => _showAllMaps = false),
+              busy: widget.busy,
+              previewBuilder: widget.mapPreviewBuilder,
+              query: _query,
+            )
+          : LayoutBuilder(builder: (context, bounds) => content(bounds)),
     );
   }
 }

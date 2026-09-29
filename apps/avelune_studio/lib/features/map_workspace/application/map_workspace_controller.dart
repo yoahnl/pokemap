@@ -11,6 +11,7 @@ class MapWorkspaceController {
   final MapWorkspacePort port;
   final Map<String, EditableMapDocument> documents = {};
   final Map<String, Future<EditableMapDocument>> _loading = {};
+  final Map<String, Future<MapData>> _previews = {};
   final Set<void Function()> _listeners = {};
   ProjectManifest? project;
   EditableMapDocument? active;
@@ -74,6 +75,41 @@ class MapWorkspaceController {
         notify();
       }
     }
+  }
+
+  Future<MapData?> previewMap(String id) {
+    if (_disposed) return Future.value(null);
+    final entry = project?.maps.where((map) => map.id == id).firstOrNull;
+    if (entry == null) return Future.value(null);
+    return _previews.putIfAbsent(id, () async {
+      try {
+        return (await port.loadMap(session, entry)).map;
+      } on Object {
+        _previews.remove(id);
+        rethrow;
+      }
+    });
+  }
+
+  Future<void> refreshSavedMaps(Set<String> mapIds) async {
+    if (_disposed || project == null) return;
+    final activeId = active?.base.mapId;
+    for (final id in mapIds) {
+      final document = documents[id];
+      if (document?.dirty == true || document?.saving == true) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Un brouillon de carte est encore ouvert. Enregistrez-le avant de relier les cartes.',
+        );
+      }
+      final entry = project!.maps.where((map) => map.id == id).firstOrNull;
+      if (entry == null) continue;
+      final updated = EditableMapDocument(await port.loadMap(session, entry));
+      if (_disposed) return;
+      documents[id] = updated;
+      if (activeId == id) active = updated;
+    }
+    notify();
   }
 
   Future<bool> save(EditableMapDocument document) async {
@@ -170,6 +206,7 @@ class MapWorkspaceController {
   void dispose() {
     _disposed = true;
     _generation++;
+    _previews.clear();
     _listeners.clear();
   }
 

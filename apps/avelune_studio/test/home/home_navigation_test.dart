@@ -68,7 +68,9 @@ void main() {
       expect(find.text('Reprendre mon projet'), findsOneWidget);
       expect(controller.active, same(document));
       expect(document.dirty, isTrue);
-      expect(maps.reads, reads);
+      expect(maps.reads, reads + 1);
+      expect(controller.documents.keys, ['a']);
+      expect(maps.writes, 0);
       chosen = '/other';
       await tester.tap(find.text('Ouvrir un autre projet'));
       await tester.pumpAndSettle();
@@ -92,7 +94,7 @@ void main() {
       controller.restore(redo: false);
       await tester.pumpAndSettle();
       expect(document.current.name, 'a');
-      expect(maps.reads, reads);
+      expect(maps.reads, reads + 1);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await session.dispose();

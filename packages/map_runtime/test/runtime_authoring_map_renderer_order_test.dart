@@ -139,6 +139,161 @@ void main() {
     expect(await pixelAt(rendered, 16, 48), rgba(0, 255, 0, 255));
   });
 
+  for (final rockInFront in [false, true]) {
+    test(
+        'overlapping split and whole decors paint in authored order '
+        'with rockInFront=$rockInFront', () async {
+      final map = MapData.fromJson(MapData(
+        id: 'mixed-order',
+        name: 'Mixed order',
+        size: const GridSize(width: 1, height: 2),
+        layers: const [
+          TileLayer(id: 'decor', name: 'Decor', cells: [0, 0]),
+        ],
+        placedElements: [
+          MapPlacedElement(
+            id: 'tree',
+            layerId: 'decor',
+            elementId: 'tree',
+            pos: const GridPos(x: 0, y: 0),
+            visualOrder: rockInFront ? 0 : 1,
+          ),
+          MapPlacedElement(
+            id: 'rock',
+            layerId: 'decor',
+            elementId: 'rock',
+            pos: const GridPos(x: 0, y: 0),
+            visualOrder: rockInFront ? 1 : 0,
+          ),
+        ],
+      ).toJson());
+      final bundle = surfaceTestBundle(map: map, elements: const [
+        ProjectElementEntry(
+          id: 'tree',
+          name: 'Tree',
+          tilesetId: 'tree',
+          categoryId: 'test',
+          frames: [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+            ),
+          ],
+          collisionProfile: ElementCollisionProfile(
+            cells: [GridPos(x: 0, y: 1)],
+          ),
+        ),
+        ProjectElementEntry(
+          id: 'rock',
+          name: 'Rock',
+          tilesetId: 'rock',
+          categoryId: 'test',
+          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+        ),
+      ]);
+      final treePixels = await _paint(
+        (canvas) => canvas.drawRect(
+          const Rect.fromLTWH(0, 0, 32, 64),
+          Paint()..color = const Color(0xffff0000),
+        ),
+        height: 64,
+      );
+      final treeImage = RuntimeTilesetImage(
+        images: [treePixels],
+        chunks: const [RuntimeTilesetChunk(top: 0, height: 64, width: 32)],
+        width: 32,
+        height: 64,
+      );
+      final rockImage = await runtimeTilesetImage(const [Color(0xff0000ff)]);
+      addTearDown(treeImage.dispose);
+      addTearDown(rockImage.dispose);
+      final images = {'tree': treeImage, 'rock': rockImage};
+
+      final studio = RuntimeAuthoringMapRenderer(bundle: bundle, images: images)
+        ..update(0);
+      final studioImage = await _paint(studio.paint, height: 64);
+      addTearDown(studioImage.dispose);
+      expect(
+        await pixelAt(studioImage, 16, 16),
+        rockInFront ? rgba(0, 0, 255, 255) : rgba(255, 0, 0, 255),
+      );
+
+      final background = MapLayersComponent(
+        bundle: bundle,
+        tileImagesByTilesetId: images,
+      )..update(0);
+      final foreground = MapLayersComponent(
+        bundle: bundle,
+        tileImagesByTilesetId: images,
+        renderPass: MapLayerRenderPass.foreground,
+      )..update(0);
+      final playerImage = await _paint((canvas) {
+        background.render(canvas);
+        canvas.drawRect(
+          const Rect.fromLTWH(0, 0, 32, 64),
+          Paint()..color = const Color(0xff00ff00),
+        );
+        foreground.render(canvas);
+      }, height: 64);
+      addTearDown(playerImage.dispose);
+      expect(
+        await pixelAt(playerImage, 16, 16),
+        rockInFront ? rgba(0, 255, 0, 255) : rgba(255, 0, 0, 255),
+      );
+      expect(await pixelAt(playerImage, 16, 48), rgba(0, 255, 0, 255));
+
+      if (rockInFront) {
+        final translucentRock = RuntimeAuthoringMapRenderer(
+          bundle: bundle.copyWith(
+            map: map.copyWith(placedElements: [
+              map.placedElements.first,
+              map.placedElements.last.copyWith(opacity: 0.5),
+            ]),
+          ),
+          images: images,
+        )..update(0);
+        final translucentImage = await _paint(
+          translucentRock.paint,
+          height: 64,
+        );
+        addTearDown(translucentImage.dispose);
+        final blended = await pixelAt(translucentImage, 16, 16);
+        expect(blended[0], inInclusiveRange(120, 136));
+        expect(blended[2], inInclusiveRange(120, 136));
+
+        final transparentRock = await runtimeTilesetImage(
+          const [Color(0x00000000)],
+        );
+        addTearDown(transparentRock.dispose);
+        final fadedImages = {'tree': treeImage, 'rock': transparentRock};
+        final fadedTree = map.placedElements.first.copyWith(opacity: 0.5);
+        final baseline = RuntimeAuthoringMapRenderer(
+          bundle: bundle.copyWith(
+            map: map.copyWith(placedElements: [fadedTree]),
+          ),
+          images: fadedImages,
+        )..update(0);
+        final withTransparentRock = RuntimeAuthoringMapRenderer(
+          bundle: bundle.copyWith(
+            map: map
+                .copyWith(placedElements: [fadedTree, map.placedElements.last]),
+          ),
+          images: fadedImages,
+        )..update(0);
+        final baselineImage = await _paint(baseline.paint, height: 64);
+        final transparentImage = await _paint(
+          withTransparentRock.paint,
+          height: 64,
+        );
+        addTearDown(baselineImage.dispose);
+        addTearDown(transparentImage.dispose);
+        expect(
+          await pixelAt(transparentImage, 16, 16),
+          await pixelAt(baselineImage, 16, 16),
+        );
+      }
+    });
+  }
+
   test('unprepared border does not hide placed elements in authoring preview',
       () async {
     final map = MapData(

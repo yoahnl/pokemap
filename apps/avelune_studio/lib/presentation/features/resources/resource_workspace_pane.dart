@@ -8,10 +8,11 @@ import 'resource_navigation.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
+import 'border_creation_dialog.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../characters/character_studio_page.dart';
 import 'resource_character_portrait_import.dart';
 import 'resource_character_animation_import.dart';
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -232,6 +233,25 @@ class ResourceWorkspacePane extends StatelessWidget {
               onUse: n.onUse,
               onEdit: n.edit,
               onTerrain: n.prepareTerrain,
+              onCreateBorder: () => showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BorderCreationDialog(
+                  navigation: n,
+                  project: n.workspace.project!,
+                  visuals: visuals,
+                ),
+              ),
+              onResumeBorder: (record) => showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => BorderCreationDialog(
+                  navigation: n,
+                  project: n.workspace.project!,
+                  visuals: visuals,
+                  initialRecord: record,
+                ),
+              ),
               terrainDrafts: n.pendingTerrainDrafts,
               onResumeTerrain: n.resumeTerrain,
               canEditTerrain: n.canEditTerrain,

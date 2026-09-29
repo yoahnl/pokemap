@@ -268,8 +268,8 @@ de jeu tiers n’est nécessaire.
 Dans Studio, **Ouvrir un projet** permet de choisir ce dossier. Le sandbox macOS conserve
 ses protections et accorde la lecture/écriture uniquement au dossier choisi.
 Une saisie manuelle peut nécessiter cette sélection préalable. Les plugins Apple
-utilisent Swift Package Manager. SDK vérifié : Flutter 3.48.0-0.4.pre,
-Dart embarqué 3.14.0-95.2.beta, macOS arm64.
+utilisent Swift Package Manager. SDK vérifié : Flutter 3.47.5 stable,
+Dart embarqué 3.13.4, macOS arm64.
 
 ## Utiliser une carte
 

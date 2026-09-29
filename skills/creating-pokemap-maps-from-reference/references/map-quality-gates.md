@@ -84,6 +84,8 @@ Pass only when:
 - every required target is reachable by four-directional movement;
 - every entry/exit cell is walkable and visibly signalled;
 - a door has at least one clear approach cell on each usable side;
+- every visible doorway is centered on an identified native cell, whose collision is open while the adjacent wall cells stay blocked;
+- the actual player can walk from the map entry through each doorway, reach the room, and walk back out in the Player or gameplay engine; a grid-only reachability check is insufficient when it finds a path through a visually solid wall;
 - normal circulation is comfortably wide; one-cell passages are intentional;
 - furniture collision follows ground contact, not the whole visible sprite;
 - foreground occlusion never disguises a blocked route as open;

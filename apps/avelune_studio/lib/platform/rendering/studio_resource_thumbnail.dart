@@ -12,12 +12,14 @@ class StudioResourceThumbnail extends StatefulWidget {
     this.element,
     this.tile,
     required this.resources,
-    required this.size,
+    this.size = 48,
+    this.canvasSize,
   });
   final ProjectElementEntry? element;
   final TileLayerPaletteEntry? tile;
   final StudioMapResources resources;
   final double size;
+  final Size? canvasSize;
   @override
   State<StudioResourceThumbnail> createState() =>
       _StudioResourceThumbnailState();
@@ -92,8 +94,8 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
   @override
   Widget build(BuildContext context) {
     if (_slices.isEmpty) {
-      return SizedBox.square(
-        dimension: widget.size,
+      return SizedBox.fromSize(
+        size: widget.canvasSize ?? Size.square(widget.size),
         child: Icon(
           _failed ? Icons.broken_image_outlined : Icons.hourglass_empty,
           size: 18,
@@ -104,7 +106,7 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
       );
     }
     return CustomPaint(
-      size: Size.square(widget.size),
+      size: widget.canvasSize ?? Size.square(widget.size),
       painter: _ThumbnailPainter(
         _slices,
         widget.tile?.transform ?? const SmartTileSpriteTransform(),

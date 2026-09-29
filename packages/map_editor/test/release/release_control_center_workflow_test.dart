@@ -63,6 +63,8 @@ void main() {
         workflow,
         contains(r'--pokemap-version "$REQUEST_POKEMAP_VERSION"'),
       );
+      expect(workflow, contains('apps/avelune_studio/pubspec.yaml'));
+      expect(workflow, isNot(contains('packages/map_editor/pubspec.yaml')));
       expect(workflow, contains(r'--confirmation "$REQUEST_CONFIRMATION"'));
       expect(workflow, contains(r'--product "$REQUEST_PRODUCT"'));
       expect(workflow, contains(r'--action "$REQUEST_ACTION"'));

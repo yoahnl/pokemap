@@ -213,6 +213,10 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                   onRemoveRecent: (entry) =>
                       _recents.remove(entry.directoryPath),
                   maps: _home.maps,
+                  mapLibrary: _home.mapLibrary,
+                  mapPreviewBuilder: homeVisible
+                      ? _home.mapPreviewBuilder
+                      : null,
                   onMap: (id) => _home.navigate('map', id),
                   statusAtTop:
                       busy || state.problem != null || _pickerError != null,

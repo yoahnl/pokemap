@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'map_painted_encounter_overlay.dart';
 
 part 'map_canvas_zone_paint.dart';
+part 'map_canvas_border_paint.dart';
+part 'map_canvas_collision_paint.dart';
 
 class MapCanvasOverlay extends CustomPainter {
   MapCanvasOverlay({
@@ -13,8 +16,11 @@ class MapCanvasOverlay extends CustomPainter {
     required this.cellHeight,
     required this.grid,
     required this.color,
+    this.transform,
     this.preview,
     this.strokeCells = const [],
+    this.borderDraft,
+    this.borderCursor,
     this.selectedEntity,
     this.entityPreview,
     this.selectedWarpId,
@@ -25,7 +31,8 @@ class MapCanvasOverlay extends CustomPainter {
     this.zone,
     this.labelBackground,
     this.labelForeground,
-  });
+    this.collisionColor,
+  }) : super(repaint: transform);
   final MapData map;
   final ProjectManifest project;
   final MapPlacedElement? selected;
@@ -33,8 +40,11 @@ class MapCanvasOverlay extends CustomPainter {
   final double cellHeight;
   final bool grid;
   final Color color;
+  final TransformationController? transform;
   final GridPos? preview;
   final List<GridPos> strokeCells;
+  final MapBorderDrawingDraft? borderDraft;
+  final GridPos? borderCursor;
   final MapEntity? selectedEntity;
   final GridPos? entityPreview;
   final String? selectedWarpId;
@@ -44,6 +54,9 @@ class MapCanvasOverlay extends CustomPainter {
   final String? selectedZoneId;
   final MapRect? zone;
   final Color? labelBackground, labelForeground;
+  final Color? collisionColor;
+  bool get _showLabels =>
+      cellWidth * (transform?.value.entry(0, 0).abs() ?? 1) >= 28;
 
   void _paintStoryZones(Canvas canvas) {
     final clip = canvas.getLocalClipBounds();
@@ -62,7 +75,7 @@ class MapCanvasOverlay extends CustomPainter {
       );
       if (!clip.overlaps(rect)) continue;
       canvas.drawRect(rect.deflate(.75), outline);
-      if (rect.width < 24 || rect.height < 18) continue;
+      if (!_showLabels || rect.width < 24 || rect.height < 18) continue;
       final label = TextPainter(
         text: TextSpan(
           text: trigger.name.trim().isEmpty ? 'Zone d’histoire' : trigger.name,
@@ -103,6 +116,7 @@ class MapCanvasOverlay extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = chosen ? 2 : 1.5,
     );
+    if (!_showLabels) return;
     final label = TextPainter(
       text: TextSpan(
         text: text,
@@ -210,9 +224,11 @@ class MapCanvasOverlay extends CustomPainter {
       }
     }
     _paintStoryZones(canvas);
+    _paintCollisionCells(canvas);
     _paintGameplayZones(canvas);
     _paintMarkers(canvas);
     _paintWarps(canvas);
+    _paintBorderDraft(canvas);
     paint.color = color.withValues(alpha: .4);
     for (final cell in strokeCells) {
       canvas.drawRect(

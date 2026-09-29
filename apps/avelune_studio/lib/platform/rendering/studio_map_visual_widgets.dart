@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'studio_border_preview.dart';
 
 RuntimeAuthoringMapRenderer createStudioMapRenderer(
   MapData map,
-  StudioMapResources resources,
-) => RuntimeAuthoringMapRenderer(
+  StudioMapResources resources, {
+  StudioBorderPreview? previewBorders,
+}) => RuntimeAuthoringMapRenderer(
   bundle: RuntimeMapBundle(
     manifest: resources.manifest,
     map: map,
@@ -16,7 +19,7 @@ RuntimeAuthoringMapRenderer createStudioMapRenderer(
     tilesetAbsolutePathsById: resources.paths,
   ),
   images: resources.images,
-  borderAssets: resources.borderPreview.assetsFor(map),
+  borderAssets: (previewBorders ?? resources.borderPreview).assetsFor(map),
   includeCharacters: true,
 );
 
@@ -25,10 +28,12 @@ class StudioMapVisual extends StatefulWidget {
     super.key,
     required this.map,
     required this.resources,
+    this.preview = false,
   });
 
   final MapData map;
   final StudioMapResources resources;
+  final bool preview;
 
   @override
   State<StudioMapVisual> createState() => _StudioMapVisualState();
@@ -39,31 +44,59 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
   final Object _owner = Object();
   int _catalogVersion = -1;
   BorderRuntimeAssetBundle? _borderAssets;
+  StudioBorderPreview? _previewBorders;
+
+  StudioBorderPreview get _borders =>
+      _previewBorders ?? widget.resources.borderPreview;
+
+  void _prepareBorders() {
+    final previous = _previewBorders;
+    if (previous != null) unawaited(previous.dispose());
+    _previewBorders = widget.preview
+        ? StudioBorderPreview(
+            projectRoot: widget.resources.projectRoot,
+            changed: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _changed();
+            }),
+          )
+        : null;
+    _previewBorders?.setActiveMap(widget.resources.manifest, widget.map);
+  }
 
   @override
   void initState() {
     super.initState();
+    _prepareBorders();
     widget.resources.retain(
       _owner,
       widget.resources.mapResourceIds(widget.map),
     );
-    renderer = widget.resources.renderer(widget.map)..update(0);
-    _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
+    renderer = createStudioMapRenderer(
+      widget.map,
+      widget.resources,
+      previewBorders: _previewBorders,
+    )..update(0);
+    _borderAssets = _borders.assetsFor(widget.map);
     _catalogVersion = widget.resources.catalogVersion;
     widget.resources.addListener(_changed);
   }
 
   void _changed() {
     if (!mounted) return;
+    if (_previewBorders != null &&
+        _catalogVersion != widget.resources.catalogVersion) {
+      _previewBorders!.setActiveMap(widget.resources.manifest, widget.map);
+    }
     if (_catalogVersion != widget.resources.catalogVersion ||
-        !identical(
-          _borderAssets,
-          widget.resources.borderPreview.assetsFor(widget.map),
-        )) {
+        !identical(_borderAssets, _borders.assetsFor(widget.map))) {
       _catalogVersion = widget.resources.catalogVersion;
-      _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
+      _borderAssets = _borders.assetsFor(widget.map);
       setState(
-        () => renderer = widget.resources.renderer(widget.map)..update(0),
+        () => renderer = createStudioMapRenderer(
+          widget.map,
+          widget.resources,
+          previewBorders: _previewBorders,
+        )..update(0),
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -83,13 +116,28 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         !identical(oldWidget.resources, widget.resources)) {
       oldWidget.resources.release(_owner);
       oldWidget.resources.removeListener(_changed);
+      if (widget.preview &&
+          (oldWidget.map != widget.map ||
+              oldWidget.resources.manifest != widget.resources.manifest)) {
+        if (oldWidget.resources != widget.resources) {
+          _prepareBorders();
+        } else {
+          _previewBorders?.setActiveMap(widget.resources.manifest, widget.map);
+        }
+      } else if (oldWidget.preview != widget.preview) {
+        _prepareBorders();
+      }
       widget.resources.addListener(_changed);
       widget.resources.retain(
         _owner,
         widget.resources.mapResourceIds(widget.map),
       );
-      renderer = widget.resources.renderer(widget.map)..update(0);
-      _borderAssets = widget.resources.borderPreview.assetsFor(widget.map);
+      renderer = createStudioMapRenderer(
+        widget.map,
+        widget.resources,
+        previewBorders: _previewBorders,
+      )..update(0);
+      _borderAssets = _borders.assetsFor(widget.map);
     }
   }
 
@@ -97,6 +145,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
   void dispose() {
     widget.resources.removeListener(_changed);
     widget.resources.release(_owner);
+    if (_previewBorders != null) unawaited(_previewBorders!.dispose());
     super.dispose();
   }
 

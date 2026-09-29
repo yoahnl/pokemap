@@ -5,7 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
-import 'terrain_rules_panel.dart';
+import 'terrain_pattern_panel.dart';
 import 'terrain_scratch_view.dart';
 import 'terrain_source_panel.dart';
 import 'terrain_trial_panel.dart';
@@ -38,6 +38,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
   String _tool = 'Examiner';
   String _page = 'Préparer';
   bool _advance = false, _missingOnly = false;
+  TilesetSourceRect? _selectedSource;
   TerrainDraftController get model => widget.controller;
 
   @override
@@ -72,6 +73,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
   }
 
   void _assign(TilesetSourceRect rect) {
+    _selectedSource = rect;
     final wasMissing = model.frameFor(model.selectedRule) == null;
     model.assign(rect.x, rect.y);
     if (_advance && wasMissing) model.selectNextMissing();
@@ -85,7 +87,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
       StudioPageHeader(
         title: model.draft.name,
         description:
-            'Terrain automatique · ${model.statusLabel} · ${model.assignedCount} / 16 raccords associés',
+            'Chemin automatique · ${model.statusLabel} · ${model.assignedCount} / ${model.draft.rules.length} pièces associées',
         alignActionsToEnd: true,
         actions: [
           StudioButton(
@@ -127,8 +129,10 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
                 transform: _transform,
                 onChanged: () => setState(() {}),
                 onAssign: _assign,
+                selectedSource: _selectedSource,
+                frameBuilder: widget.frameBuilder,
               );
-              final rules = TerrainRulesPanel(
+              final rules = TerrainPatternPanel(
                 model: model,
                 frameBuilder: widget.frameBuilder,
                 onChanged: _refresh,
@@ -136,6 +140,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
                 onAdvance: (value) => setState(() => _advance = value),
                 missingOnly: _missingOnly,
                 onMissingOnly: (value) => setState(() => _missingOnly = value),
+                selectedSource: _selectedSource,
               );
               final trial = TerrainTrialPanel(
                 model: model,
@@ -196,8 +201,8 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
   );
 
   Widget _scrollShortPanel(Widget child) => LayoutBuilder(
-    builder: (context, bounds) => bounds.maxHeight < 540
-        ? SingleChildScrollView(child: SizedBox(height: 700, child: child))
+    builder: (context, bounds) => bounds.maxHeight < 750
+        ? SingleChildScrollView(child: SizedBox(height: 950, child: child))
         : child,
   );
 }

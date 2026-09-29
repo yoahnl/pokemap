@@ -13,6 +13,8 @@ import 'resource_category_tree.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
 import 'resource_terrain_draft_list.dart';
+import 'resource_border_draft_bar.dart';
+import 'resource_creation_buttons.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -23,6 +25,8 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onUse,
     required this.onEdit,
     required this.onTerrain,
+    required this.onCreateBorder,
+    required this.onResumeBorder,
     required this.onImport,
     this.onCharacters,
     required this.onBack,
@@ -40,6 +44,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem> onUse;
   final ValueChanged<ResourceItem> onEdit;
   final ValueChanged<ResourceItem> onTerrain;
+  final VoidCallback onCreateBorder;
+  final ValueChanged<BorderBlueprintRecord> onResumeBorder;
   final VoidCallback onImport;
   final VoidCallback? onCharacters;
   final VoidCallback onBack;
@@ -59,7 +65,6 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   );
   List<ResourceItem> items = [];
   ResourceLibraryState get state => widget.state;
-
   @override
   void initState() {
     super.initState();
@@ -68,7 +73,6 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   }
 
   void remember() => state.offset = scroll.offset;
-
   @override
   void didUpdateWidget(ResourceLibraryScreen old) {
     super.didUpdateWidget(old);
@@ -176,13 +180,15 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                   ? null
                   : 'Vos décors, terrains et images, prêts à donner vie à la carte.',
               actions: [
-                if (widget.onCharacters != null)
-                  StudioButton(
-                    label: 'Personnages',
-                    icon: Icons.person_outline,
-                    secondary: true,
-                    onPressed: widget.onCharacters,
-                  ),
+                ...resourceCreationButtons(
+                  context: context,
+                  project: widget.project,
+                  visuals: widget.visuals,
+                  onCreateBorder: widget.onCreateBorder,
+                  onCreatePath: widget.onTerrain,
+                  onImport: widget.onImport,
+                  onCharacters: widget.onCharacters,
+                ),
                 StudioButton(
                   label: widget.targetMapName == null
                       ? 'Retour à la carte'
@@ -213,6 +219,11 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                 }),
               ),
             ),
+            if (widget.project.borderCatalog.records.isNotEmpty)
+              ResourceBorderDraftBar(
+                records: widget.project.borderCatalog.records,
+                onResume: widget.onResumeBorder,
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: ResourceCatalogToolbar(

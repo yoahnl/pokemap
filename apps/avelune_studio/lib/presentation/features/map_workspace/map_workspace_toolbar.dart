@@ -21,6 +21,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
     required this.paletteVisible,
     required this.inspectorVisible,
     required this.navigatorVisible,
+    this.showUndoRedo = true,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
@@ -28,6 +29,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
   final bool paletteVisible, inspectorVisible, navigatorVisible;
+  final bool showUndoRedo;
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +37,10 @@ class MapWorkspaceToolbar extends StatelessWidget {
     void zoom(double factor) {
       final transform = view?.transform;
       if (transform == null) return;
-      final scale = transform.value.getMaxScaleOnAxis();
-      if (scale * factor < .15 || scale * factor > 8) return;
+      final scale = view!.scale;
+      if ((factor < 1 && scale * factor < .15) || scale * factor > 8) {
+        return;
+      }
       transform.value = transform.value.clone()
         ..scaleByDouble(factor, factor, 1, 1);
     }
@@ -52,28 +56,30 @@ class MapWorkspaceToolbar extends StatelessWidget {
             icon: Icons.folder_outlined,
             onPressed: onNavigator,
           ),
-        StudioTool(
-          label: 'Annuler',
-          icon: Icons.undo,
-          shortcut: '⌘Z / CtrlZ',
-          onPressed: document?.canUndo == true
-              ? () {
-                  controller.restore(redo: false);
-                  onChanged();
-                }
-              : null,
-        ),
-        StudioTool(
-          label: 'Rétablir',
-          icon: Icons.redo,
-          shortcut: '⌘⇧Z / Ctrl⇧Z',
-          onPressed: document?.canRedo == true
-              ? () {
-                  controller.restore(redo: true);
-                  onChanged();
-                }
-              : null,
-        ),
+        if (showUndoRedo)
+          StudioTool(
+            label: 'Annuler',
+            icon: Icons.undo,
+            shortcut: '⌘Z / CtrlZ',
+            onPressed: document?.canUndo == true
+                ? () {
+                    controller.restore(redo: false);
+                    onChanged();
+                  }
+                : null,
+          ),
+        if (showUndoRedo)
+          StudioTool(
+            label: 'Rétablir',
+            icon: Icons.redo,
+            shortcut: '⌘⇧Z / Ctrl⇧Z',
+            onPressed: document?.canRedo == true
+                ? () {
+                    controller.restore(redo: true);
+                    onChanged();
+                  }
+                : null,
+          ),
         StudioButton(
           key: const ValueKey('Enregistrer'),
           label: 'Enregistrer',
@@ -108,7 +114,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
             builder: (context, value, _) => SizedBox(
               width: MediaQuery.textScalerOf(context).scale(52),
               child: Text(
-                '${(value.getMaxScaleOnAxis() * 100).round()} %',
+                '${(value.entry(0, 0).abs() * 100).round()} %',
                 textAlign: TextAlign.center,
               ),
             ),

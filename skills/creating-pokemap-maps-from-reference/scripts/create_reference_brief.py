@@ -62,6 +62,14 @@ def main() -> int:
 - Asset inventory: `{inventory_name}`
 - Inventory SHA-256 / count: `{inventory_evidence}`
 
+## Current render provenance
+
+- Current map revision or SHA-256: TODO
+- Current render file and SHA-256: TODO
+- Rendered from that exact map revision: TODO
+- Reference and current render shown at equal apparent scale: TODO
+- Current artistic status and explicit owner verdict: TODO
+
 ## Map contract
 
 - Map role and story moment: TODO
@@ -81,6 +89,39 @@ def main() -> int:
 
 Do not place production assets until the player, a door, and one representative
 object from every used size family read coherently in one grid-off scale board.
+
+## Reference-to-grid measurement
+
+- Useful image bounds in pixels, excluding framing/background: TODO
+- Target map width × height in cells: TODO
+- Grid origin in source pixels: TODO
+- Source pixels per cell on X and Y: TODO
+- Projection uncertainty or irregularity: TODO
+- Clean, grid, surface, and major-object comparison views: TODO
+
+Do not assume the whole image is the map. If the source is not square-grid art,
+record the distortion and snap approximate footprints against player-scale art.
+
+## Surface and wall contract
+
+| Surface | Reference bounds/proportion | Target cells/layer | Current appearance | Material, palette, texture | Decision |
+|---|---|---|---|---|---|
+| Continuous floor/path | TODO | TODO | TODO | TODO | TODO |
+| North wall and side walls | TODO | TODO | TODO | TODO | TODO |
+| Lower south wall and threshold | TODO | TODO | TODO | TODO | TODO |
+| Secondary ground/reserve, if present | TODO | TODO | TODO | TODO | TODO |
+
+Record wall height and floor/wall transitions separately. Sample comparable
+unobstructed regions in both images; preserve a surface that already matches.
+
+## Major asset footprint audit
+
+| Object/zone | Reference pixel box | Projected footprint and ground anchor | Current element ID/category/size/position | Perspective and shadow | Reuse, normalize, gap, or remove |
+|---|---|---|---|---|---|
+| TODO | TODO | TODO | TODO | TODO | TODO |
+
+Do not place an object merely because its name matches. Verify its visible size,
+orientation, anchor, category, collision contact, and clear approach at player scale.
 
 ## Functional topology
 

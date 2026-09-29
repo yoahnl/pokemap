@@ -53,6 +53,8 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.exportActive = false,
     this.onHome,
     this.onOrganizeMaps,
+    this.onLinkMaps,
+    this.onUnlinkMaps,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
@@ -62,15 +64,8 @@ class MapWorkspaceLayout extends StatelessWidget {
   final bool palette;
   final bool? inspector;
   final int generation;
-  final VoidCallback onPalette,
-      onInspector,
-      onChanged,
-      onToolChanged,
-      onClose,
-      onResources,
-      onMap,
-      onExport;
-  final VoidCallback onPokemon;
+  final VoidCallback onPalette, onInspector, onChanged, onToolChanged;
+  final VoidCallback onClose, onResources, onMap, onExport, onPokemon;
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
   final bool exportActive;
@@ -78,15 +73,16 @@ class MapWorkspaceLayout extends StatelessWidget {
   final TextEditingController homeSearch;
   final ValueChanged<String>? onSearch;
   final Widget? resourceContent;
-  final VoidCallback? onStory;
+  final VoidCallback? onStory, onHome;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<MapRect>? onZoneDrawn;
   final MapReferenceGuard? referenceGuard;
   final void Function(GridPos, Offset)? onContextMenu;
   final String? movingHint;
   final String activeSpace;
-  final VoidCallback? onHome;
   final OrganizeMapLibrary? onOrganizeMaps;
+  final Future<void> Function(MapConnectionDirection, String, int)? onLinkMaps;
+  final Future<void> Function(MapConnectionDirection)? onUnlinkMaps;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) {
@@ -162,6 +158,8 @@ class MapWorkspaceLayout extends StatelessWidget {
             close?.call();
             onActivate(entry);
           },
+          onLinkMaps: onLinkMaps,
+          onUnlinkMaps: onUnlinkMaps,
           referenceGuard: referenceGuard,
         );
       }
@@ -198,6 +196,8 @@ class MapWorkspaceLayout extends StatelessWidget {
               paletteVisible: showPaletteDock,
               inspectorVisible: showInspector && !compactInspector,
               navigatorVisible: showNavigator,
+              showUndoRedo:
+                  c.maxHeight < 900 || largeText || activeSpace != 'map',
               onNavigator: openNavigator,
               onPalette: (compactPalette || c.maxHeight < 1020) && ready
                   ? openPalette
@@ -258,9 +258,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                       ? const Center(child: CircularProgressIndicator())
                       : !ready
                       ? const Center(
-                          child: Text(
-                            'Choisissez une carte disponible dans ce projet.',
-                          ),
+                          child: Text('Choisissez une carte du projet.'),
                         )
                       : MapWorkspaceEditorPane(
                           controller: controller,

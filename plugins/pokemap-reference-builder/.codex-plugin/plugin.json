@@ -1,21 +1,30 @@
 {
   "name": "pokemap-reference-builder",
-  "version": "0.3.1",
-  "description": "Analyze exterior references, resolve native assets, and gate editable PokeMap reconstruction against semantic and rendered fidelity.",
+  "version": "0.3.1+codex.20260927192858",
+  "description": "Reconstruct exterior references and prototype interior floor and wall shells before PokeMap authoring.",
   "author": {
     "name": "PokeMap"
   },
-  "keywords": ["pokemap", "map-authoring", "hgss", "pixel-art"],
+  "keywords": [
+    "pokemap",
+    "map-authoring",
+    "hgss",
+    "pixel-art"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "PokeMap Reference Builder",
-    "shortDescription": "Rebuild exterior maps from visual references.",
-    "longDescription": "Builds assisted semantic blueprints from exterior reference images, resolves exact-footprint HGSS/DS assets, blocks invalid spatial compositions, and enforces an 80 percent review gate on both semantic structure and same-crop rendered fidelity before applying approved families through the canonical PokeMap MCP workflow.",
+    "shortDescription": "Rebuild exteriors and prototype interior shells.",
+    "longDescription": "Builds assisted semantic blueprints from exterior references and read-only HTML floor-and-wall prototypes for interiors. Measures scale, palette, texture, openings, and wall joints before native authoring. Exterior reconstruction retains its semantic and rendered fidelity gates and canonical PokeMap MCP workflow.",
     "developerName": "PokeMap",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "defaultPrompt": [
       "Rebuild this exterior reference as an editable PokeMap map.",
+      "Prototype this interior's floors and walls in HTML before changing the project.",
       "Decode this map image into semantic 32 px layers.",
       "Create a correctly sized missing HGSS-style asset.",
       "Compare this PokeMap render with its reference and block it below the quality gate."
