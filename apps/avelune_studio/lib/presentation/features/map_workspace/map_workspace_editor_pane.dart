@@ -79,6 +79,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                           child: MapWorkspaceToolStrip(
                             view: widget.view,
                             storyAvailable: widget.onZoneDrawn != null,
+                            paletteVisible: widget.showPaletteDock,
                             onChanged: widget.onToolChanged,
                             onMoreTools: widget.onMoreTools,
                             onResources: widget.onResources,

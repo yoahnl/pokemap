@@ -14,6 +14,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
     required this.onMoreTools,
     required this.onResources,
     required this.storyAvailable,
+    required this.paletteVisible,
     required this.onUndo,
     required this.onRedo,
   });
@@ -23,6 +24,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
   final VoidCallback onMoreTools;
   final VoidCallback onResources;
   final bool storyAvailable;
+  final bool paletteVisible;
   final VoidCallback? onUndo, onRedo;
 
   @override
@@ -65,6 +67,10 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           view.prepareWarpPlacement();
       }
       onChanged();
+      if (!paletteVisible &&
+          (label == 'Décors' || label == 'Terrains' || label == 'Passages')) {
+        onMoreTools();
+      }
     }
 
     void selectExtra(String label) {
@@ -105,6 +111,10 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           return;
       }
       onChanged();
+      if (!paletteVisible &&
+          (label == 'Placer un personnage' || label == 'Passages')) {
+        onMoreTools();
+      }
     }
 
     final zonesVisible = active == 'Zones';

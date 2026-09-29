@@ -87,5 +87,6 @@ jobs:
             test/app/studio_bootstrap_test.dart \
             test/home/recent_projects_test.dart \
             test/project_session/scoped_project_session_adapter_test.dart \
-            test/presentation/studio_app_test.dart
+            test/presentation/studio_app_test.dart \
+            test/map_workspace/map_tool_strip_state_host_test.dart
           flutter analyze --no-pub lib
