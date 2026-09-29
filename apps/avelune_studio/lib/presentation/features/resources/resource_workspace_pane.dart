@@ -11,6 +11,7 @@ import 'decor_editor_screen.dart';
 import 'border_creation_dialog.dart';
 import '../characters/character_studio_page.dart';
 import 'resource_character_portrait_import.dart';
+import 'resource_character_animation_import.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
@@ -171,6 +172,8 @@ class ResourceWorkspacePane extends StatelessWidget {
         port: n.port,
         onImportPortrait: (stateId) =>
             importCharacterPortrait(context, n, picker, stateId),
+        onImportAnimation: (state, direction) =>
+            importCharacterAnimation(context, n, picker, state, direction),
       );
     } else if (n.page == ResourcePage.terrain &&
         n.terrain != null &&

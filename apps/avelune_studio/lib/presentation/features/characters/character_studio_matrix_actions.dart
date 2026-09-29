@@ -13,6 +13,7 @@ class CharacterStudioMatrixActions extends StatelessWidget {
     required this.source,
     required this.draft,
     required this.controller,
+    required this.onImportDedicated,
   });
 
   final ProjectManifest project;
@@ -20,6 +21,7 @@ class CharacterStudioMatrixActions extends StatelessWidget {
   final ProjectRegularAtlasTilesetSource source;
   final CharacterStudioDraft draft;
   final CharacterStudioController controller;
+  final void Function(CharacterAnimationState, EntityFacing) onImportDedicated;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,15 @@ class CharacterStudioMatrixActions extends StatelessWidget {
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        StudioButton(
+          label: 'Importer une animation dédiée',
+          icon: Icons.upload_file_outlined,
+          secondary: true,
+          onPressed: () => onImportDedicated(
+            controller.animationState,
+            controller.previewDirection,
+          ),
+        ),
         StudioButton(
           label: 'Découper automatiquement',
           icon: Icons.grid_on,
@@ -58,7 +69,7 @@ class CharacterStudioMatrixActions extends StatelessWidget {
         ),
         Text('$assigned / 12 poses renseignées'),
         Text(
-          'Source : ${project.tilesets.where((entry) => entry.id == character.tilesetId).firstOrNull?.name ?? character.tilesetId}',
+          'Planche de base : ${project.tilesets.where((entry) => entry.id == character.tilesetId).firstOrNull?.name ?? character.tilesetId}',
         ),
       ],
     );

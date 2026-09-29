@@ -47,6 +47,24 @@ final class CharacterPortraitImport {
   final String portraitStateId;
 }
 
+final class CharacterAnimationImport {
+  const CharacterAnimationImport({
+    required this.sourcePath,
+    required this.characterId,
+    required this.state,
+    required this.direction,
+    required this.poseWidth,
+    required this.poseHeight,
+  });
+
+  final String sourcePath;
+  final String characterId;
+  final CharacterAnimationState state;
+  final EntityFacing direction;
+  final int poseWidth;
+  final int poseHeight;
+}
+
 final class ResourceMutationReceipt {
   const ResourceMutationReceipt({
     required this.before,
@@ -72,6 +90,10 @@ abstract interface class ResourcePort {
 
   Future<ResourceMutationReceipt> importCharacterPortrait(
     CharacterPortraitImport request,
+  );
+
+  Future<ResourceMutationReceipt> importCharacterAnimation(
+    CharacterAnimationImport request,
   );
 
   Future<Uint8List?> readCharacterPortrait(

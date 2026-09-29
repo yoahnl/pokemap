@@ -143,4 +143,69 @@ void main() {
     draft.accept(draft.previewCharacter);
     expect(draft.dirty, isFalse);
   });
+
+  test('changer la durée conserve la source et les rectangles dédiés', () {
+    const key = (CharacterAnimationState.walk, EntityFacing.south);
+    final existing = character.copyWith(
+      animations: const [
+        CharacterAnimation(
+          state: CharacterAnimationState.walk,
+          direction: EntityFacing.south,
+          sourceAssetId: 'dedicated-sheet',
+          frames: [
+            CharacterAnimationFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 48),
+            ),
+            CharacterAnimationFrame(
+              source: TilesetSourceRect(x: 32, y: 0, width: 32, height: 48),
+            ),
+          ],
+        ),
+      ],
+    );
+    final draft = CharacterStudioDraft(existing);
+    draft.setDuration(key, 0, 300);
+
+    expect(draft.dirty, isTrue);
+    expect(draft.sourceAssetIdFor(key), 'dedicated-sheet');
+    expect(draft.completeFrames(key).first.durationMs, 300);
+    expect(
+      draft.previewCharacter.animations.single.sourceAssetId,
+      'dedicated-sheet',
+    );
+    expect(
+      draft.previewCharacter.animations.single.frames.last,
+      existing.animations.single.frames.last,
+    );
+  });
+
+  test('retirer une pose dédiée conserve la source des poses restantes', () {
+    const key = (CharacterAnimationState.walk, EntityFacing.south);
+    final existing = character.copyWith(
+      animations: const [
+        CharacterAnimation(
+          state: CharacterAnimationState.walk,
+          direction: EntityFacing.south,
+          sourceAssetId: 'dedicated-sheet',
+          frames: [
+            CharacterAnimationFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 48),
+            ),
+            CharacterAnimationFrame(
+              source: TilesetSourceRect(x: 32, y: 0, width: 32, height: 48),
+            ),
+          ],
+        ),
+      ],
+    );
+    final draft = CharacterStudioDraft(existing);
+    draft.clear(key, 1);
+
+    expect(draft.sourceAssetIdFor(key), 'dedicated-sheet');
+    expect(
+      draft.previewCharacter.animations.single.sourceAssetId,
+      'dedicated-sheet',
+    );
+    expect(draft.previewCharacter.animations.single.frames, hasLength(1));
+  });
 }

@@ -90,10 +90,21 @@ final class CharacterStudioDraft {
     );
     if (index >= frames.length) return;
     frames[index] = null;
-    _atlasAssignments.add(key);
     while (frames.isNotEmpty && frames.last == null) {
       frames.removeLast();
     }
+  }
+
+  void setDuration(CharacterClipKey key, int index, int durationMs) {
+    if (durationMs <= 0) throw RangeError.value(durationMs, 'durationMs');
+    final frames = _frames.putIfAbsent(
+      key,
+      () => List<CharacterAnimationFrame?>.from(framesFor(key)),
+    );
+    if (index < 0 || index >= frames.length || frames[index] == null) {
+      throw RangeError.index(index, frames);
+    }
+    frames[index] = frames[index]!.copyWith(durationMs: durationMs);
   }
 
   bool assignClassicSheet(
@@ -160,12 +171,18 @@ final class CharacterStudioDraft {
       }
       if (index < 0) {
         animations.add(
-          CharacterAnimation(state: key.$1, direction: key.$2, frames: frames),
+          CharacterAnimation(
+            state: key.$1,
+            direction: key.$2,
+            sourceAssetId: sourceAssetIdFor(key),
+            frames: frames,
+          ),
         );
       } else {
         animations[index] = CharacterAnimation(
           state: key.$1,
           direction: key.$2,
+          sourceAssetId: sourceAssetIdFor(key),
           frames: frames,
           loop: animations[index].loop,
         );

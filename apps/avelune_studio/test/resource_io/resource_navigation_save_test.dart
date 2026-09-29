@@ -177,6 +177,11 @@ final class _ControlledResources implements ResourcePort {
   ) => throw UnimplementedError();
 
   @override
+  Future<ResourceMutationReceipt> importCharacterAnimation(
+    CharacterAnimationImport request,
+  ) => throw UnimplementedError();
+
+  @override
   Future<Uint8List?> readCharacterPortrait(
     String characterId,
     String stateId,

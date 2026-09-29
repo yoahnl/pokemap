@@ -50,13 +50,15 @@ final class LocalResourceAdapter implements ResourcePort {
   ) => _importCharacterPortrait(this, request);
 
   @override
+  Future<ResourceMutationReceipt> importCharacterAnimation(
+    CharacterAnimationImport request,
+  ) => _importCharacterAnimation(this, request);
+
+  @override
   Future<Uint8List?> readCharacterPortrait(
     String characterId,
     String stateId,
-  ) => LocalDialogueAdapter(
-    session: session,
-    mapAdapter: mapAdapter,
-  ).readPortrait(characterId, stateId);
+  ) => _readCharacterPortrait(this, characterId, stateId);
 
   @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>

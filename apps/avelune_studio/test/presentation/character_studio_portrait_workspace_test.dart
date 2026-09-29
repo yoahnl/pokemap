@@ -62,6 +62,7 @@ void main() {
       expect(state.displayName, 'Souriante');
       expect(character.portraits.single.portraitStateId, state.id);
       expect(character.portraits.single.assetId, isNotEmpty);
+      await fixture.capture(tester, 'character-studio-portraits');
       final reopened = await tester.runAsync(
         () => LocalMapWorkspaceAdapter().loadProject(fixture.session),
       );

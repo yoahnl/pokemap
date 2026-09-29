@@ -1,31 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/resources/domain/resource_port.dart';
+import 'resource_character_portrait_import.dart';
 import 'resource_image_import.dart';
 import 'resource_navigation.dart';
 
-Future<void> importCharacterPortrait(
+Future<void> importCharacterAnimation(
   BuildContext context,
   ResourceNavigation navigation,
   PickResourceImage picker,
-  String stateId,
+  CharacterAnimationState state,
+  EntityFacing direction,
 ) async {
   final characterId = navigation.characters.selectedCharacter?.id;
   if (characterId == null) return;
   if (!await prepareCharacterImport(context, navigation)) return;
   final image = await picker();
   if (image == null || !context.mounted) return;
+  if (image.width % 3 != 0 || image.height <= 0) {
+    navigation.setImportError(
+      'La largeur de l’image doit être divisible par trois pour créer des poses égales.',
+    );
+    return;
+  }
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Importer un portrait'),
+      title: const Text('Importer une animation dédiée'),
       content: SizedBox(
-        width: 420,
+        width: 460,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: 220,
+              height: 180,
               child: Image.memory(
                 image.bytes,
                 fit: BoxFit.contain,
@@ -33,10 +42,13 @@ Future<void> importCharacterPortrait(
               ),
             ),
             const SizedBox(height: 12),
-            Text('${image.width} × ${image.height} px · PNG'),
+            Text(
+              'Trois poses · ${image.width ~/ 3} × ${image.height} px chacune',
+            ),
             const Text(
-              'L’image sera copiée dans le projet et associée à cet état. '
-              'Une image déjà utilisée ailleurs ne sera pas remplacée.',
+              'L’image complète est découpée en trois bandes verticales. '
+              'Elle remplacera la source de la direction choisie. '
+              'Les autres directions et leurs images restent intactes.',
             ),
           ],
         ),
@@ -63,11 +75,14 @@ Future<void> importCharacterPortrait(
   }
   navigation.setImportBusy(true);
   try {
-    final receipt = await navigation.port.importCharacterPortrait(
-      CharacterPortraitImport(
+    final receipt = await navigation.port.importCharacterAnimation(
+      CharacterAnimationImport(
         sourcePath: image.path,
         characterId: characterId,
-        portraitStateId: stateId,
+        state: state,
+        direction: direction,
+        poseWidth: image.width ~/ 3,
+        poseHeight: image.height,
       ),
     );
     if (!navigation.workspace.isDisposed) await navigation.accept(receipt);
@@ -78,32 +93,4 @@ Future<void> importCharacterPortrait(
   } finally {
     if (!navigation.workspace.isDisposed) navigation.setImportBusy(false);
   }
-}
-
-Future<bool> prepareCharacterImport(
-  BuildContext context,
-  ResourceNavigation navigation,
-) async {
-  if (!navigation.characters.selectedDraft!.dirty) return true;
-  final save = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Enregistrer ce personnage ?'),
-      content: const Text(
-        'Enregistrez ses modifications avant d’importer une nouvelle image.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Annuler'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Enregistrer puis importer'),
-        ),
-      ],
-    ),
-  );
-  if (save != true || !context.mounted) return false;
-  return navigation.characters.saveSelected();
 }
