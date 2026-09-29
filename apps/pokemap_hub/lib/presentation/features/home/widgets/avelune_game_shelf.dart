@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
@@ -80,7 +80,7 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
           controller: _scrollController,
           primary: false,
           scrollDirection: Axis.horizontal,
-          scrollCacheExtent: ScrollCacheExtent.pixels(
+          scrollCacheExtent: rendering.ScrollCacheExtent.pixels(
             math.min(
               kAveluneGameShelfMaxCacheExtent,
               constraints.maxWidth * 1.5,
