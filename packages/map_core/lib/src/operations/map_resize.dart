@@ -333,13 +333,18 @@ MapResizePlan planMapResize(
       continue;
     }
 
-    final footprint = resolveMapPlacedElementFootprint(
+    final tileSize = PixelSize(
+      width: project!.settings.tileWidth,
+      height: project.settings.tileHeight,
+    );
+    final bounds = resolveMapPlacedElementGeometry(
       instance: instance,
       element: element,
-    ).destinationSize;
+      tileSize: tileSize,
+    ).cellBounds;
     final clipped = _clippedRectPositions(
-      origin: instance.pos,
-      size: footprint,
+      origin: bounds.pos,
+      size: bounds.size,
       targetSize: targetSize,
     );
     if (clipped.isNotEmpty) {

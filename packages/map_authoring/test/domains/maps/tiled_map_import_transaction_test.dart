@@ -550,7 +550,7 @@ final class _TiledMapImportSetup {
     final root = await Directory.systemTemp.createTemp('tiled-map-import-');
     final manifest = ProjectManifest(
       name: 'Tiled map import fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

@@ -30,7 +30,7 @@ class CinematicAdapterFixture {
   );
 
   static Future<CinematicAdapterFixture> create({
-    ProjectVersion version = ProjectVersion.v7,
+    ProjectVersion version = ProjectVersion.v8,
     List<CinematicAsset> cinematics = const [],
     List<SceneAsset> scenes = const [],
   }) async {

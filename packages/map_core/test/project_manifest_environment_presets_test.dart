@@ -24,7 +24,7 @@ void main() {
     test('fromJson sans environmentPresets => []', () {
       final m = ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
         'name': 'x',
-        'version': 'v6',
+        'version': 'v8',
         'maps': <dynamic>[],
         'tilesets': <dynamic>[],
       });
@@ -34,7 +34,7 @@ void main() {
     test('fromJson avec environmentPresets null => []', () {
       final m = ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
         'name': 'x',
-        'version': 'v6',
+        'version': 'v8',
         'maps': <dynamic>[],
         'tilesets': <dynamic>[],
         'environmentPresets': null,
@@ -95,7 +95,7 @@ void main() {
       expect(
         () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
           'name': 'x',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <dynamic>[],
           'tilesets': <dynamic>[],
           'environmentPresets': 'bad',
@@ -108,7 +108,7 @@ void main() {
       expect(
         () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
           'name': 'x',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <dynamic>[],
           'tilesets': <dynamic>[],
           'environmentPresets': <dynamic>[

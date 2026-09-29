@@ -69,6 +69,30 @@ EnvironmentArea _area({
 }
 
 void main() {
+  test('notifier edits entities triggers zones and layers around transformed decor', () {
+    const placed = MapPlacedElement(id: 'manual', layerId: 'tiles', elementId: 'e1',
+      pos: GridPos(x: 0, y: 0), pixelOffset: PixelOffset(x: 3, y: 5), pixelSize: PixelSize(width: 7, height: 11),
+      properties: {pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored});
+    final map = MapData(id: 'm', name: 'M', size: const GridSize(width: 4, height: 4),
+      layers: [TileLayer(id: 'tiles', name: 'Tiles', cells: List.filled(16, 0))], placedElements: const [placed]);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(project: _manifest(), activeMap: map, activeMapPath: 'maps/x.json', activeLayerId: 'tiles');
+    notifier.addEntityAt(const GridPos(x: 2, y: 2), kind: MapEntityKind.custom);
+    expect(notifier.state.errorMessage, isNull);
+    expect(notifier.state.activeMap!.entities, hasLength(1));
+    notifier.addTriggerAt(const GridPos(x: 2, y: 1));
+    expect(notifier.state.errorMessage, isNull);
+    expect(notifier.state.activeMap!.triggers, hasLength(1));
+    notifier.addGameplayZoneAt(const GridPos(x: 1, y: 2));
+    expect(notifier.state.errorMessage, isNull);
+    expect(notifier.state.activeMap!.gameplayZones, hasLength(1));
+    notifier.renameMapLayer('tiles', 'Renamed');
+    expect(notifier.state.errorMessage, isNull);
+    expect(notifier.state.activeMap!.layers.first.name, 'Renamed');
+    expect(notifier.state.activeMap!.placedElements, [placed]);
+  });
   group('nextEnvironmentAreaSeed', () {
     test('déterministe, >= 0, change pour des seeds simples', () {
       expect(nextEnvironmentAreaSeed(0), nextEnvironmentAreaSeed(0));
@@ -109,6 +133,9 @@ void main() {
             layerId: 'tiles',
             elementId: 'e1',
             pos: GridPos(x: 0, y: 0),
+            pixelOffset: PixelOffset(x: 3, y: 5),
+            pixelSize: PixelSize(width: 7, height: 11), quarterTurns: 3,
+            properties: {pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored},
           ),
         ],
       );
@@ -117,8 +144,9 @@ void main() {
         environmentLayerId: 'env',
         areaId: 'a1',
         seed: 999,
+        manifest: _manifest(),
       );
-      expect(r.isSuccess, isTrue);
+      expect(r.isSuccess, isTrue, reason: r.failureMessage);
       expect(r.previousSeed, 1);
       expect(r.seed, 999);
       final out =
@@ -134,6 +162,7 @@ void main() {
       );
       expect(r.map!.placedElements.length, 1);
       expect(r.map!.placedElements.single.id, 'manual');
+      expect(r.map!.placedElements, map.placedElements);
     });
 
     test('rejets : layer inconnu, non-env, area inconnue, seed négative', () {
@@ -226,6 +255,9 @@ void main() {
             elementId: 'e1',
             pos: GridPos(x: 0, y: 0),
           ),
+          MapPlacedElement(id: 'manual-transform', layerId: 'tiles', elementId: 'e1', pos: GridPos(x: 1, y: 1),
+            pixelOffset: PixelOffset(x: 3, y: 5), pixelSize: PixelSize(width: 7, height: 11), quarterTurns: 1,
+            properties: {pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored}),
         ],
       );
       final container = ProviderContainer();
@@ -258,6 +290,7 @@ void main() {
       expect(outArea.generatedPlacementIds, isNot(contains('g1')));
       expect(outArea.seed, 7);
       expect(s.activeMap!.placedElements, isNotEmpty);
+      expect(s.activeMap!.placedElements.where((e) => e.id == 'manual-transform'), [map.placedElements.last]);
     });
 
     test('shuffle : seed change, placements présents, status seed/mélang', () {

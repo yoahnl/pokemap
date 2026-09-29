@@ -1,5 +1,7 @@
 library;
 
+export 'src/presentation/flame/quarter_turn_pixel_renderer.dart';
+
 export 'src/application/authoring_preview/runtime_authoring_character_renderer.dart';
 
 export 'src/application/authoring_preview/runtime_authoring_map_renderer.dart';

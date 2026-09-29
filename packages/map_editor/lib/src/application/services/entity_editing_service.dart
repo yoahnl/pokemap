@@ -30,37 +30,28 @@ class EntityEditingService {
     required UpdateEntityOnMapUseCase updateEntityOnMapUseCase,
     required DeleteEntityFromMapUseCase deleteEntityFromMapUseCase,
     required EntityEditingCoordinator entityEditingCoordinator,
-  })  : _addEntityToMapUseCase = addEntityToMapUseCase,
-        _updateEntityOnMapUseCase = updateEntityOnMapUseCase,
-        _deleteEntityFromMapUseCase = deleteEntityFromMapUseCase,
-        _entityEditingCoordinator = entityEditingCoordinator;
+  }) : _addEntityToMapUseCase = addEntityToMapUseCase,
+       _updateEntityOnMapUseCase = updateEntityOnMapUseCase,
+       _deleteEntityFromMapUseCase = deleteEntityFromMapUseCase,
+       _entityEditingCoordinator = entityEditingCoordinator;
 
   final AddEntityToMapUseCase _addEntityToMapUseCase;
   final UpdateEntityOnMapUseCase _updateEntityOnMapUseCase;
   final DeleteEntityFromMapUseCase _deleteEntityFromMapUseCase;
   final EntityEditingCoordinator _entityEditingCoordinator;
 
-  MapEntity? findSelectedEntity(
-    MapData? map,
-    String? selectedEntityId,
-  ) {
+  MapEntity? findSelectedEntity(MapData? map, String? selectedEntityId) {
     if (map == null || selectedEntityId == null) {
       return null;
     }
     return _entityEditingCoordinator.findEntityById(map, selectedEntityId);
   }
 
-  MapEntity? findEntityAtPos(
-    MapData map,
-    GridPos pos,
-  ) {
+  MapEntity? findEntityAtPos(MapData map, GridPos pos) {
     return _entityEditingCoordinator.findEntityAtPos(map, pos);
   }
 
-  MapEntity requireSelectedEntity(
-    MapData map,
-    String? selectedEntityId,
-  ) {
+  MapEntity requireSelectedEntity(MapData map, String? selectedEntityId) {
     if (selectedEntityId == null || selectedEntityId.trim().isEmpty) {
       throw const EditorInvalidOperationException('No entity selected');
     }
@@ -79,6 +70,7 @@ class EntityEditingService {
   EntityCreationResult addEntityAt(
     MapData map,
     GridPos pos, {
+    ProjectManifest? manifest,
     required MapEntityKind kind,
   }) {
     final entity = _entityEditingCoordinator.createDefaultEntity(
@@ -88,16 +80,15 @@ class EntityEditingService {
     );
     final updated = _addEntityToMapUseCase.execute(
       map,
+      manifest: manifest,
       entity: entity,
     );
-    return EntityCreationResult(
-      updatedMap: updated,
-      createdEntity: entity,
-    );
+    return EntityCreationResult(updatedMap: updated, createdEntity: entity);
   }
 
   EntityUpdateResult updateEntity(
     MapData map, {
+    ProjectManifest? manifest,
     required String entityId,
     String? id,
     String? name,
@@ -114,6 +105,7 @@ class EntityEditingService {
   }) {
     final updated = _updateEntityOnMapUseCase.execute(
       map,
+      manifest: manifest,
       entityId: entityId,
       id: id,
       name: name,
@@ -128,8 +120,9 @@ class EntityEditingService {
       spawn: spawn,
       editorVisual: editorVisual,
     );
-    final nextSelectedEntityId =
-        id?.trim().isNotEmpty == true ? id!.trim() : entityId;
+    final nextSelectedEntityId = id?.trim().isNotEmpty == true
+        ? id!.trim()
+        : entityId;
     return EntityUpdateResult(
       updatedMap: updated,
       selectedEntityId: nextSelectedEntityId,
@@ -138,10 +131,12 @@ class EntityEditingService {
 
   MapData deleteEntity(
     MapData map, {
+    ProjectManifest? manifest,
     required String entityId,
   }) {
     return _deleteEntityFromMapUseCase.execute(
       map,
+      manifest: manifest,
       entityId: entityId,
     );
   }

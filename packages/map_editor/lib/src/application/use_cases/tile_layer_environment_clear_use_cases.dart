@@ -26,6 +26,7 @@ final class ClearTileLayerEnvironmentAreaGeneratedPlacementsResult {
 class ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase {
   ClearTileLayerEnvironmentAreaGeneratedPlacementsResult execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String tileLayerId,
     required String areaId,
   }) {
@@ -48,6 +49,7 @@ class ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase {
 
     final clear = ClearEnvironmentGeneratedPlacementsUseCase().execute(
       map,
+      manifest: manifest,
       environmentLayerId: target.environmentLayer.id,
       areaId: target.area.id,
     );

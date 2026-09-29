@@ -78,11 +78,11 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
+        'abf8577296df75e4021132ac657d61148cf7484db77b1c77a5636553e2db4424',
       );
       expect(
         first.packageSha256,
-        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
+        'abf8577296df75e4021132ac657d61148cf7484db77b1c77a5636553e2db4424',
       );
       expect(first.archiveBytes, first.packageBytes.length);
       expect(first.manifest.content.fileCount, 2);
@@ -402,7 +402,7 @@ void main() {
       final projectWithMissingMap = utf8.encode(
         jsonEncode(<String, Object?>{
           'name': 'Missing Map',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[
             <String, Object?>{
               'id': 'map.start',
@@ -460,7 +460,7 @@ List<int> _onePixelPngHeader() {
 
 List<int> _validProjectBytes({
   String name = 'Builder Test',
-  String version = 'v6',
+  String version = 'v8',
 }) =>
     utf8.encode(
       jsonEncode(<String, Object?>{
@@ -474,7 +474,7 @@ List<int> _validProjectBytes({
       }),
     );
 
-GamePackageManifest _draftManifest({String projectFormat = 'v6'}) {
+GamePackageManifest _draftManifest({String projectFormat = 'v8'}) {
   final valid = const GamePackageManifestCodec().decodeJson(
     <String, Object?>{
       'packageFormat': 1,

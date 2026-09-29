@@ -158,7 +158,7 @@ void main() {
       };
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.eventRegistry?.mode, EventSystemMode.v2Only);
       expect(manifest.toJson()['eventRegistry'], _registryJson(mode: 'v2Only'));
     });
@@ -300,7 +300,7 @@ Map<String, Object?> _registryJson({String mode = 'legacyOnly'}) => {
 
 Map<String, Object?> _minimalManifestJson() => {
   'name': 'Legacy project',
-  'version': 'v6',
+  'version': 'v8',
   'maps': <Object?>[],
   'tilesets': <Object?>[],
   'pokemon': const ProjectPokemonConfig(

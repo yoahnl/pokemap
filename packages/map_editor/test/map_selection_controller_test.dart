@@ -51,7 +51,7 @@ void main() {
       const map = MapData(
         id: 'map_1',
         name: 'Map 1',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 4, height: 4),
         layers: [
           SmartTileLayer(
@@ -94,7 +94,7 @@ void main() {
       const map = MapData(
         id: 'map_1',
         name: 'Map 1',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 4, height: 4),
         layers: <MapLayer>[
           MapLayer.border(id: 'border', name: 'Bordures'),

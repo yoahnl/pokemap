@@ -104,7 +104,7 @@ final class MapRegionOperations {
     Map<String, Object?> operation,
     String kind,
   ) {
-    if (kind == 'region.copy' || map.version != ProjectVersion.v6) return;
+    if (kind == 'region.copy' || map.version != ProjectVersion.v8) return;
     final layerId = operation['layerId'];
     if (layerId is! String || layerId.trim() != layerId || layerId.isEmpty) {
       return;

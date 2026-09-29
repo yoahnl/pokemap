@@ -270,7 +270,16 @@ final class StudioMapResources
   void removeListener(VoidCallback listener) =>
       _changes.removeListener(listener);
   @override
-  Widget canvas(MapData map) => StudioMapVisual(map: map, resources: this);
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) => StudioMapVisual(
+    map: map,
+    resources: this,
+    placedElementPreview: placedElementPreview,
+    collisionColor: collisionColor,
+  );
   @override
   Widget previewCanvas(MapData map) =>
       StudioMapVisual(map: map, resources: this, preview: true);

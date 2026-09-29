@@ -244,7 +244,7 @@ return $default(_that.id,_that.name,_that.size,_that.version,_that.visualStack,_
 
 @JsonSerializable(explicitToJson: true)
 class _MapData implements MapData {
-  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v6, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
+  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v8, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
   factory _MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
 
 @override final  String id;
@@ -873,7 +873,7 @@ $SpecialZonePayloadCopyWith<$Res>? get special {
 /// @nodoc
 mixin _$MapPlacedElement {
 
- String get id; String get layerId; String get elementId; GridPos get pos;@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int get visualOrder;@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int get quarterTurns; bool get applyCollision; double get opacity; MapPlacedElementAnimation? get animation;@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? get shadowOverride; List<MapPlacedElementBehavior> get behaviors; Map<String, String> get properties;
+ String get id; String get layerId; String get elementId; GridPos get pos; PixelOffset get pixelOffset;@JsonKey(includeIfNull: false) PixelSize? get pixelSize;@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int get visualOrder;@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int get quarterTurns; bool get applyCollision; double get opacity; MapPlacedElementAnimation? get animation;@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? get shadowOverride; List<MapPlacedElementBehavior> get behaviors; Map<String, String> get properties;
 /// Create a copy of MapPlacedElement
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -886,16 +886,16 @@ $MapPlacedElementCopyWith<MapPlacedElement> get copyWith => _$MapPlacedElementCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.visualOrder, visualOrder) || other.visualOrder == visualOrder)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other.behaviors, behaviors)&&const DeepCollectionEquality().equals(other.properties, properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.pixelOffset, pixelOffset) || other.pixelOffset == pixelOffset)&&(identical(other.pixelSize, pixelSize) || other.pixelSize == pixelSize)&&(identical(other.visualOrder, visualOrder) || other.visualOrder == visualOrder)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other.behaviors, behaviors)&&const DeepCollectionEquality().equals(other.properties, properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,visualOrder,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(behaviors),const DeepCollectionEquality().hash(properties));
+int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,pixelOffset,pixelSize,visualOrder,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(behaviors),const DeepCollectionEquality().hash(properties));
 
 @override
 String toString() {
-  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, visualOrder: $visualOrder, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
+  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, pixelOffset: $pixelOffset, pixelSize: $pixelSize, visualOrder: $visualOrder, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
 }
 
 
@@ -906,11 +906,11 @@ abstract mixin class $MapPlacedElementCopyWith<$Res>  {
   factory $MapPlacedElementCopyWith(MapPlacedElement value, $Res Function(MapPlacedElement) _then) = _$MapPlacedElementCopyWithImpl;
 @useResult
 $Res call({
- String id, String layerId, String elementId, GridPos pos,@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int visualOrder,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
+ String id, String layerId, String elementId, GridPos pos, PixelOffset pixelOffset,@JsonKey(includeIfNull: false) PixelSize? pixelSize,@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int visualOrder,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
 });
 
 
-$GridPosCopyWith<$Res> get pos;$MapPlacedElementAnimationCopyWith<$Res>? get animation;
+$GridPosCopyWith<$Res> get pos;$PixelOffsetCopyWith<$Res> get pixelOffset;$PixelSizeCopyWith<$Res>? get pixelSize;$MapPlacedElementAnimationCopyWith<$Res>? get animation;
 
 }
 /// @nodoc
@@ -923,13 +923,15 @@ class _$MapPlacedElementCopyWithImpl<$Res>
 
 /// Create a copy of MapPlacedElement
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? visualOrder = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? pixelOffset = null,Object? pixelSize = freezed,Object? visualOrder = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,elementId: null == elementId ? _self.elementId : elementId // ignore: cast_nullable_to_non_nullable
 as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
-as GridPos,visualOrder: null == visualOrder ? _self.visualOrder : visualOrder // ignore: cast_nullable_to_non_nullable
+as GridPos,pixelOffset: null == pixelOffset ? _self.pixelOffset : pixelOffset // ignore: cast_nullable_to_non_nullable
+as PixelOffset,pixelSize: freezed == pixelSize ? _self.pixelSize : pixelSize // ignore: cast_nullable_to_non_nullable
+as PixelSize?,visualOrder: null == visualOrder ? _self.visualOrder : visualOrder // ignore: cast_nullable_to_non_nullable
 as int,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
 as int,applyCollision: null == applyCollision ? _self.applyCollision : applyCollision // ignore: cast_nullable_to_non_nullable
 as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
@@ -948,6 +950,27 @@ $GridPosCopyWith<$Res> get pos {
 
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PixelOffsetCopyWith<$Res> get pixelOffset {
+
+  return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
+    return _then(_self.copyWith(pixelOffset: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PixelSizeCopyWith<$Res>? get pixelSize {
+    if (_self.pixelSize == null) {
+    return null;
+  }
+
+  return $PixelSizeCopyWith<$Res>(_self.pixelSize!, (value) {
+    return _then(_self.copyWith(pixelSize: value));
   });
 }/// Create a copy of MapPlacedElement
 /// with the given fields replaced by the non-null parameter values.
@@ -1043,10 +1066,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos,  PixelOffset pixelOffset, @JsonKey(includeIfNull: false)  PixelSize? pixelSize, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapPlacedElement() when $default != null:
-return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.pixelOffset,_that.pixelSize,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
   return orElse();
 
 }
@@ -1064,10 +1087,10 @@ return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrd
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos,  PixelOffset pixelOffset, @JsonKey(includeIfNull: false)  PixelSize? pixelSize, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)  $default,) {final _that = this;
 switch (_that) {
 case _MapPlacedElement():
-return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.pixelOffset,_that.pixelSize,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1084,10 +1107,10 @@ return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrd
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String layerId,  String elementId,  GridPos pos,  PixelOffset pixelOffset, @JsonKey(includeIfNull: false)  PixelSize? pixelSize, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)  int visualOrder, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,) {final _that = this;
 switch (_that) {
 case _MapPlacedElement() when $default != null:
-return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.pixelOffset,_that.pixelSize,_that.visualOrder,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
   return null;
 
 }
@@ -1099,13 +1122,15 @@ return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.visualOrd
 
 @JsonSerializable(explicitToJson: true)
 class _MapPlacedElement implements MapPlacedElement {
-  const _MapPlacedElement({required this.id, required this.layerId, required this.elementId, required this.pos, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) this.visualOrder = 0, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) this.quarterTurns = 0, this.applyCollision = true, this.opacity = 1.0, this.animation, @MapPlacedElementShadowOverrideJsonConverter() this.shadowOverride, final  List<MapPlacedElementBehavior> behaviors = const [], final  Map<String, String> properties = const {}}): _behaviors = behaviors,_properties = properties;
+  const _MapPlacedElement({required this.id, required this.layerId, required this.elementId, required this.pos, this.pixelOffset = const PixelOffset(x: 0, y: 0), @JsonKey(includeIfNull: false) this.pixelSize, @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) this.visualOrder = 0, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) this.quarterTurns = 0, this.applyCollision = true, this.opacity = 1.0, this.animation, @MapPlacedElementShadowOverrideJsonConverter() this.shadowOverride, final  List<MapPlacedElementBehavior> behaviors = const [], final  Map<String, String> properties = const {}}): _behaviors = behaviors,_properties = properties;
   factory _MapPlacedElement.fromJson(Map<String, dynamic> json) => _$MapPlacedElementFromJson(json);
 
 @override final  String id;
 @override final  String layerId;
 @override final  String elementId;
 @override final  GridPos pos;
+@override@JsonKey() final  PixelOffset pixelOffset;
+@override@JsonKey(includeIfNull: false) final  PixelSize? pixelSize;
 @override@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) final  int visualOrder;
 @override@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) final  int quarterTurns;
 @override@JsonKey() final  bool applyCollision;
@@ -1140,16 +1165,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.visualOrder, visualOrder) || other.visualOrder == visualOrder)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other._behaviors, _behaviors)&&const DeepCollectionEquality().equals(other._properties, _properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.pixelOffset, pixelOffset) || other.pixelOffset == pixelOffset)&&(identical(other.pixelSize, pixelSize) || other.pixelSize == pixelSize)&&(identical(other.visualOrder, visualOrder) || other.visualOrder == visualOrder)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other._behaviors, _behaviors)&&const DeepCollectionEquality().equals(other._properties, _properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,visualOrder,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(_behaviors),const DeepCollectionEquality().hash(_properties));
+int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,pixelOffset,pixelSize,visualOrder,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(_behaviors),const DeepCollectionEquality().hash(_properties));
 
 @override
 String toString() {
-  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, visualOrder: $visualOrder, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
+  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, pixelOffset: $pixelOffset, pixelSize: $pixelSize, visualOrder: $visualOrder, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
 }
 
 
@@ -1160,11 +1185,11 @@ abstract mixin class _$MapPlacedElementCopyWith<$Res> implements $MapPlacedEleme
   factory _$MapPlacedElementCopyWith(_MapPlacedElement value, $Res Function(_MapPlacedElement) _then) = __$MapPlacedElementCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String layerId, String elementId, GridPos pos,@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int visualOrder,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
+ String id, String layerId, String elementId, GridPos pos, PixelOffset pixelOffset,@JsonKey(includeIfNull: false) PixelSize? pixelSize,@JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson) int visualOrder,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
 });
 
 
-@override $GridPosCopyWith<$Res> get pos;@override $MapPlacedElementAnimationCopyWith<$Res>? get animation;
+@override $GridPosCopyWith<$Res> get pos;@override $PixelOffsetCopyWith<$Res> get pixelOffset;@override $PixelSizeCopyWith<$Res>? get pixelSize;@override $MapPlacedElementAnimationCopyWith<$Res>? get animation;
 
 }
 /// @nodoc
@@ -1177,13 +1202,15 @@ class __$MapPlacedElementCopyWithImpl<$Res>
 
 /// Create a copy of MapPlacedElement
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? visualOrder = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? pixelOffset = null,Object? pixelSize = freezed,Object? visualOrder = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
   return _then(_MapPlacedElement(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,elementId: null == elementId ? _self.elementId : elementId // ignore: cast_nullable_to_non_nullable
 as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
-as GridPos,visualOrder: null == visualOrder ? _self.visualOrder : visualOrder // ignore: cast_nullable_to_non_nullable
+as GridPos,pixelOffset: null == pixelOffset ? _self.pixelOffset : pixelOffset // ignore: cast_nullable_to_non_nullable
+as PixelOffset,pixelSize: freezed == pixelSize ? _self.pixelSize : pixelSize // ignore: cast_nullable_to_non_nullable
+as PixelSize?,visualOrder: null == visualOrder ? _self.visualOrder : visualOrder // ignore: cast_nullable_to_non_nullable
 as int,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
 as int,applyCollision: null == applyCollision ? _self.applyCollision : applyCollision // ignore: cast_nullable_to_non_nullable
 as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
@@ -1203,6 +1230,27 @@ $GridPosCopyWith<$Res> get pos {
 
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PixelOffsetCopyWith<$Res> get pixelOffset {
+
+  return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
+    return _then(_self.copyWith(pixelOffset: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PixelSizeCopyWith<$Res>? get pixelSize {
+    if (_self.pixelSize == null) {
+    return null;
+  }
+
+  return $PixelSizeCopyWith<$Res>(_self.pixelSize!, (value) {
+    return _then(_self.copyWith(pixelSize: value));
   });
 }/// Create a copy of MapPlacedElement
 /// with the given fields replaced by the non-null parameter values.

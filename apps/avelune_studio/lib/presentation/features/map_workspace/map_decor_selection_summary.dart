@@ -30,7 +30,7 @@ class MapDecorSelectionSummary extends StatelessWidget {
     final stack = MapEditingCommands(
       document,
       project,
-    ).stack(document.stackPosition ?? selected.pos);
+    ).contextStack(document.stackPosition ?? selected.pos);
     final rank = stack.indexWhere((item) => item.id == selected.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

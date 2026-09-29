@@ -711,7 +711,7 @@ const _animatedMap = MapData(
 
 final _projectWithAnimatedPath = ProjectManifest(
   name: 'Referenced animation isolation',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -834,7 +834,7 @@ final _projectWithAnimatedPath = ProjectManifest(
 const _staticPathMap = MapData(
   id: 'static-path-map',
   name: 'Static path map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -851,7 +851,7 @@ const _staticPathMap = MapData(
 const _animatedPathMap = MapData(
   id: 'animated-path-map',
   name: 'Animated path map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     SmartTileLayer(

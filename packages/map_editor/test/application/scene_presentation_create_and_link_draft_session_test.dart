@@ -188,7 +188,7 @@ final class _MemoryRecoveryStore<T>
 
 ProjectManifest _project() => ProjectManifest(
   name: 'Draft session fixture',
-  version: ProjectVersion.v7,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   scenes: <SceneAsset>[

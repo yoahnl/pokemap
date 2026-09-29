@@ -13,6 +13,8 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'map_canvas_stroke.dart';
 import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
+import 'map_decor_transform_draft.dart';
+import 'map_decor_transform_overlay.dart';
 
 part 'map_workspace_canvas_gestures.dart';
 part 'map_workspace_canvas_border.dart';
@@ -41,7 +43,8 @@ class MapWorkspaceCanvas extends StatefulWidget {
   State<MapWorkspaceCanvas> createState() => _MapWorkspaceCanvasState();
 }
 
-class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
+class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
+    with WidgetsBindingObserver {
   void _refreshGesture() => setState(() {});
   void _mutateGesture(VoidCallback action) => setState(action);
   final _focus = FocusNode();
@@ -57,6 +60,120 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   MapEncounterCellStroke? _encounterStroke;
   MapData? _gestureSource;
   MapCharacterGesture? _characterGesture;
+  MapDecorTransformDraft? _decorDraft;
+  int? _decorPointer;
+  final Set<LogicalKeyboardKey> _nudgeKeys = {};
+  bool _previewScheduled = false;
+  StudioMapTool? _gestureTool;
+  MapData? _ownershipMap;
+  Set<String> _environmentOwnedIds = {};
+  double get _displayScale => widget.project.settings.displayScale.toDouble();
+  Offset _pixelOffset(Offset local) => local / _displayScale;
+  PixelPosition _pixel(Offset local) => PixelPosition(
+    leftPx: (local.dx / _displayScale).floor(),
+    topPx: (local.dy / _displayScale).floor(),
+  );
+  bool _canTransform(MapPlacedElement instance) {
+    if (!identical(_ownershipMap, widget.document.current)) {
+      _ownershipMap = widget.document.current;
+      _environmentOwnedIds = environmentOwnedMapPlacedElementIds(
+        widget.document.current,
+      );
+    }
+    return isAuthoredMapPlacedElement(instance) &&
+        !_environmentOwnedIds.contains(instance.id);
+  }
+
+  void _beginDecor(
+    MapPlacedElement instance,
+    Offset pointer, {
+    DecorResizeHandle? handle,
+  }) {
+    _decorDraft = MapDecorTransformDraft(
+      source: widget.document.current,
+      project: widget.project,
+      original: instance,
+      pointer: _pixelOffset(pointer),
+      precise: HardwareKeyboard.instance.isShiftPressed,
+      handle: handle,
+      lockRatio: widget.view.lockDecorProportions,
+    );
+    _gestureTool = widget.view.tool;
+    _gestureSource = widget.document.current;
+  }
+
+  void _refreshDecor() {
+    if (_previewScheduled) return;
+    _previewScheduled = true;
+    WidgetsBinding.instance.scheduleFrameCallback((_) {
+      _previewScheduled = false;
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _commitDecor() {
+    final draft = _decorDraft;
+    if (draft != null &&
+        identical(draft.source, widget.document.current) &&
+        identical(draft.project, widget.project) &&
+        draft.original.id == widget.document.selectedId) {
+      if (draft.error != null) {
+        widget.document.error = draft.error;
+      } else if (draft.candidate != draft.original) {
+        final rect = draft.geometry.logicalRect;
+        _commands.setGeometry(
+          draft.original.id,
+          x: rect.leftPx,
+          y: rect.topPx,
+          size: draft.candidate.pixelSize,
+        );
+      }
+    }
+    if (_armed) widget.view.pendingMove = null;
+    setState(_cancel);
+    widget.onChanged();
+  }
+
+  KeyEventResult _decorKey(KeyEvent event) {
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape && _decorDraft != null) {
+      setState(_cancel);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight) {
+      _decorDraft?.rebasePrecision(HardwareKeyboard.instance.isShiftPressed);
+    }
+    if (event is KeyUpEvent && _nudgeKeys.remove(key)) {
+      if (_nudgeKeys.isEmpty) _commitDecor();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        !HardwareKeyboard.instance.isShiftPressed ||
+        widget.view.tool != StudioMapTool.select ||
+        _decorPointer != null) {
+      return KeyEventResult.ignored;
+    }
+    final delta = switch (key) {
+      LogicalKeyboardKey.arrowLeft => const Offset(-1, 0),
+      LogicalKeyboardKey.arrowRight => const Offset(1, 0),
+      LogicalKeyboardKey.arrowUp => const Offset(0, -1),
+      LogicalKeyboardKey.arrowDown => const Offset(0, 1),
+      _ => null,
+    };
+    final selected = widget.document.selected;
+    if (delta == null || selected == null || !_canTransform(selected)) {
+      return KeyEventResult.ignored;
+    }
+    if (_decorDraft == null) _beginDecor(selected, Offset.zero);
+    _nudgeKeys.add(key);
+    _decorDraft!.nudge(delta.dx.toInt(), delta.dy.toInt());
+    _refreshDecor();
+    return KeyEventResult.handled;
+  }
+
   double get _width =>
       widget.project.settings.tileWidth *
       widget.project.settings.displayScale.toDouble();
@@ -73,6 +190,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.view.borderDraft?.mapId != null &&
         widget.view.borderDraft!.mapId != widget.document.current.id) {
       widget.view.borderDraft = null;
@@ -83,7 +201,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   void didUpdateWidget(MapWorkspaceCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.document != widget.document ||
-        oldWidget.gestureGeneration != widget.gestureGeneration) {
+        oldWidget.gestureGeneration != widget.gestureGeneration ||
+        (_decorDraft != null &&
+            (!identical(_decorDraft!.source, widget.document.current) ||
+                !identical(_decorDraft!.project, widget.project) ||
+                _gestureTool != widget.view.tool ||
+                _decorDraft!.original.id != widget.document.selectedId))) {
       _cancel();
     }
     if (widget.view.borderDraft?.mapId != null &&
@@ -98,6 +221,14 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   }
 
   void _up(PointerUpEvent event) {
+    if (_decorPointer == event.pointer && _decorDraft != null) {
+      _decorDraft!.move(
+        _pixelOffset(event.localPosition),
+        precise: HardwareKeyboard.instance.isShiftPressed,
+      );
+      _commitDecor();
+      return;
+    }
     if (_panPointer == event.pointer) {
       _panPointer = null;
       _panPosition = null;
@@ -155,13 +286,29 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _focus.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed && _gestureSource != null) {
+      setState(_cancel);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final map = widget.document.current;
+    final selected =
+        _decorDraft?.candidate ??
+        (_preview == null
+            ? widget.document.selected
+            : widget.document.selected?.copyWith(pos: _preview!));
+    final selectedElement = widget.project.elements
+        .where((e) => e.id == selected?.elementId)
+        .firstOrNull;
     final brush = widget.view.tool == StudioMapTool.place
         ? widget.view.brush
         : null;
@@ -198,7 +345,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
             panEnabled: widget.view.tool == StudioMapTool.pan,
             child: Focus(
               focusNode: _focus,
+              onFocusChange: (focused) {
+                if (!focused && _gestureSource != null) setState(_cancel);
+              },
               onKeyEvent: (node, event) {
+                final result = _decorKey(event);
+                if (result == KeyEventResult.handled) return result;
                 if (widget.view.tool == StudioMapTool.border &&
                     event is KeyDownEvent &&
                     event.logicalKey == LogicalKeyboardKey.enter) {
@@ -239,6 +391,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                             _characterGesture?.preview ??
                                 _stroke?.preview ??
                                 map,
+                            placedElementPreview: _decorDraft?.candidate,
+                            collisionColor:
+                                widget.view.tool == StudioMapTool.select &&
+                                    widget.view.showDecorCollision
+                                ? Theme.of(context).colorScheme.error
+                                : null,
                           ),
                         ),
                         if (hover != null && footprint != null)
@@ -286,6 +444,19 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                             ),
                           ),
                         ),
+                        if (selected != null &&
+                            selectedElement != null &&
+                            widget.view.tool == StudioMapTool.select)
+                          Positioned.fill(
+                            child: MapDecorTransformOverlay(
+                              instance: selected,
+                              element: selectedElement,
+                              project: widget.project,
+                              transform: widget.view.transform,
+                              resizable: _canTransform(selected),
+                              invalid: _decorDraft?.error != null,
+                            ),
+                          ),
                       ],
                     ),
                   ),

@@ -87,7 +87,7 @@ void main() {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, Object?>{
           'name': 'Legacy atlas project',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[
             <String, Object?>{
@@ -135,7 +135,7 @@ void main() {
       expect(
         () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, Object?>{
           'name': 'Ambiguous project',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[
             <String, Object?>{

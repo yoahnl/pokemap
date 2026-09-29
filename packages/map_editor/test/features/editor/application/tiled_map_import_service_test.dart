@@ -19,7 +19,7 @@ void main() {
       '${const JsonEncoder.withIndent('  ').convert(
         const ProjectManifest(
           name: 'TMX editor fixture',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
         ).toJson(),
@@ -94,7 +94,7 @@ void main() {
       '${const JsonEncoder.withIndent('  ').convert(
         const ProjectManifest(
           name: 'Missing TSX fixture',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
         ).toJson(),
@@ -140,7 +140,7 @@ void main() {
       '${const JsonEncoder.withIndent('  ').convert(
         const ProjectManifest(
           name: 'TMX source-root fixture',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
         ).toJson(),

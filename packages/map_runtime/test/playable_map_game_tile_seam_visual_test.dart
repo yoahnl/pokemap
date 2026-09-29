@@ -199,7 +199,7 @@ Future<_SeamFixture> _smartFixture({
   );
   final manifest = ProjectManifest(
     name: 'Smart seam runtime ${kind.name}',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -290,7 +290,7 @@ Future<_SeamFixture> _smartFixture({
   final map = MapData(
     id: 'smart-${kind.name}-seam-map',
     name: 'Smart ${kind.name} seam map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: _mapWidth, height: _mapHeight),
     layers: <MapLayer>[
       SmartTileLayer(

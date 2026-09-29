@@ -1,8 +1,80 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_object_move_planner.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 
 void main() {
+  test('grid selection covers the custom residue boundary only', () {
+    final instance =
+        _placement(
+          properties: const {
+            pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+          },
+        ).copyWith(
+      pixelOffset: const PixelOffset(x: 15, y: 0),
+          pixelSize: const PixelSize(width: 2, height: 2),
+        );
+    final map = _map(placement: instance);
+    final hits = const MapCanvasObjectHitTest().hitStack(
+      map: map,
+      project: _project(),
+      position: const GridPos(x: 1, y: 0),
+    );
+    expect(hits.single.size, const GridSize(width: 2, height: 1));
+    expect(
+      const MapCanvasObjectHitTest().hitStack(
+        map: map,
+        project: _project(),
+        position: const GridPos(x: 2, y: 0),
+      ),
+      isEmpty,
+    );
+  });
+  test(
+    'small custom geometry moves and rotates at the edge without losing residue',
+    () {
+      final instance =
+          _placement(
+            properties: const {
+              pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+            },
+          ).copyWith(
+            pixelOffset: const PixelOffset(x: 1, y: 2),
+            pixelSize: const PixelSize(width: 3, height: 5),
+          );
+      final map = _map(placement: instance);
+      final move = const MapCanvasObjectMovePlanner().plan(
+        map: map,
+        project: _project(),
+        target: const MapCanvasObjectTarget(
+          kind: MapCanvasObjectKind.placedElement,
+          id: 'placed',
+          anchor: GridPos(x: 0, y: 0),
+          size: GridSize(width: 1, height: 1),
+        ),
+        destinationAnchor: const GridPos(x: 3, y: 3),
+      );
+      expect(move.canCommit, isTrue);
+      final moved = move.candidateMap!.placedElements.single;
+      expect(moved.copyWith(pos: instance.pos), instance);
+      final rotation = planMapPlacedElementRotation(
+        map: move.candidateMap,
+        project: _project(),
+        instanceId: 'placed',
+        targetQuarterTurns: 1,
+      );
+      expect(rotation.canCommit, isTrue);
+      expect(
+        rotation.candidateMap!.placedElements.single.pixelSize,
+        const PixelSize(width: 5, height: 3),
+      );
+      expect(
+        rotation.candidateMap!.placedElements.single.pixelOffset,
+        instance.pixelOffset,
+      );
+    },
+  );
   group('planMapPlacedElementRotation', () {
     test('rejects when the active map is unavailable', () {
       final plan = planMapPlacedElementRotation(
@@ -12,10 +84,7 @@ void main() {
         targetQuarterTurns: 1,
       );
 
-      expect(
-        plan.rejection,
-        MapPlacedElementRotationRejection.mapUnavailable,
-      );
+      expect(plan.rejection, MapPlacedElementRotationRejection.mapUnavailable);
       expect(plan.sourceMap, isNull);
       expect(plan.candidateMap, isNull);
       expect(plan.canCommit, isFalse);
@@ -101,9 +170,7 @@ void main() {
 
     test('rejects a placement hosted by a non-tile layer', () {
       final map = _map(
-        layers: const <MapLayer>[
-          MapLayer.object(id: 'decor', name: 'Objects'),
-        ],
+        layers: const <MapLayer>[MapLayer.object(id: 'decor', name: 'Objects')],
       );
       final snapshot = map.toJson();
 
@@ -122,58 +189,62 @@ void main() {
       );
     });
 
-    test('rejects Environment ownership recorded by generated placement id',
-        () {
-      final map = _map(
-        environmentGeneratedIds: const <String>['placed'],
-        placement: _placement(
-          properties: const <String, String>{
-            pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
-          },
-        ),
-      );
-      final snapshot = map.toJson();
+    test(
+      'rejects Environment ownership recorded by generated placement id',
+      () {
+        final map = _map(
+          environmentGeneratedIds: const <String>['placed'],
+          placement: _placement(
+            properties: const <String, String>{
+              pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+            },
+          ),
+        );
+        final snapshot = map.toJson();
 
-      final plan = planMapPlacedElementRotation(
-        map: map,
-        project: _project(),
-        instanceId: 'placed',
-        targetQuarterTurns: 1,
-      );
+        final plan = planMapPlacedElementRotation(
+          map: map,
+          project: _project(),
+          instanceId: 'placed',
+          targetQuarterTurns: 1,
+        );
 
-      _expectRejectedUnchanged(
-        plan,
-        map: map,
-        snapshot: snapshot,
-        rejection: MapPlacedElementRotationRejection.environmentGenerated,
-      );
-    });
+        _expectRejectedUnchanged(
+          plan,
+          map: map,
+          snapshot: snapshot,
+          rejection: MapPlacedElementRotationRejection.environmentGenerated,
+        );
+      },
+    );
 
-    test('rejects Environment ownership recorded by the shared origin marker',
-        () {
-      final map = _map(
-        placement: _placement(
-          properties: const <String, String>{
-            pokemapPlacementOriginProperty: pokemapPlacementOriginEnvironment,
-          },
-        ),
-      );
-      final snapshot = map.toJson();
+    test(
+      'rejects Environment ownership recorded by the shared origin marker',
+      () {
+        final map = _map(
+          placement: _placement(
+            properties: const <String, String>{
+              pokemapPlacementOriginProperty: pokemapPlacementOriginEnvironment,
+            },
+          ),
+        );
+        final snapshot = map.toJson();
 
-      final plan = planMapPlacedElementRotation(
-        map: map,
-        project: _project(),
-        instanceId: 'placed',
-        targetQuarterTurns: 1,
-      );
+        final plan = planMapPlacedElementRotation(
+          map: map,
+          project: _project(),
+          instanceId: 'placed',
+          targetQuarterTurns: 1,
+        );
 
-      _expectRejectedUnchanged(
-        plan,
-        map: map,
-        snapshot: snapshot,
-        rejection: MapPlacedElementRotationRejection.environmentGenerated,
-      );
-    });
+        _expectRejectedUnchanged(
+          plan,
+          map: map,
+          snapshot: snapshot,
+          rejection: MapPlacedElementRotationRejection.environmentGenerated,
+        );
+      },
+    );
 
     test('never infers Environment ownership from display labels', () {
       final map = _map(
@@ -196,34 +267,36 @@ void main() {
       expect(plan.rejection, isNull);
     });
 
-    test('rejects tile-index ownership without replacing its stored rotation',
-        () {
-      final placement = _placement(
-        quarterTurns: 2,
-        properties: const <String, String>{
-          pokemapPlacementOriginProperty: pokemapPlacementOriginTileIndex,
-          'custom': 'preserved',
-        },
-      );
-      final map = _map(placement: placement);
-      final snapshot = map.toJson();
+    test(
+      'rejects tile-index ownership without replacing its stored rotation',
+      () {
+        final placement = _placement(
+          quarterTurns: 2,
+          properties: const <String, String>{
+            pokemapPlacementOriginProperty: pokemapPlacementOriginTileIndex,
+            'custom': 'preserved',
+          },
+        );
+        final map = _map(placement: placement);
+        final snapshot = map.toJson();
 
-      final plan = planMapPlacedElementRotation(
-        map: map,
-        project: _project(),
-        instanceId: placement.id,
-        targetQuarterTurns: 3,
-      );
+        final plan = planMapPlacedElementRotation(
+          map: map,
+          project: _project(),
+          instanceId: placement.id,
+          targetQuarterTurns: 3,
+        );
 
-      _expectRejectedUnchanged(
-        plan,
-        map: map,
-        snapshot: snapshot,
-        rejection: MapPlacedElementRotationRejection.tileIndexed,
-      );
-      expect(map.placedElements.single, same(placement));
-      expect(map.placedElements.single.quarterTurns, 2);
-    });
+        _expectRejectedUnchanged(
+          plan,
+          map: map,
+          snapshot: snapshot,
+          rejection: MapPlacedElementRotationRejection.tileIndexed,
+        );
+        expect(map.placedElements.single, same(placement));
+        expect(map.placedElements.single.quarterTurns, 2);
+      },
+    );
 
     test('rejects absolute targets outside zero through three', () {
       for (final targetQuarterTurns in <int>[-1, 4]) {
@@ -247,26 +320,58 @@ void main() {
       }
     });
 
-    test('retains q1 and q3 preview footprints when rotation exceeds bounds',
-        () {
-      for (final targetQuarterTurns in <int>[1, 3]) {
-        final map = _map(
-          placement: _placement(pos: const GridPos(x: 0, y: 2)),
-        );
+    test(
+      'retains q1 and q3 preview footprints when rotation exceeds bounds',
+      () {
+        for (final targetQuarterTurns in <int>[1, 3]) {
+          final map = _map(
+            placement: _placement(pos: const GridPos(x: 0, y: 2)),
+          );
+          final snapshot = map.toJson();
+
+          final plan = planMapPlacedElementRotation(
+            map: map,
+            project: _project(),
+            instanceId: 'placed',
+            targetQuarterTurns: targetQuarterTurns,
+          );
+
+          _expectRejectedUnchanged(
+            plan,
+            map: map,
+            snapshot: snapshot,
+            rejection: MapPlacedElementRotationRejection.destinationOutOfBounds,
+          );
+          expect(
+            plan.sourceFootprint?.destinationSize,
+            const GridSize(width: 3, height: 2),
+          );
+          expect(
+            plan.previewFootprint?.destinationSize,
+            const GridSize(width: 2, height: 3),
+          );
+        }
+      },
+    );
+
+    test(
+      'retains both footprints when whole-map validation rejects candidate',
+      () {
+        final map = _map(layerTilesetId: 'incompatible-tiles');
         final snapshot = map.toJson();
 
         final plan = planMapPlacedElementRotation(
           map: map,
           project: _project(),
           instanceId: 'placed',
-          targetQuarterTurns: targetQuarterTurns,
+          targetQuarterTurns: 1,
         );
 
         _expectRejectedUnchanged(
           plan,
           map: map,
           snapshot: snapshot,
-          rejection: MapPlacedElementRotationRejection.destinationOutOfBounds,
+          rejection: MapPlacedElementRotationRejection.candidateInvalid,
         );
         expect(
           plan.sourceFootprint?.destinationSize,
@@ -276,57 +381,31 @@ void main() {
           plan.previewFootprint?.destinationSize,
           const GridSize(width: 2, height: 3),
         );
-      }
-    });
+      },
+    );
 
-    test('retains both footprints when whole-map validation rejects candidate',
-        () {
-      final map = _map(layerTilesetId: 'incompatible-tiles');
-      final snapshot = map.toJson();
+    test(
+      'returns an immutable no-op without creating a candidate mutation',
+      () {
+        final map = _map(placement: _placement(quarterTurns: 2));
+        final instance = map.placedElements.single;
 
-      final plan = planMapPlacedElementRotation(
-        map: map,
-        project: _project(),
-        instanceId: 'placed',
-        targetQuarterTurns: 1,
-      );
+        final plan = planMapPlacedElementRotation(
+          map: map,
+          project: _project(),
+          instanceId: instance.id,
+          targetQuarterTurns: 2,
+        );
 
-      _expectRejectedUnchanged(
-        plan,
-        map: map,
-        snapshot: snapshot,
-        rejection: MapPlacedElementRotationRejection.candidateInvalid,
-      );
-      expect(
-        plan.sourceFootprint?.destinationSize,
-        const GridSize(width: 3, height: 2),
-      );
-      expect(
-        plan.previewFootprint?.destinationSize,
-        const GridSize(width: 2, height: 3),
-      );
-    });
-
-    test('returns an immutable no-op without creating a candidate mutation',
-        () {
-      final map = _map(placement: _placement(quarterTurns: 2));
-      final instance = map.placedElements.single;
-
-      final plan = planMapPlacedElementRotation(
-        map: map,
-        project: _project(),
-        instanceId: instance.id,
-        targetQuarterTurns: 2,
-      );
-
-      expect(plan.sourceMap, same(map));
-      expect(plan.instance, same(instance));
-      expect(plan.sourceFootprint, same(plan.previewFootprint));
-      expect(plan.candidateMap, same(map));
-      expect(plan.rejection, isNull);
-      expect(plan.isNoOp, isTrue);
-      expect(plan.canCommit, isFalse);
-    });
+        expect(plan.sourceMap, same(map));
+        expect(plan.instance, same(instance));
+        expect(plan.sourceFootprint, same(plan.previewFootprint));
+        expect(plan.candidateMap, same(map));
+        expect(plan.rejection, isNull);
+        expect(plan.isNoOp, isTrue);
+        expect(plan.canCommit, isFalse);
+      },
+    );
 
     test('builds a validator-clean candidate without mutating its source', () {
       final map = _map();
@@ -389,7 +468,7 @@ ProjectManifest _project({
 }) {
   return ProjectManifest(
     name: 'Rotation planner',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -407,12 +486,7 @@ ProjectManifest _project({
           categoryId: 'decor',
           frames: const <TilesetVisualFrame>[
             TilesetVisualFrame(
-              source: TilesetSourceRect(
-                x: 0,
-                y: 0,
-                width: 3,
-                height: 2,
-              ),
+              source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
             ),
           ],
         ),
@@ -431,9 +505,10 @@ MapData _map({
   return MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: size,
-    layers: layers ??
+    layers:
+        layers ??
         <MapLayer>[
           if (environmentGeneratedIds.isNotEmpty)
             MapLayer.environment(
@@ -479,9 +554,7 @@ MapData _map({
             ),
           ),
         ],
-    placedElements: <MapPlacedElement>[
-      placement ?? _placement(),
-    ],
+    placedElements: <MapPlacedElement>[placement ?? _placement()],
   );
 }
 

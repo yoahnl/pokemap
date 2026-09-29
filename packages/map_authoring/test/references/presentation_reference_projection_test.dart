@@ -288,7 +288,7 @@ ProjectSnapshot _snapshot({
 }) {
   final manifest = ProjectManifest(
     name: 'Presentation reference fixture',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const [],
     tilesets: const [],
     scenes: scene == null ? const [] : [scene],

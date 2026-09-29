@@ -424,7 +424,7 @@ abstract class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectManifest({
     required String name,
-    @Default(ProjectVersion.v6) ProjectVersion version,
+    @Default(ProjectVersion.v8) ProjectVersion version,
     required List<ProjectMapEntry> maps,
     @Default([]) List<ProjectMapGroup> groups,
     @Default([]) List<ProjectTilesetFolder> tilesetFolders,
@@ -550,10 +550,10 @@ abstract class ProjectManifest with _$ProjectManifest {
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
+    _preflightProjectManifestJson(json);
     _preflightPokemonRulesetManifestJson(json);
     _preflightRemovedCinematicJson(json);
     final migratedJson = _migrateLegacyTilesetSources(json);
-    _preflightProjectManifestJson(migratedJson);
     final decoded = _$ProjectManifestFromJson(migratedJson);
     final shops = decoded.shops
         .map((shop) => shop.normalized())
@@ -613,28 +613,11 @@ void _preflightPokemonRulesetManifestJson(Map<String, dynamic> json) {
 }
 
 void _preflightProjectManifestJson(Map<String, dynamic> json) {
-  final version = json['version'] ?? 'v1';
-  if (version != 'v6' && version != 'v7') {
-    final isLegacyVersion = const <String>{'v1', 'v2', 'v3', 'v4', 'v5'}
-        .contains(version);
+  final version = json['version'];
+  if (version != 'v8') {
     throw FormatException(
-      isLegacyVersion
-          ? r'$.version: smart_tile_v6_project_required '
-                '(expected=v6|v7, actual=$version)'
-          : r'$.version: project_version_unsupported '
-                '(expected=v6|v7, actual=$version)',
-    );
-  }
-  if (version == 'v6' && json.containsKey('presentationCinematics')) {
-    throw const FormatException(
-      r'$.presentationCinematics: cinematic_v2_project_v7_required '
-      '(expected=v7, actual=v6)',
-    );
-  }
-  if (version == 'v6' && json.containsKey('cinematicLibraryCatalog')) {
-    throw const FormatException(
-      r'$.cinematicLibraryCatalog: cinematic_v2_project_v7_required '
-      '(expected=v7, actual=v6)',
+      r'$.version: project_version_unsupported '
+      '(expected=v8, actual=$version)',
     );
   }
   final newGame = json['newGame'];
@@ -643,14 +626,6 @@ void _preflightProjectManifestJson(Map<String, dynamic> json) {
       r'$.newGame.starterSelectionSceneId: '
       'new_game_legacy_entrypoint_unsupported '
       '(expected=preSessionSceneId)',
-    );
-  }
-  if (version == 'v6' &&
-      newGame is Map &&
-      newGame.containsKey('preSessionSceneId')) {
-    throw const FormatException(
-      r'$.newGame.preSessionSceneId: cinematic_v2_project_v7_required '
-      '(expected=v7, actual=v6)',
     );
   }
   for (final key in const <String>[

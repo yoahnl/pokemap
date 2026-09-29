@@ -114,7 +114,7 @@ const _literal = TileLayer(
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[_literal],
 );

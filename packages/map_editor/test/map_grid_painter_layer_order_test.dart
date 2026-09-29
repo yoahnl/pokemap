@@ -151,7 +151,7 @@ void main() {
         id: 'reorder_paint',
         name: 'Reorder paint',
         size: GridSize(width: 1, height: 1),
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         visualStack: MapVisualStackConfig.canonicalV1,
         layers: <MapLayer>[
           TileLayer(

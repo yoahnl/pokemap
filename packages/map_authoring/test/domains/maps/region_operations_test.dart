@@ -304,7 +304,7 @@ void main() {
 
     test('cell Smart Tile fields keep paint, fill, and erase authoring', () {
       final map = _map(width: 2, height: 2).copyWith(
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         layers: const [
           MapLayer.smartTile(
             id: 'smart',
@@ -497,7 +497,7 @@ void main() {
 
       for (final field in fields) {
         final map = _map(width: 2, height: 2).copyWith(
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           layers: [
             MapLayer.smartTile(
               id: 'smart',
@@ -561,7 +561,7 @@ MapData _map({required int width, required int height}) => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: GridSize(width: width, height: height),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

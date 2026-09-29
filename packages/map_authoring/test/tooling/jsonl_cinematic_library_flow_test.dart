@@ -53,7 +53,7 @@ final class _Harness {
     final root = await Directory.systemTemp.createTemp('cin_library_$suffix');
     final manifest = ProjectManifest(
       name: 'Cinematic library transport fixture',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
       cinematics: [

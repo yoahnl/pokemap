@@ -1193,7 +1193,7 @@ BorderPreviewContext _contextFor(MapData map) => BorderPreviewContext(
 
 ProjectManifest _project() => const ProjectManifest(
   name: 'Preview project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
 );
@@ -1225,7 +1225,7 @@ MapData _map() {
   return MapData(
     id: 'map',
     name: 'Map riche',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 4, height: 3),
     layers: <MapLayer>[
       const MapLayer.tile(

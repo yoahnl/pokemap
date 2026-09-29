@@ -460,7 +460,7 @@ final class _CanvasProfileFixture {
       map: MapData(
         id: '${mode.name}-$extent',
         name: '${mode.name} $extent',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: extent, height: extent),
         layers: layers,
         placedElements: placedElements,
@@ -471,7 +471,7 @@ final class _CanvasProfileFixture {
 
 final _profileProject = ProjectManifest(
   name: 'Canvas projection profile',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

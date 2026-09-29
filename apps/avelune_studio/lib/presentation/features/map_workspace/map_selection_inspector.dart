@@ -78,7 +78,7 @@ class MapSelectionInspector extends StatelessWidget {
     final entities = pos == null ? <MapEntity>[] : commands.at(pos);
     final decors = pos == null
         ? <MapPlacedElement>[]
-        : MapEditingCommands(document, project).stack(pos);
+        : MapEditingCommands(document, project).contextStack(pos);
     return SizedBox(
       width: width,
       child: Column(

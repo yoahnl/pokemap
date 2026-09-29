@@ -344,7 +344,7 @@ void main() {
       final source = MapData(
         id: 'grid-edges',
         name: 'Grid edges',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: 4, height: 4),
         layers: <MapLayer>[
           MapLayer.border(
@@ -546,7 +546,7 @@ ProjectManifest _project() => ProjectManifest(
 MapData _baseMap() => MapData(
   id: 'map',
   name: 'Base map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     MapLayer.border(

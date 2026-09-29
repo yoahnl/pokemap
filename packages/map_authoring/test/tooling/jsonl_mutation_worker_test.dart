@@ -36,7 +36,7 @@ void main() {
     });
     final manifest = ProjectManifest(
       name: 'JSONL Mutation Fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -350,7 +350,7 @@ void main() {
     await Directory('${root.path}/maps').create();
     final manifest = ProjectManifest(
       name: 'JSONL Smart Tile guard fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const [
         ProjectMapEntry(
           id: 'fixture',
@@ -387,7 +387,7 @@ void main() {
     const map = MapData(
       id: 'fixture',
       name: 'Fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       layers: [
         MapLayer.tile(id: 'base', name: 'Base', cells: [0, 0, 0, 0]),

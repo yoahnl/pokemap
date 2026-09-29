@@ -172,7 +172,7 @@ void main() {
       expect(created.id, 'harbor');
       expect(created.size, const GridSize(width: 6, height: 5));
       expect(created.layers, isEmpty);
-      expect(created.version, ProjectVersion.v6);
+      expect(created.version, ProjectVersion.v8);
       expect(
           fixture.mapRepository.saved.single.path, '/project/maps/harbor.json');
       final savedProject = fixture.projectRepository.savedProjects.single;

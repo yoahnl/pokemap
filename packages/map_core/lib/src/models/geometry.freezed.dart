@@ -13,6 +13,538 @@ part of 'geometry.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$PixelOffset {
+
+@JsonKey(fromJson: _pixelIntegerFromJson) int get x;@JsonKey(fromJson: _pixelIntegerFromJson) int get y;
+/// Create a copy of PixelOffset
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PixelOffsetCopyWith<PixelOffset> get copyWith => _$PixelOffsetCopyWithImpl<PixelOffset>(this as PixelOffset, _$identity);
+
+  /// Serializes this PixelOffset to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PixelOffset&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y);
+
+@override
+String toString() {
+  return 'PixelOffset(x: $x, y: $y)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PixelOffsetCopyWith<$Res>  {
+  factory $PixelOffsetCopyWith(PixelOffset value, $Res Function(PixelOffset) _then) = _$PixelOffsetCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(fromJson: _pixelIntegerFromJson) int x,@JsonKey(fromJson: _pixelIntegerFromJson) int y
+});
+
+
+
+
+}
+/// @nodoc
+class _$PixelOffsetCopyWithImpl<$Res>
+    implements $PixelOffsetCopyWith<$Res> {
+  _$PixelOffsetCopyWithImpl(this._self, this._then);
+
+  final PixelOffset _self;
+  final $Res Function(PixelOffset) _then;
+
+/// Create a copy of PixelOffset
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? x = null,Object? y = null,}) {
+  return _then(_self.copyWith(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PixelOffset].
+extension PixelOffsetPatterns on PixelOffset {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PixelOffset value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PixelOffset() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PixelOffset value)  $default,){
+final _that = this;
+switch (_that) {
+case _PixelOffset():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PixelOffset value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PixelOffset() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int x, @JsonKey(fromJson: _pixelIntegerFromJson)  int y)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PixelOffset() when $default != null:
+return $default(_that.x,_that.y);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int x, @JsonKey(fromJson: _pixelIntegerFromJson)  int y)  $default,) {final _that = this;
+switch (_that) {
+case _PixelOffset():
+return $default(_that.x,_that.y);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int x, @JsonKey(fromJson: _pixelIntegerFromJson)  int y)?  $default,) {final _that = this;
+switch (_that) {
+case _PixelOffset() when $default != null:
+return $default(_that.x,_that.y);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PixelOffset implements PixelOffset {
+  const _PixelOffset({@JsonKey(fromJson: _pixelIntegerFromJson) required this.x, @JsonKey(fromJson: _pixelIntegerFromJson) required this.y});
+  factory _PixelOffset.fromJson(Map<String, dynamic> json) => _$PixelOffsetFromJson(json);
+
+@override@JsonKey(fromJson: _pixelIntegerFromJson) final  int x;
+@override@JsonKey(fromJson: _pixelIntegerFromJson) final  int y;
+
+/// Create a copy of PixelOffset
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PixelOffsetCopyWith<_PixelOffset> get copyWith => __$PixelOffsetCopyWithImpl<_PixelOffset>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PixelOffsetToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PixelOffset&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y);
+
+@override
+String toString() {
+  return 'PixelOffset(x: $x, y: $y)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PixelOffsetCopyWith<$Res> implements $PixelOffsetCopyWith<$Res> {
+  factory _$PixelOffsetCopyWith(_PixelOffset value, $Res Function(_PixelOffset) _then) = __$PixelOffsetCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(fromJson: _pixelIntegerFromJson) int x,@JsonKey(fromJson: _pixelIntegerFromJson) int y
+});
+
+
+
+
+}
+/// @nodoc
+class __$PixelOffsetCopyWithImpl<$Res>
+    implements _$PixelOffsetCopyWith<$Res> {
+  __$PixelOffsetCopyWithImpl(this._self, this._then);
+
+  final _PixelOffset _self;
+  final $Res Function(_PixelOffset) _then;
+
+/// Create a copy of PixelOffset
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? x = null,Object? y = null,}) {
+  return _then(_PixelOffset(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$PixelSize {
+
+@JsonKey(fromJson: _pixelIntegerFromJson) int get width;@JsonKey(fromJson: _pixelIntegerFromJson) int get height;
+/// Create a copy of PixelSize
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PixelSizeCopyWith<PixelSize> get copyWith => _$PixelSizeCopyWithImpl<PixelSize>(this as PixelSize, _$identity);
+
+  /// Serializes this PixelSize to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PixelSize&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,width,height);
+
+@override
+String toString() {
+  return 'PixelSize(width: $width, height: $height)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PixelSizeCopyWith<$Res>  {
+  factory $PixelSizeCopyWith(PixelSize value, $Res Function(PixelSize) _then) = _$PixelSizeCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(fromJson: _pixelIntegerFromJson) int width,@JsonKey(fromJson: _pixelIntegerFromJson) int height
+});
+
+
+
+
+}
+/// @nodoc
+class _$PixelSizeCopyWithImpl<$Res>
+    implements $PixelSizeCopyWith<$Res> {
+  _$PixelSizeCopyWithImpl(this._self, this._then);
+
+  final PixelSize _self;
+  final $Res Function(PixelSize) _then;
+
+/// Create a copy of PixelSize
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? width = null,Object? height = null,}) {
+  return _then(_self.copyWith(
+width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PixelSize].
+extension PixelSizePatterns on PixelSize {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PixelSize value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PixelSize() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PixelSize value)  $default,){
+final _that = this;
+switch (_that) {
+case _PixelSize():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PixelSize value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PixelSize() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int width, @JsonKey(fromJson: _pixelIntegerFromJson)  int height)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PixelSize() when $default != null:
+return $default(_that.width,_that.height);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int width, @JsonKey(fromJson: _pixelIntegerFromJson)  int height)  $default,) {final _that = this;
+switch (_that) {
+case _PixelSize():
+return $default(_that.width,_that.height);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _pixelIntegerFromJson)  int width, @JsonKey(fromJson: _pixelIntegerFromJson)  int height)?  $default,) {final _that = this;
+switch (_that) {
+case _PixelSize() when $default != null:
+return $default(_that.width,_that.height);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PixelSize implements PixelSize {
+  const _PixelSize({@JsonKey(fromJson: _pixelIntegerFromJson) required this.width, @JsonKey(fromJson: _pixelIntegerFromJson) required this.height});
+  factory _PixelSize.fromJson(Map<String, dynamic> json) => _$PixelSizeFromJson(json);
+
+@override@JsonKey(fromJson: _pixelIntegerFromJson) final  int width;
+@override@JsonKey(fromJson: _pixelIntegerFromJson) final  int height;
+
+/// Create a copy of PixelSize
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PixelSizeCopyWith<_PixelSize> get copyWith => __$PixelSizeCopyWithImpl<_PixelSize>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PixelSizeToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PixelSize&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,width,height);
+
+@override
+String toString() {
+  return 'PixelSize(width: $width, height: $height)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PixelSizeCopyWith<$Res> implements $PixelSizeCopyWith<$Res> {
+  factory _$PixelSizeCopyWith(_PixelSize value, $Res Function(_PixelSize) _then) = __$PixelSizeCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(fromJson: _pixelIntegerFromJson) int width,@JsonKey(fromJson: _pixelIntegerFromJson) int height
+});
+
+
+
+
+}
+/// @nodoc
+class __$PixelSizeCopyWithImpl<$Res>
+    implements _$PixelSizeCopyWith<$Res> {
+  __$PixelSizeCopyWithImpl(this._self, this._then);
+
+  final _PixelSize _self;
+  final $Res Function(_PixelSize) _then;
+
+/// Create a copy of PixelSize
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? width = null,Object? height = null,}) {
+  return _then(_PixelSize(
+width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$GridPos {
 
  int get x; int get y;

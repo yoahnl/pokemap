@@ -662,7 +662,7 @@ MapData _mapWithLayers(List<MapLayer> layers) {
   return MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 4, height: 4),
     layers: layers,
   );

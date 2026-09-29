@@ -29,7 +29,7 @@ MapCanvasOverlay buildEditingOverlay({
   return MapCanvasOverlay(
     map: stroke?.collision == true ? stroke!.preview : map,
     project: project,
-    selected: document.selected,
+    selected: view.tool == StudioMapTool.select ? null : document.selected,
     selectedEntity: map.entities
         .where(
           (entity) =>

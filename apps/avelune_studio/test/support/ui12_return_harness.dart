@@ -58,7 +58,7 @@ class Ui12ReturnHarness {
       jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>,
     );
     await manifestFile.writeAsString(
-      jsonEncode(seeded.copyWith(version: ProjectVersion.v7).toJson()),
+      jsonEncode(seeded.copyWith(version: ProjectVersion.v8).toJson()),
     );
     final session = ProjectSession(
       sessionId: directory.path,

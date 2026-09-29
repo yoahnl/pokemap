@@ -12,7 +12,7 @@ void main() {
         tilesets: <ProjectTilesetEntry>[],
       );
 
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.characterStudioCatalog.portraitStates, isEmpty);
       expect(
         manifest.characterStudioCatalog.customAnimationDefinitions,
@@ -92,7 +92,7 @@ void main() {
       );
 
       expect(decoded, manifest);
-      expect(decoded.version, ProjectVersion.v6);
+      expect(decoded.version, ProjectVersion.v8);
     });
 
     test('keeps a legacy system animation source implicit', () {

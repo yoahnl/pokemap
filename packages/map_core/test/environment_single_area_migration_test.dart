@@ -22,7 +22,7 @@ Map<String, dynamic> _mapWith(List<Map<String, dynamic>> areas) {
   return <String, dynamic>{
     'id': 'm',
     'name': 'M',
-    'version': 'v6',
+    'version': 'v8',
     'size': <String, dynamic>{'width': 2, 'height': 2},
     'layers': <Object?>[
       <String, dynamic>{

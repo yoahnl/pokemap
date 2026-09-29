@@ -78,7 +78,7 @@ void main() {
         id: 'port',
         name: 'Port',
         size: const GridSize(width: 2, height: 2),
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         layers: const <MapLayer>[
           MapLayer.border(id: 'border', name: 'Bordures'),
         ],
@@ -89,7 +89,7 @@ void main() {
         jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>,
       );
 
-      expect(encoded['version'], 'v6');
+      expect(encoded['version'], 'v8');
       expect(
         (encoded['layers']! as List<Map<String, dynamic>>)
             .single['runtimeType'],
@@ -116,11 +116,11 @@ void main() {
       );
 
       expect(source.layers, isEmpty);
-      expect(source.version, ProjectVersion.v6);
+      expect(source.version, ProjectVersion.v8);
       expect(withBorder.layers.single, isA<BorderLayer>());
       expect(withBorder.layers.single.id, 'border');
-      expect(withBorder.version, ProjectVersion.v6);
-      expect(withObject.version, ProjectVersion.v6);
+      expect(withBorder.version, ProjectVersion.v8);
+      expect(withObject.version, ProjectVersion.v8);
     });
 
     test('generic metadata edits preserve Border content and properties', () {
@@ -128,7 +128,7 @@ void main() {
         features: <BorderFeature>[_feature('north')],
       );
       final source = _map(
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         layers: <MapLayer>[
           MapLayer.border(
             id: 'border',
@@ -164,7 +164,7 @@ void main() {
         features: <BorderFeature>[_feature('north')],
       );
       final source = _map(
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         layers: <MapLayer>[
           MapLayer.border(
             id: 'border',
@@ -182,7 +182,7 @@ void main() {
       expect(
         () => MapValidator.validate(
           _map(
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             layers: const <MapLayer>[
               MapLayer.border(
                 id: 'border',
@@ -199,7 +199,7 @@ void main() {
 }
 
 MapData _map({
-  ProjectVersion version = ProjectVersion.v6,
+  ProjectVersion version = ProjectVersion.v8,
   List<MapLayer> layers = const <MapLayer>[],
 }) =>
     MapData(

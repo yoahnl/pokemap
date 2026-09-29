@@ -56,7 +56,7 @@ Future<ui.Image> _render(MapLayersComponent component) {
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -73,7 +73,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Triggered Smart Tile Runtime',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

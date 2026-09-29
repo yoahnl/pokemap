@@ -20,9 +20,9 @@ final class SetEnvironmentAreaSeedResult {
   }) : failureMessage = null;
 
   const SetEnvironmentAreaSeedResult.failure(this.failureMessage)
-      : map = null,
-        previousSeed = null,
-        seed = null;
+    : map = null,
+      previousSeed = null,
+      seed = null;
 
   final MapData? map;
   final int? previousSeed;
@@ -39,6 +39,7 @@ class SetEnvironmentAreaSeedUseCase {
     required String environmentLayerId,
     required String areaId,
     required int seed,
+    ProjectManifest? manifest,
   }) {
     final envId = environmentLayerId.trim();
     final aid = areaId.trim();
@@ -117,7 +118,7 @@ class SetEnvironmentAreaSeedUseCase {
         layerId: envId,
         content: newContent,
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
       return SetEnvironmentAreaSeedResult.success(
         map: updated,
         previousSeed: previousSeed,

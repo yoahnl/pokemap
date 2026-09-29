@@ -80,7 +80,7 @@ void main() {
         jsonEncode(
           const ProjectManifest(
             name: 'Profile Wiring',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             maps: <ProjectMapEntry>[],
             tilesets: <ProjectTilesetEntry>[],
           ).toJson(),

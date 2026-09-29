@@ -301,7 +301,7 @@ GameplayWorldState _world(
     map: MapData(
       id: 'runtime_encounter_map',
       name: 'Runtime encounter map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 10, height: 10),
       gameplayZones: zones.toList(growable: false),
     ),

@@ -40,7 +40,7 @@ void main() {
       const afterMap = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.smartTile(
@@ -377,7 +377,7 @@ SmartTilePublicationCanonicalSnapshot _snapshot({
 
 ProjectManifest _draftManifest() => ProjectManifest(
       name: 'Publication test',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -388,7 +388,7 @@ ProjectManifest _draftManifest() => ProjectManifest(
 ProjectManifest _publishedManifest({List<ProjectSmartTilePreset>? presets}) =>
     ProjectManifest(
       name: 'Publication test',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(

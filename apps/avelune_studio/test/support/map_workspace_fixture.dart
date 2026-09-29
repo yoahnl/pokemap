@@ -127,7 +127,11 @@ class WorkspaceTestVisuals implements MapWorkspaceVisuals {
   Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
       SizedBox.square(dimension: size);
   @override
-  Widget canvas(MapData map) => const SizedBox.expand();
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) => const SizedBox.expand();
   @override
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       SizedBox(width: size, height: size);

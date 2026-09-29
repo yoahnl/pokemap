@@ -186,7 +186,7 @@ Map<String, dynamic> _projectJson({
 }) {
   return <String, dynamic>{
     'name': 'Legacy',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <dynamic>[],
     'tilesets': <dynamic>[
       <String, dynamic>{

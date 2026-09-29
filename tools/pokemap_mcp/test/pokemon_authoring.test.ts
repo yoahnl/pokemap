@@ -53,7 +53,7 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
     join(root, "project.json"),
     JSON.stringify({
       name: "MCP Pokemon fixture",
-      version: "v6",
+      version: "v8",
       maps: [],
       tilesets: [],
       pokemon: { ...canonicalPokemonConfig(), enabled: true },

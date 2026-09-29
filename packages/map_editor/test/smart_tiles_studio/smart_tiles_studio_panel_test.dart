@@ -2313,7 +2313,7 @@ final class _UnusedReconstructionGateway
 const _literalCapturedMap = MapData(
   id: 'captured',
   name: 'Captured',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     MapLayer.tile(
@@ -2399,7 +2399,7 @@ ProjectManifest _completeManifest({bool animated = false}) {
   );
   return ProjectManifest(
     name: 'Complete Smart Tiles test',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -2468,7 +2468,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Smart Tiles test',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
     smartTileCatalog: ProjectSmartTileCatalog(

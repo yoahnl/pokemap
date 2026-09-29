@@ -2192,7 +2192,7 @@ final _previewContexts = <PersonalizationPreviewContextOption>[
         'id': 'preview-map',
         'name': 'Carte de l’aperçu',
         'size': <String, Object?>{'width': 8, 'height': 6},
-        'version': 'v6',
+        'version': 'v8',
       },
     },
   ),

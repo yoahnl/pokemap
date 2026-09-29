@@ -379,7 +379,7 @@ Future<Directory> _syntheticFixture() async {
   final project = File('${directory.path}/project.json');
   const targetBytes = 10 * 1024 * 1024;
   if (!await project.exists() || await project.length() < targetBytes) {
-    const prefix = '{"name":"Synthetic 10 MiB","version":"v6","maps":[],'
+    const prefix = '{"name":"Synthetic 10 MiB","version":"v8","maps":[],'
         '"tilesets":[],"globalProperties":{"payload":"';
     const suffix = '"}}';
     final payloadLength = targetBytes - utf8.encode(prefix + suffix).length;
@@ -405,7 +405,7 @@ Future<Directory> _syntheticAssetFixture() async {
   await directory.create(recursive: true);
   final project = File('${directory.path}/project.json');
   await project.writeAsString(
-    '{"name":"Synthetic 65 MiB asset","version":"v6",'
+    '{"name":"Synthetic 65 MiB asset","version":"v8",'
     '"maps":[],"tilesets":[]}',
   );
   final catalogFile = File('${directory.path}/$assetCatalogStorageKey');

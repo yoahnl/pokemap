@@ -68,7 +68,7 @@ Le train entre en gare.
 
   ProjectManifest manifest() => ProjectManifest(
         name: 'Standalone CIN-082',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         presentationCinematics: <PresentationCinematicAsset>[

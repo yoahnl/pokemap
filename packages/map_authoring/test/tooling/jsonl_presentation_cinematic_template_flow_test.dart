@@ -50,7 +50,7 @@ final class _Harness {
     );
     final manifest = ProjectManifest(
       name: 'Presentation template transport fixture',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

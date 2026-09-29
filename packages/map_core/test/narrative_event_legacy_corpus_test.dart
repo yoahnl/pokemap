@@ -26,7 +26,7 @@ void main() {
       fixture =
           _object(decodeNarrativeEventJsonStrict(utf8.decode(fixtureBytes)));
       maps = _list(fixture, 'maps')
-          .map((value) => MapData.fromJson(_dynamicObject(value)))
+          .map((value) => MapData.fromJson({..._dynamicObject(value), 'version': 'v8'}))
           .toList(growable: false);
       scenarios = _list(fixture, 'scenarios')
           .map((value) => ScenarioAsset.fromJson(_dynamicObject(value)))

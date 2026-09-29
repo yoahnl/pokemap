@@ -86,7 +86,7 @@ void main() {
       );
 
       expect(decoded, manifest);
-      expect(decoded.version, ProjectVersion.v6);
+      expect(decoded.version, ProjectVersion.v8);
       expect(decoded.toJson(), contains('characterStudioCatalog'));
     });
 
@@ -127,7 +127,7 @@ void main() {
 Map<String, dynamic> _legacyProjectJson() {
   return <String, dynamic>{
     'name': 'Legacy character project',
-    'version': 'v6',
+    'version': 'v8',
     'maps': <Object?>[],
     'tilesets': <Object?>[
       <String, Object?>{

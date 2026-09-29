@@ -364,7 +364,10 @@ class FileMapRepository
     // project.json. Reading through the project snapshot here would reject a
     // freshly created/renamed map because it is not declared *yet*. Verify the
     // exact durable bytes directly at this persistence boundary instead.
-    final durable = await _loadMapDocumentFromPersistence(path);
+    final durable = await _loadMapDocumentFromPersistence(
+      path,
+      projectDialogueContext: projectDialogueContext,
+    );
     if (durable.revision != revision || durable.map != map) {
       throw const EditorPersistenceException(
         'The durable map does not match the requested document.',
@@ -412,8 +415,9 @@ class FileMapRepository
   }
 
   Future<RevisionedMapDocument> _loadMapDocumentFromPersistence(
-    String path,
-  ) async {
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {
     late final AtomicMapDocumentBytes snapshot;
     try {
       snapshot = await _mapPersistence.read(path);
@@ -421,11 +425,28 @@ class FileMapRepository
       throw MapLoadException(error.message);
     }
     try {
+      if (projectDialogueContext == null) {
+        String? root;
+        try {
+          root = await _findProjectRootForResource(path);
+        } on MapLoadException {
+          root = null;
+        }
+        if (root != null) {
+          projectDialogueContext =
+              decodeValidatedNarrativeEventAuthoringProject(
+                await File(p.join(root, 'project.json')).readAsBytes(),
+              ).manifest;
+        }
+      }
       return RevisionedMapDocument(
         map: decodeValidatedNarrativeEventAuthoringMap(
           snapshot.bytes,
           path,
-          validateMap: EditorPerformanceTelemetry.validateFullMap,
+          validateMap: (map) => EditorPerformanceTelemetry.validateFullMap(
+            map,
+            projectDialogueContext: projectDialogueContext,
+          ),
         ),
         revision: snapshot.revision,
       );

@@ -1,9 +1,13 @@
 import 'package:map_core/map_core.dart';
 
 class AddGameplayZoneToMapUseCase {
-  MapData execute(MapData map, {required MapGameplayZone zone}) {
+  MapData execute(
+    MapData map, {
+    ProjectManifest? manifest,
+    required MapGameplayZone zone,
+  }) {
     final updated = addGameplayZoneToMap(map, zone: zone);
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -11,6 +15,7 @@ class AddGameplayZoneToMapUseCase {
 class UpdateGameplayZoneOnMapUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String zoneId,
     String? id,
     String? name,
@@ -39,15 +44,19 @@ class UpdateGameplayZoneOnMapUseCase {
       hazard: hazard,
       special: special,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
 
 class DeleteGameplayZoneFromMapUseCase {
-  MapData execute(MapData map, {required String zoneId}) {
+  MapData execute(
+    MapData map, {
+    ProjectManifest? manifest,
+    required String zoneId,
+  }) {
     final updated = removeGameplayZoneFromMap(map, zoneId: zoneId);
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }

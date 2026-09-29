@@ -130,9 +130,49 @@ void main() {
       addTearDown(() => directory.delete(recursive: true));
       final manifest = ProjectManifest(
         name: 'Asset transaction fixture',
-        maps: const [],
-        tilesets: const [],
+        maps: const [
+          ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'map.json')
+        ],
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')
+        ],
+        elementCategories: const [
+          ProjectElementCategory(id: 'props', name: 'Props')
+        ],
+        elements: const [
+          ProjectElementEntry(
+              id: 'prop',
+              name: 'Prop',
+              categoryId: 'props',
+              tilesetId: 'tiles',
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+              ])
+        ],
       );
+      final mapFile = File('${directory.path}/map.json');
+      await mapFile.writeAsString(jsonEncode(const MapData(
+          id: 'map',
+          name: 'Map',
+          size: GridSize(width: 4, height: 4),
+          layers: [
+            MapLayer.tile(id: 'decor', name: 'Decor', cells: [])
+          ],
+          placedElements: [
+            MapPlacedElement(
+                id: 'placed',
+                elementId: 'prop',
+                layerId: 'decor',
+                pos: GridPos(x: 1, y: 1),
+                pixelOffset: PixelOffset(x: 3, y: 5),
+                pixelSize: PixelSize(width: 7, height: 11),
+                quarterTurns: 3,
+                properties: {
+                  pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored
+                })
+          ]).toJson()));
+      final mapBefore = await mapFile.readAsBytes();
       await File('${directory.path}/project.json').writeAsString(
         '${const JsonEncoder.withIndent('  ').convert(manifest.toJson())}\n',
       );
@@ -258,6 +298,7 @@ void main() {
       final replaceReceipt = Map<String, Object?>.from(
         replaceResult['receipt']! as Map,
       );
+      expect(await mapFile.readAsBytes(), mapBefore);
       await api.undo(
         opened.projectHandle,
         entryId: replaceReceipt['receiptId']! as String,

@@ -63,7 +63,7 @@ Future<void> _seed(Directory directory, bool homonyms) async {
     jsonEncode(
       manifest
           .copyWith(
-            version: ProjectVersion.v7,
+            version: ProjectVersion.v8,
             facts: [fact],
 
             storylines: [

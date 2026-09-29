@@ -12,7 +12,7 @@ Future<Directory> createAuthorProject({
   bool withDialogue = true,
   bool withCanonicalPokemon = true,
   String name = 'Neutral Adventure',
-  ProjectVersion projectVersion = ProjectVersion.v6,
+  ProjectVersion projectVersion = ProjectVersion.v8,
 }) async {
   final root = await Directory.systemTemp.createTemp('pokemap_author_export_');
   final project = ProjectManifest(
@@ -94,7 +94,7 @@ Future<Directory> createAuthorProject({
   final mapJson = const MapData(
     id: 'map.start',
     name: 'Start',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 8, height: 8),
     layers: <MapLayer>[MapLayer.object(id: 'events', name: 'Events')],
     mapMetadata: MapMetadata(defaultSpawnId: 'spawn.player'),

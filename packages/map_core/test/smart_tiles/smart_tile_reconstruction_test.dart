@@ -280,7 +280,7 @@ MapData _map({
     MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         MapLayer.tile(

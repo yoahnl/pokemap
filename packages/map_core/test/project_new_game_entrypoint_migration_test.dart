@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('New Game entrypoint migration', () {
-    test('dry-run plans one canonical field without mutating input', () {
+    test('strict format blocks the legacy migration without mutating input', () {
       final source = _legacyProjectJson();
       final before = _deepCopy(source);
 
@@ -14,30 +14,15 @@ void main() {
         projectRevision: 'project-r1',
       );
 
-      expect(plan.status, NewGameEntrypointMigrationStatus.ready);
+      expect(plan.status, NewGameEntrypointMigrationStatus.blocked);
       expect(plan.sourceRevision, 'project-r1');
       expect(plan.sourceSceneId, 'scene_intro');
-      expect(plan.changes, [
-        const NewGameEntrypointMigrationChange(
-          path: r'$.version',
-          before: 'v6',
-          after: 'v7',
-        ),
-        const NewGameEntrypointMigrationChange(
-          path: r'$.newGame.starterSelectionSceneId',
-          before: 'scene_intro',
-          after: null,
-        ),
-        const NewGameEntrypointMigrationChange(
-          path: r'$.newGame.preSessionSceneId',
-          before: null,
-          after: 'scene_intro',
-        ),
-      ]);
+      expect(plan.changes, isEmpty);
+      expect(plan.issues.single.code, NewGameEntrypointMigrationIssueCode.projectInvalid);
       expect(source, before);
     });
 
-    test('apply is exact for the planned revision and keeps source intact', () {
+    test('strict format blocks legacy apply and keeps source intact', () {
       final source = _legacyProjectJson();
       final before = _deepCopy(source);
       final plan = planNewGameEntrypointMigration(
@@ -51,15 +36,10 @@ void main() {
         plan: plan,
       );
 
-      expect(result.status, NewGameEntrypointMigrationApplyStatus.applied);
+      expect(result.status, NewGameEntrypointMigrationApplyStatus.blocked);
       expect(source, before);
-      expect(result.projectJson['version'], 'v7');
-      final newGame = result.projectJson['newGame'] as Map<String, dynamic>;
-      expect(newGame, isNot(contains('starterSelectionSceneId')));
-      expect(newGame['preSessionSceneId'], 'scene_intro');
-      final decoded = ProjectManifest.fromJson(result.projectJson);
-      expect(decoded.newGame.preSessionSceneId, 'scene_intro');
-      expect(() => ProjectValidator.validate(decoded), returnsNormally);
+      expect(result.projectJson, same(source));
+      expect(result.issues.single.code, NewGameEntrypointMigrationIssueCode.projectInvalid);
     });
 
     test('rejects a stale apply without returning migrated data', () {
@@ -84,7 +64,7 @@ void main() {
       expect(result.issues.single.diagnosticCode, 'new_game.migration_stale');
     });
 
-    test('blocks a world Scene with an actionable diagnostic', () {
+    test('strict format refuses legacy project before inspecting its Scene', () {
       final source = _legacyProjectJson(profile: SceneExecutionProfile.world);
 
       final plan = planNewGameEntrypointMigration(
@@ -95,13 +75,13 @@ void main() {
       expect(plan.status, NewGameEntrypointMigrationStatus.blocked);
       expect(
         plan.issues.single.code,
-        NewGameEntrypointMigrationIssueCode.sceneProfileIncompatible,
+        NewGameEntrypointMigrationIssueCode.projectInvalid,
       );
       expect(
         plan.issues.single.diagnosticCode,
-        'new_game.migration_scene_profile_incompatible',
+        'new_game.migration_project_invalid',
       );
-      expect(plan.issues.single.path, r'$.scenes[scene_intro]');
+      expect(plan.issues.single.path, r'$');
     });
 
     test('blocks ambiguous legacy and canonical entrypoints', () {

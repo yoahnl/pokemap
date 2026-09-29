@@ -10,7 +10,7 @@ void main() {
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
         ).version,
-        ProjectVersion.v6,
+        ProjectVersion.v8,
       );
       expect(
         const MapData(
@@ -18,24 +18,24 @@ void main() {
           name: 'New map',
           size: GridSize(width: 1, height: 1),
         ).version,
-        ProjectVersion.v6,
+        ProjectVersion.v8,
       );
     });
 
     test('decodes canonical v6 manifests and maps', () {
       expect(
         ProjectManifest.fromJsonPokeMapBetaV1ForTest(
-          _minimalManifestJson(version: 'v6'),
+          _minimalManifestJson(version: 'v8'),
         ).version,
-        ProjectVersion.v6,
+        ProjectVersion.v8,
       );
       expect(
-        MapData.fromJson(_minimalMapJson(version: 'v6')).version,
-        ProjectVersion.v6,
+        MapData.fromJson(_minimalMapJson(version: 'v8')).version,
+        ProjectVersion.v8,
       );
     });
 
-    for (final version in <String>['v1', 'v2', 'v3', 'v4', 'v5']) {
+    for (final version in <String>['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7']) {
       test('rejects legacy project format $version explicitly', () {
         expect(
           () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
@@ -46,7 +46,7 @@ void main() {
               (error) => error.message,
               'message',
               allOf(
-                contains('smart_tile_v6_project_required'),
+                contains('project_version_unsupported'),
                 contains(version),
               ),
             ),
@@ -61,7 +61,7 @@ void main() {
             isA<FormatException>().having(
               (error) => error.message,
               'message',
-              allOf(contains('smart_tile_v6_map_required'), contains(version)),
+              allOf(contains('map_version_unsupported'), contains(version)),
             ),
           ),
         );
@@ -77,7 +77,7 @@ void main() {
       'surfaceCatalog',
     ]) {
       test('v6 rejects the legacy manifest key $legacyKey even when empty', () {
-        final raw = _minimalManifestJson(version: 'v6')
+        final raw = _minimalManifestJson(version: 'v8')
           ..[legacyKey] = legacyKey == 'surfaceCatalog'
               ? <String, Object?>{}
               : <Object?>[];
@@ -100,7 +100,7 @@ void main() {
 
     for (final runtimeType in <String>['terrain', 'path', 'surface']) {
       test('v6 rejects the legacy $runtimeType layer before decoding', () {
-        final raw = _minimalMapJson(version: 'v6')
+        final raw = _minimalMapJson(version: 'v8')
           ..['layers'] = <Object?>[
             <String, Object?>{
               'runtimeType': runtimeType,
@@ -126,7 +126,7 @@ void main() {
     }
 
     test('v6 rejects legacy Smart Tile lists beside a native field', () {
-      final raw = _minimalMapJson(version: 'v6')
+      final raw = _minimalMapJson(version: 'v8')
         ..['layers'] = <Object?>[
           <String, Object?>{
             'runtimeType': 'smart_tile',
@@ -156,7 +156,7 @@ void main() {
     });
 
     test('v6 requires the native Smart Tile field payload', () {
-      final raw = _minimalMapJson(version: 'v6')
+      final raw = _minimalMapJson(version: 'v8')
         ..['layers'] = <Object?>[
           <String, Object?>{
             'runtimeType': 'smart_tile',

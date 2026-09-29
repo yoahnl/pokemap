@@ -31,7 +31,7 @@ void main() {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, dynamic>{
           'name': 'Legacy',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
         },

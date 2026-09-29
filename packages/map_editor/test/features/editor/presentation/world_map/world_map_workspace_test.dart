@@ -670,7 +670,7 @@ void main() {
         );
         final project = ProjectManifest(
           name: 'Context workspace',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           maps: const <ProjectMapEntry>[
             ProjectMapEntry(
               id: 'workspace_map',
@@ -689,7 +689,7 @@ void main() {
         const map = MapData(
           id: 'workspace_map',
           name: 'Workspace Map',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           size: GridSize(width: 8, height: 8),
           layers: <MapLayer>[ObjectLayer(id: 'events', name: 'Events')],
           events: <MapEventDefinition>[
@@ -994,7 +994,7 @@ void _openCanvasMenu(WidgetTester tester, GridPos cell) {
 EditorState _rotationEditorState() {
   const project = ProjectManifest(
     name: 'Rotation workspace',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'rotation_map',
@@ -1024,7 +1024,7 @@ EditorState _rotationEditorState() {
   final map = MapData(
     id: 'rotation_map',
     name: 'Rotation Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     visualStack: MapVisualStackConfig.canonicalV1,
     size: const GridSize(width: 8, height: 8),
     layers: <MapLayer>[

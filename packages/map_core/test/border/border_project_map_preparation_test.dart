@@ -21,9 +21,9 @@ void main() {
         layerName: 'Bordures',
       );
 
-      expect(result.manifest.version, ProjectVersion.v6);
+      expect(result.manifest.version, ProjectVersion.v8);
       expect(result.manifest.borderCatalog.records.single.id, 'coast');
-      expect(result.map.version, ProjectVersion.v6);
+      expect(result.map.version, ProjectVersion.v8);
       expect(result.map.layers.last, isA<BorderLayer>());
       expect(result.map.layers.last.id, 'borders');
       expect(() => ProjectValidator.validate(result.manifest), returnsNormally);
@@ -94,7 +94,7 @@ void main() {
       );
       expect(jsonEncode(manifest.toJson()), manifestBefore);
       expect(jsonEncode(map.toJson()), mapBefore);
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.borderCatalog.isEmpty, isTrue);
     });
 
@@ -129,7 +129,7 @@ void main() {
         ),
       );
       expect(jsonEncode(map.toJson()), mapBefore);
-      expect(map.version, ProjectVersion.v6);
+      expect(map.version, ProjectVersion.v8);
       expect(map.layers, hasLength(1));
     });
 
@@ -163,7 +163,7 @@ void main() {
         ),
       );
       expect(jsonEncode(manifest.toJson()), manifestBefore);
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
       expect(manifest.borderCatalog.isEmpty, isTrue);
       expect(map.layers, hasLength(1));
     });
@@ -174,7 +174,7 @@ void main() {
         layers: const <MapLayer>[
           MapLayer.border(id: 'existing-border', name: 'Existing'),
         ],
-      ).copyWith(version: ProjectVersion.v6);
+      ).copyWith(version: ProjectVersion.v8);
 
       expect(
         () => prepareFirstBorderDraftAndLayer(

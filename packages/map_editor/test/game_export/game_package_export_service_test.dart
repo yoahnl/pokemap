@@ -107,7 +107,7 @@ void main() {
   test('exports a v7 project with Presentation ownership', () async {
     final root = await createAuthorProject(
       withDialogue: false,
-      projectVersion: ProjectVersion.v7,
+      projectVersion: ProjectVersion.v8,
     );
     addTearDown(() => root.delete(recursive: true));
     final projectFile = File(p.join(root.path, 'project.json'));
@@ -129,7 +129,7 @@ void main() {
       profile: neutralExportProfile(),
     );
 
-    expect(artifact.manifest.compatibility.projectFormat, 'v7');
+    expect(artifact.manifest.compatibility.projectFormat, 'v8');
     expect(
       artifact.inspection.compatibility?.decision,
       GamePackageCompatibilityDecision.accept,
@@ -383,7 +383,7 @@ void main() {
             jsonDecode(await projectFile.readAsString())
                 as Map<String, dynamic>;
         project.remove('eventRegistry');
-        project['version'] = 'v7';
+        project['version'] = 'v8';
         (project['newGame'] as Map<String, dynamic>)['preSessionSceneId'] =
             'scene.main';
         await projectFile.writeAsString(jsonEncode(project), flush: true);

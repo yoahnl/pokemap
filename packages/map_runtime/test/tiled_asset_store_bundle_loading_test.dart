@@ -107,7 +107,7 @@ final class _RuntimeAssetStoreFixture {
     await mapFile.parent.create(recursive: true);
     const manifest = ProjectManifest(
       name: 'Runtime canonical asset fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'imported',
@@ -133,7 +133,7 @@ final class _RuntimeAssetStoreFixture {
     const map = MapData(
       id: 'imported',
       name: 'Imported',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         TileLayer(

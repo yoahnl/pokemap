@@ -369,7 +369,7 @@ ProjectSnapshot _snapshot({List<MapData> maps = const []}) {
   ];
   final manifest = ProjectManifest(
     name: 'Lifecycle Fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: entries,
     tilesets: const [],
   );
@@ -418,7 +418,7 @@ MapData _map(String id, {int width = 2, int height = 2}) {
     id: id,
     name: id,
     size: GridSize(width: width, height: height),
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: [
       MapLayer.tile(

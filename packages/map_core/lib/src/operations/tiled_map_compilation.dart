@@ -190,7 +190,7 @@ TiledMapCompilationResult compileTiledMapDocument(
     id: normalizedMapId,
     name: normalizedMapName,
     size: GridSize(width: document.width, height: document.height),
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: nativeLayers,
     properties: <String, Object?>{tiledMapImportMetadataKey: metadata},

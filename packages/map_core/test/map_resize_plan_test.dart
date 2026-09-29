@@ -102,7 +102,7 @@ void main() {
       final map = MapData(
         id: 'border-map',
         name: 'Border map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: 3, height: 2),
         layers: <MapLayer>[
           MapLayer.border(
@@ -183,7 +183,7 @@ void main() {
       const map = MapData(
         id: 'wang-map',
         name: 'Wang map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.smartTile(
@@ -216,7 +216,7 @@ void main() {
       final map = MapData(
         id: 'border-map',
         name: 'Border map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: 2, height: 2),
         layers: const <MapLayer>[
           MapLayer.border(id: 'border', name: 'Border'),
@@ -287,7 +287,7 @@ MapData _emptyMap() => const MapData(
 MapData _compositeMap() => MapData(
       id: 'composite',
       name: 'Composite',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 4, height: 4),
       layers: <MapLayer>[
         MapLayer.tile(
@@ -447,7 +447,7 @@ MapData _compositeMap() => MapData(
 
 ProjectManifest _project() => const ProjectManifest(
       name: 'Resize project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       elements: <ProjectElementEntry>[

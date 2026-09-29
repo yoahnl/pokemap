@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 MapData _canonicalMap(List<String> layerIds) => MapData(
       id: 'target',
       name: 'Target',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: <MapLayer>[
@@ -22,7 +22,7 @@ MapData _canonicalMap(List<String> layerIds) => MapData(
 MapData _legacyBottomToTopMap(List<String> layerIds) => MapData(
       id: 'target',
       name: 'Target',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
       layers: <MapLayer>[
@@ -213,7 +213,7 @@ ProjectSmartTilePreset _preset() => const ProjectSmartTilePreset(
 
 ProjectManifest _manifest() => ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'target',

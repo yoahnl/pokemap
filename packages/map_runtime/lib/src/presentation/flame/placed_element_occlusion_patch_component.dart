@@ -14,6 +14,8 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     this.visibleWorldRectProvider,
     this.frameProvider,
     this.overlayPainter,
+    this.overlayReplacesPatch = false,
+    this.visualWorldRectProvider,
   })  : _currentDepthSortY = instruction.depthSortY,
         super(
           anchor: Anchor.topLeft,
@@ -35,10 +37,10 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   }
 
   void _prepareRenderPlan(RuntimeTilesetImage image, Rect sourceRect) {
-    _renderPlan?.dispose();
     _renderPlan = null;
     _frameImage = image;
     _frameSourceRect = sourceRect;
+    if (overlayReplacesPatch) return;
     final mask = instruction.occlusionMask;
     final canPrepare = instruction.opacity > 0 &&
         instruction.visualWidth > 0 &&
@@ -51,12 +53,6 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
       if (!canPrepare) {
         throw ArgumentError('Occlusion patch cannot produce a render plan.');
       }
-      final paint = Paint()
-        ..isAntiAlias = false
-        ..filterQuality = FilterQuality.none;
-      if (instruction.opacity < 1) {
-        paint.color = Color.fromRGBO(255, 255, 255, instruction.opacity);
-      }
       final sourceSize = GridSize(
         width: instruction.sourceWidthPx,
         height: instruction.sourceHeightPx,
@@ -66,22 +62,17 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
         height: instruction.destinationHeightPx,
       );
       final sourceWidth = sourceSize.width;
-      _renderPlan = QuarterTurnPixelDrawPlan.record(
+      final maskPixels = _maskPixels;
+      _renderPlan = _plans.obtain(
         image: image,
         sourceRect: sourceRect,
-        destinationRect: Rect.fromLTWH(
-          0,
-          0,
-          instruction.visualWidth,
-          instruction.visualHeight,
-        ),
-        sourcePixelSize: sourceSize,
-        destinationPixelSize: destinationSize,
+        sourceSize: sourceSize,
+        destinationSize: destinationSize,
         quarterTurns: instruction.quarterTurns,
-        paint: paint,
+        maskKey: instruction.occlusionMask,
         includeSourcePixel: (source) {
           final index = source.y * sourceWidth + source.x;
-          return index >= 0 && index < _maskPixels.length && _maskPixels[index];
+          return index >= 0 && index < maskPixels.length && maskPixels[index];
         },
       );
       _renderPlanPreparationCount += 1;
@@ -91,17 +82,22 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     _drawRunCount = _renderPlan?.result.includedDestinationRunCount ?? 0;
   }
 
-  final StaticPlacedElementOcclusionPatchInstruction instruction;
+  StaticPlacedElementOcclusionPatchInstruction instruction;
   final RuntimeTilesetImage tilesetImage;
   final void Function(Canvas)? overlayPainter;
-  late final Path? _overlayClip;
+  final bool overlayReplacesPatch;
+  Path? get localOcclusionPath => _overlayClip;
+  Path? _overlayClip;
   final Rect Function()? visibleWorldRectProvider;
+  final Rect? Function()? visualWorldRectProvider;
   final ({RuntimeTilesetImage image, Rect sourceRect})? Function()?
       frameProvider;
-  late final List<bool> _maskPixels;
+  late List<bool> _maskPixels;
   RuntimeTilesetImage? _frameImage;
   Rect? _frameSourceRect;
   QuarterTurnPixelDrawPlan? _renderPlan;
+  final _plans =
+      QuarterTurnPixelPlanCache(maxEntries: 4, maxBytes: 4 * 1024 * 1024);
   int _drawRunCount = 0;
   double _currentDepthSortY;
   int _lastQuarterTurnDrawRunCount = 0;
@@ -110,6 +106,46 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   int _renderPlanDrawCount = 0;
   int _culledRenderCount = 0;
   bool _didRemove = false;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final rect = visualWorldRectProvider?.call();
+    if (rect == null) return;
+    position.setValues(rect.left, rect.top);
+    _currentDepthSortY = rect.bottom;
+    priority = overworldActorRenderPriority(_currentDepthSortY);
+  }
+
+  void setInstruction(StaticPlacedElementOcclusionPatchInstruction next) {
+    final previous = instruction;
+    instruction = next;
+    position.setValues(next.worldLeft, next.worldTop);
+    size.setValues(next.visualWidth, next.visualHeight);
+    _currentDepthSortY = next.depthSortY;
+    priority = next.flamePriority;
+    if (previous.visualWidth == next.visualWidth &&
+        previous.visualHeight == next.visualHeight &&
+        previous.destinationWidthPx == next.destinationWidthPx &&
+        previous.destinationHeightPx == next.destinationHeightPx &&
+        previous.quarterTurns == next.quarterTurns &&
+        previous.occlusionMask == next.occlusionMask &&
+        previous.opacity == next.opacity &&
+        previous.sourceLeftPx == next.sourceLeftPx &&
+        previous.sourceTopPx == next.sourceTopPx &&
+        previous.sourceWidthPx == next.sourceWidthPx &&
+        previous.sourceHeightPx == next.sourceHeightPx) {
+      return;
+    }
+    if (previous.occlusionMask != next.occlusionMask) {
+      _maskPixels = _decodeMask(next.occlusionMask);
+    }
+    _overlayClip = overlayPainter == null ? null : _buildOverlayClip();
+    _prepareRenderPlan(
+        _frameImage ?? tilesetImage,
+        Rect.fromLTWH(next.sourceLeftPx.toDouble(), next.sourceTopPx.toDouble(),
+            next.sourceWidthPx.toDouble(), next.sourceHeightPx.toDouble()));
+  }
 
   Path _buildOverlayClip() {
     final sourceSize = GridSize(
@@ -124,21 +160,25 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     final dx = instruction.visualWidth / destinationSize.width;
     final dy = instruction.visualHeight / destinationSize.height;
     final path = Path();
-    for (var y = 0; y < destinationSize.height; y++) {
+    for (var y = 0; y < sourceSize.height; y++) {
       int? start;
-      for (var x = 0; x <= destinationSize.width; x++) {
+      for (var x = 0; x <= sourceSize.width; x++) {
         var included = false;
-        if (x < destinationSize.width) {
-          final source =
-              transform.destinationPixelToSourcePixel(GridPos(x: x, y: y));
-          final index = source.y * sourceSize.width + source.x;
+        if (x < sourceSize.width) {
+          final index = y * sourceSize.width + x;
           included =
               index >= 0 && index < _maskPixels.length && _maskPixels[index];
         }
         if (included) {
           start ??= x;
         } else if (start != null) {
-          path.addRect(Rect.fromLTWH(start * dx, y * dy, (x - start) * dx, dy));
+          final rect = transform.sourcePixelRectToDestinationPixelRect(
+              PixelRect(
+                  leftPx: start, topPx: y, widthPx: x - start, heightPx: 1));
+          if (rect.widthPx > 0 && rect.heightPx > 0) {
+            path.addRect(Rect.fromLTWH(rect.leftPx * dx, rect.topPx * dy,
+                rect.widthPx * dx, rect.heightPx * dy));
+          }
           start = null;
         }
       }
@@ -205,10 +245,43 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
         _prepareRenderPlan(frame.image, frame.sourceRect);
       }
     }
+    if (overlayReplacesPatch) {
+      final clip = _overlayClip;
+      if (clip == null) return;
+      canvas.save();
+      if (visibleWorldRect != null) {
+        canvas.clipRect(
+            visibleWorldRect.shift(Offset(-position.x, -position.y)),
+            doAntiAlias: false);
+      }
+      canvas.clipPath(clip, doAntiAlias: false);
+      overlayPainter!(canvas);
+      canvas.restore();
+      return;
+    }
     final plan = _renderPlan;
-    if (plan == null || plan.isDisposed || _drawRunCount == 0) return;
+    if (plan == null ||
+        plan.isDisposed ||
+        (_drawRunCount == 0 && !plan.isTiled)) {
+      return;
+    }
 
+    canvas.save();
+    if (visibleWorldRect != null) {
+      canvas.clipRect(visibleWorldRect.shift(Offset(-position.x, -position.y)),
+          doAntiAlias: false);
+    }
+    canvas.scale(instruction.visualWidth / instruction.destinationWidthPx,
+        instruction.visualHeight / instruction.destinationHeightPx);
+    if (instruction.opacity < 1) {
+      canvas.saveLayer(
+          Rect.fromLTWH(0, 0, instruction.destinationWidthPx.toDouble(),
+              instruction.destinationHeightPx.toDouble()),
+          Paint()..color = Color.fromRGBO(255, 255, 255, instruction.opacity));
+    }
     plan.draw(canvas);
+    if (instruction.opacity < 1) canvas.restore();
+    canvas.restore();
     final clip = _overlayClip;
     if (clip != null) {
       canvas.save();
@@ -231,7 +304,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   void onRemove() {
     if (_didRemove) return;
     _didRemove = true;
-    _renderPlan?.dispose();
+    _plans.dispose();
     super.onRemove();
   }
 

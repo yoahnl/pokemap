@@ -148,7 +148,7 @@ final class _Harness {
     final effectiveManifest = manifest ??
         ProjectManifest(
           name: 'Presentation cinematic transport fixture',
-          version: ProjectVersion.v7,
+          version: ProjectVersion.v8,
           maps: const [],
           tilesets: const [],
           presentationCinematics: <PresentationCinematicAsset>[
@@ -644,7 +644,7 @@ final class _Cin019Step {
 
 ProjectManifest _cin019Manifest() => ProjectManifest(
       name: 'CIN-019 transport fixture',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: <PresentationCinematicAsset>[

@@ -30,20 +30,17 @@ class GameplayZoneEditingService {
     required UpdateGameplayZoneOnMapUseCase updateGameplayZoneOnMapUseCase,
     required DeleteGameplayZoneFromMapUseCase deleteGameplayZoneFromMapUseCase,
     required GameplayZoneEditingCoordinator coordinator,
-  })  : _addUseCase = addGameplayZoneToMapUseCase,
-        _updateUseCase = updateGameplayZoneOnMapUseCase,
-        _deleteUseCase = deleteGameplayZoneFromMapUseCase,
-        _coordinator = coordinator;
+  }) : _addUseCase = addGameplayZoneToMapUseCase,
+       _updateUseCase = updateGameplayZoneOnMapUseCase,
+       _deleteUseCase = deleteGameplayZoneFromMapUseCase,
+       _coordinator = coordinator;
 
   final AddGameplayZoneToMapUseCase _addUseCase;
   final UpdateGameplayZoneOnMapUseCase _updateUseCase;
   final DeleteGameplayZoneFromMapUseCase _deleteUseCase;
   final GameplayZoneEditingCoordinator _coordinator;
 
-  MapGameplayZone? findSelectedZone(
-    MapData? map,
-    String? selectedZoneId,
-  ) {
+  MapGameplayZone? findSelectedZone(MapData? map, String? selectedZoneId) {
     if (map == null || selectedZoneId == null) return null;
     return _coordinator.findZoneById(map, selectedZoneId);
   }
@@ -66,9 +63,13 @@ class GameplayZoneEditingService {
   }
 
   /// Crée une zone 1×1 à [pos] (clic simple).
-  GameplayZoneCreationResult addZoneAt(MapData map, GridPos pos) {
+  GameplayZoneCreationResult addZoneAt(
+    MapData map,
+    GridPos pos, {
+    ProjectManifest? manifest,
+  }) {
     final zone = _coordinator.createDefaultZone(map, pos);
-    final updated = _addUseCase.execute(map, zone: zone);
+    final updated = _addUseCase.execute(map, manifest: manifest, zone: zone);
     return GameplayZoneCreationResult(updatedMap: updated, createdZone: zone);
   }
 
@@ -76,15 +77,17 @@ class GameplayZoneEditingService {
   GameplayZoneCreationResult addZoneInRect(
     MapData map,
     MapRect rect, {
+    ProjectManifest? manifest,
     GameplayZoneKind kind = GameplayZoneKind.encounter,
   }) {
     final zone = _coordinator.createZoneFromRect(map, rect, kind: kind);
-    final updated = _addUseCase.execute(map, zone: zone);
+    final updated = _addUseCase.execute(map, manifest: manifest, zone: zone);
     return GameplayZoneCreationResult(updatedMap: updated, createdZone: zone);
   }
 
   GameplayZoneUpdateResult updateZone(
     MapData map, {
+    ProjectManifest? manifest,
     required String zoneId,
     String? id,
     String? name,
@@ -99,6 +102,7 @@ class GameplayZoneEditingService {
   }) {
     final updated = _updateUseCase.execute(
       map,
+      manifest: manifest,
       zoneId: zoneId,
       id: id,
       name: name,
@@ -113,10 +117,16 @@ class GameplayZoneEditingService {
     );
     final nextId = id?.trim().isNotEmpty == true ? id!.trim() : zoneId;
     return GameplayZoneUpdateResult(
-        updatedMap: updated, selectedZoneId: nextId);
+      updatedMap: updated,
+      selectedZoneId: nextId,
+    );
   }
 
-  MapData deleteZone(MapData map, {required String zoneId}) {
-    return _deleteUseCase.execute(map, zoneId: zoneId);
+  MapData deleteZone(
+    MapData map, {
+    ProjectManifest? manifest,
+    required String zoneId,
+  }) {
+    return _deleteUseCase.execute(map, manifest: manifest, zoneId: zoneId);
   }
 }

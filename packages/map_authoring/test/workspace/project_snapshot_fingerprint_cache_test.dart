@@ -555,7 +555,7 @@ final class _LyingIdentityReader
 
 final String _manifestJson = jsonEncode({
   'name': 'Fingerprint cache',
-  'version': 'v6',
+  'version': 'v8',
   'pokemon': ProjectPokemonConfig(
     ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   ).toJson(),
@@ -569,7 +569,7 @@ String _mapJson(String name) => '''
 {
   "id": "alpha",
   "name": "$name",
-  "version": "v6",
+  "version": "v8",
   "size": {"width": 1, "height": 1},
   "layers": []
 }

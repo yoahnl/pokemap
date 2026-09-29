@@ -194,7 +194,7 @@ const _material = ProjectSmartTileMaterial(
 
 ProjectManifest _manifest() => const ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[
         ProjectTilesetEntry(

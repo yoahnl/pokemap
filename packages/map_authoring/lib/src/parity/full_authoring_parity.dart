@@ -509,6 +509,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'placed_element.set_geometry') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/placed_element_geometry_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/placed_element_geometry_transport_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/placed_element_geometry_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'presentationCinematic.publish') {
     return const {
       AuthoringTransport.directApi: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
@@ -1084,6 +1096,10 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(
+    ['placed_element.set_geometry'],
+    'test/domains/maps/placed_element_geometry_transport_test.dart',
+  ),
   _ContractEvidenceRule(['presentationCinematic.publish'],
     'test/domains/narrative/presentation_publication_ui11_test.dart'),
   _ContractEvidenceRule(

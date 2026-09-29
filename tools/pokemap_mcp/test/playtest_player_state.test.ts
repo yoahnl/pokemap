@@ -114,7 +114,7 @@ async function writeFixture(root: string): Promise<void> {
     join(root, "project.json"),
     JSON.stringify({
       name: "Player state boundary fixture",
-      version: "v6",
+      version: "v8",
       maps: [],
       tilesets: [],
       pokemon: canonicalPokemonConfig(),

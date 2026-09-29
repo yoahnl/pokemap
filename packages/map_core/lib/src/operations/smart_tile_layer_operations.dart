@@ -571,9 +571,9 @@ MapData replaceSmartTileLayer(MapData map, {required SmartTileLayer layer}) {
   // Replacement is deliberately map-only: it may maintain an already-native
   // v6 layer, but it must never manufacture the project-wide v6 transition
   // owned by the canonical authoring action together with the manifest.
-  if (map.version != ProjectVersion.v6) {
+  if (map.version != ProjectVersion.v8) {
     throw const ValidationException(
-      'Native Smart Tile replacement requires a ProjectVersion.v6 map',
+      'Native Smart Tile replacement requires a ProjectVersion.v8 map',
       code: 'smart_tile_native_project_version_required',
     );
   }

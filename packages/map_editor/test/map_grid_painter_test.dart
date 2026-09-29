@@ -101,7 +101,7 @@ void main() {
       const map = MapData(
         id: 'smart-tile-map',
         name: 'Smart Tile map',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           SmartTileLayer(
@@ -272,7 +272,7 @@ void main() {
       const map = MapData(
         id: 'fractional-object-editor',
         name: 'Fractional object editor',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         visualStack: MapVisualStackConfig.canonicalV1,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[

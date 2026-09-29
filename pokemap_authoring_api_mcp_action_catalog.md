@@ -1160,6 +1160,7 @@ placed_element.batch_place
 placed_element.update
 placed_element.clone
 placed_element.move
+placed_element.set_geometry
 placed_element.rotate
 placed_element.delete
 placed_element.replace_for_layer
@@ -1178,6 +1179,17 @@ placed_element.patch_properties
 placed_element.validate_footprint
 placed_element.detach_from_tile_projection
 ```
+
+`placed_element.set_geometry` (v1) définit atomiquement la position absolue en
+pixels et la taille d’une instance authored. Paramètres obligatoires : `mapId`,
+`instanceId`, `pixelX`, `pixelY`, `pixelSize`. Les coordonnées sont des entiers
+stricts. `pixelSize` vaut `null` pour la taille naturelle ou un objet contenant
+uniquement `width` et `height`, entiers strictement positifs, d’aire maximale
+1 048 576 pixels. Omettre `pixelSize` est une erreur. Les champs inconnus, les
+instances générées et les emprises hors carte sont refusés sans écriture.
+La normalisation conserve un résidu positif inférieur à la tuile sur chaque axe.
+L’ordre des instances est conservé ; planification, contrôle de révision et undo
+suivent le contrat canonique.
 
 ### 14.2 Entités
 

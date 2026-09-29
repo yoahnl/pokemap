@@ -60,7 +60,7 @@ test("MCP exposes and applies the canonical Border blueprint lifecycle", async (
     join(root, "project.json"),
     JSON.stringify({
       name: "MCP Border fixture",
-      version: "v6",
+      version: "v8",
       maps: [],
       tilesets: [],
       pokemon: canonicalPokemonConfig(),

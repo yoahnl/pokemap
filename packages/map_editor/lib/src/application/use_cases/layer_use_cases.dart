@@ -13,6 +13,7 @@ class AddMapLayerResult {
 class AddMapLayerUseCase {
   AddMapLayerResult execute(
     MapData map, {
+    ProjectManifest? manifest,
     required MapLayerKind kind,
     required String name,
     int? insertIndex,
@@ -35,7 +36,7 @@ class AddMapLayerUseCase {
       name: normalizedName,
       insertIndex: insertIndex,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
 
     final created = updated.layers.firstWhere((layer) => layer.id == layerId);
     return AddMapLayerResult(updated, created);
@@ -43,6 +44,7 @@ class AddMapLayerUseCase {
 
   AddMapLayerResult executeSmartTile(
     MapData map, {
+    ProjectManifest? manifest,
     required String name,
     required String presetId,
     required SmartTileUsage usage,
@@ -69,7 +71,7 @@ class AddMapLayerUseCase {
       layerSeed: layerSeed,
       insertIndex: insertIndex,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     final created = updated.layers.firstWhere((layer) => layer.id == layerId);
     return AddMapLayerResult(updated, created);
   }
@@ -110,15 +112,12 @@ class AddMapLayerUseCase {
 class RenameMapLayerUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String layerId,
     required String name,
   }) {
-    final updated = renameMapLayer(
-      map,
-      layerId: layerId,
-      name: name,
-    );
-    MapValidator.validate(updated);
+    final updated = renameMapLayer(map, layerId: layerId, name: name);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -126,6 +125,7 @@ class RenameMapLayerUseCase {
 class DeleteMapLayerUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String layerId,
   }) {
     if (layerHasValidEnvironmentAttachments(map, layerId)) {
@@ -134,15 +134,15 @@ class DeleteMapLayerUseCase {
       );
     }
     final updated = removeMapLayer(map, layerId: layerId);
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
 
 class DeleteAllMapLayersUseCase {
-  MapData execute(MapData map) {
+  MapData execute(MapData map, {ProjectManifest? manifest}) {
     final updated = removeAllMapLayers(map);
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -150,15 +150,12 @@ class DeleteAllMapLayersUseCase {
 class MoveMapLayerUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String layerId,
     required int direction,
   }) {
-    final updated = moveMapLayer(
-      map,
-      layerId: layerId,
-      direction: direction,
-    );
-    MapValidator.validate(updated);
+    final updated = moveMapLayer(map, layerId: layerId, direction: direction);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -166,6 +163,7 @@ class MoveMapLayerUseCase {
 class ReorderMapLayersUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required int oldIndex,
     required int newIndex,
   }) {
@@ -174,7 +172,7 @@ class ReorderMapLayersUseCase {
       oldIndex: oldIndex,
       newIndex: newIndex,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -182,6 +180,7 @@ class ReorderMapLayersUseCase {
 class SetMapLayerVisibilityUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String layerId,
     required bool isVisible,
   }) {
@@ -190,7 +189,7 @@ class SetMapLayerVisibilityUseCase {
       layerId: layerId,
       isVisible: isVisible,
     );
-    MapValidator.validate(updated);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -198,15 +197,12 @@ class SetMapLayerVisibilityUseCase {
 class SetMapLayerOpacityUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String layerId,
     required double opacity,
   }) {
-    final updated = setMapLayerOpacity(
-      map,
-      layerId: layerId,
-      opacity: opacity,
-    );
-    MapValidator.validate(updated);
+    final updated = setMapLayerOpacity(map, layerId: layerId, opacity: opacity);
+    MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
 }
@@ -215,13 +211,15 @@ class SetMapLayerOpacityUseCase {
 class SetEnvironmentLayerTargetTileLayerUseCase {
   MapData execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String environmentLayerId,
     required String? targetTileLayerId,
   }) {
     final envId = environmentLayerId.trim();
     if (envId.isEmpty) {
       throw const EditorValidationException(
-          'Environment layer id cannot be empty');
+        'Environment layer id cannot be empty',
+      );
     }
 
     MapLayer? envLayer;
@@ -236,7 +234,8 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
     }
     if (envLayer is! EnvironmentLayer) {
       throw EditorValidationException(
-          'Layer is not an environment layer: $envId');
+        'Layer is not an environment layer: $envId',
+      );
     }
 
     if (targetTileLayerId == null) {
@@ -250,7 +249,7 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
           layerId: envId,
           content: nextContent,
         );
-        MapValidator.validate(updated);
+        MapValidator.validate(updated, projectDialogueContext: manifest);
         return updated;
       } on ValidationException catch (e) {
         throw EditorValidationException(e.message);
@@ -260,7 +259,8 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
     final tid = targetTileLayerId.trim();
     if (tid.isEmpty) {
       throw const EditorValidationException(
-          'Target tile layer id cannot be empty');
+        'Target tile layer id cannot be empty',
+      );
     }
     if (tid == envId) {
       throw const EditorValidationException(
@@ -294,7 +294,7 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
         layerId: envId,
         content: nextContent,
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
       return updated;
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);
@@ -318,7 +318,6 @@ String _slugifyEnvAreaToken(String value) {
   final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
   return replaced.replaceAll(RegExp(r'^_+|_+$'), '');
 }
-
 
 /// Lot Environment-21 : change uniquement le [EnvironmentArea.presetId].
 class SetEnvironmentAreaPresetUseCase {
@@ -405,7 +404,7 @@ class SetEnvironmentAreaPresetUseCase {
         layerId: envId,
         content: nextContent,
       );
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
       return updated;
     } on ValidationException catch (e) {
       throw EditorValidationException(e.message);

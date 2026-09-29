@@ -230,7 +230,7 @@ final Uint8List _onePixelPng = Uint8List.fromList(<int>[
 
 final ProjectManifest _manifest = ProjectManifest(
   name: 'Smart Tiles sprite surfaces',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

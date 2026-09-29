@@ -100,7 +100,7 @@ Future<void> _writeProject(
 }) async {
   final manifest = ProjectManifest(
     name: 'Projection',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     pokemon: ProjectPokemonConfig(

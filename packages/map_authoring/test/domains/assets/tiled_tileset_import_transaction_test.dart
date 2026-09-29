@@ -317,7 +317,7 @@ void main() {
       const map = MapData(
         id: 'fixture',
         name: 'Fixture',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           SmartTileLayer(
@@ -440,7 +440,7 @@ final class _ImageCollectionImportSetup {
     final root = await Directory.systemTemp.createTemp('tiled-collection-');
     final manifest = ProjectManifest(
       name: 'Tiled collection fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );
@@ -633,7 +633,7 @@ final class _TiledImportSetup {
     final root = await Directory.systemTemp.createTemp('tiled-import-');
     final manifest = ProjectManifest(
       name: 'Tiled import fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

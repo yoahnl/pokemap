@@ -440,7 +440,7 @@ const _staticMap = MapData(
 const _map = MapData(
   id: 'cache-map',
   name: 'Cache map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(id: 'ground', name: 'Ground', cells: <int>[1, 0, 0, 0]),
@@ -462,7 +462,7 @@ const _map = MapData(
 
 final _project = ProjectManifest(
   name: 'Cache project',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

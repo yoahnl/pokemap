@@ -125,6 +125,36 @@ final class WorldCollisionStorageBuilder {
   int get widthPx => widthCells * tileWidthPx;
   int get heightPx => heightCells * tileHeightPx;
 
+  void stampRect(PixelRect rect) {
+    if (rect.widthPx <= 0 || rect.heightPx <= 0) return;
+    final left = rect.leftPx.clamp(0, widthPx);
+    final top = rect.topPx.clamp(0, heightPx);
+    final rightBig = BigInt.from(rect.leftPx) + BigInt.from(rect.widthPx);
+    final bottomBig = BigInt.from(rect.topPx) + BigInt.from(rect.heightPx);
+    final right = rightBig < BigInt.zero
+        ? 0
+        : rightBig > BigInt.from(widthPx)
+            ? widthPx
+            : rightBig.toInt();
+    final bottom = bottomBig < BigInt.zero
+        ? 0
+        : bottomBig > BigInt.from(heightPx)
+            ? heightPx
+            : bottomBig.toInt();
+    if (left >= right || top >= bottom) return;
+    for (var x = left; x < right;) {
+      final localX = x % chunkSize;
+      final span = (right - x).clamp(0, chunkSize - localX);
+      final bits = (0xffffffff >> (chunkSize - span)) << localX;
+      for (var y = top; y < bottom; y++) {
+        final words = _pixelMaskWordsByChunk.putIfAbsent(
+            (x ~/ chunkSize, y ~/ chunkSize), () => Uint32List(chunkSize));
+        words[y % chunkSize] |= bits;
+      }
+      x += span;
+    }
+  }
+
   /// Stamps one transformed packed mask. Invalid masks remain a no-op, matching
   /// the historical runtime's fail-open behavior for malformed project data.
   bool stampPackedMask({

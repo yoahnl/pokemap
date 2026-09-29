@@ -1608,10 +1608,10 @@ _PresentationMutation _deleteVisualFolder(AuthoringPlanningContext context) {
 }
 
 void _requireProjectV7(AuthoringPlanningContext context) {
-  if (context.snapshot.manifest.version != ProjectVersion.v7) {
+  if (context.snapshot.manifest.version != ProjectVersion.v8) {
     throw PresentationCinematicAuthoringException(
-      'presentation_cinematic.project_v7_required',
-      'Presentation cinematic authoring requires ProjectVersion.v7.',
+      'presentation_cinematic.project_v8_required',
+      'Presentation cinematic authoring requires ProjectVersion.v8.',
       details: <String, Object?>{
         'projectVersion': context.snapshot.manifest.version.name,
       },

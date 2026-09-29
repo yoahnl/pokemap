@@ -71,7 +71,7 @@ final _project = ProjectManifest(
 MapData _mapWith({required bool isVisible}) => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 2),
       layers: <MapLayer>[
         SmartTileLayer(

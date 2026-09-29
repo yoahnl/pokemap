@@ -234,7 +234,7 @@ void main() {
 Future<void> _writeProject(Directory root) async {
   final manifest = ProjectManifest(
     name: 'STN-07 organic forest',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'forest-map',
@@ -258,7 +258,7 @@ Future<void> _writeProject(Directory root) async {
   const map = MapData(
     id: 'forest-map',
     name: 'Forêt',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 4, height: 4),
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: <MapLayer>[

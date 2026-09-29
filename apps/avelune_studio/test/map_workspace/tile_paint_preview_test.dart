@@ -95,7 +95,11 @@ class _RecordingVisuals extends WorkspaceTestVisuals {
   MapData? lastMap;
 
   @override
-  Widget canvas(MapData map) {
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) {
     lastMap = map;
     return const SizedBox.expand();
   }

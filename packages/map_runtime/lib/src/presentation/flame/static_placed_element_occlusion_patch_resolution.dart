@@ -54,6 +54,8 @@ List<StaticPlacedElementOcclusionPatchInstruction>
   required RuntimeMapBundle bundle,
   required int originCellX,
   required int originCellY,
+  Iterable<MapPlacedElement>? instances,
+  Map<ElementCollisionPixelMask, bool>? maskValidityCache,
 }) {
   final settings = bundle.manifest.settings;
   final tileWidth = settings.tileWidth;
@@ -70,7 +72,7 @@ List<StaticPlacedElementOcclusionPatchInstruction>
   };
   final instructions = <StaticPlacedElementOcclusionPatchInstruction>[];
 
-  for (final instance in bundle.map.placedElements) {
+  for (final instance in instances ?? bundle.map.placedElements) {
     final element = elementById[instance.elementId];
     if (element == null) {
       continue;
@@ -84,6 +86,7 @@ List<StaticPlacedElementOcclusionPatchInstruction>
       originCellY: originCellY,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+      maskValidityCache: maskValidityCache,
     );
     if (instruction != null) {
       instructions.add(instruction);
@@ -101,7 +104,16 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
   required int originCellY,
   required int tileWidth,
   required int tileHeight,
+  Map<ElementCollisionPixelMask, bool>? maskValidityCache,
 }) {
+  final layer =
+      bundle.map.layers.where((e) => e.id == instance.layerId).firstOrNull;
+  if (layer == null ||
+      !layer.isVisible ||
+      layer.opacity <= 0 ||
+      instance.opacity <= 0) {
+    return null;
+  }
   final mask = element.collisionProfile?.occlusionMask;
   if (mask == null) {
     return null;
@@ -119,7 +131,10 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     return null;
   }
 
-  if (!_maskHasAnySolidPixel(mask)) {
+  final hasSolidPixel =
+      maskValidityCache?.putIfAbsent(mask, () => _maskHasAnySolidPixel(mask)) ??
+          _maskHasAnySolidPixel(mask);
+  if (!hasSolidPixel) {
     return null;
   }
 
@@ -128,16 +143,24 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     return null;
   }
 
-  final worldLeft = (originCellX + instance.pos.x) * bundle.cellWidth;
-  final worldTop = (originCellY + instance.pos.y) * bundle.cellHeight;
-  final footprint = resolveMapPlacedElementFootprint(
+  final geometry = resolveMapPlacedElementGeometry(
     instance: instance,
     element: element,
+    tileSize: PixelSize(width: tileWidth, height: tileHeight),
   );
-  final destinationWidthPx = footprint.destinationSize.width * tileWidth;
-  final destinationHeightPx = footprint.destinationSize.height * tileHeight;
-  final visualWidth = footprint.destinationSize.width * bundle.cellWidth;
-  final visualHeight = footprint.destinationSize.height * bundle.cellHeight;
+  final tileset =
+      bundle.manifest.tilesets.where((e) => e.id == tilesetId).firstOrNull;
+  final visual = resolveMapPlacedElementVisualRect(
+      geometry: geometry, tilesetSource: tileset?.source);
+  final worldLeft = originCellX * bundle.cellWidth +
+      visual.leftPx * bundle.cellWidth / tileWidth;
+  final worldTop = originCellY * bundle.cellHeight +
+      visual.topPx * bundle.cellHeight / tileHeight;
+  final destinationWidthPx = geometry.pixelSize.width;
+  final destinationHeightPx = geometry.pixelSize.height;
+  final visualWidth = geometry.pixelSize.width * bundle.cellWidth / tileWidth;
+  final visualHeight =
+      geometry.pixelSize.height * bundle.cellHeight / tileHeight;
   final depthSortY = worldTop + visualHeight;
 
   return StaticPlacedElementOcclusionPatchInstruction(
@@ -150,7 +173,7 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     sourceTopPx: source.y * tileHeight,
     sourceWidthPx: sourceWidthPx,
     sourceHeightPx: sourceHeightPx,
-    quarterTurns: footprint.quarterTurns,
+    quarterTurns: instance.quarterTurns,
     destinationWidthPx: destinationWidthPx,
     destinationHeightPx: destinationHeightPx,
     worldLeft: worldLeft,
@@ -159,7 +182,7 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     visualHeight: visualHeight,
     depthSortY: depthSortY,
     flamePriority: overworldActorRenderPriority(depthSortY),
-    opacity: instance.opacity.clamp(0.0, 1.0).toDouble(),
+    opacity: (instance.opacity * layer.opacity).clamp(0.0, 1.0).toDouble(),
     occlusionMask: mask,
   );
 }

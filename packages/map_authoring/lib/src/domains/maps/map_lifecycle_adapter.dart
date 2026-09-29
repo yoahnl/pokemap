@@ -79,7 +79,7 @@ final class MapLifecycleAdapter {
       id: mapId,
       name: name,
       size: GridSize(width: width, height: height),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       tilesetId: tilesetId ?? '',
       layers: const [],

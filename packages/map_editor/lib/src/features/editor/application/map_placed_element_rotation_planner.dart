@@ -42,16 +42,15 @@ final class MapPlacedElementRotationPlan {
     required QuarterTurnGridTransform sourceFootprint,
     required QuarterTurnGridTransform previewFootprint,
     required MapData candidateMap,
-  }) =>
-      MapPlacedElementRotationPlan._(
-        sourceMap: sourceMap,
-        instance: instance,
-        sourceFootprint: sourceFootprint,
-        previewFootprint: previewFootprint,
-        candidateMap: candidateMap,
-        rejection: null,
-        isNoOp: false,
-      );
+  }) => MapPlacedElementRotationPlan._(
+    sourceMap: sourceMap,
+    instance: instance,
+    sourceFootprint: sourceFootprint,
+    previewFootprint: previewFootprint,
+    candidateMap: candidateMap,
+    rejection: null,
+    isNoOp: false,
+  );
 
   factory MapPlacedElementRotationPlan.rejected({
     required MapData? sourceMap,
@@ -59,31 +58,29 @@ final class MapPlacedElementRotationPlan {
     MapPlacedElement? instance,
     QuarterTurnGridTransform? sourceFootprint,
     QuarterTurnGridTransform? previewFootprint,
-  }) =>
-      MapPlacedElementRotationPlan._(
-        sourceMap: sourceMap,
-        instance: instance,
-        sourceFootprint: sourceFootprint,
-        previewFootprint: previewFootprint,
-        candidateMap: null,
-        rejection: rejection,
-        isNoOp: false,
-      );
+  }) => MapPlacedElementRotationPlan._(
+    sourceMap: sourceMap,
+    instance: instance,
+    sourceFootprint: sourceFootprint,
+    previewFootprint: previewFootprint,
+    candidateMap: null,
+    rejection: rejection,
+    isNoOp: false,
+  );
 
   factory MapPlacedElementRotationPlan.noOp({
     required MapData sourceMap,
     required MapPlacedElement instance,
     required QuarterTurnGridTransform footprint,
-  }) =>
-      MapPlacedElementRotationPlan._(
-        sourceMap: sourceMap,
-        instance: instance,
-        sourceFootprint: footprint,
-        previewFootprint: footprint,
-        candidateMap: sourceMap,
-        rejection: null,
-        isNoOp: true,
-      );
+  }) => MapPlacedElementRotationPlan._(
+    sourceMap: sourceMap,
+    instance: instance,
+    sourceFootprint: footprint,
+    previewFootprint: footprint,
+    candidateMap: sourceMap,
+    rejection: null,
+    isNoOp: true,
+  );
 
   final MapData? sourceMap;
   final MapPlacedElement? instance;
@@ -217,11 +214,28 @@ MapPlacedElementRotationPlan planMapPlacedElementRotation({
       footprint: sourceFootprint,
     );
   }
-  if (!_fitsWithinMap(
-    anchor: instance.pos,
-    footprint: previewFootprint.destinationSize,
-    mapSize: map.size,
-  )) {
+  final candidate = setMapPlacedElementQuarterTurns(
+    map,
+    instanceId: normalizedInstanceId,
+    quarterTurns: targetQuarterTurns,
+  );
+  final tileSize = PixelSize(
+    width: project.settings.tileWidth,
+    height: project.settings.tileHeight,
+  );
+  try {
+    validateMapPlacedElementGeometryBounds(
+      geometry: resolveMapPlacedElementGeometry(
+        instance: candidate.placedElements.firstWhere(
+          (e) => e.id == instance.id,
+        ),
+        element: element,
+        tileSize: tileSize,
+      ),
+      mapSize: map.size,
+      tileSize: tileSize,
+    );
+  } on ValidationException {
     return MapPlacedElementRotationPlan.rejected(
       sourceMap: map,
       instance: instance,
@@ -231,17 +245,8 @@ MapPlacedElementRotationPlan planMapPlacedElementRotation({
     );
   }
 
-  MapData candidate;
   try {
-    candidate = setMapPlacedElementQuarterTurns(
-      map,
-      instanceId: normalizedInstanceId,
-      quarterTurns: targetQuarterTurns,
-    );
-    MapValidator.validate(
-      candidate,
-      projectDialogueContext: project,
-    );
+    MapValidator.validate(candidate, projectDialogueContext: project);
   } on Object {
     // Whole-map validation is the final transaction boundary. An unrelated
     // invalid source datum also blocks the candidate without hiding the ghost
@@ -264,10 +269,7 @@ MapPlacedElementRotationPlan planMapPlacedElementRotation({
   );
 }
 
-bool _isEnvironmentGenerated(
-  MapData map,
-  MapPlacedElement instance,
-) {
+bool _isEnvironmentGenerated(MapData map, MapPlacedElement instance) {
   if (instance.properties[pokemapPlacementOriginProperty]?.trim() ==
       pokemapPlacementOriginEnvironment) {
     return true;
@@ -283,27 +285,6 @@ bool _isEnvironmentGenerated(
     }
   }
   return false;
-}
-
-bool _fitsWithinMap({
-  required GridPos anchor,
-  required GridSize footprint,
-  required GridSize mapSize,
-}) {
-  if (anchor.x < 0 ||
-      anchor.y < 0 ||
-      footprint.width <= 0 ||
-      footprint.height <= 0 ||
-      mapSize.width <= 0 ||
-      mapSize.height <= 0 ||
-      footprint.width > mapSize.width ||
-      footprint.height > mapSize.height) {
-    return false;
-  }
-  // Subtraction keeps the check overflow-safe for malformed large legacy
-  // coordinates while retaining the map's top-left anchor convention.
-  return anchor.x <= mapSize.width - footprint.width &&
-      anchor.y <= mapSize.height - footprint.height;
 }
 
 T? _findById<T>(

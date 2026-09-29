@@ -53,7 +53,7 @@ final class PresentationStudioPerformanceFixture {
     ];
     final project = ProjectManifest(
       name: 'CIN-060 $name',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: assets,

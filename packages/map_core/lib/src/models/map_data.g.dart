@@ -12,7 +12,7 @@ _MapData _$MapDataFromJson(Map<String, dynamic> json) => _MapData(
   size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
   version:
       $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-      ProjectVersion.v6,
+      ProjectVersion.v8,
   visualStack: json['visualStack'] == null
       ? null
       : MapVisualStackConfig.fromJson(
@@ -92,6 +92,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v5: 'v5',
   ProjectVersion.v6: 'v6',
   ProjectVersion.v7: 'v7',
+  ProjectVersion.v8: 'v8',
 };
 
 _MapGameplayZone _$MapGameplayZoneFromJson(
@@ -162,6 +163,12 @@ _MapPlacedElement _$MapPlacedElementFromJson(Map<String, dynamic> json) =>
       layerId: json['layerId'] as String,
       elementId: json['elementId'] as String,
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      pixelOffset: json['pixelOffset'] == null
+          ? const PixelOffset(x: 0, y: 0)
+          : PixelOffset.fromJson(json['pixelOffset'] as Map<String, dynamic>),
+      pixelSize: json['pixelSize'] == null
+          ? null
+          : PixelSize.fromJson(json['pixelSize'] as Map<String, dynamic>),
       visualOrder: json['visualOrder'] == null
           ? 0
           : _mapPlacedElementVisualOrderFromJson(json['visualOrder']),
@@ -199,6 +206,8 @@ Map<String, dynamic> _$MapPlacedElementToJson(_MapPlacedElement instance) =>
       'layerId': instance.layerId,
       'elementId': instance.elementId,
       'pos': instance.pos.toJson(),
+      'pixelOffset': instance.pixelOffset.toJson(),
+      'pixelSize': ?instance.pixelSize?.toJson(),
       'visualOrder': instance.visualOrder,
       'quarterTurns': instance.quarterTurns,
       'applyCollision': instance.applyCollision,

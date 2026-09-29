@@ -13,6 +13,10 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _characterGesture = null;
     _panPointer = null;
     _panPosition = null;
+    _decorDraft = null;
+    _decorPointer = null;
+    _nudgeKeys.clear();
+    _gestureTool = null;
   }
 
   void _translateViewport(Offset delta) {
@@ -47,6 +51,14 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
   }
 
   void _move(PointerMoveEvent event) {
+    if (_decorPointer == event.pointer && _decorDraft != null) {
+      _decorDraft!.move(
+        _pixelOffset(event.localPosition),
+        precise: HardwareKeyboard.instance.isShiftPressed,
+      );
+      _refreshDecor();
+      return;
+    }
     if (_panPointer == event.pointer && _panPosition != null) {
       _translateViewport(event.position - _panPosition!);
       _panPosition = event.position;
@@ -95,6 +107,8 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     }
     if (event.buttons == kSecondaryButton) {
       _cancel();
+      widget.document.stackPosition = _cell(event.localPosition);
+      widget.document.stackPixelPosition = _pixel(event.localPosition);
       widget.onContextMenu?.call(_cell(event.localPosition), event.position);
       return;
     }
@@ -105,6 +119,27 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _focus.requestFocus();
     final cell = _cell(event.localPosition);
     final armed = widget.view.armedDecorIn(widget.document.current);
+    final selected = widget.document.selected;
+    if (widget.view.tool == StudioMapTool.select &&
+        armed == null &&
+        selected != null &&
+        _canTransform(selected)) {
+      final element = widget.project.elements
+          .where((e) => e.id == selected.elementId)
+          .firstOrNull;
+      if (element != null) {
+        final rect = decorLogicalRect(selected, element, widget.project);
+        final radius = 7 / widget.view.transform.value.getMaxScaleOnAxis();
+        for (final handle in DecorResizeHandle.values) {
+          if ((handle.point(rect) - event.localPosition).distance <= radius) {
+            _beginDecor(selected, event.localPosition, handle: handle);
+            _decorPointer = event.pointer;
+            _refreshGesture();
+            return;
+          }
+        }
+      }
+    }
     if (armed == null) {
       try {
         _characterGesture = MapCharacterGesture.start(
@@ -127,7 +162,9 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _gestureSource = widget.document.current;
     final tool = widget.view.tool;
     if (tool == StudioMapTool.eraseDecor) {
-      final top = _commands.stack(cell).firstOrNull;
+      final top = _commands
+          .stackAtPixel(_pixel(event.localPosition))
+          .firstOrNull;
       if (top != null) {
         widget.document.commit(
           removeMapPlacedElement(widget.document.current, instanceId: top.id),
@@ -162,7 +199,7 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       _cancel();
       widget.onChanged();
     } else if (tool == StudioMapTool.select) {
-      final hits = _commands.stack(cell);
+      final hits = _commands.stackAtPixel(_pixel(event.localPosition));
       final held = widget.view.selectedFor(
         widget.document.current.id,
         MapSelectionFamily.decor,
@@ -185,8 +222,13 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
           MapSelectionFamily.decor,
           moving.id,
         );
+        if (_canTransform(moving)) {
+          _beginDecor(moving, event.localPosition);
+          _decorPointer = event.pointer;
+        }
       }
       widget.document.stackPosition = cell;
+      widget.document.stackPixelPosition = _pixel(event.localPosition);
       widget.onChanged();
     } else {
       try {

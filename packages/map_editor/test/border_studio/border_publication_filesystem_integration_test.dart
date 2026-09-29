@@ -305,7 +305,7 @@ ProjectManifest _previousManifest(
   );
   return ProjectManifest(
     name: 'Before publication',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(

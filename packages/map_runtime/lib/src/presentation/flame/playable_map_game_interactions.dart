@@ -56,7 +56,8 @@ extension _PlayableMapInteractions on PlayableMapGame {
 
   _ResolvedOverworldInteraction? _resolveHiddenItemTapInteraction() {
     final interaction = _resolveOverworldInteraction(includeHidden: true);
-    return interaction?.entity?.item?.visibility == MapEntityItemVisibility.hidden
+    return interaction?.entity?.item?.visibility ==
+            MapEntityItemVisibility.hidden
         ? interaction
         : null;
   }
@@ -273,14 +274,12 @@ extension _PlayableMapInteractions on PlayableMapGame {
           .where((entry) => entry.id == result.element.elementId)
           .firstOrNull;
       if (projectElement != null) {
-        final size = resolveMapPlacedElementFootprint(
-                instance: result.element, element: projectElement)
-            .destinationSize;
-        bounds = PixelRect(
-            leftPx: result.element.pos.x * settings.tileWidth,
-            topPx: result.element.pos.y * settings.tileHeight,
-            widthPx: size.width * settings.tileWidth,
-            heightPx: size.height * settings.tileHeight);
+        bounds = resolveMapPlacedElementGeometry(
+          instance: result.element,
+          element: projectElement,
+          tileSize:
+              PixelSize(width: settings.tileWidth, height: settings.tileHeight),
+        ).logicalRect;
       }
     }
     return _ResolvedOverworldInteraction(

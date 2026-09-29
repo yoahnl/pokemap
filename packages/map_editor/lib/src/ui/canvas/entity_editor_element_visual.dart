@@ -43,18 +43,7 @@ TilesetVisualFrame entityEditorPickPlacedElementFrame(
   List<TilesetVisualFrame> frames,
   int elapsedMs,
 ) {
-  if (frames.isEmpty) {
-    return entityEditorPickFrame(frames, elapsedMs);
-  }
-  final frameIndex = resolvePlacedElementAnimationFrameIndex(
-    frameDurationsMs: frames
-        .map(entityEditorFrameDurationMs)
-        .toList(growable: false),
-    elapsedMs: elapsedMs.toDouble(),
-    animation: instance.animation,
-    deterministicSeed: stableHash32(instance.id),
-  );
-  return frames[frameIndex];
+  return pickPlacedProjectElementFrame(instance, frames, elapsedMs);
 }
 
 bool entityEditorPlacedElementNeedsFrameAnimation(

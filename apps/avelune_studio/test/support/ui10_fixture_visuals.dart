@@ -22,7 +22,7 @@ Future<void> seedUi10Visuals(
   var manifest = await fixture.readFresh();
   final frames = 64 ~/ tileSize;
   manifest = manifest.copyWith(
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     settings: ProjectSettings(
       tileWidth: tileSize,
       tileHeight: tileSize,

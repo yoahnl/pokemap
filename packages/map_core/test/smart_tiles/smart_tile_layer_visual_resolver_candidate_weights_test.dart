@@ -79,7 +79,7 @@ List<SmartTileLayerVisual> _visualsFor({
   final map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 8, height: 8),
     layers: <MapLayer>[layer],
   );

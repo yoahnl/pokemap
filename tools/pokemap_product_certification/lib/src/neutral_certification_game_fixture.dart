@@ -38,9 +38,9 @@ final class NeutralCertificationGameFixture {
   final bool dialoguedPreSession;
 
   ProjectVersion get projectVersion =>
-      dialoguedPreSession ? ProjectVersion.v7 : ProjectVersion.v6;
+      ProjectVersion.v8;
 
-  String get projectFormat => dialoguedPreSession ? 'v7' : 'v6';
+  String get projectFormat => projectVersion.name;
 
   /// BETA-PTY-005 : la gate Party/PC exige deux membres — déposer l'unique
   /// Pokémon utilisable est refusé par la garde lastUsable. Un pour les autres
@@ -1613,7 +1613,7 @@ final class NeutralCertificationGameFixture {
       MapData(
         id: id,
         name: name,
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: 4, height: 4),
         warps: warp == null ? const <MapWarp>[] : <MapWarp>[warp],
         entities: <MapEntity>[
@@ -1907,7 +1907,7 @@ final class NeutralCertificationGameFixture {
     final map = MapData(
       id: fixedMapId,
       name: 'Clockwork Harbor',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 4, height: 4),
       triggers: <MapTrigger>[
         if (encounterField || _arenaEnabled)

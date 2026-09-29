@@ -349,7 +349,7 @@ final class _EditorPerformanceSoakFixture {
     final tilesetPath = p.join(root.path, 'tilesets', 'profile.png');
     final manifest = ProjectManifest(
       name: 'PERF-009 soak fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'soak',

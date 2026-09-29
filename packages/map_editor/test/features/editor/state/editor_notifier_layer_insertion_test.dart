@@ -143,7 +143,7 @@ ProjectManifest _project() => const ProjectManifest(
 MapData _map() => const MapData(
       id: 'alpha',
       name: 'Alpha',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       tilesetId: 'base_tiles',
       layers: <MapLayer>[

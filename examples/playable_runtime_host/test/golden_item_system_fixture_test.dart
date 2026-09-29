@@ -21,7 +21,7 @@ void main() {
 
       ProjectValidator.validate(project);
 
-      expect(project.version, ProjectVersion.v6);
+      expect(project.version, ProjectVersion.v8);
       expect(project.maps, hasLength(1));
       expect(project.newGame.enabled, isTrue);
       expect(project.newGame.initialParty, hasLength(1));

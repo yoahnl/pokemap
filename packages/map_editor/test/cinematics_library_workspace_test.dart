@@ -1819,7 +1819,7 @@ MapData _stageMapData() {
   return MapData(
     id: 'map_lab',
     name: 'Lab map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 12, height: 10),
     layers: [
       MapLayer.tile(

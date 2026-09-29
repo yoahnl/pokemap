@@ -8,6 +8,7 @@ import 'static_placed_element_shadow_runtime_resolver.dart';
 List<RuntimeStaticPlacedElementShadowSource>
     buildRuntimeStaticPlacedElementShadowSources({
   required RuntimeMapBundle bundle,
+  Iterable<MapPlacedElement>? instances,
 }) {
   final elementById = <String, ProjectElementEntry>{
     for (final element in bundle.manifest.elements) element.id: element,
@@ -25,7 +26,7 @@ List<RuntimeStaticPlacedElementShadowSource>
   final sources = <RuntimeStaticPlacedElementShadowSource>[];
   final cellWidth = bundle.cellWidth;
   final cellHeight = bundle.cellHeight;
-  for (final placed in bundle.map.placedElements) {
+  for (final placed in instances ?? bundle.map.placedElements) {
     if (!visibleTileLayerById.containsKey(placed.layerId.trim())) {
       continue;
     }
@@ -50,9 +51,12 @@ List<RuntimeStaticPlacedElementShadowSource>
     if (tilesetId.isEmpty) {
       continue;
     }
-    final footprint = resolveMapPlacedElementFootprint(
+    final geometry = resolveMapPlacedElementGeometry(
       instance: placed,
       element: element,
+      tileSize: PixelSize(
+          width: bundle.manifest.settings.tileWidth,
+          height: bundle.manifest.settings.tileHeight),
     );
     sources.add(
       RuntimeStaticPlacedElementShadowSource(
@@ -61,10 +65,21 @@ List<RuntimeStaticPlacedElementShadowSource>
         elementShadow: element.shadow,
         placedOverride: placed.shadowOverride,
         metrics: StaticPlacedElementShadowRuntimeMetrics(
-          worldLeft: placed.pos.x * cellWidth,
-          worldTop: placed.pos.y * cellHeight,
-          visualWidth: footprint.destinationSize.width * cellWidth,
-          visualHeight: footprint.destinationSize.height * cellHeight,
+          sourceVisualWidth: source.width * cellWidth,
+          sourceVisualHeight: source.height * cellHeight,
+          quarterTurns: placed.quarterTurns,
+          worldLeft: geometry.logicalRect.leftPx *
+              cellWidth /
+              bundle.manifest.settings.tileWidth,
+          worldTop: geometry.logicalRect.topPx *
+              cellHeight /
+              bundle.manifest.settings.tileHeight,
+          visualWidth: geometry.pixelSize.width *
+              cellWidth /
+              bundle.manifest.settings.tileWidth,
+          visualHeight: geometry.pixelSize.height *
+              cellHeight /
+              bundle.manifest.settings.tileHeight,
         ),
       ),
     );
@@ -89,9 +104,11 @@ bool _hasResolvableProjectedBuildingShadow({
 ShadowRuntimeInstructionCollection
     buildRuntimeStaticPlacedElementShadowCollectionForBundle({
   required RuntimeMapBundle bundle,
+  Iterable<MapPlacedElement>? instances,
 }) {
   return buildRuntimeStaticPlacedElementShadowCollection(
     catalog: bundle.manifest.shadowCatalog,
-    sources: buildRuntimeStaticPlacedElementShadowSources(bundle: bundle),
+    sources: buildRuntimeStaticPlacedElementShadowSources(
+        bundle: bundle, instances: instances),
   );
 }

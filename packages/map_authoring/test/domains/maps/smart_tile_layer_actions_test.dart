@@ -461,8 +461,8 @@ void main() {
       final jsonlResult = await jsonl.applyJsonl();
 
       expect(jsonlResult.map.toJson(), directResult.map.toJson());
-      expect(directResult.map.version, ProjectVersion.v6);
-      expect(jsonlResult.map.version, ProjectVersion.v6);
+      expect(directResult.map.version, ProjectVersion.v8);
+      expect(jsonlResult.map.version, ProjectVersion.v8);
       expect(directResult.actionIds, [
         'smart_tile.layer.normalize',
         'smart_tile.layer.merge',
@@ -550,7 +550,7 @@ void main() {
     }) {
       final manifest = ProjectManifest(
         name: 'Candidate weights fixture',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const [
           ProjectMapEntry(
             id: 'map_hanazuki_village',
@@ -591,7 +591,7 @@ void main() {
         id: 'map_hanazuki_village',
         name: 'Hanazuki Village',
         size: const GridSize(width: 3, height: 3),
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         visualStack: MapVisualStackConfig.canonicalV1,
         layers: [
           MapLayer.tile(
@@ -730,7 +730,7 @@ void main() {
   group('smart_tile.layer.set_animation_activation', () {
     final manifest = ProjectManifest(
       name: 'Animation activation fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map_hanazuki_village',
@@ -806,7 +806,7 @@ void main() {
     final map = MapData(
       id: 'map_hanazuki_village',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 2, height: 1),
       layers: const <MapLayer>[
         SmartTileLayer(
@@ -959,19 +959,19 @@ final class _M01TransportHarness {
 
   static Future<_M01TransportHarness> create(
     String label, {
-    ProjectVersion version = ProjectVersion.v6,
+    ProjectVersion version = ProjectVersion.v8,
     bool reconstruction = false,
   }) async {
     final root = await Directory.systemTemp.createTemp('m01_$label');
     final fixture = reconstruction
         ? _reconstructionFixture()
         : _m01Fixture(version: version);
-    final persistedManifest = version == ProjectVersion.v6
+    final persistedManifest = version == ProjectVersion.v8
         ? fixture.manifest
         : fixture.manifest.copyWith(
             smartTileCatalog: ProjectSmartTileCatalog(),
           );
-    final persistedMap = version == ProjectVersion.v6
+    final persistedMap = version == ProjectVersion.v8
         ? fixture.map
         : fixture.map.copyWith(
             layers: [fixture.map.layers.first, fixture.map.layers.last],
@@ -1380,7 +1380,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   MapData map,
   ProjectSnapshot snapshot,
 }) _m01Fixture({
-  ProjectVersion version = ProjectVersion.v6,
+  ProjectVersion version = ProjectVersion.v8,
   String sourceMaterialId = 'dirt',
   String sourcePresetId = 'path',
   SmartTileUsage sourceUsage = SmartTileUsage.path,
@@ -1665,7 +1665,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   const map = MapData(
     id: 'map_hanazuki_village',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: 1, height: 1),
     layers: <MapLayer>[
       MapLayer.tile(

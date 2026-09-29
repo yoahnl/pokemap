@@ -1165,7 +1165,7 @@ const _project = ProjectManifest(
 const _mapA = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -1214,7 +1214,7 @@ final _mapWithObject = _mapA.copyWith(
 const _mapB = MapData(
   id: 'map-b',
   name: 'Map B',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(

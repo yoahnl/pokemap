@@ -482,7 +482,7 @@ MapData _mapWithFeature({
     MapData(
       id: mapId,
       name: mapName,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: linearGoldenMapSize,
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -510,7 +510,7 @@ ProjectManifest _project({
 }) =>
     ProjectManifest(
       name: name,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(visualSnapshots: snapshots),

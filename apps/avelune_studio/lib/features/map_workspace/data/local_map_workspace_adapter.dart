@@ -137,7 +137,14 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
         projectRoot: session.directoryPath,
         relativePath: entry.relativePath,
       );
-      final map = decodeValidatedMapDocument(bytes, entry.relativePath);
+      final map = decodeValidatedMapDocument(
+        bytes,
+        entry.relativePath,
+        validateMap: (map) => MapValidator.validate(
+          map,
+          projectDialogueContext: project.manifest,
+        ),
+      );
       if (map.id != entry.id ||
           !buildMapVisualCompositionPlan(map).canCompose) {
         throw const FormatException();

@@ -83,7 +83,7 @@ void main() {
       final map = MapData.fromJson(<String, Object?>{
         'id': 'map',
         'name': 'Map',
-        'version': 'v6',
+        'version': 'v8',
         'size': <String, Object?>{'width': 10, 'height': 8},
         'placedElements': <Object?>[_placedElementJson()],
       });

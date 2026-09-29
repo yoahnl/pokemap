@@ -772,10 +772,10 @@ final class SceneActions {
     required String? targetFolderId,
     required int targetIndex,
   }) {
-    if (project.version != ProjectVersion.v7) {
+    if (project.version != ProjectVersion.v8) {
       throw NarrativeAuthoringException(
         'scene.preSession.presentation.project_version_unsupported',
-        'Presentation create-and-link requires ProjectVersion.v7.',
+        'Presentation create-and-link requires ProjectVersion.v8.',
       );
     }
     final cinematicId = cinematic.id;

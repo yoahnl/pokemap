@@ -22,6 +22,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:path/path.dart' as p;
 
 import '../../app/providers/editor/editor_asset_cache_providers.dart';

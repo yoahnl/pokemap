@@ -46,7 +46,7 @@ ProjectManifest buildShellChromeProject({
 }) {
   return ProjectManifest(
     name: name,
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: maps,
     tilesets: tilesets,
     environmentPresets: environmentPresets,
@@ -65,7 +65,7 @@ MapData buildShellChromeMap({
   return MapData(
     id: id,
     name: name,
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: GridSize(width: width, height: height),
     layers: layers,
   );

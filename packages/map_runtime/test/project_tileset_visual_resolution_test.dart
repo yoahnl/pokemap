@@ -287,7 +287,7 @@ void main() {
         map: const MapData(
           id: 'fractional-object-runtime',
           name: 'Fractional object runtime',
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           visualStack: MapVisualStackConfig.canonicalV1,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[

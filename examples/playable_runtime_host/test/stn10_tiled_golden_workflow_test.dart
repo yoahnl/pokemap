@@ -167,7 +167,7 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
     '${const JsonEncoder.withIndent('  ').convert(
       const ProjectManifest(
         name: 'STN-10.6 golden import',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
       ).toJson(),

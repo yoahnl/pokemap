@@ -80,7 +80,7 @@ void main() {
           result.nextManifest.smartTileCatalog,
           manifest.smartTileCatalog,
         );
-        expect(result.nextManifest.version, ProjectVersion.v6);
+        expect(result.nextManifest.version, ProjectVersion.v8);
         expect(result.files, first.files);
         expect(
           result.primitiveSnapshotIdsByPrimitiveId,
@@ -768,7 +768,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Candidate project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,

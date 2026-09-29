@@ -72,7 +72,7 @@ void main() {
 MapData _bottomToTopMap() => MapData(
       id: 'village',
       name: 'Village',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, Object?>{'tileLayerOrder': 'bottom_to_top'},
       layers: <MapLayer>[_layer('back'), _layer('middle'), _layer('front')],
@@ -82,7 +82,7 @@ MapData _bottomToTopMap() => MapData(
 MapData _canonicalMap() => MapData(
       id: 'room',
       name: 'Room',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       visualStack: MapVisualStackConfig(
         semanticsVersion: MapVisualStackConfig.canonicalSemanticsVersion,

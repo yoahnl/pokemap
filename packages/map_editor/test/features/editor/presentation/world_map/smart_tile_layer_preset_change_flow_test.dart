@@ -441,14 +441,14 @@ const _layer = SmartTileLayer(
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[_layer],
 );
 
 ProjectManifest _canonicalManifest() => ProjectManifest(
   name: 'Canonical preset change',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
   ],

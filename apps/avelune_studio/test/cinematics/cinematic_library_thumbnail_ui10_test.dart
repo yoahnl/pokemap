@@ -74,6 +74,9 @@ class _DelayedLoader extends EventMapLoader {
 
 class _MapIdentityVisuals extends WorkspaceTestVisuals {
   @override
-  Widget canvas(MapData map) =>
-      SizedBox.expand(key: ValueKey('rendered-map-${map.id}'));
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) => SizedBox.expand(key: ValueKey('rendered-map-${map.id}'));
 }

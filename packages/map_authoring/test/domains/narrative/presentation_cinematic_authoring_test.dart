@@ -100,7 +100,7 @@ void main() {
       const service = ProjectQueryService();
       final manifest = ProjectManifest(
         name: 'Presentation scoped ids',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         presentationCinematics: <PresentationCinematicAsset>[
@@ -758,7 +758,7 @@ void main() {
           isA<PresentationCinematicAuthoringException>().having(
             (error) => error.code,
             'code',
-            'presentation_cinematic.project_v7_required',
+            'presentation_cinematic.project_v8_required',
           ),
         ),
       );
@@ -850,7 +850,7 @@ ProjectSnapshot _snapshot({
   final effectiveManifest = manifest ??
       ProjectManifest(
         name: 'Presentation authoring',
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         presentationCinematics: <PresentationCinematicAsset>[

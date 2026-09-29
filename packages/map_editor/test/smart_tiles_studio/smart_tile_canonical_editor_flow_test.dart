@@ -27,7 +27,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -190,7 +190,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -311,7 +311,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -422,7 +422,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -596,7 +596,7 @@ Future<void> _waitUntil(
 
 ProjectManifest _manifest({String cinematicTitle = 'Ouverture'}) => ProjectManifest(
       name: 'Smart Tile editor flow',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map',

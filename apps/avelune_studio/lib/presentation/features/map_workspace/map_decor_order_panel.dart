@@ -31,7 +31,7 @@ class MapDecorOrderPanel extends StatelessWidget {
     if (selected == null) return const SizedBox();
     final position = document.stackPosition ?? selected.pos;
     final commands = MapEditingCommands(document, project);
-    final stack = commands.stack(position);
+    final stack = commands.contextStack(position);
     final local = stack
         .where((element) => element.layerId == selected.layerId)
         .toList();

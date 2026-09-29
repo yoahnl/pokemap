@@ -115,7 +115,7 @@ SmartTilePublicationCanonicalSnapshot _snapshot({
       snapshotRevision: revision,
       manifest: ProjectManifest(
         name: 'Deletion test',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         smartTileCatalog: ProjectSmartTileCatalog(presets: presets),

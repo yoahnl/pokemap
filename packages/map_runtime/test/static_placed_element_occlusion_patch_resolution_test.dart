@@ -404,7 +404,10 @@ RuntimeMapBundle _bundle({
       id: 'map_1',
       name: 'Map 1',
       size: const GridSize(width: 20, height: 20),
-      layers: const [],
+      layers: [
+        for (final id in placedElements.map((e) => e.layerId).toSet())
+          MapLayer.object(id: id, name: id)
+      ],
       placedElements: placedElements,
     ),
     projectRootDirectory: '/tmp/occlusion_patch_test',

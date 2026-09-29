@@ -12,7 +12,7 @@ _ProjectManifest _$ProjectManifestFromJson(
   name: json['name'] as String,
   version:
       $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-      ProjectVersion.v6,
+      ProjectVersion.v8,
   maps: (json['maps'] as List<dynamic>)
       .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -273,6 +273,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v5: 'v5',
   ProjectVersion.v6: 'v6',
   ProjectVersion.v7: 'v7',
+  ProjectVersion.v8: 'v8',
 };
 
 _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(

@@ -7,7 +7,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Border Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       layers: <MapLayer>[
         MapLayer.border(id: 'border', name: 'Côte'),
@@ -15,7 +15,7 @@ void main() {
     );
     const manifest = ProjectManifest(
       name: 'Border Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -37,7 +37,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Hidden Border Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 2, height: 2),
       layers: <MapLayer>[
         MapLayer.border(
@@ -49,7 +49,7 @@ void main() {
     );
     const manifest = ProjectManifest(
       name: 'Border Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );

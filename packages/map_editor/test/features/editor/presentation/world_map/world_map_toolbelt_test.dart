@@ -1541,7 +1541,7 @@ const _paintProject = ProjectManifest(
 const _paintMap = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[
     TileLayer(
@@ -1683,7 +1683,7 @@ final _validBorderParams = BorderGenerationParams(
 final _validBorderMap = MapData(
   id: 'border-map',
   name: 'Border Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     MapLayer.border(

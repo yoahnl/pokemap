@@ -7,7 +7,8 @@ enum ProjectFormat {
   v4,
   v5,
   v6,
-  v7;
+  v7,
+  v8;
 
   static ProjectFormat parse(String value) => switch (value) {
         'v1' => ProjectFormat.v1,
@@ -17,6 +18,7 @@ enum ProjectFormat {
         'v5' => ProjectFormat.v5,
         'v6' => ProjectFormat.v6,
         'v7' => ProjectFormat.v7,
+        'v8' => ProjectFormat.v8,
         _ => throw SaveContractException(
             SaveContractErrorCode.invalidField,
             'Unsupported project format "$value".',

@@ -688,7 +688,7 @@ ProjectManifest _borderProject({
   );
   return ProjectManifest(
     name: 'Project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
@@ -716,7 +716,7 @@ ProjectManifest _borderProject({
 MapData _borderMap({bool withFeature = true}) => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(

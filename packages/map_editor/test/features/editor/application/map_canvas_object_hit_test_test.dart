@@ -7,6 +7,26 @@ void main() {
   const overlap = GridPos(x: 2, y: 2);
 
   group('MapCanvasObjectHitTest', () {
+    test('disabled placement animation selects the painted atlas frame', () {
+      final entry = _project.elements.first.copyWith(frames: const [
+        TilesetVisualFrame(tilesetId: 'first', source: TilesetSourceRect(x: 0, y: 0), durationMs: 100),
+        TilesetVisualFrame(tilesetId: 'shifted', source: TilesetSourceRect(x: 0, y: 0), durationMs: 100),
+      ]);
+      final project = _project.copyWith(elements: [entry], tilesets: [
+        const ProjectTilesetEntry(id: 'first', name: 'First', relativePath: 'a.png'),
+        ProjectTilesetEntry(id: 'shifted', name: 'Shifted', relativePath: 'b.png',
+          source: ProjectTilesetSource.regularAtlas(assetId: 'b', pixelWidth: 16, pixelHeight: 16,
+            tileWidth: 16, tileHeight: 16, pixelOffsetX: _project.settings.tileWidth)),
+      ]);
+      final map = _baseMap.copyWith(placedElements: [MapPlacedElement(id: 'locked',
+        layerId: 'top', elementId: entry.id, pos: overlap,
+        animation: const MapPlacedElementAnimation(enabled: false),
+      )]);
+      expect(hitTest.hitStack(map: map, project: project, position: overlap,
+        editorAnimationTimeMs: 150).map((e) => e.id), ['locked']);
+      expect(hitTest.hitStack(map: map, project: project, position: const GridPos(x: 3, y: 2),
+        editorAnimationTimeMs: 150), isEmpty);
+    });
     test('uses shared visual ranks without changing serialized order', () {
       final map = _baseMap.copyWith(
         placedElements: const [
@@ -267,7 +287,7 @@ void main() {
       },
     );
 
-    test('uses the currently painted animation frame footprint', () {
+    test('keeps primary natural geometry across animation frames', () {
       final map = _baseMap.copyWith(
         placedElements: const <MapPlacedElement>[
           MapPlacedElement(
@@ -290,16 +310,13 @@ void main() {
         isEmpty,
       );
       expect(
-        hitTest
-            .hitStack(
-              map: map,
-              project: _project,
-              position: const GridPos(x: 2, y: 3),
-              editorAnimationTimeMs: 100,
-            )
-            .single
-            .size,
-        const GridSize(width: 1, height: 2),
+        hitTest.hitStack(
+          map: map,
+          project: _project,
+          position: const GridPos(x: 2, y: 3),
+          editorAnimationTimeMs: 100,
+        ),
+        isEmpty,
       );
     });
 
@@ -612,7 +629,7 @@ void main() {
 
 const _project = ProjectManifest(
   name: 'Hit test',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -680,7 +697,7 @@ const _project = ProjectManifest(
 const _baseMap = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[

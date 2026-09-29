@@ -527,7 +527,7 @@ Future<void> _pumpCanvas(
 }
 
 const _project = ProjectManifest(
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   name: 'Canvas object selection',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
@@ -565,7 +565,7 @@ final _linkedSourceRegistry = NarrativeEventRegistry(
 );
 
 const _map = MapData(
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   id: 'map',
   name: 'Map',
   visualStack: MapVisualStackConfig.canonicalV1,
@@ -613,7 +613,7 @@ const _map = MapData(
 );
 
 const _environmentProject = ProjectManifest(
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   name: 'Environment generated selection',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
@@ -639,7 +639,7 @@ const _environmentProject = ProjectManifest(
 );
 
 final _environmentMap = MapData(
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   id: 'environment-map',
   name: 'Environment map',
   visualStack: MapVisualStackConfig.canonicalV1,

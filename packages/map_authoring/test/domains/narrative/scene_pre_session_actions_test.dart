@@ -510,7 +510,7 @@ void main() {
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Pre-session authoring fixture',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     presentationCinematics: [

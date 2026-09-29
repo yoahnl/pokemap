@@ -23,8 +23,8 @@ void main() {
           hubVersion: Version.parse('1.0.0'),
           runtimeApiVersion: Version.parse('1.0.0'),
           capabilities: const <String>{},
-          supportedProjectFormats: <String>{ProjectVersion.v6.name},
-          currentProjectFormat: ProjectVersion.v6.name,
+          supportedProjectFormats: <String>{ProjectVersion.v8.name},
+          currentProjectFormat: ProjectVersion.v8.name,
           supportedSaveFormats: const <int>{1},
         ),
       ),
@@ -54,7 +54,7 @@ Future<File> _writeBrandedPackage(Directory root) async {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse('1.0.0'),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
-      projectFormat: ProjectVersion.v6.name,
+      projectFormat: ProjectVersion.v8.name,
       saveFormat: 1,
       compatibilityId: 'main',
       requiredCapabilities: const <String>[],
@@ -77,7 +77,7 @@ Future<File> _writeBrandedPackage(Directory root) async {
       'project/project.json': utf8.encode(
         jsonEncode(<String, Object?>{
           'name': 'Aube',
-          'version': ProjectVersion.v6.name,
+          'version': ProjectVersion.v8.name,
           'maps': <Object?>[],
           'tilesets': <Object?>[],
         }),

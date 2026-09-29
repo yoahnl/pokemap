@@ -163,7 +163,7 @@ final class _Harness {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -256,7 +256,7 @@ final class _Harness {
 
 ProjectManifest _manifest() => ProjectManifest(
       name: 'Gesture burst',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map',

@@ -360,6 +360,7 @@ export 'src/operations/map_events.dart';
 export 'src/operations/map_placed_elements.dart';
 export 'src/operations/map_placed_element_visual_order.dart';
 export 'src/operations/map_placed_element_footprint.dart';
+export 'src/operations/map_placed_element_collision_geometry.dart';
 export 'src/operations/map_placed_element_animation.dart';
 export 'src/operations/map_placed_element_shadow_override_json_codec.dart';
 export 'src/operations/map_placed_tile_visual_resolver.dart';

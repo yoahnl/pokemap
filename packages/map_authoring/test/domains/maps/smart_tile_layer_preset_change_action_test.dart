@@ -328,7 +328,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   );
   final manifest = ProjectManifest(
     name: 'Preset change fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',
@@ -432,7 +432,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
     id: 'map',
     name: 'Map',
     size: GridSize(width: 2, height: 1),
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     layers: <MapLayer>[layer],
   );
   final manifestBytes = _encode(manifest.toJson());

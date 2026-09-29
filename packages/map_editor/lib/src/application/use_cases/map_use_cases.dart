@@ -19,10 +19,8 @@ class SaveMapUseCase {
   final MapRepository _repo;
   final AuthoringMutationAdapter? _authoringMutations;
 
-  SaveMapUseCase(
-    this._repo, {
-    AuthoringMutationAdapter? authoringMutations,
-  }) : _authoringMutations = authoringMutations;
+  SaveMapUseCase(this._repo, {AuthoringMutationAdapter? authoringMutations})
+    : _authoringMutations = authoringMutations;
 
   Future<void> execute(
     MapData map,
@@ -95,8 +93,14 @@ class CreateMapUseCase {
   }) : _lifecycleTransactions = lifecycleTransactions;
 
   Future<MapData> execute(
-      ProjectWorkspace fs, ProjectManifest project, String mapId, int w, int h,
-      {String? groupId, MapRole role = MapRole.exterior}) async {
+    ProjectWorkspace fs,
+    ProjectManifest project,
+    String mapId,
+    int w,
+    int h, {
+    String? groupId,
+    MapRole role = MapRole.exterior,
+  }) async {
     final canonicalMapId = _mapIdPolicy.requireValid(mapId);
     _mapIdPolicy.requireAvailable(
       canonicalMapId,
@@ -111,7 +115,7 @@ class CreateMapUseCase {
       id: canonicalMapId,
       name: canonicalMapId,
       size: GridSize(width: w, height: h),
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: const <MapLayer>[],
     );
@@ -119,22 +123,22 @@ class CreateMapUseCase {
     final mapPath = fs.getMapRelativePath(canonicalMapId);
     final absPath = fs.resolveMapPath(mapPath);
     if (await fs.fileExists(absPath)) {
-      throw EditorConflictException(
-        'A map file already exists at "$mapPath"',
-      );
+      throw EditorConflictException('A map file already exists at "$mapPath"');
     }
     await fs.ensureDirectoryExists(absPath);
 
-    final updatedProject = project.copyWith(maps: [
-      ...project.maps,
-      ProjectMapEntry(
-        id: canonicalMapId,
-        name: canonicalMapId,
-        relativePath: mapPath,
-        groupId: groupId,
-        role: role,
-      )
-    ]);
+    final updatedProject = project.copyWith(
+      maps: [
+        ...project.maps,
+        ProjectMapEntry(
+          id: canonicalMapId,
+          name: canonicalMapId,
+          relativePath: mapPath,
+          groupId: groupId,
+          role: role,
+        ),
+      ],
+    );
 
     final lifecycleTransactions = _lifecycleTransactions;
     if (lifecycleTransactions != null) {
@@ -153,20 +157,12 @@ class CreateMapUseCase {
     // Compatibility path for historical non-revisioned fakes. The product
     // composition root always injects DS-05; this fallback must never be
     // described as a recoverable multi-file transaction.
-    final savedRevision = await _saveNewMapDocument(
-      _mapRepo,
-      map,
-      absPath,
-    );
+    final savedRevision = await _saveNewMapDocument(_mapRepo, map, absPath, updatedProject);
     try {
       await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
     } catch (_) {
       try {
-        await _deleteMapDocument(
-          _mapRepo,
-          absPath,
-          revision: savedRevision,
-        );
+        await _deleteMapDocument(_mapRepo, absPath, revision: savedRevision);
       } on Object {
         // Best-effort cleanup exists only for the compatibility path above.
       }
@@ -201,14 +197,12 @@ class LoadMapUseCase {
     bool refreshSnapshot = false,
   }) async {
     if (refreshSnapshot && _repo is RefreshableMapReadRepository) {
-      await (_repo as RefreshableMapReadRepository)
-          .refreshMapReadSnapshot(path);
+      await (_repo as RefreshableMapReadRepository).refreshMapReadSnapshot(
+        path,
+      );
     }
     final loaded = await _loadMapDocument(_repo, path);
-    return (
-      map: loaded.map,
-      revision: loaded.revision,
-    );
+    return (map: loaded.map, revision: loaded.revision);
   }
 }
 
@@ -241,14 +235,13 @@ class ResizeMapUseCase {
     int height, {
     GridSize? tileSizePx,
     ProjectManifest? project,
-  }) =>
-      planMapResize(
-        map,
-        width: width,
-        height: height,
-        tileSizePx: tileSizePx,
-        project: project,
-      );
+  }) => planMapResize(
+    map,
+    width: width,
+    height: height,
+    tileSizePx: tileSizePx,
+    project: project,
+  );
 
   ResizeMapUseCaseResult execute(
     MapData map,
@@ -280,7 +273,7 @@ class ResizeMapUseCase {
     );
     final resized = result.map;
     if (resized != null) {
-      MapValidator.validate(resized);
+      MapValidator.validate(resized, projectDialogueContext: project);
     }
     return ResizeMapUseCaseResult(
       plan: impactPlan,
@@ -317,14 +310,13 @@ class RenameMapUseCase {
     MapLifecycleTransactionCoordinator? lifecycleTransactions,
   }) : _lifecycleTransactions = lifecycleTransactions;
 
-  Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
-      String oldId, String newId) async {
-    final result = await executeRevisioned(
-      fs,
-      project,
-      oldId,
-      newId,
-    );
+  Future<ProjectManifest> execute(
+    ProjectWorkspace fs,
+    ProjectManifest project,
+    String oldId,
+    String newId,
+  ) async {
+    final result = await executeRevisioned(fs, project, oldId, newId);
     return result.project;
   }
 
@@ -437,16 +429,13 @@ class RenameMapUseCase {
       _mapRepo,
       updatedMap,
       newPath,
+      updatedProject,
     );
     try {
       await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
     } catch (_) {
       try {
-        await _deleteMapDocument(
-          _mapRepo,
-          newPath,
-          revision: savedRevision,
-        );
+        await _deleteMapDocument(_mapRepo, newPath, revision: savedRevision);
       } on Object {
         // Best-effort cleanup exists only for this legacy fallback.
       }
@@ -459,11 +448,7 @@ class RenameMapUseCase {
       oldPath,
       revision: sourceDocument.revision,
     );
-    return (
-      project: updatedProject,
-      map: updatedMap,
-      revision: savedRevision,
-    );
+    return (project: updatedProject, map: updatedMap, revision: savedRevision);
   }
 }
 
@@ -487,7 +472,10 @@ class DeleteMapUseCase {
   }) : _lifecycleTransactions = lifecycleTransactions;
 
   Future<ProjectManifest> execute(
-      ProjectWorkspace fs, ProjectManifest project, String mapId) async {
+    ProjectWorkspace fs,
+    ProjectManifest project,
+    String mapId,
+  ) async {
     _mapIdPolicy.requireValid(mapId);
     final sourceEntry = _findMapEntry(project, mapId);
     _mapManifestIntegrityPolicy.requireValid(fs, project);
@@ -503,8 +491,9 @@ class DeleteMapUseCase {
     _requireLoadedMapIdentity(mapData, sourceEntry);
     requireWritableMapVisualStackForLifecycle(mapData);
 
-    final updatedMaps =
-        project.maps.where((entry) => entry.id != mapId).toList();
+    final updatedMaps = project.maps
+        .where((entry) => entry.id != mapId)
+        .toList();
     final updatedProject = project.copyWith(maps: updatedMaps);
     final lifecycleTransactions = _lifecycleTransactions;
     if (lifecycleTransactions != null) {
@@ -550,7 +539,10 @@ class DuplicateMapUseCase {
   }) : _lifecycleTransactions = lifecycleTransactions;
 
   Future<ProjectManifest> execute(
-      ProjectWorkspace fs, ProjectManifest project, String sourceId) async {
+    ProjectWorkspace fs,
+    ProjectManifest project,
+    String sourceId,
+  ) async {
     final canonicalSourceId = _mapIdPolicy.requireValid(sourceId);
     final sourceEntry = _findMapEntry(project, canonicalSourceId);
     final targetId = _mapIdPolicy.nextCopyId(
@@ -577,16 +569,18 @@ class DuplicateMapUseCase {
     _requireLoadedMapIdentity(mapData, sourceEntry);
     requireWritableMapVisualStackForLifecycle(mapData);
     final duplicatedMap = mapData.copyWith(id: targetId, name: targetId);
-    final updatedProject = project.copyWith(maps: [
-      ...project.maps,
-      ProjectMapEntry(
-        id: targetId,
-        name: targetId,
-        relativePath: targetRelativePath,
-        groupId: sourceEntry.groupId,
-        role: sourceEntry.role,
-      )
-    ]);
+    final updatedProject = project.copyWith(
+      maps: [
+        ...project.maps,
+        ProjectMapEntry(
+          id: targetId,
+          name: targetId,
+          relativePath: targetRelativePath,
+          groupId: sourceEntry.groupId,
+          role: sourceEntry.role,
+        ),
+      ],
+    );
     final lifecycleTransactions = _lifecycleTransactions;
     if (lifecycleTransactions != null) {
       final sourceRevision = sourceDocument.revision;
@@ -614,16 +608,13 @@ class DuplicateMapUseCase {
       _mapRepo,
       duplicatedMap,
       targetPath,
+      updatedProject,
     );
     try {
       await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
     } catch (_) {
       try {
-        await _deleteMapDocument(
-          _mapRepo,
-          targetPath,
-          revision: savedRevision,
-        );
+        await _deleteMapDocument(_mapRepo, targetPath, revision: savedRevision);
       } on Object {
         // Best-effort cleanup exists only for this legacy fallback.
       }
@@ -643,10 +634,7 @@ ProjectMapEntry _findMapEntry(ProjectManifest project, String mapId) {
   throw EditorNotFoundException('Map "$mapId" does not exist');
 }
 
-void _requireLoadedMapIdentity(
-  MapData map,
-  ProjectMapEntry manifestEntry,
-) {
+void _requireLoadedMapIdentity(MapData map, ProjectMapEntry manifestEntry) {
   if (map.id != manifestEntry.id) {
     throw EditorValidationException(
       'Loaded map ID "${map.id}" does not match manifest entry '
@@ -693,16 +681,18 @@ Future<String?> _saveNewMapDocument(
   MapRepository repository,
   MapData map,
   String path,
+  ProjectManifest project,
 ) async {
   if (repository case RevisionedMapRepository revisioned) {
     final document = await revisioned.saveMapDocument(
       map,
       path,
       precondition: const MapDocumentWritePrecondition.absent(),
+      projectDialogueContext: project,
     );
     return document.revision;
   }
-  await repository.saveMap(map, path);
+  await repository.saveMap(map, path, projectDialogueContext: project);
   return null;
 }
 
@@ -717,10 +707,7 @@ Future<void> _deleteMapDocument(
         'A revisioned map cannot be deleted without its loaded revision.',
       );
     }
-    return revisioned.deleteMapDocument(
-      path,
-      expectedRevision: revision,
-    );
+    return revisioned.deleteMapDocument(path, expectedRevision: revision);
   }
   return repository.deleteMap(path);
 }

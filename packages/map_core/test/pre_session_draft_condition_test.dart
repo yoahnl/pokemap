@@ -106,7 +106,7 @@ void main() {
 
 ProjectManifest _project(SceneAsset scene) => ProjectManifest(
       name: 'Draft guard',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       scenes: <SceneAsset>[scene],

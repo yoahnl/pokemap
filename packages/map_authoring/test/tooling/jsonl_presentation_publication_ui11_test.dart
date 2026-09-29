@@ -26,7 +26,7 @@ Future<Map<String, dynamic>> _run(bool jsonl) async {
   final file = File('${root.path}/project.json');
   await file.writeAsString(jsonEncode(ProjectManifest(
       name: 'UI11',
-      version: ProjectVersion.v7,
+      version: ProjectVersion.v8,
       maps: const [],
       tilesets: const []).toJson()));
   const reader = LocalProjectFileReader();

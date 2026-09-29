@@ -152,7 +152,7 @@ test("playtest projection uses the canonical Authoring validator on its copy", a
     resolve(sourceRoot, "project.json"),
     JSON.stringify({
       name: "Playtest projection",
-      version: "v6",
+      version: "v8",
       maps: [],
       tilesets: [],
       pokemon: {

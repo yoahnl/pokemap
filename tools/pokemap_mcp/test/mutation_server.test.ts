@@ -208,6 +208,64 @@ async function mutationFixture(
   return { authoring, client, root, server };
 }
 
+test("MCP pixel geometry discovers, plans, applies, queries and undoes", async () => {
+  const fixture = await mutationFixture();
+  try {
+    await mkdir(join(fixture.root, "maps"), { recursive: true });
+    await writeFile(join(fixture.root, "project.json"), JSON.stringify({
+      version: "v8", name: "Geometry", pokemon: canonicalPokemonConfig(),
+      settings: { tileWidth: 16, tileHeight: 32 },
+      maps: [{ id: "map", name: "Map", relativePath: "maps/map.json" }],
+      tilesets: [{ id: "ts", name: "TS", relativePath: "assets/ts.png" }],
+      elementCategories: [{ id: "cat", name: "Cat" }],
+      elements: [{ id: "prop", name: "Prop", tilesetId: "ts", categoryId: "cat", frames: [{ source: { x: 0, y: 0, width: 1, height: 1 } }] }],
+    }));
+    const mapPath = join(fixture.root, "maps/map.json");
+    await writeFile(mapPath, JSON.stringify({
+      version: "v8", id: "map", name: "Map", size: { width: 3, height: 3 },
+      layers: [{ runtimeType: "tile", id: "decor", name: "Decor", cells: Array(9).fill(0) }],
+      placedElements: ["a", "b"].map((id) => ({ id, elementId: "prop", layerId: "decor", pos: { x: 1, y: 1 }, properties: { pokemapPlacementOrigin: "authored" } })),
+    }));
+    const before = await readFile(mapPath);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actions = record(described.fullParity).mutationActions as JsonRecord[];
+    assert.ok(actions.some((action) => action.actionId === "placed_element.set_geometry"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const projectHandle = String(opened.projectHandle);
+    const query = () => toolData(fixture.client, "pokemap_query", { projectHandle, resourceKind: "map", operation: "get", ids: ["map"], view: "detail" });
+    const original = record(((await query()).items as unknown[])[0]);
+    const validation = await toolData(fixture.client, "pokemap_validate", { projectHandle });
+    const request = {
+      requestId: "geometry", actionId: "placed_element.set_geometry", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,
+      idempotencyKey: "geometry", dryRun: false,
+      parameters: { mapId: "map", instanceId: "a", pixelX: 17, pixelY: 35, pixelSize: { width: 5, height: 7 } },
+    };
+    const invalid = await fixture.client.callTool({ name: "pokemap_plan", arguments: { projectHandle, request: { ...request, parameters: { mapId: "map", instanceId: "a", pixelX: 17, pixelY: 35 } } } });
+    assert.equal(record(invalid.structuredContent).ok, false);
+    assert.deepEqual(await readFile(mapPath), before);
+    const planned = await toolData(fixture.client, "pokemap_plan", { projectHandle, request });
+    assert.deepEqual(await readFile(mapPath), before);
+    await toolData(fixture.client, "pokemap_apply", { operation: "apply", projectHandle, planId: planned.planId, operationId: "geometry-apply" });
+    const transformed = record(((await query()).items as unknown[])[0]);
+    const instances = transformed.placedElements as JsonRecord[];
+    assert.deepEqual(instances.map((instance) => instance.id), ["a", "b"]);
+    assert.deepEqual(instances[0]!.pixelOffset, { x: 1, y: 3 });
+    assert.deepEqual(instances[0]!.pixelSize, { width: 5, height: 7 });
+    await toolData(fixture.client, "pokemap_validate", { projectHandle });
+    const history = await toolData(fixture.client, "pokemap_history", { operation: "list", projectHandle, limit: 1 });
+    await toolData(fixture.client, "pokemap_history", { operation: "undo", projectHandle, entryId: record((history.entries as unknown[])[0]).entryId, idempotencyKey: "geometry-undo" });
+    assert.deepEqual(record(((await query()).items as unknown[])[0]), original);
+    assert.deepEqual(await readFile(mapPath), before);
+    await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 async function writeCanonicalSmartTileImage(root: string): Promise<void> {
   const bytes = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -261,7 +319,7 @@ async function writeCanonicalSmartTileImage(root: string): Promise<void> {
 function nativeSmartTileV5Project(mixed = false): JsonRecord {
   return {
     name: "Native Smart Tile v5 MCP fixture",
-    version: "v6",
+    version: "v8",
     maps: [
       {
         id: "native_v5",
@@ -369,7 +427,7 @@ function nativeSmartTileV5Map(mixed = false): JsonRecord {
     id: "native_v5",
     name: "Native v5",
     size: { width: 2, height: 2 },
-    version: "v6",
+    version: "v8",
     layers: [
       {
         id: "base",
@@ -416,7 +474,7 @@ function nativeSmartTileV5Map(mixed = false): JsonRecord {
 function smartTileReconstructionProject(): JsonRecord {
   return {
     name: "Smart Tile reconstruction MCP fixture",
-    version: "v6",
+    version: "v8",
     maps: [
       {
         id: "reconstruction",
@@ -530,7 +588,7 @@ function smartTileReconstructionMap(): JsonRecord {
     id: "reconstruction",
     name: "Reconstruction",
     size: { width: 1, height: 1 },
-    version: "v6",
+    version: "v8",
     layers: [
       {
         id: "literal",
@@ -546,7 +604,7 @@ function smartTileReconstructionMap(): JsonRecord {
 function smartTileM01Project(): JsonRecord {
   return {
     name: "M01 Smart Tile MCP fixture",
-    version: "v6",
+    version: "v8",
     maps: [
       {
         id: "map_hanazuki_village",
@@ -639,7 +697,7 @@ function smartTileM01Map(): JsonRecord {
     id: "map_hanazuki_village",
     name: "Hanazuki Village",
     size: { width: 3, height: 3 },
-    version: "v6",
+    version: "v8",
     layers: [
       {
         id: "base",
@@ -1129,7 +1187,7 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
       JSON.stringify({
         id: "map_start",
         name: "Départ",
-        version: "v6",
+        version: "v8",
         size: { width: 2, height: 2 },
         layers: [
           {
@@ -1145,7 +1203,7 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
       join(fixture.root, "project.json"),
       JSON.stringify({
         name: "CIN-033 MCP fixture",
-        version: "v7",
+        version: "v8",
         maps: [
           {
             id: "map_start",
@@ -1819,7 +1877,7 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
       join(fixture.root, "project.json"),
       JSON.stringify({
         name: "Presentation clip batch MCP fixture",
-        version: "v7",
+        version: "v8",
         maps: [],
         tilesets: [],
         pokemon: canonicalPokemonConfig(),
@@ -2064,7 +2122,7 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
       join(fixture.root, "project.json"),
       JSON.stringify({
         name: "Cinematic library MCP fixture",
-        version: "v7",
+        version: "v8",
         maps: [],
         tilesets: [],
         pokemon: canonicalPokemonConfig(),
@@ -5329,7 +5387,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
         "utf8",
       ),
     ) as JsonRecord;
-    assert.equal(map.version, "v6");
+    assert.equal(map.version, "v8");
     const gameplayZones = map.gameplayZones as JsonRecord[];
     assert.equal(gameplayZones.length, 1);
     const gameplayZone = gameplayZones[0];

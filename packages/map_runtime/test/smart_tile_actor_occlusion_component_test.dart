@@ -220,7 +220,7 @@ MapData _map({
     MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         SmartTileLayer(
@@ -243,7 +243,7 @@ MapData _largeMap() {
   return MapData(
     id: 'large-map',
     name: 'Large map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 100, height: 100),
     layers: <MapLayer>[
       SmartTileLayer(
@@ -274,7 +274,7 @@ ProjectManifest _manifest({
         );
   return ProjectManifest(
     name: 'Tall grass runtime',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(

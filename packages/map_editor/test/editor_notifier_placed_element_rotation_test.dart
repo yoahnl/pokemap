@@ -212,7 +212,7 @@ MapData _map({
   return MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: size,
     layers: <MapLayer>[
       MapLayer.tile(
@@ -240,7 +240,7 @@ MapData _map({
 
 const _project = ProjectManifest(
   name: 'Rotation notifier',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

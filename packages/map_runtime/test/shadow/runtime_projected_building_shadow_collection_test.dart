@@ -52,7 +52,7 @@ void main() {
     });
 
     test(
-        'uses the rotated bounding box while fixed world light stays unchanged',
+        'rotates the anchor while fixed world light keeps its direction and distance',
         () {
       final manifest = _manifest(
         catalog: _catalog([_preset()]),
@@ -73,14 +73,15 @@ void main() {
         );
 
         final instruction = collection.groundStatic.single;
-        expect(instruction.worldLeft, closeTo(80, 0.000001));
-        expect(instruction.worldTop, closeTo(80, 0.000001));
-        expect(instruction.width, closeTo(32, 0.000001));
+        final left = quarterTurns == 1 ? 32.0 : 128.0;
+        expect(instruction.worldLeft, closeTo(left, 0.000001));
+        expect(instruction.worldTop, closeTo(48, 0.000001));
+        expect(instruction.width, closeTo(48, 0.000001));
         expect(instruction.height, closeTo(96, 0.000001));
-        _expectPointClose(instruction.polygonPoints[0], x: 80, y: 80);
-        _expectPointClose(instruction.polygonPoints[1], x: 80, y: 176);
-        _expectPointClose(instruction.polygonPoints[2], x: 112, y: 152);
-        _expectPointClose(instruction.polygonPoints[3], x: 112, y: 104);
+        _expectPointClose(instruction.polygonPoints[0], x: left, y: 48);
+        _expectPointClose(instruction.polygonPoints[1], x: left, y: 144);
+        _expectPointClose(instruction.polygonPoints[2], x: left + 48, y: 120);
+        _expectPointClose(instruction.polygonPoints[3], x: left + 48, y: 72);
       }
     });
 

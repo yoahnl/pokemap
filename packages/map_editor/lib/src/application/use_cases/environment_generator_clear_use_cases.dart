@@ -33,10 +33,7 @@ final class EnvironmentClearedGeneratedPlacement {
   int get hashCode => Object.hash(placedElementId, elementId, layerId, pos);
 }
 
-enum EnvironmentClearIssueSeverity {
-  error,
-  warning,
-}
+enum EnvironmentClearIssueSeverity { error, warning }
 
 enum EnvironmentClearIssueKind {
   environmentLayerNotFound,
@@ -78,13 +75,13 @@ final class EnvironmentClearIssue {
 
   @override
   int get hashCode => Object.hash(
-        severity,
-        kind,
-        message,
-        environmentLayerId,
-        areaId,
-        placedElementId,
-      );
+    severity,
+    kind,
+    message,
+    environmentLayerId,
+    areaId,
+    placedElementId,
+  );
 }
 
 final class EnvironmentClearResult {
@@ -97,8 +94,8 @@ final class EnvironmentClearResult {
       map: map,
       clearedPlacements:
           List<EnvironmentClearedGeneratedPlacement>.unmodifiable(
-        List<EnvironmentClearedGeneratedPlacement>.from(clearedPlacements),
-      ),
+            List<EnvironmentClearedGeneratedPlacement>.from(clearedPlacements),
+          ),
       issues: List<EnvironmentClearIssue>.unmodifiable(
         List<EnvironmentClearIssue>.from(issues),
       ),
@@ -149,11 +146,11 @@ final class EnvironmentClearResult {
 
   @override
   int get hashCode => Object.hash(
-        map,
-        clearedPlacementCount,
-        Object.hashAll(clearedPlacements),
-        Object.hashAll(issues),
-      );
+    map,
+    clearedPlacementCount,
+    Object.hashAll(clearedPlacements),
+    Object.hashAll(issues),
+  );
 }
 
 bool _listEqualsCleared(
@@ -197,6 +194,7 @@ EnvironmentClearResult _failure(
 class ClearEnvironmentGeneratedPlacementsUseCase {
   EnvironmentClearResult execute(
     MapData map, {
+    ProjectManifest? manifest,
     required String environmentLayerId,
     required String areaId,
   }) {
@@ -335,7 +333,7 @@ class ClearEnvironmentGeneratedPlacementsUseCase {
         layerId: envId,
         content: newContent,
       ).copyWith(placedElements: newPlaced);
-      MapValidator.validate(updated);
+      MapValidator.validate(updated, projectDialogueContext: manifest);
     } catch (e) {
       issues.add(
         EnvironmentClearIssue(

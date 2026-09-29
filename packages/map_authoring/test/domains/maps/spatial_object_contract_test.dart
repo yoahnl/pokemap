@@ -410,7 +410,7 @@ AuthoringPlanningContext _largePlacementContext({required GridPos pos}) {
     id: 'large_map',
     name: 'Large map',
     size: const GridSize(width: 256, height: 256),
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: <MapLayer>[
       MapLayer.tile(
@@ -422,7 +422,7 @@ AuthoringPlanningContext _largePlacementContext({required GridPos pos}) {
   );
   const manifest = ProjectManifest(
     name: 'Large placement project',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'large_map',

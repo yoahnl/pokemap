@@ -98,7 +98,7 @@ void main() {
       final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, dynamic>{
           'name': 'Selbrume',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
           'shops': <Object?>[
@@ -109,7 +109,7 @@ void main() {
       final legacy = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         <String, dynamic>{
           'name': 'Legacy',
-          'version': 'v6',
+          'version': 'v8',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
         },
@@ -137,7 +137,7 @@ void main() {
         expect(
           () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
             'name': 'Selbrume',
-            'version': 'v6',
+            'version': 'v8',
             'maps': <Object?>[],
             'tilesets': <Object?>[],
             entry.key: entry.value,

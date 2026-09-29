@@ -26,9 +26,9 @@ void main() {
 
       final updated = replaceProjectBorderCatalog(original, catalog);
 
-      expect(original.version, ProjectVersion.v6);
+      expect(original.version, ProjectVersion.v8);
       expect(original.borderCatalog.isEmpty, isTrue);
-      expect(updated.version, ProjectVersion.v6);
+      expect(updated.version, ProjectVersion.v8);
       expect(updated.borderCatalog, catalog);
       expect(updated.name, original.name);
       expect(updated.maps, original.maps);
@@ -43,35 +43,35 @@ void main() {
       );
       final v2 = replaceProjectBorderCatalog(
         _manifest(
-          version: ProjectVersion.v6,
+          version: ProjectVersion.v8,
           borderCatalog: _catalog('coast'),
         ),
         const ProjectBorderCatalog.empty(),
       );
 
-      expect(v1.version, ProjectVersion.v6);
+      expect(v1.version, ProjectVersion.v8);
       expect(v1.borderCatalog.isEmpty, isTrue);
-      expect(v2.version, ProjectVersion.v6);
+      expect(v2.version, ProjectVersion.v8);
       expect(v2.borderCatalog.isEmpty, isTrue);
     });
 
     test('nonempty replacement never downgrades a Smart Tile V5 manifest', () {
       final updated = replaceProjectBorderCatalog(
-        _manifest(version: ProjectVersion.v6),
+        _manifest(version: ProjectVersion.v8),
         _catalog('coast'),
       );
 
-      expect(updated.version, ProjectVersion.v6);
+      expect(updated.version, ProjectVersion.v8);
       expect(updated.borderCatalog.isNotEmpty, isTrue);
     });
 
     test('replacement preserves a v7 Presentation project version', () {
       final updated = replaceProjectBorderCatalog(
-        _manifest(version: ProjectVersion.v7),
+        _manifest(version: ProjectVersion.v8),
         _catalog('coast'),
       );
 
-      expect(updated.version, ProjectVersion.v7);
+      expect(updated.version, ProjectVersion.v8);
       expect(updated.borderCatalog.isNotEmpty, isTrue);
     });
 
@@ -97,14 +97,14 @@ void main() {
 
       expect(callCount, 1);
       expect(identical(received, current), isTrue);
-      expect(updated.version, ProjectVersion.v6);
+      expect(updated.version, ProjectVersion.v8);
       expect(updated.borderCatalog, next);
     });
 
     test('update propagates failure without mutating the source', () {
       final current = _catalog('first');
       final manifest = _manifest(
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         borderCatalog: current,
       );
 
@@ -116,13 +116,13 @@ void main() {
         throwsA(isA<StateError>()),
       );
       expect(identical(manifest.borderCatalog, current), isTrue);
-      expect(manifest.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v8);
     });
   });
 }
 
 ProjectManifest _manifest({
-  ProjectVersion version = ProjectVersion.v6,
+  ProjectVersion version = ProjectVersion.v8,
   ProjectBorderCatalog borderCatalog = const ProjectBorderCatalog.empty(),
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   Map<String, dynamic> globalProperties = const <String, dynamic>{},

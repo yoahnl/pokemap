@@ -126,7 +126,7 @@ ProjectManifest _project() => const ProjectManifest(
 
 ProjectManifest _projectWithDraft() => ProjectManifest(
       name: 'border-studio-project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(

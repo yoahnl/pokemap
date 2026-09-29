@@ -201,7 +201,7 @@ ElementCollisionPixelMask _maskFromCells({
 
 Map<String, dynamic> _legacyBuildingProjectJson() {
   return <String, dynamic>{
-    'version': 'v6',
+    'version': 'v8',
     'name': 'Building Golden Slice',
     'pokemon': ProjectPokemonConfig(
       ruleset: PokemonRulesetProfile.pokeMapBetaV1,

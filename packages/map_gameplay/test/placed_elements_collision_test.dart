@@ -530,7 +530,7 @@ void main() {
 
 Map<String, dynamic> _legacyBrokenProjectJson() {
   return <String, dynamic>{
-    'version': 'v6',
+    'version': 'v8',
     'name': 'Legacy',
     'pokemon': ProjectPokemonConfig(
       ruleset: PokemonRulesetProfile.pokeMapBetaV1,

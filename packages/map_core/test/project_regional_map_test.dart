@@ -13,7 +13,7 @@ void main() {
       const map = MapData(
         id: 'town',
         name: 'Town',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         visualStack: MapVisualStackConfig.canonicalV1,
         size: GridSize(width: 3, height: 3),
         layers: [],

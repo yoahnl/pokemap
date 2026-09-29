@@ -335,7 +335,7 @@ Future<Directory> _createPlayableProject({bool illustrated = false}) async {
       const MapData(
         id: 'map.start',
         name: 'Start',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 8, height: 8),
         layers: <MapLayer>[MapLayer.object(id: 'events', name: 'Events')],
         mapMetadata: MapMetadata(defaultSpawnId: 'spawn.player'),

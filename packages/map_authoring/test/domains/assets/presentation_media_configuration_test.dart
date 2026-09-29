@@ -130,7 +130,7 @@ final class _ConfigurationSetup {
     );
     final manifest = ProjectManifest(
       name: 'Presentation media configuration fixture',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
     );

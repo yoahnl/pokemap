@@ -783,7 +783,7 @@ EditorState _stateForLayer(String layerId) {
 
 final _project = ProjectManifest(
   name: 'World map tools',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map-a',
@@ -910,7 +910,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v6,
+  version: ProjectVersion.v8,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(

@@ -16,6 +16,7 @@ final class PlacedElementActions {
       ('placed_element.update', 'Replace a placed element instance'),
       ('placed_element.clone', 'Clone a placed element instance'),
       ('placed_element.move', 'Move a placed element instance'),
+      ('placed_element.set_geometry', 'Set pixel position and size atomically'),
       ('placed_element.rotate', 'Rotate a placed element instance'),
       (
         'placed_element.bring_forward',
@@ -62,6 +63,12 @@ final class PlacedElementActions {
         const {'instances', 'layerId'},
       'placed_element.clone' => const {'instanceId', 'newId', 'x', 'y'},
       'placed_element.move' => const {'instanceId', 'x', 'y'},
+      'placed_element.set_geometry' => const {
+          'instanceId',
+          'pixelX',
+          'pixelY',
+          'pixelSize',
+        },
       'placed_element.rotate' => const {'instanceId', 'deltaQuarterTurns'},
       'placed_element.bring_forward' ||
       'placed_element.send_backward' =>
@@ -149,19 +156,46 @@ final class PlacedElementActions {
           _instanceById(context.map, instanceId);
           final replacement = _instance(parameters.object('instance'));
           _validateFootprint(context.manifest, context.map, replacement);
-          final without = removeMapPlacedElement(
-            context.map,
-            instanceId: instanceId,
-          );
-          if (without.placedElements.any(
-            (value) => value.id == replacement.id,
+          if (context.map.placedElements.any(
+            (value) =>
+                value.id != instanceId && value.id == replacement.id.trim(),
           )) {
             throw semanticFailure(
               'placed_element.exists',
               'A placed element already uses the replacement ID.',
             );
           }
-          updated = upsertMapPlacedElement(without, instance: replacement);
+          final normalized = upsertMapPlacedElement(
+            removeMapPlacedElement(context.map, instanceId: instanceId),
+            instance: replacement,
+          ).placedElements.last;
+          updated = context.map.copyWith(placedElements: [
+            for (final instance in context.map.placedElements)
+              instance.id == instanceId ? normalized : instance,
+          ]);
+        case 'placed_element.set_geometry':
+          if (!parameters.contains('pixelSize')) {
+            throw invalidSemanticField('pixelSize', 'a size object or null');
+          }
+          PixelSize? pixelSize;
+          if (parameters.value('pixelSize') != null) {
+            final size = SemanticParameters(
+              parameters.object('pixelSize'),
+              allowed: const {'width', 'height'},
+            );
+            pixelSize = PixelSize(
+              width: size.integer('width'),
+              height: size.integer('height'),
+            );
+          }
+          updated = setMapPlacedElementGeometry(
+            context.map,
+            manifest: context.manifest,
+            instanceId: parameters.string('instanceId'),
+            pixelX: parameters.integer('pixelX'),
+            pixelY: parameters.integer('pixelY'),
+            pixelSize: pixelSize,
+          );
         case 'placed_element.clone':
           final source = _instanceById(
             context.map,
@@ -337,24 +371,21 @@ final class PlacedElementActions {
             ),
           );
         case 'placed_element.detach_from_tile_projection':
-          final instance = _instanceById(
+          updated = detachMapPlacedElementFromTileProjection(
             context.map,
-            parameters.string('instanceId'),
-          );
-          updated = upsertMapPlacedElement(
-            context.map,
-            instance: instance.copyWith(
-              properties: {
-                ...instance.properties,
-                'pokemapPlacementOrigin': 'authored',
-              },
-            ),
+            instanceId: parameters.string('instanceId'),
           );
         default:
           throw StateError('unreachable placed-element action');
       }
     } on MapAuthoringException {
       rethrow;
+    } on ValidationException catch (error) {
+      throw semanticFailure(
+        'placed_element.mutation_invalid',
+        error.message,
+        details: {'validationType': error.runtimeType.toString()},
+      );
     } on Object catch (error) {
       throw semanticFailure(
         'placed_element.mutation_invalid',
@@ -424,23 +455,31 @@ void _validateFootprint(
       details: {'elementId': instance.elementId},
     );
   }
-  final footprint = resolveMapPlacedElementFootprint(
+  final tileSize = PixelSize(
+    width: manifest.settings.tileWidth,
+    height: manifest.settings.tileHeight,
+  );
+  final geometry = resolveMapPlacedElementGeometry(
     instance: instance,
     element: element,
+    tileSize: tileSize,
   );
-  if (instance.pos.x < 0 ||
-      instance.pos.y < 0 ||
-      instance.pos.x + footprint.destinationSize.width > map.size.width ||
-      instance.pos.y + footprint.destinationSize.height > map.size.height) {
+  try {
+    validateMapPlacedElementGeometryBounds(
+      geometry: geometry,
+      mapSize: map.size,
+      tileSize: tileSize,
+    );
+  } on ValidationException catch (error) {
     throw semanticFailure(
       'placed_element.footprint_out_of_bounds',
-      'The placed-element footprint is outside map bounds.',
+      error.message,
       details: {
         'instanceId': instance.id,
-        'x': instance.pos.x,
-        'y': instance.pos.y,
-        'width': footprint.destinationSize.width,
-        'height': footprint.destinationSize.height,
+        'pixelX': geometry.logicalRect.leftPx,
+        'pixelY': geometry.logicalRect.topPx,
+        'width': geometry.pixelSize.width,
+        'height': geometry.pixelSize.height,
       },
     );
   }

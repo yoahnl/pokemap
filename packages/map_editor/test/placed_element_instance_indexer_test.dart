@@ -7,7 +7,10 @@ const _originKey = 'pokemapPlacementOrigin';
 void main() {
   group('PlacedElementInstanceIndexer ownership', () {
     test('preserves authored placements when a TileLayer has no tileset', () {
-      final authored = _placement(id: 'authored', x: 0);
+      final authored = _placement(id: 'authored', x: 0).copyWith(
+        pixelOffset: const PixelOffset(x: 3, y: 5),
+        pixelSize: const PixelSize(width: 7, height: 11), quarterTurns: 3,
+      );
       final staleDerived = _placement(
         id: 'stale',
         x: 1,

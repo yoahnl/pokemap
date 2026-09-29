@@ -395,7 +395,7 @@ void main() {
 ProjectManifest _project({List<ProjectEncounterTable>? encounterTables}) {
   return ProjectManifest(
     name: 'BETA-ENC-001 fixture',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     encounterTables:
@@ -460,7 +460,7 @@ MapData _map({List<MapGameplayZone>? zones}) {
   return MapData(
     id: 'encounter_contract_map',
     name: 'Encounter contract map',
-    version: ProjectVersion.v6,
+    version: ProjectVersion.v8,
     size: const GridSize(width: 12, height: 12),
     gameplayZones:
         zones ??

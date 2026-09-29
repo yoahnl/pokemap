@@ -6,6 +6,22 @@ part of 'geometry.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_PixelOffset _$PixelOffsetFromJson(Map<String, dynamic> json) => _PixelOffset(
+  x: _pixelIntegerFromJson(json['x']),
+  y: _pixelIntegerFromJson(json['y']),
+);
+
+Map<String, dynamic> _$PixelOffsetToJson(_PixelOffset instance) =>
+    <String, dynamic>{'x': instance.x, 'y': instance.y};
+
+_PixelSize _$PixelSizeFromJson(Map<String, dynamic> json) => _PixelSize(
+  width: _pixelIntegerFromJson(json['width']),
+  height: _pixelIntegerFromJson(json['height']),
+);
+
+Map<String, dynamic> _$PixelSizeToJson(_PixelSize instance) =>
+    <String, dynamic>{'width': instance.width, 'height': instance.height};
+
 _GridPos _$GridPosFromJson(Map<String, dynamic> json) =>
     _GridPos(x: (json['x'] as num).toInt(), y: (json['y'] as num).toInt());
 

@@ -22,10 +22,10 @@ final class NarrativeEventAuthoringSession {
     required this.sourceIndexFingerprint,
     required this.totalMapBytes,
     required this.context,
-  })  : maps = List.unmodifiable(maps),
-        mapManifestPaths = Map.unmodifiable(mapManifestPaths),
-        mapPaths = Map.unmodifiable(mapPaths),
-        mapByteHashes = Map.unmodifiable(mapByteHashes);
+  }) : maps = List.unmodifiable(maps),
+       mapManifestPaths = Map.unmodifiable(mapManifestPaths),
+       mapPaths = Map.unmodifiable(mapPaths),
+       mapByteHashes = Map.unmodifiable(mapByteHashes);
 
   static Future<NarrativeEventAuthoringSession> prepare(
     String projectPath,
@@ -65,10 +65,9 @@ final class NarrativeEventAuthoringSession {
             'Le chemin de la map ${entry.id} doit rester relatif au projet.',
           );
         }
-        final candidate = File(p.normalize(p.join(
-          projectRoot,
-          entry.relativePath,
-        )));
+        final candidate = File(
+          p.normalize(p.join(projectRoot, entry.relativePath)),
+        );
         if (!await candidate.exists()) {
           throw NarrativeEventAuthoringSessionException(
             'La map ${entry.id} est introuvable.',
@@ -86,6 +85,7 @@ final class NarrativeEventAuthoringSession {
         final map = decodeValidatedNarrativeEventAuthoringMap(
           mapBytes,
           canonicalMapPath,
+          project: manifest,
         );
         if (map.id != entry.id) {
           throw NarrativeEventAuthoringSessionException(
@@ -198,7 +198,7 @@ final class ValidatedNarrativeEventAuthoringProject {
 }
 
 ValidatedNarrativeEventAuthoringProject
-    decodeValidatedNarrativeEventAuthoringProject(List<int> bytes) {
+decodeValidatedNarrativeEventAuthoringProject(List<int> bytes) {
   final preflight = preflightProjectManifestJson(bytes);
   if (!preflight.writable) {
     throw NarrativeEventAuthoringSessionException(
@@ -236,7 +236,17 @@ MapData decodeValidatedNarrativeEventAuthoringMap(
   List<int> bytes,
   String path, {
   void Function(MapData map)? validateMap,
-}) => decodeValidatedMapDocument(bytes, path, validateMap: validateMap);
+  ProjectManifest? project,
+}) => decodeValidatedMapDocument(
+  bytes,
+  path,
+  validateMap:
+      validateMap ??
+      (project == null
+          ? null
+          : (map) =>
+                MapValidator.validate(map, projectDialogueContext: project)),
+);
 
 ProjectManifest normalizeLoadedProjectManifest(ProjectManifest manifest) {
   return manifest.copyWith(
@@ -277,29 +287,34 @@ int _collisionProfileTileSize(
 
 String _sourceIndexFingerprint(NarrativeEventSourceIndexBuildResult value) {
   final sources = value.index.sources.toList()
-    ..sort((left, right) => canonicalizeNarrativeEventJson(left.toJson())
-        .compareTo(canonicalizeNarrativeEventJson(right.toJson())));
-  return narrativeEventBytesFingerprint(canonicalizeNarrativeEventJsonUtf8({
-    'sources': [
-      for (final source in sources)
-        {
-          'source': source.toJson(),
-          'records': [
-            for (final record in value.index.recordsFor(source))
-              record.toJson(),
-          ],
-        },
-    ],
-    'conflicts': [
-      for (final conflict in value.conflicts)
-        {
-          'source': conflict.source.toJson(),
-          'priority': conflict.priority,
-          'order': conflict.order,
-          'eventIds': [for (final record in conflict.records) record.id],
-        },
-    ],
-  }));
+    ..sort(
+      (left, right) => canonicalizeNarrativeEventJson(
+        left.toJson(),
+      ).compareTo(canonicalizeNarrativeEventJson(right.toJson())),
+    );
+  return narrativeEventBytesFingerprint(
+    canonicalizeNarrativeEventJsonUtf8({
+      'sources': [
+        for (final source in sources)
+          {
+            'source': source.toJson(),
+            'records': [
+              for (final record in value.index.recordsFor(source))
+                record.toJson(),
+            ],
+          },
+      ],
+      'conflicts': [
+        for (final conflict in value.conflicts)
+          {
+            'source': conflict.source.toJson(),
+            'priority': conflict.priority,
+            'order': conflict.order,
+            'eventIds': [for (final record in conflict.records) record.id],
+          },
+      ],
+    }),
+  );
 }
 
 bool _stringMapsEqual(Map<String, String> left, Map<String, String> right) {

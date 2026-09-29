@@ -716,7 +716,7 @@ final class _Fixture {
 MapData _map({required String name}) => MapData(
       id: 'alpha',
       name: name,
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       size: const GridSize(width: 1, height: 1),
       layers: const <MapLayer>[
         TileLayer(
@@ -744,6 +744,6 @@ MapData _visualStackMap({
   required MapVisualStackConfig visualStack,
 }) =>
     _map(name: name).copyWith(
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       visualStack: visualStack,
     );

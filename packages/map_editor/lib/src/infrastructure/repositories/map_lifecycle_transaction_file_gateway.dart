@@ -272,11 +272,13 @@ final class MapLifecycleTransactionFileGateway
     MapData map,
     String path, {
     required MapDocumentWritePrecondition precondition,
+    ProjectManifest? projectDialogueContext,
   }) {
     return _mapRepository.saveMapDocument(
       map,
       path,
       precondition: precondition,
+      projectDialogueContext: projectDialogueContext,
     );
   }
 

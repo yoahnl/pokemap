@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'editor_static_shadow_preview.dart';
 
 List<EditorStaticShadowPreviewInstruction>
-    buildEditorProjectedBuildingShadowPreviewInstructions({
+buildEditorProjectedBuildingShadowPreviewInstructions({
   required ProjectManifest manifest,
   required MapData map,
   required double tileWidth,
@@ -58,32 +58,98 @@ List<EditorStaticShadowPreviewInstruction>
     if (source.width <= 0 || source.height <= 0) {
       continue;
     }
-    final transform = QuarterTurnGridTransform(
-      sourceSize: GridSize(width: source.width, height: source.height),
-      quarterTurns: placed.quarterTurns,
+    final target = resolveMapPlacedElementGeometry(
+      instance: placed,
+      element: element,
+      tileSize: PixelSize(
+        width: manifest.settings.tileWidth,
+        height: manifest.settings.tileHeight,
+      ),
     );
 
     final geometry = resolveProjectedBuildingShadowGeometry(
       config: config,
       preset: preset,
       metrics: StaticShadowVisualMetrics(
-        left: placed.pos.x * tileWidth,
-        top: placed.pos.y * tileHeight,
-        // Rotation changes the caster footprint, not the preset's world-space
-        // projection direction.
-        visualWidth: transform.destinationSize.width * tileWidth,
-        visualHeight: transform.destinationSize.height * tileHeight,
+        left: 0,
+        top: 0,
+        visualWidth: source.width * tileWidth,
+        visualHeight: source.height * tileHeight,
       ),
     );
     if (geometry == null) {
       continue;
     }
 
-    final points = geometry.points
-        .map((point) => EditorStaticShadowPreviewPoint(
-              x: point.x,
-              y: point.y,
-            ))
+    final scaleX = tileWidth / manifest.settings.tileWidth;
+    final scaleY = tileHeight / manifest.settings.tileHeight;
+    final width = target.pixelSize.width * scaleX;
+    final height = target.pixelSize.height * scaleY;
+    final direction = preset.direction.normalized;
+    final length =
+        preset.geometryMode == ProjectedBuildingShadowGeometryMode.directional
+        ? source.height * tileHeight * preset.shape.lengthRatio
+        : 0.0;
+    final transformedPoints = <ProjectedBuildingShadowPoint>[];
+    if (preset.geometryMode ==
+        ProjectedBuildingShadowGeometryMode.directional) {
+      final u =
+          config.anchor.xRatio +
+          config.localOffset.x / (source.width * tileWidth);
+      final v =
+          config.anchor.yRatio +
+          config.localOffset.y / (source.height * tileHeight);
+      final (x, y) = switch (placed.quarterTurns) {
+        0 => (u, v),
+        1 => (1 - v, u),
+        2 => (1 - u, 1 - v),
+        _ => (v, 1 - u),
+      };
+      final anchorX = target.logicalRect.leftPx * scaleX + x * width;
+      final anchorY = target.logicalRect.topPx * scaleY + y * height;
+      final near = width * preset.shape.nearWidthRatio / 2;
+      final far = width * preset.shape.farWidthRatio / 2;
+      transformedPoints.addAll([
+        ProjectedBuildingShadowPoint(
+          x: anchorX + direction.y * near,
+          y: anchorY - direction.x * near,
+        ),
+        ProjectedBuildingShadowPoint(
+          x: anchorX - direction.y * near,
+          y: anchorY + direction.x * near,
+        ),
+        ProjectedBuildingShadowPoint(
+          x: anchorX + direction.x * length - direction.y * far,
+          y: anchorY + direction.y * length + direction.x * far,
+        ),
+        ProjectedBuildingShadowPoint(
+          x: anchorX + direction.x * length + direction.y * far,
+          y: anchorY + direction.y * length - direction.x * far,
+        ),
+      ]);
+    } else {
+      for (var i = 0; i < geometry.points.length; i++) {
+        final point = geometry.points[i];
+        final dx = i >= 2 ? direction.x * length : 0.0;
+        final dy = i >= 2 ? direction.y * length : 0.0;
+        final u = (point.x - dx) / (source.width * tileWidth);
+        final v = (point.y - dy) / (source.height * tileHeight);
+        final (x, y) = switch (placed.quarterTurns) {
+          0 => (u, v),
+          1 => (1 - v, u),
+          2 => (1 - u, 1 - v),
+          _ => (v, 1 - u),
+        };
+        transformedPoints.add(
+          ProjectedBuildingShadowPoint(
+            x: target.logicalRect.leftPx * scaleX + x * width + dx,
+            y: target.logicalRect.topPx * scaleY + y * height + dy,
+          ),
+        );
+      }
+    }
+    final points = transformedPoints
+        .map((point) => EditorStaticShadowPreviewPoint(x: point.x, y: point.y))
         .toList(growable: false);
     final bounds = _boundsFromEditorPreviewPoints(points);
     if (viewport != null &&

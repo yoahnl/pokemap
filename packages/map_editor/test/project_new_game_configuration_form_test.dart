@@ -275,7 +275,7 @@ Future<void> _pumpForm(
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Selbrume',
-    version: ProjectVersion.v7,
+    version: ProjectVersion.v8,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map_start',

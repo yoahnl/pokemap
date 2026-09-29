@@ -57,13 +57,13 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       const omittedLegacy = MapData(
         id: 'legacy',
         name: 'Legacy',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -104,13 +104,13 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       const extra = MapData(
         id: 'extra',
         name: 'Extra',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -144,7 +144,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -175,7 +175,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -211,7 +211,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 0, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -245,7 +245,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2147483648, height: 2147483648),
       );
       final manifest = _manifestWithMaterials(
@@ -281,7 +281,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 3),
       );
       final manifest = _manifestWithMaterials(
@@ -323,7 +323,7 @@ void main() {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
       );
       final manifest = _manifestWithMaterials(
@@ -347,10 +347,10 @@ void main() {
       final success = result as SmartTileLayerCreationSuccess;
       final layer = success.map.layers.single as SmartTileLayer;
       expect(sourceMap.layers, isEmpty);
-      expect(sourceMap.version, ProjectVersion.v6);
-      expect(manifest.version, ProjectVersion.v6);
-      expect(success.map.version, ProjectVersion.v6);
-      expect(success.manifest.version, ProjectVersion.v6);
+      expect(sourceMap.version, ProjectVersion.v8);
+      expect(manifest.version, ProjectVersion.v8);
+      expect(success.map.version, ProjectVersion.v8);
+      expect(success.manifest.version, ProjectVersion.v8);
       expect(success.manifest.smartTileCatalog.presets, contains(preset));
       expect(
         success.manifest.smartTileCatalog.drafts,
@@ -368,11 +368,11 @@ void main() {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 2, height: 2),
       );
       final manifest = _manifestWithMaterials().copyWith(
-        version: ProjectVersion.v7,
+        version: ProjectVersion.v8,
       );
 
       final result = planNativeSmartTileLayerCreation(
@@ -392,20 +392,20 @@ void main() {
             : null,
       );
       final success = result as SmartTileLayerCreationSuccess;
-      expect(success.manifest.version, ProjectVersion.v7);
-      expect(success.map.version, ProjectVersion.v6);
+      expect(success.manifest.version, ProjectVersion.v8);
+      expect(success.map.version, ProjectVersion.v8);
     });
 
     test('rejects a projected catalog with missing material definitions', () {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       const manifest = ProjectManifest(
         name: 'Project',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
             id: 'target',
@@ -438,7 +438,7 @@ void main() {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials();
@@ -476,7 +476,7 @@ void main() {
       final existing = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v8,
         size: const GridSize(width: 1, height: 1),
         layers: const <MapLayer>[
           MapLayer.smartTile(
@@ -522,7 +522,7 @@ void main() {
           const map = MapData(
             id: 'target',
             name: 'Target',
-            version: ProjectVersion.v6,
+            version: ProjectVersion.v8,
             size: GridSize(width: 2, height: 2),
           );
           final manifest = _manifestWithMaterials();
@@ -607,7 +607,7 @@ ProjectManifest _manifestWithMaterials({
 }) =>
     ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v8,
       maps: maps,
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(

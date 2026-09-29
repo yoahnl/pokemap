@@ -1,3 +1,4 @@
+import '../collision/pixel_rect.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -22,24 +23,80 @@ List<MapPlacedElement> mapPlacedElementsAt(
   ProjectManifest manifest,
   GridPos position, {
   String? layerId,
+}) => _mapPlacedElementsIntersecting(
+  map,
+  manifest,
+  PixelRect(
+    leftPx: position.x * manifest.settings.tileWidth,
+    topPx: position.y * manifest.settings.tileHeight,
+    widthPx: manifest.settings.tileWidth,
+    heightPx: manifest.settings.tileHeight,
+  ),
+  layerId: layerId,
+);
+
+List<MapPlacedElement> mapPlacedElementsAtPixel(
+  MapData map,
+  ProjectManifest manifest,
+  PixelPosition position, {
+  String? layerId,
+}) => _mapPlacedElementsIntersecting(
+  map,
+  manifest,
+  PixelRect(
+    leftPx: position.leftPx,
+    topPx: position.topPx,
+    widthPx: 1,
+    heightPx: 1,
+  ),
+  layerId: layerId,
+);
+
+List<MapPlacedElement> _mapPlacedElementsIntersecting(
+  MapData map,
+  ProjectManifest manifest,
+  PixelRect selection, {
+  String? layerId,
 }) {
+  final tileSize = PixelSize(
+    width: manifest.settings.tileWidth,
+    height: manifest.settings.tileHeight,
+  );
   final elements = {
     for (final element in manifest.elements) element.id: element,
   };
+  final sources = {
+    for (final tileset in manifest.tilesets) tileset.id: tileset.source,
+  };
+  final hitRects = <String, PixelRect>{};
   final hits = sortMapPlacedElementsForPainting(
     map.placedElements.where((instance) {
       if (instance.opacity <= 0) return false;
       if (layerId != null && instance.layerId != layerId) return false;
       final element = elements[instance.elementId];
       if (element == null || element.frames.isEmpty) return false;
-      final size = resolveMapPlacedElementFootprint(
+      final geometry = resolveMapPlacedElementGeometry(
         instance: instance,
         element: element,
-      ).destinationSize;
-      return position.x >= instance.pos.x &&
-          position.y >= instance.pos.y &&
-          position.x < instance.pos.x + size.width &&
-          position.y < instance.pos.y + size.height;
+        tileSize: tileSize,
+      );
+      for (final frame in element.frames) {
+        final tilesetId = frame.tilesetId.trim().isEmpty
+            ? element.tilesetId.trim()
+            : frame.tilesetId.trim();
+        final rect = resolveMapPlacedElementVisualRect(
+          geometry: geometry,
+          tilesetSource: sources[tilesetId],
+        );
+        if (selection.leftPx < rect.leftPx + rect.widthPx &&
+            selection.topPx < rect.topPx + rect.heightPx &&
+            selection.leftPx + selection.widthPx > rect.leftPx &&
+            selection.topPx + selection.heightPx > rect.topPx) {
+          hitRects[instance.id] = rect;
+          return true;
+        }
+      }
+      return false;
     }),
   );
   if (layerId != null) return hits;
@@ -78,9 +135,27 @@ List<MapPlacedElement> mapPlacedElementsAt(
       instance: hit,
       element: element,
     );
-    final source = transform.destinationToSource(
-      GridPos(x: position.x - hit.pos.x, y: position.y - hit.pos.y),
-    );
+    final rect = hitRects[hit.id]!;
+    final source =
+        QuarterTurnPixelTransform(
+          sourcePixelSize: transform.sourceSize,
+          destinationPixelSize: GridSize(
+            width: rect.widthPx,
+            height: rect.heightPx,
+          ),
+          quarterTurns: hit.quarterTurns,
+        ).destinationPixelToSourcePixel(
+          GridPos(
+            x: (selection.leftPx + selection.widthPx ~/ 2 - rect.leftPx).clamp(
+              0,
+              rect.widthPx - 1,
+            ),
+            y: (selection.topPx + selection.heightPx ~/ 2 - rect.topPx).clamp(
+              0,
+              rect.heightPx - 1,
+            ),
+          ),
+        );
     final covered = hits
         .skip(index + 1)
         .any((candidate) => candidate.layerId == hit.layerId);
@@ -103,7 +178,13 @@ MapData moveMapPlacedElementVisualOrder(
   required String instanceId,
   required bool forward,
   GridPos? at,
+  PixelPosition? atPixel,
 }) {
+  if (at != null && atPixel != null) {
+    throw const ValidationException(
+      'Provide one visual-order selection position',
+    );
+  }
   final source = map.placedElements
       .where((e) => e.id == instanceId)
       .firstOrNull;
@@ -127,24 +208,49 @@ MapData moveMapPlacedElementVisualOrder(
           element.frames.isNotEmpty;
     }),
   );
-  final localIds = at == null
-      ? candidates
-            .where(
-              (candidate) => _overlaps(
-                source,
-                sourceElement,
-                candidate,
-                elements[candidate.elementId]!,
+  final Set<String> localIds;
+  if (at == null && atPixel == null) {
+    final tilesetSources = {
+      for (final tileset in manifest.tilesets) tileset.id: tileset.source,
+    };
+    final sourceBounds = resolveMapPlacedElementVisualBounds(
+      instance: source,
+      element: sourceElement,
+      manifest: manifest,
+      tilesetSources: tilesetSources,
+    );
+    localIds = {
+      for (final candidate in candidates)
+        if (candidate.id == source.id ||
+            _overlaps(
+              sourceBounds,
+              resolveMapPlacedElementVisualBounds(
+                instance: candidate,
+                element: elements[candidate.elementId]!,
+                manifest: manifest,
+                tilesetSources: tilesetSources,
               ),
-            )
+            ))
+          candidate.id,
+    };
+  } else {
+    localIds =
+        (atPixel == null
+                ? mapPlacedElementsAt(
+                    map,
+                    manifest,
+                    at!,
+                    layerId: source.layerId,
+                  )
+                : mapPlacedElementsAtPixel(
+                    map,
+                    manifest,
+                    atPixel,
+                    layerId: source.layerId,
+                  ))
             .map((e) => e.id)
-            .toSet()
-      : mapPlacedElementsAt(
-          map,
-          manifest,
-          at,
-          layerId: source.layerId,
-        ).map((e) => e.id).toSet();
+            .toSet();
+  }
   if (!localIds.contains(source.id)) return map;
   final local = candidates.where((e) => localIds.contains(e.id)).toList();
   final index = local.indexWhere((e) => e.id == source.id);
@@ -201,22 +307,9 @@ bool mapTileLayerIsExplicitForeground(MapLayer layer) {
   return false;
 }
 
-bool _overlaps(
-  MapPlacedElement a,
-  ProjectElementEntry aElement,
-  MapPlacedElement b,
-  ProjectElementEntry bElement,
-) {
-  final aSize = resolveMapPlacedElementFootprint(
-    instance: a,
-    element: aElement,
-  ).destinationSize;
-  final bSize = resolveMapPlacedElementFootprint(
-    instance: b,
-    element: bElement,
-  ).destinationSize;
-  return a.pos.x < b.pos.x + bSize.width &&
-      b.pos.x < a.pos.x + aSize.width &&
-      a.pos.y < b.pos.y + bSize.height &&
-      b.pos.y < a.pos.y + aSize.height;
+bool _overlaps(PixelRect aRect, PixelRect bRect) {
+  return aRect.leftPx < bRect.leftPx + bRect.widthPx &&
+      bRect.leftPx < aRect.leftPx + aRect.widthPx &&
+      aRect.topPx < bRect.topPx + bRect.heightPx &&
+      bRect.topPx < aRect.topPx + aRect.heightPx;
 }
