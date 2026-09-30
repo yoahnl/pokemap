@@ -33,7 +33,6 @@ class _ProjectCreationDialogState extends State<ProjectCreationDialog> {
   void initState() {
     super.initState();
     controller.addListener(_refresh);
-    controller.loadPreview();
   }
 
   void _refresh() {

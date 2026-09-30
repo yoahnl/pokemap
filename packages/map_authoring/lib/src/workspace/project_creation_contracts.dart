@@ -1,9 +1,10 @@
 import 'package:map_core/map_core_domain.dart';
 
-enum ProjectCreationTemplate { empty, playable }
+enum ProjectCreationTemplate { empty, playable, clairbois }
 
 enum ProjectCreationPhase {
   validating,
+  downloading,
   preparing,
   writing,
   verifying,
@@ -59,6 +60,11 @@ final class ProjectCreationRequest {
   }
 
   void validateGeometry() {
+    if (template == ProjectCreationTemplate.clairbois &&
+        (tileSize != 32 || mapWidth != 32 || mapHeight != 26)) {
+      throw const FormatException(
+          'Clairbois utilise une grille de 32 × 32 pixels et une carte de 32 × 26 cases.');
+    }
     if (!const [16, 32, 48].contains(tileSize)) {
       throw const FormatException('La grille doit être 16, 32 ou 48 pixels.');
     }

@@ -12,6 +12,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/project_creation_workspace_fixture.dart';
+import '../support/clairbois_template_fixture.dart';
 
 void main() {
   Future<ProjectCreationWorkspaceFixture> fixture(WidgetTester tester) async {
@@ -56,7 +57,7 @@ void main() {
     expect(host.maps.dirty, isFalse);
     await tester.tap(find.text('Accueil'));
     await pumpIo(tester, frames: 12);
-    await host.submitCreation(16, name: 'Projet B');
+    await host.submitCreation(32, name: 'Projet B');
     expect(find.text('Conserver vos modifications ?'), findsOneWidget);
     await tester.tap(
       find.descendant(
@@ -119,6 +120,7 @@ void main() {
       final release = Zone.root.run(() => Completer<void>());
       final service = _ObservedCreationPort(
         LocalProjectCreationService(
+          clairbois: offlineClairbois,
           checkpoint: (point, _) async {
             if (point == ProjectCreationCheckpoint.beforeReservation) {
               reached.complete();
@@ -133,7 +135,7 @@ void main() {
       addTearDown(() {
         if (!release.isCompleted) release.complete();
       });
-      await host.submitCreation(48, name: 'Ancienne création', confirm: false);
+      await host.submitCreation(32, name: 'Ancienne création', confirm: false);
       await tester.runAsync(() async {
         await tester.tap(find.byKey(const ValueKey('create-project-confirm')));
         await reached.future;

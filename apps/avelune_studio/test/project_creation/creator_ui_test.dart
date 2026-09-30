@@ -81,6 +81,7 @@ void main() {
           await fixture.next();
           await tester.pumpAndSettle();
           await captureM3Widget(tester, key, 'model-$label');
+          await tester.tap(find.text('Projet vide'));
           await fixture.next();
           await tester.tap(find.byKey(const ValueKey('creation-grid-48')));
           await pumpIo(tester, frames: 6);

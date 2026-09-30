@@ -107,7 +107,13 @@ void main() {
               handles: WorkspaceHandleStore())
           .openProject(source);
       expect(opened.projectName, manifest.name);
-      expect(phases, ProjectCreationPhase.values);
+      expect(phases, const [
+        ProjectCreationPhase.validating,
+        ProjectCreationPhase.preparing,
+        ProjectCreationPhase.writing,
+        ProjectCreationPhase.verifying,
+        ProjectCreationPhase.completed,
+      ]);
     });
 
     test('empty $tileSize is authoring-only with persisted future map defaults',

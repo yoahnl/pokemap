@@ -10,7 +10,7 @@ const requestSchema = z.object({
   name: z.string().min(1),
   folderName: z.string().min(1),
   parentPath: z.string().min(1).refine(isAbsolute, "parentPath must be absolute"),
-  template: z.enum(["empty", "playable"]).optional(),
+  template: z.enum(["empty", "playable", "clairbois"]).optional(),
   tileSize: z.union([z.literal(16), z.literal(32), z.literal(48)]).optional(),
   mapWidth: z.number().int().min(3).max(256).optional(),
   mapHeight: z.number().int().min(3).max(256).optional(),
@@ -22,7 +22,7 @@ export function registerProjectCreationTools(
 ): void {
   server.registerTool("pokemap_project_create_preview", {
     title: "Preview a new Avelune project",
-    description: "Preview a new empty or playable project under a configured parent root. Writes nothing; returns an opaque confirmation bound to this exact request and destination.",
+    description: "Preview a new empty, built-in playable, or GitHub Clairbois 32x32 project under a configured parent root. Writes nothing; returns an opaque confirmation bound to this exact request and destination.",
     inputSchema: z.object({ request: requestSchema }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: {
@@ -46,7 +46,7 @@ export function registerProjectCreationTools(
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
     },
   }, async ({ request, confirmation }) => authoringResult(() =>
     authoring.request("project_create", { request, confirmation })));

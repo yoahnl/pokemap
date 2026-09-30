@@ -43,6 +43,12 @@ test("real MCP/JSONL bootstrap previews, confirms, creates and independently ope
     const commands = catalog.commands as JsonRecord[];
     assert.ok(commands.some((item) => item.id === "project_create_preview"));
     assert.ok(commands.some((item) => item.id === "project_create" && item.undoable === false));
+    const clairbois = await call("pokemap_project_create_preview", {
+      request: { name: "Clairbois MCP", folderName: "clairbois", parentPath: root, template: "clairbois" },
+    });
+    assert.equal(record(clairbois.request).tileSize, 32);
+    assert.ok((clairbois.writes as string[]).includes("maps/maison.json"));
+    assert.deepEqual(await readdir(root), []);
     for (const tileSize of [16, 32, 48]) {
       const request = { name: "Projet MCP", folderName: `game-${tileSize}`, parentPath: root,
         template: "playable", tileSize, mapWidth: 24, mapHeight: 18 };

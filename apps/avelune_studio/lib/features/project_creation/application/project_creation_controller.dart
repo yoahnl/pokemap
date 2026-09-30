@@ -6,9 +6,11 @@ class ProjectCreationController {
   final ProjectCreationPort port;
   final Set<void Function()> _listeners = {};
   String name = '', folderName = '', parentPath = '';
-  String width = '20', height = '15';
-  int step = 0, tileSize = 16;
-  ProjectCreationTemplate template = ProjectCreationTemplate.playable;
+  String width = '32', height = '26';
+  int step = 0, tileSize = 32;
+  ProjectCreationTemplate template = ProjectCreationTemplate.clairbois;
+  (int, String, String) _emptyGeometry = (16, '20', '15');
+  String? _previewKey;
   ProjectCreationPhase? phase;
   final completed = <ProjectCreationPhase>{};
   String? error, destination;
@@ -23,17 +25,22 @@ class ProjectCreationController {
   bool previewLoading = false;
 
   Future<void> loadPreview() async {
+    final key = '${template.name}:$tileSize:$width:$height';
+    if (_previewKey == key && previewBytes != null) return;
     final generation = ++_previewGeneration;
     previewLoading = true;
     previewError = null;
     _notify();
     try {
       final bytes = await port.preview(request);
-      if (!_disposed && generation == _previewGeneration) previewBytes = bytes;
-    } catch (_) {
+      if (!_disposed && generation == _previewGeneration) {
+        previewBytes = bytes;
+        _previewKey = key;
+      }
+    } catch (problem) {
       if (!_disposed && generation == _previewGeneration) {
         previewBytes = null;
-        previewError = 'Aperçu indisponible pour ces dimensions.';
+        previewError = 'Aperçu indisponible. ${_message(problem)}';
       }
     } finally {
       if (!_disposed && generation == _previewGeneration) {
@@ -47,6 +54,22 @@ class ProjectCreationController {
     change(edit);
     unawaited(loadPreview());
   }
+
+  void setTemplate(ProjectCreationTemplate value) => changePreview(() {
+    if (template == ProjectCreationTemplate.empty) {
+      _emptyGeometry = (tileSize, width, height);
+    }
+    template = value;
+    if (value == ProjectCreationTemplate.clairbois) {
+      tileSize = 32;
+      width = '32';
+      height = '26';
+    } else if (value == ProjectCreationTemplate.empty) {
+      tileSize = _emptyGeometry.$1;
+      width = _emptyGeometry.$2;
+      height = _emptyGeometry.$3;
+    }
+  });
 
   bool get canCancel =>
       running &&
@@ -104,7 +127,7 @@ class ProjectCreationController {
       error = null;
       errorField = null;
       _notify();
-      unawaited(loadPreview());
+      if (step == 1) unawaited(loadPreview());
       return true;
     } catch (problem) {
       error = _message(problem);

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
+import '../support/clairbois_template_fixture.dart';
 
 void main() {
   late Directory parent;
@@ -14,8 +15,67 @@ void main() {
   });
   ProjectCreationController configured(ProjectCreationPort port) =>
       ProjectCreationController(port)
+        ..template = ProjectCreationTemplate.playable
+        ..tileSize = 16
+        ..width = '20'
+        ..height = '15'
         ..setName('Mon aventure')
         ..change(() {});
+
+  test(
+    'Clairbois fixes its grid and preserves the empty project settings',
+    () async {
+      final state = ProjectCreationController(
+        const LocalProjectCreationService(clairbois: offlineClairbois),
+      );
+      state.setTemplate(ProjectCreationTemplate.empty);
+      state.change(() {
+        state.tileSize = 48;
+        state.width = '24';
+        state.height = '18';
+      });
+      state.setTemplate(ProjectCreationTemplate.clairbois);
+      expect((state.tileSize, state.width, state.height), (32, '32', '26'));
+      state.setTemplate(ProjectCreationTemplate.empty);
+      expect((state.tileSize, state.width, state.height), (48, '24', '18'));
+      await state.loadPreview();
+      state.dispose();
+    },
+  );
+
+  test(
+    'cancel during download keeps the operation guarded until cleanup',
+    () async {
+      final reached = Completer<void>();
+      final release = Completer<void>();
+      final state = ProjectCreationController(
+        LocalProjectCreationService(
+          clairbois: ClairboisProjectTemplate(
+            read: (uri) async {
+              reached.complete();
+              await release.future;
+              return readClairboisFixture(uri);
+            },
+          ),
+        ),
+      )..setName('Copie annulée');
+      state.parentPath = parent.path;
+      final pending = state.create();
+      await reached.future;
+      expect(state.phase, ProjectCreationPhase.downloading);
+      expect(state.canCancel, isTrue);
+      state.cancel();
+      expect(state.canClose, isFalse);
+      expect(await state.create(), isNull);
+      expect(parent.listSync(), isEmpty);
+      release.complete();
+      expect(await pending, isNull);
+      expect(state.receipt, isNull);
+      expect(state.canClose, isTrue);
+      expect(parent.listSync(), isEmpty);
+      state.dispose();
+    },
+  );
 
   test(
     'folder suggestion stops after manual input; validation preserves invalid input',

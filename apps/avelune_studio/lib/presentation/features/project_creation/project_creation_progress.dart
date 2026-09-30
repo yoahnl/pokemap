@@ -24,36 +24,40 @@ class ProjectCreationProgress extends StatelessWidget {
         const SizedBox(height: 24),
         for (final entry in const {
           ProjectCreationPhase.validating: 'Vérification de la destination',
+          ProjectCreationPhase.downloading:
+              'Téléchargement de Clairbois depuis GitHub',
           ProjectCreationPhase.preparing:
               'Préparation du modèle et des ressources',
           ProjectCreationPhase.writing: 'Écriture du projet',
           ProjectCreationPhase.verifying: 'Validation et relecture du projet',
           ProjectCreationPhase.completed: 'Projet prêt à ouvrir',
         }.entries)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                if (state.phase == entry.key && state.running)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  Icon(
-                    state.completed.contains(entry.key) ||
-                            (entry.key == ProjectCreationPhase.completed &&
-                                state.receipt != null)
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    size: 20,
-                  ),
-                const SizedBox(width: 12),
-                Expanded(child: Text(entry.value)),
-              ],
+          if (entry.key != ProjectCreationPhase.downloading ||
+              state.template == ProjectCreationTemplate.clairbois)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  if (state.phase == entry.key && state.running)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Icon(
+                      state.completed.contains(entry.key) ||
+                              (entry.key == ProjectCreationPhase.completed &&
+                                  state.receipt != null)
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 20,
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(entry.value)),
+                ],
+              ),
             ),
-          ),
         if (state.receipt != null)
           SelectionArea(child: Text(state.receipt!.projectPath)),
         if (state.running && !state.canCancel)

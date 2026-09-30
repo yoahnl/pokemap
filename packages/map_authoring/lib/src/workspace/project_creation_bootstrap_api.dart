@@ -42,13 +42,22 @@ final class ProjectCreationBootstrapApi
       'replacesExisting': false,
       'writes': prepared.request.template == ProjectCreationTemplate.empty
           ? ['project.json']
-          : [
-              'project.json',
-              'maps/first-map.json',
-              'assets/starter.png',
-              'assets/.pokemap-assets.json',
-              'assets/.pokemap-store/<sha256>.blob'
-            ],
+          : prepared.request.template == ProjectCreationTemplate.clairbois
+              ? [
+                  'project.json',
+                  'maps/first-map.json',
+                  'maps/maison.json',
+                  'dialogues/bienvenue.yarn',
+                  'assets/**',
+                  'asset-provenance.json'
+                ]
+              : [
+                  'project.json',
+                  'maps/first-map.json',
+                  'assets/starter.png',
+                  'assets/.pokemap-assets.json',
+                  'assets/.pokemap-store/<sha256>.blob'
+                ],
       'guarantee':
           'Exclusive new directory; journaled file promotion, not atomic multi-file visibility. Creation is not undoable.',
     };
@@ -93,11 +102,15 @@ final class ProjectCreationBootstrapApi
       template: switch (wire['template']) {
         null || 'playable' => ProjectCreationTemplate.playable,
         'empty' => ProjectCreationTemplate.empty,
+        'clairbois' => ProjectCreationTemplate.clairbois,
         _ => throw const FormatException('Invalid project template.')
       },
-      tileSize: _integer(wire['tileSize'], 16),
-      mapWidth: _integer(wire['mapWidth'], 20),
-      mapHeight: _integer(wire['mapHeight'], 15),
+      tileSize:
+          _integer(wire['tileSize'], wire['template'] == 'clairbois' ? 32 : 16),
+      mapWidth:
+          _integer(wire['mapWidth'], wire['template'] == 'clairbois' ? 32 : 20),
+      mapHeight: _integer(
+          wire['mapHeight'], wire['template'] == 'clairbois' ? 26 : 15),
     );
     request.validate();
     final canonicalParent =

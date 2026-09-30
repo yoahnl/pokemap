@@ -24,6 +24,7 @@ import 'package:path/path.dart' as p;
 import 'm2_ui_fixture.dart' show WidgetResourcePort, pumpIo;
 import 'ui05_narrative_fixture.dart' show Ui05NarrativePort;
 import 'ui08_workspace_harness.dart' show Ui08MapPort;
+import 'clairbois_template_fixture.dart';
 
 class ProjectCreationWorkspaceFixture {
   ProjectCreationWorkspaceFixture(this.tester, this.parent, this.packageFile);
@@ -68,7 +69,8 @@ class ProjectCreationWorkspaceFixture {
           recentProjects: recents,
           creationPort: _CreationIo(
             tester,
-            creationPort ?? const LocalProjectCreationService(),
+            creationPort ??
+                const LocalProjectCreationService(clairbois: offlineClairbois),
             bridgeCreate,
           ),
           chooseCreationParent: () async => parent.path,

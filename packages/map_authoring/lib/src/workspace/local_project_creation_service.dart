@@ -10,15 +10,26 @@ import '../transactions/journaled_transaction.dart';
 import 'project_creation_contracts.dart';
 import 'project_creation_kit.dart';
 import 'project_creation_transaction.dart';
+import 'clairbois_project_template.dart';
+import 'clairbois_template_archive.dart';
 
 final class LocalProjectCreationService implements ProjectCreationPort {
-  const LocalProjectCreationService({this.checkpoint, this.faultInjector});
+  const LocalProjectCreationService({
+    this.checkpoint,
+    this.faultInjector,
+    this.clairbois = const ClairboisProjectTemplate(),
+  });
+  final ClairboisProjectTemplate clairbois;
   final Future<void> Function(ProjectCreationCheckpoint, String)? checkpoint;
   final AuthoringTransactionFaultInjector? faultInjector;
 
   @override
-  Future<List<int>?> preview(ProjectCreationRequest request) =>
-      Isolate.run(() => buildProjectCreationPreviewPng(request));
+  Future<List<int>?> preview(ProjectCreationRequest request) {
+    request.validateGeometry();
+    return request.template == ProjectCreationTemplate.clairbois
+        ? clairbois.preview()
+        : Isolate.run(() => buildProjectCreationPreviewPng(request));
+  }
 
   @override
   Future<String> validateDestination(ProjectCreationRequest request) async {
@@ -58,8 +69,18 @@ final class LocalProjectCreationService implements ProjectCreationPort {
             'La destination confirmée a changé. Préparez la création à nouveau.');
       }
       _requireActive(isCancelled);
+      if (request.template == ProjectCreationTemplate.clairbois) {
+        onPhase?.call(ProjectCreationPhase.downloading);
+      }
+      final downloaded = request.template == ProjectCreationTemplate.clairbois
+          ? await clairbois.download(isCancelled: isCancelled)
+          : null;
+      _requireActive(isCancelled);
       onPhase?.call(ProjectCreationPhase.preparing);
-      final kit = await Isolate.run(() => buildProjectCreationKit(request));
+      final kit = downloaded == null
+          ? await Isolate.run(() => buildProjectCreationKit(request))
+          : await Isolate.run(
+              () => prepareClairboisCreationKit(downloaded, request));
       _requireActive(isCancelled);
       await checkpoint?.call(
           ProjectCreationCheckpoint.beforeReservation, target);

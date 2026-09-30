@@ -95,7 +95,7 @@ void main() {
     document.stackPosition = const GridPos(x: 6, y: 5);
     owner.notify();
     await goHome(tester);
-    await fixture.submitCreation(48, name: 'Projet B');
+    await fixture.submitCreation(32, name: 'Projet B');
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('Conserver vos modifications ?'), findsOneWidget);
     await tester.tap(
@@ -127,10 +127,10 @@ void main() {
       () => independent.loadProject(independentlyOpened),
     ))!;
     expect(manifest.name, 'Projet B');
-    expect(manifest.settings.tileWidth, 48);
+    expect(manifest.settings.tileWidth, 32);
     expect(
       (await tester.runAsync(
-        () => independent.loadMap(independentlyOpened, manifest.maps.single),
+        () => independent.loadMap(independentlyOpened, manifest.maps.first),
       ))!.map.id,
       'first-map',
     );
@@ -174,7 +174,7 @@ void main() {
       document.commit(document.current.copyWith(name: 'Brouillon après refus'));
       owner.notify();
       await goHome(tester);
-      await fixture.submitCreation(16, name: 'Projet B');
+      await fixture.submitCreation(32, name: 'Projet B');
       expect(find.byType(AlertDialog), findsOneWidget);
       await tester.tap(
         find.descendant(

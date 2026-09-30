@@ -7,6 +7,7 @@ import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../theme/studio_tokens.dart';
 import 'project_creation_progress.dart';
+import 'project_creation_parameters.dart';
 
 class ProjectCreationSteps extends StatelessWidget {
   const ProjectCreationSteps({
@@ -20,7 +21,7 @@ class ProjectCreationSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = controller;
-    final playable = state.template == ProjectCreationTemplate.playable;
+    final playable = state.template != ProjectCreationTemplate.empty;
     Widget field(String label, String value, ValueChanged<String> changed) =>
         StudioDraftField(
           key: ValueKey(label),
@@ -78,16 +79,15 @@ class ProjectCreationSteps extends StatelessWidget {
                 description: description,
                 icon: icon,
                 selected: selected,
-                onPressed: () =>
-                    state.changePreview(() => state.template = template),
+                onPressed: () => state.setTemplate(template),
               );
               final cards = [
                 card(
                   playable,
-                  ProjectCreationTemplate.playable,
+                  ProjectCreationTemplate.clairbois,
                   'Petit projet jouable',
-                  'Une clairière, un sol, un personnage et un départ configuré.\n'
-                      'Ressources originales incluses. Prêt à explorer dans le Player.',
+                  'Clairbois : un village, de l’eau, des falaises et une maison à explorer.\n'
+                      'Copie téléchargée depuis GitHub à la création. Grille 32 × 32 · connexion requise.',
                   Icons.landscape_outlined,
                 ),
                 card(
@@ -116,110 +116,7 @@ class ProjectCreationSteps extends StatelessWidget {
           ),
         ],
       ),
-      2 => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          intro(
-            'Paramètres du projet',
-            'Configurez les bases de votre aventure.',
-          ),
-          const Text(
-            'Taille des cases',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Dimensions d’une case en pixels dans les cartes et les ressources du projet.',
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final size in [16, 32, 48])
-                SizedBox(
-                  width: 180,
-                  child: StudioChoiceCard(
-                    key: ValueKey('creation-grid-$size'),
-                    title: '$size × $size px',
-                    description: 'Pixels par case',
-                    icon: Icons.grid_4x4,
-                    selected: state.tileSize == size,
-                    onPressed: () =>
-                        state.changePreview(() => state.tileSize = size),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          StudioPanel(
-            compact: true,
-            title: 'Options',
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  playable ? Icons.check_circle : Icons.remove_circle_outline,
-                ),
-                title: const Text('Inclure un personnage de base'),
-                subtitle: Text(
-                  playable
-                      ? 'Inclus et requis pour ce modèle jouable.'
-                      : 'Aucun personnage ni point de départ dans le projet vide.',
-                ),
-              ),
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.lock_outline),
-                title: Text('Activer les Pokémon — indisponible'),
-                subtitle: Text(
-                  'L’amorçage des catalogues et d’une équipe valide n’est pas '
-                  'encore proposé par ce modèle. Exploration sans Pokémon.',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ExpansionTile(
-            key: const ValueKey('creation-map-settings'),
-            title: const Text('Réglages de la carte'),
-            initiallyExpanded: true,
-            children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    width: 220,
-                    child: field(
-                      'Largeur en cases',
-                      state.width,
-                      (value) => state.changePreview(() => state.width = value),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 220,
-                    child: field(
-                      'Hauteur en cases',
-                      state.height,
-                      (value) =>
-                          state.changePreview(() => state.height = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${playable ? 'Carte initiale' : 'Défauts des futures cartes'} : '
-                '${int.tryParse(state.width) ?? 0} × ${int.tryParse(state.height) ?? 0} cases · '
-                '${(int.tryParse(state.width) ?? 0) * state.tileSize} × '
-                '${(int.tryParse(state.height) ?? 0) * state.tileSize} px, hors zoom.',
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ],
-      ),
+      2 => ProjectCreationParameters(controller: state),
       3 => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
