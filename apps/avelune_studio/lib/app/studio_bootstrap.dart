@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:map_authoring/map_authoring_local.dart';
+import '../platform/files/native_project_creation_picker.dart';
 
 import '../features/game_export/data/studio_game_export_controller.dart';
 import '../features/pokemon/data/local_pokemon_workspace_adapter.dart';
@@ -44,6 +46,15 @@ class StudioBootstrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      projectCreationPortProvider.overrideWithValue(
+        const LocalProjectCreationService(),
+      ),
+      projectCreationPickerProvider.overrideWithValue(
+        const NativeProjectCreationPicker().choose,
+      ),
+      projectCreationReleaseProvider.overrideWithValue(
+        const NativeProjectCreationPicker().release,
+      ),
       if (debugSession != null)
         projectSessionControllerProvider.overrideWithValue(debugSession!),
       recentProjectsPortProvider.overrideWith((ref) => studioRecentProjects()),

@@ -8,11 +8,13 @@ class StudioDraftField extends StatefulWidget {
     required this.label,
     this.lines = 1,
     this.enabled = true,
+    this.errorText,
   });
   final String value, label;
   final ValueChanged<String> onChanged;
   final int lines;
   final bool enabled;
+  final String? errorText;
   @override
   State<StudioDraftField> createState() => _StudioDraftFieldState();
 }
@@ -46,6 +48,9 @@ class _StudioDraftFieldState extends State<StudioDraftField> {
     enabled: widget.enabled,
     minLines: widget.lines,
     maxLines: widget.lines == 1 ? 1 : null,
-    decoration: InputDecoration(labelText: widget.label),
+    decoration: InputDecoration(
+      labelText: widget.label,
+      errorText: widget.errorText,
+    ),
   );
 }

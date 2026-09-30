@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
-import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'studio_home_hero.dart';
 import 'studio_home_all_maps.dart';
 import 'studio_home_projects.dart';
 import 'studio_home_tools.dart';
+import 'studio_home_guidance.dart';
 
 class StudioHomeScreen extends StatefulWidget {
   const StudioHomeScreen({
@@ -20,6 +20,7 @@ class StudioHomeScreen extends StatefulWidget {
     this.onResume,
     this.onExport,
     this.onClose,
+    this.onCreate,
     required this.onDestination,
     this.recentProjects = const [],
     required this.onRecent,
@@ -36,7 +37,7 @@ class StudioHomeScreen extends StatefulWidget {
   final String? projectName, projectPath;
   final bool busy, canTest;
   final VoidCallback onOpen;
-  final VoidCallback? onResume, onExport, onClose;
+  final VoidCallback? onResume, onExport, onClose, onCreate;
   final ValueChanged<String> onDestination, onMap;
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
@@ -101,66 +102,36 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         .where((map) => map.name.toLowerCase().contains(_query))
         .toList();
 
-    Widget guidance() => ExpansionTile(
-      title: const Text('Premiers pas'),
-      childrenPadding: const EdgeInsets.all(12),
-      children: [
-        Text(
-          widget.projectName == null
-              ? 'Ouvrez un projet existant pour retrouver vos cartes, vos ressources et votre histoire.'
-              : 'Reprenez une carte, enrichissez ses rencontres, puis testez le résultat dans le jeu.',
-        ),
-        for (final action in [
-          ('Préparer les ressources', 'resources'),
-          ('Composer une carte', 'map'),
-          ('Écrire une rencontre', 'story'),
-        ])
-          StudioButton(
-            label: action.$1,
-            variant: StudioButtonVariant.quiet,
-            icon: Icons.arrow_forward,
-            onPressed: widget.busy
-                ? null
-                : () => widget.onDestination(action.$2),
-          ),
-      ],
+    Widget guidance() => StudioHomeGuidance(
+      hasProject: widget.projectName != null,
+      busy: widget.busy,
+      onDestination: widget.onDestination,
     );
 
+    Widget recents({bool bounded = false}) => StudioHomeRecentProjects(
+      entries: recent,
+      onOpen: widget.onRecent,
+      onRemove: widget.onRemoveRecent,
+      busy: widget.busy,
+      onCreate: widget.onCreate,
+      bounded: bounded,
+    );
     Widget sidebar({required bool bounded}) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (bounded)
-          Expanded(
-            child: StudioHomeRecentProjects(
-              entries: recent,
-              onOpen: widget.onRecent,
-              onRemove: widget.onRemoveRecent,
-              busy: widget.busy,
-              bounded: true,
-            ),
-          )
+          Expanded(child: recents(bounded: true))
         else if (recent.isNotEmpty)
           SizedBox(
             height: (MediaQuery.sizeOf(context).height * .42).clamp(
               180.0,
               320.0,
             ),
-            child: StudioHomeRecentProjects(
-              entries: recent,
-              onOpen: widget.onRecent,
-              onRemove: widget.onRemoveRecent,
-              busy: widget.busy,
-              bounded: true,
-            ),
+            child: recents(bounded: true),
           )
         else
-          StudioHomeRecentProjects(
-            entries: recent,
-            onOpen: widget.onRecent,
-            onRemove: widget.onRemoveRecent,
-            busy: widget.busy,
-          ),
+          recents(),
         const SizedBox(height: 10),
         if (bounded)
           StudioPanel(compact: true, children: [guidance()])

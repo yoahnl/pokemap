@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:map_authoring/map_authoring_project_creation.dart';
 import '../../../features/home/application/recent_projects_controller.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../../features/project_session/application/project_session_controller.dart';
@@ -8,6 +9,7 @@ import '../../../features/project_session/domain/project_session.dart';
 import '../../shell/studio_home_navigation.dart';
 import '../home/studio_home_screen.dart';
 import 'project_open_controls.dart';
+import '../project_creation/project_creation_dialog.dart';
 
 class ProjectSessionScreen extends StatefulWidget {
   const ProjectSessionScreen({
@@ -16,10 +18,18 @@ class ProjectSessionScreen extends StatefulWidget {
     required this.chooseDirectory,
     required this.recentProjects,
     this.workspaceBuilder,
+    this.creationPort,
+    this.chooseCreationParent,
+    this.releaseCreationParent,
+    this.onCreatorVisibility,
   });
   final ProjectSessionController session;
   final RecentProjectsPort recentProjects;
   final Future<String?> Function() chooseDirectory;
+  final ProjectCreationPort? creationPort;
+  final Future<String?> Function()? chooseCreationParent;
+  final Future<void> Function()? releaseCreationParent;
+  final ValueChanged<bool>? onCreatorVisibility;
   final Widget Function(ProjectSession, Future<void> Function())?
   workspaceBuilder;
   @override
@@ -32,6 +42,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
   late final RecentProjectsController _recents;
   var _pickerGeneration = 0;
   var _picking = false;
+  var _creating = false;
   String? _pickerError;
   String? _sessionId;
 
@@ -121,6 +132,47 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     }
   }
 
+  Future<void> _createProject() async {
+    final port = widget.creationPort;
+    if (_creating || _picking || port == null) return;
+    final owner = widget.session;
+    final ownerProject = owner.state.project?.sessionId;
+    setState(() => _creating = true);
+    widget.onCreatorVisibility?.call(true);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ProjectCreationDialog(
+          port: port,
+          chooseParent: widget.chooseCreationParent ?? widget.chooseDirectory,
+          openCreated: (receipt) async {
+            if (!mounted ||
+                widget.session != owner ||
+                owner.state.project?.sessionId != ownerProject) {
+              return false;
+            }
+            _path.text = receipt.projectPath;
+            await _open(
+              destination: receipt.manifest.maps.isEmpty ? null : 'map',
+            );
+            return mounted &&
+                widget.session == owner &&
+                widget.session.state.project?.directoryPath ==
+                    receipt.projectPath;
+          },
+        ),
+      );
+    } finally {
+      try {
+        await widget.releaseCreationParent?.call();
+      } finally {
+        widget.onCreatorVisibility?.call(false);
+        if (mounted) setState(() => _creating = false);
+      }
+    }
+  }
+
   void _destination(String destination) {
     if (widget.session.state.project == null) {
       unawaited(_open(browse: true, destination: destination));
@@ -163,7 +215,8 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
   Widget build(BuildContext context) {
     final state = widget.session.state;
     final project = state.project;
-    final busy = _picking || state.status == ProjectSessionStatus.opening;
+    final busy =
+        _creating || _picking || state.status == ProjectSessionStatus.opening;
     final homeVisible =
         _home.visible || project == null || widget.workspaceBuilder == null;
     return StudioHomeScope(
@@ -197,6 +250,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                   projectName: project?.name,
                   projectPath: project?.directoryPath,
                   busy: busy,
+                  onCreate: widget.creationPort == null ? null : _createProject,
                   canTest: _home.canTest,
                   onOpen: () => _open(browse: true),
                   onResume: project == null ? null : _home.resume,

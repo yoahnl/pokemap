@@ -1,0 +1,68 @@
+00:00 +0: loading test/package_boundary_test.dart
+00:00 +0: map_authoring package boundary declares canonical ownership and the only allowed dependency
+00:00 +1: map_authoring package boundary contains no Flutter, Flame, editor, or runtime package imports
+00:00 +2: map_authoring package boundary pubspec keeps production dependencies within the approved set
+00:00 +2 -1: map_authoring package boundary pubspec keeps production dependencies within the approved set [E]
+  Expected: Set:['crypto', 'image', 'map_core', 'map_distribution', 'path', 'pub_semver']
+    Actual: Set:[
+              'freezed_annotation',
+              'crypto',
+              'image',
+              'map_core',
+              'map_distribution',
+              'path',
+              'pub_semver'
+            ]
+     Which: larger than expected
+
+  package:matcher                       expect
+  test/package_boundary_test.dart 72:7  main.<fn>.<fn>
+
+00:00 +2 -1: map_authoring package boundary keeps canonical cross-domain composition in the application layer
+00:00 +3 -1: map_authoring package boundary publishes focused API and local composition entry points
+00:00 +4 -1: map_authoring package boundary editor application adapters avoid the legacy umbrella barrel
+00:00 +5 -1: map_authoring package boundary keeps Environment generation internals outside the action adapter
+00:00 +5 -2: map_authoring package boundary keeps Environment generation internals outside the action adapter [E]
+  Expected: an object with length of a value less than <1300>
+    Actual: [
+              'import \'dart:convert\';',
+              '',
+              'import \'package:map_core/map_core.dart\';',
+              '',
+              'import \'../../contracts/action_descriptor.dart\';',
+              'import \'../../transactions/action_planner.dart\';',
+              'import \'../../transactions/authoring_plan.dart\';',
+              'import \'semantic_map_action_support.dart\';',
+              '',
+              'part \'environment_generation_support.dart\';',
+              '',
+              '/// Bounded map-space region used by deterministic Environment generation.',
+              'final class EnvironmentGenerationRegion {',
+              '  const EnvironmentGenerationRegion({',
+              '    required this.x,',
+              '    required this.y,',
+              '    required this.width,',
+              '    required this.height,',
+              '  });',
+              '',
+              '  final int x;',
+              '  final int y;',
+              '  final int width;',
+              '  final int height;',
+              ...
+            ]
+     Which: has length of <1304>
+
+  package:matcher                        expect
+  test/package_boundary_test.dart 162:7  main.<fn>.<fn>
+
+00:00 +5 -2: map_authoring package boundary keeps Tiled map validation outside the transaction adapter
+00:00 +6 -2: map_authoring package boundary keeps Smart Tile catalog validation outside the action adapter
+00:00 +7 -2: Some tests failed.
+
+Failing tests:
+  test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter
+  test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

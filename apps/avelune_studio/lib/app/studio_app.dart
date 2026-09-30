@@ -32,6 +32,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   late final AppLifecycleListener _lifecycle;
   Future<bool> Function()? _exitGuard;
   String? _guardSession;
+  bool _creatorVisible = false;
 
   @override
   void initState() {
@@ -53,6 +54,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   }
 
   Future<bool> _canRestartUpdate() async {
+    if (_creatorVisible) return false;
     return _exitGuard == null || await _exitGuard!();
   }
 
@@ -76,6 +78,10 @@ class _StudioAppState extends ConsumerState<StudioApp> {
         recentProjects: ref.watch(recentProjectsPortProvider),
         session: _session,
         chooseDirectory: ref.watch(projectDirectoryPickerProvider),
+        creationPort: ref.watch(projectCreationPortProvider),
+        chooseCreationParent: ref.watch(projectCreationPickerProvider),
+        releaseCreationParent: ref.watch(projectCreationReleaseProvider),
+        onCreatorVisibility: (visible) => _creatorVisible = visible,
         workspaceBuilder: widget.workspaceBuilder == null
             ? null
             : (session, close) =>

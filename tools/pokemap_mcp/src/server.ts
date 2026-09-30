@@ -21,6 +21,7 @@ import { registerReadOnlyResources } from "./resources/read_only.js";
 import { registerReadOnlyTools } from "./tools/read_only.js";
 import { registerMutationTools } from "./tools/mutations.js";
 import { registerGameExportTool } from "./tools/game_export.js";
+import { registerProjectCreationTools } from "./tools/project_creation.js";
 import { registerRuntimeTools } from "./tools/runtime.js";
 
 export interface PokeMapMcpServerDependencies {
@@ -51,6 +52,7 @@ export function createPokeMapMcpServer(
   registerReadOnlyTools(server, authoring, artifacts);
   registerMutationTools(server, authoring);
   registerGameExportTool(server, authoring, dependencies.projectRoots);
+  registerProjectCreationTools(server, authoring);
   if (runtime) {
     registerRuntimeTools(server, runtime);
   }

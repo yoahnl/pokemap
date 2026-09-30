@@ -11,13 +11,14 @@ class StudioHomeRecentProjects extends StatelessWidget {
     required this.onOpen,
     required this.onRemove,
     required this.busy,
+    this.onCreate,
     this.bounded = false,
   });
   final List<RecentStudioProject> entries;
   final ValueChanged<RecentStudioProject> onOpen, onRemove;
   final bool busy;
+  final VoidCallback? onCreate;
   final bool bounded;
-
   Widget _entry(BuildContext context, RecentStudioProject entry) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(
@@ -83,6 +84,49 @@ class StudioHomeRecentProjects extends StatelessWidget {
     title: 'Projets récents',
     compact: true,
     children: [
+      SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Semantics(
+            button: true,
+            child: Material(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
+              ),
+              child: InkWell(
+                key: const ValueKey('home-new-project'),
+                onTap: busy ? null : onCreate,
+                borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_circle_outline, size: 28),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Nouveau projet',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 4),
+                            Text('Créer votre prochaine aventure'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       if (entries.isEmpty)
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 20),
@@ -119,7 +163,6 @@ class StudioHomeResume extends StatelessWidget {
   final bool hasProject, busy;
   final VoidCallback? onAllMaps;
   final int maxPreview;
-
   @override
   Widget build(BuildContext context) => StudioPanel(
     title: 'Cartes de votre projet',

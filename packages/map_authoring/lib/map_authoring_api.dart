@@ -48,5 +48,8 @@ export 'src/transactions/change_set.dart'
 export 'src/workspace/project_open_service.dart'
     show OpenedProject, ProjectOpenException;
 export 'src/workspace/project_pokemon_ruleset_bootstrap_service.dart';
+export 'src/workspace/project_creation_contracts.dart';
+export 'src/workspace/project_creation_bootstrap_api.dart'
+    show ProjectCreationBootstrapApiPort;
 export 'src/workspace/workspace_handle_store.dart'
     show ProjectHandle, WorkspaceHandle, WorkspaceHandleException;

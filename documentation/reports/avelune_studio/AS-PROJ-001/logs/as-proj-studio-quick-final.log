@@ -1,0 +1,32 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: keeps five most recently opened projects and updates duplicates
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: persists exact paths and removal never touches project directories
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: imports the last PokeMap project without modifying its files
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: reactivates legacy access without restoring a removed recent
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: keeps Studio recents when the legacy bookmark is unavailable
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: load completes before queued opening and writes are serialized
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: reports corrupt storage without modifying it and can recover
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/recent_projects_test.dart: missing preferences start empty and disposed listeners stay silent
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_session/scoped_project_session_adapter_test.dart: activates access before opening and remembers the canonical path
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_session/scoped_project_session_adapter_test.dart: does not remember a project that fails to open
+00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_session/scoped_project_session_adapter_test.dart: new project acquires its own grant before the parent is released
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_session/scoped_project_session_adapter_test.dart: opens a valid project when the native bridge is unavailable
+Studio project access activateProjectDirectory failed: MissingPluginException
+Studio project access rememberProjectDirectory failed: MissingPluginException
+Studio project access activateProjectDirectory failed: MissingPluginException
+00:02 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: releases the path field while the native picker owns input
+00:03 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:03 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:04 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:04 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:05 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:05 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:05 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Terrains tool reveals its hidden asset picker
+00:05 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: does not open a directory picker result after disposal
+00:05 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Passages tool reveals its hidden asset picker
+00:07 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: character placement reveals the hidden character picker
+00:08 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: visible palette remains inline when selecting the decor tool
+00:09 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: decor tool reveals a hidden palette and adds a chosen asset
+00:12 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: a chosen eraser replaces the misleading selection highlight
+00:13 +27: All tests passed!

@@ -129,17 +129,6 @@ class StudioHomeHero extends StatelessWidget {
                   onPressed: busy ? null : onExport,
                 ),
               ),
-              if (onResume == null)
-                const Tooltip(
-                  message:
-                      'La création de projet sera disponible dans un prochain écran.',
-                  child: StudioButton(
-                    label: 'Nouveau projet',
-                    secondary: true,
-                    icon: Icons.add,
-                    onPressed: null,
-                  ),
-                ),
             ],
           ),
         ),

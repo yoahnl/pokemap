@@ -31,6 +31,7 @@ void main() {
         'activateProjectDirectory:/selected/project',
         'open:/selected/project',
         'rememberProjectDirectory:/canonical/project',
+        'activateProjectDirectory:/canonical/project',
         'close:/canonical/project',
       ]);
     },
@@ -53,6 +54,42 @@ void main() {
     );
     expect(calls, ['activateProjectDirectory', 'open:/invalid/project']);
   });
+
+  test(
+    'new project acquires its own grant before the parent is released',
+    () async {
+      final calls = <String>[];
+      final bookmarks = <String>{};
+      final activeProjects = <String>{};
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            final path = (call.arguments as Map)['path'] as String;
+            calls.add('${call.method}:$path');
+            if (call.method == 'rememberProjectDirectory') {
+              bookmarks.add(path);
+              return true;
+            }
+            if (bookmarks.contains(path)) {
+              activeProjects.add(path);
+              return true;
+            }
+            return false;
+          });
+      final adapter = ScopedProjectSessionAdapter(
+        _RecordingProjectSessionPort(calls),
+      );
+
+      final session = await adapter.open('/selected/project');
+
+      expect(activeProjects, contains(session.directoryPath));
+      expect(calls, [
+        'activateProjectDirectory:/selected/project',
+        'open:/selected/project',
+        'rememberProjectDirectory:/canonical/project',
+        'activateProjectDirectory:/canonical/project',
+      ]);
+    },
+  );
 
   test('opens a valid project when the native bridge is unavailable', () async {
     final calls = <String>[];

@@ -1,0 +1,35 @@
+00:00 +0: loading test/gameplay_roadmap_dashboard_test.dart
+00:00 +0: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +1: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +2: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +3: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +4: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +5: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +6: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +7: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +8: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +9: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +10: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +11: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +12: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +13: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +14: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +15: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +16: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +17: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +18: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +19: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +20: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +21: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +22: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +23: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +24: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +25: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:00 +26: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:16 +27: test/gameplay_roadmap_dashboard_cli_test.dart: dashboard CLI reads gameplay reports from documentation tree
+00:16 +28: test/gameplay_roadmap_dashboard_test.dart: GameplayRoadmapDashboard CLI preserves dashboard generation without check mode
+00:24 +29: test/gameplay_roadmap_dashboard_test.dart: GameplayRoadmapDashboard CLI preserves dashboard generation without check mode
+00:24 +30: test/gameplay_roadmap_dashboard_test.dart: GameplayRoadmapDashboard CLI recursively loads reports and fresh multi-lot receipts
+00:32 +31: test/gameplay_roadmap_dashboard_test.dart: GameplayRoadmapDashboard CLI accepts post-checkout receipts from an external directory
+00:40 +32: test/gameplay_roadmap_dashboard_test.dart: GameplayRoadmapDashboard CLI exits nonzero when a blocking diagnostic is found
+00:47 +33: All tests passed!

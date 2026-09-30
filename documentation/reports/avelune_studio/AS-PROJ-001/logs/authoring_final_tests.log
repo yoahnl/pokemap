@@ -1,0 +1,162 @@
+00:00 +0: loading test/workspace/project_snapshot_fingerprint_cache_test.dart
+00:00 +0: test/workspace/project_snapshot_fingerprint_cache_test.dart: snapshot fingerprint cache reuses fingerprints while nothing on disk changed
+00:00 +1: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +2: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +3: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +4: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +5: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +6: test/workspace/project_creation_test.dart: preview 16 reflects full map dimensions without creating files
+00:00 +7: test/workspace/project_snapshot_fingerprint_cache_test.dart: snapshot fingerprint cache counts adopted projections and the ones it refuses
+00:00 +8: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +9: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +10: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +11: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +12: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +13: test/workspace/project_creation_test.dart: playable 16 preserves grid, atlas and spawn on independent reopen
+00:00 +14: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader loads the manifest and maps from the real fixture
+00:00 +15: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader loads the manifest and maps from the real fixture
+00:00 +16: test/workspace/project_creation_test.dart: preview 32 reflects full map dimensions without creating files
+00:00 +17: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader an unchanged asset blob is verified once, not on every load
+00:00 +18: test/workspace/project_creation_test.dart: playable 32 preserves grid, atlas and spawn on independent reopen
+00:00 +19: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader a canonical cache hit does not re-stat immutable asset blobs
+00:00 +20: test/workspace/project_creation_test.dart: empty 32 is authoring-only with persisted future map defaults
+00:00 +21: test/workspace/project_creation_test.dart: empty 32 is authoring-only with persisted future map defaults
+00:00 +22: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader the revision is built from fingerprints, not from resource bytes
+00:00 +23: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +24: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +25: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +26: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +27: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +28: test/workspace/project_creation_test.dart: preview 48 reflects full map dimensions without creating files
+00:00 +29: test/workspace/project_snapshot_test.dart: ProjectSnapshotLoader loads the canonical project media catalog into the snapshot
+00:00 +30: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +31: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +32: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +33: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +34: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +35: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +36: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +37: test/workspace/project_creation_test.dart: playable 48 preserves grid, atlas and spawn on independent reopen
+00:00 +38: test/workspace/project_creation_test.dart: empty 48 is authoring-only with persisted future map defaults
+00:00 +39: test/workspace/project_creation_test.dart: empty preview is honest absence, never an invented playable map
+00:00 +40: test/workspace/project_creation_test.dart: destination with intentional whitespace identifies its exact parent
+00:00 +41: test/workspace/project_creation_test.dart: validation does not allocate files and refuses invalid or existing destinations
+00:00 +42: test/workspace/workspace_path_security_test.dart: WorkspacePolicy authorizes the real project below an allowed root
+00:00 +43: test/workspace/workspace_path_security_test.dart: WorkspacePolicy rejects a project outside every allowed root
+00:00 +44: test/workspace/workspace_path_security_test.dart: WorkspacePolicy rejects traversal before filesystem resolution
+00:00 +45: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader reads a regular project-relative file
+00:00 +46: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader probes regular and missing resources without reading bytes
+00:00 +47: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader maps traversal and outward symlinks to unsafe probes
+00:00 +48: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader rejects an absolute project-relative path
+00:00 +49: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader rejects a relative traversal
+00:00 +50: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader rejects an outward symlink
+00:00 +51: test/workspace/workspace_path_security_test.dart: LocalProjectFileReader does not expose a filesystem write method
+00:00 +52: test/workspace/project_snapshot_hash_executor_test.dart: large resource fingerprints retain canonical framing on worker
+00:01 +53: test/workspace/project_snapshot_hash_executor_test.dart: large asset verification retains content identity on worker
+00:01 +54: test/workspace/project_snapshot_hash_executor_test.dart: small resource sequence yields instead of starving event loop
+00:01 +55: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService previews and repairs only the missing canonical ruleset
+00:01 +56: test/workspace/project_snapshot_cache_budget_test.dart: ProjectSnapshotCacheBudget admits authoring data through the 64 MiB boundary
+00:01 +57: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService rejects missing confirmation without changing project bytes
+00:01 +58: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService rejects missing confirmation without changing project bytes
+00:01 +59: test/workspace/project_snapshot_cache_budget_test.dart: ProjectSnapshotCacheBudget reports rejected snapshots instead of silently dropping them
+00:01 +60: test/workspace/project_snapshot_cache_budget_test.dart: ProjectSnapshotCacheBudget reports rejected snapshots instead of silently dropping them
+00:01 +61: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService refuses manifests with another validation defect
+00:01 +62: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService refuses manifests with another validation defect
+00:01 +63: test/workspace/project_pokemon_ruleset_bootstrap_service_test.dart: ProjectPokemonRulesetBootstrapService exposes preview and repair through the JSONL boundary
+00:01 +64: test/workspace/project_snapshot_map_projector_test.dart: projects a committed map post-image without rereading other bytes
+00:01 +65: test/workspace/project_open_service_test.dart: ProjectOpenService opens the real fixture with opaque read-only handles
+00:01 +66: test/workspace/project_open_service_test.dart: ProjectOpenService computes the same initial fingerprint for identical bytes
+00:01 +67: test/workspace/project_open_service_test.dart: ProjectOpenService rejects malformed project JSON with a safe code
+00:01 +68: test/workspace/project_open_service_test.dart: ProjectOpenService identifies a missing explicit Pokemon ruleset
+00:01 +69: test/workspace/project_open_service_test.dart: ProjectOpenService large manifest yields while preserving its canonical fingerprint
+00:01 +70: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +71: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +72: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +73: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +74: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +75: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +76: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +77: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations rejects a map changed between its first and second observation
+00:01 +78: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations fails closed when a map disappears before its second observation
+00:01 +79: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations preserves canonical bytes, fingerprints, order, and two reads
+00:01 +80: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations performs the second observation concurrently
+00:01 +81: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations bounds second-observation concurrency for large catalogs
+00:01 +82: test/workspace/project_snapshot_concurrency_test.dart: ProjectSnapshotLoader concurrent observations offloads large structured resource decoding through the executor
+00:01 +83: test/workspace/project_creation_safety_test.dart: cancel while held before reservation creates no destination
+00:01 +84: test/workspace/project_creation_safety_test.dart: a late empty destination is preserved and never replaced
+00:01 +85: test/transactions/action_planner_test.dart: AuthoringActionPlanner freezes resource payload into compact immutable bytes
+00:01 +86: test/transactions/action_planner_test.dart: AuthoringActionPlanner freezes resource payload into compact immutable bytes
+00:02 +87: test/workspace/project_creation_safety_test.dart: exclusive OS reservation rejects collision after the final async check
+00:02 +88: test/transactions/action_planner_test.dart: AuthoringActionPlanner plans a real-project change without writing fixture bytes
+00:02 +89: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +90: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +91: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +92: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +93: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +94: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +95: test/workspace/project_creation_safety_test.dart: exclusive reservation refuses concurrent creators with no overwritten project
+00:02 +96: test/workspace/project_creation_safety_test.dart: after reservation failure identifies residual and keeps external data intact
+00:02 +97: test/workspace/project_creation_safety_test.dart: canonical transaction failure after promotion never reports creation success
+00:02 +98: test/workspace/project_creation_safety_test.dart: modification after transaction is preserved, rejected and never claimed successful
+00:02 +99: test/transactions/retained_dependency_window_test.dart: an external writer can change a retained file after precondition
+00:02 +100: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction applies update create and delete once then replays exact receipt
+00:02 +101: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService compensates a partial promotion in reverse and closes idempotency
+00:02 +102: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService compensates a partial promotion in reverse and closes idempotency
+00:02 +103: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService compensates a partial promotion in reverse and closes idempotency
+00:02 +104: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterPayloadsStaged leaves an unreserved discardable intent
+00:02 +105: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService compensation refuses a promoted resource changed by another writer
+00:02 +106: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterJournalStaged leaves an unreserved discardable intent
+00:02 +107: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService forward recovery refuses an unpromoted resource changed externally
+00:02 +108: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterReservation resumes idempotently after service reconstruction
+00:02 +109: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService capability expiry before the first recovery write changes nothing
+00:02 +110: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterJournalPrepared resumes idempotently after service reconstruction
+00:02 +111: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService committed journal finalizes a pending ledger exactly once
+00:02 +112: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterResourcePromoted resumes idempotently after service reconstruction
+00:02 +113: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService committed but unreceipted create and delete can be compensated
+00:02 +114: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterResourceJournaled resumes idempotently after service reconstruction
+00:02 +115: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterResourceJournaled resumes idempotently after service reconstruction
+00:02 +116: test/transactions/recovery_idempotence_test.dart: AuthoringRecoveryService corrupt staged payload blocks recovery before any promotion
+00:03 +117: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction AuthoringTransactionCheckpoint.afterJournalCommitted resumes idempotently after service reconstruction
+00:03 +118: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction rejects stale touched resources before journal or reservation
+00:03 +119: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction rejects an apply request that differs from the frozen plan
+00:03 +120: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction second CAS blocks an external edit immediately before promotion
+00:03 +121: test/transactions/crash_boundary_test.dart: JournaledAuthoringTransaction rejects symlink parents and path-like operation identifiers
+00:03 +122: test/transactions/revision_conflict_test.dart: AuthoringRevisionSet is deterministic across input order and JSON round trips
+00:03 +123: test/transactions/revision_conflict_test.dart: AuthoringRevisionSet supports explicit absent revisions for create and delete CAS
+00:03 +124: test/transactions/revision_conflict_test.dart: AuthoringRevisionSet rejects duplicate resources and malformed fingerprints
+00:03 +125: test/transactions/revision_conflict_test.dart: AuthoringRevisionSet blocks mutation callback when any touched revision changed
+00:03 +126: test/transactions/revision_conflict_test.dart: AuthoringRevisionSet treats unexpected presence and missing current entries as conflicts
+00:03 +127: test/transactions/stale_plan_test.dart: AuthoringPlanStore refuses a plan after an external project revision change
+00:03 +128: test/transactions/stale_plan_test.dart: AuthoringPlanStore refuses an expired plan with useful remediation
+00:03 +129: test/transactions/stale_plan_test.dart: AuthoringPlanStore rejects a stale expected revision before invoking the builder
+00:03 +130: test/transactions/stale_plan_test.dart: AuthoringPlanStore reports unknown opaque plan identifiers without leaking state
+00:03 +131: test/transactions/idempotency_contract_test.dart: durable authoring idempotency same scoped key and payload replays one exact receipt after reopen
+00:03 +132: test/transactions/idempotency_contract_test.dart: durable authoring idempotency reports durable filesystem and JSON work to the observer
+00:03 +133: test/transactions/idempotency_contract_test.dart: durable authoring idempotency same scoped key with a different canonical payload is refused
+00:03 +134: test/transactions/idempotency_contract_test.dart: durable authoring idempotency actor project action version and key each scope reservations
+00:03 +135: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +136: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +137: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +138: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +139: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +140: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +141: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +142: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +143: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +144: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +145: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +146: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +147: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +148: test/tooling/project_creation_jsonl_test.dart: JSONL preview is read-only and exact confirmation creates reopenable grid
+00:03 +149: test/tooling/project_creation_jsonl_test.dart: parent outside configured narrow root and malformed request cannot write
+00:03 +150: test/tooling/project_creation_jsonl_test.dart: late existing destination is never replaced after preview
+00:03 +151: test/tooling/project_creation_jsonl_test.dart: native parent whitespace is preserved by root authorization
+00:03 +152: test/tooling/project_creation_jsonl_test.dart: confirmation expires and is consumed once
+00:03 +153: test/tooling/cli_golden_test.dart: pokemap_authoring CLI runs the real authoring JSONL session with read API parity
+00:04 +154: test/tooling/cli_golden_test.dart: pokemap_authoring CLI runs the real authoring JSONL session with read API parity
+00:24 +155: test/tooling/cli_golden_test.dart: pokemap_authoring CLI requires at least one allowed root without polluting stdout
+00:24 +156: test/tooling/cli_golden_test.dart: pokemap_authoring CLI stages an artifact from a dedicated non-project root
+00:24 +157: test/tooling/cli_golden_test.dart: pokemap_authoring CLI rejects an option token used as a root value
+00:24 +158: test/tooling/cli_golden_test.dart: pokemap_authoring CLI does not echo an unknown machine-local argument
+00:24 +159: test/tooling/cli_golden_test.dart: (tearDownAll)
+00:24 +159: All tests passed!

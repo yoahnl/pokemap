@@ -8,6 +8,7 @@ final class StudioProjectAccessBridge {
   private static var channel: FlutterMethodChannel?
   private static var activeScopedURL: URL?
   private static var activeRecentScopedURLs = [String: URL]()
+  private static var creationParentURL: URL?
 
   static func install(on controller: FlutterViewController) {
     uninstall()
@@ -23,6 +24,11 @@ final class StudioProjectAccessBridge {
         result(activateProjectDirectory(call.arguments))
       case "rememberProjectDirectory":
         result(rememberProjectDirectory(call.arguments))
+      case "chooseProjectCreationParent":
+        chooseProjectCreationParent(result)
+      case "releaseProjectCreationParent":
+        releaseProjectCreationParent()
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -39,6 +45,32 @@ final class StudioProjectAccessBridge {
       url.stopAccessingSecurityScopedResource()
     }
     activeRecentScopedURLs.removeAll()
+    releaseProjectCreationParent()
+  }
+
+  private static func chooseProjectCreationParent(_ result: @escaping FlutterResult) {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.canCreateDirectories = true
+    panel.allowsMultipleSelection = false
+    panel.prompt = "Choisir"
+    panel.message = "Choisissez le dossier parent du nouveau projet Avelune."
+    panel.begin { response in
+      guard response == .OK, let url = panel.url else {
+        result(nil)
+        return
+      }
+      let authorized = url.startAccessingSecurityScopedResource()
+      releaseProjectCreationParent()
+      if authorized { creationParentURL = url }
+      result(url.path)
+    }
+  }
+
+  private static func releaseProjectCreationParent() {
+    creationParentURL?.stopAccessingSecurityScopedResource()
+    creationParentURL = nil
   }
 
   private static func activateProjectDirectory(_ arguments: Any?) -> Bool {

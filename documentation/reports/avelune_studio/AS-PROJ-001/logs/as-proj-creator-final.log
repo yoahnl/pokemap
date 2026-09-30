@@ -1,0 +1,76 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
+00:02 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+00:05 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:07 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:10 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:13 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:13 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+00:14 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+00:14 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+00:15 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+00:15 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextContainingWidgetFinder:<Found 0 widgets with text containing Projet créé et conservé:
+[]>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart:157:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart line 157
+The test description was:
+  late canonical creation cannot open in a replaced session owner
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:20 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:20 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner [E]
+  Test failed. See exception logs above.
+  The test description was: late canonical creation cannot open in a replaced session owner
+
+00:24 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:25 +12 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:25 +13 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:25 +14 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +15 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +16 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +17 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +18 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +19 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:26 +20 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:26 +21 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:26 +22 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:26 +23 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:26 +23 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_session/scoped_project_session_adapter_test.dart: opens a valid project when the native bridge is unavailable
+Studio project access activateProjectDirectory failed: MissingPluginException
+Studio project access rememberProjectDirectory failed: MissingPluginException
+Studio project access activateProjectDirectory failed: MissingPluginException
+00:26 +24 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:31 +25 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:31 +26 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:32 +27 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:33 +28 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:34 +29 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:34 +30 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:34 +31 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:35 +32 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:36 +33 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: failed save from real creation guard keeps draft and B on disk
+00:42 +34 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: failed save from real creation guard keeps draft and B on disk
+00:42 +35 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: Passages tool reveals its hidden asset picker
+00:45 +36 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: character placement reveals the hidden character picker
+00:47 +37 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: visible palette remains inline when selecting the decor tool
+00:50 +38 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: decor tool reveals a hidden palette and adds a chosen asset
+00:58 +39 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart: a chosen eraser replaces the misleading selection highlight
+01:03 +40 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner

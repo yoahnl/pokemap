@@ -1,0 +1,57 @@
+00:00 +0: loading /private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart
+00:00 +0: UI10 recovers missing actor through real controls and preserves invalid fields
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following MapWorkspaceFailure was thrown while running async test code:
+Cette carte est absente, invalide ou utilise un format non pris en charge.
+
+When the exception was thrown, this was the stack:
+#0      LocalMapWorkspaceAdapter.loadMap (package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart:162:7)
+<asynchronous suspension>
+#1      seedUi10Visuals (file:///private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/support/ui10_fixture_visuals.dart:124:18)
+<asynchronous suspension>
+#2      createUi10Fixture (file:///private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/support/ui10_cinematic_fixture.dart:18:5)
+<asynchronous suspension>
+#3      Ui10WorkspaceHarness.create (file:///private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/support/ui10_workspace_harness.dart:20:21)
+<asynchronous suspension>
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart:17:24)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 2 frames from dart:async and package:stack_trace)
+
+The exception was caught asynchronously.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following _TypeError was thrown running a test:
+Null check operator used on a null value
+
+When the exception was thrown, this was the stack:
+#0      main.<anonymous closure> (file:///private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart:19:9)
+<asynchronous suspension>
+#1      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#2      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  UI10 recovers missing actor through real controls and preserves invalid fields
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: UI10 recovers missing actor through real controls and preserves invalid fields [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
+
+00:02 +0 -1: Some tests failed.
+
+Failing tests:
+  /private/tmp/as-proj-head-f559e55-review/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields

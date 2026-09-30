@@ -80,6 +80,10 @@ Future<void> main(List<String> arguments) async {
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
+    projectCreation: ProjectCreationBootstrapApi(
+      policy: policy,
+      creation: const LocalProjectCreationService(),
+    ),
     projectBootstrap: ProjectPokemonRulesetBootstrapService(
       policy: policy,
       fileReader: fileReader,

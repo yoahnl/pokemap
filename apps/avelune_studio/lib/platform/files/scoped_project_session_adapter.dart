@@ -17,6 +17,7 @@ final class ScopedProjectSessionAdapter implements ProjectSessionPort {
     await _invoke('activateProjectDirectory', directoryPath);
     final session = await _delegate.open(directoryPath);
     await _invoke('rememberProjectDirectory', session.directoryPath);
+    await _invoke('activateProjectDirectory', session.directoryPath);
     return session;
   }
 

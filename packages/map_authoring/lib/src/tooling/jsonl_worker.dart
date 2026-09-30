@@ -36,6 +36,8 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/project_open_service.dart';
+import '../workspace/project_creation_contracts.dart';
+import '../workspace/project_creation_bootstrap_api.dart';
 import '../workspace/project_pokemon_ruleset_bootstrap_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
@@ -52,6 +54,7 @@ final class JsonlWorker {
     required AuthoringReadApiPort api,
     AuthoringMutationApiPort? mutations,
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
+    ProjectCreationBootstrapApiPort? projectCreation,
     GamePackageExportApiPort? gameExport,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
@@ -59,6 +62,7 @@ final class JsonlWorker {
   })  : _api = api,
         _mutations = mutations,
         _projectBootstrap = projectBootstrap,
+        _projectCreation = projectCreation,
         _gameExport = gameExport {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
@@ -86,6 +90,7 @@ final class JsonlWorker {
   final AuthoringReadApiPort _api;
   final AuthoringMutationApiPort? _mutations;
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
+  final ProjectCreationBootstrapApiPort? _projectCreation;
   final GamePackageExportApiPort? _gameExport;
   final int maxInputBytes;
   final Duration commandTimeout;
@@ -93,6 +98,8 @@ final class JsonlWorker {
 
   Future<String> processLine(String line) async {
     var requestId = 'invalid';
+    var creationCommand = false;
+    var abandoned = false;
     AuthoringResult result;
     try {
       if (utf8.encode(line).length > maxInputBytes) {
@@ -109,18 +116,25 @@ final class JsonlWorker {
       rejectUnknownContractKeys(decoded, const {'id', 'command', 'args'});
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
+      creationCommand = command == 'project_create';
       final args = _jsonObject(decoded['args'], 'args');
       final timeout =
           command == 'game_export' ? gameExportTimeout : commandTimeout;
-      final data = await _dispatch(command, args).timeout(timeout);
+      final data = await _dispatch(command, args, isCancelled: () => abandoned)
+          .timeout(timeout, onTimeout: () {
+        abandoned = true;
+        throw TimeoutException('Worker deadline reached.');
+      });
       result = AuthoringResult.success(requestId: requestId, data: data);
     } on TimeoutException {
       result = _failure(
         requestId,
         code: AuthoringErrorCode.internal,
         domainCode: 'worker.timeout',
-        message: 'The command exceeded its configured time limit.',
-        retryable: true,
+        message: creationCommand
+            ? 'The command timed out. Preparation is abandoned; an already engaged write may finish. Inspect the destination before retrying.'
+            : 'The command exceeded its configured time limit.',
+        retryable: !creationCommand,
       );
     } on _UnsupportedWorkerCommand {
       result = _failure(
@@ -166,6 +180,21 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
       );
+    } on ProjectCreationException catch (error) {
+      result = _failure(requestId,
+          code: AuthoringErrorCode.validationFailed,
+          domainCode: error.code,
+          message: error.code == 'project.creation_failed' &&
+                  error.residualPath == null
+              ? 'Project creation failed before reservation. The destination was not created.'
+              : error.residualPath == null
+                  ? error.message
+                  : 'Project creation failed after reservation. Inspect the requested destination and its transaction journal; it was preserved.');
+    } on ProjectCreationCancelled {
+      result = _failure(requestId,
+          code: AuthoringErrorCode.validationFailed,
+          domainCode: 'project.creation_cancelled',
+          message: 'Creation was abandoned before writing.');
     } on ProjectPokemonRulesetBootstrapException catch (error) {
       result = _failure(
         requestId,
@@ -379,8 +408,9 @@ final class JsonlWorker {
 
   Future<Map<String, Object?>> _dispatch(
     String command,
-    Map<String, dynamic> args,
-  ) async {
+    Map<String, dynamic> args, {
+    bool Function()? isCancelled,
+  }) async {
     switch (command) {
       case 'describe':
         rejectUnknownContractKeys(args, const {});
@@ -417,6 +447,19 @@ final class JsonlWorker {
         return _bootstrapApi().inspect(
           requireContractString(args['projectRoot'], 'args.projectRoot'),
         );
+      case 'project_create_preview':
+        rejectUnknownContractKeys(args, const {'request'});
+        final creation = _projectCreation;
+        if (creation == null) throw const _UnsupportedWorkerCommand();
+        return creation.preview(_jsonObject(args['request'], 'args.request'));
+      case 'project_create':
+        rejectUnknownContractKeys(args, const {'request', 'confirmation'});
+        final creation = _projectCreation;
+        if (creation == null) throw const _UnsupportedWorkerCommand();
+        return creation.create(_jsonObject(args['request'], 'args.request'),
+            confirmation: requireContractString(
+                args['confirmation'], 'args.confirmation'),
+            isCancelled: isCancelled);
       case 'project_bootstrap_repair':
         rejectUnknownContractKeys(
           args,
@@ -617,7 +660,11 @@ final class JsonlWorker {
     final mutations = _mutations;
     final bootstrap = _projectBootstrap;
     final gameExport = _gameExport;
-    if (mutations == null && bootstrap == null && gameExport == null) {
+    final creation = _projectCreation;
+    if (mutations == null &&
+        bootstrap == null &&
+        gameExport == null &&
+        creation == null) {
       return read;
     }
     final mutation = mutations?.describeMutations();
@@ -636,6 +683,24 @@ final class JsonlWorker {
         const {
           'id': 'project_bootstrap_repair',
           'summary': 'Repair a missing explicit Pokemon ruleset.',
+        },
+      if (creation != null)
+        const {
+          'id': 'project_create_preview',
+          'actionId': 'project.create',
+          'summary':
+              'Preview a new project inside a configured parent root without writing.',
+          'templates': ['empty', 'playable'],
+          'tileSizes': [16, 32, 48],
+        },
+      if (creation != null)
+        const {
+          'id': 'project_create',
+          'actionId': 'project.create',
+          'summary':
+              'Create the exact previewed new project after opaque confirmation.',
+          'undoable': false,
+          'replacesExisting': false,
         },
       if (gameExport != null)
         const {

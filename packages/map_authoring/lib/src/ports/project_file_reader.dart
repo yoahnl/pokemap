@@ -263,9 +263,9 @@ final class LocalProjectFileReader
 
   @override
   Future<String> canonicalizeDirectory(String path) async {
-    final normalized = _requirePath(path, field: 'directory');
+    _requirePath(path, field: 'directory');
     try {
-      final directory = Directory(normalized);
+      final directory = Directory(path);
       final stat = await directory.stat();
       if (stat.type != FileSystemEntityType.directory) {
         throw const WorkspaceAccessException(
