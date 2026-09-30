@@ -517,3 +517,13 @@ Sortie exacte de `git status --short --untracked-files=all`, suivie de `git diff
 Le diff ne comptabilise que les fichiers suivis ; l’annexe exhaustive, les tests, le contrôle de formatage et [empreintes-sources.txt](empreintes-sources.txt) incluent les 32 sources nouvelles. `git diff --check` est vert. Le contrôle Markdown est vert avec le budget explicite décrit plus haut.
 
 Recommandation de suite, sans implémentation ici : validation visuelle du créateur par Yoahn ; relecture des réserves historiques séparées ; reprise bookmark production et parcours Player natif installé si une certification native complète est souhaitée. Aucune extension de scope automatique.
+
+## Livraison Git et préparation de la version 0.3.17
+
+Autorisation supplémentaire de Yoahn : commit, push, vérification de la synchronisation avec origin et publication d’Avelune Studio via les workflows GitHub existants. Après `git fetch origin`, `HEAD...origin/main` vaut `0 0` sur la base `f559e55c6815844ad0e0c08b2ed661733156e703` ; aucune intégration ni réécriture d’historique n’est nécessaire. Le rapport CI préexistant `documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md` reste hors staging et conservé.
+
+Commit fonctionnel : `a27b20420` — `feat(avelune-studio): add guided project creation`. Il contient les 50 sources vérifiées par empreinte et les preuves AS-PROJ-001, dont les captures et les trois paquets. Les espaces de fin de ligne produits par les outils et les lignes finales superflues des archives texte ont été normalisés pour le commit ; aucun résultat ou contenu métier n’a été modifié. `git diff --cached --check` est ensuite vert.
+
+Nouvelle vérification avant livraison : `PATH=/tmp/avelune-flutter-3.48/bin:$PATH python3 /tmp/avelune_merge_flutter_test.py /tmp/as-proj001-delivery-release-tests.log test/release test/project_creation --concurrency=2`, depuis Studio : `+24: All tests passed!`, code 0, 56,8 secondes ; 12 descendants suivis, aucun harness résiduel à terminer. Cette exécution ne remplace pas la suite complète décrite ci-dessus et ses 26 échecs conservés.
+
+La dernière release publique vérifiée est `pokemap-v0.3.16`, publiée le 30 septembre 2026 à 00:13:59 UTC. La version candidate Studio devient `0.3.17+317`. Le workflow utilise explicitement le pubspec Studio pour le contrat de version ; le pubspec de l’ancien éditeur reste inchangé. La validation, les builds des trois plateformes, la signature/notarisation macOS, le téléchargement de contrôle et la promotion du feed stable restent ceux du workflow existant. Publication non encore annoncée comme réussie à ce stade.
