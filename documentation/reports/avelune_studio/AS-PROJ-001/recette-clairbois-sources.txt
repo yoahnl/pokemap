@@ -1,3 +1,950 @@
+AS-PROJ-001 — Annexe intégrale des fichiers techniques modifiés
+Base : 02d3e389bd997176428e74d4494aeea41604c7da
+Date : 2026-10-01
+Copie documentaire demandée explicitement ; les sources et le diff restent canoniques.
+
+===== apps/avelune_studio/test/support/clairbois_player_recipe.dart =====
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+Future<void> playCreatedClairbois(
+  WidgetTester tester,
+  ProjectSession session,
+) async {
+  final port = LocalMapWorkspaceAdapter();
+  final project = (await tester.runAsync(() => port.loadProject(session)))!;
+  final entry = project.maps.first;
+  final document = (await tester.runAsync(() => port.loadMap(session, entry)))!;
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: StudioPlaytestView(
+          session: session,
+          entry: entry,
+          expectedRevision: document.revision,
+          port: port,
+          onClose: () {},
+        ),
+      ),
+    ),
+  );
+  Future<void> waitUntil(bool Function() ready) async {
+    for (var i = 0; i < 500 && !ready(); i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(ready(), isTrue);
+  }
+
+  PlayableMapGame? loaded;
+  await waitUntil(() {
+    final finder = find.byType(GameWidget<PlayableMapGame>);
+    if (finder.evaluate().isEmpty) return false;
+    loaded = tester.widget<GameWidget<PlayableMapGame>>(finder).game;
+    return loaded!.isLoaded && !loaded!.debugIsMapActivationDispatchInFlight;
+  });
+  final game = loaded!;
+  await playClairboisRoute(tester, game);
+  await tester.pumpWidget(const SizedBox());
+}
+
+Future<void> playClairboisRoute(
+  WidgetTester tester,
+  PlayableMapGame game, {
+  bool Function(RuntimeInputEvent)? input,
+}) async {
+  Future<void> waitUntil(bool Function() ready) async {
+    for (var i = 0; i < 500 && !ready(); i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(ready(), isTrue);
+  }
+
+  expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 16));
+  final send = input ?? game.handleRuntimeInputEvent;
+  void press(RuntimeInputControl control) {
+    expect(send(RuntimeInputEvent.press(control)), isTrue);
+    game.update(.016);
+    final released = send(RuntimeInputEvent.release(control));
+    if (control != RuntimeInputControl.primary &&
+        !game.inputAuthoritySnapshot.isGameplayLocked) {
+      expect(released, isTrue);
+    }
+    game.update(.3);
+  }
+
+  final position = game.debugPlayerWorldTopLeft;
+  press(RuntimeInputControl.up);
+  expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 15));
+  expect(game.debugPlayerWorldTopLeft.y - position.y, closeTo(-64, .001));
+  expect(game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+  for (var i = 0; i < 3; i++) {
+    press(RuntimeInputControl.up);
+  }
+  press(RuntimeInputControl.right);
+  press(RuntimeInputControl.up);
+  expect(game.debugPlayerGridPosition, const GridPos(x: 17, y: 12));
+  press(RuntimeInputControl.primary);
+  await waitUntil(
+    () => game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue,
+  );
+  expect(
+    game.dialoguePresentationListenable.value?.fullText,
+    contains('Bienvenue à Clairbois'),
+  );
+  for (
+    var i = 0;
+    i < 8 &&
+        game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue;
+    i++
+  ) {
+    game.update(2);
+    press(RuntimeInputControl.primary);
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  expect(game.inputAuthoritySnapshot.context, RuntimeInputContext.overworld);
+  for (var i = 0; i < 2; i++) {
+    press(RuntimeInputControl.left);
+  }
+  for (var i = 0; i < 6; i++) {
+    press(RuntimeInputControl.up);
+  }
+  await waitUntil(
+    () =>
+        game.debugLastCompletedMapActivation?.mapId == 'maison' &&
+        !game.debugIsMapActivationDispatchInFlight,
+  );
+  expect(game.debugPlayerGridPosition, const GridPos(x: 6, y: 8));
+  press(RuntimeInputControl.down);
+  await waitUntil(
+    () =>
+        game.debugLastCompletedMapActivation?.mapId == 'first-map' &&
+        !game.debugIsMapActivationDispatchInFlight,
+  );
+  expect(game.debugPlayerGridPosition, const GridPos(x: 15, y: 7));
+  for (var i = 0; i < 11; i++) {
+    press(RuntimeInputControl.down);
+  }
+  for (var i = 0; i < 4; i++) {
+    press(RuntimeInputControl.left);
+  }
+  expect(game.debugPlayerGridPosition, const GridPos(x: 11, y: 18));
+  press(RuntimeInputControl.left);
+  expect(game.debugPlayerGridPosition, const GridPos(x: 11, y: 18));
+}
+
+===== apps/avelune_studio/test/support/project_creation_workspace_fixture.dart =====
+import 'dart:io';
+
+import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
+import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
+import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
+import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_local.dart';
+import 'package:path/path.dart' as p;
+
+import 'm2_ui_fixture.dart' show WidgetResourcePort, pumpIo;
+import 'ui05_narrative_fixture.dart' show Ui05NarrativePort;
+import 'ui08_workspace_harness.dart' show Ui08MapPort;
+import 'clairbois_template_fixture.dart';
+
+class ProjectCreationWorkspaceFixture {
+  ProjectCreationWorkspaceFixture(this.tester, this.parent, this.packageFile);
+  final WidgetTester tester;
+  final Directory parent;
+  final File packageFile;
+  late ProjectSessionController session = ProjectSessionController(
+    _SessionIo(tester),
+  );
+  final recents = MemoryRecentProjectsAdapter();
+
+  Future<void> mount({
+    ProjectCreationPort? creationPort,
+    MapWorkspacePort Function(MapWorkspacePort)? mapPort,
+    ProjectSessionController? sessionController,
+    bool withNarrative = false,
+    bool settle = true,
+    bool bridgeCreate = true,
+    Size size = const Size(1536, 960),
+    double textScale = 1,
+    GlobalKey? captureKey,
+  }) async {
+    if (sessionController != null) session = sessionController;
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final app = DefaultAssetBundle(
+      bundle: CreationStudioAssets(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: studioTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        home: ProjectSessionScreen(
+          session: session,
+          chooseDirectory: () async => null,
+          recentProjects: recents,
+          creationPort: _CreationIo(
+            tester,
+            creationPort ??
+                const LocalProjectCreationService(clairbois: offlineClairbois),
+            bridgeCreate,
+          ),
+          chooseCreationParent: () async => parent.path,
+          workspaceBuilder: (project, close) => _CreatedWorkspace(
+            tester: tester,
+            session: project,
+            onClose: close,
+            packageFile: packageFile,
+            mapPort: mapPort,
+            withNarrative: withNarrative,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      captureKey == null ? app : RepaintBoundary(key: captureKey, child: app),
+    );
+    if (settle) await pumpIo(tester);
+  }
+
+  MapWorkspaceController get maps => tester
+      .widget<MapWorkspaceScreen>(
+        find.byType(MapWorkspaceScreen, skipOffstage: false),
+      )
+      .controller;
+
+  Future<void> create(int tileSize, {String? name}) async {
+    await submitCreation(tileSize, name: name);
+    for (var i = 0; i < 100 && session.state.project == null; i++) {
+      await pumpIo(tester, frames: 2);
+    }
+    expect(session.state.project, isNotNull);
+    await pumpIo(tester, frames: 30);
+    expect(find.byType(MapWorkspaceScreen), findsOneWidget);
+  }
+
+  Future<void> submitCreation(
+    int tileSize, {
+    String? name,
+    bool settle = true,
+    bool confirm = true,
+  }) async {
+    await tester.tap(find.text('Nouveau projet'));
+    await pumpIo(tester, frames: 4);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Nom du projet'),
+      name ?? 'Projet grille $tileSize',
+    );
+    await next();
+    await tester.tap(find.text('Petit projet jouable'));
+    await pumpIo(tester, frames: 4);
+    await next();
+    await tester.tap(find.byKey(ValueKey('creation-grid-$tileSize')));
+    await next();
+    await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
+    await pumpIo(tester, frames: 8);
+    if (confirm) {
+      await tester.tap(find.byKey(const ValueKey('create-project-confirm')));
+    }
+    if (settle) await pumpIo(tester, frames: 20);
+  }
+
+  Future<void> next() async {
+    await tester.tap(find.text('Suivant'));
+    await pumpIo(tester, frames: 4);
+  }
+
+  Future<void> dispose() async {
+    await tester.pumpWidget(const SizedBox());
+    await session.dispose();
+  }
+}
+
+class _CreationIo implements ProjectCreationPort {
+  _CreationIo(this.tester, this.delegate, this.bridgeCreate);
+  final WidgetTester tester;
+  final ProjectCreationPort delegate;
+  final bool bridgeCreate;
+  Future<T> _run<T>(Future<T> Function() action) async {
+    final result = await WidgetResourcePort.serial(tester, () async {
+      try {
+        return (value: await action(), error: null);
+      } catch (error) {
+        return (value: null, error: error);
+      }
+    });
+    if (result!.error case final error?) throw error;
+    return result.value as T;
+  }
+
+  @override
+  Future<List<int>?> preview(ProjectCreationRequest request) => bridgeCreate
+      ? _run(() => delegate.preview(request))
+      : delegate.preview(request);
+
+  @override
+  Future<String> validateDestination(ProjectCreationRequest request) =>
+      bridgeCreate
+      ? _run(() => delegate.validateDestination(request))
+      : delegate.validateDestination(request);
+
+  @override
+  Future<ProjectCreationReceipt> create(
+    ProjectCreationRequest request, {
+    void Function(ProjectCreationPhase)? onPhase,
+    bool Function()? isCancelled,
+    String? expectedDestination,
+  }) => bridgeCreate
+      ? _run(
+          () => delegate.create(
+            request,
+            onPhase: onPhase,
+            isCancelled: isCancelled,
+            expectedDestination: expectedDestination,
+          ),
+        )
+      : delegate.create(
+          request,
+          onPhase: onPhase,
+          isCancelled: isCancelled,
+          expectedDestination: expectedDestination,
+        );
+}
+
+class _SessionIo implements ProjectSessionPort {
+  _SessionIo(this.tester);
+  final WidgetTester tester;
+  final delegate = LocalProjectSessionAdapter();
+  @override
+  Future<ProjectSession> open(String path) async =>
+      (await WidgetResourcePort.serial(tester, () => delegate.open(path)))!;
+  @override
+  Future<void> close(ProjectSession session) => delegate.close(session);
+}
+
+class _CreatedWorkspace extends StatefulWidget {
+  const _CreatedWorkspace({
+    required this.tester,
+    required this.session,
+    required this.onClose,
+    required this.packageFile,
+    this.mapPort,
+    this.withNarrative = false,
+  });
+  final WidgetTester tester;
+  final ProjectSession session;
+  final Future<void> Function() onClose;
+  final File packageFile;
+  final MapWorkspacePort Function(MapWorkspacePort)? mapPort;
+  final bool withNarrative;
+  @override
+  State<_CreatedWorkspace> createState() => _CreatedWorkspaceState();
+}
+
+class _CreatedWorkspaceState extends State<_CreatedWorkspace> {
+  late final adapter = LocalMapWorkspaceAdapter();
+  late final ioPort = Ui08MapPort(adapter, widget.tester)..interactive = true;
+  late final port = widget.mapPort?.call(ioPort) ?? ioPort;
+  late final maps = MapWorkspaceController(widget.session, port);
+  late final export = StudioGameExportController(
+    projectRoot: Directory(widget.session.directoryPath),
+    projectName: widget.session.name,
+  );
+  @override
+  void dispose() {
+    maps.dispose();
+    export.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => MapWorkspaceScreen(
+    controller: maps,
+    home: StudioHomeScope.of(context),
+    loadVisuals: (session, manifest) async => (await WidgetResourcePort.serial(
+      widget.tester,
+      () => StudioMapResources.load(session, manifest),
+    ))!,
+    narrativePort: widget.withNarrative
+        ? Ui05NarrativePort(
+            LocalNarrativeAdapter(session: widget.session, mapAdapter: adapter),
+            widget.tester,
+          )
+        : null,
+    gameExport: export,
+    gameExportPicker: (_) async => StudioGameExportDestination(
+      widget.packageFile.path,
+      exists: (await WidgetResourcePort.serial(
+        widget.tester,
+        widget.packageFile.exists,
+      ))!,
+    ),
+    runtimeBuilder: (_, _, _) => const SizedBox(),
+    onClose: widget.onClose,
+    registerExitGuard: (_) {},
+  );
+}
+
+class CreationStudioAssets extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async {
+    if (!key.startsWith('assets/home/')) return rootBundle.load(key);
+    final studio = p.basename(Directory.current.path) == 'avelune_studio'
+        ? Directory.current.path
+        : p.join(Directory.current.path, '../avelune_studio');
+    return ByteData.sublistView(
+      Uint8List.fromList(await File(p.join(studio, key)).readAsBytes()),
+    );
+  }
+}
+
+===== apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart =====
+import 'dart:io';
+
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
+
+import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/project_creation_workspace_fixture.dart';
+import 'as_project_creation_player_support.dart';
+
+void main() {
+  testWidgets(
+    'Studio Clairbois 32 exports, installs and plays without its author source',
+    (tester) async {
+      final root =
+          (await tester.runAsync(
+            () => Directory.systemTemp.createTemp('as-proj-clairbois-player-'),
+          ))!;
+      addTearDown(() => root.delete(recursive: true));
+      final package = File(p.join(root.path, 'clairbois-32.avelunegame'));
+      final fixture = ProjectCreationWorkspaceFixture(tester, root, package);
+      addTearDown(fixture.dispose);
+      await fixture.mount();
+      await fixture.create(32, name: 'Mon Clairbois');
+      final source = Directory(fixture.session.state.project!.directoryPath);
+      final before = (await tester.runAsync(() => _authorFiles(source)))!;
+      final manifest =
+          (await tester.runAsync(() async {
+            final adapter = LocalProjectSessionAdapter();
+            final reopened = await adapter.open(source.path);
+            try {
+              final independent = LocalMapWorkspaceAdapter();
+              final project = await independent.loadProject(reopened);
+              expect(project.name, 'Mon Clairbois');
+              expect(project.settings.tileWidth, 32);
+              expect(project.settings.tileHeight, 32);
+              expect(project.settings.defaultMapWidth, 32);
+              expect(project.settings.defaultMapHeight, 26);
+              expect(project.maps.map((map) => map.id), [
+                'first-map',
+                'maison',
+              ]);
+              for (final entry in project.maps) {
+                final document = await independent.loadMap(reopened, entry);
+                expect(document.map.id, entry.id);
+                expect(
+                  document.map.size,
+                  entry.id == 'first-map'
+                      ? const GridSize(width: 32, height: 26)
+                      : const GridSize(width: 12, height: 10),
+                );
+              }
+              expect(project.newGame.startMapId, 'first-map');
+              expect(
+                project.characters.map((character) => character.id),
+                containsAll(['player', 'emile']),
+              );
+              expect(project.settings.defaultPlayerCharacterId, 'player');
+              expect(project.pokemon.enabled, isFalse);
+              return project;
+            } finally {
+              await adapter.close(reopened);
+            }
+          }))!;
+      final workspace = tester.widget<MapWorkspaceScreen>(
+        find.byType(MapWorkspaceScreen),
+      );
+      await tester.tap(find.text('Accueil'));
+      await pumpIo(tester, frames: 8);
+      await tester.tap(find.text('Exporter le jeu…'));
+      await pumpIo(tester, frames: 12);
+      expect(find.byType(StudioGameExportPage), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Auteur'),
+        'Recette locale',
+      );
+      await tester.tap(find.text('Test local').first);
+      await tester.tap(find.byKey(const ValueKey('start-game-export')));
+      for (
+        var i = 0;
+        i < 200 && workspace.gameExport!.outputPath == null;
+        i++
+      ) {
+        await pumpIo(tester, frames: 2);
+        if (workspace.gameExport!.error != null) break;
+      }
+      expect(
+        workspace.gameExport!.outputPath,
+        package.path,
+        reason: workspace.gameExport!.error,
+      );
+      expect(find.text('Dernier paquet produit'), findsOneWidget);
+      expect(await tester.runAsync(package.exists), isTrue);
+      expect(await tester.runAsync(() => _authorFiles(source)), before);
+      final evidence = Platform.environment['AVELUNE_CREATION_PACKAGE_DIR'];
+      if (evidence != null) {
+        await tester.runAsync(() async {
+          await Directory(evidence).create(recursive: true);
+          await package.copy(p.join(evidence, 'clairbois-32.avelunegame'));
+        });
+      }
+      await fixture.dispose();
+      expect(fixture.session.state.project, isNull);
+      await tester.runAsync(() async {
+        expect(
+          p.isWithin(
+            await root.resolveSymbolicLinks(),
+            await source.resolveSymbolicLinks(),
+          ),
+          isTrue,
+        );
+        await source.delete(recursive: true);
+        expect(await source.exists(), isFalse);
+      });
+      await playCreatedPackage(tester, package, root, manifest, 32);
+      expect(await tester.runAsync(source.exists), isFalse);
+      expect(tester.takeException(), isNull);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+}
+
+Future<Map<String, List<int>>> _authorFiles(Directory source) async {
+  final result = <String, List<int>>{};
+  await for (final file in source.list(recursive: true)) {
+    if (file is! File || p.basename(file.path) == 'export-profile-v1.json') {
+      continue;
+    }
+    result[p.relative(file.path, from: source.path)] = await file.readAsBytes();
+  }
+  return result;
+}
+
+===== apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart =====
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flame/game.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/map_runtime_authoring.dart';
+import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/pokemap_hub_player.dart';
+import 'package:pub_semver/pub_semver.dart';
+
+import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/clairbois_player_recipe.dart'
+    show playClairboisRoute;
+
+Future<void> playCreatedPackage(
+  WidgetTester tester,
+  File package,
+  Directory temporary,
+  ProjectManifest authored,
+  int grid,
+) async {
+  final playerRoot = Directory(p.join(temporary.path, 'player'));
+  late PlayableMapGame game;
+  final adapter =
+      (await tester.runAsync(() async {
+        ProjectManifest? smokeProject;
+        final installed = await GamePackageInstaller(
+          supportRoot: playerRoot,
+          inspector: GamePackageInspector(hostCompatibility: _compatibility()),
+          availableDiskBytes: (_) async => 1024 * 1024 * 1024,
+          loadSmoke: (root, manifest) async {
+            final bundle = await loadRuntimeMapBundle(
+              projectFilePath: p.join(root.path, 'project', 'project.json'),
+              mapId: authored.newGame.startMapId,
+            );
+            smokeProject = bundle.manifest;
+          },
+          prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
+        ).install(package, source: GamePackageInstallSource.localFile);
+        expect(
+          smokeProject,
+          authored.copyWith(
+            presentation:
+                authored.presentation ?? const ProjectPresentationProfile(),
+            dialogues: [
+              for (final dialogue in authored.dialogues)
+                dialogue.copyWith(
+                  relativePath: p.setExtension(dialogue.relativePath, '.json'),
+                ),
+            ],
+          ),
+        );
+        final launch = await InstalledGameLaunchResolver(
+          supportRoot: playerRoot,
+          hostCompatibility: _compatibility(),
+        ).resolve(installed.game);
+        final projectFile = await launch.assets.resolveReference(
+          launch.project,
+        );
+        final installedRoot = await playerRoot.resolveSymbolicLinks();
+        expect(p.isWithin(installedRoot, projectFile.path), isTrue);
+        final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFile.path,
+          mapId: authored.newGame.startMapId,
+        );
+        expect(bundle.manifest.settings.tileWidth, grid);
+        expect(bundle.manifest.settings.tileHeight, grid);
+        expect(bundle.manifest.maps.map((map) => map.id), [
+          'first-map',
+          'maison',
+        ]);
+        expect(bundle.manifest.tilesets, isNotEmpty);
+        final catalog = AssetCatalog.fromJson(
+          jsonDecode(
+                await File(
+                  p.join(bundle.projectRootDirectory, assetCatalogStorageKey),
+                ).readAsString(),
+              )
+              as Map<String, dynamic>,
+        );
+        final atlasPaths = resolveTilesetAbsolutePaths(
+          manifest: bundle.manifest,
+          projectRoot: bundle.projectRootDirectory,
+          tilesetIds: bundle.manifest.tilesets.map((entry) => entry.id).toSet(),
+          assetCatalog: catalog,
+        );
+        for (final entry in bundle.manifest.maps) {
+          final mapBundle = await loadRuntimeMapBundle(
+            projectFilePath: projectFile.path,
+            mapId: entry.id,
+          );
+          expect(mapBundle.map.id, entry.id);
+          expect(
+            mapBundle.map.size,
+            entry.id == 'first-map'
+                ? const GridSize(width: 32, height: 26)
+                : const GridSize(width: 12, height: 10),
+          );
+          expect(
+            p.isWithin(installedRoot, mapBundle.projectRootDirectory),
+            isTrue,
+          );
+          for (final path in mapBundle.runtimeImageAbsolutePathsById.values) {
+            expect(p.isWithin(installedRoot, path), isTrue);
+            expect(await File(path).exists(), isTrue);
+          }
+        }
+        for (final atlas in bundle.manifest.tilesets) {
+          final source = atlas.source as ProjectRegularAtlasTilesetSource;
+          expect(source.tileWidth, grid);
+          expect(source.tileHeight, grid);
+          expect(p.isWithin(installedRoot, atlasPaths[atlas.id]!), isTrue);
+          final codec = await ui.instantiateImageCodec(
+            await File(atlasPaths[atlas.id]!).readAsBytes(),
+          );
+          final image = (await codec.getNextFrame()).image;
+          expect(image.width, source.pixelWidth);
+          expect(image.height, source.pixelHeight);
+          image.dispose();
+          codec.dispose();
+        }
+        expect(
+          bundle.manifest.characters.map((character) => character.id),
+          containsAll(['player', 'emile']),
+        );
+        await _checkCharacterFrames(bundle);
+        final initial = createNewGameStateFromProject(
+          project: bundle.manifest,
+          startMap: bundle.map,
+          saveId: 'created-$grid',
+          tileWidthPx: grid,
+          tileHeightPx: grid,
+        );
+        final descriptor = GameSessionDescriptor(
+          sessionId: 'session-$grid',
+          sessionToken: 'token-$grid',
+          identity: launch.identity,
+          profileId: 'local',
+          slotId: 'slot-1',
+          launchMode: GameSessionLaunchMode.newGame,
+          installedVersionHandle: launch.installedVersionHandle,
+          runtimeApiVersion: launch.runtimeApiVersion,
+          grantedCapabilities: launch.grantedCapabilities,
+          locale: 'fr',
+          accessibility: const GameSessionAccessibilityOptions(),
+          initialGameState: initial,
+        );
+        final adapter = HubInProcessSessionFactory(
+          launch: launch,
+          saves: HubSaveStore(
+            supportRoot: playerRoot,
+            identity: launch.identity,
+          ),
+          mountGame: (mounted) async {
+            game = mounted;
+          },
+          unmountGame: (_) async {},
+        ).call(descriptor);
+        await adapter.prepare(descriptor);
+        await adapter.start();
+        return adapter;
+      }))!;
+  addTearDown(() async => tester.runAsync(adapter.dispose));
+  final capture = GlobalKey();
+  await tester.pumpWidget(
+    RepaintBoundary(
+      key: capture,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: GameWidget(game: game),
+      ),
+    ),
+  );
+  await pumpIo(tester, frames: 40);
+  await tester.runAsync(() async {
+    await game.toBeLoaded();
+    await _until(
+      game,
+      () =>
+          !game.debugIsMapActivationDispatchInFlight &&
+          !game.inputAuthoritySnapshot.isGameplayLocked,
+    );
+    expect(game.gameStateSnapshot.currentMapId, authored.newGame.startMapId);
+    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 16, y: 16));
+    expect(game.gameStateSnapshot.trainerProfile.avatarCharacterId, 'player');
+  });
+  await playClairboisRoute(tester, game, input: adapter.handleInput);
+  await tester.runAsync(() async {
+    final checkpoint = await adapter.captureCheckpoint();
+    expect(checkpoint, isNotNull);
+  });
+  final evidence = Platform.environment['AVELUNE_CAPTURE_DIR'];
+  if (evidence != null) {
+    await tester.pump();
+    await tester.runAsync(() async {
+      final boundary =
+          capture.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 1);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      await Directory(evidence).create(recursive: true);
+      await File(
+        p.join(evidence, 'player-created-$grid.png'),
+      ).writeAsBytes(bytes!.buffer.asUint8List());
+      image.dispose();
+    });
+  }
+  await tester.pumpWidget(const SizedBox());
+  await tester.runAsync(adapter.dispose);
+}
+
+Future<void> _until(PlayableMapGame game, bool Function() done) async {
+  for (var i = 0; i < 300; i++) {
+    if (done()) return;
+    game.update(.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  throw StateError('Le Player installé n’a pas terminé l’opération attendue.');
+}
+
+GamePackageHostCompatibility _compatibility() => GamePackageHostCompatibility(
+  hubVersion: Version.parse('1.2.0'),
+  runtimeApiVersion: Version.parse('1.4.0'),
+  capabilities: const {
+    'dialogue.choices@1',
+    'map@1',
+    'overworld.menu@1',
+    'world.shop@1',
+  },
+  supportedProjectFormats: const {'v8'},
+  currentProjectFormat: 'v8',
+  supportedSaveFormats: const {1},
+);
+
+Future<void> _checkCharacterFrames(RuntimeMapBundle bundle) async {
+  final imageSizes = <String, ui.Size>{};
+  for (final entry in bundle.runtimeImageAbsolutePathsById.entries) {
+    final codec = await ui.instantiateImageCodec(
+      await File(entry.value).readAsBytes(),
+    );
+    final image = (await codec.getNextFrame()).image;
+    imageSizes[entry.key] = ui.Size(
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    image.dispose();
+    codec.dispose();
+  }
+  final resolver = CharacterAnimationSourceResolver();
+  for (final character in bundle.manifest.characters) {
+    for (final animation in character.animations) {
+      expect(animation.frames, isNotEmpty);
+      for (final frame in animation.frames) {
+        final source = resolver.resolveFrame(
+          character: character,
+          animation: animation,
+          frame: frame,
+          tileWidth: bundle.manifest.settings.tileWidth,
+          tileHeight: bundle.manifest.settings.tileHeight,
+          availableImageIds: imageSizes.keys.toSet(),
+        );
+        expect(
+          source,
+          isNotNull,
+          reason:
+              'Source réelle ${character.id}/${animation.state}/${animation.direction}',
+        );
+        final size = imageSizes[source!.imageId]!;
+        expect(source.sourceRect.left, greaterThanOrEqualTo(0));
+        expect(source.sourceRect.top, greaterThanOrEqualTo(0));
+        expect(
+          source.sourceRect.right,
+          lessThanOrEqualTo(size.width),
+          reason:
+              'Frame ${character.id}/${animation.state}/${animation.direction} hors image',
+        );
+        expect(
+          source.sourceRect.bottom,
+          lessThanOrEqualTo(size.height),
+          reason:
+              'Frame ${character.id}/${animation.state}/${animation.direction} hors image',
+        );
+      }
+    }
+  }
+}
+
+===== apps/pokemap_hub/pubspec.yaml =====
+name: pokemap_hub
+description: Shared Avelune Player runtime, installation services, and assets.
+version: 1.0.1+3
+publish_to: none
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+  flutter: '>=3.47.5'
+
+dependencies:
+  archive: 4.0.9
+  crypto: ^3.0.7
+  cupertino_icons: ^1.0.9
+  file_picker: ^11.0.3
+  flame: ^1.38.0
+  flutter:
+    sdk: flutter
+  flutter_riverpod: 3.2.1
+  image: ^4.2.0
+  image_picker: ^1.2.3
+  image_picker_android: 0.8.13+15
+  liquid_glass_easy: ^3.5.0
+  map_core:
+    path: ../../packages/map_core
+  map_distribution:
+    path: ../../packages/map_distribution
+  map_player_ui:
+    path: ../../packages/map_player_ui
+  map_runtime:
+    path: ../../packages/map_runtime
+  path: ^1.9.0
+  path_provider: ^2.1.6
+  pub_semver: ^2.2.0
+  url_launcher: ^6.3.2
+  video_player: ^2.13.0
+
+dev_dependencies:
+  avelune_studio:
+    path: ../avelune_studio
+  map_authoring:
+    path: ../../packages/map_authoring
+  map_gameplay:
+    path: ../../packages/map_gameplay
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  lints: ^6.1.0
+  marionette_flutter: ^0.6.0
+  test: ^1.24.0
+
+  riverpod: 3.2.1
+flutter:
+  config:
+    enable-swift-package-manager: true
+  uses-material-design: true
+  assets:
+    - assets/avelune/artwork/
+    - assets/avelune/logo/
+    - assets/avelune/splash/
+    - assets/avelune/materials/
+    - assets/avelune/objects/cartridge/
+    - assets/avelune/objects/console/
+    - assets/avelune/production_manifest.json
+    - assets/avelune/room/backgrounds/
+    - assets/avelune/room/furniture/
+    - assets/certification/intro_landscape_h264_aac.mp4
+    - assets/certification/intro_portrait_h264_aac.mp4
+  fonts:
+    - family: AveluneEditorial
+      fonts:
+        - asset: assets/avelune/fonts/CormorantGaramond-Variable.ttf
+          weight: 400
+
+dependency_overrides:
+  gamepads_darwin:
+    path: ../../packages/gamepads_darwin
+  gamepads_ios:
+    path: ../../packages/gamepads_ios
+
+===== apps/pokemap_hub/pubspec.lock =====
 # Generated by pub
 # See https://dart.dev/tools/pub/glossary#lockfile
 packages:

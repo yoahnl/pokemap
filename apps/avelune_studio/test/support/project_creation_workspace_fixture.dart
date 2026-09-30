@@ -120,6 +120,8 @@ class ProjectCreationWorkspaceFixture {
       name ?? 'Projet grille $tileSize',
     );
     await next();
+    await tester.tap(find.text('Petit projet jouable'));
+    await pumpIo(tester, frames: 4);
     await next();
     await tester.tap(find.byKey(ValueKey('creation-grid-$tileSize')));
     await next();

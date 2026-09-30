@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -5,15 +6,19 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/clairbois_player_recipe.dart'
+    show playClairboisRoute;
 
 Future<void> playCreatedPackage(
   WidgetTester tester,
@@ -45,6 +50,12 @@ Future<void> playCreatedPackage(
           authored.copyWith(
             presentation:
                 authored.presentation ?? const ProjectPresentationProfile(),
+            dialogues: [
+              for (final dialogue in authored.dialogues)
+                dialogue.copyWith(
+                  relativePath: p.setExtension(dialogue.relativePath, '.json'),
+                ),
+            ],
           ),
         );
         final launch = await InstalledGameLaunchResolver(
@@ -54,30 +65,72 @@ Future<void> playCreatedPackage(
         final projectFile = await launch.assets.resolveReference(
           launch.project,
         );
-        expect(
-          p.isWithin(await playerRoot.resolveSymbolicLinks(), projectFile.path),
-          isTrue,
-        );
+        final installedRoot = await playerRoot.resolveSymbolicLinks();
+        expect(p.isWithin(installedRoot, projectFile.path), isTrue);
         final bundle = await loadRuntimeMapBundle(
           projectFilePath: projectFile.path,
           mapId: authored.newGame.startMapId,
         );
         expect(bundle.manifest.settings.tileWidth, grid);
         expect(bundle.manifest.settings.tileHeight, grid);
-        final atlas = bundle.manifest.tilesets.single;
-        final source = atlas.source as ProjectRegularAtlasTilesetSource;
-        expect(source.tileWidth, grid);
-        expect(source.tileHeight, grid);
-        final bytes =
-            await File(
-              p.join(bundle.projectRootDirectory, atlas.relativePath),
-            ).readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
-        final image = (await codec.getNextFrame()).image;
-        expect(image.width, source.pixelWidth);
-        expect(image.height, source.pixelHeight);
-        image.dispose();
-        codec.dispose();
+        expect(bundle.manifest.maps.map((map) => map.id), [
+          'first-map',
+          'maison',
+        ]);
+        expect(bundle.manifest.tilesets, isNotEmpty);
+        final catalog = AssetCatalog.fromJson(
+          jsonDecode(
+                await File(
+                  p.join(bundle.projectRootDirectory, assetCatalogStorageKey),
+                ).readAsString(),
+              )
+              as Map<String, dynamic>,
+        );
+        final atlasPaths = resolveTilesetAbsolutePaths(
+          manifest: bundle.manifest,
+          projectRoot: bundle.projectRootDirectory,
+          tilesetIds: bundle.manifest.tilesets.map((entry) => entry.id).toSet(),
+          assetCatalog: catalog,
+        );
+        for (final entry in bundle.manifest.maps) {
+          final mapBundle = await loadRuntimeMapBundle(
+            projectFilePath: projectFile.path,
+            mapId: entry.id,
+          );
+          expect(mapBundle.map.id, entry.id);
+          expect(
+            mapBundle.map.size,
+            entry.id == 'first-map'
+                ? const GridSize(width: 32, height: 26)
+                : const GridSize(width: 12, height: 10),
+          );
+          expect(
+            p.isWithin(installedRoot, mapBundle.projectRootDirectory),
+            isTrue,
+          );
+          for (final path in mapBundle.runtimeImageAbsolutePathsById.values) {
+            expect(p.isWithin(installedRoot, path), isTrue);
+            expect(await File(path).exists(), isTrue);
+          }
+        }
+        for (final atlas in bundle.manifest.tilesets) {
+          final source = atlas.source as ProjectRegularAtlasTilesetSource;
+          expect(source.tileWidth, grid);
+          expect(source.tileHeight, grid);
+          expect(p.isWithin(installedRoot, atlasPaths[atlas.id]!), isTrue);
+          final codec = await ui.instantiateImageCodec(
+            await File(atlasPaths[atlas.id]!).readAsBytes(),
+          );
+          final image = (await codec.getNextFrame()).image;
+          expect(image.width, source.pixelWidth);
+          expect(image.height, source.pixelHeight);
+          image.dispose();
+          codec.dispose();
+        }
+        expect(
+          bundle.manifest.characters.map((character) => character.id),
+          containsAll(['player', 'emile']),
+        );
         await _checkCharacterFrames(bundle);
         final initial = createNewGameStateFromProject(
           project: bundle.manifest,
@@ -136,29 +189,11 @@ Future<void> playCreatedPackage(
           !game.inputAuthoritySnapshot.isGameplayLocked,
     );
     expect(game.gameStateSnapshot.currentMapId, authored.newGame.startMapId);
-    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 10, y: 7));
+    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 16, y: 16));
     expect(game.gameStateSnapshot.trainerProfile.avatarCharacterId, 'player');
-    final position = game.debugPlayerWorldTopLeft;
-    expect(
-      adapter.handleInput(
-        const RuntimeInputEvent.press(RuntimeInputControl.right),
-      ),
-      isTrue,
-    );
-    game.update(.016);
-    expect(
-      adapter.handleInput(
-        const RuntimeInputEvent.release(RuntimeInputControl.right),
-      ),
-      isTrue,
-    );
-    await _until(game, () => !game.debugIsPlayerStepping);
-    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 11, y: 7));
-    expect(
-      game.debugPlayerWorldTopLeft.x - position.x,
-      closeTo(grid * authored.settings.displayScale, .001),
-    );
-    expect(game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+  });
+  await playClairboisRoute(tester, game, input: adapter.handleInput);
+  await tester.runAsync(() async {
     final checkpoint = await adapter.captureCheckpoint();
     expect(checkpoint, isNotNull);
   });

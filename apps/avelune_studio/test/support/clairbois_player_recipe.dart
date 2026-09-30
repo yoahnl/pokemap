@@ -46,15 +46,44 @@ Future<void> playCreatedClairbois(
     return loaded!.isLoaded && !loaded!.debugIsMapActivationDispatchInFlight;
   });
   final game = loaded!;
+  await playClairboisRoute(tester, game);
+  await tester.pumpWidget(const SizedBox());
+}
+
+Future<void> playClairboisRoute(
+  WidgetTester tester,
+  PlayableMapGame game, {
+  bool Function(RuntimeInputEvent)? input,
+}) async {
+  Future<void> waitUntil(bool Function() ready) async {
+    for (var i = 0; i < 500 && !ready(); i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(ready(), isTrue);
+  }
+
   expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 16));
+  final send = input ?? game.handleRuntimeInputEvent;
   void press(RuntimeInputControl control) {
-    game.handleRuntimeInputEvent(RuntimeInputEvent.press(control));
+    expect(send(RuntimeInputEvent.press(control)), isTrue);
     game.update(.016);
-    game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
+    final released = send(RuntimeInputEvent.release(control));
+    if (control != RuntimeInputControl.primary &&
+        !game.inputAuthoritySnapshot.isGameplayLocked) {
+      expect(released, isTrue);
+    }
     game.update(.3);
   }
 
-  for (var i = 0; i < 4; i++) {
+  final position = game.debugPlayerWorldTopLeft;
+  press(RuntimeInputControl.up);
+  expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 15));
+  expect(game.debugPlayerWorldTopLeft.y - position.y, closeTo(-64, .001));
+  expect(game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+  for (var i = 0; i < 3; i++) {
     press(RuntimeInputControl.up);
   }
   press(RuntimeInputControl.right);
@@ -63,6 +92,10 @@ Future<void> playCreatedClairbois(
   press(RuntimeInputControl.primary);
   await waitUntil(
     () => game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue,
+  );
+  expect(
+    game.dialoguePresentationListenable.value?.fullText,
+    contains('Bienvenue à Clairbois'),
   );
   for (
     var i = 0;
@@ -103,5 +136,4 @@ Future<void> playCreatedClairbois(
   expect(game.debugPlayerGridPosition, const GridPos(x: 11, y: 18));
   press(RuntimeInputControl.left);
   expect(game.debugPlayerGridPosition, const GridPos(x: 11, y: 18));
-  await tester.pumpWidget(const SizedBox());
 }

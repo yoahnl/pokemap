@@ -548,3 +548,122 @@ SHA-256 publics du paquet de distribution :
 | PokeMap-Editor-Setup-0.3.17.exe | d43f6ed89a7e90d271d7f12b7a17fc6a087d78b9e47a40acaac6c8471ee8dc3c |
 
 La livraison Git et l’application distribuée sont vérifiées ; elles ne ferment pas les réserves AS-PROJ-001 précédentes. Le suivi reste TO REVIEW, jamais DONE automatiquement. Le rapport CI initial hors périmètre demeure non suivi et préservé ; les 50 empreintes de sources ont été revérifiées après commit, toutes identiques.
+## Recette Clairbois → export → Player — 1er octobre 2026
+
+### Verdict et périmètre
+
+La réserve ciblée de la revue du 30 septembre est levée par une nouvelle recette automatisée du véritable hôte. Clairbois reste exclusivement en 32 × 32 avec ses deux cartes. Aucun fichier de production ni interface n’a été modifié. L’acceptation produit et visuelle de Yoahn est conservée. DONE est proposé pour AS-PROJ-001 à sa décision ; le statut reste TO REVIEW.
+
+Ce résultat remplace uniquement la réserve concernant la recette obsolète. Il ne transforme pas les anciennes suites complètes, limitations natives ou autres réserves historiques en nouvelles preuves vertes.
+
+### Audit initial et cause
+
+HEAD initial et final : `02d3e389bd997176428e74d4494aeea41604c7da`, branche `main`. Le worktree initial n’avait aucune modification suivie. Le seul fichier non suivi était `documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md`, conservé sans modification.
+
+Les instructions du dépôt, `codex_rule.md`, les compétences de diagnostic/vérification et les raccordements ciblés ont été lus. Le SDK utilisé est celui épinglé par la CI : Flutter `3.48.0-0.4.pre`, révision `e3005e3402d9cfa2043114c8bc53c59d12e9b98e`, disponible dans `/tmp/avelune-flutter-3.48`.
+
+Avant modification, depuis `apps/pokemap_hub` :
+
+```bash
+/tmp/avelune-flutter-3.48/bin/flutter test --no-pub test/features/installation/as_project_creation_player_e2e_test.dart
+```
+
+Résultat : exit 1, `+0 -3: Some tests failed.`, durée totale mesurée 15,81 s. Journal : `/tmp/as-proj-recipe-before.log`.
+
+Les cas 16/48 recherchaient des contrôles absents pour Clairbois. Le cas 32 utilisait `maps.single` et échouait avec trop d’éléments. La recette attendait également une carte 20 × 15 et un départ 10,7 issus de l’ancien modèle local. Il s’agissait d’attentes produit obsolètes, pas d’un défaut démontré du créateur.
+
+### Fichiers et zones modifiés
+
+| Fichier | Modification |
+| --- | --- |
+| `apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart` | Un parcours Clairbois 32 réel remplace les variantes UI obsolètes ; deux cartes, export, fermeture de l’auteur, suppression de son seul répertoire temporaire, lancement installé. |
+| `apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart` | Vérifications du paquet, de l’installation, des deux cartes, de tous les atlas et du personnage ; parcours via l’adaptateur d’entrée du Hub. |
+| `apps/avelune_studio/test/support/clairbois_player_recipe.dart` | Parcours commun réutilisable avec le Player installé ; déplacements, dialogue, passages aller-retour et collision avec l’eau. Le wrapper StudioPlaytestView reste distinct. |
+| `apps/avelune_studio/test/support/project_creation_workspace_fixture.dart` | Sélection explicite de Petit projet jouable dans le véritable créateur ; API du helper conservée. |
+| `apps/pokemap_hub/pubspec.yaml` | Dépendance de développement explicite vers `map_authoring`, nécessaire aux assertions sur ses contrats publics. |
+| `apps/pokemap_hub/pubspec.lock` | `map_authoring` devient direct dev ; version de la dépendance locale Studio alignée sur 0.3.18+318. Aucun upgrade externe. |
+| `documentation/reports/avelune_studio/AS-PROJ-001/evidence-pack.md` | Cette mise à jour ciblée des preuves. |
+| `documentation/reports/avelune_studio/AS-PROJ-001/recette-clairbois-sources.txt` | Annexe contenant intégralement les six fichiers techniques modifiés, demandée explicitement par le mandat. |
+
+Le diff technique comporte 6 fichiers, 223 ajouts et 126 retraits. Les quatre fichiers Dart manuels restent sous 300 lignes (139, 283, 137 et 293). Aucun commentaire ajouté, aucun skip ni assouplissement des contrôles de sécurité/autonomie.
+
+La comparaison du manifeste exporté tient compte de la projection canonique Yarn → JSON réalisée par l’exporteur existant ; aucun JSON n’est corrigé dans le test. Les chemins sont vérifiés après résolution des liens de macOS (`/var` et `/private/var`), sans élargir les racines autorisées.
+
+### Preuve d’autonomie
+
+Le test traverse Accueil → Nouveau projet → Petit projet jouable/Clairbois 32 → création → Accueil/Exporter le jeu → Test local → export réel.
+
+Il utilise la fixture d’archive existante, le service canonique d’export, `GamePackageInstaller`, `InstalledGameLaunchResolver`, `HubInProcessSessionFactory` et les sauvegardes temporaires du Hub. Le sélecteur de destination est contrôlé par la fixture, mais ni le paquet ni l’installateur ne sont simulés. Aucun contenu n’est reconstruit après création.
+
+La session auteur est fermée et son workspace disposé. Le répertoire auteur, vérifié comme descendant du dossier temporaire du test, est supprimé avant l’installation et reste absent après le parcours. Les octets auteur sont comparés avant/après export (hors profil d’export selon la règle existante). Aucun projet personnel original n’est touché.
+
+Depuis l’installation, les assertions vérifient :
+
+- grille 32 × 32, village `first-map` de 32 × 26 et maison `maison` de 12 × 10 ;
+- chemins de ressources contenus dans la bibliothèque installée, fichiers présents, décodage des 30 atlas et dimensions du personnage ;
+- départ 16,16, déplacement réel à 16,15 et delta de 64 px avec l’échelle d’affichage 2 ;
+- dialogue réel de bienvenue d’Émile, ses trois répliques et retour au jeu ;
+- passage dans la maison à 6,8, puis retour au village à 15,7 ;
+- blocage par l’eau à 11,18.
+
+Les commandes d’entrée passent par l’adaptateur du Player installé. Une relâche de touche pendant le verrou légitime de fermeture du dialogue n’est pas assimilée à un nouvel ordre accepté ; les déplacements et interactions restent assertés.
+
+### Commandes sur les sources finales
+
+Toutes les commandes Flutter/Dart ci-dessous utilisent le SDK épinglé. Les tests Flutter ont été exécutés via `/tmp/run_avelune_owned.py` pour relever les PID du runner et ses descendants ; seuls les éventuels descendants encore possédés par la session peuvent être terminés. Aucune terminaison globale par nom de processus.
+
+| Répertoire / commande | Résultat exact | Journal |
+| --- | --- | --- |
+| Hub : `flutter test --no-pub test/features/installation/as_project_creation_player_e2e_test.dart` | exit 0 ; `00:19 +1: All tests passed!` | `/tmp/as-proj-recipe-final.log` |
+| Studio : `flutter test --no-pub test/project_creation --concurrency=2 --reporter=expanded` | exit 0 ; `00:33 +17: All tests passed!` | `/tmp/as-proj-fixtures-sources-final.log` |
+| map_authoring : `dart test test/workspace/project_creation_test.dart test/workspace/clairbois_creation_test.dart test/workspace/clairbois_creation_bootstrap_test.dart` | exit 0 ; `00:09 +19: All tests passed!` | `/tmp/as-proj-models-final.log` |
+| Hub : `flutter analyze --no-pub` | exit 0 ; `No issues found! (ran in 24.9s)` | `/tmp/as-proj-hub-analyze-final.log` |
+| Studio : `flutter analyze --no-pub` | exit 0 ; `No issues found! (ran in 19.6s)` | `/tmp/as-proj-studio-analyze-final.log` |
+| Racine : `dart format --output=none --set-exit-if-changed` sur les quatre fichiers Dart modifiés | exit 0 ; `Formatted 4 files (0 changed)` | contrôle final exécuté |
+| Racine : `git diff --check` | exit 0 | contrôle final exécuté |
+| Hub : `flutter pub get --offline` | exit 0 ; `Changed 2 dependencies!` | résolution locale des seules métadonnées concernées |
+| Racine : `bash tools/scripts/check_markdown_hygiene.sh` | exit 1 ; `Markdown hygiene: 1 new Markdown files exceed the default limit of 0.` | `/tmp/as-proj-markdown-hygiene-final.log` |
+
+Le contrôle Markdown échoue sur le rapport CI non suivi déjà présent à l’audit initial. Cette intervention ne crée aucun Markdown supplémentaire et ne supprime ni ne masque ce travail concurrent.
+
+Le run E2E final avait le runner PID 22574, 30 descendants relevés, durée totale du superviseur 42,43 s. Le run Studio final avait le PID 27741, 8 descendants relevés, durée totale 38,39 s. Aucun descendant restant appartenant à ces runs n’a été signalé au nettoyage.
+
+Les modèles local playable et vide 16/32/48 gardent leur couverture indépendante côté authoring ; le projet vide 48 reste couvert dans les tests UI. Ils ne deviennent pas des variantes de Clairbois.
+
+Pendant l’adaptation, des essais intermédiaires ont détecté la projection du dialogue, les liens de chemin macOS, un import public manquant puis l’acceptation d’une relâche pendant le verrou du dialogue. Ils ont conduit aux assertions conformes ci-dessus, sans modification du code produit. Le premier passage réussi intermédiaire ne remplace pas le nouveau run final.
+
+### Artefacts réellement produits
+
+Paquet exporté par le run final :
+
+`/tmp/as-proj-clairbois-proof/packages/clairbois-32.avelunegame`
+
+Taille : 1 536 849 octets. SHA-256 :
+
+`cfd01a40f69f1f3646b3cbfe3c0b3359c9877d6aef82abf7d93d0e3f409974ad`
+
+Capture du Player installé, produite et ouverte visuellement :
+
+`/tmp/as-proj-clairbois-proof/captures/player-created-32.png`
+
+Cette capture est un rendu widget/hôte automatisé, pas une manipulation native indépendante. Les artefacts et journaux sous /tmp sont locaux et temporaires ; aucune mise en ligne ni release n’a été faite.
+
+### Passes indépendantes et auto-critique
+
+- Audit/architecture : cause obsolète reproduite ; aucun correctif produit nécessaire, dépendances publiques et diff borné.
+- Implémentation : parcours réel du créateur jusqu’au Hub, suppression uniquement temporaire, couverture des autres modèles conservée.
+- Tests : échec initial +0/-3 ; nouvelle preuve +1, +17 et +19, avec source auteur inaccessible.
+- Build/validation : SDK identique à la CI, analyses propres ; pas de nouveau build macOS requis pour ce diff de tests uniquement. Le hôte Flutter a bien été compilé/exécuté.
+- Critique finale : favorable ; dépendance de test déclarée, lockfile limité à deux métadonnées, API du helper conservée, aucun contrôle affaibli.
+
+Les audits/passes sont en lecture seule ; les résultats d’exécution ci-dessus ont été obtenus dans cette intervention. Aucun nouveau scan MCP : parité N/A, puisque aucune sémantique auteur, commande, donnée produit ou transport n’est modifié.
+
+Limites : réseau contrôlé par l’archive de test, donc pas une nouvelle certification du téléchargement GitHub ; pas de replay clavier natif ni nouvelle acceptation artistique ; pas de nouvelle suite Studio globale, de build macOS, de release ou de clôture mécanique FG. Le mandat cible la recette et ses consommateurs concernés, pas ces chantiers.
+
+### État final
+
+HEAD et branche inchangés. Sept fichiers suivis modifiés (les six fichiers techniques plus ce rapport), une annexe texte non suivie créée pour le livrable, et le rapport CI non suivi préexistant conservé. Aucun commit, push, checkout, reset ou release. La mise à jour Notion concerne uniquement AS-PROJ-001 et conserve TO REVIEW avec proposition DONE.
+
+### Livraison Git autorisée le 1er octobre 2026
+
+Après autorisation explicite de Yoahn pour commit/push, `git fetch origin` puis `git rev-list --left-right --count HEAD...origin/main` confirment `0 0` à la base. Livraison limitée aux six fichiers techniques, au rapport et à son annexe intégrale. Le rapport CI non suivi préexistant reste exclu. Les sources techniques sont celles vérifiées ci-dessus ; aucune release n’est demandée dans cette autorisation.
