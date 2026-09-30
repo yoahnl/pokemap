@@ -526,4 +526,25 @@ Commit fonctionnel : `a27b20420` — `feat(avelune-studio): add guided project c
 
 Nouvelle vérification avant livraison : `PATH=/tmp/avelune-flutter-3.48/bin:$PATH python3 /tmp/avelune_merge_flutter_test.py /tmp/as-proj001-delivery-release-tests.log test/release test/project_creation --concurrency=2`, depuis Studio : `+24: All tests passed!`, code 0, 56,8 secondes ; 12 descendants suivis, aucun harness résiduel à terminer. Cette exécution ne remplace pas la suite complète décrite ci-dessus et ses 26 échecs conservés.
 
-La dernière release publique vérifiée est `pokemap-v0.3.16`, publiée le 30 septembre 2026 à 00:13:59 UTC. La version candidate Studio devient `0.3.17+317`. Le workflow utilise explicitement le pubspec Studio pour le contrat de version ; le pubspec de l’ancien éditeur reste inchangé. La validation, les builds des trois plateformes, la signature/notarisation macOS, le téléchargement de contrôle et la promotion du feed stable restent ceux du workflow existant. Publication non encore annoncée comme réussie à ce stade.
+La dernière release publique avant livraison était `pokemap-v0.3.16`, publiée le 30 septembre 2026 à 00:13:59 UTC. La version Studio devient `0.3.17+317`. Le workflow utilise explicitement le pubspec Studio pour le contrat de version ; le pubspec de l’ancien éditeur reste inchangé. La validation, les builds des trois plateformes, la signature/notarisation macOS, le téléchargement de contrôle et la promotion du feed stable restent ceux du workflow existant.
+
+Commit de version et de préparation : `acd4abe887c24aaab7c2ccb7f24aba488e71b474`. Push normal sur main réussi (`f559e55c6..acd4abe88`), sans force, merge, rebase ni changement de branche. Validation locale : `dart run tool/release/validate_release_version.dart --tag pokemap-v0.3.17 --pubspec ../../apps/avelune_studio/pubspec.yaml --previous-build 316`, depuis map_editor avec le SDK épinglé : `Validated PokeMap Editor 0.3.17 build 317.`, code 0. Le libellé du validateur historique ne change pas le pubspec Studio réellement passé.
+
+Publication : `gh workflow run pokemap_desktop_release.yml --ref main -f mode=release -f version=0.3.17 -f confirmation=RELEASE`. [Run 36736784272](https://github.com/yoahnl/pokemap/actions/runs/36736784272), sur le commit `acd4abe887c24aaab7c2ccb7f24aba488e71b474` : **success**. Les neuf jobs effectifs sont verts : validate-release, linux-release, windows-release, macos-release, assemble-release, create-draft-release, smoke-download-draft, publish-release, promote-stable-feed. Le job macOS inclut signature, notarisation, stapling et assessment ; ce n’est pas une manipulation native du produit. Les tests et analyses de distribution sont exécutés par les jobs existants, sans affaiblissement du workflow.
+
+[Quick checks 36736740694](https://github.com/yoahnl/pokemap/actions/runs/36736740694), sur le même SHA : **success**. Aucune nouvelle certification coûteuse ni dépendance de CI n’a été ajoutée.
+
+[Release publique Avelune Studio 0.3.17](https://github.com/yoahnl/pokemap/releases/tag/pokemap-v0.3.17), publiée le 30 septembre 2026 à 15:42:04 UTC, non draft et dernière release selon l’API GitHub. Sept assets présents : archives Linux et macOS, DMG, installeur Windows, appcast, index et SHA256SUMS. Les notes françaises relient les preuves et conservent les limites de la suite complète et de la validation native.
+
+Vérification HTTP indépendante après le workflow : téléchargement public de l’index et de l’appcast du tag stable, avec cache désactivé ; index schemaVersion 1, canal stable, version 0.3.17, tag pokemap-v0.3.17 ; appcast version 0.3.17, build 317, signature Ed25519 présente, URL immuable du ZIP macOS, longueur 68 652 353 octets. Les métadonnées stable et release sont identiques octet pour octet. Leur présence ne constitue pas une deuxième validation cryptographique locale des binaires : les téléchargements, hashes et signatures des vrais assets ont été vérifiés par smoke-download-draft en CI.
+
+SHA-256 publics du paquet de distribution :
+
+| Asset | SHA-256 |
+| --- | --- |
+| PokeMap-Editor-0.3.17-linux-x64.tar.gz | f523c2989d2f13625add9ddea7b7e0b8f46117a7880338fda75cce11b5957efa |
+| PokeMap-Editor-0.3.17-macOS.app.zip | 17c94b370749a93fe60a35ca62024d8796a5b0f3245d0a5d52b93e57ee90e95b |
+| PokeMap-Editor-0.3.17-macOS.dmg | 778c8c79206782852be9b39b4bc00f6cbb144b3cf98313f99880a2d605c641f2 |
+| PokeMap-Editor-Setup-0.3.17.exe | d43f6ed89a7e90d271d7f12b7a17fc6a087d78b9e47a40acaac6c8471ee8dc3c |
+
+La livraison Git et l’application distribuée sont vérifiées ; elles ne ferment pas les réserves AS-PROJ-001 précédentes. Le suivi reste TO REVIEW, jamais DONE automatiquement. Le rapport CI initial hors périmètre demeure non suivi et préservé ; les 50 empreintes de sources ont été revérifiées après commit, toutes identiques.
