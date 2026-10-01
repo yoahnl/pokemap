@@ -1,0 +1,1466 @@
+LOT 1 UWU — JOURNAUX CONSOLIDES
+Les commandes et codes de sortie sont dans evidence_pack.txt.
+Les fichiers volumineux sont des EXTRAITS identifiés, avec numéros de ligne et SHA-256 du log original ; ils ne sont pas présentés comme intégraux.
+Les réponses MCP live viennent de la connexion configurée ; elles ne prouvent pas une certification complète PMCP-085.
+
+===== uwu-controller-activation-red.log =====
+SHA-256 original : 1bb897163b1c0844d6dd8abb6e05f2963e40546f2b6f6341752d9b57e7202b2d
+Mode : integral
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: warm map activation keeps edits and loads project and maps only once
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice
+00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice [E]
+  Null check operator used on a null value
+  test/application/m1_controller_test.dart 42:29  main.<fn>
+  
+00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: standalone activation can still save before initialization
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: standalone activation can still save before initialization [E]
+  Null check operator used on a null value
+  test/application/m1_controller_test.dart 52:39  main.<fn>
+  
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: simultaneous requests for one map share the same load
+00:00 +1 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: simultaneous requests for one map share the same load [E]
+  Expected: <1>
+    Actual: <null>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/application/m1_controller_test.dart 68:5       main.<fn>
+  
+00:00 +1 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: obsolete load failure does not replace current success
+00:00 +1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: obsolete load failure does not replace current success [E]
+  Broken A
+  dart:async                                      _Completer.completeError
+  test/application/m1_controller_test.dart 78:29  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                      Zone.registerUnaryCallback
+  test/application/m1_controller_test.dart 77:5   main.<fn>
+  
+  Null check operator used on a null value
+  test/application/m1_controller_test.dart 86:29  main.<fn>
+  
+00:00 +1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed project initialization cannot trigger a map load
+00:00 +2 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed map completion cannot publish or retain a document
+00:00 +3 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: save uses its snapshot and retains edits made during the write
+00:00 +4 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: conflict keeps current, base revision and dirty for retry
+00:00 +5 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: writeFailed keeps current, base revision and dirty for retry
+00:00 +6 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll refuses closing if a document changed during save
+00:00 +7 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll stops on failure and leaves every later document dirty
+00:00 +8 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed save completion cannot accept a new baseline
+00:00 +9 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: a disposed empty controller cannot authorize saveAll close
+00:00 +10 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: failed navigation preserves the previous dirty document
+00:00 +11 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll succeeds only after all dirty documents finish sequentially
+00:00 +12 -4: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart
+00:00 +12 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+00:01 +12 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache [E]
+  Expected: 'clairiere'
+    Actual: 'jardin'
+     Which: is different.
+            Expected: clairiere
+              Actual: jardin
+                      ^
+             Differ at offset 0
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/map_workspace/map_catalog_async_reads_test.dart 47:7  main.<fn>
+  
+00:01 +12 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale preview cannot resurrect an old title
+00:01 +13 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale activation cannot resurrect an old title
+00:01 +14 -5: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: obsolete load failure does not replace current success
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: simultaneous requests for one map share the same load
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: standalone activation can still save before initialization
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+
+===== uwu-controller-activation-final.log =====
+SHA-256 original : 3de15aac27c7d956d75ca9647059ce3297a72ec8efb531ffa4b4721ea214bfcf
+Mode : integral
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: warm map activation keeps edits and loads project and maps only once
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: standalone activation can still save before initialization
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: simultaneous requests for one map share the same load
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: obsolete load failure does not replace current success
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed project initialization cannot trigger a map load
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed map completion cannot publish or retain a document
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: save uses its snapshot and retains edits made during the write
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: conflict keeps current, base revision and dirty for retry
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: writeFailed keeps current, base revision and dirty for retry
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll refuses closing if a document changed during save
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll stops on failure and leaves every later document dirty
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed save completion cannot accept a new baseline
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: a disposed empty controller cannot authorize saveAll close
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: failed navigation preserves the previous dirty document
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll succeeds only after all dirty documents finish sequentially
+00:00 +16: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale preview cannot resurrect an old title
+00:01 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale activation cannot resurrect an old title
+00:01 +19: All tests passed!
+
+===== uwu-studio-scoped-delivery.log =====
+SHA-256 original : f2094db228d855bba1f36c32afc5ed534ea36fe46020d9681247cb9718c63a12
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+1: 00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart
+2: 00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+3: 00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+4: 00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+5: 00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale preview cannot resurrect an old title
+6: 00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: a stale activation cannot resurrect an old title
+7: 00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: undo refuses an old passage to a canonically removed map
+8: 00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: empty project receives its first map without fabricating resources
+9: 00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: empty project receives its first map without fabricating resources
+10: 00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: title mutation preserves identity, dirty neighbour and prior geometry history
+11: 00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: failed refresh keeps a published receipt and retries only integration
+12: 00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: failed refresh keeps a published receipt and retries only integration
+13: 00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: failed refresh keeps a published receipt and retries only integration
+14: 00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: canonical removal retires loaded maps and refuses stale saves
+15: 00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: late publication remains on disk without updating a disposed owner
+16: 00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart: late publication remains on disk without updating a disposed owner
+17: 00:02 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart: canonical cache reuses unchanged documents after folder publication
+18: 00:02 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart: canonical cache reuses unchanged documents after folder publication
+19: 00:02 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart: map saves and catalogue operations share the existing session queue
+20: 00:03 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart: logical folder changes preserve map files, atlas and loaded draft identities
+21: 00:07 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+22: 00:17 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+23: 00:19 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+24: 00:31 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+136: [warp] transition completed
+137: [warp] gameplay unlocked map=maison pos=(6, 8)
+168: [warp] transition completed
+169: [warp] gameplay unlocked map=first-map pos=(15, 7)
+177: 00:35 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: dirty rename saves only its target and cancellation preserves work
+178: 00:37 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: empty project creates its first editable map using the project grid
+179: 00:38 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_dialog_keyboard_test.dart: focused input survives refusal and Enter cannot double submit
+180: 00:39 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
+181: 00:41 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
+182: 00:41 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
+183: 00:41 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
+184: 00:42 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
+330: [warp] transition completed
+331: [warp] gameplay unlocked map=maison pos=(6, 8)
+355: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+356: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+357: [perf][warp] refreshWorldNpcPresence=0ms
+358: [warp] fade in durationMs=170
+359: [runtime_game] tileset cache resolve requested=11
+360: [runtime_game] tileset cache resolve ok result=11
+361: [perf][warp] total=354ms
+362: [warp] transition completed
+363: [warp] gameplay unlocked map=first-map pos=(15, 7)
+364: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+365: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+366: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+367: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+368: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+369: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+370: [event_v2] mapEnter activation=mapact_1790852359321703_3 map=first-map reason=warp result=MapEnterProductionDispatchLegacyFallback
+371: 01:08 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: failed save from real creation guard keeps draft and B on disk
+372: 01:13 +65: All tests passed!
+
+===== uwu-studio-suite-delivery.log =====
+SHA-256 original : 826ab920c3f4e25f11e4de50eefa4faf3842f9a23deb5c067f47883932c9e604
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+12: 00:02 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
+13:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+14:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 163:7  LocalMapWorkspaceAdapter.loadMap
+15:   
+16:   LateInitializationError: Local 'fixture' has not been initialized.
+17:   dart:_internal                                            LateError._throwLocalNotInitialized
+18:   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
+19:   
+58: 00:13 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
+59:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+60:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 163:7  LocalMapWorkspaceAdapter.loadMap
+61:   
+62:   LateInitializationError: Local 'fixture' has not been initialized.
+63:   dart:_internal                                             LateError._throwLocalNotInitialized
+64:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+65:   
+66:   LateInitializationError: Local 'fixture' has not been initialized.
+67:   dart:_internal                                             LateError._throwLocalNotInitialized
+68:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+69:   
+72: 00:14 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
+73:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+74:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 163:7  LocalMapWorkspaceAdapter.loadMap
+75:   
+76:   LateInitializationError: Local 'fixture' has not been initialized.
+77:   dart:_internal                                             LateError._throwLocalNotInitialized
+78:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+79:   
+80:   LateInitializationError: Local 'fixture' has not been initialized.
+81:   dart:_internal                                             LateError._throwLocalNotInitialized
+82:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+83:   
+214: 00:52 +98 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
+215:   Test failed. See exception logs above.
+216:   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
+217:   
+457: 01:20 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
+458:   Test failed. See exception logs above.
+459:   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
+460:   
+510: 01:20 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
+511:   Test failed. See exception logs above.
+512:   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+513:   
+563: 01:21 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
+564:   Test failed. See exception logs above.
+565:   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+566:   
+616: 01:21 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
+617:   Test failed. See exception logs above.
+618:   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+619:   
+668: 01:22 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
+669:   Test failed. See exception logs above.
+670:   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+671:   
+800: [warp] transition completed
+801: [warp] gameplay unlocked map=maison pos=(6, 8)
+832: [warp] transition completed
+833: [warp] gameplay unlocked map=first-map pos=(15, 7)
+1560: 05:02 +382 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
+1561:   Test failed. See exception logs above.
+1562:   The test description was: UI10 full Studio frame early composition with isolated real project
+1563:   
+1616: 05:12 +433 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes [E]
+1617:   Expected: empty
+1618:     Actual: [
+1619:               '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart: 310 lignes',
+1620:               '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart: 474 lignes',
+1621:               '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip.dart: 306 lignes',
+1622:               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_visual_test.dart: 312 lignes',
+1623:               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
+1624:             ]
+1625:   
+1626:   package:matcher                                            expect
+1627:   package:flutter_test/src/widget_tester.dart 473:18         expect
+1628:   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
+1629:   
+1730: 05:28 +483 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
+1731:   Test failed. See exception logs above.
+1732:   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
+1733:   
+1782: 05:29 +483 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
+1783:   Test failed. See exception logs above.
+1784:   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
+1785:   
+1837: 05:30 +485 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
+1838:   Test failed. See exception logs above.
+1839:   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
+1840:   
+1914: 05:48 +511 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
+1915:   Test failed. See exception logs above.
+1916:   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+1917:   
+1920: 05:49 +512 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
+1921:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+1922:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 163:7  LocalMapWorkspaceAdapter.loadMap
+1923:   
+1953: 05:51 +542 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: warm map activation keeps edits and loads project and maps only once
+1954: 05:51 +543 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice
+1955: 05:51 +544 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: standalone activation can still save before initialization
+1956: 05:51 +545 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: simultaneous requests for one map share the same load
+1957: 05:51 +546 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: obsolete load failure does not replace current success
+1958: 05:51 +547 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed project initialization cannot trigger a map load
+1959: 05:51 +548 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed map completion cannot publish or retain a document
+1960: 05:51 +549 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: save uses its snapshot and retains edits made during the write
+1961: 05:51 +550 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: conflict keeps current, base revision and dirty for retry
+1962: 05:51 +551 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: writeFailed keeps current, base revision and dirty for retry
+1963: 05:51 +552 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll refuses closing if a document changed during save
+1964: 05:51 +553 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll stops on failure and leaves every later document dirty
+1965: 05:51 +554 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed save completion cannot accept a new baseline
+1966: 05:51 +555 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: a disposed empty controller cannot authorize saveAll close
+1967: 05:51 +556 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: failed navigation preserves the previous dirty document
+1968: 05:51 +557 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll succeeds only after all dirty documents finish sequentially
+2044: 05:54 +573 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
+2045:   Test failed. See exception logs above.
+2046:   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+2047:   
+2107: 05:55 +574 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
+2108:   Test failed. See exception logs above.
+2109:   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+2110:   
+2166: 06:03 +581 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
+2167:   Test failed. See exception logs above.
+2168:   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
+2169:   
+2219: 06:04 +582 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
+2220:   Test failed. See exception logs above.
+2221:   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
+2222:   
+2272: 06:05 +582 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
+2273:   Test failed. See exception logs above.
+2274:   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
+2275:   
+2512: 06:38 +709 ~2 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
+2513:   Test failed. See exception logs above.
+2514:   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
+2515:   
+2563: 07:40 +754 ~2 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart: inactive map exposes actions without activating its document
+2590: 07:45 +757 ~2 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
+2591:   Test failed. See exception logs above.
+2592:   The test description was: local stack selects a hidden instance and respects order command limits
+2593:   
+2643: 08:17 +779 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
+2644:   Test failed. See exception logs above.
+2645:   The test description was: place move stack undo redo save and runtime return preserve document
+2646:   
+2693: 08:49 +825 ~3 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_dialog_layout_test.dart: creation form remains accessible at Size(1280.0, 800.0) with enlarged text
+2694: 08:49 +826 ~3 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_dialog_layout_test.dart: creation form remains accessible at Size(1024.0, 640.0) with enlarged text
+2791: 10:11 +900 ~3 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_stale_document_test.dart: a removed cached document cannot be activated or saved
+2925: 10:33 +961 ~3 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
+2926:   Test failed. See exception logs above.
+2927:   The test description was: the real map workspace links and unlinks both borders
+2928:   
+2975: 10:34 +963 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
+2976:   Test failed. See exception logs above.
+2977:   The test description was: a draft blocks the link without losing its changes
+2978:   
+3032: 10:43 +1016 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3033: 10:45 +1017 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3034: 10:48 +1018 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3035: 10:50 +1019 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3036: 10:52 +1020 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3037: 10:52 +1021 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3038: 10:52 +1022 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3039: 10:52 +1023 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: home refreshes an already mounted preview after a closed map title changes
+3041: 10:53 +1025 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+3042: 11:00 +1026 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+3043: 11:03 +1027 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+3044: 11:04 +1028 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+3045: 11:06 +1029 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: real workspace organizes nested folders and preserves referenced maps
+3047: 11:08 +1031 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: dirty rename saves only its target and cancellation preserves work
+3048: 11:12 +1032 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart: dirty rename saves only its target and cancellation preserves work
+3124: [warp] transition completed
+3125: [warp] gameplay unlocked map=clairiere pos=(7, 3)
+3188: 11:41 +1075 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3189: 11:42 +1076 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3190: 11:42 +1077 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3191: 11:42 +1078 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3192: 11:43 +1079 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3193: 11:43 +1080 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3194: 11:43 +1081 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3195: 11:43 +1082 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3196: 11:43 +1083 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3197: 11:44 +1084 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3198: 11:44 +1085 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3199: 11:44 +1086 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3200: 11:44 +1087 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3201: 11:49 +1088 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3202: 11:51 +1089 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3203: 11:52 +1090 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3204: 11:54 +1091 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3205: 11:54 +1092 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3206: 11:54 +1093 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3207: 11:54 +1094 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3208: 11:54 +1095 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3209: 11:54 +1096 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3210: 11:54 +1097 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3211: 11:54 +1098 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3212: 11:54 +1099 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3213: 11:54 +1100 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3226: 11:56 +1100 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3257: 11:56 +1100 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3260: 11:56 +1101 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3273: 11:56 +1102 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities
+3342: [warp] transition completed
+3343: [warp] gameplay unlocked map=maison pos=(6, 8)
+3374: [warp] transition completed
+3375: [warp] gameplay unlocked map=first-map pos=(15, 7)
+3383: 11:57 +1103 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3384: 12:00 +1104 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3385: 12:04 +1105 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3386: 12:05 +1106 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3387: 12:05 +1107 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3388: 12:05 +1108 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3389: 12:05 +1109 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3390: 12:06 +1110 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3391: 12:06 +1111 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3392: 12:06 +1112 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3393: 12:06 +1113 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3394: 12:06 +1114 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3395: 12:06 +1115 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3396: 12:06 +1116 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3397: 12:06 +1117 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3398: 12:06 +1118 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3399: 12:07 +1119 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3400: 12:07 +1120 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart: all maps uses the same creation owner and reveals the new identity
+3401: 12:09 +1121 ~3 -26: Some tests failed.
+3402: 
+3403: Failing tests:
+3404:   /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+3405:   /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+3406:   /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
+3407:   /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view
+3408:   ... and 22 more
+
+===== uwu-studio-baseline-failures.log =====
+SHA-256 original : a418fb0086c9fe7d80796dd07fea81dbce8a8786a1aabb5c4e57d6a7c9f1ae18
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+1: 00:00 +0: loading /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/application/m1_controller_test.dart
+2: 00:00 +0: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/application/m1_controller_test.dart: warm map activation keeps edits and loads project and maps only once
+24: 00:01 +21 -1: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes [E]
+25:   Expected: empty
+26:     Actual: [
+27:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart: 310 lignes',
+28:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart: 305 lignes',
+29:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart: 474 lignes',
+30:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip.dart: 306 lignes',
+31:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/home/home_visual_test.dart: 312 lignes',
+32:               '/private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
+33:             ]
+34:   
+35:   package:matcher                                            expect
+36:   package:flutter_test/src/widget_tester.dart 473:18         expect
+37:   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
+38:   
+41: 00:03 +21 -2: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
+42:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+43:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 162:7  LocalMapWorkspaceAdapter.loadMap
+44:   
+45:   LateInitializationError: Local 'fixture' has not been initialized.
+46:   dart:_internal                                             LateError._throwLocalNotInitialized
+47:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+48:   
+49:   LateInitializationError: Local 'fixture' has not been initialized.
+50:   dart:_internal                                             LateError._throwLocalNotInitialized
+51:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+52:   
+54: 00:04 +21 -3: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
+55:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+56:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 162:7  LocalMapWorkspaceAdapter.loadMap
+57:   
+58:   LateInitializationError: Local 'fixture' has not been initialized.
+59:   dart:_internal                                            LateError._throwLocalNotInitialized
+60:   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
+61:   
+62: 00:04 +21 -4: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
+63:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+64:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 162:7  LocalMapWorkspaceAdapter.loadMap
+65:   
+66:   LateInitializationError: Local 'fixture' has not been initialized.
+67:   dart:_internal                                             LateError._throwLocalNotInitialized
+68:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+69:   
+70:   LateInitializationError: Local 'fixture' has not been initialized.
+71:   dart:_internal                                             LateError._throwLocalNotInitialized
+72:   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
+73:   
+123: 00:10 +21 -5: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
+124:   Test failed. See exception logs above.
+125:   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
+126:   
+175: 00:11 +21 -6: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
+176:   Test failed. See exception logs above.
+177:   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
+178:   
+228: 00:12 +21 -7: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
+229:   Test failed. See exception logs above.
+230:   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
+231:   
+283: 00:13 +21 -8: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
+284:   Test failed. See exception logs above.
+285:   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
+286:   
+336: 00:14 +21 -9: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
+337:   Test failed. See exception logs above.
+338:   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
+339:   
+389: 00:15 +21 -10: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
+390:   Test failed. See exception logs above.
+391:   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
+392:   
+440: 00:15 +21 -11: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
+441:   Test failed. See exception logs above.
+442:   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+443:   
+493: 00:16 +21 -12: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
+494:   Test failed. See exception logs above.
+495:   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
+496:   
+497: 00:16 +21 -13: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
+498:   Cette carte est absente, invalide ou utilise un format non pris en charge.
+499:   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 162:7  LocalMapWorkspaceAdapter.loadMap
+500:   
+550: 00:19 +21 -14: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
+551:   Test failed. See exception logs above.
+552:   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
+553:   
+601: 00:19 +21 -15: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
+602:   Test failed. See exception logs above.
+603:   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+604:   
+654: 00:20 +21 -16: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
+655:   Test failed. See exception logs above.
+656:   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+657:   
+705: 00:20 +21 -17: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
+706:   Test failed. See exception logs above.
+707:   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+708:   
+758: 00:21 +21 -18: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
+759:   Test failed. See exception logs above.
+760:   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+761:   
+811: 00:22 +21 -19: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
+812:   Test failed. See exception logs above.
+813:   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+814:   
+864: 00:23 +21 -20: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
+865:   Test failed. See exception logs above.
+866:   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
+867:   
+916: 00:23 +21 -21: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
+917:   Test failed. See exception logs above.
+918:   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+919:   
+964: 00:26 +21 -22: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
+965:   Test failed. See exception logs above.
+966:   The test description was: the real map workspace links and unlinks both borders
+967:   
+1017: 00:26 +21 -23: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
+1018:   Test failed. See exception logs above.
+1019:   The test description was: UI10 full Studio frame early composition with isolated real project
+1020:   
+1065: 00:27 +21 -24: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
+1066:   Test failed. See exception logs above.
+1067:   The test description was: a draft blocks the link without losing its changes
+1068:   
+1094: 00:28 +23 -25: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
+1095:   Test failed. See exception logs above.
+1096:   The test description was: local stack selects a hidden instance and respects order command limits
+1097:   
+1122:   place move stack undo redo save and runtime return preserve document
+1123: ════════════════════════════════════════════════════════════════════════════════════════════════════
+1124: 00:30 +24 -26: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
+1125:   Test failed. See exception logs above.
+1126:   The test description was: place move stack undo redo save and runtime return preserve document
+1127:   
+1128: 00:30 +24 -26: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: dirty close offers cancel discard save and save conflict prevents runtime
+1129: 00:31 +25 -26: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: paint gesture is one history step and text input does not delete selection
+1130: 00:31 +26 -26: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: failed navigation keeps visible and saved target; warm navigation preserves zoom
+1131: 00:31 +27 -26: /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: eraser reaches ground beneath empty decor
+1132: 00:32 +28 -26: Some tests failed.
+1133: 
+1134: Failing tests:
+1135:   /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+1136:   /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+1137:   /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
+1138:   /private/tmp/uwu-studio-baseline.K071Im/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view
+1139:   ... and 22 more
+
+===== uwu-architecture-delivery.log =====
+SHA-256 original : 745134c6093e4f09b66fed06055386b143180feacedffbae721b6e32b3dc465b
+Mode : integral
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un barrel package public
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: inspecte aussi les branches conditionnelles des exports
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: termine sur un cycle et accepte les SDK purs
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: un package inconnu echoue au lieu de masquer une dependance
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation centralisee et barrel DI limite aux exports
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:01 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes [E]
+  Expected: empty
+    Actual: [
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart: 310 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart: 474 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip.dart: 306 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_visual_test.dart: 312 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
+            ]
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
+  
+00:01 +11 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+
+===== uwu-studio-analyze-delivery.log =====
+SHA-256 original : 440ec94556c4a32d61a1d1312f6b012f1559bb8796b09598cea063ef14d7b84c
+Mode : integral
+Analyzing avelune_studio...                                     
+No issues found! (ran in 5.4s)
+
+===== uwu-hub-player-final.log =====
+SHA-256 original : b3ef663d583743fd479e3b36403671200be3b8e721896997cbb7575e791b669f
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+220: [warp] transition completed
+221: [warp] gameplay unlocked map=maison pos=(6, 8)
+244: [perf][warp] pruneLoadedMaps=0ms
+245: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+246: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+247: [perf][warp] refreshWorldNpcPresence=0ms
+248: [warp] fade in durationMs=170
+249: [runtime_game] tileset cache resolve requested=11
+250: [runtime_game] tileset cache resolve ok result=11
+251: [perf][warp] total=347ms
+252: [warp] transition completed
+253: [warp] gameplay unlocked map=first-map pos=(15, 7)
+254: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+255: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+256: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+257: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+258: [step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+259: [npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+260: [event_v2] mapEnter activation=mapact_1790851196828009_3 map=first-map reason=warp result=MapEnterProductionDispatchLegacyFallback
+261: 00:12 +1: All tests passed!
+
+===== uwu-build-macos-final.log =====
+SHA-256 original : 342020a1e8530cbb888c8dc3f029f611733e22791463dcd4037b3ebafd501d6e
+Mode : integral
+Building macOS application...                                   
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+
+===== uwu-authoring-scoped-final.log =====
+SHA-256 original : fe240f1b3155c3b1a66e8aafc86a1a81cbbc9f5efed90e2ece2c527e02476db1
+Mode : integral
+00:00 +0: loading test/workspace/project_snapshot_catalog_projection_test.dart
+00:00 +0: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +1: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +2: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +3: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +4: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +5: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +6: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +7: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +8: test/workspace/project_snapshot_catalog_projection_test.dart: folder and title post-images retain the complete cached snapshot
+00:00 +9: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +10: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +11: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +12: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +13: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +14: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +15: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +16: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +17: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +18: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +19: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +20: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +21: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +22: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +23: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +24: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +25: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +26: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +27: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +28: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +29: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +30: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +31: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +32: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +33: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +34: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +35: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +36: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +37: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +38: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +39: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +40: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +41: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +42: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +43: test/domains/maps/map_metadata_transaction_test.dart: recovers both names after a crash between promotions
+00:00 +44: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +45: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +46: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +47: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +48: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +49: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +50: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +51: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +52: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +53: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +54: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +55: test/domains/maps/map_lifecycle_transaction_test.dart: LocalMapAuthoringMutationApi lifecycle map save verifies only its touched payload without a full reload
+00:00 +56: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +57: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +58: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +59: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +60: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +61: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +62: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +63: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +64: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +65: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:00 +66: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:01 +67: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:01 +68: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:01 +69: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:01 +70: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:07 +71: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool refuses an Item transport claim without receipts
+00:14 +72: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically
+00:14 +73: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport
+00:14 +74: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt
+00:15 +75: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity
+00:15 +76: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity
+00:15 +77: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity
+00:15 +78: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource
+00:15 +79: All tests passed!
+
+===== uwu-authoring-full-catalog-final.log =====
+SHA-256 original : c96c472dbaed9081f3e09bd3d1f525d0c6989e4637eff2aabdabac7e1a3c0960
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+54: 00:34 +48 -1: test/tooling/jsonl_worker_test.dart: JsonlWorker golden describe and malformed input are byte-for-byte stable [E]
+55:   Expected: '{"requestId":"describe-1","status":"success","data":{"commands":[{"id":"close","summary":"Close an in-memory read-only workspace."},{"id":"describe","summary":"Describe this read-only API."},{"id":"open","summary":"Open an allowed PokeMap project read-only."},{"id":"query","summary":"Query an immutable project snapshot."},{"id":"validate","summary":"Inspect project structure, Pokemon coherence, references, and optional capability certification."}],"protocol":"pokemap.authoring.read.v1","queryOperations":["list","get","batch_get","search","summary"],"readOnly":true,"resourceKinds":[{"displayName":"Asset","id":"asset","summary":"Content-addressed project asset","version":1},{"displayName":"Border blueprint","id":"borderBlueprint","summary":"Editable and published procedural Border definition","version":1},{"displayName":"Border visual snapshot","id":"borderSnapshot","summary":"Immutable content-addressed Border visual frames","version":1},{"displayName":"Character Studio catalog","id":"characterStudioCatalog","summary":"Global portrait states and animation definitions","version":1},{"displayName":"Character Studio character","id":"characterStudioCharacter","summary":"Character identity, media coverage and selection status","version":1},{"displayName":"Character Studio dependency","id":"characterStudioDependency","summary":"Stable reference targeting Character Studio content","version":1},{"displayName":"Character Studio readiness","id":"characterStudioReadiness","summary":"Per-character media coverage and readiness diagnostics","version":1},{"displayName":"Cinematic library catalog","extensions":{"childResourceKinds":["cinematicLibraryFolder","cinematicLibraryEntry"]},"id":"cinematicLibraryCatalog","summary":"Persistent folder and placement catalog for both cinematic families","version":1},{"displayName":"Cinematic library entry","extensions":{"idFormat":"uriComponent(family):uriComponent(cinematicId)"},"id":"cinematicLibraryEntry","summary":"Folder placement and archive state for one cinematic","version":1},{"displayName":"Cinematic library folder","id":"cinematicLibraryFolder","summary":"Recursive stable folder scoped to one cinematic family","version":1},{"displayName":"Dialogue","id":"dialogue","summary":"Project dialogue metadata and external source","version":1},{"displayName":"Element category","id":"elementCategory","summary":"Hierarchical visual element category","version":1},{"displayName":"Event V2","id":"eventV2","summary":"Revision-gated narrative event record","version":1},{"displayName":"Fact","id":"fact","summary":"Typed narrative state definition","version":1},{"displayName":"Item catalog","id":"itemCatalog","summary":"Canonical project-owned item catalog","version":1},{"displayName":"Item definition","extensions":{"queryActions":["item.delete_plan","item.simulate","item.validate"]},"id":"itemDefinition","summary":"One canonical item definition and its capabilities","version":1},{"displayName":"Item readiness","id":"itemReadiness","summary":"Validation and dependency readiness for one item","version":1},{"displayName":"Item usage","id":"itemUsage","summary":"One editable project dependency on an item","version":1},{"displayName":"Map","extensions":{"documentedFieldMasks":["connections"]},"id":"map","summary":"Editable PokeMap map","version":1},{"displayName":"Map connection","extensions":{"idFormat":"mapId:direction","queryActions":["connection.list","connection.get","connection.preview_alignment","connection.validate"]},"id":"mapConnection","summary":"Directional physical adjacency between two maps","version":1},{"displayName":"Presentation cinematic","extensions":{"childResourceKinds":["presentationTrack","presentationClip","presentationLayer","presentationVisualFolder"]},"id":"presentationCinematic","summary":"Project-owned out-of-engine cinematic timeline","version":1},{"displayName":"Presentation cinematic template","id":"presentationCinematicTemplate","summary":"Versioned canonical recipe for a responsive Presentation cinematic","version":1},{"displayName":"Presentation clip","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId):uriComponent(clipId)"},"id":"presentationClip","summary":"Temporal clip inside a Presentation cinematic track","version":1},{"displayName":"Presentation layer","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(layerId)"},"id":"presentationLayer","summary":"Visual stacking layer inside a Presentation cinematic","version":1},{"displayName":"Presentation media","id":"presentationMedia","summary":"Stable logical media identity linked to project-owned source assets","version":1},{"displayName":"Presentation preview context","id":"presentationPreviewContext","summary":"Read-only project maps, dialogue scenarios, portraits and encounters available to presentation previews","version":2},{"displayName":"Presentation track","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId)"},"id":"presentationTrack","summary":"Typed ordered track inside a Presentation cinematic","version":1},{"displayName":"Presentation visual folder","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(folderId)"},"id":"presentationVisualFolder","summary":"One-level visual organization folder inside a Presentation cinematic","version":1},{"displayName":"Project","id":"project","summary":"PokeMap project manifest and project-owned content","version":1},{"displayName":"Project presentation preset","id":"projectPresentationPreset","summary":"Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets","version":2},{"displayName":"Project presentation profile","id":"projectPresentationProfile","summary":"Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation","version":10},{"displayName":"Rail journey","id":"railJourney","summary":"One typed station-to-station journey definition","version":1},{"displayName":"Scene","id":"scene","summary":"Project-owned executable narrative graph","version":1},{"displayName":"Script","id":"script","summary":"Embedded deterministic project script","version":1},{"displayName":"Smart Tile animation","id":"smartTileAnimation","summary":"Reusable ordered Smart Tile animation frames","version":1},{"displayName":"Smart Tile atlas","id":"smartTileAtlas","summary":"Decoded-image-bounded atlas geometry for Smart Tiles","version":1},{"displayName":"Smart Tile draft","id":"smartTileDraft","summary":"Durable isolated Smart Tiles Studio authoring state","version":1},{"displayName":"Smart Tile layer","id":"smartTileLayer","summary":"Map-owned semantic field and optional gameplay behavior","version":2},{"displayName":"Smart Tile material","id":"smartTileMaterial","summary":"Semantic terrain, path, or surface material","version":1},{"displayName":"Smart Tile pattern","id":"smartTilePattern","summary":"Reusable anchored visual pattern painted on Smart Tile layers","version":1},{"displayName":"Smart Tile preset","id":"smartTilePreset","summary":"Topology, rules, candidates, and coverage contract","version":1},{"displayName":"Storyline","id":"storyline","summary":"Chapter, Step and progression graph aggregate","version":1},{"displayName":"Tileset folder","id":"tilesetFolder","summary":"Hierarchical tileset library folder","version":1},{"displayName":"World graph","extensions":{"childResourceKinds":["worldGraphNode","worldGraphEdge","worldGraphIssue"],"queryActions":["world_graph.inspect","world_graph.render"]},"id":"worldGraph","summary":"Bounded overview of authored map connectivity","version":1},{"displayName":"World graph edge","id":"worldGraphEdge","summary":"One paginated connection or warp edge","version":1},{"displayName":"World graph issue","extensions":{"queryActions":["world_graph.validate_consistency"]},"id":"worldGraphIssue","summary":"One paginated world graph consistency issue","version":1},{"displayName":"World graph node","extensions":{"queryActions":["world_graph.list_connected","world_graph.list_disconnected","world_graph.find_path"]},"id":"worldGraphNode","summary":"One map in the paginated world graph","version":1},{"displayName":"World Rule","id":"worldRule","summary":"Runtime-consumed world projection rule","version":1}],"schemaVersion":1,"validation":{"capabilityCertification":"requested_only","capabilityTruth":"explicit_only","pokemonCatalog":true,"references":true,"structure":true}},"artifacts":[]}\n'
+56:               '{"requestId":"invalid","status":"failure","data":{},"error":{"code":"invalid_request","message":"Request line must contain exactly one JSON object.","retryable":false,"remediation":[],"details":{"domainCode":"worker.invalid_json"}},"artifacts":[]}\n'
+57:               ''
+58:     Actual: '{"requestId":"describe-1","status":"success","data":{"commands":[{"id":"close","summary":"Close an in-memory read-only workspace."},{"id":"describe","summary":"Describe this read-only API."},{"id":"open","summary":"Open an allowed PokeMap project read-only."},{"id":"query","summary":"Query an immutable project snapshot."},{"id":"validate","summary":"Inspect project structure, Pokemon coherence, references, and optional capability certification."}],"protocol":"pokemap.authoring.read.v1","queryOperations":["list","get","batch_get","search","summary"],"readOnly":true,"resourceKinds":[{"displayName":"Asset","id":"asset","summary":"Content-addressed project asset","version":1},{"displayName":"Border blueprint","id":"borderBlueprint","summary":"Editable and published procedural Border definition","version":1},{"displayName":"Border visual snapshot","id":"borderSnapshot","summary":"Immutable content-addressed Border visual frames","version":1},{"displayName":"Character Studio catalog","id":"characterStudioCatalog","summary":"Global portrait states and animation definitions","version":1},{"displayName":"Character Studio character","id":"characterStudioCharacter","summary":"Character identity, media coverage and selection status","version":1},{"displayName":"Character Studio dependency","id":"characterStudioDependency","summary":"Stable reference targeting Character Studio content","version":1},{"displayName":"Character Studio readiness","id":"characterStudioReadiness","summary":"Per-character media coverage and readiness diagnostics","version":1},{"displayName":"Cinematic library catalog","extensions":{"childResourceKinds":["cinematicLibraryFolder","cinematicLibraryEntry"]},"id":"cinematicLibraryCatalog","summary":"Persistent folder and placement catalog for both cinematic families","version":1},{"displayName":"Cinematic library entry","extensions":{"idFormat":"uriComponent(family):uriComponent(cinematicId)"},"id":"cinematicLibraryEntry","summary":"Folder placement and archive state for one cinematic","version":1},{"displayName":"Cinematic library folder","id":"cinematicLibraryFolder","summary":"Recursive stable folder scoped to one cinematic family","version":1},{"displayName":"Dialogue","id":"dialogue","summary":"Project dialogue metadata and external source","version":1},{"displayName":"Element category","id":"elementCategory","summary":"Hierarchical visual element category","version":1},{"displayName":"Event V2","id":"eventV2","summary":"Revision-gated narrative event record","version":1},{"displayName":"Fact","id":"fact","summary":"Typed narrative state definition","version":1},{"displayName":"Item catalog","id":"itemCatalog","summary":"Canonical project-owned item catalog","version":1},{"displayName":"Item definition","extensions":{"queryActions":["item.delete_plan","item.simulate","item.validate"]},"id":"itemDefinition","summary":"One canonical item definition and its capabilities","version":1},{"displayName":"Item readiness","id":"itemReadiness","summary":"Validation and dependency readiness for one item","version":1},{"displayName":"Item usage","id":"itemUsage","summary":"One editable project dependency on an item","version":1},{"displayName":"Map","extensions":{"documentedFieldMasks":["connections"]},"id":"map","summary":"Editable PokeMap map","version":1},{"displayName":"Map connection","extensions":{"idFormat":"mapId:direction","queryActions":["connection.list","connection.get","connection.preview_alignment","connection.validate"]},"id":"mapConnection","summary":"Directional physical adjacency between two maps","version":1},{"displayName":"Presentation cinematic","extensions":{"childResourceKinds":["presentationTrack","presentationClip","presentationLayer","presentationVisualFolder"]},"id":"presentationCinematic","summary":"Project-owned out-of-engine cinematic timeline","version":1},{"displayName":"Presentation cinematic template","id":"presentationCinematicTemplate","summary":"Versioned canonical recipe for a responsive Presentation cinematic","version":1},{"displayName":"Presentation clip","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId):uriComponent(clipId)"},"id":"presentationClip","summary":"Temporal clip inside a Presentation cinematic track","version":1},{"displayName":"Presentation layer","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(layerId)"},"id":"presentationLayer","summary":"Visual stacking layer inside a Presentation cinematic","version":1},{"displayName":"Presentation media","id":"presentationMedia","summary":"Stable logical media identity linked to project-owned source assets","version":1},{"displayName":"Presentation preview context","id":"presentationPreviewContext","summary":"Read-only project maps, dialogue scenarios, portraits and encounters available to presentation previews","version":2},{"displayName":"Presentation track","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId)"},"id":"presentationTrack","summary":"Typed ordered track inside a Presentation cinematic","version":1},{"displayName":"Presentation visual folder","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(folderId)"},"id":"presentationVisualFolder","summary":"One-level visual organization folder inside a Presentation cinematic","version":1},{"displayName":"Project","id":"project","summary":"PokeMap project manifest and project-owned content","version":1},{"displayName":"Project presentation preset","id":"projectPresentationPreset","summary":"Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets","version":2},{"displayName":"Project presentation profile","id":"projectPresentationProfile","summary":"Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation","version":10},{"displayName":"Rail journey","id":"railJourney","summary":"One typed station-to-station journey definition","version":1},{"displayName":"Regional map","id":"regionalMap","summary":"Author-owned illustrated regions and normalized points of interest","version":1},{"displayName":"Regional point of interest","id":"regionalMapPoi","summary":"One localized place with visibility and map-visit discovery","version":1},{"displayName":"Regional map region","id":"regionalMapRegion","summary":"One illustrated region independent from tile coordinates","version":1},{"displayName":"Scene","id":"scene","summary":"Project-owned executable narrative graph","version":1},{"displayName":"Script","id":"script","summary":"Embedded deterministic project script","version":1},{"displayName":"Smart Tile animation","id":"smartTileAnimation","summary":"Reusable ordered Smart Tile animation frames","version":1},{"displayName":"Smart Tile atlas","id":"smartTileAtlas","summary":"Decoded-image-bounded atlas geometry for Smart Tiles","version":1},{"displayName":"Smart Tile draft","id":"smartTileDraft","summary":"Durable isolated Smart Tiles Studio authoring state","version":1},{"displayName":"Smart Tile layer","id":"smartTileLayer","summary":"Map-owned semantic field and optional gameplay behavior","version":2},{"displayName":"Smart Tile material","id":"smartTileMaterial","summary":"Semantic terrain, path, or surface material","version":1},{"displayName":"Smart Tile pattern","id":"smartTilePattern","summary":"Reusable anchored visual pattern painted on Smart Tile layers","version":1},{"displayName":"Smart Tile preset","id":"smartTilePreset","summary":"Topology, rules, candidates, and coverage contract","version":1},{"displayName":"Storyline","id":"storyline","summary":"Chapter, Step and progression graph aggregate","version":1},{"displayName":"Tileset folder","id":"tilesetFolder","summary":"Hierarchical tileset library folder","version":1},{"displayName":"World graph","extensions":{"childResourceKinds":["worldGraphNode","worldGraphEdge","worldGraphIssue"],"queryActions":["world_graph.inspect","world_graph.render"]},"id":"worldGraph","summary":"Bounded overview of authored map connectivity","version":1},{"displayName":"World graph edge","id":"worldGraphEdge","summary":"One paginated connection or warp edge","version":1},{"displayName":"World graph issue","extensions":{"queryActions":["world_graph.validate_consistency"]},"id":"worldGraphIssue","summary":"One paginated world graph consistency issue","version":1},{"displayName":"World graph node","extensions":{"queryActions":["world_graph.list_connected","world_graph.list_disconnected","world_graph.find_path"]},"id":"worldGraphNode","summary":"One map in the paginated world graph","version":1},{"displayName":"World Rule","id":"worldRule","summary":"Runtime-consumed world projection rule","version":1}],"schemaVersion":1,"validation":{"capabilityCertification":"requested_only","capabilityTruth":"explicit_only","pokemonCatalog":true,"references":true,"structure":true}},"artifacts":[]}\n'
+59:               '{"requestId":"invalid","status":"failure","data":{},"error":{"code":"invalid_request","message":"Request line must contain exactly one JSON object.","retryable":false,"remediation":[],"details":{"domainCode":"worker.invalid_json"}},"artifacts":[]}\n'
+60:               ''
+61:      Which: is different.
+62:             Expected: ... layName":"Scene","id ...
+63:               Actual: ... layName":"Regional m ...
+64:                                     ^
+65:              Differ at offset 6042
+66:   
+67:   package:matcher                            expect
+68:   test/tooling/jsonl_worker_test.dart 100:7  main.<fn>.<fn>
+69:   
+255: 00:44 +233 -2: test/domains/maps/smart_tile_layer_actions_test.dart: SmartTileLayerActions direct API and JSONL apply the same complete M01 repair [E]
+256:   Expected: true
+257:     Actual: <false>
+258:   {capabilityCertification: {providedCapabilityCount: 0, requested: false, requiredCapabilityCount: 0, status: not_requested, valid: null}, capabilityTruth: {capabilities: [], issues: [{capabilityId: *, code: noPromotedCapabilities, message: A capability truth gate requires at least one promoted capability.}], schemaVersion: 1, status: fail}, pokemonCatalog: {canExport: false, canPlaytest: false, diagnostics: [{code: catalog.abilities_missing, message: The abilities catalog is unavailable; ability references were not checked., path: catalogs/abilities, recommendedAction: Add the abilities catalog before enabling authored abilities., severity: error}, {code: catalog.growth_rates_missing, message: The growth_rates catalog is unavailable; growth rate references were not checked., path: catalogs/growth_rates, recommendedAction: Add the growth_rates catalog before enabling authored growth rates., severity: error}, {code: catalog.items_missing, message: The items catalog is unavailable; item references were not checked., path: catalogs/items, recommendedAction: Add the items catalog before enabling authored items., severity: error}, {code: catalog.moves_missing, message: The moves catalog is unavailable; move references were not checked., path: catalogs/moves, recommendedAction: Add the moves catalog before enabling authored moves., severity: error}, {code: catalog.types_missing, message: The types catalog is unavailable; type references were not checked., path: catalogs/types, recommendedAction: Add the types catalog before enabling authored types., severity: error}], errorCount: 5, warningCount: 0}, references: {diagnostics: [], edgeCount: 0, hasErrors: false, nodeCount: 1, valid: true}, snapshotRevision: sha256:771d59efae1e88027a5a4d1adad4fe1597fb8ac03578f376ae05c1296f4c4a03, structure: {diagnostics: [], valid: true}, valid: false}
+259:   
+260:   package:matcher                                             expect
+261:   test/domains/maps/smart_tile_layer_actions_test.dart 476:9  main.<fn>.<fn>
+262:   
+683: 01:00 +651 -3: test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set [E]
+684:   Expected: Set:['crypto', 'image', 'map_core', 'map_distribution', 'path', 'pub_semver']
+685:     Actual: Set:[
+686:               'archive',
+687:               'freezed_annotation',
+688:               'crypto',
+689:               'image',
+690:               'map_core',
+691:               'map_distribution',
+692:               'path',
+693:               'pub_semver'
+694:             ]
+695:      Which: larger than expected
+696:   
+697:   package:matcher                       expect
+698:   test/package_boundary_test.dart 72:7  main.<fn>.<fn>
+699:   
+704: 01:00 +654 -4: test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter [E]
+705:   Expected: an object with length of a value less than <1300>
+706:     Actual: [
+707:               'import \'dart:convert\';',
+708:               '',
+709:               'import \'package:map_core/map_core.dart\';',
+710:               '',
+711:               'import \'../../contracts/action_descriptor.dart\';',
+712:               'import \'../../transactions/action_planner.dart\';',
+713:               'import \'../../transactions/authoring_plan.dart\';',
+714:               'import \'semantic_map_action_support.dart\';',
+715:               '',
+716:               'part \'environment_generation_support.dart\';',
+717:               '',
+718:               '/// Bounded map-space region used by deterministic Environment generation.',
+719:               'final class EnvironmentGenerationRegion {',
+720:               '  const EnvironmentGenerationRegion({',
+721:               '    required this.x,',
+722:               '    required this.y,',
+723:               '    required this.width,',
+724:               '    required this.height,',
+725:               '  });',
+726:               '',
+727:               '  final int x;',
+728:               '  final int y;',
+729:               '  final int width;',
+730:               '  final int height;',
+731:               ...
+732:             ]
+733:      Which: has length of <1304>
+734:   
+735:   package:matcher                        expect
+736:   test/package_boundary_test.dart 162:7  main.<fn>.<fn>
+737:   
+1020: 01:17 +935 -5: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds [E]
+1021:   Expected: [
+1022:               'asset',
+1023:               'assetBlob',
+1024:               'assetCatalog',
+1025:               'battleProgression',
+1026:               'borderBlueprint',
+1027:               'borderSnapshot',
+1028:               'campaignContent',
+1029:               'characterStudioCatalog',
+1030:               'characterStudioCharacter',
+1031:               'characterStudioDependency',
+1032:               'characterStudioReadiness',
+1033:               'cinematic',
+1034:               'cinematicLibraryCatalog',
+1035:               'cinematicLibraryEntry',
+1036:               'cinematicLibraryFolder',
+1037:               'dialogue',
+1038:               'dialogueSource',
+1039:               'elementCategory',
+1040:               'encounterTable',
+1041:               'eventV2',
+1042:               'fact',
+1043:               'itemCatalog',
+1044:               'itemDefinition',
+1045:               'itemReadiness',
+1046:               ...
+1047:             ]
+1048:     Actual: MappedListIterable<AuthoringResourceKindDescriptor, String>:[
+1049:               'asset',
+1050:               'assetBlob',
+1051:               'assetCatalog',
+1052:               'battleProgression',
+1053:               'borderBlueprint',
+1054:               'borderSnapshot',
+1055:               'campaignContent',
+1056:               'characterStudioCatalog',
+1057:               'characterStudioCharacter',
+1058:               'characterStudioDependency',
+1059:               'characterStudioReadiness',
+1060:               'cinematic',
+1061:               'cinematicLibraryCatalog',
+1062:               'cinematicLibraryEntry',
+1063:               'cinematicLibraryFolder',
+1064:               'dialogue',
+1065:               'dialogueSource',
+1066:               'elementCategory',
+1067:               'encounterTable',
+1068:               'eventV2',
+1069:               'fact',
+1070:               'itemCatalog',
+1071:               'itemDefinition',
+1072:               'itemReadiness',
+1073:               ...
+1074:             ]
+1075:      Which: at location [44] is 'regionalMap' instead of 'sandboxPlayerState'
+1076:   
+1077:   package:matcher                                expect
+1078:   test/registry/action_registry_test.dart 116:7  main.<fn>.<fn>
+1079:   
+1081: 01:17 +935 -6: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations [E]
+1082:   Expected: empty
+1083:     Actual: Set:['element']
+1084:   
+1085:   package:matcher                                expect
+1086:   test/registry/action_registry_test.dart 222:7  main.<fn>.<fn>
+1087:   
+1092: 01:19 +940 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically
+1093: 01:19 +941 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport
+1094: 01:19 +942 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt
+1095: 01:19 +943 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity
+1096: 01:19 +944 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity
+1097: 01:20 +945 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity
+1098: 01:20 +946 -6: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource
+1099: 01:20 +947 -6: Some tests failed.
+1100: 
+1101: Failing tests:
+1102:   test/domains/maps/smart_tile_layer_actions_test.dart: SmartTileLayerActions direct API and JSONL apply the same complete M01 repair
+1103:   test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter
+1104:   test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set
+1105:   test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds
+1106:   ... and 2 more
+1107: 
+1108: Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+1109: For example, 'dart test --chain-stack-traces'.
+
+===== uwu-authoring-baseline-final.log =====
+SHA-256 original : d944a7b3c7cc8180c723df1cee9f1403121872583887cb589139aed716054189
+Mode : extraits explicites : echecs complets jusqu au prochain compteur, compteurs finaux, cas UwU et progression runtime pertinente
+7: 00:00 +3 -1: test/tooling/jsonl_worker_test.dart: JsonlWorker golden describe and malformed input are byte-for-byte stable [E]
+8:   Expected: '{"requestId":"describe-1","status":"success","data":{"commands":[{"id":"close","summary":"Close an in-memory read-only workspace."},{"id":"describe","summary":"Describe this read-only API."},{"id":"open","summary":"Open an allowed PokeMap project read-only."},{"id":"query","summary":"Query an immutable project snapshot."},{"id":"validate","summary":"Inspect project structure, Pokemon coherence, references, and optional capability certification."}],"protocol":"pokemap.authoring.read.v1","queryOperations":["list","get","batch_get","search","summary"],"readOnly":true,"resourceKinds":[{"displayName":"Asset","id":"asset","summary":"Content-addressed project asset","version":1},{"displayName":"Border blueprint","id":"borderBlueprint","summary":"Editable and published procedural Border definition","version":1},{"displayName":"Border visual snapshot","id":"borderSnapshot","summary":"Immutable content-addressed Border visual frames","version":1},{"displayName":"Character Studio catalog","id":"characterStudioCatalog","summary":"Global portrait states and animation definitions","version":1},{"displayName":"Character Studio character","id":"characterStudioCharacter","summary":"Character identity, media coverage and selection status","version":1},{"displayName":"Character Studio dependency","id":"characterStudioDependency","summary":"Stable reference targeting Character Studio content","version":1},{"displayName":"Character Studio readiness","id":"characterStudioReadiness","summary":"Per-character media coverage and readiness diagnostics","version":1},{"displayName":"Cinematic library catalog","extensions":{"childResourceKinds":["cinematicLibraryFolder","cinematicLibraryEntry"]},"id":"cinematicLibraryCatalog","summary":"Persistent folder and placement catalog for both cinematic families","version":1},{"displayName":"Cinematic library entry","extensions":{"idFormat":"uriComponent(family):uriComponent(cinematicId)"},"id":"cinematicLibraryEntry","summary":"Folder placement and archive state for one cinematic","version":1},{"displayName":"Cinematic library folder","id":"cinematicLibraryFolder","summary":"Recursive stable folder scoped to one cinematic family","version":1},{"displayName":"Dialogue","id":"dialogue","summary":"Project dialogue metadata and external source","version":1},{"displayName":"Element category","id":"elementCategory","summary":"Hierarchical visual element category","version":1},{"displayName":"Event V2","id":"eventV2","summary":"Revision-gated narrative event record","version":1},{"displayName":"Fact","id":"fact","summary":"Typed narrative state definition","version":1},{"displayName":"Item catalog","id":"itemCatalog","summary":"Canonical project-owned item catalog","version":1},{"displayName":"Item definition","extensions":{"queryActions":["item.delete_plan","item.simulate","item.validate"]},"id":"itemDefinition","summary":"One canonical item definition and its capabilities","version":1},{"displayName":"Item readiness","id":"itemReadiness","summary":"Validation and dependency readiness for one item","version":1},{"displayName":"Item usage","id":"itemUsage","summary":"One editable project dependency on an item","version":1},{"displayName":"Map","extensions":{"documentedFieldMasks":["connections"]},"id":"map","summary":"Editable PokeMap map","version":1},{"displayName":"Map connection","extensions":{"idFormat":"mapId:direction","queryActions":["connection.list","connection.get","connection.preview_alignment","connection.validate"]},"id":"mapConnection","summary":"Directional physical adjacency between two maps","version":1},{"displayName":"Presentation cinematic","extensions":{"childResourceKinds":["presentationTrack","presentationClip","presentationLayer","presentationVisualFolder"]},"id":"presentationCinematic","summary":"Project-owned out-of-engine cinematic timeline","version":1},{"displayName":"Presentation cinematic template","id":"presentationCinematicTemplate","summary":"Versioned canonical recipe for a responsive Presentation cinematic","version":1},{"displayName":"Presentation clip","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId):uriComponent(clipId)"},"id":"presentationClip","summary":"Temporal clip inside a Presentation cinematic track","version":1},{"displayName":"Presentation layer","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(layerId)"},"id":"presentationLayer","summary":"Visual stacking layer inside a Presentation cinematic","version":1},{"displayName":"Presentation media","id":"presentationMedia","summary":"Stable logical media identity linked to project-owned source assets","version":1},{"displayName":"Presentation preview context","id":"presentationPreviewContext","summary":"Read-only project maps, dialogue scenarios, portraits and encounters available to presentation previews","version":2},{"displayName":"Presentation track","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId)"},"id":"presentationTrack","summary":"Typed ordered track inside a Presentation cinematic","version":1},{"displayName":"Presentation visual folder","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(folderId)"},"id":"presentationVisualFolder","summary":"One-level visual organization folder inside a Presentation cinematic","version":1},{"displayName":"Project","id":"project","summary":"PokeMap project manifest and project-owned content","version":1},{"displayName":"Project presentation preset","id":"projectPresentationPreset","summary":"Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets","version":2},{"displayName":"Project presentation profile","id":"projectPresentationProfile","summary":"Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation","version":10},{"displayName":"Rail journey","id":"railJourney","summary":"One typed station-to-station journey definition","version":1},{"displayName":"Scene","id":"scene","summary":"Project-owned executable narrative graph","version":1},{"displayName":"Script","id":"script","summary":"Embedded deterministic project script","version":1},{"displayName":"Smart Tile animation","id":"smartTileAnimation","summary":"Reusable ordered Smart Tile animation frames","version":1},{"displayName":"Smart Tile atlas","id":"smartTileAtlas","summary":"Decoded-image-bounded atlas geometry for Smart Tiles","version":1},{"displayName":"Smart Tile draft","id":"smartTileDraft","summary":"Durable isolated Smart Tiles Studio authoring state","version":1},{"displayName":"Smart Tile layer","id":"smartTileLayer","summary":"Map-owned semantic field and optional gameplay behavior","version":2},{"displayName":"Smart Tile material","id":"smartTileMaterial","summary":"Semantic terrain, path, or surface material","version":1},{"displayName":"Smart Tile pattern","id":"smartTilePattern","summary":"Reusable anchored visual pattern painted on Smart Tile layers","version":1},{"displayName":"Smart Tile preset","id":"smartTilePreset","summary":"Topology, rules, candidates, and coverage contract","version":1},{"displayName":"Storyline","id":"storyline","summary":"Chapter, Step and progression graph aggregate","version":1},{"displayName":"Tileset folder","id":"tilesetFolder","summary":"Hierarchical tileset library folder","version":1},{"displayName":"World graph","extensions":{"childResourceKinds":["worldGraphNode","worldGraphEdge","worldGraphIssue"],"queryActions":["world_graph.inspect","world_graph.render"]},"id":"worldGraph","summary":"Bounded overview of authored map connectivity","version":1},{"displayName":"World graph edge","id":"worldGraphEdge","summary":"One paginated connection or warp edge","version":1},{"displayName":"World graph issue","extensions":{"queryActions":["world_graph.validate_consistency"]},"id":"worldGraphIssue","summary":"One paginated world graph consistency issue","version":1},{"displayName":"World graph node","extensions":{"queryActions":["world_graph.list_connected","world_graph.list_disconnected","world_graph.find_path"]},"id":"worldGraphNode","summary":"One map in the paginated world graph","version":1},{"displayName":"World Rule","id":"worldRule","summary":"Runtime-consumed world projection rule","version":1}],"schemaVersion":1,"validation":{"capabilityCertification":"requested_only","capabilityTruth":"explicit_only","pokemonCatalog":true,"references":true,"structure":true}},"artifacts":[]}\n'
+9:               '{"requestId":"invalid","status":"failure","data":{},"error":{"code":"invalid_request","message":"Request line must contain exactly one JSON object.","retryable":false,"remediation":[],"details":{"domainCode":"worker.invalid_json"}},"artifacts":[]}\n'
+10:               ''
+11:     Actual: '{"requestId":"describe-1","status":"success","data":{"commands":[{"id":"close","summary":"Close an in-memory read-only workspace."},{"id":"describe","summary":"Describe this read-only API."},{"id":"open","summary":"Open an allowed PokeMap project read-only."},{"id":"query","summary":"Query an immutable project snapshot."},{"id":"validate","summary":"Inspect project structure, Pokemon coherence, references, and optional capability certification."}],"protocol":"pokemap.authoring.read.v1","queryOperations":["list","get","batch_get","search","summary"],"readOnly":true,"resourceKinds":[{"displayName":"Asset","id":"asset","summary":"Content-addressed project asset","version":1},{"displayName":"Border blueprint","id":"borderBlueprint","summary":"Editable and published procedural Border definition","version":1},{"displayName":"Border visual snapshot","id":"borderSnapshot","summary":"Immutable content-addressed Border visual frames","version":1},{"displayName":"Character Studio catalog","id":"characterStudioCatalog","summary":"Global portrait states and animation definitions","version":1},{"displayName":"Character Studio character","id":"characterStudioCharacter","summary":"Character identity, media coverage and selection status","version":1},{"displayName":"Character Studio dependency","id":"characterStudioDependency","summary":"Stable reference targeting Character Studio content","version":1},{"displayName":"Character Studio readiness","id":"characterStudioReadiness","summary":"Per-character media coverage and readiness diagnostics","version":1},{"displayName":"Cinematic library catalog","extensions":{"childResourceKinds":["cinematicLibraryFolder","cinematicLibraryEntry"]},"id":"cinematicLibraryCatalog","summary":"Persistent folder and placement catalog for both cinematic families","version":1},{"displayName":"Cinematic library entry","extensions":{"idFormat":"uriComponent(family):uriComponent(cinematicId)"},"id":"cinematicLibraryEntry","summary":"Folder placement and archive state for one cinematic","version":1},{"displayName":"Cinematic library folder","id":"cinematicLibraryFolder","summary":"Recursive stable folder scoped to one cinematic family","version":1},{"displayName":"Dialogue","id":"dialogue","summary":"Project dialogue metadata and external source","version":1},{"displayName":"Element category","id":"elementCategory","summary":"Hierarchical visual element category","version":1},{"displayName":"Event V2","id":"eventV2","summary":"Revision-gated narrative event record","version":1},{"displayName":"Fact","id":"fact","summary":"Typed narrative state definition","version":1},{"displayName":"Item catalog","id":"itemCatalog","summary":"Canonical project-owned item catalog","version":1},{"displayName":"Item definition","extensions":{"queryActions":["item.delete_plan","item.simulate","item.validate"]},"id":"itemDefinition","summary":"One canonical item definition and its capabilities","version":1},{"displayName":"Item readiness","id":"itemReadiness","summary":"Validation and dependency readiness for one item","version":1},{"displayName":"Item usage","id":"itemUsage","summary":"One editable project dependency on an item","version":1},{"displayName":"Map","extensions":{"documentedFieldMasks":["connections"]},"id":"map","summary":"Editable PokeMap map","version":1},{"displayName":"Map connection","extensions":{"idFormat":"mapId:direction","queryActions":["connection.list","connection.get","connection.preview_alignment","connection.validate"]},"id":"mapConnection","summary":"Directional physical adjacency between two maps","version":1},{"displayName":"Presentation cinematic","extensions":{"childResourceKinds":["presentationTrack","presentationClip","presentationLayer","presentationVisualFolder"]},"id":"presentationCinematic","summary":"Project-owned out-of-engine cinematic timeline","version":1},{"displayName":"Presentation cinematic template","id":"presentationCinematicTemplate","summary":"Versioned canonical recipe for a responsive Presentation cinematic","version":1},{"displayName":"Presentation clip","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId):uriComponent(clipId)"},"id":"presentationClip","summary":"Temporal clip inside a Presentation cinematic track","version":1},{"displayName":"Presentation layer","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(layerId)"},"id":"presentationLayer","summary":"Visual stacking layer inside a Presentation cinematic","version":1},{"displayName":"Presentation media","id":"presentationMedia","summary":"Stable logical media identity linked to project-owned source assets","version":1},{"displayName":"Presentation preview context","id":"presentationPreviewContext","summary":"Read-only project maps, dialogue scenarios, portraits and encounters available to presentation previews","version":2},{"displayName":"Presentation track","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(trackId)"},"id":"presentationTrack","summary":"Typed ordered track inside a Presentation cinematic","version":1},{"displayName":"Presentation visual folder","extensions":{"idFormat":"uriComponent(cinematicId):uriComponent(folderId)"},"id":"presentationVisualFolder","summary":"One-level visual organization folder inside a Presentation cinematic","version":1},{"displayName":"Project","id":"project","summary":"PokeMap project manifest and project-owned content","version":1},{"displayName":"Project presentation preset","id":"projectPresentationPreset","summary":"Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets","version":2},{"displayName":"Project presentation profile","id":"projectPresentationProfile","summary":"Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation","version":10},{"displayName":"Rail journey","id":"railJourney","summary":"One typed station-to-station journey definition","version":1},{"displayName":"Regional map","id":"regionalMap","summary":"Author-owned illustrated regions and normalized points of interest","version":1},{"displayName":"Regional point of interest","id":"regionalMapPoi","summary":"One localized place with visibility and map-visit discovery","version":1},{"displayName":"Regional map region","id":"regionalMapRegion","summary":"One illustrated region independent from tile coordinates","version":1},{"displayName":"Scene","id":"scene","summary":"Project-owned executable narrative graph","version":1},{"displayName":"Script","id":"script","summary":"Embedded deterministic project script","version":1},{"displayName":"Smart Tile animation","id":"smartTileAnimation","summary":"Reusable ordered Smart Tile animation frames","version":1},{"displayName":"Smart Tile atlas","id":"smartTileAtlas","summary":"Decoded-image-bounded atlas geometry for Smart Tiles","version":1},{"displayName":"Smart Tile draft","id":"smartTileDraft","summary":"Durable isolated Smart Tiles Studio authoring state","version":1},{"displayName":"Smart Tile layer","id":"smartTileLayer","summary":"Map-owned semantic field and optional gameplay behavior","version":2},{"displayName":"Smart Tile material","id":"smartTileMaterial","summary":"Semantic terrain, path, or surface material","version":1},{"displayName":"Smart Tile pattern","id":"smartTilePattern","summary":"Reusable anchored visual pattern painted on Smart Tile layers","version":1},{"displayName":"Smart Tile preset","id":"smartTilePreset","summary":"Topology, rules, candidates, and coverage contract","version":1},{"displayName":"Storyline","id":"storyline","summary":"Chapter, Step and progression graph aggregate","version":1},{"displayName":"Tileset folder","id":"tilesetFolder","summary":"Hierarchical tileset library folder","version":1},{"displayName":"World graph","extensions":{"childResourceKinds":["worldGraphNode","worldGraphEdge","worldGraphIssue"],"queryActions":["world_graph.inspect","world_graph.render"]},"id":"worldGraph","summary":"Bounded overview of authored map connectivity","version":1},{"displayName":"World graph edge","id":"worldGraphEdge","summary":"One paginated connection or warp edge","version":1},{"displayName":"World graph issue","extensions":{"queryActions":["world_graph.validate_consistency"]},"id":"worldGraphIssue","summary":"One paginated world graph consistency issue","version":1},{"displayName":"World graph node","extensions":{"queryActions":["world_graph.list_connected","world_graph.list_disconnected","world_graph.find_path"]},"id":"worldGraphNode","summary":"One map in the paginated world graph","version":1},{"displayName":"World Rule","id":"worldRule","summary":"Runtime-consumed world projection rule","version":1}],"schemaVersion":1,"validation":{"capabilityCertification":"requested_only","capabilityTruth":"explicit_only","pokemonCatalog":true,"references":true,"structure":true}},"artifacts":[]}\n'
+12:               '{"requestId":"invalid","status":"failure","data":{},"error":{"code":"invalid_request","message":"Request line must contain exactly one JSON object.","retryable":false,"remediation":[],"details":{"domainCode":"worker.invalid_json"}},"artifacts":[]}\n'
+13:               ''
+14:      Which: is different.
+15:             Expected: ... layName":"Scene","id ...
+16:               Actual: ... layName":"Regional m ...
+17:                                     ^
+18:              Differ at offset 6042
+19:   
+20:   package:matcher                            expect
+21:   test/tooling/jsonl_worker_test.dart 100:7  main.<fn>.<fn>
+22:   
+50: 00:00 +29 -2: test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set [E]
+51:   Expected: Set:['crypto', 'image', 'map_core', 'map_distribution', 'path', 'pub_semver']
+52:     Actual: Set:[
+53:               'archive',
+54:               'freezed_annotation',
+55:               'crypto',
+56:               'image',
+57:               'map_core',
+58:               'map_distribution',
+59:               'path',
+60:               'pub_semver'
+61:             ]
+62:      Which: larger than expected
+63:   
+64:   package:matcher                       expect
+65:   test/package_boundary_test.dart 72:7  main.<fn>.<fn>
+66:   
+71: 00:00 +32 -3: test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter [E]
+72:   Expected: an object with length of a value less than <1300>
+73:     Actual: [
+74:               'import \'dart:convert\';',
+75:               '',
+76:               'import \'package:map_core/map_core.dart\';',
+77:               '',
+78:               'import \'../../contracts/action_descriptor.dart\';',
+79:               'import \'../../transactions/action_planner.dart\';',
+80:               'import \'../../transactions/authoring_plan.dart\';',
+81:               'import \'semantic_map_action_support.dart\';',
+82:               '',
+83:               'part \'environment_generation_support.dart\';',
+84:               '',
+85:               '/// Bounded map-space region used by deterministic Environment generation.',
+86:               'final class EnvironmentGenerationRegion {',
+87:               '  const EnvironmentGenerationRegion({',
+88:               '    required this.x,',
+89:               '    required this.y,',
+90:               '    required this.width,',
+91:               '    required this.height,',
+92:               '  });',
+93:               '',
+94:               '  final int x;',
+95:               '  final int y;',
+96:               '  final int width;',
+97:               '  final int height;',
+98:               ...
+99:             ]
+100:      Which: has length of <1304>
+101:   
+102:   package:matcher                        expect
+103:   test/package_boundary_test.dart 162:7  main.<fn>.<fn>
+104:   
+108: 00:00 +34 -4: test/domains/maps/smart_tile_layer_actions_test.dart: SmartTileLayerActions direct API and JSONL apply the same complete M01 repair [E]
+109:   Expected: true
+110:     Actual: <false>
+111:   {capabilityCertification: {providedCapabilityCount: 0, requested: false, requiredCapabilityCount: 0, status: not_requested, valid: null}, capabilityTruth: {capabilities: [], issues: [{capabilityId: *, code: noPromotedCapabilities, message: A capability truth gate requires at least one promoted capability.}], schemaVersion: 1, status: fail}, pokemonCatalog: {canExport: false, canPlaytest: false, diagnostics: [{code: catalog.abilities_missing, message: The abilities catalog is unavailable; ability references were not checked., path: catalogs/abilities, recommendedAction: Add the abilities catalog before enabling authored abilities., severity: error}, {code: catalog.growth_rates_missing, message: The growth_rates catalog is unavailable; growth rate references were not checked., path: catalogs/growth_rates, recommendedAction: Add the growth_rates catalog before enabling authored growth rates., severity: error}, {code: catalog.items_missing, message: The items catalog is unavailable; item references were not checked., path: catalogs/items, recommendedAction: Add the items catalog before enabling authored items., severity: error}, {code: catalog.moves_missing, message: The moves catalog is unavailable; move references were not checked., path: catalogs/moves, recommendedAction: Add the moves catalog before enabling authored moves., severity: error}, {code: catalog.types_missing, message: The types catalog is unavailable; type references were not checked., path: catalogs/types, recommendedAction: Add the types catalog before enabling authored types., severity: error}], errorCount: 5, warningCount: 0}, references: {diagnostics: [], edgeCount: 0, hasErrors: false, nodeCount: 1, valid: true}, snapshotRevision: sha256:771d59efae1e88027a5a4d1adad4fe1597fb8ac03578f376ae05c1296f4c4a03, structure: {diagnostics: [], valid: true}, valid: false}
+112:   
+113:   package:matcher                                             expect
+114:   test/domains/maps/smart_tile_layer_actions_test.dart 476:9  main.<fn>.<fn>
+115:   
+134: 00:01 +51 -5: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds [E]
+135:   Expected: [
+136:               'asset',
+137:               'assetBlob',
+138:               'assetCatalog',
+139:               'battleProgression',
+140:               'borderBlueprint',
+141:               'borderSnapshot',
+142:               'campaignContent',
+143:               'characterStudioCatalog',
+144:               'characterStudioCharacter',
+145:               'characterStudioDependency',
+146:               'characterStudioReadiness',
+147:               'cinematic',
+148:               'cinematicLibraryCatalog',
+149:               'cinematicLibraryEntry',
+150:               'cinematicLibraryFolder',
+151:               'dialogue',
+152:               'dialogueSource',
+153:               'elementCategory',
+154:               'encounterTable',
+155:               'eventV2',
+156:               'fact',
+157:               'itemCatalog',
+158:               'itemDefinition',
+159:               'itemReadiness',
+160:               ...
+161:             ]
+162:     Actual: MappedListIterable<AuthoringResourceKindDescriptor, String>:[
+163:               'asset',
+164:               'assetBlob',
+165:               'assetCatalog',
+166:               'battleProgression',
+167:               'borderBlueprint',
+168:               'borderSnapshot',
+169:               'campaignContent',
+170:               'characterStudioCatalog',
+171:               'characterStudioCharacter',
+172:               'characterStudioDependency',
+173:               'characterStudioReadiness',
+174:               'cinematic',
+175:               'cinematicLibraryCatalog',
+176:               'cinematicLibraryEntry',
+177:               'cinematicLibraryFolder',
+178:               'dialogue',
+179:               'dialogueSource',
+180:               'elementCategory',
+181:               'encounterTable',
+182:               'eventV2',
+183:               'fact',
+184:               'itemCatalog',
+185:               'itemDefinition',
+186:               'itemReadiness',
+187:               ...
+188:             ]
+189:      Which: at location [44] is 'regionalMap' instead of 'sandboxPlayerState'
+190:   
+191:   package:matcher                                expect
+192:   test/registry/action_registry_test.dart 116:7  main.<fn>.<fn>
+193:   
+195: 00:01 +51 -6: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations [E]
+196:   Expected: empty
+197:     Actual: Set:['element']
+198:   
+199:   package:matcher                                expect
+200:   test/registry/action_registry_test.dart 222:7  main.<fn>.<fn>
+201:   
+202: 00:01 +51 -6: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry rejects duplicate and incompatible kind versions
+203: 00:01 +52 -6: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry round-trips deterministically through JSON
+204: 00:01 +53 -6: Some tests failed.
+205: 
+206: Failing tests:
+207:   test/domains/maps/smart_tile_layer_actions_test.dart: SmartTileLayerActions direct API and JSONL apply the same complete M01 repair
+208:   test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter
+209:   test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set
+210:   test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds
+211:   ... and 2 more
+212: 
+213: Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+214: For example, 'dart test --chain-stack-traces'.
+
+===== uwu-snapshot-final.log =====
+SHA-256 original : 399ddc35e868ebb83b3a2981c6c1da806c7848e1601644bf78d4ae7ec908171f
+Mode : integral
+00:00 +0: loading test/workspace/project_snapshot_catalog_projection_test.dart
+00:00 +0: folder and title post-images retain the complete cached snapshot
+00:00 +1: folder-only post-image reuses unchanged map objects and bytes
+00:00 +2: unrelated manifests, new identities and paths require the strict loader
+00:00 +3: invalid folder relationships and projection bindings are refused
+00:00 +4: stale pre-images and duplicate manifest changes are not adopted
+00:00 +5: All tests passed!
+
+===== uwu-editor-parity-final.log =====
+SHA-256 original : 52c6a6ca10732f4a838c6a86c3e88aa00b1ec40cef6d7e2a7481a402ced63a5a
+Mode : integral
+00:00 +0: loading test/parity/full_authoring_parity_test.dart
+00:00 +0: PMCP-085 full authoring parity exposes no legacy terrain, path, or surface action
+00:00 +1: PMCP-085 full authoring parity registers every approved semantic resource without hidden gaps
+00:00 +2: PMCP-085 full authoring parity fails parity when a required direct read kind is not published
+00:00 +3: PMCP-085 full authoring parity separates declared, adapter, contract, and end-to-end evidence
+00:00 +4: PMCP-085 full authoring parity CHS-059 certifies all 25 Character Studio actions
+00:00 +5: PMCP-085 full authoring parity certifies every CIN-006 and CIN-019 action on four transports
+00:00 +6: PMCP-085 full authoring parity binds item transport receipts to action revision and fixture
+00:00 +7: PMCP-085 full authoring parity missing item transport receipt leaves only its action incomplete
+00:00 +8: PMCP-085 full authoring parity rejects receipts from another action revision or fixture
+00:00 +9: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:08 +10: PMCP-085 full authoring parity PMCP tool refuses an Item transport claim without receipts
+00:16 +11: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically
+00:16 +12: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport
+00:16 +13: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt
+00:16 +14: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity
+00:16 +15: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity
+00:17 +16: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity
+00:17 +17: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource
+00:17 +18: All tests passed!
+
+===== uwu-authoring-analyze-editor-final.log =====
+SHA-256 original : fa0d24e01fe663bdf52342d5b43bf87cf82432f4031963a974a668db1f2f53de
+Mode : integral
+Analyzing map_authoring...
+No issues found!
+
+===== uwu-mcp-full.log =====
+SHA-256 original : 754c4d6a30b31c6af494c628e3b83143f1f3779411d09dc7072e890fea3590f7
+Mode : integral
+
+> @pokemap/mcp-server@0.1.0 test
+> npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts
+
+
+> @pokemap/mcp-server@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ MCP exposes and applies the canonical Border blueprint lifecycle (8268.963125ms)
+✔ checkout verifier certifies the packaged server from the requested repository (7532.227458ms)
+✔ checkout verifier rejects a project outside the requested repository (0.468583ms)
+✔ checkout verifier fails closed on stale presentation catalog evidence (0.126291ms)
+✔ checkout verifier rejects legacy cinematic actions and resources (0.12925ms)
+✔ parses artifact roots separately from project roots (1.799292ms)
+✔ accepts a bounded authoring deadline for large project mutations (0.357958ms)
+✖ all twelve tools publish strict schemas, outputs and annotations (45.793416ms)
+✔ project bootstrap maps inspect and confirmed repair to canonical commands (6.948208ms)
+✔ rate and UTF-8 size budgets fail closed before reaching a gateway (5.358875ms)
+✔ default authoring budget accepts the exact limit and rejects limit + 1 (2.587125ms)
+✔ strict schemas reject a deterministic malformed-envelope corpus (18.161917ms)
+✔ MCP emits the same map.create golden receipt as direct API, CLI and editor (8271.568791ms)
+✔ pokemap_game_export routes an opaque project handle to game_export (77.222583ms)
+✔ MCP describes queries and mutates canonical items (9843.096125ms)
+✔ packaged live MCP executes the complete item mutation smoke contract (14310.837583ms)
+✔ MENU-A packaged MCP authors quests and profile labels and scene visibility (10163.557875ms)
+✔ MCP renames a referenced map title without changing identity or path (6991.545458ms)
+✔ MCP pixel geometry discovers, plans, applies, queries and undoes (7206.357541ms)
+✔ MCP scene.upsert preserves a non-base Pokemon form (7245.261709ms)
+✔ MCP persists a typed pause menu visibility consequence (7061.027291ms)
+✔ CIN-033 certifies preSession and Presentation through live MCP (8192.0285ms)
+✔ MCP commits and undoes one atomic Presentation clip batch (7994.93575ms)
+✔ MCP executes and rereads every cinematic library catalog action (8886.495583ms)
+✔ MCP applies and rereads the authored presentation profile (11246.685709ms)
+✔ MCP applies and rereads title motion and intro accessibility (8271.660584ms)
+✔ MCP authors, rereads, and safely deletes an encounter table (8040.084292ms)
+✔ MCP exposes Event V2 activation and safe raw asset replacement (8163.538333ms)
+✔ MCP preserves CLI plan/apply parity for one complete map batch (8263.75925ms)
+✔ MCP rejects generic operations for Smart Tile layer creation (8077.713708ms)
+✔ MCP paints every lattice from a geometric Wang selection (8990.380334ms)
+✔ MCP paints precise corners without changing other Wang lattices (8610.604542ms)
+✔ MCP applies Smart Tile cell edits through the canonical transport (7708.539083ms)
+✔ MCP upserts and paints a reusable Smart Tile pattern (7442.089667ms)
+✔ MCP sets and queries a Smart Tile encounter behavior (7639.196209ms)
+✔ MCP changes, reopens, undoes, and reapplies a Smart Tile layer preset (7819.833208ms)
+✔ MCP imports a Tiled tileset through one canonical receipt (7024.431625ms)
+✔ MCP imports one complete TMX bundle through one canonical receipt (7137.054ms)
+✔ MCP imports a TMX larger than its request budget through an artifact handle (7252.108542ms)
+✔ MCP packs a Tiled image collection through one canonical receipt (7042.484875ms)
+✔ MCP marks dry-run plans non-applicable before confirmation or apply (9088.964083ms)
+✔ MCP normalizes and atomically merges the complete M01 Smart Tile fixture (8857.7705ms)
+✔ MCP previews and confirms literal Smart Tile reconstruction (7496.792292ms)
+✔ MCP organizes nested map folders without rewriting maps (7232.195375ms)
+✔ MCP reorganizes an element atlas and preserves its frames after reopen (7321.263875ms)
+✔ MCP completes a cold-start 34-element visual batch import (7799.767708ms)
+✔ MCP stages an H.264 MP4 as video instead of M4A audio (6971.29375ms)
+✔ CHS-057 live MCP certifies identity and portrait transports (7416.910292ms)
+✔ CHS-058 live MCP certifies animation frame and asset transports (7563.805708ms)
+✔ CHS-059 live MCP publishes all Character Studio transport evidence (7366.43225ms)
+✔ CHS-053 live MCP certifies the complete Character Studio lifecycle (7410.266917ms)
+✔ MCP returns a revision conflict without silently rebuilding the plan (7034.055792ms)
+✔ recovery requires an exact confirmation and preserves permission errors (5.097875ms)
+✔ authoring MCP refuses Bag commands and cannot write a user save (7275.534792ms)
+✔ playtest projection freezes validated bytes and removes them on dispose (27.090084ms)
+✔ playtest projection fails closed and cleans invalid catalog bytes (11.14525ms)
+✔ playtest projection rejects bytes changed by validation (6.317958ms)
+✔ playtest projection uses the canonical Authoring validator on its copy (14354.078333ms)
+✔ playtest projection rejects a symlink in its destination chain (2.943291ms)
+✔ playtest projection stops traversal at its entry quota (4.737208ms)
+✔ playtest projection fails closed when immutability is unavailable (3.065125ms)
+✔ MCP writes canonical Pokemon species and rejects invalid schemas (7888.301583ms)
+✔ real MCP/JSONL bootstrap previews, confirms, creates and independently opens exact grid (7831.137917ms)
+✔ official SDK negotiates 2026-07-28 and preserves structured content (47.570125ms)
+✔ official SDK falls back to the documented 2025-11-25 handshake (24.912083ms)
+✔ unsupported pinned protocol fails closed (0.703291ms)
+✖ the packaged stdio entrypoint completes a real modern client exchange (386.61575ms)
+✔ Tasks remain disabled until the official 2026 extension API is stable (0.611667ms)
+✔ the packaged entrypoint refuses missing roots without protocol noise (150.615375ms)
+✔ MCP discovers, queries, upserts and deletes RailJourneys (7901.99525ms)
+✖ read-only MCP inspects a real project with cursor pagination (43.426209ms)
+✔ MCP exposes paginated project presentation preview contexts (7626.131125ms)
+✔ MCP exposes connection and bounded world graph reads (7195.071292ms)
+✔ resource templates project map catalog and diagnostics use explicit handles (7784.696ms)
+✔ artifact reads are handle-only and unknown handles fail closed (6.3075ms)
+✔ workspace open cannot escape the configured roots (7155.889708ms)
+✔ MENU-I packaged MCP authors and queries regional map semantics (7730.490333ms)
+✔ runtime MCP renders through map_runtime and registers opaque PNG bytes (18568.300791ms)
+✔ sandboxed playtest job returns receipt, artifacts and ordered events (6940.966417ms)
+✔ playtest jobs support bounded cancellation (8009.703375ms)
+✔ failed playtest jobs can be retried as a new traced attempt (6995.975459ms)
+✔ Pokemon preflight failure never creates a runtime executor (7175.838541ms)
+✔ retry rebuilds and revalidates a fresh Pokemon projection (7503.211417ms)
+✔ packaged MCP publishes source and authoritative dirty map coherently (7517.468875ms)
+✔ packaged MCP publishes UI07 story ownership without touching maps (7509.778375ms)
+✔ packaged MCP discovers and commits Studio native image import (7364.6755ms)
+ℹ tests 86
+ℹ suites 0
+ℹ pass 83
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 499967.612917
+
+✖ failing tests:
+
+test at test/conformance_security.test.ts:1:1478
+✖ all twelve tools publish strict schemas, outputs and annotations (45.793416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/protocol_compatibility.test.ts:1:3381
+✖ the packaged stdio entrypoint completes a real modern client exchange (386.61575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create',
+      'pokemap_render',
+      'pokemap_playtest',
+      'pokemap_job'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/read_only_server.test.ts:1:1997
+✖ read-only MCP inspects a real project with cursor pagination (43.426209ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+===== uwu-mcp-baseline-final.log =====
+SHA-256 original : 03cac114ac0a30b578ec0b00ea6f038c352141306e0f3b32c70fb9635a79e09c
+Mode : integral
+✖ all twelve tools publish strict schemas, outputs and annotations (43.997709ms)
+✖ the packaged stdio entrypoint completes a real modern client exchange (163.858291ms)
+✖ read-only MCP inspects a real project with cursor pagination (51.750584ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 556.920458
+
+✖ failing tests:
+
+test at test/conformance_security.test.ts:1:1478
+✖ all twelve tools publish strict schemas, outputs and annotations (43.997709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/uwu-mcp-baseline.mzxVHv/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/protocol_compatibility.test.ts:1:3381
+✖ the packaged stdio entrypoint completes a real modern client exchange (163.858291ms)
+  Error [SdkError]: Version negotiation failed: the connection closed during the server/discover probe before the server offered pinned protocol version 2026-07-28 (no fallback in pin mode)
+      at probe (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@modelcontextprotocol/client/dist/index.mjs:2727:44)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async negotiateEra (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@modelcontextprotocol/client/dist/index.mjs:2738:12) {
+    code: 'ERA_NEGOTIATION_FAILED',
+    data: undefined
+  }
+
+test at test/read_only_server.test.ts:1:1997
+✖ read-only MCP inspects a real project with cursor pagination (51.750584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/uwu-mcp-baseline.mzxVHv/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+===== uwu-mcp-targeted-catalog-final.log =====
+SHA-256 original : 205e9f59e1b9cf07f73e53f5f970e653783d7e279b0c7ad0ea35de5ec62f7f40
+Mode : integral
+✔ MCP renames a referenced map title without changing identity or path (7025.996333ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7215.642875
+
+===== uwu-mcp-build-catalog-final.log =====
+SHA-256 original : 627a16613be7704d2b4572a60c3a60c65e6811d680aa85f8a3573bf8375ecd88
+Mode : integral
+
+> @pokemap/mcp-server@0.1.0 build
+> tsc -p tsconfig.json
+
+
+===== uwu-live-proof.json =====
+SHA-256 original : b2e71a49ccd2ab190d228b08cc68afbb306884b6298acf4ea22a5159acd9e84b
+Mode : integral
+{
+  "source": "configured MCP connection",
+  "fixture": "/Users/karim/Project/pokemonProject/.dart_tool/uwu-live/map-metadata-s5xXye",
+  "action": "map.update_metadata",
+  "version": 1,
+  "plan": {
+    "mapId": "town",
+    "name": "Village UwU réel",
+    "operation": "update_metadata",
+    "storageGuarantee": "recoverable"
+  },
+  "receipt": {
+    "actionId": "map.update_metadata",
+    "actionVersion": 1,
+    "affectedResources": [
+      {
+        "id": "town",
+        "kind": "map",
+        "revision": "sha256:7b215005c1cde4e2d88d2977d0ca2701ad2ba42b45165f149ef123884e349ab2"
+      },
+      {
+        "id": "project",
+        "kind": "project",
+        "revision": "sha256:e4b4eada77f586899681795d75b322b02260ec982252c2c47aced84f77e38a11"
+      }
+    ],
+    "afterRevision": "sha256:829403d4663f7b6df9e64a5c3e9bb27875737a17d72b44e0e047b0642a788a9f",
+    "artifacts": [],
+    "beforeRevision": "sha256:574a02cff2aa3260aaa15b4b9a6f9cd67399db3d359aa1be206065419e4f6695",
+    "createdAtUtc": "2026-10-01T09:49:59.384057Z",
+    "diff": {
+      "entries": [
+        {
+          "after": "Village UwU réel",
+          "before": "Town",
+          "operation": "replace",
+          "path": "/name",
+          "resource": {
+            "id": "town",
+            "kind": "map",
+            "revision": "sha256:7b215005c1cde4e2d88d2977d0ca2701ad2ba42b45165f149ef123884e349ab2"
+          }
+        },
+        {
+          "after": "Village UwU réel",
+          "before": "Town",
+          "operation": "replace",
+          "path": "/maps/town/name",
+          "resource": {
+            "id": "project",
+            "kind": "project",
+            "revision": "sha256:e4b4eada77f586899681795d75b322b02260ec982252c2c47aced84f77e38a11"
+          }
+        }
+      ]
+    },
+    "extensions": {
+      "history": {
+        "kind": "mutation"
+      },
+      "multiFileGuarantee": "recoverable",
+      "operationId": "uwu-live-title",
+      "planId": "plan_d4d3c90b4decbda2d824acbeb390efa63762a9fbda430492"
+    },
+    "receiptId": "receipt_86e570472564213de0aa64c8a95c875b1c39a173527685af",
+    "requestId": "uwu-live-title",
+    "status": "applied"
+  },
+  "readback": [
+    {
+      "id": "town",
+      "name": "Village UwU réel"
+    }
+  ],
+  "workspaceClosed": true
+}
+
+===== uwu-catalogue-measure-final-v8.log =====
+SHA-256 original : c102a70da2c3bebd3fb16d8d46943edcd66f61b3a826a31b693fa12b290fd840
+Mode : integral
+Running build hooks...Running build hooks...{"fixture":"S","source":"examples/playable_runtime_host/golden_battle_slice","maps":1,"phase":"cold","elapsedMicros":210639,"snapshotLoads":5,"cacheHits":3,"initialReadMicros":2359,"decodeMicros":3801,"identityReads":28,"snapshotResources":5,"loadedMapDocuments":1}
+{"fixture":"S","source":"examples/playable_runtime_host/golden_battle_slice","maps":1,"phase":"warm","elapsedMicros":43070,"snapshotLoads":4,"cacheHits":4,"initialReadMicros":0,"decodeMicros":0,"identityReads":39,"snapshotResources":5,"loadedMapDocuments":1}
+{"fixture":"M","source":"examples/playable_runtime_host/golden_fangame_slice","maps":3,"phase":"cold","elapsedMicros":60712,"snapshotLoads":5,"cacheHits":3,"initialReadMicros":3283,"decodeMicros":1119,"identityReads":40,"snapshotResources":8,"loadedMapDocuments":1}
+{"fixture":"M","source":"examples/playable_runtime_host/golden_fangame_slice","maps":3,"phase":"warm","elapsedMicros":66917,"snapshotLoads":4,"cacheHits":4,"initialReadMicros":0,"decodeMicros":0,"identityReads":57,"snapshotResources":8,"loadedMapDocuments":1}
+{"fixture":"L","result":"NON_VERIFIE","reason":"FormatException: $.version: project_version_unsupported (expected=v8, actual=v7)"}

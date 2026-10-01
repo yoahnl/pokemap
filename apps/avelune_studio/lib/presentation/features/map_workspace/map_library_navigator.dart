@@ -7,6 +7,14 @@ import '../../shared/widgets/layout/studio_sidebar.dart';
 import 'map_library_tree.dart';
 import 'map_library_navigator_forms.dart';
 import 'map_library_row_tile.dart';
+import 'map_library_row_actions.dart';
+import 'map_catalogue_form_dialog.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_draft_field.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
+
+part 'map_library_navigator_actions.dart';
+part 'map_library_group_actions.dart';
 
 typedef OrganizeMapLibrary =
     Future<String?> Function({
@@ -23,6 +31,9 @@ class MapLibraryNavigator extends StatefulWidget {
     required this.onActivate,
     required this.onOrganize,
     this.onCollapse,
+    this.onCreateMap,
+    this.onRenameMap,
+    this.onRetryCatalogue,
     this.width = 230,
   });
 
@@ -32,6 +43,9 @@ class MapLibraryNavigator extends StatefulWidget {
   final ValueChanged<ProjectMapEntry> onActivate;
   final OrganizeMapLibrary? onOrganize;
   final VoidCallback? onCollapse;
+  final void Function(String? groupId)? onCreateMap;
+  final ValueChanged<ProjectMapEntry>? onRenameMap;
+  final VoidCallback? onRetryCatalogue;
   final double width;
   @override
   State<MapLibraryNavigator> createState() => _MapLibraryNavigatorState();
@@ -47,89 +61,39 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
       _searchExpanded = false;
   var _name = '', _parent = '', _destination = '';
   String? _error;
+  String? _folderSelection;
+  String? _notice;
+  final _createdMapIds = <String>{};
+  void _update(VoidCallback action) => setState(action);
 
   @override
   void didUpdateWidget(MapLibraryNavigator oldWidget) {
     super.didUpdateWidget(oldWidget);
     final ids = widget.project.maps.map((map) => map.id).toSet();
     _selected.removeWhere((id) => !ids.contains(id));
+    _createdMapIds.addAll(
+      ids.difference(oldWidget.project.maps.map((map) => map.id).toSet()),
+    );
+    if (_createdMapIds.remove(widget.activeMapId)) {
+      if (_search.text.isNotEmpty) {
+        _search.clear();
+        _notice = 'Recherche effacée pour afficher la nouvelle carte.';
+      }
+      final entry = widget.project.maps
+          .where((map) => map.id == widget.activeMapId)
+          .firstOrNull;
+      if (entry != null) _revealFolder(entry.groupId ?? '');
+    }
+    if (_folderSelection != null &&
+        !widget.project.groups.any((group) => group.id == _folderSelection)) {
+      _folderSelection = null;
+    }
   }
 
   @override
   void dispose() {
     _search.dispose();
     super.dispose();
-  }
-
-  Future<void> _createFolder() async {
-    final name = _name.trim();
-    final parentId = _parent.isEmpty ? null : _parent;
-    if (name.isEmpty) {
-      setState(() => _error = 'Donnez un nom au dossier.');
-      return;
-    }
-    if (widget.project.groups.any(
-      (group) =>
-          group.parentGroupId == parentId &&
-          group.name.toLowerCase() == name.toLowerCase(),
-    )) {
-      setState(() => _error = 'Un dossier du même nom existe déjà ici.');
-      return;
-    }
-    final id = 'studio_folder_${DateTime.now().microsecondsSinceEpoch}';
-    await _organize(
-      groups: [
-        ...widget.project.groups,
-        ProjectMapGroup(
-          id: id,
-          name: name,
-          type: MapGroupType.special,
-          parentGroupId: parentId,
-          sortOrder: widget.project.groups.length,
-        ),
-      ],
-      assignments: const [],
-      onSuccess: () {
-        _creating = false;
-        _name = '';
-        _parent = '';
-      },
-    );
-  }
-
-  Future<void> _moveSelected() async {
-    final ids = _selected.toList();
-    if (ids.isEmpty) return;
-    await _organize(
-      assignments: [
-        for (final id in ids)
-          {'mapId': id, 'groupId': _destination.isEmpty ? null : _destination},
-      ],
-      onSuccess: () {
-        _selected.clear();
-        _selecting = false;
-      },
-    );
-  }
-
-  Future<void> _organize({
-    List<ProjectMapGroup>? groups,
-    required List<Map<String, Object?>> assignments,
-    required VoidCallback onSuccess,
-  }) async {
-    final action = widget.onOrganize;
-    if (_busy || action == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    final error = await action(groups: groups, assignments: assignments);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _error = error;
-      if (error == null) onSuccess();
-    });
   }
 
   @override
@@ -161,10 +125,7 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
       }
       rows.add(row);
     }
-    final folders = {
-      '': 'Sans dossier',
-      for (final group in widget.project.groups) group.id: group.name,
-    };
+    final folders = mapLibraryFolderLabels(widget.project.groups);
     return StudioSidebar(
       width: widget.width,
       child: Column(
@@ -180,6 +141,19 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          StudioButton(
+            key: const ValueKey('new-map'),
+            label: 'Nouvelle carte',
+            icon: Icons.add,
+            onPressed: _busy || widget.onCreateMap == null
+                ? null
+                : () => widget.onCreateMap!(_folderSelection),
+          ),
+          Wrap(
+            children: [
               StudioTool(
                 label: 'Rechercher une carte',
                 icon: _searchExpanded ? Icons.close : Icons.search,
@@ -194,7 +168,7 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                 icon: Icons.create_new_folder_outlined,
                 onPressed: _busy || widget.onOrganize == null
                     ? null
-                    : () => setState(() => _creating = !_creating),
+                    : _createFolderDialog,
               ),
               StudioTool(
                 label: 'Sélection multiple',
@@ -223,19 +197,6 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
               onChanged: (_) => setState(() {}),
             ),
           ],
-          if (_creating) ...[
-            const SizedBox(height: 8),
-            MapFolderCreationForm(
-              name: _name,
-              parent: _parent,
-              folders: folders,
-              busy: _busy,
-              onName: (value) => setState(() => _name = value),
-              onParent: (value) => setState(() => _parent = value),
-              onCancel: () => setState(() => _creating = false),
-              onCreate: _createFolder,
-            ),
-          ],
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -243,6 +204,13 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
+            ),
+          if (_notice != null) Text(_notice!),
+          if (widget.onRetryCatalogue != null)
+            StudioButton(
+              label: 'Relire le catalogue',
+              secondary: true,
+              onPressed: _busy ? null : widget.onRetryCatalogue,
             ),
           const SizedBox(height: 8),
           Expanded(
@@ -263,7 +231,29 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                       : widget.activeMapId == map.id,
                   selecting: _selecting,
                   dirty: map != null && widget.dirtyMapIds.contains(map.id),
+                  actions: map != null
+                      ? const [MapLibraryAction.rename, MapLibraryAction.move]
+                      : row.group == null
+                      ? const []
+                      : const [
+                          MapLibraryAction.createMap,
+                          MapLibraryAction.rename,
+                          MapLibraryAction.move,
+                          MapLibraryAction.up,
+                          MapLibraryAction.down,
+                          MapLibraryAction.deleteFolder,
+                        ],
+                  disabledReasons: row.group == null
+                      ? {
+                          if (widget.onRenameMap == null)
+                            MapLibraryAction.rename: 'renommage indisponible',
+                          if (widget.onOrganize == null)
+                            MapLibraryAction.move: 'organisation indisponible',
+                        }
+                      : _groupDisabled(row.group!),
+                  onAction: _busy ? null : (action) => _rowAction(row, action),
                   onToggleFolder: () => setState(() {
+                    _folderSelection = row.group?.id;
                     if (!_collapsed.add(folderId)) _collapsed.remove(folderId);
                   }),
                   onMap: (entry) {

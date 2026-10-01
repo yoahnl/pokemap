@@ -69,6 +69,7 @@ import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
 import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
+import 'map_catalogue_workspace_actions.dart';
 import 'studio_home_map_preview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -153,9 +154,9 @@ class MapWorkspaceScreen extends StatefulWidget {
 
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
-  final _search = TextEditingController();
-  final _homeSearch = TextEditingController();
-  bool _palette = true;
+  final _search = TextEditingController(),
+      _homeSearch = TextEditingController();
+  bool _palette = true, _connectionBusy = false;
   WorkspaceSpace _space = WorkspaceSpace.map;
   WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
   final _storyViewState = NarrativeOverviewViewState();
@@ -201,7 +202,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   String? _resourceError, _connectionError;
-  bool _connectionBusy = false;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
   int _navigationRequest = 0;

@@ -523,10 +523,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   if (actionId == 'presentationCinematic.publish') {
     return const {
-      AuthoringTransport.directApi: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
-      AuthoringTransport.cli: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart',
-      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
 
@@ -769,8 +773,28 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'map.library.reorganize') {
+    return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
+    };
+  }
+  if (actionId == 'map.update_metadata') {
+    return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
+      AuthoringTransport.directApi:
+          'test/domains/maps/map_metadata_transaction_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/map_metadata_transaction_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/map_metadata_server.test.ts',
+    };
+  }
   if (actionId == 'map.create') {
     return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
@@ -1101,7 +1125,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/placed_element_geometry_transport_test.dart',
   ),
   _ContractEvidenceRule(['presentationCinematic.publish'],
-    'test/domains/narrative/presentation_publication_ui11_test.dart'),
+      'test/domains/narrative/presentation_publication_ui11_test.dart'),
   _ContractEvidenceRule(
       ['regionalMap.'], 'test/domains/project/regional_map_actions_test.dart'),
   _ContractEvidenceRule(
@@ -1146,6 +1170,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['map.tiled.import'],
     'test/domains/maps/tiled_map_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['map.update_metadata'],
+    'test/domains/maps/map_metadata_transaction_test.dart',
   ),
   _ContractEvidenceRule(
     ['map.library.'],

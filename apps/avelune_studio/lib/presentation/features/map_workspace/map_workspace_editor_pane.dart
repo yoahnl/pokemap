@@ -11,6 +11,7 @@ import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_border_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import 'map_catalogue_workspace_actions.dart';
 
 class MapWorkspaceEditorPane extends StatefulWidget {
   const MapWorkspaceEditorPane({
@@ -144,6 +145,24 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                           },
                           onActivate: widget.onActivate,
                           onOrganize: widget.onOrganizeMaps,
+                          onRetryCatalogue:
+                              widget.controller.pendingCatalogReceipt == null
+                              ? null
+                              : () => widget.controller.retryCatalogRefresh(),
+                          onCreateMap: widget.controller.catalogPort == null
+                              ? null
+                              : (groupId) => createWorkspaceMap(
+                                  context,
+                                  widget.controller,
+                                  groupId: groupId,
+                                ),
+                          onRenameMap: widget.controller.catalogPort == null
+                              ? null
+                              : (entry) => renameWorkspaceMap(
+                                  context,
+                                  widget.controller,
+                                  entry,
+                                ),
                           onCollapse: () =>
                               setState(() => _navigatorCollapsed = true),
                           width: 252,

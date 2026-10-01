@@ -29,6 +29,7 @@ import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/platform/files/native_project_directory_picker.dart';
@@ -70,6 +71,12 @@ class StudioBootstrap extends StatelessWidget {
       ),
       mapConnectionPortProvider.overrideWith(
         (ref, session) => LocalMapConnectionAdapter(
+          ref.watch(mapWorkspacePortProvider(session))
+              as LocalMapWorkspaceAdapter,
+        ),
+      ),
+      mapCatalogPortProvider.overrideWith(
+        (ref, session) => LocalMapCatalogAdapter(
           ref.watch(mapWorkspacePortProvider(session))
               as LocalMapWorkspaceAdapter,
         ),

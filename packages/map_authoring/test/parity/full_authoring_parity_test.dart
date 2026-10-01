@@ -122,8 +122,17 @@ void main() {
         catalog.requireMutationAction('map.create').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          ['cli', 'directApi', 'mcp'],
+          ['cli', 'directApi', 'editor', 'mcp'],
         ),
+      );
+      expect(
+        catalog.requireMutationAction('map.update_metadata').toJson(),
+        containsPair('endToEndVerifiedTransports',
+            ['cli', 'directApi', 'editor', 'mcp']),
+      );
+      expect(
+        catalog.requireMutationAction('map.library.reorganize').toJson(),
+        containsPair('endToEndVerifiedTransports', ['editor']),
       );
       expect(
         catalog.requireMutationAction('presentation.update').toJson(),

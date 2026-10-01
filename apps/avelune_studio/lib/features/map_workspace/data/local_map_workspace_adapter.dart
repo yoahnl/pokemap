@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
@@ -294,12 +295,4 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
     }
     return canonical;
   }
-}
-
-class _ProjectDocument {
-  const _ProjectDocument(this.root, this.manifest, this.revision);
-
-  final String root;
-  final ProjectManifest manifest;
-  final String revision;
 }

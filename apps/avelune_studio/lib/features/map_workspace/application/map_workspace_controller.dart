@@ -3,15 +3,24 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
+
+part 'map_workspace_catalog_commands.dart';
 
 class MapWorkspaceController {
-  MapWorkspaceController(this.session, this.port);
+  MapWorkspaceController(this.session, this.port, {this.catalogPort});
 
   final ProjectSession session;
   final MapWorkspacePort port;
+  final MapCatalogPort? catalogPort;
   final Map<String, EditableMapDocument> documents = {};
   final Map<String, Future<EditableMapDocument>> _loading = {};
-  final Map<String, Future<MapData>> _previews = {};
+  final Map<String, Future<MapData?>> _previews = {};
+  final Map<String, EditableMapDocument> retiredDocuments = {};
+  bool catalogBusy = false;
+  MapCatalogReceipt? pendingCatalogReceipt;
+  String? _catalogTargetId;
+  var _catalogEpoch = 0;
   final Set<void Function()> _listeners = {};
   ProjectManifest? project;
   EditableMapDocument? active;
@@ -48,18 +57,35 @@ class MapWorkspaceController {
     bool Function()? isCurrent,
   }) async {
     if (_disposed || isCurrent?.call() == false) return;
+    if (project != null && !_entryDocumentCurrent(entry)) {
+      if (active?.base.mapId == entry.id) active = null;
+      error = 'Cette carte ne figure plus dans le projet.';
+      notify();
+      return;
+    }
+    final currentEntry =
+        project?.maps.where((map) => map.id == entry.id).firstOrNull ?? entry;
+    final catalogEpoch = _catalogEpoch;
+    Future<EditableMapDocument>? pending;
     final generation = ++_generation;
     loading = true;
     error = null;
     notify();
     try {
-      final document =
-          documents[entry.id] ??
-          await _loading.putIfAbsent(
-            entry.id,
-            () => port.loadMap(session, entry).then(EditableMapDocument.new),
-          );
-      if (_disposed || isCurrent?.call() == false) return;
+      final cached = documents[entry.id];
+      if (cached == null) {
+        pending = _loading.putIfAbsent(
+          entry.id,
+          () =>
+              port.loadMap(session, currentEntry).then(EditableMapDocument.new),
+        );
+      }
+      final document = cached ?? await pending!;
+      if (_disposed ||
+          isCurrent?.call() == false ||
+          (catalogEpoch != _catalogEpoch && !_entryDocumentCurrent(entry))) {
+        return;
+      }
       documents[entry.id] = document;
       if (generation == _generation) active = document;
     } catch (failure) {
@@ -69,7 +95,7 @@ class MapWorkspaceController {
         error = _message(failure);
       }
     } finally {
-      _loading.remove(entry.id);
+      if (identical(_loading[entry.id], pending)) _loading.remove(entry.id);
       if (!_disposed && generation == _generation) {
         loading = false;
         notify();
@@ -81,14 +107,21 @@ class MapWorkspaceController {
     if (_disposed) return Future.value(null);
     final entry = project?.maps.where((map) => map.id == id).firstOrNull;
     if (entry == null) return Future.value(null);
-    return _previews.putIfAbsent(id, () async {
+    final cached = _previews[id];
+    if (cached != null) return cached;
+    late final Future<MapData?> pending;
+    pending = () async {
       try {
-        return (await port.loadMap(session, entry)).map;
+        final loaded = await port.loadMap(session, entry);
+        if (_disposed || !_entryDocumentCurrent(entry)) return null;
+        return loaded.map;
       } on Object {
-        _previews.remove(id);
+        if (identical(_previews[id], pending)) _previews.remove(id);
         rethrow;
       }
-    });
+    }();
+    _previews[id] = pending;
+    return pending;
   }
 
   Future<void> refreshSavedMaps(Set<String> mapIds) async {
@@ -114,6 +147,18 @@ class MapWorkspaceController {
 
   Future<bool> save(EditableMapDocument document) async {
     if (_disposed || document.saving) return false;
+    if (catalogLocks(document.base.mapId)) {
+      document.error = 'Une publication du catalogue concerne cette carte.';
+      notify();
+      return false;
+    }
+    if (!identical(documents[document.base.mapId], document) ||
+        (project != null &&
+            !project!.maps.any((entry) => entry.id == document.base.mapId))) {
+      document.error = 'Cette carte ne figure plus dans le projet.';
+      notify();
+      return false;
+    }
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;
@@ -143,11 +188,32 @@ class MapWorkspaceController {
   void restore({required bool redo}) {
     final document = active;
     final manifest = project;
-    if (document == null || manifest == null || document.saving) return;
+    if (document == null ||
+        manifest == null ||
+        document.saving ||
+        catalogLocks(document.base.mapId) ||
+        !manifest.maps.any((entry) => entry.id == document.base.mapId)) {
+      return;
+    }
     document.restore(
       redo: redo,
       canRestore: (next) {
         final before = document.current;
+        final missingDestinations =
+            next.warps.any(
+              (warp) =>
+                  !manifest.maps.any((entry) => entry.id == warp.targetMapId),
+            ) ||
+            next.connections.any(
+              (connection) => !manifest.maps.any(
+                (entry) => entry.id == connection.targetMapId,
+              ),
+            );
+        if (missingDestinations) {
+          document.error =
+              'Cette annulation restaurerait une destination supprimée.';
+          return false;
+        }
         final removed = <(String, String)>[
           for (final entity in before.entities)
             if (!next.entities.any((item) => item.id == entity.id))
@@ -201,6 +267,15 @@ class MapWorkspaceController {
     for (final listener in List.of(_listeners)) {
       if (_listeners.contains(listener)) listener();
     }
+  }
+
+  bool _entryDocumentCurrent(ProjectMapEntry entry) {
+    final current = project?.maps
+        .where((map) => map.id == entry.id)
+        .firstOrNull;
+    return current != null &&
+        current.relativePath == entry.relativePath &&
+        current.name == entry.name;
   }
 
   void dispose() {

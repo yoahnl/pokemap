@@ -272,6 +272,9 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                       ? _home.mapPreviewBuilder
                       : null,
                   onMap: (id) => _home.navigate('map', id),
+                  onCreateMap: project == null || busy
+                      ? null
+                      : () => _home.navigate('createMap'),
                   statusAtTop:
                       busy || state.problem != null || _pickerError != null,
                   status: ProjectOpenControls(

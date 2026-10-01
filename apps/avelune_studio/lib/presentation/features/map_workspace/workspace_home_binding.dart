@@ -72,6 +72,9 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       }
     }
     switch (destination) {
+      case 'createMap':
+        _openMap();
+        unawaited(_createMap());
       case 'resources':
         _openResources();
       case 'terrains':

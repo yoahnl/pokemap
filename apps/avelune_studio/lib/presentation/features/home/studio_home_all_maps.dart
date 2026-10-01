@@ -15,6 +15,7 @@ class StudioHomeAllMaps extends StatelessWidget {
     required this.onBack,
     required this.busy,
     this.previewBuilder,
+    this.onCreateMap,
     this.query = '',
   });
 
@@ -22,6 +23,7 @@ class StudioHomeAllMaps extends StatelessWidget {
   final List<ProjectMapGroup> groups;
   final ValueChanged<String> onMap;
   final VoidCallback onBack;
+  final VoidCallback? onCreateMap;
   final bool busy;
   final Widget Function(String)? previewBuilder;
   final String query;
@@ -69,6 +71,12 @@ class StudioHomeAllMaps extends StatelessWidget {
                 Text(
                   'Toutes les cartes ($visibleCount)',
                   style: Theme.of(context).textTheme.titleLarge,
+                ),
+                StudioButton(
+                  key: const ValueKey('home-all-new-map'),
+                  label: 'Nouvelle carte',
+                  icon: Icons.add,
+                  onPressed: busy ? null : onCreateMap,
                 ),
                 if (visibleCount == 0)
                   Text(

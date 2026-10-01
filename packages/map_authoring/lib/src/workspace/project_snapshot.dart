@@ -163,11 +163,11 @@ final class ProjectSnapshot {
   ProjectSnapshot._projected({
     required ProjectSnapshot source,
     required this.revision,
+    required this.manifest,
     required List<MapData> maps,
     required Map<String, String> resourceFingerprints,
     required Map<String, List<int>> resourceBytes,
   })  : projectHandle = source.projectHandle,
-        manifest = source.manifest,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
@@ -213,10 +213,24 @@ final class ProjectSnapshot {
   /// identities and storage keys cannot be added or removed here.
   ProjectSnapshot projectMapResources({
     required String revision,
+    ProjectManifest? manifest,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     required Map<String, List<int>> replacementBytes,
   }) {
+    if (manifest != null) {
+      final bindings = {for (final map in this.manifest.maps) map.id: map};
+      final seen = <String>{};
+      if (manifest.maps.length != bindings.length ||
+          manifest.maps.any((map) {
+            final previous = bindings[map.id];
+            return previous == null ||
+                !seen.add(map.id) ||
+                map.relativePath != previous.relativePath;
+          })) {
+        throw ArgumentError('Invalid projected manifest map bindings.');
+      }
+    }
     final projectedMaps = maps.toList(growable: false);
     final projectedMapIds = projectedMaps.map((map) => map.id).toSet();
     final currentMapIds = this.maps.map((map) => map.id).toSet();
@@ -247,6 +261,7 @@ final class ProjectSnapshot {
     return ProjectSnapshot._projected(
       source: this,
       revision: revision,
+      manifest: manifest ?? this.manifest,
       maps: projectedMaps,
       resourceFingerprints: Map.of(resourceFingerprints),
       resourceBytes: projectedBytes,

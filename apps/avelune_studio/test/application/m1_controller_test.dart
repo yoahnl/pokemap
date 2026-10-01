@@ -47,6 +47,20 @@ void main() {
     expect(controller.documents.keys, containsAll(['a', 'b']));
   });
 
+  test('standalone activation can still save before initialization', () async {
+    await controller.activate(m1First);
+    final document = controller.active!;
+    document.commit(document.current.copyWith(name: 'Travail courant'));
+    final pending = controller.save(document);
+    expect(port.saves, hasLength(1));
+    port.saves.single.result.complete('standalone-saved');
+    expect(await pending, isTrue);
+    expect(document.base.revision, 'standalone-saved');
+    expect(document.current.name, 'Travail courant');
+    expect(document.dirty, isFalse);
+    expect(controller.project, isNull);
+  });
+
   test('simultaneous requests for one map share the same load', () async {
     port.pendingLoads['a'] = Completer<MapWorkspaceDocument>();
     final first = controller.activate(m1First);

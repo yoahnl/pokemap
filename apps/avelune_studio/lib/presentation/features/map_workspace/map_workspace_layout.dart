@@ -14,6 +14,8 @@ import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
+import 'map_catalogue_empty_view.dart';
+import 'map_catalogue_workspace_actions.dart';
 
 class MapWorkspaceLayout extends StatelessWidget {
   const MapWorkspaceLayout({
@@ -140,6 +142,7 @@ class MapWorkspaceLayout extends StatelessWidget {
             onToolChanged();
             refresh();
           },
+          onRenameMap: mapCatalogueRenameAction(context, controller),
           onOpenElement: (element) {
             close?.call();
             onOpenElement(element);
@@ -152,12 +155,7 @@ class MapWorkspaceLayout extends StatelessWidget {
             close?.call();
             onEditInteraction?.call(entity);
           },
-          onOpenMap: (id) {
-            final entry = project.maps.where((e) => e.id == id).firstOrNull;
-            if (entry == null) return;
-            close?.call();
-            onActivate(entry);
-          },
+          onOpenMap: mapLibraryOpenAction(project, onActivate, close),
           onLinkMaps: onLinkMaps,
           onUnlinkMaps: onUnlinkMaps,
           referenceGuard: referenceGuard,
@@ -257,8 +255,10 @@ class MapWorkspaceLayout extends StatelessWidget {
                           (project != null && visuals == null && error == null)
                       ? const Center(child: CircularProgressIndicator())
                       : !ready
-                      ? const Center(
-                          child: Text('Choisissez une carte du projet.'),
+                      ? MapCatalogueEmptyView(
+                          controller: controller,
+                          onActivate: onActivate,
+                          onOrganize: onOrganizeMaps,
                         )
                       : MapWorkspaceEditorPane(
                           controller: controller,

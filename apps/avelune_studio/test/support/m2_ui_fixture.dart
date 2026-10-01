@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -19,6 +20,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_image_im
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import '../../tool/create_example_project.dart';
 import '../../tool/example_project_assets.dart';
+import 'widget_map_catalog_port.dart';
 
 class M2UiFixture {
   M2UiFixture(
@@ -48,7 +50,12 @@ class M2UiFixture {
       directoryPath: await directory.resolveSymbolicLinks(),
     );
     final port = LocalMapWorkspaceAdapter();
-    final controller = WidgetMapController(session, port, tester);
+    final controller = WidgetMapController(
+      session,
+      port,
+      tester,
+      catalogPort: WidgetMapCatalogPort(LocalMapCatalogAdapter(port), tester),
+    );
     await controller.initialize();
     return M2UiFixture(
       directory,
@@ -201,7 +208,12 @@ class WidgetResourcePort implements ResourcePort {
 }
 
 class WidgetMapController extends MapWorkspaceController {
-  WidgetMapController(super.session, super.port, this.tester);
+  WidgetMapController(
+    super.session,
+    super.port,
+    this.tester, {
+    super.catalogPort,
+  });
   final WidgetTester tester;
   @override
   Future<bool> save(EditableMapDocument document) async {

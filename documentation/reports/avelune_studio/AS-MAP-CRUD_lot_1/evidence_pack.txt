@@ -1,0 +1,481 @@
+LOT 1 — OPÉRATION UWU : CRÉATION, TITRES ET DOSSIERS DE CARTES
+Evidence Pack consolidé — 1 octobre 2026 — Tom
+Base : a63ac8656d8456a91c1570b03ff91100de4f1a50 ; branche main.
+Mandat : /Users/karim/Downloads/prompt_lot_1_UwU_cartes.md, lu intégralement.
+Tickets existants AS-MAP-CRUD-001, 002, 003, 007. Aucun ticket, domaine ou backlog parallèle créé.
+
+1. AUDIT INITIAL ET PÉRIMÈTRE
+Le HEAD a été recontrôlé, sans checkout/reset ni écriture Git. Les fichiers suivis étaient propres ; seul documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md était déjà non suivi.
+Gate initial : pwd ; git branch --show-current ; git status --short --untracked-files=all ; git diff --stat ; git diff --name-only ; git log --oneline -n 10. Résultat : main, HEAD ci-dessus, aucun diff suivi.
+Ce rapport CI concurrent a été conservé, sans édition. SHA-256 observé en livraison : fcd6d070d8141cdf1c3a3cab6b7a7644d30a079d3bebbb9ddf2e8f9098ef7a1c.
+SDK réellement utilisé : /tmp/avelune-flutter-3.48/bin/flutter, Flutter 3.48.0-0.4.pre, révision e3005e3402d9cfa2043114c8bc53c59d12e9b98e ; Dart du même SDK. Tests Flutter --no-pub. Aucun changement de SDK/de dépendances dans le dépôt.
+AGENTS.md, codex_rule.md, index et compétences locales pertinentes lus. Règles appliquées : ports purs, pas d'import privé inter-package, aucun Studio -> map_editor, pas de nouvelle logique moteur.
+Réemploi constaté : map.create, transactions/préimages/récupération, map.library.reorganize, modèles groupes, file LocalMapWorkspaceAdapter, sessions et documents dirty, historique géométrique, créateur Clairbois, Player et export canoniques.
+map.rename existant change l'identité et le chemin : exclu du renommage de titre. Aucun nouveau bouton duplication/suppression/redimensionnement de cartes.
+Carte/canvas, Pokémon, ressources, moteur, créateur de projet et projet personnel du Train non refondus. Aucun commentaire ajouté au code ; un ajustement de commentaire ancien a été rétabli à son texte initial à la toute dernière vérification, sans changement exécuté.
+
+2. DÉCISIONS ET GARANTIES
+AS-MAP-CRUD-001 :
+MapCatalogPort optionnel dans la composition ; LocalMapCatalogAdapter partage le même adaptateur de cartes et sa file withResourceMutation. Création, titre et dossiers ne courent pas en parallèle d'une sauvegarde propriétaire.
+Mutation contrôlée par révisions exactes des cartes et manifeste. Une autre session ne peut pas rafraîchir sa baseline puis écraser un classement ouvert sur une ancienne version.
+Receipt distingue publication canonique réussie et échec de lecture/réconciliation. La reprise relit le catalogue sans réappliquer la transaction. Brouillons voisins, document courant, cadrage et historique sont conservés.
+Un document retiré du catalogue est conservé en mémoire pour ne pas perdre une saisie, mais ne peut plus être activé, sauvegardé ni réinjecté par undo d'un ancien passage.
+Résultats tardifs contrôlés par propriétaire/génération. La publication sur disque ne devient pas un succès appliqué dans un autre contrôleur.
+Un cache canonique reste contrôlé par préimages/CAS/postimages. La projection accélère uniquement titre/dossier avec mêmes identités/chemins/rôles et autres champs de manifeste inchangés. Création/retrait ou changements hors contrat utilisent le loader strict.
+Le contrôleur continue à accepter l'activation/sauvegarde autonome avant initialize : la garde d'appartenance n'est appliquée que lorsqu'un catalogue a effectivement été chargé, et une activation après déplacement transmet l'entrée courante au port.
+
+AS-MAP-CRUD-002 :
+Le même créateur est accessible depuis le navigateur normal, compact, projet vide et Accueil > toutes les cartes. ID produit une fois par dialogue, jamais depuis le titre. Titre accentué/entier dimensions invalides/annulation couverts.
+Grille projet héritée, dimensions par défaut du projet ; Clairbois reste 32 px par case, sans confondre grille et nombre de cases. Une carte vide sans PNG est éditable et enregistrable.
+Carte et manifeste sont publiés par le service canonique ; champs existants/maps/ressources préservés. En cas de publication suivie d'un échec d'ouverture, le dialogue propose de rouvrir/relire plutôt que recréer.
+
+AS-MAP-CRUD-003 :
+Nouvelle action publique map.update_metadata v1 {mapId,name}, enregistrée dans les descriptors/registry existants. Nom trim non vide, maximum 160 caractères ; transaction recoverable document + manifeste sur préimages exactes.
+ID, chemin, starts et références de passages restent inchangés. Même titre normalisé dans les deux documents => map.no_change sans publication ; titres document/manifeste divergents réellement corrigés.
+Renommer une cible dirty demande explicitement son enregistrement seulement. Annuler garde la saisie, un échec bloque la navigation ; aucun saveAll opportuniste.
+Undo/redo de géométrie rebase le titre courant, sans réinjecter l'ancien nom. Actions sur une carte inactive ne l'activent pas.
+
+AS-MAP-CRUD-007 :
+Dossiers logiques et sous-dossiers ; création, titre, parent, ordre, placement multiple et suppression uniquement vide. Racine Sans dossier virtuelle sans faux CRUD.
+Doublons frères trim/casse refusés, homonymes entre parents distincts permis. Parents manquants/cycles/auto-parent refusés. Un dossier non vide reste non supprimable même si la même requête propose de déplacer ses enfants.
+Ordre établi sur tous les frères, pas seulement les résultats filtrés. Classement/tags/propriétés de groupes conservés. Aucun déplacement physique des JSON d'une carte.
+Sélection multicarte par identité et sélection masquée par recherche préservées selon le navigateur existant.
+
+Frontière exacte : transactions et cache canoniques, aucun nouveau moteur transactionnel. L'extension publique de projection est une primitive utilisée par le projecteur contrôlé ; elle n'est pas une promesse de validation d'un manifeste arbitraire fourni par un autre appelant.
+Les champs arbitraires inconnus à l'intérieur des entrées map/group traitées par les codecs ne sont pas promis conservés ; les autres blocs manifestes sont comparés et gardés par le garde de projection.
+
+3. AUDIT PAR PASSES ET AUTO-REVIEW
+Passes déléguées autorisées par le mandat/règles du dépôt : uwu_authoring (API/transactions/cache/parité), uwu_session (sessions/queue/brouillons), uwu_ui (UI partagée/navigation/dossiers). Relectures croisées : frontières et propriétaire de sauvegarde, garde busy/modal/export/sortie, parcours de création. Aucun blocage relevé dans leurs derniers verdicts.
+Une hypothèse de preview Accueil périmée après renommage d'une carte inactive a été RÉFUTÉE dans le vrai hôte avant toute modification produit : Home est remonté au retour. Pas de rustine HomePreview ajoutée.
+Une vraie course de preview lors d'un déplacement a été reproduite par Completer puis corrigée : la validité compare identité/chemin/titre du document, pas le dossier qui ne modifie pas son contenu.
+La première suite globale a révélé trois régressions introduites dans activate avant initialize : +1117 ~3 -29. Le HEAD isolé avait les 26 autres. Caractérisation RED du sous-ensemble : +14 -5 ; correction puis 19/19 verts, dont sauvegarde autonome et activation d'une ancienne entrée après déplacement. Aucun attendu métier supprimé.
+Des erreurs de harnais intermédiaires (clic hors viewport, save fake-async, menu non encore animé) ont été corrigées dans le pont de test, sans injection de publication ni substitution des callbacks du workspace.
+Toutes les sources Studio modifiées/créées sont <=300 lignes. Les cinq violations finales d'architecture sont antérieures et hors diff. Le sixième fichier ancien, LocalMapWorkspaceAdapter, passe désormais sous 300 par l'extraction ciblée nécessaire au catalogue.
+Auto-critique : 70 fichiers texte de sources/découverte/tests sont touchés, dont 33 nouveaux, pour quatre tickets transverses. Les petits fichiers servent la limite réelle de 300 lignes et les raccordements existants ; aucune nouvelle couche universelle. L'ampleur doit néanmoins être relue comme une intégration transverse, pas un simple bouton.
+La suite globale n'est PAS verte. Aucune assertion/skip/contrôle d'architecture affaibli pour l'annoncer autrement.
+
+4. COMMANDES FINALES, RÉSULTATS ET SOURCES DES JOURNAUX
+Convention Flutter : chaque commande a été exécutée par python3 /tmp/run_avelune_owned.py <cwd> <log> <commande>, avec PID runner et descendants identifiés ; seules les E/S/harnesses de CE run sont terminés après revalidation commande/ownership. Aucun blanket-kill.
+Le fichier journaux_consolides.txt conserve 21 journaux : logs courts intégraux ; gros logs explicitement extraits avec lignes, erreurs et SHA original. Les /tmp restent temporaires, les résultats utiles sont durables ici.
+
+CWD apps/avelune_studio, SDK /tmp/avelune-flutter-3.48/bin/flutter :
+A. test --no-pub test/map_workspace/map_catalog*_test.dart test/presentation/map_catalogue*_test.dart test/home/home_map_creation_entry_test.dart test/application/m1_controller_test.dart test/project_creation --concurrency=2 --reporter=expanded
+   Log uwu-studio-scoped-delivery.log ; exit 0, 80.27 s, +65 All tests passed ; runner 95417, 33 descendants suivis/nettoyés.
+B. AVELUNE_CAPTURE_DIR=<repo>/documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures ; test --no-pub --concurrency=2 --reporter=expanded
+   Log uwu-studio-suite-delivery.log ; exit 1, 733.19 s, +1121 ~3 -26 ; runner 78775, 351 descendants suivis/nettoyés. Les captures étrangères au lot produites par la variable commune de la suite ont été retirées ; six pertinentes restent. Aucun test retiré.
+C. test --no-pub test/architecture --concurrency=2 --reporter=expanded
+   Log uwu-architecture-delivery.log ; exit 1, 5.20 s, +11 -1 ; runner 95160, 4 descendants suivis/nettoyés.
+   Échec : limite 300 lignes sur map_editing_commands.dart 310, map_workspace_canvas.dart 474, map_workspace_tool_strip.dart 306, home_visual_test.dart 312, decor_transform_host_test.dart 389. Ces cinq fichiers n'ont pas été édités ici.
+D. analyze --no-pub
+   Log uwu-studio-analyze-delivery.log ; exit 0, 6.26 s, No issues found! ; runner 75397.
+E. build macos --debug --no-pub
+   Log uwu-build-macos-final.log ; exit 0, 37.42 s ; runner 75645, 110 descendants. Build macOS debug réel. Un build n'est pas une recette native.
+F. Contrôleur ciblé RED/GREEN :
+   test --no-pub test/application/m1_controller_test.dart test/map_workspace/map_catalog_async_reads_test.dart --concurrency=1 --reporter=expanded
+   Log RED uwu-controller-activation-red.log : exit 1, +14 -5 ; GREEN final uwu-controller-activation-final.log : exit 0, 19/19, 4.08 s, runner 72797, 3 descendants.
+   Les tests de cette correction sont aussi dans A et B.
+G. Mesure locale : /tmp/avelune-flutter-3.48/bin/dart run tool/measure_map_catalogue_mutations.dart
+   Log uwu-catalogue-measure-final-v8.log ; exit 1, 9.84 s, car L incompatible ; chiffres S/M en section 7. Le script ne transforme pas cette réserve en réussite.
+
+CWD apps/pokemap_hub :
+/tmp/avelune-flutter-3.48/bin/flutter test --no-pub test/features/installation/as_project_creation_player_e2e_test.dart --concurrency=1 --reporter=expanded
+   Log uwu-hub-player-final.log ; exit 0, 18.58 s, +1 All tests passed! ; runner 74783, 13 descendants. Création via Studio, paquet canonique exporté, installation véritable, dossier auteur inaccessible, dialogue et passages aller-retour.
+   Aucun runtime/code Player modifié pour faire passer le test.
+
+CWD packages/map_authoring, Dart épinglé /tmp/avelune-flutter-3.48/bin/dart :
+H. test test/workspace/project_snapshot_catalog_projection_test.dart test/workspace/project_snapshot_map_projector_test.dart test/workspace/project_snapshot_fingerprint_cache_test.dart test/workspace/project_snapshot_cache_budget_test.dart test/domains/maps/map_metadata_transaction_test.dart test/domains/maps/map_library_actions_test.dart test/domains/maps/map_lifecycle_contract_test.dart test/domains/maps/map_lifecycle_transaction_test.dart test/parity/full_authoring_parity_test.dart
+   uwu-authoring-scoped-final.log ; exit 0, +79 All tests passed, 00:15 compteur.
+I. test test/workspace/project_snapshot_catalog_projection_test.dart
+   uwu-snapshot-final.log ; exit 0, +5 All tests passed.
+J. test test/parity/full_authoring_parity_test.dart
+   uwu-editor-parity-final.log ; exit 0, +18 All tests passed, 00:17. Exécuté après le dernier raccordement des preuves Editor vers les vrais tests hôte.
+K. test --concurrency=2
+   uwu-authoring-full-catalog-final.log ; exit 1, +947 -6, 01:20. Les six échecs ont été reproduits sur snapshot HEAD initial (+53 -6). Ce full run précède seulement l'annotation des preuves Editor et leurs tests, vérifiés ensuite par J, sans nouvelle logique métier.
+L. analyze
+   uwu-authoring-analyze-editor-final.log ; exit 0, No issues found. Une ligne de commentaire préexistante du projecteur a ensuite été remise exactement au texte HEAD pour respecter l'absence de commentaires ajoutés ; aucun comportement exécuté changé, format final recontrôlé.
+
+CWD tools/pokemap_mcp :
+M. PATH=/tmp/avelune-flutter-3.48/bin:$PATH npm test
+   Script effectif : npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts
+   uwu-mcp-full.log ; exit 1 ; 86 tests, 83 pass, 3 fail, 0 skip ; 499967.612917 ms. Trois attentes anciennes sur douze tools omettent les outils project_create déjà présents.
+N. npm run build
+   uwu-mcp-build-catalog-final.log ; exit 0.
+O. PATH=/tmp/avelune-flutter-3.48/bin:$PATH node --test --test-concurrency=1 dist/test/map_metadata_server.test.js
+   uwu-mcp-targeted-catalog-final.log ; exit 0 ; 1/1, 7215.642875 ms.
+P. Connecteur MCP CONFIGURÉ : server pokemap, tool pokemap_describe, arguments {} ; puis fixture locale -> open/validate/plan/apply/requery/close. Reçu uwu-live-proof.json : titre changé, ID/self-warp stables, workspace fermé. Serveur live Flutter 3.47.5 distinct du SDK des tests.
+Q. CWD packages/map_authoring : dart run tool/pmcp085_conformance.dart
+   Exit 1 ; catalogComplete=true, missing=0 mais certification agrégée incomplète. PMCP-085 reste PARTIAL ; le succès de la nouvelle action ne recertifie pas tous les transports du repo.
+
+R. CWD racine : /tmp/avelune-flutter-3.48/bin/dart format --output=none --set-exit-if-changed <les 68 chemins Dart de l'inventaire>
+   Exit 0, Formatted 68 files (0 changed) in 0.18 seconds. Liste intégrale déterminée par l'inventaire des sources Dart ci-dessous.
+S. git diff --check
+   Exit 0, aucune erreur de whitespace.
+T. bash tools/scripts/check_markdown_hygiene.sh
+   Exit 1 : Markdown hygiene: 1 new Markdown files exceed the default limit of 0.
+   L'unique Markdown nouveau est le rapport CI non suivi DÉJÀ PRÉSENT au gate initial, conservé à la demande. Aucun override/assouplissement, aucun nouveau Markdown créé pour ce lot ; le catalogue Markdown racine existant est seulement actualisé.
+
+5. PREUVE DES ÉCHECS HISTORIQUES, SANS MODIFIER LE WORKTREE
+Studio : git archive a63ac8656d8456a91c1570b03ff91100de4f1a50 | tar -x -C /tmp/uwu-studio-baseline.K071Im. Copies indépendantes, pas git checkout/worktree/reset.
+Préparation des dépendances de la copie : FLUTTER_ROOT=/tmp/avelune-flutter-3.48 /tmp/avelune-flutter-3.48/bin/dart pub get --offline dans apps/avelune_studio. Aucun changement de dépendances du worktree auteur.
+Même SDK, commande flutter test --no-pub --concurrency=2 --reporter=expanded sur :
+test/application/m1_controller_test.dart ; test/architecture/architecture_boundaries_test.dart ;
+test/cinematics/cinematic_spatial_gestures_ui10_test.dart ; test/cinematics/cinematic_viewport_parity_ui10_test.dart ;
+test/cinematics_ui10_error_recovery_test.dart ; test/cinematics_ui10_nested_navigation_test.dart ; test/cinematics_ui10_parity_viewport_test.dart ;
+test/cinematics_ui10_preview_runtime_parity_test.dart ; test/cinematics_ui10_renderer_test.dart ; test/cinematics_ui10_responsive_test.dart ;
+test/cinematics_ui10_runtime_test.dart ; test/cinematics_ui10_spatial_test.dart ; test/cinematics_ui10_timeline_gesture_test.dart ; test/cinematics_ui10_widget_test.dart ;
+test/map_workspace/map_connection_host_test.dart ; test/presentation/map_inspector_ui02_test.dart ; test/presentation/map_workspace_journey_test.dart.
+uwu-studio-baseline-failures.log : exit 1, +28 -26, 41.30 s, runner 69985, 40 descendants nettoyés.
+Comparaison PROGRAMMATIQUE des noms [E] normalisés à partir de /test/ : final 26, baseline 26, ajoutés [], retirés []. Pas seulement un raisonnement « hors diff donc ancien ».
+Au HEAD initial, les 15 tests m1 passaient ; final en contient 16 avec le nouveau test de sauvegarde autonome. Anciennes erreurs cinéma (données/format), sélection/ordre ancien, connexion et fichiers trop longs laissées hors scope.
+Le fichier LocalMapWorkspaceAdapter faisait aussi 305 lignes au HEAD (six violations au total) ; extraction de catalogue nécessaire au lot, désormais conforme (cinq restants).
+
+Authoring : copie /tmp/uwu-authoring-baseline.9ggGuO ; extraction read-only complémentaire de l'adapter ancien utilisé par son contrôle :
+git archive HEAD packages/map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart | tar -x -C /tmp/uwu-authoring-baseline.9ggGuO
+Puis CWD packages/map_authoring de cette copie : dart test test/tooling/jsonl_worker_test.dart test/domains/maps/smart_tile_layer_actions_test.dart test/package_boundary_test.dart test/registry/action_registry_test.dart --concurrency=2
+Log baseline final +53 -6, exit 1. Échecs identiques : golden JSONL describe, golden SmartTile M01, contraintes dépendances et taille adapter ancien, deux inventaires registry obsolètes. Pas de correction hors mandat.
+
+MCP : CWD /tmp/uwu-mcp-baseline.mzxVHv/tools/pokemap_mcp, npm run build puis :
+PATH=/tmp/avelune-flutter-3.48/bin:$PATH node --import tsx --test --test-name-pattern='all twelve tools|packaged stdio entrypoint completes|read-only MCP inspects' test/conformance_security.test.ts test/protocol_compatibility.test.ts test/read_only_server.test.ts
+uwu-mcp-baseline-final.log : exit 1, 0 pass /3 fail. Même cause des trois attentes sur la liste ancienne. Aucun refactor MCP entrepris.
+
+6. MATRICE D'ACCEPTATION ET PARCOURS
+PASS — vraie navigation normale/compacte/vide/Accueil vers le même créateur : nouveaux tests hôte + tests composants, sans copie des callbacks.
+PASS — création, collisions par véritable commande d'édition, enregistrement, réouverture depuis une session indépendante : map_catalogue_host_test.
+PASS — nom accentué, dimensions invalides/fractionnelles, annulation sans mutations : hôte réel.
+PASS — titre seul ; ID/path/starts/references inchangés ; géométrie undo/redo garde le titre ; cible inactive jamais substituée : transaction/hôte/document tests.
+PASS — brouillon cible et voisin ; annuler garde le travail ; enregistrer seulement la cible : map_catalogue_groups_host_test et contrôleur.
+PASS — folders trois niveaux, reparent/move/order, champs conservés, refus non vide/cycle/missingparent/doublons frères ; réouverture indépendante : actions canoniques + hôte.
+PASS — disparition canonique, conflits fichier/manifeste, double owner, queue save/mutation, stale/dispose/retry receipt : tests déterministes Completer, sans courses fondées sur la vitesse du disque.
+PASS — fonctionnement clavier/focus/requête double, 1024 et texte agrandi 150%, actions en zones accessibles : map_catalogue_dialog_keyboard/layout_test ; capture compacte hôte, native à 1000x720.
+PASS — après création/renommage/rangement, Clairbois charge le runtime, dialogue puis first-map -> maison -> first-map : test hôte, sur la même fixture créée dans Studio.
+PASS — véritable paquet exporté/installation/lancement autonome avec dialogue et passages : recette Hub existante finale, réutilisée sans la reconstruire ni éditer ses JSON.
+PASS — build macOS, analyse Studio, formatage, diff check.
+PASS — manipulation native CREATE/TITLE/FOLDER/MOVE, détaillée ci-dessous. Ce n'est pas une certification manuelle native de TOUS les scénarios d'erreur.
+FAIL HISTORIQUE REPRODUIT — suite Studio entière (26) / architecture (1) / suite authoring (6) / suite MCP (3) / hygiène Markdown (rapport concurrent).
+NON VÉRIFIÉ — performance L selbrume : manifest v7, contract v8. Pas de conversion de fixture pour fabriquer du vert.
+PARTIAL — certification globale PMCP-085 malgré découverte/écriture de l'action nouvelle prouvées.
+NON VÉRIFIÉ — acceptation visuelle indépendante de Yoahn ; parcours Player natif interactif complet. Les assertions runtime/paquet ne sont pas rebaptisées recette manuelle.
+
+Recette native réelle :
+flutter run --debug --no-pub -d macos -t dev/marionette_main.dart --dart-define=MARIONETTE_PROJECT_PATH=<fixture temporaire ci-dessous>
+Fixture native : /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/uwu-native-8w6j7g
+Créée par le vrai hôte puis copiée pour la manipulation, pas reconstruite à la main. Trois cartes initiales, ajout de la quatrième via UI macOS.
+Le chemin a été revérifié via ext.flutter.avelune.activeProject avant manipulation ; aucune action sur le Train.
+Entrée Carte compacte -> Nouvelle carte -> titre « Atelier natif UwU » -> Créer ; grille 32 px, defaults 32x26 cases visibles.
+Carte publiée : studio_map_1790851509915545, maps/studio_map_1790851509915545.json.
+Menu ligne -> Renommer -> « Atelier natif renommé » -> appliquer ; document et manifeste lus ensuite, même ID/fichier.
+Nouveau dossier « Essais natifs » -> menu carte -> Déplacer -> choix Essais natifs -> appliquer. groupId studio_folder_1790851649102966 ; aucun changement de path/ID.
+Nouvelle carte ouverte de nouveau pour capture finale du créateur puis annulée. Application quittée proprement, Marionette déconnecté.
+Avertissement CLI : Failed to foreground app; open returned 1, malgré VM/app et interactions valides. get_logs Marionette renvoie Server error ; stdout contrôlé. Un tap text « Renommer » non trouvé par l'outil a été remplacé après inspection par le FilledButton réellement découvert. Cette erreur de correspondance d'outil n'est pas un crash produit.
+Deux captures natives sont enregistrées depuis la service extension de capture Marionette, PNG vérifié ; aucun contenu base64 dans ce rapport.
+La réouverture indépendante et les cas d'erreur complets sont AUTOMATISÉS dans l'hôte ; pas une seconde ouverture manuelle native revendiquée.
+
+Captures (répertoire captures/, origine exacte, intégrité) :
+native-create-map-dialog.png | application macOS debug réelle, Marionette | 376850 octets | SHA-256 df903cbe1a9e1e29fd685618aa38293c5be9b221a55f91d726ef5cff091593c1
+uwu-created-and-renamed.png | capture du véritable hôte widget, aucune prétention de manipulation native | 140060 octets | SHA-256 f4b4371a024e50fe522be73be9beae469deab12b4b2f68ad7b8692383629ffd8
+map-library-compact-1024.png | capture du véritable hôte widget, aucune prétention de manipulation native | 53014 octets | SHA-256 6287c191176d515c501b0d42fc87fba792f2ca27f2f918082078d847b91d6ed5
+uwu-folders-organized.png | capture du véritable hôte widget, aucune prétention de manipulation native | 304786 octets | SHA-256 4ff53e10539ba909068cc7dd416940cf7fcfa9903f60bf58422d420424808892
+map-library-grouped-1536.png | capture du véritable hôte widget, aucune prétention de manipulation native | 118132 octets | SHA-256 e98ebc0fbab3f8c766357b1a9ddcb42381d08554f0d6ea928c97481ff7212eea
+native-created-renamed-moved.png | application macOS debug réelle, Marionette | 239285 octets | SHA-256 70012bae9076dd1b35495b6c72ae2077e3959220f5941521b95d19e070b598b4
+Comparaison effectuée au cadre Avelune actuel : symbole/wordmark, palette nuit, navigateur logique, menu contextuel et fiche Carte conservés ; aucune maquette de nouveau canvas ni image de fixture dans le produit.
+
+7. MESURES ET SÉCURITÉ DES FICHIERS
+Le script copie les fixtures, utilise le vrai contrôleur/adaptateur, les profileCounters déjà présents, puis nettoie ses seules copies temporaires. Aucun seuil de performance inventé.
+S golden_battle_slice, 1 carte :
+cold 210639 us, 5 snapshotLoads/3 hits, initialRead2359 us/decode3801 us, identityReads28, resources5, documents chargés1.
+warm 43070 us, 4 loads/4 hits, initialRead0/decode0, identityReads39, resources5, documents1.
+M golden_fangame_slice, 3 cartes :
+cold 60712 us, 5 loads/3 hits, initialRead3283 us/decode1119 us, identityReads40, resources8, documents1.
+warm 66917 us, 4 loads/4 hits, initialRead0/decode0, identityReads57, resources8, documents1.
+L selbrume : NON VÉRIFIÉ, FormatException: $.version: project_version_unsupported (expected=v8, actual=v7).
+À chaud, les documents inchangés ne sont pas redécodés ; contrôles de fingerprint restent réels (O(nombre de ressources)), pas zéro E/S ni promesse de complexité constante. Le cold loader canonique conserve sa validation globale initiale. Création/retrait gardent le fallback strict.
+Tests vérifient les bytes de maps/atlas/resources non concernés, IDs/paths/starts/warps et absence de sauvegarde implicite. La désactivation d'un owner ne supprime pas ses brouillons.
+Les projets personnels et le projet original Train restent intacts. Les fichiers techniques de preuve et copies de tests sont distincts des projets auteurs.
+Aucune écriture Git, CI, release ou roadmap ; aucun commentaire ajouté au code.
+
+8. INVENTAIRE INTÉGRAL ET ZONES DU DIFF
+Les zones +début,nombre ci-dessous proviennent du git diff -U0 de livraison ; les nouveaux fichiers sont donnés entiers. La restauration finale du commentaire ancien du projecteur retire uniquement son hunk de documentation de l'inventaire capturé ; les zones exécutables restent les mêmes.
+Le contenu INTÉGRAL des 70 fichiers est dans contenu_integral_sources.txt, chaque section avec chemin et SHA-256 ; tests et catalogue public compris. Les commentaires reproduits dans cette annexe sont ceux des fichiers complets, pas de nouveaux commentaires ajoutés.
+Les rapports/journaux présents ici sont directement consultables dans leur intégralité et ne se recopient pas récursivement.
+apps/avelune_studio/lib/app/di/map_workspace_providers.dart
+  Tickets 001/002/003/007; port optionnel de catalogue dans la DI. 44 lignes; zones finales 6; 17,3; 31.
+apps/avelune_studio/lib/app/studio_bootstrap.dart
+  Tickets 001/002/003/007; composition partageant l'adaptateur et la file de sauvegarde existants. 235 lignes; zones finales 32; 78,6.
+apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart
+  Tickets 001/002/003/007; rebasage du titre dans les snapshots undo/redo. 92 lignes; zones finales 20; 55,6; 76,13.
+apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart
+  Tickets 001/002/003/007; réconciliation, retrait sûr, garde de génération et activation courante. 291 lignes; zones finales 6,3; 11; 15; 18,6; 60,10; 75,14; 98; 110,4; 115,3; 119; 122,3; 150,12; 191,7; 202,15; 272,9.
+apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart
+  Tickets 001/002/003/007; extraction ciblée du catalogue, même propriétaire et file d'E/S. 298 lignes; zones finales 12; 298,0.
+apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_catalog.dart
+  Tickets 001/002/003/007; lecture/révision du catalogue et chargement des seuls documents requis. 105 lignes; zones finales 3,8; 12,63.
+apps/avelune_studio/lib/presentation/features/home/studio_home_all_maps.dart
+  Tickets 002 (+001); entrée Nouvelle carte vers le créateur partagé. 147 lignes; zones finales 18; 26; 75,6.
+apps/avelune_studio/lib/presentation/features/home/studio_home_screen.dart
+  Tickets 002 (+001); transmission de l'action depuis toutes les cartes. 290 lignes; zones finales 24; 41; 282.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_inspector_tabs.dart
+  Tickets 001/002/003/007; transmission du renommage sans nouvel owner. 106 lignes; zones finales 25; 35; 97.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart
+  Tickets 007 (+001); création, dossiers, multisélection et actions sur les identités réelles. 289 lignes; zones finales 10,8; 34,3; 46,3; 64,4; 74,17; 98,0; 128; 144,13; 171; 199,0; 208,7; 234,21; 256.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_tile.dart
+  Tickets 007 (+001); actions distinctes de l'activation d'une ligne. 77 lignes; zones finales 6; 18,3; 27,3; 34,28; 64,10.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_tree.dart
+  Tickets 007 (+001); ordre complet et chemins de dossiers imbriqués. 152 lignes; zones finales 3,17.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart
+  Tickets 001/002/003/007; transmission du renommage à la sélection. 287 lignes; zones finales 35; 49; 279.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart
+  Tickets 001/002/003/007; mêmes actions dans la variante compacte. 58 lignes; zones finales 7; 24,6; 34,12; 53.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart
+  Tickets 001/002/003/007; état catalogue occupé et entrée projet vide. 203 lignes; zones finales 14; 148,18.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart
+  Tickets 001/002/003/007; renommage du titre depuis la fiche Carte. 300 lignes; zones finales 15; 27; 37,2; 137,3; 140,0.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+  Tickets 001/002/003/007; raccordement commun des actions sur les deux layouts. 298 lignes; zones finales 17,2; 145; 158; 258,4.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+  Tickets 001/002/003/007; composition, focus/clavier et interaction bloquée pendant publication. 300 lignes; zones finales 72; 157,3; 204,0.
+apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart
+  Tickets 001/002/003/007; garde d'export sur opération catalogue et réconciliation en attente. 92 lignes; zones finales 28; 35,3.
+apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart
+  Tickets 002 (+001); Accueil rejoint le propriétaire Carte pour créer. 102 lignes; zones finales 75,3.
+apps/avelune_studio/lib/presentation/features/map_workspace/workspace_keyboard_binding.dart
+  Tickets 001/002/003/007; aucun raccourci d'édition derrière une mutation/dialogue. 30 lignes; zones finales 7,2.
+apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart
+  Tickets 007 (+001); commande canonique de dossiers, suppression de la boucle ad hoc. 23 lignes; zones finales 8,11; 20,3.
+apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart
+  Tickets 001/002/003/007; diffusion des actions et panneau occupé. 260 lignes; zones finales 35; 112.
+apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+  Tickets 001/002/003/007; route locale Accueil -> créateur Carte sans second contrôleur. 297 lignes; zones finales 275,3.
+apps/avelune_studio/test/application/m1_controller_test.dart
+  Tickets 003 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 255 lignes; zones finales 50,14.
+apps/avelune_studio/test/presentation/map_library_navigation_test.dart
+  Tickets 007 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 114 lignes; zones finales 37; 63.
+apps/avelune_studio/test/support/m2_ui_fixture.dart
+  Tickets 001/002/003/007; hôte réutilisable raccordé au même port canonique et save owner. 237 lignes; zones finales 11; 23; 53,6; 211,6.
+apps/avelune_studio/test/support/project_creation_workspace_fixture.dart
+  Tickets 002 (+001); créateur réel conservé ; partage de l'adaptateur catalogue. 294 lignes; zones finales 8; 25,2; 30; 235,9.
+packages/map_authoring/lib/src/domains/maps/map_library_actions.dart
+  Tickets 007 (+001); doublons frères et suppression réellement vide, champs conservés. 118 lignes; zones finales 69,15.
+packages/map_authoring/lib/src/domains/maps/map_lifecycle_actions.dart
+  Tickets 001/002/003/007; découverte/enregistrement de map.update_metadata. 106 lignes; zones finales 5; 27,2; 59; 91,14.
+packages/map_authoring/lib/src/parity/full_authoring_parity.dart
+  Tickets 003 (+001); preuves de transport et correspondance avec les vrais tests Studio. 1545 lignes; zones finales 526,8; 776,18; 796,2; 1128; 1174,4.
+packages/map_authoring/lib/src/workspace/project_snapshot.dart
+  Tickets 001; projection contrôlée de manifeste et conservation des ressources. 333 lignes; zones finales 166; 170,0; 216; 221,13; 264.
+packages/map_authoring/lib/src/workspace/project_snapshot_map_projector.dart
+  Tickets 001; projection limitée titre/dossier, fallback strict sinon. 168 lignes; zones finales 5; 23; 28,2; 34,3; 41,0; 43,9; 52,0; 77; 112,57.
+packages/map_authoring/test/domains/maps/map_library_actions_test.dart
+  Tickets 007 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 157 lignes; zones finales 25,48.
+packages/map_authoring/test/domains/maps/map_lifecycle_contract_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 441 lignes; zones finales 18.
+packages/map_authoring/test/parity/full_authoring_parity_test.dart
+  Tickets 003 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 1753 lignes; zones finales 125; 128,9.
+pokemap_authoring_api_mcp_action_catalog.md
+  Tickets 001/002/003/007; catalogue public du nouveau contrat de titre. 2674 lignes; zones finales 900,6.
+apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_commands.dart
+  Tickets 001; mutation, receipt publié, réconciliation et reprise de lecture. 137 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_adapter.dart
+  Tickets 001; API canonique, préimages, snapshot/projection et queue partagée. 204 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_port.dart
+  Tickets 001; contrat application/domaine pur des mutations et receipts. 51 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_creation_dialog.dart
+  Tickets 002 (+001); créateur guidé, grille projet et ID stable entre tentatives. 164 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart
+  Tickets 002 (+001); première carte depuis le même propriétaire. 88 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_form_dialog.dart
+  Tickets 001/002/003/007; dialogue commun accessible, focus, busy et erreurs préservées. 148 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_properties.dart
+  Tickets 001/002/003/007; titre indépendant de l'identité et garde dirty de la seule cible. 27 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart
+  Tickets 001/002/003/007; mêmes commandes depuis toutes les entrées. 197 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_group_actions.dart
+  Tickets 007 (+001); CRUD des seuls dossiers logiques et ordre validé. 150 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart
+  Tickets 007 (+001); actions guidées de création/rangement et multisélection. 169 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart
+  Tickets 007 (+001); menu contextuel et actions explicites sans activation implicite. 104 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/home/home_map_creation_entry_test.dart
+  Tickets 002 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 26 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart
+  Tickets 001; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 123 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart
+  Tickets 007 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 69 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_fixture.dart
+  Tickets 001/002/003/007; fixture locale déterministe pour les préconditions du contrôleur. 120 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 211 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart
+  Tickets 001; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 86 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart
+  Tickets 001; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 143 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalog_stale_document_test.dart
+  Tickets 001; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 22 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart
+  Tickets 007 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 129 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart
+  Tickets 002 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 30 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 136 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/presentation/map_catalogue_dialog_keyboard_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 67 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/presentation/map_catalogue_dialog_layout_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 85 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart
+  Tickets 001/002/003/007; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 51 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/support/map_catalogue_host_fixture.dart
+  Tickets 001/002/003/007; hôte réel, dossier temporaire, réouverture et capture. 215 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/test/support/widget_map_catalog_port.dart
+  Tickets 001; pont WidgetTester.runAsync, erreurs sans écriture injectée. 47 lignes; zones finales nouveau fichier entier.
+apps/avelune_studio/tool/measure_map_catalogue_mutations.dart
+  Tickets 001/002/003/007; mesure locale cold/warm sur copies S/M/L, compteurs existants. 121 lignes; zones finales nouveau fichier entier.
+packages/map_authoring/lib/src/domains/maps/map_metadata_actions.dart
+  Tickets 003 (+001); transaction deux documents, titre seul, normalisation et préimages. 93 lignes; zones finales nouveau fichier entier.
+packages/map_authoring/test/domains/maps/map_metadata_fixture.dart
+  Tickets 003 (+001); fixture transactionnelle, références et identité stables. 124 lignes; zones finales nouveau fichier entier.
+packages/map_authoring/test/domains/maps/map_metadata_transaction_test.dart
+  Tickets 003 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 166 lignes; zones finales nouveau fichier entier.
+packages/map_authoring/test/workspace/project_snapshot_catalog_projection_test.dart
+  Tickets 001; preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 180 lignes; zones finales nouveau fichier entier.
+tools/pokemap_mcp/test/map_metadata_server.test.ts
+  Tickets 003 (+001); preuve de régression/parcours réel nommé dans le journal, assertions métier conservées. 90 lignes; zones finales nouveau fichier entier.
+
+9. VERDICT DISTINCT PAR TICKET ET NOTION
+Ticket | Implémentation | Tests | Recette UI/runtime | Réserve exacte | Statut réel vérifié
+AS-MAP-CRUD-001 | queue/contrat/réconciliation/cache/retry et préimages livrés | courses/activation/save/retirement tests verts, inclus dans A | hôte réel, voisin dirty et reprise ; runtime Clairbois final | L incompatible, global suites historiquement rouges, PMCP agrégé partiel | TO REVIEW
+AS-MAP-CRUD-002 | créateur partagé et map vide éditable livrés | création/annulation/invalid/reopen/Accueil tests verts | hôte puis création macOS ; paquet Hub indépendant | acceptation visuelle Yoahn ; pas de certification native de toutes erreurs | TO REVIEW
+AS-MAP-CRUD-003 | titre stable canonique livré | préimages/recovery/API/JSONL/MCP/dirty/undo verts | hôte réouvert et renommage macOS stable | PMCP global non certifié ; approbation Yoahn | TO REVIEW
+AS-MAP-CRUD-007 | dossiers logiques/order/placements/refus non vide livrés | validations, état/réouverture et hôte verts | trois niveaux hôte et création/déplacement macOS | approbation visuelle ; bibliothèque géante L non mesurée | TO REVIEW
+Pages respectives :
+https://app.notion.com/p/3ec197a7bfa5811db8c3da4ecde022c8
+https://app.notion.com/p/3ec197a7bfa58188836ade472f7ed3dd
+https://app.notion.com/p/3ec197a7bfa58151b7e8d5243a15b90f
+https://app.notion.com/p/3ec197a7bfa58117abeae34eb134cb89
+Les quatre pages ont reçu un append « Lot 1 UwU — preuves locales du 1 octobre 2026 », les champs Preuve ont été complétés en conservant le cadrage initial, et Statut DOING -> TO REVIEW a été relu depuis Notion. Critères/domaines/dépendances/budgets non réécrits. Aucun DONE ni nouvelle page de backlog.
+
+10. ÉTAT GIT FINAL ET DIFF
+HEAD final inchangé : a63ac8656d8456a91c1570b03ff91100de4f1a50 ; main. git diff --check exit0.
+git diff --stat des fichiers suivis (les nouveaux fichiers de l'inventaire et les preuves restent non suivis) :
+ .../lib/app/di/map_workspace_providers.dart        |   5 +
+ apps/avelune_studio/lib/app/studio_bootstrap.dart  |   7 +
+ .../application/editable_map_document.dart         |  22 ++-
+ .../application/map_workspace_controller.dart      | 105 +++++++++++--
+ .../data/local_map_workspace_adapter.dart          |   9 +-
+ .../data/local_map_workspace_catalog.dart          |  71 +++++++++
+ .../features/home/studio_home_all_maps.dart        |   8 +
+ .../features/home/studio_home_screen.dart          |   4 +-
+ .../map_workspace/map_decor_inspector_tabs.dart    |   3 +
+ .../map_workspace/map_library_navigator.dart       | 168 ++++++++++-----------
+ .../map_workspace/map_library_row_tile.dart        |  72 +++++----
+ .../features/map_workspace/map_library_tree.dart   |  17 +++
+ .../map_workspace/map_selection_inspector.dart     |   3 +
+ .../map_workspace_compact_navigator.dart           |  21 ++-
+ .../map_workspace/map_workspace_editor_pane.dart   |  19 +++
+ .../map_workspace/map_workspace_inspector.dart     |  13 +-
+ .../map_workspace/map_workspace_layout.dart        |  16 +-
+ .../map_workspace/map_workspace_screen.dart        |   8 +-
+ .../map_workspace/workspace_export_binding.dart    |   5 +-
+ .../map_workspace/workspace_home_binding.dart      |   3 +
+ .../map_workspace/workspace_keyboard_binding.dart  |   2 +
+ .../workspace_map_library_binding.dart             |  29 ++--
+ .../map_workspace/workspace_screen_body.dart       |   3 +-
+ .../project_session/project_session_screen.dart    |   3 +
+ .../test/application/m1_controller_test.dart       |  14 ++
+ .../presentation/map_library_navigation_test.dart  |   3 +-
+ .../avelune_studio/test/support/m2_ui_fixture.dart |  16 +-
+ .../project_creation_workspace_fixture.dart        |  15 +-
+ .../lib/src/domains/maps/map_library_actions.dart  |  15 ++
+ .../src/domains/maps/map_lifecycle_actions.dart    |  19 ++-
+ .../lib/src/parity/full_authoring_parity.dart      |  38 ++++-
+ .../lib/src/workspace/project_snapshot.dart        |  17 ++-
+ .../workspace/project_snapshot_map_projector.dart  |  79 +++++++++-
+ .../domains/maps/map_library_actions_test.dart     |  48 ++++++
+ .../domains/maps/map_lifecycle_contract_test.dart  |   1 +
+ .../test/parity/full_authoring_parity_test.dart    |  11 +-
+ pokemap_authoring_api_mcp_action_catalog.md        |   6 +
+ 37 files changed, 702 insertions(+), 196 deletions(-)
+
+git status --short --untracked-files=all (intégral de livraison) :
+ M apps/avelune_studio/lib/app/di/map_workspace_providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart
+ M apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart
+ M apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_catalog.dart
+ M apps/avelune_studio/lib/presentation/features/home/studio_home_all_maps.dart
+ M apps/avelune_studio/lib/presentation/features/home/studio_home_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_inspector_tabs.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_tile.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_tree.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_keyboard_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart
+ M apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+ M apps/avelune_studio/test/application/m1_controller_test.dart
+ M apps/avelune_studio/test/presentation/map_library_navigation_test.dart
+ M apps/avelune_studio/test/support/m2_ui_fixture.dart
+ M apps/avelune_studio/test/support/project_creation_workspace_fixture.dart
+ M packages/map_authoring/lib/src/domains/maps/map_library_actions.dart
+ M packages/map_authoring/lib/src/domains/maps/map_lifecycle_actions.dart
+ M packages/map_authoring/lib/src/parity/full_authoring_parity.dart
+ M packages/map_authoring/lib/src/workspace/project_snapshot.dart
+ M packages/map_authoring/lib/src/workspace/project_snapshot_map_projector.dart
+ M packages/map_authoring/test/domains/maps/map_library_actions_test.dart
+ M packages/map_authoring/test/domains/maps/map_lifecycle_contract_test.dart
+ M packages/map_authoring/test/parity/full_authoring_parity_test.dart
+ M pokemap_authoring_api_mcp_action_catalog.md
+?? apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_commands.dart
+?? apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_adapter.dart
+?? apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_port.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_creation_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_form_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_properties.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_group_actions.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart
+?? apps/avelune_studio/test/home/home_map_creation_entry_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_fixture.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalog_stale_document_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart
+?? apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart
+?? apps/avelune_studio/test/presentation/map_catalogue_dialog_keyboard_test.dart
+?? apps/avelune_studio/test/presentation/map_catalogue_dialog_layout_test.dart
+?? apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart
+?? apps/avelune_studio/test/support/map_catalogue_host_fixture.dart
+?? apps/avelune_studio/test/support/widget_map_catalog_port.dart
+?? apps/avelune_studio/tool/measure_map_catalogue_mutations.dart
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/map-library-compact-1024.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/map-library-grouped-1536.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/native-create-map-dialog.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/native-created-renamed-moved.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/uwu-created-and-renamed.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/uwu-folders-organized.png
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/contenu_integral_sources.txt
+?? documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md
+?? packages/map_authoring/lib/src/domains/maps/map_metadata_actions.dart
+?? packages/map_authoring/test/domains/maps/map_metadata_fixture.dart
+?? packages/map_authoring/test/domains/maps/map_metadata_transaction_test.dart
+?? packages/map_authoring/test/workspace/project_snapshot_catalog_projection_test.dart
+?? tools/pokemap_mcp/test/map_metadata_server.test.ts
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/journaux_consolides.txt
+?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/evidence_pack.txt
+
+La lecture finale de Git et la vérification des hashes de l'annexe/captures suivent l'écriture de ce rapport. Aucun stage/commit/push/checkout/reset/stash ni merge.
+Le fichier concurrent POST-CI-001 reste non suivi, explicitement séparé du lot. Un worktree dirty ici est le résultat attendu des modifications demandées, pas un nettoyage à faire.
+La livraison est prête à revue fonctionnelle sur les quatre tickets avec les réserves ci-dessus ; elle n'est ni une suite monorepo intégralement verte, ni une validation artistique indépendante, ni une release.
+

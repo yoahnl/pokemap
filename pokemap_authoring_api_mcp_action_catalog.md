@@ -897,6 +897,12 @@ map.render
 map.render_region
 ```
 
+`map.update_metadata` v1 est opérationnelle : paramètres `mapId` et `name`,
+titre normalisé sur les deux documents dans une transaction récupérable.
+L'identité, le chemin et les références restent inchangés. Le nom identique
+dans le manifeste et la carte refuse un plan avec `map.no_change`, sans écriture.
+Ce contrat ne réutilise pas `map.rename`, qui change l'identité.
+
 ### 11.2 Graphe du monde
 
 ```text
