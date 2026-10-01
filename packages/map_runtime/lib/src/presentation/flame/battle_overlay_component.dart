@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui show Image, instantiateImageCodec;
 
@@ -20,7 +21,6 @@ import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
-import 'battle_ball_manifest.dart';
 import 'battle_ball_capture_component.dart';
 import 'battle_ball_flash_component.dart';
 import 'battle_ball_throw_component.dart';
@@ -499,6 +499,8 @@ class BattleOverlayComponent extends PositionComponent {
     this.visualAssetCache,
     this.bagItemIconResolver,
     this.genderResolver,
+    this.resolveBallSpritePath,
+    this.resolveCombatantBallItemId,
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.playSfx,
     this.playCry,
@@ -570,6 +572,9 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleVisualAssetCache? visualAssetCache;
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
+  final Future<String?> Function(String itemId)? resolveBallSpritePath;
+  final String? Function(BattleSideId side, int lineupIndex)?
+      resolveCombatantBallItemId;
   final BattleMoveDisplayNameResolver resolveMoveDisplayName;
 
   /// BETA-BAT-014 : le lecteur des sons de combat. Nul chez un hôte silencieux
@@ -648,6 +653,7 @@ class BattleOverlayComponent extends PositionComponent {
       BattleTurnAnimationPlanner(
     speciesDisplayName: resolveSpeciesDisplayName,
     moveDisplayName: resolveMoveDisplayName,
+    resolveCombatantBallItemId: resolveCombatantBallItemId,
     // BETA-BAT-030 : un hôte qui coupe le bandeau d'issue présente la fin de
     // combat DANS la scène (BETA-BAT-017) et joue déjà les messages du
     // coordinator. Le plan de tour ne doit alors pas annoncer l'issue une
@@ -859,6 +865,7 @@ class BattleOverlayComponent extends PositionComponent {
   final bool outcomeBannerEnabled;
 
   void startIntro() {
+    if (_ballImagesDisposed) return;
     final plan = _pendingIntroPlan;
     if (plan == null) return;
     _pendingIntroPlan = null;
@@ -891,6 +898,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// le runner le joue, les commandes restent verrouillées, l'hôte attend
   /// [waitForTurnPresentationComplete] avant de committer et démonter.
   void presentPostBattlePlan(BattleAnimationPlan plan) {
+    if (_ballImagesDisposed) return;
     if (plan.isEmpty) return;
     // Le plan actif suit le même cycle qu'un tour : posé ici, vidé par
     // [_handleAnimationPresentationChanged] quand le runner s'éteint. Les
@@ -967,10 +975,8 @@ class BattleOverlayComponent extends PositionComponent {
   /// (critère 4) et les remplacements gardent leurs mouvements d'origine.
   final Map<String, ui.Image> _ballSheetImages = <String, ui.Image>{};
 
-  /// La planche utilisée par ce combat. Le lien individu → Ball de capture
-  /// n'existe pas encore dans la donnée : la Poké Ball standard (`ball_1`)
-  /// vaut pour tous, l'id reste un point d'extension.
-  static const String _introBallSheetName = 'ball_1';
+  final Map<String, Future<ui.Image?>> _pendingBallSheets = {};
+  bool _ballImagesDisposed = false;
 
   /// Les planches d'aura de stats chargées pour ce combat — BETA-BAT-021.
   /// Même contrat que les planches de Ball : chargement paresseux au premier
@@ -1050,32 +1056,53 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
-  Future<ui.Image?> _loadBallSheet(String sheetName) async {
-    final cached = _ballSheetImages[sheetName];
-    if (cached != null) return cached;
-    final fileName = battleBallSheetManifest[sheetName];
-    if (fileName == null) return null;
-    ByteData? bytes;
-    try {
-      bytes = await rootBundle.load('packages/map_runtime/assets/battle/balls/'
-          '$fileName');
-    } on Object {
-      try {
-        bytes = await rootBundle.load('assets/battle/balls/$fileName');
-      } on Object catch (error) {
-        debugPrint('[battle] ball sheet unavailable ($sheetName): $error');
-        return null;
-      }
+  Future<ui.Image?> _loadBallSheet(String? itemId) {
+    if (itemId == null || itemId.isEmpty || _ballImagesDisposed) {
+      return Future.value();
     }
+    final cached = _ballSheetImages[itemId];
+    if (cached != null) return Future.value(cached);
+    return _pendingBallSheets.putIfAbsent(
+      itemId,
+      () => _decodeBallSheet(itemId),
+    );
+  }
+
+  Future<ui.Image?> _decodeBallSheet(String itemId) async {
     try {
-      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      _ballSheetImages[sheetName] = frame.image;
-      return frame.image;
+      final path = await resolveBallSpritePath?.call(itemId);
+      if (path == null || _ballImagesDisposed) return null;
+      final codec =
+          await ui.instantiateImageCodec(await File(path).readAsBytes());
+      try {
+        final frame = await codec.getNextFrame();
+        if (_ballImagesDisposed ||
+            frame.image.width != 64 ||
+            frame.image.height != 2048) {
+          frame.image.dispose();
+          return null;
+        }
+        _ballSheetImages[itemId] = frame.image;
+        return frame.image;
+      } finally {
+        codec.dispose();
+      }
     } on Object catch (error) {
-      debugPrint('[battle] ball sheet undecodable ($sheetName): $error');
+      debugPrint('[battle] item animation unavailable ($itemId): $error');
       return null;
     }
+  }
+
+  @override
+  void onRemove() {
+    _ballImagesDisposed = true;
+    _presentationGeneration++;
+    _animationRunner?.cancel(notify: false);
+    for (final image in _ballSheetImages.values) {
+      image.dispose();
+    }
+    _ballSheetImages.clear();
+    super.onRemove();
   }
 
   /// La séquence de capture — BETA-BAT-025. Le composant pilote la Ball et
@@ -1083,7 +1110,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// rétrécir/réapparaître le sauvage. Sans planche chargeable, rien ne se
   /// monte et les durées s'écoulent : les messages restent lisibles.
   void _handleBallCaptureSequenceStep(PlayBallCaptureSequenceStep step) {
-    final sheet = _ballSheetImages[step.sheetName];
+    final sheet = _ballSheetImages[step.ballItemId];
     if (sheet == null) return;
     final layout = currentSceneLayout;
     final spriteRect = layout.enemySpriteRect;
@@ -1148,7 +1175,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleBallSequenceStep(PlayBallSequenceStep step) {
-    final sheet = _ballSheetImages[step.sheetName];
+    final sheet = _ballSheetImages[step.ballItemId];
     if (sheet == null) return;
     final layout = currentSceneLayout;
     final spriteRect = step.side == BattleSideId.player
@@ -1534,6 +1561,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    if (_ballImagesDisposed) return;
     final overlayStopwatch = Stopwatch()..start();
     // Le catalogue d'animations RMXP est un asset binaire décodé
     // paresseusement : le charger ici garantit que toute la planification
@@ -1605,9 +1633,21 @@ class BattleOverlayComponent extends PositionComponent {
     // la planche n'est pas prête.
     unawaited(_loadStatSheet('stat_up'));
     unawaited(_loadStatSheet('stat_down'));
-    final ballSheetFuture = _loadBallSheet(_introBallSheetName);
+    final playerBallItemId = resolveCombatantBallItemId?.call(
+      BattleSideId.player,
+      _session.state.player.lineupIndex,
+    );
+    final enemyBallItemId = _session.setup.isTrainerBattle
+        ? resolveCombatantBallItemId?.call(
+            BattleSideId.enemy,
+            _session.state.enemy.lineupIndex,
+          )
+        : null;
+    final playerBallSheetFuture = _loadBallSheet(playerBallItemId);
+    final enemyBallSheetFuture = _loadBallSheet(enemyBallItemId);
     if (!introEnabled) {
-      unawaited(ballSheetFuture);
+      unawaited(playerBallSheetFuture);
+      unawaited(enemyBallSheetFuture);
     }
     if (introEnabled) {
       // BETA-BAT-016 : les combattants attendent hors écran, à leur position
@@ -1615,7 +1655,9 @@ class BattleOverlayComponent extends PositionComponent {
       // pré-transition, personne ne doit apparaître à sa place finale.
       // 360 px sur l'écran 320 de la référence = 1,125 largeur d'écran.
       final introSlideDistancePx = size.x * 1.125;
-      final playerUsesBall = (await ballSheetFuture) != null;
+      final playerUsesBall = (await playerBallSheetFuture) != null;
+      final enemyUsesBall = (await enemyBallSheetFuture) != null;
+      if (_ballImagesDisposed) return;
       // Recette du 2026-08-24 : ces poses doivent SURVIVRE à la sync qui
       // termine onLoad — d'où l'enregistrement des côtés retenus.
       // Parité `actor_sprites` / `enemy_sprites` de la référence, qui posent
@@ -1628,7 +1670,6 @@ class BattleOverlayComponent extends PositionComponent {
       _teamInfoRevealed = false;
 
       _applyTeamInfoVisibility();
-      final enemyUsesBall = playerUsesBall && _session.setup.isTrainerBattle;
       if (enemyUsesBall) {
         // Parité `enemy_sprites` : dans un combat de DRESSEUR, le Pokémon
         // adverse ne glisse pas — c'est le dresseur qui entre, puis sort en
@@ -1661,8 +1702,8 @@ class BattleOverlayComponent extends PositionComponent {
         session: _session,
         slideDistancePx: introSlideDistancePx,
         resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-        playerBallSheetName: playerUsesBall ? _introBallSheetName : null,
-        enemyBallSheetName: enemyUsesBall ? _introBallSheetName : null,
+        playerBallItemId: playerUsesBall ? playerBallItemId : null,
+        enemyBallItemId: enemyUsesBall ? enemyBallItemId : null,
         hasEnemyTrainerSprite: _introTrainerImage != null,
       );
     }
@@ -3437,6 +3478,15 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     await _fxBundleCache.prewarm(animationPlan.requiredFxIds);
+    final ballItemIds = <String>{
+      for (final step in animationPlan.flattenedSteps)
+        if (step is PlayBallCaptureSequenceStep && step.ballItemId != null)
+          step.ballItemId!,
+      for (final step in animationPlan.flattenedSteps)
+        if (step is PlayBallSequenceStep && step.ballItemId != null)
+          step.ballItemId!,
+    };
+    await Future.wait(ballItemIds.map(_loadBallSheet));
     if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
     }
@@ -4079,7 +4129,8 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool _isCurrentPresentationGeneration(int presentationGeneration) {
-    return presentationGeneration == _presentationGeneration;
+    return !_ballImagesDisposed &&
+        presentationGeneration == _presentationGeneration;
   }
 
   int? _presentationStartingHpForSide({

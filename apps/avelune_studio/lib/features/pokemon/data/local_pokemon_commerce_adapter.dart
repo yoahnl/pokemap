@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
@@ -8,6 +9,8 @@ import 'package:map_core/map_core.dart';
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/pokemon_commerce_port.dart';
+import 'pokemon_capture_sprite_import.dart';
+import 'pokemon_media_projection.dart';
 
 final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
   const LocalPokemonCommerceAdapter({
@@ -17,6 +20,30 @@ final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
+
+  @override
+  Future<String> importCaptureSprite({
+    required String sourcePath,
+    required String itemId,
+    bool Function()? shouldContinue,
+  }) => PokemonCaptureSpriteImport(
+    session: session,
+    mapAdapter: mapAdapter,
+  ).run(sourcePath: sourcePath, itemId: itemId, shouldContinue: shouldContinue);
+
+  @override
+  Future<Uint8List?> loadCaptureSprite(String relativePath) async {
+    if (!ProjectCaptureItemDefinition.isValidAnimationSpritePath(
+      relativePath,
+    )) {
+      return null;
+    }
+    return loadPokemonImage(
+      reader: const LocalProjectFileReader(),
+      projectRoot: session.directoryPath,
+      relativePath: relativePath.trim(),
+    );
+  }
 
   @override
   Future<PokemonCommerceImportPreview> previewJson(

@@ -61,6 +61,7 @@ abstract class ProjectCaptureItemDefinition
     required int rateNumerator,
     required int rateDenominator,
     required Set<EncounterKind> allowedEncounterKinds,
+    @JsonKey(includeIfNull: false) String? animationSpritePath,
   }) = _ProjectCaptureItemDefinition;
 
   factory ProjectCaptureItemDefinition.fromJson(Map<String, dynamic> json) =>
@@ -77,6 +78,13 @@ abstract class ProjectCaptureItemDefinition
         'ProjectCaptureItemDefinition allowedEncounterKinds must not be empty',
       );
     }
+    final normalizedAnimationSpritePath = animationSpritePath?.trim();
+    if (normalizedAnimationSpritePath != null &&
+        !isValidAnimationSpritePath(normalizedAnimationSpritePath)) {
+      throw StateError(
+        'ProjectCaptureItemDefinition animationSpritePath must be a safe PNG path under assets/ or data/',
+      );
+    }
     var left = rateNumerator;
     var right = rateDenominator;
     while (right != 0) {
@@ -88,7 +96,26 @@ abstract class ProjectCaptureItemDefinition
       rateNumerator: rateNumerator ~/ left,
       rateDenominator: rateDenominator ~/ left,
       allowedEncounterKinds: Set.unmodifiable(allowedEncounterKinds),
+      animationSpritePath: normalizedAnimationSpritePath,
     );
+  }
+
+  static bool isValidAnimationSpritePath(String source) {
+    final path = source.trim();
+    if (path.isEmpty ||
+        (!path.startsWith('assets/') && !path.startsWith('data/')) ||
+        path.startsWith('/') ||
+        path.contains('\\') ||
+        path.contains('\u0000') ||
+        Uri.tryParse(path)?.hasScheme == true ||
+        !path.toLowerCase().endsWith('.png')) {
+      return false;
+    }
+    return path
+        .split('/')
+        .every(
+          (segment) => segment.isNotEmpty && segment != '.' && segment != '..',
+        );
   }
 }
 

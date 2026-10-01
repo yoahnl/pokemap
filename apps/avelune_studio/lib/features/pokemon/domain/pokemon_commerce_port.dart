@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:map_core/map_core_domain.dart';
 
 final class PokemonCommerceSnapshot {
@@ -41,6 +43,14 @@ final class PokemonCommerceImportPreview {
 
 abstract interface class PokemonCommercePort {
   Future<PokemonCommerceSnapshot> load();
+
+  Future<String> importCaptureSprite({
+    required String sourcePath,
+    required String itemId,
+    bool Function()? shouldContinue,
+  });
+
+  Future<Uint8List?> loadCaptureSprite(String relativePath);
 
   Future<void> saveItem(
     ProjectItemDefinition? before,

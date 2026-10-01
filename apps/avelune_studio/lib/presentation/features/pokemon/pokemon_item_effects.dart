@@ -6,12 +6,14 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import 'pokemon_commerce_integer_field.dart';
+import 'pokemon_capture_sprite_picker.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonItemEffects extends StatelessWidget {
-  const PokemonItemEffects({super.key, required this.commerce});
+  const PokemonItemEffects({super.key, required this.commerce, this.pickPng});
 
   final PokemonCommerceController commerce;
+  final Future<String?> Function()? pickPng;
 
   ProjectItemUseDefinition? _use(ProjectItemUseContext context) {
     for (final value in commerce.item!.uses) {
@@ -92,6 +94,10 @@ class PokemonItemEffects extends StatelessWidget {
       const SizedBox(height: 12),
       _card(ProjectItemUseContext.battle, 'En combat'),
       const SizedBox(height: 12),
+      if (commerce.item!.capture != null) ...[
+        PokemonCaptureSpritePicker(commerce: commerce, pickPng: pickPng),
+        const SizedBox(height: 12),
+      ],
       PokemonSurface(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +117,7 @@ class PokemonItemEffects extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Les capacités importées sont conservées. Leur édition spécialisée n’est pas disponible dans cette fiche.',
+              'Les autres capacités importées sont conservées. Leur édition spécialisée n’est pas disponible dans cette fiche.',
             ),
           ],
         ),

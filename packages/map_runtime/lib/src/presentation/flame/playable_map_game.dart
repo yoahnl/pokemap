@@ -48,6 +48,7 @@ import '../../application/player_service_runtime_controller.dart';
 import '../../application/rail_journey_runtime_coordinator.dart';
 import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
+import '../../player/runtime_capture_sprite_resolver.dart';
 import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
@@ -116,6 +117,7 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
+import 'battle_combatant_ball_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
@@ -8188,6 +8190,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
 
+      final ballResolver = BattleCombatantBallResolver.fromParty(
+        gameState: _battleRuntimeGameState,
+        lineupPartyIndices: playerLineup.lineupPartyIndices,
+      );
+      final captureSpriteResolver = RuntimeCaptureSpriteResolver(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: _bundle.manifest.pokemon,
+      );
+
       _battleMovesCatalog = await _battleMoveCatalogLoader.load(
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: _bundle.manifest.pokemon,
@@ -8270,6 +8281,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             _itemCatalogSnapshot,
           ),
           genderResolver: genderResolver,
+          resolveBallSpritePath: captureSpriteResolver.resolve,
+          resolveCombatantBallItemId: (side, lineupIndex) =>
+              ballResolver.resolve(
+            isPlayerSide: side == BattleSideId.player,
+            lineupIndex: lineupIndex,
+          ),
           resolveMoveDisplayName: _resolveBattleMoveDisplayName,
           resolveSpeciesDisplayName: (speciesId) =>
               battleSpeciesDisplayNames[speciesId] ?? speciesId,

@@ -255,11 +255,176 @@ void main() {
         );
       }
     });
+
+    test('updates only capture media without changing existing diagnostics',
+        () {
+      final fixture = _captureFixture();
+      final before = fixture.snapshot.itemCatalog!;
+      final ball = before.entries.first;
+      final draft = const ItemCatalogActions().build(fixture.context(
+        actionId: 'item.update',
+        parameters: <String, Object?>{
+          'itemId': ball.id,
+          'definition': ball
+              .copyWith(
+                capture: ball.capture!.copyWith(
+                  animationSpritePath:
+                      'data/pokemon/assets/items/poke_ball/animation.png',
+                ),
+              )
+              .toJson(),
+        },
+      ));
+      final after = decodeProjectItemCatalog(jsonDecode(
+        utf8.decode(draft.changeSet.changes.single.afterBytes!),
+      ));
+      expect(after.entries.first.capture!.animationSpritePath,
+          'data/pokemon/assets/items/poke_ball/animation.png');
+      expect(
+        after.copyWith(entries: <ProjectItemDefinition>[
+          after.entries.first.copyWith(capture: ball.capture),
+          ...after.entries.skip(1),
+        ]),
+        before,
+      );
+      final diagnostics = _blockingDiagnostics(before);
+      expect(diagnostics, hasLength(2));
+      expect(_blockingDiagnostics(after), diagnostics);
+    });
+
+    test('rejects a capture sprite update combined with any other item change',
+        () {
+      final fixture = _captureFixture();
+      final ball = fixture.snapshot.itemCatalog!.entries.first;
+      final media = ball.copyWith(
+          capture: ball.capture!.copyWith(
+        animationSpritePath: 'assets/custom.png',
+      ));
+      final changes = <ProjectItemDefinition>[
+        media.copyWith(capture: media.capture!.copyWith(rateNumerator: 2)),
+        media.copyWith(
+            capture: media.capture!.copyWith(
+          allowedEncounterKinds: {EncounterKind.surf},
+        )),
+        media.copyWith(aliases: ['custom-ball']),
+        media.copyWith(displayName: 'Different Ball'),
+        media.copyWith(description: 'Different description'),
+        media.copyWith(pocketId: 'custom'),
+        media.copyWith(buyPrice: 1),
+        media.copyWith(sellPrice: 1),
+        media.copyWith(tags: {'custom'}),
+        media.copyWith(heldEffectId: 'leftovers'),
+        media.copyWith(uses: fixture.snapshot.itemCatalog!.entries.last.uses),
+        media.copyWith(
+            machine: const ProjectMoveMachineItemDefinition(
+          moveId: 'tackle',
+          kind: ProjectMoveMachineKind.tm,
+          consumable: true,
+        )),
+      ];
+      for (final definition in changes) {
+        expect(
+            () => const ItemCatalogActions().build(fixture.context(
+                  actionId: 'item.update',
+                  parameters: {
+                    'itemId': ball.id,
+                    'definition': definition.toJson()
+                  },
+                )),
+            throwsA(isA<ItemCatalogAuthoringException>().having(
+              (error) => error.code,
+              'code',
+              'item.catalog_invalid',
+            )),
+            reason: definition.toString());
+      }
+    });
+
+    test(
+        'does not allow catalog creation or unchanged media through the exception',
+        () {
+      final fixture = _captureFixture();
+      final ball = fixture.snapshot.itemCatalog!.entries.first;
+      for (final request in <(String, Map<String, Object?>)>[
+        ('item.update', {'itemId': ball.id, 'definition': ball.toJson()}),
+        ('item.create', {'definition': ball.copyWith(id: 'new-ball').toJson()}),
+        (
+          'item.set_capture_effect',
+          {
+            'itemId': ball.id,
+            'capture': ball.capture!
+                .copyWith(
+                  animationSpritePath: 'assets/custom.png',
+                )
+                .toJson()
+          }
+        ),
+      ]) {
+        expect(
+            () => const ItemCatalogActions().build(fixture.context(
+                  actionId: request.$1,
+                  parameters: request.$2,
+                )),
+            throwsA(isA<ItemCatalogAuthoringException>().having(
+              (error) => error.code,
+              'code',
+              'item.catalog_invalid',
+            )),
+            reason: request.$1);
+      }
+    });
   });
 }
 
+_ItemFixture _captureFixture() => _fixture(entries: const [
+      ProjectItemDefinition(
+        id: 'poke_ball',
+        displayName: 'Poké Ball',
+        pocketId: 'balls',
+        capture: ProjectCaptureItemDefinition(
+          rateNumerator: 1,
+          rateDenominator: 1,
+          allowedEncounterKinds: {EncounterKind.walk},
+        ),
+      ),
+      ProjectItemDefinition(
+        id: 'quick_claw',
+        displayName: 'Quick Claw',
+        pocketId: 'items',
+        heldEffectId: 'quick_claw',
+      ),
+      ProjectItemDefinition(
+        id: 'repel',
+        displayName: 'Repel',
+        pocketId: 'items',
+        uses: [
+          ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld},
+            target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.repel(steps: 100),
+          )
+        ],
+      ),
+    ]);
+
+List<Map<String, Object?>> _blockingDiagnostics(ProjectItemCatalog catalog) => [
+      for (final diagnostic in validateProjectItemCatalog(
+        catalog,
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      ).diagnostics)
+        if (diagnostic.isBlocking)
+          {
+            'code': diagnostic.code.name,
+            'path': diagnostic.path,
+            'itemId': diagnostic.itemId,
+            'message': diagnostic.message,
+          },
+    ];
+
 _ItemFixture _fixture({
   bool withUsage = false,
+  List<ProjectItemDefinition>? entries,
   ProjectItemDefinition definition = const ProjectItemDefinition(
     id: 'thread-charm',
     displayName: 'Thread Charm',
@@ -269,7 +434,7 @@ _ItemFixture _fixture({
 }) {
   final catalog = ProjectItemCatalog(
     schemaVersion: 1,
-    entries: <ProjectItemDefinition>[definition],
+    entries: entries ?? <ProjectItemDefinition>[definition],
   ).normalized();
   final bytes = utf8.encode(jsonEncode(encodeProjectItemCatalog(catalog)));
   const path = 'data/pokemon/catalogs/items.json';

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +24,27 @@ final class UiPokemonCommercePort implements PokemonCommercePort {
 
   final PokemonCommercePort source;
   final WidgetTester tester;
+
+  @override
+  Future<String> importCaptureSprite({
+    required String sourcePath,
+    required String itemId,
+    bool Function()? shouldContinue,
+  }) async => (await WidgetResourcePort.serial(
+    tester,
+    () => source.importCaptureSprite(
+      sourcePath: sourcePath,
+      itemId: itemId,
+      shouldContinue: shouldContinue,
+    ),
+  ))!;
+
+  @override
+  Future<Uint8List?> loadCaptureSprite(String relativePath) async =>
+      (await WidgetResourcePort.serial<Uint8List?>(
+        tester,
+        () => source.loadCaptureSprite(relativePath),
+      ));
 
   @override
   Future<PokemonCommerceImportPreview> previewJson(

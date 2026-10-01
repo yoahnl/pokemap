@@ -311,7 +311,7 @@ $ProjectItemEffectDefinitionCopyWith<$Res> get effect {
 /// @nodoc
 mixin _$ProjectCaptureItemDefinition {
 
- int get rateNumerator; int get rateDenominator; Set<EncounterKind> get allowedEncounterKinds;
+ int get rateNumerator; int get rateDenominator; Set<EncounterKind> get allowedEncounterKinds;@JsonKey(includeIfNull: false) String? get animationSpritePath;
 /// Create a copy of ProjectCaptureItemDefinition
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -324,16 +324,16 @@ $ProjectCaptureItemDefinitionCopyWith<ProjectCaptureItemDefinition> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCaptureItemDefinition&&(identical(other.rateNumerator, rateNumerator) || other.rateNumerator == rateNumerator)&&(identical(other.rateDenominator, rateDenominator) || other.rateDenominator == rateDenominator)&&const DeepCollectionEquality().equals(other.allowedEncounterKinds, allowedEncounterKinds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCaptureItemDefinition&&(identical(other.rateNumerator, rateNumerator) || other.rateNumerator == rateNumerator)&&(identical(other.rateDenominator, rateDenominator) || other.rateDenominator == rateDenominator)&&const DeepCollectionEquality().equals(other.allowedEncounterKinds, allowedEncounterKinds)&&(identical(other.animationSpritePath, animationSpritePath) || other.animationSpritePath == animationSpritePath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,rateNumerator,rateDenominator,const DeepCollectionEquality().hash(allowedEncounterKinds));
+int get hashCode => Object.hash(runtimeType,rateNumerator,rateDenominator,const DeepCollectionEquality().hash(allowedEncounterKinds),animationSpritePath);
 
 @override
 String toString() {
-  return 'ProjectCaptureItemDefinition(rateNumerator: $rateNumerator, rateDenominator: $rateDenominator, allowedEncounterKinds: $allowedEncounterKinds)';
+  return 'ProjectCaptureItemDefinition(rateNumerator: $rateNumerator, rateDenominator: $rateDenominator, allowedEncounterKinds: $allowedEncounterKinds, animationSpritePath: $animationSpritePath)';
 }
 
 
@@ -344,7 +344,7 @@ abstract mixin class $ProjectCaptureItemDefinitionCopyWith<$Res>  {
   factory $ProjectCaptureItemDefinitionCopyWith(ProjectCaptureItemDefinition value, $Res Function(ProjectCaptureItemDefinition) _then) = _$ProjectCaptureItemDefinitionCopyWithImpl;
 @useResult
 $Res call({
- int rateNumerator, int rateDenominator, Set<EncounterKind> allowedEncounterKinds
+ int rateNumerator, int rateDenominator, Set<EncounterKind> allowedEncounterKinds,@JsonKey(includeIfNull: false) String? animationSpritePath
 });
 
 
@@ -361,12 +361,13 @@ class _$ProjectCaptureItemDefinitionCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCaptureItemDefinition
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? rateNumerator = null,Object? rateDenominator = null,Object? allowedEncounterKinds = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? rateNumerator = null,Object? rateDenominator = null,Object? allowedEncounterKinds = null,Object? animationSpritePath = freezed,}) {
   return _then(_self.copyWith(
 rateNumerator: null == rateNumerator ? _self.rateNumerator : rateNumerator // ignore: cast_nullable_to_non_nullable
 as int,rateDenominator: null == rateDenominator ? _self.rateDenominator : rateDenominator // ignore: cast_nullable_to_non_nullable
 as int,allowedEncounterKinds: null == allowedEncounterKinds ? _self.allowedEncounterKinds : allowedEncounterKinds // ignore: cast_nullable_to_non_nullable
-as Set<EncounterKind>,
+as Set<EncounterKind>,animationSpritePath: freezed == animationSpritePath ? _self.animationSpritePath : animationSpritePath // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -451,10 +452,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds, @JsonKey(includeIfNull: false)  String? animationSpritePath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectCaptureItemDefinition() when $default != null:
-return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds);case _:
+return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds,_that.animationSpritePath);case _:
   return orElse();
 
 }
@@ -472,10 +473,10 @@ return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounter
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds, @JsonKey(includeIfNull: false)  String? animationSpritePath)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCaptureItemDefinition():
-return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds);case _:
+return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds,_that.animationSpritePath);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -492,10 +493,10 @@ return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounter
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int rateNumerator,  int rateDenominator,  Set<EncounterKind> allowedEncounterKinds, @JsonKey(includeIfNull: false)  String? animationSpritePath)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCaptureItemDefinition() when $default != null:
-return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds);case _:
+return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounterKinds,_that.animationSpritePath);case _:
   return null;
 
 }
@@ -507,7 +508,7 @@ return $default(_that.rateNumerator,_that.rateDenominator,_that.allowedEncounter
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectCaptureItemDefinition extends ProjectCaptureItemDefinition {
-  const _ProjectCaptureItemDefinition({required this.rateNumerator, required this.rateDenominator, required final  Set<EncounterKind> allowedEncounterKinds}): _allowedEncounterKinds = allowedEncounterKinds,super._();
+  const _ProjectCaptureItemDefinition({required this.rateNumerator, required this.rateDenominator, required final  Set<EncounterKind> allowedEncounterKinds, @JsonKey(includeIfNull: false) this.animationSpritePath}): _allowedEncounterKinds = allowedEncounterKinds,super._();
   factory _ProjectCaptureItemDefinition.fromJson(Map<String, dynamic> json) => _$ProjectCaptureItemDefinitionFromJson(json);
 
 @override final  int rateNumerator;
@@ -519,6 +520,7 @@ class _ProjectCaptureItemDefinition extends ProjectCaptureItemDefinition {
   return EqualUnmodifiableSetView(_allowedEncounterKinds);
 }
 
+@override@JsonKey(includeIfNull: false) final  String? animationSpritePath;
 
 /// Create a copy of ProjectCaptureItemDefinition
 /// with the given fields replaced by the non-null parameter values.
@@ -533,16 +535,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCaptureItemDefinition&&(identical(other.rateNumerator, rateNumerator) || other.rateNumerator == rateNumerator)&&(identical(other.rateDenominator, rateDenominator) || other.rateDenominator == rateDenominator)&&const DeepCollectionEquality().equals(other._allowedEncounterKinds, _allowedEncounterKinds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCaptureItemDefinition&&(identical(other.rateNumerator, rateNumerator) || other.rateNumerator == rateNumerator)&&(identical(other.rateDenominator, rateDenominator) || other.rateDenominator == rateDenominator)&&const DeepCollectionEquality().equals(other._allowedEncounterKinds, _allowedEncounterKinds)&&(identical(other.animationSpritePath, animationSpritePath) || other.animationSpritePath == animationSpritePath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,rateNumerator,rateDenominator,const DeepCollectionEquality().hash(_allowedEncounterKinds));
+int get hashCode => Object.hash(runtimeType,rateNumerator,rateDenominator,const DeepCollectionEquality().hash(_allowedEncounterKinds),animationSpritePath);
 
 @override
 String toString() {
-  return 'ProjectCaptureItemDefinition(rateNumerator: $rateNumerator, rateDenominator: $rateDenominator, allowedEncounterKinds: $allowedEncounterKinds)';
+  return 'ProjectCaptureItemDefinition(rateNumerator: $rateNumerator, rateDenominator: $rateDenominator, allowedEncounterKinds: $allowedEncounterKinds, animationSpritePath: $animationSpritePath)';
 }
 
 
@@ -553,7 +555,7 @@ abstract mixin class _$ProjectCaptureItemDefinitionCopyWith<$Res> implements $Pr
   factory _$ProjectCaptureItemDefinitionCopyWith(_ProjectCaptureItemDefinition value, $Res Function(_ProjectCaptureItemDefinition) _then) = __$ProjectCaptureItemDefinitionCopyWithImpl;
 @override @useResult
 $Res call({
- int rateNumerator, int rateDenominator, Set<EncounterKind> allowedEncounterKinds
+ int rateNumerator, int rateDenominator, Set<EncounterKind> allowedEncounterKinds,@JsonKey(includeIfNull: false) String? animationSpritePath
 });
 
 
@@ -570,12 +572,13 @@ class __$ProjectCaptureItemDefinitionCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCaptureItemDefinition
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? rateNumerator = null,Object? rateDenominator = null,Object? allowedEncounterKinds = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? rateNumerator = null,Object? rateDenominator = null,Object? allowedEncounterKinds = null,Object? animationSpritePath = freezed,}) {
   return _then(_ProjectCaptureItemDefinition(
 rateNumerator: null == rateNumerator ? _self.rateNumerator : rateNumerator // ignore: cast_nullable_to_non_nullable
 as int,rateDenominator: null == rateDenominator ? _self.rateDenominator : rateDenominator // ignore: cast_nullable_to_non_nullable
 as int,allowedEncounterKinds: null == allowedEncounterKinds ? _self._allowedEncounterKinds : allowedEncounterKinds // ignore: cast_nullable_to_non_nullable
-as Set<EncounterKind>,
+as Set<EncounterKind>,animationSpritePath: freezed == animationSpritePath ? _self.animationSpritePath : animationSpritePath // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

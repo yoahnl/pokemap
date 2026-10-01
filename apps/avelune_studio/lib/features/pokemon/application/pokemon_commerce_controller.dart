@@ -116,7 +116,7 @@ final class PokemonCommerceController {
   }
 
   bool selectItem(ProjectItemDefinition value) {
-    if (dirty || saving) return false;
+    if (dirty || saving || importing) return false;
     _baseItem = value;
     fieldErrors.clear();
     formVersion++;
@@ -130,7 +130,7 @@ final class PokemonCommerceController {
   }
 
   bool selectShop(ShopDefinition value) {
-    if (dirty || saving) return false;
+    if (dirty || saving || importing) return false;
     _baseShop = value;
     fieldErrors.clear();
     formVersion++;
@@ -144,7 +144,7 @@ final class PokemonCommerceController {
   }
 
   bool createItem(String id) {
-    if (dirty || saving || snapshot?.catalog == null) return false;
+    if (dirty || saving || importing || snapshot?.catalog == null) return false;
     final normalized = id.trim();
     if (normalized.isEmpty ||
         snapshot!.catalog!.entries.any((value) => value.id == normalized)) {
@@ -168,7 +168,7 @@ final class PokemonCommerceController {
   }
 
   bool createShop(String id) {
-    if (dirty || saving) return false;
+    if (dirty || saving || importing) return false;
     final normalized = id.trim();
     if (normalized.isEmpty ||
         snapshot?.shops.any((value) => value.id == normalized) == true) {
@@ -202,7 +202,7 @@ final class PokemonCommerceController {
   }
 
   void discardSelected() {
-    if (saving) return;
+    if (saving || importing) return;
     if (item != null) {
       item = _baseItem;
     } else if (shop != null) {
@@ -224,7 +224,7 @@ final class PokemonCommerceController {
   }
 
   Future<bool> save() async {
-    if (!dirty || saving) return false;
+    if (!dirty || saving || importing) return false;
     if (fieldErrors.isNotEmpty) {
       error = 'Corrigez les nombres indiqués avant d’enregistrer.';
       changed();
@@ -266,5 +266,31 @@ final class PokemonCommerceController {
   void dispose() {
     _disposed = true;
     _generation++;
+  }
+
+  Future<void> importCaptureSprite({required String sourcePath}) async {
+    final current = item;
+    if (current?.capture == null || saving || importing || _disposed) return;
+    importing = true;
+    error = null;
+    changed();
+    bool isCurrent() => !_disposed && identical(item, current);
+    try {
+      final path = await port.importCaptureSprite(
+        sourcePath: sourcePath,
+        itemId: current!.id,
+        shouldContinue: isCurrent,
+      );
+      if (!isCurrent()) return;
+      item = current.copyWith(
+        capture: current.capture!.copyWith(animationSpritePath: path),
+      );
+      notice = 'Animation ajoutée au brouillon. Enregistrez pour l’associer.';
+    } on Object catch (failure) {
+      if (!_disposed) error = 'Import refusé : $failure';
+    } finally {
+      importing = false;
+      if (!_disposed) changed();
+    }
   }
 }

@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/gameplay/project_capture_sprite_provisioning_service.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -10,6 +12,127 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
+  test('exports provisioned capture sprites and their exact project reference',
+      () async {
+    final projectRoot = await _createPlayableProject();
+    addTearDown(() => projectRoot.delete(recursive: true));
+    final items =
+        File(p.join(projectRoot.path, 'data/pokemon/catalogs/items.json'));
+    await items.writeAsString(jsonEncode(
+        encodeProjectItemCatalog(ProjectItemCatalog(schemaVersion: 1, entries: [
+      ProjectItemDefinition(
+          id: 'poke_ball',
+          displayName: 'Poké Ball',
+          pocketId: 'balls',
+          capture: ProjectCaptureItemDefinition(
+              rateNumerator: 1,
+              rateDenominator: 1,
+              allowedEncounterKinds: {EncounterKind.walk}))
+    ]))));
+    final packRoot = p.normalize(p.join(Directory.current.path, '..', '..',
+        'apps', 'avelune_studio', 'assets', 'pokemon', 'capture_sprites'));
+    final isolatedSource =
+        await Directory.systemTemp.createTemp('capture-source-');
+    for (final name in ['manifest.json', 'sprites.zip']) {
+      await File(p.join(packRoot, name))
+          .copy(p.join(isolatedSource.path, name));
+    }
+    addTearDown(() async {
+      if (await isolatedSource.exists()) {
+        await isolatedSource.delete(recursive: true);
+      }
+    });
+    await provisionProjectCaptureSprites(
+        projectPath: projectRoot.path,
+        loadPack: () async => ProjectCaptureSpritePack(
+            manifestBytes:
+                await File(p.join(isolatedSource.path, 'manifest.json'))
+                    .readAsBytes(),
+            archiveBytes: await File(p.join(isolatedSource.path, 'sprites.zip'))
+                .readAsBytes()));
+    const path = 'data/pokemon/assets/items/poke_ball/animation.png';
+    final original = await File(p.join(projectRoot.path, path)).readAsBytes();
+    await isolatedSource.delete(recursive: true);
+    final artifact = await CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection)
+        .build(projectRoot: projectRoot, profile: _profile());
+    final archive =
+        ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+    expect(archive.findFile('project/$path')!.content, original);
+    final catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(archive
+        .findFile('project/data/pokemon/catalogs/items.json')!
+        .content)));
+    expect(catalog.entries.single.capture!.animationSpritePath, path);
+    final provenance = archive.files.singleWhere((file) =>
+        file.name
+            .startsWith('project/data/pokemon/assets/items/capture-source-') &&
+        file.name.endsWith('.json'));
+    expect(
+        jsonDecode(utf8.decode(provenance.content))['sprites'][0]
+            ['projectItemId'],
+        'poke_ball');
+    expect(archive.files.where((file) => file.name.endsWith('sprites.zip')),
+        isEmpty);
+  });
+
+  test('exports project-owned item art without the runtime icon pack',
+      () async {
+    final projectRoot = await _createPlayableProject();
+    addTearDown(() => projectRoot.delete(recursive: true));
+    const logicalPath = 'data/pokemon/assets/items/potion.png';
+    final pixels = image.encodePng(image.Image(width: 3, height: 2));
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [projectRoot.path], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final opened = await ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles)
+        .openProject(projectRoot.path);
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final store = MemoryArtifactStore(maximumArtifactBytes: 1024 * 1024);
+    final staged = await store.put(pixels, declaredMediaType: 'image/png');
+    final mutations = LocalMapAuthoringMutationApi(
+        policy: policy, snapshotLoader: snapshots, artifactStore: store);
+    await mutations.attachProject(
+        projectRootPath: projectRoot.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    final plan = await mutations.plan(
+        opened.projectHandle,
+        AuthoringRequest(
+            requestId: 'project-item-art',
+            actionId: 'asset.import_batch',
+            actionVersion: 1,
+            workspaceHandle: opened.workspaceHandle.value,
+            expectedRevision:
+                (await snapshots.load(opened.projectHandle)).revision,
+            idempotencyKey: 'project-item-art',
+            parameters: {
+              'entries': [
+                {
+                  'assetId': 'item-art-potion',
+                  'logicalPath': logicalPath,
+                  'artifactHandle': staged.reference.handle,
+                }
+              ]
+            }));
+    await mutations.apply(opened.projectHandle,
+        planId: plan['planId'] as String, operationId: 'project-item-art');
+    final artifact = await CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection)
+        .build(projectRoot: projectRoot, profile: _profile());
+    await File(p.join(projectRoot.path, logicalPath)).delete();
+    final archive =
+        ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+    final packaged = archive.findFile('project/$logicalPath');
+    expect(packaged, isNotNull);
+    expect(packaged!.content, pixels);
+    expect(artifact.inspection.payloadPaths,
+        isNot(contains('packages/map_runtime/assets/menu/items/icons.zip')));
+    expect(archive.files.where((file) => file.name.endsWith('icons.zip')),
+        isEmpty);
+  });
+
   test('export artifact reuses the certified immutable archive', () async {
     final projectRoot = await _createPlayableProject();
     addTearDown(() => projectRoot.delete(recursive: true));

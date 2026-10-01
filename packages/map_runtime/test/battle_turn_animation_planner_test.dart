@@ -170,14 +170,14 @@ void main() {
       const event = BattleCaptureAttemptEvent(
         attemptId: 'capture-attempt-1',
         targetSpeciesId: 'sparkitten',
-        ballId: canonicalPokeBallItemId,
+        ballId: 'custom_orb',
         caught: false,
         shakes: 2,
       );
       const turn = BattleTurnResult(
         playerAction: BattleActionCapture(
           attemptId: 'capture-attempt-1',
-          itemId: canonicalPokeBallItemId,
+          itemId: 'custom_orb',
           caught: false,
           shakes: 2,
         ),
@@ -200,8 +200,8 @@ void main() {
       final steps = plan.steps;
       // BETA-BAT-025 : les secousses décidées par la formule sont désormais
       // REJOUÉES par la séquence de Ball — le step les porte telles quelles.
-      final capture =
-          steps.whereType<PlayBallCaptureSequenceStep>().single;
+      final capture = steps.whereType<PlayBallCaptureSequenceStep>().single;
+      expect(capture.ballItemId, 'custom_orb');
       expect(capture.shakes, 2);
       expect(capture.caught, isFalse);
       final messages = steps
@@ -574,11 +574,23 @@ void main() {
           ),
         ],
       );
-      final planner = BattleTurnAnimationPlanner();
+      final planner = BattleTurnAnimationPlanner(
+        resolveCombatantBallItemId: (side, index) =>
+            side == BattleSideId.player ? 'party_ball_$index' : null,
+      );
 
       final plan = planner.buildForTurn(
         playerBefore: before.state.player,
         enemyBefore: before.state.enemy,
+        playerAfter: BattleCombatant(
+          speciesId: 'aquaffe',
+          lineupIndex: 1,
+          level: 5,
+          currentHp: 20,
+          maxHp: 20,
+          stats: _stats(),
+          moves: const [],
+        ),
         turnResult: turn,
         moveCatalog:
             RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
@@ -601,6 +613,8 @@ void main() {
       );
       final balls = plan.steps.whereType<PlayBallSequenceStep>().toList();
       expect(balls, hasLength(2));
+      expect(balls.first.ballItemId, 'party_ball_0');
+      expect(balls.last.ballItemId, 'party_ball_1');
       expect(balls.first.kind, BattleBallSequenceKind.recall);
       expect(balls.last.kind, BattleBallSequenceKind.sendOutHeld);
       expect(plan.steps.whereType<SwapCombatantVisualStep>(), hasLength(1));
@@ -1349,8 +1363,8 @@ void main() {
         move: const BattleMove(id: 'pound', name: 'Écras’Face', power: 40),
         didHit: false,
       );
-      final plan =
-          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+      final plan = planForTimeline(
+          <BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
 
       expect(messagesOf(plan), contains('Machoc évite l’attaque !'));
       expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), isEmpty);
@@ -1363,8 +1377,8 @@ void main() {
         didHit: true,
         typeEffectivenessMultiplier: 0.0,
       );
-      final plan =
-          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+      final plan = planForTimeline(
+          <BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
 
       expect(messagesOf(plan), contains('Ça n’affecte pas Machoc…'));
       expect(plan.flattenedSteps.whereType<PlaySeStep>(), isEmpty);
@@ -1377,8 +1391,8 @@ void main() {
         move: const BattleMove(id: 'sweet_kiss', name: 'Doux Baiser', power: 0),
         didHit: true,
       );
-      final plan =
-          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+      final plan = planForTimeline(
+          <BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
 
       expect(messagesOf(plan), contains('Pikachu utilise Doux Baiser !'));
       expect(plan.flattenedSteps.whereType<PlaySeStep>(), isEmpty);
@@ -1400,8 +1414,8 @@ void main() {
         damage: 8,
         didHit: true,
       );
-      final plan =
-          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+      final plan = planForTimeline(
+          <BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
       final messages = messagesOf(plan);
 
       expect(messages, contains('Il se blesse dans sa confusion.'));
@@ -1491,8 +1505,8 @@ void main() {
     test('une fuite réussie joue le son de la référence avec son annonce', () {
       final before = sessionFor();
       final after = before.applyChoice(const PlayerBattleChoiceRun());
-      final plan = BattleTurnAnimationPlanner(speciesDisplayName: displayName)
-          .build(
+      final plan =
+          BattleTurnAnimationPlanner(speciesDisplayName: displayName).build(
         previousSession: before,
         newSession: after,
         moveCatalog:

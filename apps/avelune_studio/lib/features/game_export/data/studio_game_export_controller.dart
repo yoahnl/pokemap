@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
 
 import '../domain/studio_game_export_port.dart';
+import '../../pokemon/data/studio_project_item_icons.dart';
 import 'studio_export_revision.dart';
 
 typedef BuildStudioGamePackage =
@@ -29,6 +30,7 @@ final class StudioGameExportController implements StudioGameExportPort {
     this.writePackage,
     ReadStudioSourceFingerprints? readFingerprints,
     CheckStudioExportDestination? destinationExists,
+    this.prepareProjectAssets,
   }) : service = service ?? const CanonicalGamePackageExportService(),
        buildPackage = buildPackage ?? _buildInIsolate,
        readFingerprints =
@@ -44,6 +46,7 @@ final class StudioGameExportController implements StudioGameExportPort {
   final WriteStudioGamePackage? writePackage;
   final ReadStudioSourceFingerprints readFingerprints;
   final CheckStudioExportDestination destinationExists;
+  final Future<void> Function(String projectRoot)? prepareProjectAssets;
   @override
   StudioExportStage stage = StudioExportStage.idle;
   GamePackageExportProfile? profile;
@@ -180,6 +183,21 @@ final class StudioGameExportController implements StudioGameExportPort {
         );
       }
       final root = projectRoot.path;
+      final prepareAssets = prepareProjectAssets;
+      if (prepareAssets != null) {
+        await prepareAssets(root);
+      } else {
+        await StudioProjectItemIcons.shared.prepare(
+          root,
+          shouldContinue: () => _valid(operation, isCurrentProject),
+        );
+      }
+      if (!_valid(operation, isCurrentProject)) return false;
+      if (hasPendingChanges()) {
+        throw StateError(
+          'Le projet a changé pendant la préparation des images. Relancez l’export.',
+        );
+      }
       final before = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.building;

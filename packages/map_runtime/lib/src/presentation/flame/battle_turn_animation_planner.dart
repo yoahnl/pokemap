@@ -26,6 +26,7 @@ final class BattleTurnAnimationPlanner {
     this.speciesDisplayName = _rawSpeciesName,
     this.moveDisplayName = _rawMoveName,
     this.announcesOutcome = true,
+    this.resolveCombatantBallItemId,
   }) : _recipeLibrary = recipeLibrary ?? BattleMoveVisualRecipeLibrary();
 
   /// Ce plan annonce-t-il lui-même l'issue du combat ?
@@ -39,6 +40,8 @@ final class BattleTurnAnimationPlanner {
   /// Le SON de la fuite reste attaché ici : c'est un accent du tour, pas une
   /// annonce.
   final bool announcesOutcome;
+  final String? Function(BattleSideId side, int lineupIndex)?
+      resolveCombatantBallItemId;
 
   final BattleMoveVisualRecipeLibrary _recipeLibrary;
 
@@ -79,6 +82,8 @@ final class BattleTurnAnimationPlanner {
     final plan = buildForTurn(
       playerBefore: previousSession.state.player,
       enemyBefore: previousSession.state.enemy,
+      playerAfter: newSession.state.player,
+      enemyAfter: newSession.state.enemy,
       turnResult: turnResult,
       moveCatalog: moveCatalog,
       resolver: resolver,
@@ -103,6 +108,8 @@ final class BattleTurnAnimationPlanner {
   BattleAnimationPlan buildForTurn({
     required BattleCombatant playerBefore,
     required BattleCombatant enemyBefore,
+    BattleCombatant? playerAfter,
+    BattleCombatant? enemyAfter,
     required BattleTurnResult turnResult,
     required RuntimeMoveCatalog moveCatalog,
     required BattleMoveVisualResolver resolver,
@@ -354,6 +361,7 @@ final class BattleTurnAnimationPlanner {
             PlayBallCaptureSequenceStep(
               shakes: event.shakes.clamp(0, 3),
               caught: event.caught,
+              ballItemId: event.ballId,
             ),
           );
           steps.add(
@@ -607,6 +615,12 @@ final class BattleTurnAnimationPlanner {
               PlayBallSequenceStep(
                 side: event.side,
                 kind: BattleBallSequenceKind.recall,
+                ballItemId: resolveCombatantBallItemId?.call(
+                  event.side,
+                  event.side == BattleSideId.player
+                      ? playerBefore.lineupIndex
+                      : enemyBefore.lineupIndex,
+                ),
               ),
             );
             steps.add(
@@ -621,6 +635,19 @@ final class BattleTurnAnimationPlanner {
               PlayBallSequenceStep(
                 side: event.side,
                 kind: BattleBallSequenceKind.sendOutHeld,
+                ballItemId: switch (event.side) {
+                  BattleSideId.player when playerAfter != null =>
+                    resolveCombatantBallItemId?.call(
+                      event.side,
+                      playerAfter.lineupIndex,
+                    ),
+                  BattleSideId.enemy when enemyAfter != null =>
+                    resolveCombatantBallItemId?.call(
+                      event.side,
+                      enemyAfter.lineupIndex,
+                    ),
+                  _ => null,
+                },
               ),
             );
             steps.add(
@@ -859,7 +886,8 @@ String _messageForStatusEvent(
   BattleStatusEvent event,
   Map<BattleSideId, String> displayNameBySide,
 ) {
-  final target = _presentationCombatantName(event.targetSide, displayNameBySide);
+  final target =
+      _presentationCombatantName(event.targetSide, displayNameBySide);
   return switch (event.kind) {
     // Recette du 2026-08-24 : les textes d'application suivent la référence
     // (« [X] est empoisonné ! »), avec le nom affichable du Pokémon plutôt
@@ -897,8 +925,7 @@ String _messageForVolatileEvent(
       'L’attaque est bloquée par Protect !',
     BattleVolatileEventKind.protectBroken => 'La protection est brisée !',
     BattleVolatileEventKind.rechargeRequired => '$actor doit se recharger !',
-    BattleVolatileEventKind.rechargeTurnSpent =>
-      '$actor récupère son souffle.',
+    BattleVolatileEventKind.rechargeTurnSpent => '$actor récupère son souffle.',
     BattleVolatileEventKind.chargeStarted => '$actor se charge !',
     BattleVolatileEventKind.chargeReleased => '$actor libère son attaque !',
     // Recette du 2026-08-24 : les trois temps de la confusion, aux textes de

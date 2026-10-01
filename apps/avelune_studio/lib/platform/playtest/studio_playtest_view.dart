@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
+import '../../features/pokemon/data/studio_project_item_icons.dart';
 
 export 'studio_playtest_session.dart';
 
@@ -22,6 +23,7 @@ class StudioPlaytestView extends StatefulWidget {
     required this.port,
     required this.onClose,
     this.testSession,
+    this.prepareProjectAssets,
   });
 
   final ProjectSession session;
@@ -30,6 +32,7 @@ class StudioPlaytestView extends StatefulWidget {
   final MapWorkspacePort port;
   final VoidCallback onClose;
   final StudioPlaytestSession? testSession;
+  final Future<void> Function(String projectRoot)? prepareProjectAssets;
 
   @override
   State<StudioPlaytestView> createState() => _StudioPlaytestViewState();
@@ -50,6 +53,17 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       );
     }
     final projectPath = p.join(widget.session.directoryPath, 'project.json');
+    if (!mounted) throw StateError('Test fermé');
+    final prepareProjectAssets = widget.prepareProjectAssets;
+    if (prepareProjectAssets != null) {
+      await prepareProjectAssets(widget.session.directoryPath);
+    } else {
+      await StudioProjectItemIcons.shared.prepare(
+        widget.session.directoryPath,
+        shouldContinue: () => mounted,
+      );
+    }
+    if (!mounted) throw StateError('Test fermé');
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectPath,
       mapId: widget.entry.id,

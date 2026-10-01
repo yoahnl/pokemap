@@ -216,6 +216,107 @@ void main() {
       );
     });
 
+    test('accepts project capture animation paths and absent visuals', () {
+      for (final path in <String?>[
+        null,
+        ' assets/capture/custom-ball.png ',
+        'data/pokemon/assets/items/capture/custom.png',
+      ]) {
+        final report = validateProjectItemCatalog(
+          ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'custom-ball',
+                displayName: 'Custom Ball',
+                pocketId: 'balls',
+                capture: ProjectCaptureItemDefinition(
+                  rateNumerator: 1,
+                  rateDenominator: 1,
+                  allowedEncounterKinds: const {EncounterKind.walk},
+                  animationSpritePath: path,
+                ),
+              ),
+            ],
+          ),
+          capabilityTruth: _truth(),
+        );
+
+        expect(report.hasBlockingDiagnostics, isFalse);
+        expect(
+          report.assessmentFor('custom-ball')?.readiness,
+          ItemCapabilityReadiness.runtimeReady,
+        );
+      }
+    });
+
+    test('blocks unsafe capture animation paths with field diagnostics', () {
+      for (final path in [
+        'art/custom.png',
+        'custom.png',
+        'Assets/custom.png',
+        'database/custom.png',
+        '/tmp/ball.png',
+        '../ball.png',
+        'assets/../ball.png',
+        'C:/ball.png',
+        r'assets\ball.png',
+        'assets/\u0000ball.png',
+        'https://example.invalid/ball.png',
+        'assets/ball.jpg',
+        'assets//ball.png',
+        'assets/./ball.png',
+        '',
+        ' ',
+      ]) {
+        final report = validateProjectItemCatalog(
+          ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'custom-ball',
+                displayName: 'Custom Ball',
+                pocketId: 'balls',
+                capture: ProjectCaptureItemDefinition(
+                  rateNumerator: 1,
+                  rateDenominator: 1,
+                  allowedEncounterKinds: const {EncounterKind.walk},
+                  animationSpritePath: path,
+                ),
+              ),
+            ],
+          ),
+          capabilityTruth: _truth(),
+        );
+
+        expect(report.hasBlockingDiagnostics, isTrue, reason: 'path: $path');
+        expect(
+          report.diagnostics.single,
+          isA<ProjectItemCatalogDiagnostic>()
+              .having(
+                (diagnostic) => diagnostic.code,
+                'code',
+                ProjectItemCatalogDiagnosticCode.invalidDefinition,
+              )
+              .having(
+                (diagnostic) => diagnostic.path,
+                'path',
+                r'$.entries[0].capture.animationSpritePath',
+              )
+              .having((diagnostic) => diagnostic.entryIndex, 'entryIndex', 0)
+              .having(
+                (diagnostic) => diagnostic.itemId,
+                'itemId',
+                'custom-ball',
+              ),
+        );
+        expect(
+          report.assessmentFor('custom-ball')?.readiness,
+          ItemCapabilityReadiness.unsupported,
+        );
+      }
+    });
+
     test('blocks incompatible targets and undeclared runtime references', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(

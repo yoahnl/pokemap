@@ -141,6 +141,58 @@ void main() {
       );
     });
 
+    test('normalizes, round-trips, and clears capture animation paths', () {
+      final capture = const ProjectCaptureItemDefinition(
+        rateNumerator: 4,
+        rateDenominator: 2,
+        allowedEncounterKinds: {EncounterKind.walk},
+        animationSpritePath: ' assets/capture/custom-ball.PNG ',
+      ).normalized();
+
+      expect(capture.animationSpritePath, 'assets/capture/custom-ball.PNG');
+      expect(capture.rateNumerator, 2);
+      expect(capture.rateDenominator, 1);
+      expect(ProjectCaptureItemDefinition.fromJson(capture.toJson()), capture);
+      final withoutVisual = capture.copyWith(animationSpritePath: null);
+      expect(withoutVisual.animationSpritePath, isNull);
+      expect(
+        withoutVisual.toJson().containsKey('animationSpritePath'),
+        isFalse,
+      );
+    });
+
+    test('rejects unsafe capture animation paths during normalization', () {
+      for (final path in [
+        'art/custom.png',
+        'custom.png',
+        'Assets/custom.png',
+        'database/custom.png',
+        '/tmp/ball.png',
+        '../ball.png',
+        'assets/../ball.png',
+        'C:/ball.png',
+        r'assets\ball.png',
+        'assets/\u0000ball.png',
+        'https://example.invalid/ball.png',
+        'assets/ball.jpg',
+        'assets//ball.png',
+        'assets/./ball.png',
+        '',
+        ' ',
+      ]) {
+        expect(
+          () => ProjectCaptureItemDefinition(
+            rateNumerator: 1,
+            rateDenominator: 1,
+            allowedEncounterKinds: const {EncounterKind.walk},
+            animationSpritePath: path,
+          ).normalized(),
+          throwsStateError,
+          reason: 'path: $path',
+        );
+      }
+    });
+
     test('forbids consumable HMs', () {
       expect(
         () => const ProjectMoveMachineItemDefinition(
