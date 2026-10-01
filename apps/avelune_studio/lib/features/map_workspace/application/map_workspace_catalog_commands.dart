@@ -11,28 +11,13 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
     bool confirmDestructive = false,
   }) async {
     final mutations = catalogPort;
-    if (_disposed ||
-        mutations == null ||
-        catalogBusy ||
-        pendingCatalogReceipt != null ||
-        project == null) {
-      return const MapCatalogResult(
-        error:
-            'Le catalogue est indisponible ou une opération est encore active.',
-      );
-    }
-    final target =
-        actionId == 'map.update_metadata' || actionId == 'map.delete_apply'
-        ? documents[parameters['mapId']]
-        : null;
-    if (target?.dirty == true || target?.saving == true) {
-      return const MapCatalogResult(
-        error: 'Enregistrez cette carte avant de modifier son catalogue.',
-      );
+    final targetId = _catalogMapId(actionId, parameters);
+    final problem = _catalogProblem(actionId, targetId);
+    if (problem != null || mutations == null) {
+      return MapCatalogResult(error: problem);
     }
     catalogBusy = true;
-    final requestedTarget = parameters['mapId'];
-    _catalogTargetId = requestedTarget is String ? requestedTarget : null;
+    _catalogTargetId = targetId;
     notify();
     MapCatalogReceipt? receipt;
     try {
@@ -40,9 +25,7 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
         session,
         actionId,
         parameters,
-        expectedMapRevisions: {
-          if (target != null) target.base.mapId: target.base.revision,
-        },
+        expectedMapRevisions: _catalogRevisions(targetId),
         confirmDestructive: confirmDestructive,
         expectedManifest: project,
       );
@@ -97,8 +80,14 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
       }
       for (final entry in receipt.documents.entries) {
         final existing = documents[entry.key];
-        if (existing != null) existing.acceptCatalogMetadata(entry.value);
+        if (existing == null) continue;
+        if (existing.saved.size != entry.value.map.size) {
+          existing.acceptCatalogContent(entry.value);
+        } else {
+          existing.acceptCatalogMetadata(entry.value);
+        }
       }
+      final activeId = active?.base.mapId;
       final retained = receipt.manifest.maps.map((entry) => entry.id).toSet();
       for (final id
           in documents.keys.where((id) => !retained.contains(id)).toList()) {
@@ -107,6 +96,12 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
         if (identical(active, removed)) active = null;
       }
       final changed = receipt.documents.keys.toSet();
+      for (final id in {
+        ...changed,
+        if (activeId != null && !retained.contains(activeId)) activeId,
+      }) {
+        _mapEpochs[id] = (_mapEpochs[id] ?? 0) + 1;
+      }
       _previews.removeWhere(
         (id, _) => !retained.contains(id) || changed.contains(id),
       );
@@ -117,6 +112,11 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
       _catalogEpoch++;
       pendingCatalogReceipt = null;
       error = null;
+      if (activeId != null &&
+          !retained.contains(activeId) &&
+          receipt.manifest.maps.isNotEmpty) {
+        await activate(receipt.manifest.maps.first);
+      }
       notify();
       return MapCatalogResult(
         published: receipt.changedPaths.isNotEmpty,

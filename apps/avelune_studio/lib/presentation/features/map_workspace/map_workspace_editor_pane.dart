@@ -12,6 +12,7 @@ import 'map_workspace_visuals.dart';
 import 'map_border_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_catalogue_workspace_actions.dart';
+import 'map_lifecycle_workspace_actions.dart';
 
 class MapWorkspaceEditorPane extends StatefulWidget {
   const MapWorkspaceEditorPane({
@@ -162,6 +163,15 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                   context,
                                   widget.controller,
                                   entry,
+                                ),
+                          onLifecycleMap: widget.controller.catalogPort == null
+                              ? null
+                              : (entry, action) => manageWorkspaceMap(
+                                  context,
+                                  widget.controller,
+                                  entry,
+                                  action,
+                                  visuals: widget.visuals,
                                 ),
                           onCollapse: () =>
                               setState(() => _navigatorCollapsed = true),

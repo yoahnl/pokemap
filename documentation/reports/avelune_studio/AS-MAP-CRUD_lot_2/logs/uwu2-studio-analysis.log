@@ -1,0 +1,5 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/map_workspace/application/map_workspace_catalog_preparation.dart:77:9 • curly_braces_in_flow_control_structures
+
+1 issue found. (ran in 17.9s)

@@ -29,6 +29,7 @@ final class MapCatalogFixture {
   static Future<MapCatalogFixture> create({
     bool empty = false,
     List<ProjectSnapshotLoadProfile>? profiles,
+    Future<void> Function()? beforeTransactionPrecondition,
   }) async {
     final temporary = await Directory.systemTemp.createTemp('uwu_catalog_');
     final root = Directory(await temporary.resolveSymbolicLinks());
@@ -57,7 +58,11 @@ final class MapCatalogFixture {
       session,
       adapter,
       ControlledMapCatalogPort(
-        LocalMapCatalogAdapter(adapter, profileSink: profiles?.add),
+        LocalMapCatalogAdapter(
+          adapter,
+          profileSink: profiles?.add,
+          beforeTransactionPrecondition: beforeTransactionPrecondition,
+        ),
       ),
     );
     await fixture.controller.initialize();
@@ -75,13 +80,18 @@ final class MapCatalogFixture {
   }
 }
 
-final class ControlledMapCatalogPort implements MapCatalogPort {
+final class ControlledMapCatalogPort
+    implements MapCatalogPort, MapCatalogPreparationPort {
   ControlledMapCatalogPort(this.delegate);
 
   final MapCatalogPort delegate;
   bool failRefresh = false;
   Completer<void>? publicationReady;
   Completer<void>? publicationGate;
+  Completer<void>? applicationReady;
+  Completer<void>? applicationGate;
+  Completer<void>? preparationReady;
+  Completer<void>? preparationGate;
   int mutations = 0;
   int refreshes = 0;
 
@@ -116,5 +126,49 @@ final class ControlledMapCatalogPort implements MapCatalogPort {
     refreshes++;
     if (failRefresh) throw StateError('Lecture indisponible');
     await delegate.reconcile(session, receipt);
+  }
+
+  @override
+  Future<MapCatalogPreparation> prepare(
+    ProjectSession session,
+    String actionId,
+    Map<String, Object?> parameters, {
+    Map<String, String> expectedMapRevisions = const {},
+    ProjectManifest? expectedManifest,
+  }) async {
+    preparationReady?.complete();
+    await preparationGate?.future;
+    return (delegate as MapCatalogPreparationPort).prepare(
+      session,
+      actionId,
+      parameters,
+      expectedMapRevisions: expectedMapRevisions,
+      expectedManifest: expectedManifest,
+    );
+  }
+
+  @override
+  Future<MapCatalogReceipt> applyPrepared(
+    ProjectSession session,
+    MapCatalogPreparation preparation, {
+    Map<String, String> expectedMapRevisions = const {},
+    bool confirmDestructive = false,
+    ProjectManifest? expectedManifest,
+    String? Function()? validateBeforeApply,
+  }) async {
+    mutations++;
+    applicationReady?.complete();
+    await applicationGate?.future;
+    final receipt = await (delegate as MapCatalogPreparationPort).applyPrepared(
+      session,
+      preparation,
+      expectedMapRevisions: expectedMapRevisions,
+      confirmDestructive: confirmDestructive,
+      expectedManifest: expectedManifest,
+      validateBeforeApply: validateBeforeApply,
+    );
+    publicationReady?.complete();
+    await publicationGate?.future;
+    return receipt;
   }
 }

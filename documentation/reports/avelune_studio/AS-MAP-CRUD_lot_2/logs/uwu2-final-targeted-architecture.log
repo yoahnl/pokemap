@@ -1,0 +1,185 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: duplicate publishes an independent copy while retaining the source
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: duplicate publishes an independent copy while retaining the source
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: duplicate destination may change without replacing the captured revision
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: resize adopts the published content and retires obsolete geometry history
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: resize adopts the published content and retires obsolete geometry history
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: dirty source must be explicitly saved before duplicate preparation
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: deleting the active map selects a deterministic surviving map
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: deleting the active map selects a deterministic surviving map
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart: deleting the active map selects a deterministic surviving map
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: a stale no-op does not pretend to validate the previous snapshot
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: missing required map does not produce an unreferenced deletion
+00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart: double launch is rejected while a preparation remains active
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks dispose after acquiring the writer lock
+00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks dispose after acquiring the writer lock
+00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks dispose after acquiring the writer lock
+00:02 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart: failed refresh retains the duplicate receipt and never replays publication
+00:02 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart: failed refresh retains the duplicate receipt and never replays publication
+00:02 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks narrativeDraft after acquiring the writer lock
+00:02 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart: an unrelated neighbour draft survives resizing the active map
+00:02 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks none after acquiring the writer lock
+00:02 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart: transaction rechecks none after acquiring the writer lock
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: moving a map retains an in-flight preview and its subsequent cache
+00:03 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: undo refuses an old passage to a canonically removed map
+00:03 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: undo refuses an old passage to a canonically removed map
+00:03 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: undo refuses an old passage to a canonically removed map
+00:03 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old preview cannot restore content after map.resize_apply
+00:03 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: creation integrates the manifest and permits immediate editing and saving
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old activation cannot restore content after map.resize_apply
+00:04 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: title mutation preserves identity, dirty neighbour and prior geometry history
+00:04 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old preview cannot restore content after map.delete_apply
+00:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old preview cannot restore content after map.delete_apply
+00:04 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old preview cannot restore content after map.delete_apply
+00:04 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: canonical removal retires loaded maps and refuses stale saves
+00:04 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart: old activation cannot restore content after map.delete_apply
+00:04 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart: an externally changed target refuses title publication
+00:09 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
+00:20 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_layout_host_test.dart: lifecycle actions stay accessible in real workspace Size(1536.0, 1024.0) text 1.0
+00:21 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds
+00:27 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_layout_host_test.dart: lifecycle actions stay accessible in real workspace Size(1280.0, 800.0) text 1.0
+00:29 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace deletes only the confirmed map and retires its owner
+00:33 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_layout_host_test.dart: lifecycle actions stay accessible in real workspace Size(1024.0, 640.0) text 1.5
+00:36 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:42 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:43 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/project.json mapId=studio_map_1790881807109874
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/project.json
+[runtime_loader] project manifest read ok bytes=150579
+[runtime_loader] project manifest validated maps=3 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=studio_map_1790881807109874 relativePath=maps/studio_map_1790881807109874.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/maps/studio_map_1790881807109874.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/maps/studio_map_1790881807109874.json
+[runtime_loader] map file read ok bytes=1145
+[runtime_loader] map validated id=studio_map_1790881807109874 size=36x29 layers=0 entities=1 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=arbre-feuillu,voyageur
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle load ok mapId=studio_map_1790881807109874 projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu tilesets=2
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/project.json mapId=first-map
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/project.json
+[runtime_loader] project manifest read ok bytes=150579
+[runtime_loader] project manifest validated maps=3 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/maps/first-map.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/maps/first-map.json
+[runtime_loader] map file read ok bytes=150888
+[runtime_loader] map validated id=first-map size=32x26 layers=10 entities=3 placedElements=49 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=starter,nature-atlas,herbe-claire,berges-douces,relief-psdk,couronne-relief,voyageur,emile,maison-menthe,maison-violette,maison-bleue,sapin,arbre-feuillu,banc-gris,jardiniere,fleurs-orange,fleurs-blanches,buisson,panneau
+[runtime_loader] bundle tileset path id=starter path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/49c8ee49425cdf3715743c1cfbe67a3b02ec7778734a91d68b2fc0cc30e88248.blob
+[runtime_loader] bundle tileset path id=nature-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/1674b8fb427f111e193f7a51d55e80709b0fa9d6d3c9ffa1fa04462cddc4cae1.blob
+[runtime_loader] bundle tileset path id=herbe-claire path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/5da313795e47a5de78e81adb0f35b4eb9e25f23240a4c16240603c118e95207d.blob
+[runtime_loader] bundle tileset path id=berges-douces path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/3850c0a92900911feb48c7c7a928dd2d2067c69dc47136a33ee1b186f11b375a.blob
+[runtime_loader] bundle tileset path id=relief-psdk path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/f4e9485f66e6149941ae3ec01814b485f72782de2fd62502d831e8503e46679d.blob
+[runtime_loader] bundle tileset path id=couronne-relief path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/05c7090aa7ce74a305f719defff0133843bb751d5a5abcbaa72e1fce6b461923.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=emile path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/9ddfec20f9a302dc1dc47735aa7802e03ce6cd8801755b260b8f287c3f3b1ea0.blob
+[runtime_loader] bundle tileset path id=maison-menthe path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/42469be8de62fb4db20a5c4bae25fb476326442c1717db0a8e1859d774cd1a4b.blob
+[runtime_loader] bundle tileset path id=maison-violette path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/e25b9335c71dec78ff71dd0a69a1e163153fe5832344eb7fe1bfffc85e26e000.blob
+[runtime_loader] bundle tileset path id=maison-bleue path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/10f048b025b4c0caea7b3d1279ec7879a35e8ad2863e52731cd81e69cb58d651.blob
+[runtime_loader] bundle tileset path id=sapin path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/fa9611e9ef0462baa5804b7155e59c7733cc5905eccc4f84d93e99a14ff9f067.blob
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=banc-gris path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/3b281d0c6dddf83015534e4444d3f8acde47f9e36b9c37310d227120800f7cf1.blob
+[runtime_loader] bundle tileset path id=jardiniere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/042e11db7825b693846824a20a02da53fbb8ca25276ee2863ef6903e1a64ad84.blob
+[runtime_loader] bundle tileset path id=fleurs-orange path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/569d7509ca9770420fdeaaa4e3a122416d1ac3b900381edd1a7ba405afdcf9a2.blob
+[runtime_loader] bundle tileset path id=fleurs-blanches path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/a8460b601a3a68916a6b25b61e3eb98ba097d0f803418c4ce99570261322dd4a.blob
+[runtime_loader] bundle tileset path id=buisson path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/15d5eb2784a42103b57cec659ee354f82beff2af75e5ce9047dc4bba7429349d.blob
+[runtime_loader] bundle tileset path id=panneau path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/assets/.pokemap-store/9c481e488b42fba589960f6a1ba1a5c3bb8626c1ba7d665bc26b8e44e8414ec0.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu tilesets=19
+00:44 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+[runtime_game] tileset image load start map=studio_map_1790881807109874
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=studio_map_1790881807109874 projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-DxjptV/clairbois-uwu/project.json tilesets=2
+[runtime] New game created from project contract on studio_map_1790881807109874 at (30, 1)
+[runtime_game] tileset image load ok count=4 map=studio_map_1790881807109874
+[runtime_game] mount root map start map=studio_map_1790881807109874
+[runtime_game] mount root map ok map=studio_map_1790881807109874
+[runtime_game] onLoad completed activeMapId=studio_map_1790881807109874
+[event_v2] mapEnter activation=mapact_1790881811955469_1 map=studio_map_1790881807109874 reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:45 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:45 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:45 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:45 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+00:45 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart: workspace growth persists and the reloaded runtime walks beyond old bounds
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+[connection] no connection for direction=east map=studio_map_1790881807109874
+00:45 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:46 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:46 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+00:46 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation centralisee et barrel DI limite aux exports
+00:46 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:46 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:47 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:47 +56 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes [E]
+  Expected: empty
+    Actual: [
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/game_export/data/studio_game_export_controller.dart: 318 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart: 310 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_page.dart: 303 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart: 474 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip.dart: 306 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_visual_test.dart: 312 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_capture_sprite_test.dart: 362 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
+            ]
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
+  
+00:47 +56 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes

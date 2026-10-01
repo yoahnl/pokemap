@@ -1,28 +1,36 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:map_authoring/map_authoring.dart' show MapAuthoringException;
 import 'package:map_authoring/map_authoring_local.dart';
-import 'package:map_authoring/map_authoring_documents.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
 import '../domain/map_catalog_port.dart';
 import '../domain/map_workspace_port.dart';
 import 'local_map_workspace_adapter.dart';
+import 'local_map_catalog_preparation.dart';
+import 'local_map_catalog_receipt.dart';
 
-final class LocalMapCatalogAdapter implements MapCatalogPort {
-  LocalMapCatalogAdapter(this.mapAdapter, {this.profileSink});
+final class LocalMapCatalogAdapter
+    implements MapCatalogPort, MapCatalogPreparationPort {
+  LocalMapCatalogAdapter(
+    this.mapAdapter, {
+    this.profileSink,
+    this.beforeTransactionPrecondition,
+  });
 
   final LocalMapWorkspaceAdapter mapAdapter;
   final ProjectSnapshotLoadProfileSink? profileSink;
+  final Future<void> Function()? beforeTransactionPrecondition;
   final snapshotCache = ProjectSnapshotCache();
-  final _fingerprintCache = ProjectSnapshotFingerprintCache();
+  final fingerprintCache = ProjectSnapshotFingerprintCache();
   static const _actions = {
     'map.create',
     'map.update_metadata',
     'map.library.reorganize',
     'map.delete_apply',
+    'map.duplicate',
+    'map.resize_apply',
   };
 
   @override
@@ -33,6 +41,25 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
     Map<String, String> expectedMapRevisions = const {},
     bool confirmDestructive = false,
     ProjectManifest? expectedManifest,
+  }) => _mutate(
+    session,
+    actionId,
+    parameters,
+    expectedMapRevisions: expectedMapRevisions,
+    confirmDestructive: confirmDestructive,
+    expectedManifest: expectedManifest,
+  );
+
+  Future<MapCatalogReceipt> _mutate(
+    ProjectSession session,
+    String actionId,
+    Map<String, Object?> parameters, {
+    Map<String, String> expectedMapRevisions = const {},
+    bool confirmDestructive = false,
+    ProjectManifest? expectedManifest,
+    String? expectedSnapshotRevision,
+    String? Function()? validateBeforeApply,
+    bool expectNoChange = false,
   }) => mapAdapter.withResourceMutation(() async {
     if (!_actions.contains(actionId)) {
       throw const MapWorkspaceFailure(
@@ -61,7 +88,7 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
     final snapshots = ProjectSnapshotLoader(
       handles: handles,
       snapshotCache: snapshotCache,
-      fingerprintCache: _fingerprintCache,
+      fingerprintCache: fingerprintCache,
       profileSink: profileSink,
     );
     final api = LocalMapAuthoringMutationApi(
@@ -70,16 +97,17 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
     );
     var attached = false;
     try {
-      await api.attachProject(
-        projectRootPath: session.directoryPath,
-        workspaceHandle: opened.workspaceHandle,
-        projectHandle: opened.projectHandle,
-      );
-      attached = true;
       final snapshot = await snapshots.load(
         opened.projectHandle,
         policy: ProjectSnapshotLoadPolicy.editorReadProjection,
       );
+      if (expectedSnapshotRevision != null &&
+          snapshot.revision != expectedSnapshotRevision) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le projet ou ses références ont changé depuis l’analyse. Relancez-la ; rien n’a été publié.',
+        );
+      }
       if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
           before.revision) {
         throw const MapWorkspaceFailure(
@@ -100,6 +128,47 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
       }
       final id =
           'catalog_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
+      if (expectNoChange) {
+        final problem = validateBeforeApply?.call();
+        if (problem != null) {
+          throw MapWorkspaceFailure(MapWorkspaceProblem.conflict, problem);
+        }
+        final analysis = const MapLifecycleActions().analyze(
+          AuthoringPlanningContext(
+            snapshot: snapshot,
+            request: AuthoringRequest(
+              requestId: id,
+              actionId: actionId,
+              actionVersion: 1,
+              workspaceHandle: opened.workspaceHandle.value,
+              parameters: parameters,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: id,
+            ),
+            planId: id,
+            seed: 0,
+          ),
+        );
+        if (!analysis.noChange) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'L’analyse ne correspond plus à une opération sans modification. Relancez-la.',
+          );
+        }
+        return MapCatalogReceipt(
+          before: before.manifest,
+          manifest: before.manifest,
+          beforeRevision: before.revision,
+          revision: before.revision,
+          changedPaths: const [],
+        );
+      }
+      await api.attachProject(
+        projectRootPath: session.directoryPath,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      attached = true;
       final planned = await api.planMutation(
         opened.projectHandle,
         AuthoringRequest(
@@ -112,44 +181,11 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
           idempotencyKey: id,
         ),
       );
-      final changes = planned.plan.changeSet.changes;
-      final manifestBytes = changes
-          .where((change) => change.storageKey == 'project.json')
-          .firstOrNull
-          ?.afterBytes;
-      final manifest = manifestBytes == null
-          ? before.manifest
-          : ProjectManifest.fromJson(
-              jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>,
-            );
-      final documents = <String, MapWorkspaceDocument>{};
-      for (final change in changes.where((c) => c.resource.kind == 'map')) {
-        final bytes = change.afterBytes;
-        if (bytes == null) continue;
-        final map = decodeValidatedMapDocument(
-          bytes,
-          change.storageKey,
-          validateMap: (map) =>
-              MapValidator.validate(map, projectDialogueContext: manifest),
-        );
-        documents[map.id] = MapWorkspaceDocument(
-          map: map,
-          mapId: map.id,
-          revision: narrativeEventBytesFingerprint(bytes),
-        );
-      }
-      final receipt = MapCatalogReceipt(
-        before: before.manifest,
-        manifest: manifest,
-        beforeRevision: before.revision,
-        revision: manifestBytes == null
-            ? before.revision
-            : narrativeEventBytesFingerprint(manifestBytes),
-        changedPaths: List.unmodifiable(changes.map((c) => c.storageKey)),
-        documents: Map.unmodifiable(documents),
-        createdMapId: actionId == 'map.create'
-            ? parameters['mapId'] as String?
-            : null,
+      final receipt = mapCatalogReceipt(
+        before.manifest,
+        before.revision,
+        planned.plan,
+        actionId,
       );
       try {
         final confirmation = confirmDestructive
@@ -158,11 +194,19 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
                 planId: planned.planId,
               )
             : null;
+        final problem = validateBeforeApply?.call();
+        if (problem != null) {
+          throw MapWorkspaceFailure(MapWorkspaceProblem.conflict, problem);
+        }
         await api.applyMutation(
           opened.projectHandle,
           planId: planned.planId,
           operationId: id,
           confirmationToken: confirmation?.confirmationToken,
+          precondition: mapCatalogTransactionPrecondition(
+            beforeTransactionPrecondition,
+            validateBeforeApply,
+          ),
         );
       } on Object catch (failure, stack) {
         late final AuthoringMutationResult recovered;
@@ -201,4 +245,55 @@ final class LocalMapCatalogAdapter implements MapCatalogPort {
       mapAdapter.withResourceMutation(
         () => mapAdapter.acceptCatalogMutation(session, receipt),
       );
+
+  @override
+  Future<MapCatalogPreparation> prepare(
+    ProjectSession session,
+    String actionId,
+    Map<String, Object?> parameters, {
+    Map<String, String> expectedMapRevisions = const {},
+    ProjectManifest? expectedManifest,
+  }) => prepareLocalMapCatalog(
+    this,
+    session,
+    actionId,
+    parameters,
+    expectedMapRevisions: expectedMapRevisions,
+    expectedManifest: expectedManifest,
+  );
+
+  @override
+  Future<MapCatalogReceipt> applyPrepared(
+    ProjectSession session,
+    MapCatalogPreparation preparation, {
+    Map<String, String> expectedMapRevisions = const {},
+    bool confirmDestructive = false,
+    ProjectManifest? expectedManifest,
+    String? Function()? validateBeforeApply,
+  }) {
+    final requestedTarget =
+        preparation.parameters[preparation.actionId == 'map.duplicate'
+            ? 'sourceMapId'
+            : 'mapId'];
+    if (preparation.sessionId != session.sessionId ||
+        preparation.sourceMap.id != preparation.targetMapId ||
+        requestedTarget != preparation.targetMapId ||
+        (!preparation.canApply && !preparation.noChange)) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Cette analyse appartient à une autre session ou refuse la publication.',
+      );
+    }
+    return _mutate(
+      session,
+      preparation.actionId,
+      preparation.parameters,
+      expectedMapRevisions: expectedMapRevisions,
+      confirmDestructive: confirmDestructive,
+      expectedManifest: expectedManifest,
+      expectedSnapshotRevision: preparation.snapshotRevision,
+      validateBeforeApply: validateBeforeApply,
+      expectNoChange: preparation.noChange,
+    );
+  }
 }

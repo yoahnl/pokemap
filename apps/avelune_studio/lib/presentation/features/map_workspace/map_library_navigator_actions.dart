@@ -1,6 +1,20 @@
 part of 'map_library_navigator.dart';
 
 extension _MapLibraryActions on _MapLibraryNavigatorState {
+  Map<MapLibraryAction, String> _mapDisabled() => {
+    if (widget.onRenameMap == null)
+      MapLibraryAction.rename: 'renommage indisponible',
+    if (widget.onOrganize == null)
+      MapLibraryAction.move: 'organisation indisponible',
+    if (widget.onLifecycleMap == null)
+      for (final action in [
+        MapLibraryAction.duplicate,
+        MapLibraryAction.resize,
+        MapLibraryAction.deleteMap,
+      ])
+        action: 'opération indisponible',
+  };
+
   Future<void> _createFolderDialog() async {
     if (_creating || _busy) return;
     _creating = true;
@@ -128,6 +142,12 @@ extension _MapLibraryActions on _MapLibraryNavigatorState {
     if (map != null) {
       if (action == MapLibraryAction.rename) {
         widget.onRenameMap?.call(map);
+        return;
+      }
+      if (action == MapLibraryAction.duplicate ||
+          action == MapLibraryAction.resize ||
+          action == MapLibraryAction.deleteMap) {
+        widget.onLifecycleMap?.call(map, action);
         return;
       }
       var destination = map.groupId ?? '';

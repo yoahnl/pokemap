@@ -176,7 +176,10 @@ void main() {
         confirmDestructive: true,
       );
       expect(result.integrated, isTrue, reason: result.error);
-      expect(fixture.controller.active, isNull);
+      expect(
+        fixture.controller.active!.base.mapId,
+        fixture.controller.project!.maps.first.id,
+      );
       expect(fixture.controller.documents.containsKey(staleEntry.id), isFalse);
       await fixture.controller.activate(staleEntry);
       removed.commit(removed.current.copyWith(properties: {'stale': true}));

@@ -33,6 +33,7 @@ class MapLibraryNavigator extends StatefulWidget {
     this.onCollapse,
     this.onCreateMap,
     this.onRenameMap,
+    this.onLifecycleMap,
     this.onRetryCatalogue,
     this.width = 230,
   });
@@ -45,6 +46,7 @@ class MapLibraryNavigator extends StatefulWidget {
   final VoidCallback? onCollapse;
   final void Function(String? groupId)? onCreateMap;
   final ValueChanged<ProjectMapEntry>? onRenameMap;
+  final void Function(ProjectMapEntry, MapLibraryAction)? onLifecycleMap;
   final VoidCallback? onRetryCatalogue;
   final double width;
   @override
@@ -232,7 +234,13 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                   selecting: _selecting,
                   dirty: map != null && widget.dirtyMapIds.contains(map.id),
                   actions: map != null
-                      ? const [MapLibraryAction.rename, MapLibraryAction.move]
+                      ? const [
+                          MapLibraryAction.rename,
+                          MapLibraryAction.move,
+                          MapLibraryAction.duplicate,
+                          MapLibraryAction.resize,
+                          MapLibraryAction.deleteMap,
+                        ]
                       : row.group == null
                       ? const []
                       : const [
@@ -244,12 +252,7 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                           MapLibraryAction.deleteFolder,
                         ],
                   disabledReasons: row.group == null
-                      ? {
-                          if (widget.onRenameMap == null)
-                            MapLibraryAction.rename: 'renommage indisponible',
-                          if (widget.onOrganize == null)
-                            MapLibraryAction.move: 'organisation indisponible',
-                        }
+                      ? _mapDisabled()
                       : _groupDisabled(row.group!),
                   onAction: _busy ? null : (action) => _rowAction(row, action),
                   onToggleFolder: () => setState(() {

@@ -2,6 +2,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'map_lifecycle_adapter.dart';
+import 'map_lifecycle_analysis.dart';
 import 'map_metadata_actions.dart';
 
 /// Canonical lifecycle action family registered by the map mutation API.
@@ -11,6 +12,23 @@ final class MapLifecycleActions {
   }) : _adapter = adapter;
 
   final MapLifecycleAdapter _adapter;
+
+  MapLifecycleAnalysis analyze(AuthoringPlanningContext context) {
+    try {
+      final draft = build(context);
+      return MapLifecycleAnalysis(
+          canApply: true,
+          preview: draft.preview,
+          referenceImpact: draft.referenceImpact);
+    } on MapAuthoringException catch (error) {
+      return MapLifecycleAnalysis(
+          canApply: false,
+          noChange: error.code == 'map.no_change',
+          errorCode: error.code,
+          message: error.message,
+          details: error.details);
+    }
+  }
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
@@ -90,6 +108,21 @@ AuthoringActionDescriptor _descriptor(
     ],
     extensions: {
       'multiFileGuarantee': 'recoverable',
+      if (id == 'map.duplicate')
+        'inputSchema': const {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['sourceMapId'],
+          'properties': {
+            'sourceMapId': {'type': 'string', 'minLength': 1},
+            'targetMapId': {'type': 'string', 'minLength': 1},
+            'name': {'type': 'string', 'minLength': 1},
+            'groupId': {
+              'type': ['string', 'null']
+            },
+          },
+          'selfReferences': 'sourceMap',
+        },
       if (id == 'map.update_metadata')
         'inputSchema': const {
           'type': 'object',

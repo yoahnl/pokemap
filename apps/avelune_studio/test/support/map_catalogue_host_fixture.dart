@@ -165,7 +165,7 @@ class MapCatalogueHostFixture {
     }
   }))!;
 
-  Future<void> paintCollision() async {
+  Future<void> paintCollision({GridPos? cell}) async {
     await tester.ensureVisible(find.text('Collisions'));
     await tester.tap(find.text('Collisions'));
     await pumpIo(tester, frames: 3);
@@ -181,8 +181,8 @@ class MapCatalogueHostFixture {
     final height =
         canvas.project.settings.tileHeight *
         canvas.project.settings.displayScale;
-    final x = canvas.document.current.size.width ~/ 2;
-    final y = canvas.document.current.size.height ~/ 2;
+    final x = cell?.x ?? canvas.document.current.size.width ~/ 2;
+    final y = cell?.y ?? canvas.document.current.size.height ~/ 2;
     await tester.tapAt(
       surface.localToGlobal(Offset((x + .5) * width, (y + .5) * height)),
     );

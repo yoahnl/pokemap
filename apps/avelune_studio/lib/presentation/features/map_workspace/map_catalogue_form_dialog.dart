@@ -10,6 +10,8 @@ Future<void> showMapCatalogueForm(
   required Future<String?> Function() submit,
   bool Function()? valid,
   String Function()? currentSubmitLabel,
+  bool Function()? additionalBusy,
+  String cancelLabel = 'Annuler',
 }) => showDialog<void>(
   context: context,
   barrierDismissible: false,
@@ -20,6 +22,8 @@ Future<void> showMapCatalogueForm(
     submit: submit,
     valid: valid,
     currentSubmitLabel: currentSubmitLabel,
+    additionalBusy: additionalBusy,
+    cancelLabel: cancelLabel,
   ),
 );
 
@@ -31,12 +35,16 @@ class _MapCatalogueFormDialog extends StatefulWidget {
     required this.submit,
     this.valid,
     this.currentSubmitLabel,
+    this.additionalBusy,
+    required this.cancelLabel,
   });
   final String title, submitLabel;
   final Widget Function(VoidCallback refresh, bool busy) fields;
   final Future<String?> Function() submit;
   final bool Function()? valid;
   final String Function()? currentSubmitLabel;
+  final bool Function()? additionalBusy;
+  final String cancelLabel;
   @override
   State<_MapCatalogueFormDialog> createState() =>
       _MapCatalogueFormDialogState();
@@ -45,8 +53,9 @@ class _MapCatalogueFormDialog extends StatefulWidget {
 class _MapCatalogueFormDialogState extends State<_MapCatalogueFormDialog> {
   bool _busy = false;
   String? _error;
+  bool get _working => _busy || widget.additionalBusy?.call() == true;
   Future<void> _submit() async {
-    if (_busy || widget.valid?.call() == false) return;
+    if (_working || widget.valid?.call() == false) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -70,12 +79,12 @@ class _MapCatalogueFormDialogState extends State<_MapCatalogueFormDialog> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !_busy,
+    canPop: !_working,
     child: CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.enter): _submit,
         const SingleActivator(LogicalKeyboardKey.escape): () {
-          if (!_busy) Navigator.pop(context);
+          if (!_working) Navigator.pop(context);
         },
       },
       child: Dialog(
@@ -101,7 +110,9 @@ class _MapCatalogueFormDialogState extends State<_MapCatalogueFormDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        widget.fields(() => setState(() {}), _busy),
+                        widget.fields(() {
+                          if (mounted) setState(() {});
+                        }, _working),
                         if (_error != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
@@ -123,16 +134,16 @@ class _MapCatalogueFormDialogState extends State<_MapCatalogueFormDialog> {
                   runSpacing: 8,
                   children: [
                     StudioButton(
-                      label: 'Annuler',
+                      label: widget.cancelLabel,
                       secondary: true,
-                      onPressed: _busy ? null : () => Navigator.pop(context),
+                      onPressed: _working ? null : () => Navigator.pop(context),
                     ),
                     StudioButton(
                       label:
                           widget.currentSubmitLabel?.call() ??
                           widget.submitLabel,
-                      loading: _busy,
-                      onPressed: _busy || widget.valid?.call() == false
+                      loading: _working,
+                      onPressed: _working || widget.valid?.call() == false
                           ? null
                           : _submit,
                     ),

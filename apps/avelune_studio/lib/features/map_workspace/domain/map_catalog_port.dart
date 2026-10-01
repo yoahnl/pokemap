@@ -3,6 +3,8 @@ import 'package:map_core/map_core_domain.dart';
 import '../../project_session/domain/project_session.dart';
 import 'map_workspace_port.dart';
 
+export 'map_catalog_preparation.dart';
+
 final class MapCatalogReceipt {
   const MapCatalogReceipt({
     required this.before,

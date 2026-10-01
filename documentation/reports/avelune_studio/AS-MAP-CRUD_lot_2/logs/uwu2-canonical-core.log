@@ -1,0 +1,85 @@
+00:00 +0: loading test/map_resize_plan_test.dart
+00:00 +0: test/map_resize_plan_test.dart: planMapResize keeps expansion and empty shrink directly applicable
+00:00 +1: test/map_resize_plan_test.dart: planMapResize lists every affected authored collection before destructive shrink
+00:00 +2: test/map_resize_plan_test.dart: planMapResize turns Border clipping diagnostics into blocking impacts
+00:00 +3: test/map_resize_plan_test.dart: planMapResize keeps exact counts while bounding coordinate samples
+00:00 +4: test/map_resize_plan_test.dart: planMapResize reports clipped values from active Smart Tile edge lattices
+00:00 +5: test/map_resize_plan_test.dart: planMapResize fails closed when a Border layer has no project tile size
+00:00 +6: test/map_resize_plan_test.dart: planMapResize uses swapped q1 and q3 footprints for resize clipping impacts
+00:00 +7: test/map_resize_plan_test.dart: planMapResize rejects non-positive target dimensions
+00:00 +8: test/narrative_dependency_index_test.dart: NarrativeDependencyIndex contract resolves inventory conditions against the project item catalog
+00:00 +9: test/narrative_dependency_index_test.dart: NarrativeDependencyIndex contract indexes typed progression condition references at exact paths
+00:00 +10: test/narrative_dependency_index_test.dart: NarrativeDependencyIndex contract indexes project media and FX definitions
+00:00 +11: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +12: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +13: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +14: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +15: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +16: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +17: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +18: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +19: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +20: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +21: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +22: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +23: test/border/border_resize_test.dart: resize keeps inclusive right and bottom grid-edge vertices
+00:00 +24: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes Event V2 source, conditions and produced Scene
+00:00 +25: test/border/border_resize_test.dart: resizeBorderLayerContent regions crops region and several keep-outs without translating or reordering
+00:00 +26: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +27: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +28: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +29: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +30: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +31: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes legacy claim sources, provenances and Event V2 targets
+00:00 +32: test/border/border_resize_test.dart: resizeBorderLayerContent strokes clips and splits post-and-rail-line-blueprint with stable collision-free ids
+00:00 +33: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors reports broken legacy claim dependencies in their own namespace
+00:00 +34: test/border/border_resize_test.dart: resizeBorderLayerContent strokes removes too-short fragments and converts a clipped loop to open
+00:00 +35: test/border/border_resize_test.dart: resizeBorderLayerContent strokes removes too-short fragments and converts a clipped loop to open
+00:00 +36: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors indexes mark-event-consumed map and event fields separately
+00:00 +37: test/border/border_resize_test.dart: resizeBorderLayerContent strokes does not regenerate or replace an unaffected materialization
+00:00 +38: test/border/border_resize_test.dart: resizeBorderLayerContent strokes does not regenerate or replace an unaffected materialization
+00:00 +39: test/border/border_resize_test.dart: resizeBorderLayerContent strokes does not regenerate or replace an unaffected materialization
+00:00 +40: test/narrative_dependency_index_test.dart: New Game, Event V2 and Scene collectors marks a duplicated definition as ambiguous
+00:00 +41: test/border/border_resize_test.dart: resizeBorderLayerContent materialization same-size is identity and does not rehash materialization output
+00:00 +42: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes loaded map sources and every authored dialogue reference
+00:00 +43: test/border/border_resize_test.dart: resizeBorderLayerContent materialization keeps inside and partial placements but culls anchor and bounds cases
+00:00 +44: test/border/border_resize_test.dart: resizeBorderLayerContent materialization keeps inside and partial placements but culls anchor and bounds cases
+00:00 +45: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes Storyline links, relationships, anchors and effects
+00:00 +46: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes Storyline links, relationships, anchors and effects
+00:00 +47: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes Storyline links, relationships, anchors and effects
+00:00 +48: test/border/border_resize_test.dart: resizeBorderLayerContent materialization partial culling changes only the output fingerprint and keeps order
+00:00 +49: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes legacy global-story document structure and metadata
+00:00 +50: test/border/border_resize_test.dart: resizeBorderLayerContent materialization reuses an unchanged materialization and receipt by identity
+00:00 +51: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors indexes Cinematic parents and WorldRule source, target and effect
+00:00 +52: test/border/border_resize_test.dart: resizeBorderLayerContent materialization removes materialization when ground and placements become empty
+00:00 +53: test/narrative_dependency_index_test.dart: Map, Storyline, Cinematic, WorldRule and legacy collectors uses the actor binding, not a placement decoy, for fromMapEntity
+00:00 +54: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +55: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +56: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +57: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +58: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +59: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +60: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +61: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics a map without Border is exactly the legacy resize result
+00:00 +62: test/narrative_dependency_index_test.dart: diagnostics, cycles and load reports unavailable map data without a missing-reference issue
+00:00 +63: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics same-size calls return the original map identity
+00:00 +64: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics same-size calls return the original map identity
+00:00 +65: test/narrative_dependency_index_test.dart: diagnostics, cycles and load reports Scene graph cycles but invents no Storyline cycle rule
+00:00 +66: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics legacy API refuses a changed-size Border map with migration hint
+00:00 +67: test/border/border_resize_test.dart: resizeMapDataWithBorderDiagnostics legacy API refuses a changed-size Border map with migration hint
+00:00 +68: test/narrative_dependency_index_test.dart: diagnostics, cycles and load is stack safe and deterministic for 10000 Event dependencies
+00:00 +69: test/narrative_dependency_index_test.dart: diagnostics, cycles and load is stack safe and deterministic for 10000 Event dependencies
+00:00 +70: test/narrative_dependency_index_test.dart: diagnostics, cycles and load is stack safe and deterministic for 10000 Event dependencies
+00:00 +71: test/narrative_dependency_index_test.dart: diagnostics, cycles and load is stack safe and deterministic for 10000 Event dependencies
+00:00 +72: test/narrative_dependency_index_test.dart: diagnostics, cycles and load is stack safe and deterministic for 10000 Event dependencies
+00:00 +73: test/narrative_dependency_index_test.dart: progressive legacy read-model delegation map dialogue collector delegates to the canonical map slice
+00:00 +74: test/narrative_dependency_index_test.dart: progressive legacy read-model delegation Storyline links retain the canonical missing resolution
+00:00 +75: test/narrative_dependency_index_test.dart: progressive legacy read-model delegation Facts manager sees New Game and Event V2 consumers
+00:00 +76: test/narrative_dependency_index_test.dart: progressive legacy read-model delegation Cinematics library retains a broken reference resolution
+00:00 +77: test/narrative_dependency_index_test.dart: progressive legacy read-model delegation Event builder receives canonical dependency diagnostics
+00:00 +78: test/narrative_dependency_index_test.dart: Narrative dependency inspection collects deterministic deduplicated target and consumer issues
+00:00 +79: test/narrative_dependency_index_test.dart: Narrative dependency inspection reports missing and ambiguous targets from definition count
+00:00 +80: test/narrative_dependency_index_test.dart: Narrative dependency inspection publishes draft, published and inactive Event metadata
+00:00 +81: test/narrative_dependency_index_test.dart: Narrative dependency inspection resolves qualified trainer battle outcome sources internally
+00:00 +82: test/narrative_dependency_index_test.dart: Narrative dependency inspection reports an unknown qualified trainer battle outcome as missing
+00:00 +83: All tests passed!

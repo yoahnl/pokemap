@@ -86,6 +86,24 @@ class EditableMapDocument {
     base = updated;
   }
 
+  void acceptCatalogContent(MapWorkspaceDocument updated) {
+    if (dirty || saving) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'La carte publiée ne peut pas remplacer une saisie en cours. Votre brouillon reste conservé.',
+      );
+    }
+    current = updated.map;
+    saved = updated.map;
+    base = updated;
+    _catalogName = updated.map.name;
+    _undo = [];
+    _redo = [];
+    stackPosition = null;
+    stackPixelPosition = null;
+    _repairSelection();
+  }
+
   void _repairSelection() {
     if (selected == null) selectedId = null;
   }

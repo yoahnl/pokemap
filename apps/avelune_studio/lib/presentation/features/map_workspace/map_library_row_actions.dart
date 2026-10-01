@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 
-enum MapLibraryAction { rename, move, up, down, deleteFolder, createMap }
+enum MapLibraryAction {
+  rename,
+  move,
+  up,
+  down,
+  deleteFolder,
+  createMap,
+  duplicate,
+  resize,
+  deleteMap,
+}
 
 class MapLibraryRowActions extends StatelessWidget {
   const MapLibraryRowActions({
@@ -41,7 +51,9 @@ class MapLibraryRowActions extends StatelessWidget {
                 Icon(
                   _icon(action),
                   size: 18,
-                  color: action == MapLibraryAction.deleteFolder
+                  color:
+                      action == MapLibraryAction.deleteFolder ||
+                          action == MapLibraryAction.deleteMap
                       ? Theme.of(context).colorScheme.error
                       : null,
                 ),
@@ -93,6 +105,9 @@ String _label(MapLibraryAction action) => switch (action) {
   MapLibraryAction.down => 'Descendre',
   MapLibraryAction.deleteFolder => 'Supprimer le dossier',
   MapLibraryAction.createMap => 'Nouvelle carte…',
+  MapLibraryAction.duplicate => 'Dupliquer…',
+  MapLibraryAction.resize => 'Redimensionner…',
+  MapLibraryAction.deleteMap => 'Supprimer la carte…',
 };
 IconData _icon(MapLibraryAction action) => switch (action) {
   MapLibraryAction.rename => Icons.edit_outlined,
@@ -101,4 +116,7 @@ IconData _icon(MapLibraryAction action) => switch (action) {
   MapLibraryAction.down => Icons.arrow_downward,
   MapLibraryAction.deleteFolder => Icons.delete_outline,
   MapLibraryAction.createMap => Icons.add,
+  MapLibraryAction.duplicate => Icons.copy_outlined,
+  MapLibraryAction.resize => Icons.aspect_ratio,
+  MapLibraryAction.deleteMap => Icons.delete_outline,
 };

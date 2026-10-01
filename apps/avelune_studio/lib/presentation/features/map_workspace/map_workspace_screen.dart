@@ -208,13 +208,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   late final WorkspaceActions _actions;
   StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
-  MapWorkspaceViewState? get _view {
-    final id = _controller.active?.base.mapId;
-    return id == null
-        ? null
-        : _views.putIfAbsent(id, MapWorkspaceViewState.new);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -239,6 +232,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );
+    _configureCatalogueGuard();
     widget.registerExitGuard(_allowCloseWithExport);
     widget.home?.allowSwitch = _allowCloseWithExport;
     _initializePokemon();
@@ -277,6 +271,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _changed() {
+    _reconcileCatalogueView();
     _releaseStaleMapState();
     final map = _controller.active?.current;
     if (map != null && _visuals != null && !identical(map, _preparedMap)) {

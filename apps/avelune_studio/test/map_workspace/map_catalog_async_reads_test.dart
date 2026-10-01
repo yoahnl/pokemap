@@ -88,6 +88,57 @@ void main() {
       },
     );
   }
+
+  for (final operation in ['map.resize_apply', 'map.delete_apply']) {
+    for (final activation in [false, true]) {
+      test(
+        'old ${activation ? 'activation' : 'preview'} cannot restore content after $operation',
+        () async {
+          final fixture = await MapCatalogFixture.create();
+          addTearDown(fixture.dispose);
+          final reads = DelayedMapPort(fixture.adapter);
+          final controller = MapWorkspaceController(
+            fixture.session,
+            reads,
+            catalogPort: fixture.catalog,
+          );
+          addTearDown(controller.dispose);
+          await controller.initialize();
+          final target = controller.project!.maps.last;
+          final recorded = await fixture.adapter.loadMap(
+            fixture.session,
+            target,
+          );
+          reads.mapId = target.id;
+          final pending = activation
+              ? controller.activate(target).then<MapData?>((_) => null)
+              : controller.previewMap(target.id);
+          await reads.loaded.future;
+          final result = await controller.mutateCatalog(operation, {
+            'mapId': target.id,
+            if (operation == 'map.resize_apply') ...{
+              'width': recorded.map.size.width + 2,
+              'height': recorded.map.size.height + 2,
+            },
+          }, confirmDestructive: operation == 'map.delete_apply');
+          expect(result.integrated, isTrue, reason: result.error);
+          reads.release.complete();
+          expect(await pending, isNull);
+          expect(controller.documents.containsKey(target.id), isFalse);
+          expect(controller.active!.base.mapId, isNot(target.id));
+          reads.mapId = null;
+          final fresh = await controller.previewMap(target.id);
+          if (operation == 'map.resize_apply') {
+            expect(fresh!.size.width, recorded.map.size.width + 2);
+            await controller.activate(target);
+            expect(controller.active!.current.size, fresh.size);
+          } else {
+            expect(fresh, isNull);
+          }
+        },
+      );
+    }
+  }
 }
 
 final class DelayedMapPort implements MapWorkspacePort {

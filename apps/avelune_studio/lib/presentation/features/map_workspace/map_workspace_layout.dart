@@ -129,6 +129,7 @@ class MapWorkspaceLayout extends StatelessWidget {
         controller: controller,
         onActivate: onActivate,
         onOrganize: onOrganizeMaps,
+        visuals: visuals,
       );
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();

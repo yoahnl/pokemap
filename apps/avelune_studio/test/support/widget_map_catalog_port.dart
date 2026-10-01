@@ -5,7 +5,8 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'm2_ui_fixture.dart' show WidgetResourcePort;
 
-class WidgetMapCatalogPort implements MapCatalogPort {
+class WidgetMapCatalogPort
+    implements MapCatalogPort, MapCatalogPreparationPort {
   WidgetMapCatalogPort(this.delegate, this.tester);
   final MapCatalogPort delegate;
   final WidgetTester tester;
@@ -44,4 +45,40 @@ class WidgetMapCatalogPort implements MapCatalogPort {
   @override
   Future<void> reconcile(ProjectSession session, MapCatalogReceipt receipt) =>
       _run(() => delegate.reconcile(session, receipt));
+
+  @override
+  Future<MapCatalogPreparation> prepare(
+    ProjectSession session,
+    String actionId,
+    Map<String, Object?> parameters, {
+    Map<String, String> expectedMapRevisions = const {},
+    ProjectManifest? expectedManifest,
+  }) => _run(
+    () => (delegate as MapCatalogPreparationPort).prepare(
+      session,
+      actionId,
+      parameters,
+      expectedMapRevisions: expectedMapRevisions,
+      expectedManifest: expectedManifest,
+    ),
+  );
+
+  @override
+  Future<MapCatalogReceipt> applyPrepared(
+    ProjectSession session,
+    MapCatalogPreparation preparation, {
+    Map<String, String> expectedMapRevisions = const {},
+    bool confirmDestructive = false,
+    ProjectManifest? expectedManifest,
+    String? Function()? validateBeforeApply,
+  }) => _run(
+    () => (delegate as MapCatalogPreparationPort).applyPrepared(
+      session,
+      preparation,
+      expectedMapRevisions: expectedMapRevisions,
+      confirmDestructive: confirmDestructive,
+      expectedManifest: expectedManifest,
+      validateBeforeApply: validateBeforeApply,
+    ),
+  );
 }

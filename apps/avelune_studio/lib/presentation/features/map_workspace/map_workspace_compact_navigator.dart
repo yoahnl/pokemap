@@ -5,12 +5,15 @@ import '../../../features/map_workspace/application/map_workspace_controller.dar
 import 'map_library_navigator.dart';
 import 'workspace_compact_panel.dart';
 import 'map_catalogue_workspace_actions.dart';
+import 'map_lifecycle_workspace_actions.dart';
+import 'map_workspace_visuals.dart';
 
 Future<void> showMapLibraryCompactPanel(
   BuildContext context, {
   required MapWorkspaceController controller,
   required ValueChanged<ProjectMapEntry> onActivate,
   required OrganizeMapLibrary? onOrganize,
+  MapWorkspaceVisuals? visuals,
 }) => showWorkspaceCompactPanel(
   context,
   title: 'Dossiers de cartes',
@@ -41,6 +44,18 @@ Future<void> showMapLibraryCompactPanel(
         ? null
         : (entry) async {
             await renameWorkspaceMap(context, controller, entry);
+            refresh();
+          },
+    onLifecycleMap: controller.catalogPort == null
+        ? null
+        : (entry, action) async {
+            await manageWorkspaceMap(
+              context,
+              controller,
+              entry,
+              action,
+              visuals: visuals,
+            );
             refresh();
           },
     onOrganize: onOrganize == null

@@ -4,6 +4,7 @@ import '../../../features/map_workspace/application/map_workspace_controller.dar
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'map_library_navigator.dart';
 import 'map_catalogue_workspace_actions.dart';
+import 'map_lifecycle_workspace_actions.dart';
 
 class MapCatalogueEmptyView extends StatelessWidget {
   const MapCatalogueEmptyView({
@@ -73,6 +74,14 @@ class MapCatalogueEmptyView extends StatelessWidget {
                 onRenameMap: controller.catalogPort == null
                     ? null
                     : (entry) => renameWorkspaceMap(context, controller, entry),
+                onLifecycleMap: controller.catalogPort == null
+                    ? null
+                    : (entry, action) => manageWorkspaceMap(
+                        context,
+                        controller,
+                        entry,
+                        action,
+                      ),
               ),
             Expanded(
               child: SingleChildScrollView(

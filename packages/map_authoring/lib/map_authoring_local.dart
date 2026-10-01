@@ -3,6 +3,9 @@ library;
 
 export 'map_authoring_api.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
+export 'src/domains/maps/map_lifecycle_actions.dart' show MapLifecycleActions;
+export 'src/domains/maps/map_lifecycle_analysis.dart' show MapLifecycleAnalysis;
+export 'src/transactions/action_planner.dart' show AuthoringPlanningContext;
 export 'src/domains/assets/asset_store.dart' show assetBlobResourceIdentity;
 export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;

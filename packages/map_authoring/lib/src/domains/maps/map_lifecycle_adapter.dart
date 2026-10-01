@@ -12,6 +12,8 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../support/authoring_performance_observer.dart';
 import '../../workspace/project_snapshot.dart';
+import 'map_resize_dependencies.dart';
+import 'map_duplicate_codec_guard.dart';
 
 /// Stable domain failure returned by map action adapters.
 final class MapAuthoringException implements Exception {
@@ -307,13 +309,38 @@ final class MapLifecycleAdapter {
   AuthoringMutationDraft duplicate(AuthoringPlanningContext context) {
     final parameters = _Parameters(
       context.request.parameters,
-      allowed: const {'sourceMapId', 'targetMapId', 'name'},
+      allowed: const {'sourceMapId', 'targetMapId', 'name', 'groupId'},
     );
     final snapshot = context.snapshot;
+    _requireCompleteMapInventory(snapshot);
     _requireManifestOwnership(snapshot.manifest);
     final sourceId = parameters.string('sourceMapId');
     final entry = _requireMapEntry(snapshot.manifest, sourceId);
     final source = _requireMap(snapshot, sourceId);
+    final unsupportedFields = unsupportedMapDuplicateFields(snapshot, source);
+    if (unsupportedFields.isNotEmpty) {
+      throw _failure('map.duplicate_unsupported_data',
+          'The map contains authored fields that its codec cannot preserve in a copy.',
+          details: {'mapId': sourceId, 'fields': unsupportedFields});
+    }
+    if (source.events.isNotEmpty) {
+      throw _failure('map.duplicate_global_event_identity',
+          'Map events expose project-wide identities and cannot be copied safely.',
+          details: {
+            'mapId': sourceId,
+            'eventIds':
+                source.events.map((event) => event.id).toList(growable: false)
+          });
+    }
+    final groupId = context.request.parameters.containsKey('groupId')
+        ? parameters.optionalString('groupId')
+        : entry.groupId;
+    if (groupId != null &&
+        !snapshot.manifest.groups.any((group) => group.id == groupId)) {
+      throw _failure(
+          'map.group_missing', 'The requested map folder no longer exists.',
+          details: {'groupId': groupId});
+    }
     final requestedId = parameters.optionalString('targetMapId');
     final targetId = requestedId == null
         ? _nextCopyId(sourceId, snapshot.manifest.maps.map((map) => map.id))
@@ -329,7 +356,7 @@ final class MapLifecycleAdapter {
           id: targetId,
           name: name,
           relativePath: path,
-          groupId: entry.groupId,
+          groupId: groupId,
           role: entry.role,
         ),
       ],
@@ -367,6 +394,8 @@ final class MapLifecycleAdapter {
         'operation': 'duplicate',
         'sourceMapId': sourceId,
         'mapId': targetId,
+        'groupId': groupId,
+        'selfReferences': 'sourceMap',
         'storageGuarantee': 'recoverable',
       },
     );
@@ -378,6 +407,7 @@ final class MapLifecycleAdapter {
       allowed: const {'mapId'},
     );
     final snapshot = context.snapshot;
+    _requireCompleteMapInventory(snapshot);
     _requireManifestOwnership(snapshot.manifest);
     final mapId = parameters.string('mapId');
     final entry = _requireMapEntry(snapshot.manifest, mapId);
@@ -438,6 +468,7 @@ final class MapLifecycleAdapter {
       allowed: const {'mapId', 'width', 'height'},
     );
     final snapshot = context.snapshot;
+    _requireCompleteMapInventory(snapshot);
     _requireManifestOwnership(snapshot.manifest);
     final mapId = parameters.string('mapId');
     final entry = _requireMapEntry(snapshot.manifest, mapId);
@@ -457,15 +488,20 @@ final class MapLifecycleAdapter {
     if (plan.isNoOp) {
       throw _failure('map.no_change', 'The requested resize changes nothing.');
     }
-    if (!plan.canApply) {
+    final externalImpacts =
+        mapResizeDependencyImpacts(snapshot, map, plan.targetSize);
+    if (!plan.canApply || externalImpacts.isNotEmpty) {
       throw _failure(
         'map.resize_impacts',
         'The resize would discard or invalidate authored map data.',
         details: {
           'mapId': mapId,
-          'impactCount': plan.impacts.length,
-          'impacts':
-              plan.impacts.map(_resizeImpactJson).toList(growable: false),
+          'impactCount': plan.impacts.length + externalImpacts.length,
+          'impacts': [
+            for (final impact in plan.impacts)
+              {..._resizeImpactJson(impact), 'ownerMapId': mapId},
+            ...externalImpacts,
+          ],
           'borderDiagnostics': plan.borderDiagnostics.diagnostics
               .map(_borderDiagnosticJson)
               .toList(growable: false),
@@ -735,12 +771,58 @@ ProjectReferenceImpact _referenceImpact(
     parentId: mapId,
     sourceKind: 'map',
   );
-  final analyzer = ProjectReferenceImpactAnalyzer(
-    ProjectReferenceIndex.fromSnapshot(snapshot),
-  );
-  return newId == null
+  final index = ProjectReferenceIndex.fromSnapshot(snapshot);
+  final analyzer = ProjectReferenceImpactAnalyzer(index);
+  final impact = newId == null
       ? analyzer.deletionImpact(target)
       : analyzer.renameImpact(target, newId: newId);
+  if (newId != null) return impact;
+  final removedKeys = <ProjectReferenceKey>{
+    target,
+    for (final node in index.nodes)
+      if (node.key.scope == 'map' && node.key.parentId == mapId) node.key,
+    for (final event in _requireMap(snapshot, mapId).events)
+      ProjectReferenceKey.fromNarrativeKey(NarrativeDependencyKey.synthetic(
+          sourceKind: 'legacyMapEvent', sourceId: event.id)),
+  };
+  final edges = index.edges
+      .where((edge) => removedKeys.contains(edge.target))
+      .where((edge) =>
+          !(edge.owner.scope == 'map' && edge.owner.parentId == mapId))
+      .toList(growable: false);
+  final dependents = edges.map((edge) => edge.owner).toSet().toList()
+    ..sort(compareProjectReferenceKeys);
+  return ProjectReferenceImpact(
+      kind: impact.kind,
+      target: target,
+      replacement: null,
+      directDependents: dependents,
+      affectedEdges: edges,
+      diagnostics: index.diagnostics.where((diagnostic) =>
+          removedKeys.contains(diagnostic.target) ||
+          removedKeys.contains(diagnostic.owner)),
+      runtimeBlocking: edges.any((edge) =>
+          edge.criticality == NarrativeDependencyCriticality.runtimeBlocking));
+}
+
+void _requireCompleteMapInventory(ProjectSnapshot snapshot) {
+  final mapIds = snapshot.maps.map((map) => map.id).toSet();
+  final missing = snapshot.manifest.maps
+      .where((entry) => !mapIds.contains(entry.id))
+      .map((entry) => entry.id)
+      .toList(growable: false);
+  final diagnostics = snapshot.loadDiagnostics
+      .where((diagnostic) => diagnostic.blocking)
+      .toList(growable: false);
+  if (missing.isEmpty && diagnostics.isEmpty) return;
+  throw _failure('map.inventory_incomplete',
+      'Required project sources must be repaired before analyzing map topology.',
+      details: {
+        'missingMapIds': missing,
+        'diagnostics': diagnostics
+            .map((diagnostic) => diagnostic.toJson())
+            .toList(growable: false)
+      });
 }
 
 void _requireNoDependents(ProjectReferenceImpact impact) {

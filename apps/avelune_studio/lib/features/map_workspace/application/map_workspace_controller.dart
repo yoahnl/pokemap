@@ -6,6 +6,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 
 part 'map_workspace_catalog_commands.dart';
+part 'map_workspace_catalog_preparation.dart';
+part 'map_workspace_history_destinations.dart';
 
 class MapWorkspaceController {
   MapWorkspaceController(this.session, this.port, {this.catalogPort});
@@ -21,12 +23,15 @@ class MapWorkspaceController {
   MapCatalogReceipt? pendingCatalogReceipt;
   String? _catalogTargetId;
   var _catalogEpoch = 0;
+  final Map<String, int> _mapEpochs = {};
   final Set<void Function()> _listeners = {};
   ProjectManifest? project;
   EditableMapDocument? active;
   bool loading = false;
   String? error;
   String? Function(MapData before, MapData after)? historyGuard;
+  String? Function(String actionId, String targetMapId)?
+  catalogDependencyFailure;
   var _generation = 0;
   var _disposed = false;
   bool get isDisposed => _disposed;
@@ -66,6 +71,7 @@ class MapWorkspaceController {
     final currentEntry =
         project?.maps.where((map) => map.id == entry.id).firstOrNull ?? entry;
     final catalogEpoch = _catalogEpoch;
+    final mapEpoch = _mapEpochs[entry.id];
     Future<EditableMapDocument>? pending;
     final generation = ++_generation;
     loading = true;
@@ -82,6 +88,7 @@ class MapWorkspaceController {
       }
       final document = cached ?? await pending!;
       if (_disposed ||
+          mapEpoch != _mapEpochs[entry.id] ||
           isCurrent?.call() == false ||
           (catalogEpoch != _catalogEpoch && !_entryDocumentCurrent(entry))) {
         return;
@@ -109,11 +116,16 @@ class MapWorkspaceController {
     if (entry == null) return Future.value(null);
     final cached = _previews[id];
     if (cached != null) return cached;
+    final mapEpoch = _mapEpochs[id];
     late final Future<MapData?> pending;
     pending = () async {
       try {
         final loaded = await port.loadMap(session, entry);
-        if (_disposed || !_entryDocumentCurrent(entry)) return null;
+        if (_disposed ||
+            mapEpoch != _mapEpochs[id] ||
+            !_entryDocumentCurrent(entry)) {
+          return null;
+        }
         return loaded.map;
       } on Object {
         if (identical(_previews[id], pending)) _previews.remove(id);
@@ -199,17 +211,7 @@ class MapWorkspaceController {
       redo: redo,
       canRestore: (next) {
         final before = document.current;
-        final missingDestinations =
-            next.warps.any(
-              (warp) =>
-                  !manifest.maps.any((entry) => entry.id == warp.targetMapId),
-            ) ||
-            next.connections.any(
-              (connection) => !manifest.maps.any(
-                (entry) => entry.id == connection.targetMapId,
-              ),
-            );
-        if (missingDestinations) {
+        if (_historyHasMissingMapDestination(next, manifest)) {
           document.error =
               'Cette annulation restaurerait une destination supprimée.';
           return false;
@@ -284,8 +286,4 @@ class MapWorkspaceController {
     _previews.clear();
     _listeners.clear();
   }
-
-  String _message(Object failure) => failure is MapWorkspaceFailure
-      ? failure.message
-      : 'Impossible de charger ou d’enregistrer cette carte.';
 }

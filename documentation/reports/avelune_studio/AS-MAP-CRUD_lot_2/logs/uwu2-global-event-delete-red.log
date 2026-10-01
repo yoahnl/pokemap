@@ -1,0 +1,17 @@
+00:00 +0: loading test/domains/maps/map_catalog_dependency_contract_test.dart
+00:00 +0: a global consumed-event condition protects its defining map
+00:00 +0 -1: a global consumed-event condition protects its defining map [E]
+  Expected: 'map.references_blocking'
+    Actual: <null>
+     Which: not an <Instance of 'String'>
+  
+  package:matcher                                                   expect
+  test/domains/maps/map_catalog_dependency_contract_test.dart 37:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/domains/maps/map_catalog_dependency_contract_test.dart: a global consumed-event condition protects its defining map
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.
