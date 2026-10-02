@@ -509,6 +509,26 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (const {
+    'tileset.metadata.update',
+    'tileset_folder.upsert',
+    'tileset_folder.delete',
+    'element_category.upsert',
+    'element_category.delete',
+    'element.category.assign',
+    'smart_tile.category.upsert',
+    'smart_tile.category.delete',
+    'smart_tile.preset.category.assign',
+  }.contains(actionId)) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/resource_information_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/resource_information_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_management_stdio.test.ts',
+    };
+  }
   if (actionId == 'placed_element.set_geometry') {
     return const {
       AuthoringTransport.directApi:
@@ -1120,6 +1140,15 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(
+    [
+      'tileset.metadata.',
+      'element.category.',
+      'smart_tile.category.',
+      'smart_tile.preset.category.'
+    ],
+    'test/domains/assets/resource_information_transaction_test.dart',
+  ),
   _ContractEvidenceRule(
     ['placed_element.set_geometry'],
     'test/domains/maps/placed_element_geometry_transport_test.dart',

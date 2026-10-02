@@ -13,6 +13,8 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../characters/character_studio_page.dart';
 import 'resource_character_portrait_import.dart';
 import 'resource_character_animation_import.dart';
+import 'resource_management_bindings.dart';
+import 'resource_reconciliation_notice.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -232,6 +234,12 @@ class ResourceWorkspacePane extends StatelessWidget {
               canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,
+              onInformation: (item) =>
+                  openResourceInformation(context, n, item),
+              onMove: (item) => moveResource(context, n, item),
+              onUsages: (item) => openResourceUsages(context, n, item),
+              onManageContainers: (family) =>
+                  manageResourceContainers(context, n, family),
               onTerrain: n.prepareTerrain,
               onCreateBorder: () => showDialog<bool>(
                 context: context,
@@ -266,6 +274,8 @@ class ResourceWorkspacePane extends StatelessWidget {
     return Column(
       children: [
         if (n.error != null) StudioNotice(n.error!, isError: true, maxLines: 2),
+        if (n.pendingReceipt != null)
+          ResourceReconciliationNotice(navigation: n),
         if (n.busy) const LinearProgressIndicator(),
         Expanded(
           child: AbsorbPointer(absorbing: n.busy, child: content),

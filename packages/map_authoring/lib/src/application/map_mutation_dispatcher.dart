@@ -21,6 +21,7 @@ import '../domains/assets/tiled_tileset_import_actions.dart';
 import '../domains/assets/tileset_image_import_actions.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../domains/assets/visual_organization_actions.dart';
+import '../domains/assets/resource_information_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
@@ -306,6 +307,11 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: visualOrganization.build,
         ),
+      for (final descriptor in ResourceInformationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const ResourceInformationActions().build,
+        ),
       for (final descriptor in BattleTransitionDefaultActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
@@ -403,7 +409,8 @@ final class MapMutationDispatcher {
         ),
       MapMutationActionRegistration(
         descriptor: PresentationPublicationActions.descriptor,
-        build: PresentationPublicationActions(mediaImports: presentationMedia).build,
+        build: PresentationPublicationActions(mediaImports: presentationMedia)
+            .build,
       ),
       for (final descriptor in PresentationCinematicActions.descriptors)
         MapMutationActionRegistration(

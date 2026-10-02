@@ -64,6 +64,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
+import '../../../features/resources/domain/resource_usage_port.dart';
 import '../resources/resource_image_import.dart';
 import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
@@ -85,6 +86,7 @@ part 'workspace_cinematic_binding.dart';
 part 'workspace_presentation_binding.dart';
 part 'workspace_keyboard_binding.dart';
 part 'workspace_lifecycle_binding.dart';
+part 'workspace_resource_usage_binding.dart';
 part 'workspace_context_menu_binding.dart';
 part 'workspace_navigation_binding.dart';
 part 'workspace_world_binding.dart';
@@ -246,6 +248,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
         mounted: () => mounted,
         changed: _changed,
         onUse: _useResource,
+        openUsage: _openResourceUsage,
+        canOpenUsage: _canOpenResourceUsage,
+        additionalDraftOwners: _resourceUsageDraftOwners,
       );
       if (loaded == null) return;
       _visuals = loaded.visuals;

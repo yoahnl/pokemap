@@ -2,6 +2,10 @@ part of 'workspace_actions.dart';
 
 extension _WorkspaceCloseActions on WorkspaceActions {
   Future<bool> _allowClose() async {
+    if (resources()?.managementDialogActive == true ||
+        resources()?.pendingReceipt != null) {
+      return false;
+    }
     if (!_flushDialogueEdit()) return false;
     if (!await _flushEventEdits()) return false;
     if (controller.saving || busy) return false;

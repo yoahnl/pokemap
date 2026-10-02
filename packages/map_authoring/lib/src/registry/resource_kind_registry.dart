@@ -197,6 +197,17 @@ final class AuthoringResourceKindRegistry {
         summary: 'Content-addressed project asset',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'resourceUsage',
+        version: 1,
+        displayName: 'Resource usages',
+        summary: 'Read-only project usages for one family-qualified identity',
+        extensions: const {
+          'families': ['images', 'decors', 'terrains'],
+          'freshness': 'exact snapshot revision and resource fingerprints',
+          'draftCoverage': 'saved documents only; resolve in-memory owners',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'assetCatalog',
         version: 1,
         displayName: 'Asset catalog',
@@ -599,6 +610,7 @@ final class AuthoringResourceKindRegistry {
       ),
     ], queryableResourceKindIds: const {
       'asset',
+      'resourceUsage',
       'borderBlueprint',
       'borderSnapshot',
       'characterStudioCatalog',

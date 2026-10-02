@@ -70,6 +70,7 @@ class M2UiFixture {
     WidgetTester tester, {
     double textScale = 1,
     PickResourceImage? imagePicker,
+    ResourcePort? resourcePort,
   }) => MaterialApp(
     debugShowCheckedModeBanner: false,
     builder: (context, child) => RepaintBoundary(
@@ -86,7 +87,7 @@ class M2UiFixture {
       controller: controller,
       loadVisuals: (session, manifest) async =>
           visuals = await StudioMapResources.load(session, manifest),
-      resourcePort: WidgetResourcePort(resources, tester),
+      resourcePort: resourcePort ?? WidgetResourcePort(resources, tester),
       imagePicker:
           imagePicker ??
           () async {

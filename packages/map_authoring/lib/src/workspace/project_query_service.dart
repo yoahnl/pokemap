@@ -17,6 +17,8 @@ import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
 import '../domains/narrative/storyline_inspection.dart';
 import '../registry/resource_kind_registry.dart';
+import '../references/resource_usage_projection.dart';
+import '../references/resource_usage_report.dart';
 import 'project_snapshot.dart';
 
 final class AuthoringQueryException implements Exception {
@@ -655,6 +657,11 @@ List<_QueryRecord> _records(
   AuthoringQueryRequest request,
 ) {
   switch (request.resourceKind) {
+    case 'resourceUsage':
+      return [
+        for (final identity in request.ids)
+          _resourceUsageRecord(snapshot, identity),
+      ];
     case 'project':
       return [
         _QueryRecord(
@@ -2311,6 +2318,37 @@ _QueryCursor _decodeCursor(String value) {
       'The query cursor is malformed.',
     );
   }
+}
+
+_QueryRecord _resourceUsageRecord(ProjectSnapshot snapshot, String identity) {
+  final separator = identity.indexOf(':');
+  if (separator < 1 ||
+      separator == identity.length - 1 ||
+      !const {'images', 'decors', 'terrains'}
+          .contains(identity.substring(0, separator))) {
+    throw const AuthoringQueryException('query.resource_usage_identity_invalid',
+        'Expected a family-qualified resource identity.');
+  }
+  final report = const ResourceUsageProjection().analyze(
+    snapshot,
+    ResourceUsageTarget(
+        family: identity.substring(0, separator),
+        id: identity.substring(separator + 1)),
+  );
+  final detail = report.toJson();
+  return _QueryRecord(
+    summary: {
+      'id': identity,
+      'name': identity,
+      'revision': report.revision,
+      'complete': report.complete,
+      'coverageIssues': report.coverageIssues,
+      for (final relation in ResourceUsageRelation.values)
+        '${relation.name}Count':
+            report.entries.where((entry) => entry.relation == relation).length,
+    },
+    detail: detail,
+  );
 }
 
 final class _QueryRecord {

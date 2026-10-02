@@ -1088,6 +1088,16 @@ modifier la source. L'application est à risque élevé et requiert la
 confirmation liée au plan ; la couverture, les ambiguïtés et les cellules non
 résolues restent visibles avant confirmation.
 
+Les métadonnées et le rangement logique des ressources utilisent
+`tileset.metadata.update` (nom et dossier, identité/source/grille conservées),
+`tileset_folder.upsert`/`delete`, `element_category.upsert`/`delete`,
+`element.category.assign`, `smart_tile.category.upsert`/`delete` et
+`smart_tile.preset.category.assign`. Les dossiers de planches et les catégories
+de décors restent hiérarchiques ; les catégories Smart Tiles restent plates.
+Les suppressions de conteneurs occupés sont refusées. Le déplacement d'un
+preset ne publie pas son brouillon de préparation. Ces commandes traversent
+le dispatcher canonique et les transactions revisionnées communes.
+
 ### 13.2 Environnements
 
 ```text

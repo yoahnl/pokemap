@@ -20,6 +20,7 @@ import 'workspace_handle_store.dart';
 enum ProjectSnapshotLoadPolicy {
   strict,
   editorReadProjection,
+  resourceUsageReadProjection,
 }
 
 typedef ProjectSnapshotLoadProfileSink = void Function(
@@ -222,6 +223,8 @@ final class ProjectSnapshotLoader {
   final WorkspaceHandleStore _handles;
   final ProjectSnapshotFingerprintCache? _fingerprintCache;
   final ProjectSnapshotCache? _snapshotCache;
+  final ProjectSnapshotCache _resourceUsageSnapshotCache =
+      ProjectSnapshotCache();
   final ProjectSnapshotDecodeExecutor _decodeExecutor;
   final PokemonCatalogCoherenceLoader _pokemonCatalogLoader;
   final ProjectSnapshotLoadProfileSink? profileSink;
@@ -264,10 +267,14 @@ final class ProjectSnapshotLoader {
   }) async {
     final profiler =
         profileSink == null ? null : _ProjectSnapshotLoadProfiler();
+    final snapshotCache =
+        policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection
+            ? _resourceUsageSnapshotCache
+            : _snapshotCache;
     final cacheIdentityReadsBefore =
-        profiler == null ? 0 : _snapshotCache?.identityReads ?? 0;
+        profiler == null ? 0 : snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
-    final cached = await _snapshotCache?.lookup(
+    final cached = await snapshotCache?.lookup(
       access,
       projectHandle,
       validation: cacheValidation,
@@ -280,7 +287,7 @@ final class ProjectSnapshotLoader {
             resourceBytes: cached.resourceByteLength,
             cacheHit: true,
             cacheIdentityReads:
-                (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
+                (snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
           ),
         );
       }
@@ -292,7 +299,7 @@ final class ProjectSnapshotLoader {
 
     final manifestDecodeTimer = profiler?.startStage();
     final identityCachingEnabled =
-        _fingerprintCache != null || _snapshotCache != null;
+        _fingerprintCache != null || snapshotCache != null;
     final manifestIdentity = !identityCachingEnabled
         ? null
         : await access.readResourceIdentity('project.json');
@@ -399,7 +406,7 @@ final class ProjectSnapshotLoader {
             itemCatalogBytes.bytes,
           );
         } on ProjectSnapshotException catch (error) {
-          if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+          if (policy == ProjectSnapshotLoadPolicy.strict ||
               error.code != 'project.item_catalog_invalid') {
             rethrow;
           }
@@ -445,7 +452,7 @@ final class ProjectSnapshotLoader {
           profiler?.recordInitialRead(dialogueReadTimer!);
         }
       } on ProjectSnapshotException catch (error) {
-        if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+        if (policy == ProjectSnapshotLoadPolicy.strict ||
             error.code != 'project.dialogue_source_missing') {
           rethrow;
         }
@@ -632,6 +639,9 @@ final class ProjectSnapshotLoader {
         ),
       );
       for (final record in catalog.records) {
+        if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
+          continue;
+        }
         if (!record.logicalPath.startsWith('assets/pokemon/menu/')) continue;
         final path = validateProjectRelativePath(record.logicalPath).join('/');
         if (!occupiedPaths.add(path)) {
@@ -659,6 +669,9 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(assetCatalogDecodeTimer!);
 
       for (final artifact in digests) {
+        if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
+          continue;
+        }
         final storageKey = assetBlobStorageKey(artifact);
         final assetBlobReadTimer = profiler?.startStage();
         final bytes = await _readRequiredAssetBlob(access, storageKey);
@@ -862,7 +875,7 @@ final class ProjectSnapshotLoader {
       completeIdentities[resource.relativePath] = identity;
     }
     if (completeIdentities.isNotEmpty) {
-      _snapshotCache?.store(
+      snapshotCache?.store(
         snapshot: snapshot,
         identities: completeIdentities,
         absentResourcePaths: [
@@ -882,7 +895,7 @@ final class ProjectSnapshotLoader {
             (total, resource) => total + resource.bytes.typedBytes.length,
           ),
           cacheIdentityReads:
-              (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
+              (snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
         ),
       );
     }

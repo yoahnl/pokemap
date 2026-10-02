@@ -32,7 +32,8 @@ class _ResourceCategoryFilterState extends State<ResourceCategoryFilter> {
     final parentIds = nodes.map((node) => node.parentId).toSet();
     bool hidden(ResourceCategoryNode node) {
       var parent = node.parentId;
-      while (parent != null) {
+      final visited = <String>{};
+      while (parent != null && visited.add(parent)) {
         if (_collapsed.contains(parent)) return true;
         parent = parents[parent];
       }

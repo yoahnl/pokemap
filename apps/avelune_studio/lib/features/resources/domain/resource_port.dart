@@ -73,6 +73,11 @@ final class ResourceMutationReceipt {
     required this.revision,
     required this.changedPaths,
     this.createdTilesetId,
+    this.operationId,
+    this.actionId,
+    this.snapshotBeforeRevision,
+    this.resourceRevisions = const {},
+    this.pathRevisions = const {},
   });
 
   final ProjectManifest before;
@@ -81,6 +86,12 @@ final class ResourceMutationReceipt {
   final String revision;
   final List<String> changedPaths;
   final String? createdTilesetId;
+  final String? operationId;
+  final String? actionId;
+  final String? snapshotBeforeRevision;
+  final Map<String, String?> resourceRevisions;
+  final Map<String, String?> pathRevisions;
+  bool get noChange => changedPaths.isEmpty;
 }
 
 abstract interface class ResourcePort {

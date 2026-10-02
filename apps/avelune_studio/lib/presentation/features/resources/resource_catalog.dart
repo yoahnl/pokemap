@@ -135,7 +135,6 @@ Map<String, String> resourceCategories(
     (item) => item.kind == kind,
   );
   final present = family.map((item) => item.category).toSet();
-  if (present.every((id) => id.isEmpty)) return {};
   final labels = switch (kind) {
     ResourceKind.decors => {
       for (final category in manifest.elementCategories)
@@ -149,7 +148,8 @@ Map<String, String> resourceCategories(
       for (final folder in manifest.tilesetFolders) folder.id: folder.name,
     },
   };
-  final ids = present.where((id) => id.isNotEmpty).toList()
+  if (labels.isEmpty && present.every((id) => id.isEmpty)) return {};
+  final ids = {...labels.keys, ...present.where((id) => id.isNotEmpty)}.toList()
     ..sort((a, b) {
       final result = (labels[a] ?? a).toLowerCase().compareTo(
         (labels[b] ?? b).toLowerCase(),

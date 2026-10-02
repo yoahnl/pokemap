@@ -5630,7 +5630,7 @@ test("MCP organizes nested map folders without rewriting maps", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: true });
   try {
     const projectPath = join(fixture.root, "project.json");
-    let before = record(JSON.parse(await readFile(projectPath, "utf8")));
+    const before = record(JSON.parse(await readFile(projectPath, "utf8")));
     const maps = before.maps as JsonRecord[];
     assert.ok(maps.length > 0);
     const bytes = await Promise.all(maps.map((m) => readFile(join(fixture.root, String(m.relativePath)))));
@@ -5638,12 +5638,26 @@ test("MCP organizes nested map folders without rewriting maps", async () => {
     assert.ok((catalog.mutationActions as JsonRecord[]).some((a) => a.id === "map.library.reorganize"));
     const opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
     const initial = await toolData(fixture.client, "pokemap_validate", { projectHandle: opened.projectHandle });
-    const baselineRevision = await applyMutation(fixture.client, {
-      projectHandle: String(opened.projectHandle), workspaceHandle: String(opened.workspaceHandle),
-      expectedRevision: String(initial.snapshotRevision), actionId: "map.library.reorganize",
-      parameters: { assignments: [] }, sequence: "map-library-normalized-fixture",
+    const baselineRevision = String(initial.snapshotRevision);
+    const initialBytes = await readFile(projectPath);
+    const noOp = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle: opened.projectHandle, request: {
+        requestId: "unchanged-map-library", actionId: "map.library.reorganize", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle, parameters: { assignments: [] },
+        expectedRevision: baselineRevision, idempotencyKey: "unchanged-map-library", dryRun: false,
+      },
     });
-    before = record(JSON.parse(await readFile(projectPath, "utf8")));
+    const noOpApply = await fixture.client.callTool({ name: "pokemap_apply", arguments: {
+      operation: "apply", projectHandle: opened.projectHandle,
+      planId: noOp.planId, operationId: "unchanged-map-library",
+    } });
+    assert.equal(record(noOpApply.structuredContent).ok, false);
+    assert.equal(record(record(noOpApply.structuredContent).error).domainCode, "plan.no_changes");
+    assert.deepEqual(await readFile(projectPath), initialBytes);
+    const canonicalBefore = record(((await toolData(fixture.client, "pokemap_query", {
+      projectHandle: opened.projectHandle, resourceKind: "project", operation: "get",
+      ids: ["project"], view: "detail",
+    })).items as unknown[])[0]);
     await applyMutation(fixture.client, {
       projectHandle: String(opened.projectHandle), workspaceHandle: String(opened.workspaceHandle),
       expectedRevision: baselineRevision, actionId: "map.library.reorganize",
@@ -5659,9 +5673,13 @@ test("MCP organizes nested map folders without rewriting maps", async () => {
     const after = record(JSON.parse(await readFile(projectPath, "utf8")));
     assert.equal((after.groups as JsonRecord[])[1]!.parentGroupId, "region");
     assert.ok((after.maps as JsonRecord[]).every((m) => m.groupId === "interiors"));
-    assert.deepEqual(after.tilesets, before.tilesets);
-    assert.deepEqual(after.encounterTables, before.encounterTables);
-    assert.deepEqual({ ...after, maps: before.maps, groups: before.groups }, before);
+    const canonicalAfter = record(((await toolData(fixture.client, "pokemap_query", {
+      projectHandle: reopened.projectHandle, resourceKind: "project", operation: "get",
+      ids: ["project"], view: "detail",
+    })).items as unknown[])[0]);
+    assert.deepEqual(after.tilesets, canonicalBefore.tilesets);
+    assert.deepEqual(after.encounterTables, canonicalBefore.encounterTables);
+    assert.deepEqual({ ...canonicalAfter, maps: canonicalBefore.maps, groups: canonicalBefore.groups }, canonicalBefore);
     for (let i = 0; i < maps.length; i++) {
       const entry = (after.maps as JsonRecord[])[i]!;
       assert.equal(entry.id, maps[i]!.id);

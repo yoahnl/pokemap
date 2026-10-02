@@ -314,6 +314,7 @@ AuthoringActionDescriptor visualLibraryDescriptor(
   String summary, {
   AuthoringRiskLevel risk = AuthoringRiskLevel.medium,
   Iterable<String> resourceKinds = const ['project', 'asset'],
+  Map<String, Object?>? inputSchema,
 }) =>
     AuthoringActionDescriptor(
       id: id,
@@ -332,6 +333,7 @@ AuthoringActionDescriptor visualLibraryDescriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
+      extensions: inputSchema == null ? const {} : {'inputSchema': inputSchema},
     );
 
 AuthoringMutationDraft buildVisualManifestDraft(
@@ -342,6 +344,7 @@ AuthoringMutationDraft buildVisualManifestDraft(
   Object? before,
   Object? after,
   Map<String, Object?> referenceImpact = const {},
+  List<int>? encodedManifest,
 }) {
   try {
     ProjectValidator.validate(manifest);
@@ -350,6 +353,13 @@ AuthoringMutationDraft buildVisualManifestDraft(
       'visual.projected_state_invalid',
       'The visual library mutation would invalidate the project.',
       details: {'validationType': error.runtimeType.toString()},
+    );
+  }
+  if (manifest == snapshot.manifest) {
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet.noChanges(),
+      preview: {'operation': operation, 'noOp': true},
+      referenceImpact: referenceImpact,
     );
   }
   final project = AuthoringResourceRef(
@@ -364,7 +374,8 @@ AuthoringMutationDraft buildVisualManifestDraft(
           resource: project,
           storageKey: 'project.json',
           beforeBytes: snapshot.resourceBytes('project'),
-          afterBytes: encodeProjectAuthoringDocument(snapshot, manifest),
+          afterBytes: encodedManifest ??
+              encodeProjectAuthoringDocument(snapshot, manifest),
         ),
       ],
       diff: AuthoringDiff([

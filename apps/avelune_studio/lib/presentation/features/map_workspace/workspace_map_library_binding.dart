@@ -17,10 +17,14 @@ extension _WorkspaceMapLibrary on _MapWorkspaceScreenState {
   }
 
   void _reconcileCatalogueView() {
-    final ids = _controller.project?.maps.map((map) => map.id).toSet();
-    if (ids == null) return;
+    final project = _controller.project;
+    if (project == null) return;
+    final ids = project.maps.map((map) => map.id).toSet();
     for (final id in _views.keys.where((id) => !ids.contains(id)).toList()) {
       _views.remove(id)?.dispose();
+    }
+    for (final view in _views.values) {
+      view.reconcileResources(project);
     }
     final current = _controller.active?.current;
     if (current != null &&

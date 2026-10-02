@@ -169,6 +169,34 @@ class MapWorkspaceViewState {
     tool = character == null ? StudioMapTool.select : StudioMapTool.character;
   }
 
+  void reconcileResources(ProjectManifest project) {
+    if (brush != null) {
+      brush = project.elements
+          .where((item) => item.id == brush!.id)
+          .firstOrNull;
+      if (brush == null &&
+          (tool == StudioMapTool.place || tool == StudioMapTool.paint)) {
+        tool = StudioMapTool.select;
+      }
+    }
+    if (terrain != null) {
+      terrain = project.smartTileCatalog.presets
+          .where((item) => item.id == terrain!.id)
+          .firstOrNull;
+      if (terrain == null && tool == StudioMapTool.terrain) {
+        tool = StudioMapTool.select;
+      }
+    }
+    if (character != null) {
+      character = project.characters
+          .where((item) => item.id == character!.id)
+          .firstOrNull;
+      if (character == null && tool == StudioMapTool.character) {
+        tool = StudioMapTool.select;
+      }
+    }
+  }
+
   void prepareWarpPlacement() {
     paletteTab = 'Passages';
     brush = null;

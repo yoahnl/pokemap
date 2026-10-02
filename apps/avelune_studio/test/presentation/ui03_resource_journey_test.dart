@@ -178,7 +178,10 @@ void main() {
       expect(tester.takeException(), isNull);
     }
     await f.capture(tester, '05-compact-150');
-    await tester.tap(find.byType(StudioResourceCard).first);
+    final compactCard = find.byType(StudioResourceCard).first;
+    await tester.ensureVisible(compactCard);
+    await tester.pump();
+    await tester.tap(compactCard);
     await tester.pumpAndSettle();
     expect(find.text('Détail de la ressource'), findsOneWidget);
     expect(

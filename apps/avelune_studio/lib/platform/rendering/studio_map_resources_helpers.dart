@@ -1,6 +1,13 @@
 part of 'studio_map_resources.dart';
 
 extension StudioMapResourcesHelpers on StudioMapResources {
+  Size? _cachedImageDimensions(String id) {
+    final image = images[id];
+    return image == null
+        ? null
+        : Size(image.width.toDouble(), image.height.toDouble());
+  }
+
   Future<void> get _resourcesSettled async {
     await Future.wait([store.settled, borderPreview.settled]);
   }

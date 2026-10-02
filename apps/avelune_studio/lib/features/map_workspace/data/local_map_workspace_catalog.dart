@@ -9,6 +9,47 @@ class _ProjectDocument {
 }
 
 extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
+  Future<void> acceptResourceMutation(
+    ProjectSession session,
+    ResourceMutationReceipt receipt, {
+    bool allowMapOrganization = false,
+  }) async {
+    final project = _project(session);
+    if (project.manifest == receipt.manifest &&
+        project.revision == receipt.revision) {
+      await _requireProjectRevision(session, project);
+      return;
+    }
+    final originalMaps = project.manifest.maps;
+    final updatedMaps = receipt.manifest.maps;
+    final mapsMatch = allowMapOrganization
+        ? originalMaps.length == updatedMaps.length &&
+              [
+                for (var index = 0; index < originalMaps.length; index++)
+                  originalMaps[index].copyWith(
+                        groupId: updatedMaps[index].groupId,
+                        sortOrder: updatedMaps[index].sortOrder,
+                      ) ==
+                      updatedMaps[index],
+              ].every((unchanged) => unchanged)
+        : jsonEncode(originalMaps) == jsonEncode(updatedMaps);
+    if (project.revision != receipt.beforeRevision ||
+        project.manifest != receipt.before ||
+        !mapsMatch) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le reçu ne correspond pas au catalogue ouvert.',
+      );
+    }
+    final next = _ProjectDocument(
+      project.root,
+      receipt.manifest,
+      receipt.revision,
+    );
+    await _requireProjectRevision(session, next);
+    _projects[session.sessionId] = next;
+  }
+
   Future<void> acceptCatalogMutation(
     ProjectSession session,
     MapCatalogReceipt receipt,

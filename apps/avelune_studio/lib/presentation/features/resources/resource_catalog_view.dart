@@ -8,6 +8,7 @@ import '../../shared/widgets/layout/studio_resource_grid.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import 'resource_catalog.dart';
 import 'resource_preview.dart';
+import 'resource_item_actions.dart';
 
 class ResourceCatalogView extends StatelessWidget {
   const ResourceCatalogView({
@@ -20,6 +21,9 @@ class ResourceCatalogView extends StatelessWidget {
     required this.grid,
     required this.onSelect,
     required this.catalogEmpty,
+    this.onInformation,
+    this.onMove,
+    this.onUsages,
   });
   final List<ResourceItem> items;
   final ResourceItem? selected;
@@ -28,6 +32,14 @@ class ResourceCatalogView extends StatelessWidget {
   final ScrollController scroll;
   final bool grid, catalogEmpty;
   final ValueChanged<ResourceItem> onSelect;
+  final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
+
+  Widget actions(ResourceItem item) => ResourceItemActions(
+    item: item,
+    onInformation: onInformation,
+    onMove: onMove,
+    onUsages: onUsages,
+  );
 
   String metadata(ResourceItem item) {
     final categories = {
@@ -73,19 +85,26 @@ class ResourceCatalogView extends StatelessWidget {
             return Tooltip(
               key: ValueKey('resource-card-${item.identity}'),
               message: item.name,
-              child: StudioResourceCard(
-                name: item.name,
-                maxNameLines: 2,
-                preview: resourcePreview(
-                  item,
-                  project,
-                  visuals,
-                  size: 190,
-                  terrainPattern: true,
-                ),
-                metadata: metadata(item),
-                selected: selected?.identity == item.identity,
-                onTap: () => onSelect(item),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: StudioResourceCard(
+                      name: item.name,
+                      maxNameLines: 2,
+                      preview: resourcePreview(
+                        item,
+                        project,
+                        visuals,
+                        size: 190,
+                        terrainPattern: true,
+                      ),
+                      metadata: metadata(item),
+                      selected: selected?.identity == item.identity,
+                      onTap: () => onSelect(item),
+                    ),
+                  ),
+                  Positioned(top: 8, right: 8, child: actions(item)),
+                ],
               ),
             );
           },
@@ -102,18 +121,25 @@ class ResourceCatalogView extends StatelessWidget {
         return Padding(
           key: ValueKey('resource-card-${item.identity}'),
           padding: const EdgeInsets.only(bottom: 6),
-          child: StudioChoice(
-            label: item.name,
-            subtitle: metadata(item),
-            leading: resourcePreview(
-              item,
-              project,
-              visuals,
-              size: 60,
-              terrainPattern: true,
-            ),
-            selected: selected?.identity == item.identity,
-            onTap: () => onSelect(item),
+          child: Row(
+            children: [
+              Expanded(
+                child: StudioChoice(
+                  label: item.name,
+                  subtitle: metadata(item),
+                  leading: resourcePreview(
+                    item,
+                    project,
+                    visuals,
+                    size: 60,
+                    terrainPattern: true,
+                  ),
+                  selected: selected?.identity == item.identity,
+                  onTap: () => onSelect(item),
+                ),
+              ),
+              actions(item),
+            ],
           ),
         );
       },

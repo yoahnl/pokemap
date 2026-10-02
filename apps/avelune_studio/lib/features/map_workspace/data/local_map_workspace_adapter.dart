@@ -6,7 +6,6 @@ import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
-
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
@@ -45,42 +44,6 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
     }
     await _requireProjectRevision(session, project);
     return (manifest: project.manifest, revision: project.revision);
-  }
-
-  Future<void> acceptResourceMutation(
-    ProjectSession session,
-    ResourceMutationReceipt receipt, {
-    bool allowMapOrganization = false,
-  }) async {
-    final project = _project(session);
-    final originalMaps = project.manifest.maps;
-    final updatedMaps = receipt.manifest.maps;
-    final mapsMatch = allowMapOrganization
-        ? originalMaps.length == updatedMaps.length &&
-              [
-                for (var index = 0; index < originalMaps.length; index++)
-                  originalMaps[index].copyWith(
-                        groupId: updatedMaps[index].groupId,
-                        sortOrder: updatedMaps[index].sortOrder,
-                      ) ==
-                      updatedMaps[index],
-              ].every((unchanged) => unchanged)
-        : jsonEncode(originalMaps) == jsonEncode(updatedMaps);
-    if (project.revision != receipt.beforeRevision ||
-        project.manifest != receipt.before ||
-        !mapsMatch) {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.conflict,
-        'Le reçu ne correspond pas au catalogue ouvert.',
-      );
-    }
-    final next = _ProjectDocument(
-      project.root,
-      receipt.manifest,
-      receipt.revision,
-    );
-    await _requireProjectRevision(session, next);
-    _projects[session.sessionId] = next;
   }
 
   @override

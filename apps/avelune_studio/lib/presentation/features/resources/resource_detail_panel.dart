@@ -9,6 +9,7 @@ import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_catalog.dart';
+import 'resource_item_actions.dart';
 
 class ResourceDetailPanel extends StatelessWidget {
   const ResourceDetailPanel({
@@ -23,6 +24,9 @@ class ResourceDetailPanel extends StatelessWidget {
     this.targetMapName,
     this.canUse = true,
     this.canEditTerrain = false,
+    this.onInformation,
+    this.onMove,
+    this.onUsages,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -34,6 +38,7 @@ class ResourceDetailPanel extends StatelessWidget {
   final String? targetMapName;
   final bool canUse;
   final bool canEditTerrain;
+  final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +74,14 @@ class ResourceDetailPanel extends StatelessWidget {
                 ..._metadata(context, entry),
                 const SizedBox(height: 12),
                 ..._preparation(entry),
+                const SizedBox(height: 12),
+                ResourceItemActions(
+                  item: entry,
+                  buttons: true,
+                  onInformation: onInformation,
+                  onMove: onMove,
+                  onUsages: onUsages,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Usages dans les cartes ouvertes',

@@ -126,7 +126,9 @@ final class AuthoringReadApi
   ) async {
     final snapshot = await _snapshotLoader.load(
       projectHandle,
-      policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+      policy: request.resourceKind == 'resourceUsage'
+          ? ProjectSnapshotLoadPolicy.resourceUsageReadProjection
+          : ProjectSnapshotLoadPolicy.editorReadProjection,
     );
     return _queryService.query(snapshot, request);
   }

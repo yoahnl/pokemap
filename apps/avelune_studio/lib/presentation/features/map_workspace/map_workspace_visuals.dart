@@ -46,3 +46,7 @@ abstract interface class MapBorderPreviewVisuals {
   bool get borderPreviewReady;
   String? get borderPreviewIssue;
 }
+
+abstract interface class ResourceImageDimensionsVisuals {
+  Size? cachedImageDimensions(String tilesetId);
+}
