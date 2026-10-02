@@ -116,7 +116,7 @@ test at test/checkout_catalog_verifier.test.ts:1:379
 ✖ checkout verifier certifies the packaged server from the requested repository (8255.400375ms)
   Error: Command failed: git -C /private/tmp/uwu5-baseline-snapshot rev-parse HEAD
   fatal: not a git repository (or any of the parent directories): .git
-  
+
       at genericNodeError (node:internal/errors:998:15)
       at wrappedFn (node:internal/errors:543:14)
       at checkExecSyncError (node:child_process:926:11)
@@ -140,7 +140,7 @@ test at test/conformance_security.test.ts:1:1478
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -151,7 +151,7 @@ test at test/conformance_security.test.ts:1:1478
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu5-baseline-snapshot/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -167,7 +167,7 @@ test at test/live_item_smoke.test.ts:1:2498
 ✖ packaged live MCP executes the complete item mutation smoke contract (40.696458ms)
   Error: Command failed: git rev-parse HEAD
   fatal: not a git repository (or any of the parent directories): .git
-  
+
       at genericNodeError (node:internal/errors:998:15)
       at wrappedFn (node:internal/errors:543:14)
       at checkExecSyncError (node:child_process:926:11)
@@ -188,7 +188,7 @@ test at test/protocol_compatibility.test.ts:1:3381
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -202,7 +202,7 @@ test at test/protocol_compatibility.test.ts:1:3381
       'pokemap_playtest',
       'pokemap_job'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu5-baseline-snapshot/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
       at async Test.run (node:internal/test_runner/test:1389:7)
@@ -220,7 +220,7 @@ test at test/read_only_server.test.ts:1:1997
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -231,7 +231,7 @@ test at test/read_only_server.test.ts:1:1997
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu5-baseline-snapshot/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {

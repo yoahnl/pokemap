@@ -4,7 +4,7 @@
   Bad state: No element
   dart:collection                                              ListBase.single
   test/domains/maps/smart_tile_draft_actions_test.dart 222:27  main.<fn>.<fn>
-  
+
 00:00 +0 -1: Some tests failed.
 
 Failing tests:

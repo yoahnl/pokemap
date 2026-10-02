@@ -23,7 +23,7 @@ The test description was:
 00:02 +0 -1: an unavailable selected border is never replaced by another [E]
   Test failed. See exception logs above.
   The test description was: an unavailable selected border is never replaced by another
-  
+
 00:02 +0 -1: Some tests failed.
 
 Failing tests:

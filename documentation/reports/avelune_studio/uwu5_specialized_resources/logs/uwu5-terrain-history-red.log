@@ -42,7 +42,7 @@ The test description was:
 00:07 +0 -1: deleted terrain cannot return through map undo after saved removal [E]
   Test failed. See exception logs above.
   The test description was: deleted terrain cannot return through map undo after saved removal
-  
+
 00:07 +0 -1: Some tests failed.
 
 Failing tests:

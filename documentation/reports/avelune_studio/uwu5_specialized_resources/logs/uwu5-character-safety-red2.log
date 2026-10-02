@@ -3,46 +3,46 @@
 00:00 +0 -1: Character Studio character actions deletion contracts expose disjoint strict schemas [E]
   Expected: not null
     Actual: <null>
-  
+
   package:matcher                                                          expect
   test/domains/gameplay/character_studio_character_actions_test.dart 14:9  main.<fn>.<fn>
-  
+
 00:00 +0 -1: Character Studio character actions inspection refuses missing maps instead of claiming no dependencies
 00:00 +0 -2: Character Studio character actions inspection refuses missing maps instead of claiming no dependencies [E]
   Expected: throws <Instance of 'CharacterStudioActionException'> with `code`: 'character_studio.map_resource_unavailable'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                          expect
   test/domains/gameplay/character_studio_character_actions_test.dart 21:7  main.<fn>.<fn>
-  
+
 00:00 +0 -2: Character Studio character actions inspection refuses a missing required Yarn source
 00:00 +0 -3: Character Studio character actions inspection refuses a missing required Yarn source [E]
   Expected: throws <Instance of 'CharacterStudioActionException'> with `code`: 'character_studio.dialogue_resource_unavailable'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                          expect
   test/domains/gameplay/character_studio_character_actions_test.dart 29:7  main.<fn>.<fn>
-  
+
 00:00 +0 -3: Character Studio character actions replacement refuses missing portrait used by a Yarn directive
 00:00 +0 -4: Character Studio character actions replacement refuses missing portrait used by a Yarn directive [E]
   Expected: throws <Instance of 'CharacterStudioActionException'> with `code`: 'character_studio.character.replacement_incompatible'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                          expect
   test/domains/gameplay/character_studio_character_actions_test.dart 37:7  main.<fn>.<fn>
-  
+
 00:00 +0 -4: Character Studio character actions clear refuses removal of configured playable default and last avatar
 00:00 +0 -5: Character Studio character actions clear refuses removal of configured playable default and last avatar [E]
   Expected: throws <Instance of 'CharacterStudioActionException'> with `code`: 'character_studio.character.player_required'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                          expect
   test/domains/gameplay/character_studio_character_actions_test.dart 45:7  main.<fn>.<fn>
-  
+
 00:00 +0 -5: Character Studio character actions registers every specialized character and portrait action
 00:00 +1 -5: Character Studio character actions creates a unique identity with bounded dimensions and role tags
 00:00 +2 -5: Character Studio character actions updates identity fields without rebuilding authored media slots

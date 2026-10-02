@@ -21,10 +21,10 @@
               'pub_semver'
             ]
      Which: larger than expected
-  
+
   package:matcher                       expect
   test/package_boundary_test.dart 72:7  main.<fn>.<fn>
-  
+
 00:00 +8 -1: test/package_boundary_test.dart: map_authoring package boundary keeps canonical cross-domain composition in the application layer
 00:00 +9 -1: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry rejects removed Scenario commands with a stable capability code
 00:00 +10 -1: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry rejects removed Scenario commands with a stable capability code
@@ -61,10 +61,10 @@
               ...
             ]
      Which: has length of <1304>
-  
+
   package:matcher                        expect
   test/package_boundary_test.dart 162:7  main.<fn>.<fn>
-  
+
 00:00 +13 -2: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds
 00:00 +14 -2: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds
 00:00 +14 -3: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds [E]
@@ -123,18 +123,18 @@
               ...
             ]
      Which: at location [44] is 'regionalMap' instead of 'sandboxPlayerState'
-  
+
   package:matcher                                expect
   test/registry/action_registry_test.dart 116:7  main.<fn>.<fn>
-  
+
 00:00 +14 -3: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations
 00:00 +14 -4: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations [E]
   Expected: empty
     Actual: Set:['element']
-  
+
   package:matcher                                expect
   test/registry/action_registry_test.dart 222:7  main.<fn>.<fn>
-  
+
 00:00 +14 -4: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry rejects duplicate and incompatible kind versions
 00:00 +15 -4: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry round-trips deterministically through JSON
 00:00 +16 -4: Some tests failed.

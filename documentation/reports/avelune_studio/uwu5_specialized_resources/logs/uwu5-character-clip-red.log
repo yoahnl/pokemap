@@ -13,10 +13,10 @@
   Expected: throws <Instance of 'CharacterStudioActionException'> with `code`: 'character_studio.character.clear_incompatible'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                           expect
   test/domains/gameplay/character_studio_character_actions_test.dart 169:7  main.<fn>.<fn>
-  
+
 00:00 +9 -1: Character Studio character actions registers every specialized character and portrait action
 00:00 +10 -1: Character Studio character actions creates a unique identity with bounded dimensions and role tags
 00:00 +11 -1: Character Studio character actions updates identity fields without rebuilding authored media slots

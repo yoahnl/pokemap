@@ -473,3 +473,13 @@ Les suites globales et le build décrits plus haut ne sont pas prétendus rejou�
 dans cette phase de publication. Leurs réserves historiques restent explicites.
 Aucune validation native supplémentaire, aucune release déclenchée, aucun
 ticket passé DONE. Les quatre tickets restent TO REVIEW avec leurs limites.
+
+Contrôle des nouvelles preuves après staging : 220 diagnostics d'espaces
+de fin de ligne dans 25 fichiers de logs/diff/export Notion, aucun dans les
+sources. Le contrôle des seuls fichiers suivis avant staging ne les couvrait
+pas. Ces espaces sont normalisés dans les preuves publiées ; les originaux
+restent intacts dans le checkout personnel. Le patch normalisé s'applique
+toujours sur la base e86db603d (git apply --check, exit 0).
+Cette normalisation ne change aucun résultat, assertion ou fichier produit.
+Les quatre logs frais de publication sont explicitement inclus malgré
+la règle générale d'exclusion des nouveaux .log.

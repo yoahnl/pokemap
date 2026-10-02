@@ -50,7 +50,7 @@
  part 'dialogue_workspace_validation.dart';
  part 'dialogue_workspace_structure.dart';
 +part 'dialogue_workspace_character_reconciliation.dart';
- 
+
  class DialogueWorkspaceController {
    DialogueWorkspaceController(
 --- base/apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart
@@ -58,7 +58,7 @@
 @@ -104,6 +104,26 @@
      _repairSelection();
    }
- 
+
 +  void acceptResourceContent(MapWorkspaceDocument updated) {
 +    if (dirty || saving) {
 +      throw const MapWorkspaceFailure(
@@ -89,7 +89,7 @@
  part 'map_workspace_catalog_preparation.dart';
  part 'map_workspace_history_destinations.dart';
 +part 'map_workspace_resource_references.dart';
- 
+
  class MapWorkspaceController {
    MapWorkspaceController(this.session, this.port, {this.catalogPort});
 @@ -98,6 +99,7 @@
@@ -140,7 +140,7 @@
 +  }
    return null;
  }
- 
+
 --- base/apps/avelune_studio/lib/features/map_workspace/application/map_workspace_resource_references.dart
 +++ final/apps/avelune_studio/lib/features/map_workspace/application/map_workspace_resource_references.dart
 @@ -0,0 +1,15 @@
@@ -209,13 +209,13 @@
 --- base/apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart
 +++ final/apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart
 @@ -7,6 +7,7 @@
- 
+
  part 'pokemon_combat_validation.dart';
  part 'pokemon_combat_drafts.dart';
 +part 'pokemon_combat_character_references.dart';
- 
+
  enum PokemonCombatView { wild, trainers, unique }
- 
+
 --- base/apps/avelune_studio/lib/features/resources/data/local_character_removal_adapter.dart
 +++ final/apps/avelune_studio/lib/features/resources/data/local_character_removal_adapter.dart
 @@ -0,0 +1,26 @@
@@ -252,7 +252,7 @@
  part 'local_resource_lifecycle_preparation.dart';
  part 'local_resource_lifecycle_apply.dart';
 +part 'local_character_removal_adapter.dart';
- 
+
  final class LocalResourceAdapter
      implements
 @@ -67,11 +68,19 @@
@@ -302,7 +302,7 @@
 +  'characterStudio.character.deletePlan',
 +  'characterStudio.character.delete',
  };
- 
+
  final class _ResourcePreparedContext {
 @@ -138,11 +146,14 @@
          parameters: fields,
@@ -351,7 +351,7 @@
 +    this.changedMaps = const {},
 +    this.mapRevisions = const {},
    });
- 
+
    final ProjectManifest before;
 @@ -91,6 +93,8 @@
    final String? snapshotBeforeRevision;
@@ -361,7 +361,7 @@
 +  final Map<String, String> mapRevisions;
    bool get noChange => changedPaths.isEmpty;
  }
- 
+
 --- base/apps/avelune_studio/lib/presentation/features/characters/character_removal_dialog.dart
 +++ final/apps/avelune_studio/lib/presentation/features/characters/character_removal_dialog.dart
 @@ -0,0 +1,138 @@
@@ -627,21 +627,21 @@
 +++ final/apps/avelune_studio/lib/presentation/features/characters/character_studio_controller.dart
 @@ -5,6 +5,7 @@
  import '../../../features/characters/application/character_studio_frame_bounds.dart';
- 
+
  part 'character_studio_draft_dependencies.dart';
 +part 'character_studio_lifecycle.dart';
- 
+
  enum CharacterStudioSection { library, identity, animations, portraits }
- 
+
 @@ -15,7 +16,9 @@
      );
- 
+
  final class CharacterStudioController extends ChangeNotifier {
 -  CharacterStudioController({required this.project, required this.mutate});
 +  CharacterStudioController({required this.project, required this.mutate}) {
 +    selectedId = project().characters.firstOrNull?.id;
 +  }
- 
+
    final ProjectManifest Function() project;
    final CharacterStudioMutation mutate;
 @@ -38,27 +41,11 @@
@@ -652,7 +652,7 @@
 +        ? null
          : characters.where((character) => character.id == id).firstOrNull;
    }
- 
+
 -  void refreshClean() {
 -    final characters = {
 -      for (final character in project().characters) character.id: character,
@@ -671,7 +671,7 @@
 -    if (changed) notifyListeners();
 -  }
 +  void refreshClean() => reconcileCatalog(project());
- 
+
    CharacterStudioDraft? get selectedDraft {
      final character = selectedCharacter;
 --- base/apps/avelune_studio/lib/presentation/features/characters/character_studio_lifecycle.dart
@@ -730,7 +730,7 @@
      required this.onImportAnimation,
 +    this.onRemove,
    });
- 
+
    final ProjectManifest project;
 @@ -37,6 +38,7 @@
    final VoidCallback onImport;
@@ -738,7 +738,7 @@
    final ValueChanged<String> onImportPortrait;
 +  final ValueChanged<ProjectCharacterEntry>? onRemove;
    final void Function(CharacterAnimationState, EntityFacing) onImportAnimation;
- 
+
    @override
 @@ -119,6 +121,16 @@
                      ? 'Créez et animez les personnages de votre jeu.'
@@ -803,7 +803,7 @@
            ? BorderStrokeAlignment.cellCenters
            : borderTemplateStrokeAlignment(
 @@ -35,13 +33,12 @@
- 
+
    void _addBorderAngle(Offset localPosition) {
      final models = MapBorderEditingCommands.publishedLines(widget.project);
 -    final blueprint =
@@ -836,7 +836,7 @@
 +++ final/apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart
 @@ -1,11 +1,89 @@
  part of 'map_workspace_screen.dart';
- 
+
  extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
 +  void _bindResourceManagement(ResourceNavigation? resources) {
 +    _resources = resources;
@@ -961,7 +961,7 @@
    String? _error;
    List<String> _warningCodes = const [];
 +  late final bool Function() _dirtyOwner;
- 
+
    @override
    void initState() {
 @@ -45,6 +46,10 @@
@@ -976,7 +976,7 @@
          in record?.draft.definition.primitives ?? <BorderPrimitiveDraft>[]) {
        final element = widget.project.elements
 @@ -56,6 +61,9 @@
- 
+
    @override
    void dispose() {
 +    if (widget.navigation.borderEditorOwners[_pendingId] == _dirtyOwner) {
@@ -1126,10 +1126,10 @@
 +import '../../shared/widgets/buttons/studio_tool.dart';
 +import '../../shared/widgets/inputs/studio_tabs.dart';
 +import '../map_workspace/workspace_compact_panel.dart';
- 
+
 -import '../../shared/widgets/buttons/studio_button.dart';
 +enum BorderResourceAction { usages, deleteDraft, deprecate, reactivate }
- 
+
 -class ResourceBorderDraftBar extends StatelessWidget {
 +enum _BorderView { drafts, published, deprecated }
 +
@@ -1272,7 +1272,7 @@
 +      widget.onManage!(record, action);
 +    }
 +  }
- 
+
    @override
    Widget build(BuildContext context) => Padding(
      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -1511,7 +1511,7 @@
 @@ -38,6 +40,9 @@
    final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
    final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
- 
+
 +  final ValueChanged<ResourceItem>? onTerrainEdit;
 +  final bool Function(ResourceItem)? canEditTerrain;
 +
@@ -1524,7 +1524,7 @@
      onDuplicate: onDuplicate,
 +    onTerrainEdit: (canEditTerrain?.call(item) ?? true) ? onTerrainEdit : null,
    );
- 
+
    String metadata(ResourceItem item) {
 @@ -81,12 +87,7 @@
            itemCount: items.length,
@@ -1720,7 +1720,7 @@
    final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
 +  final ValueChanged<ResourceItem>? onTerrainEdit;
    final bool buttons;
- 
+
    @override
    Widget build(BuildContext context) {
      final actions = <(String, IconData, ValueChanged<ResourceItem>)>[
@@ -1927,7 +1927,7 @@
  import 'resource_creation_buttons.dart';
  part 'resource_library_layout.dart';
 +part 'resource_library_header.dart';
- 
+
  class ResourceLibraryScreen extends StatefulWidget {
    const ResourceLibraryScreen({
 @@ -28,6 +30,7 @@
@@ -1987,7 +1987,7 @@
 @@ -48,6 +52,11 @@
      if (!_disposed) notifyListeners();
    }
- 
+
 +  String? Function(String blueprintId)? borderDrawingOwner;
 +  List<String> Function(String characterId)? additionalCharacterOwners;
 +  void Function(Set<String> dialogueIds)? characterSourcesChanged;
@@ -2021,7 +2021,7 @@
 +
 +  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts =>
 +      terrainDrafts;
- 
+
    bool canEditTerrain(ResourceItem item) =>
        item.terrain != null &&
 --- base/apps/avelune_studio/lib/presentation/features/resources/resource_navigation_management.dart
@@ -2130,7 +2130,7 @@
 +      if (preparation.changedPaths.contains(entry.relativePath)) entry.id,
 +  });
  }
- 
+
  Future<ProjectManifest> _mutateResources(
 --- base/apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart
 +++ final/apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart
@@ -2360,7 +2360,7 @@
 +import '../../shared/widgets/buttons/studio_button.dart';
 +import '../map_workspace/workspace_compact_panel.dart';
 +import 'resource_terrain_actions.dart';
- 
+
  class ResourceTerrainDraftList extends StatelessWidget {
    const ResourceTerrainDraftList({
      super.key,
@@ -2378,7 +2378,7 @@
 +  final String Function(ProjectSmartTileAuthoringDraft)? status;
 +  final bool Function(ProjectSmartTileAuthoringDraft)? canResume;
 +  final bool compact;
- 
+
    @override
    Widget build(BuildContext context) => Padding(
      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -3077,7 +3077,7 @@
  import 'resource_lifecycle_bindings.dart';
 +import 'resource_terrain_lifecycle.dart';
 +import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
- 
+
  class ResourceWorkspacePane extends StatelessWidget {
    const ResourceWorkspacePane({
 @@ -171,6 +174,7 @@
@@ -3363,7 +3363,7 @@
 +  await tester.tap(find.text('Muret de test').last);
 +  await pumpIo(tester, frames: 2);
  }
- 
+
  Future<MapHostFixture> _openWithBorder(
 --- base/apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_test.dart
 +++ final/apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_test.dart
@@ -5557,7 +5557,7 @@
 --- base/apps/avelune_studio/test/support/uwu_resource_host.dart
 +++ final/apps/avelune_studio/test/support/uwu_resource_host.dart
 @@ -81,6 +81,10 @@
- 
+
    Future<void> tap(String key) async {
      final finder = find.byKey(ValueKey(key));
 +    if (key == 'resource-manage-containers' && finder.evaluate().isEmpty) {
@@ -6352,7 +6352,7 @@
  import '../../maps/map_lifecycle_adapter.dart';
 +import '../../assets/resource_information_document.dart';
  import '../../narrative/dialogue_source_store.dart';
- 
+
  final class CharacterStudioActionException implements Exception {
 @@ -31,6 +32,7 @@
    String id,
@@ -6441,7 +6441,7 @@
  import 'character_studio_action_support.dart';
 +
 +part 'character_studio_deletion_safety.dart';
- 
+
  final class CharacterStudioCharacterActions {
    const CharacterStudioCharacterActions();
 @@ -41,11 +46,13 @@
@@ -6589,7 +6589,7 @@
 +  r'^([ \t]*<<(?:portrait|speaker)\s+)([^\s>]+)((?:\s+[^\s>]+)?>>[ \t]*\r?)$',
 +  multiLine: true,
 +);
- 
+
  final RegExp _portraitDirectivePattern = RegExp(
    r'^([ \t]*<<portrait\s+)([^\s>]+)(\s+[^\s>]+>>[ \t]*\r?)$',
 --- base/packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_deletion_safety.dart
@@ -6873,7 +6873,7 @@
 @@ -165,6 +165,20 @@
      return geometry;
    }
- 
+
 +  BorderBlueprintRevision _requirePlaceableBlueprint(
 +      ProjectManifest manifest, String blueprintId) {
 +    final revision = requirePublishedBlueprint(manifest, blueprintId);
@@ -6942,7 +6942,7 @@
  import 'canonical_border_snapshot_compiler.dart';
 -import 'map_lifecycle_adapter.dart';
  import 'semantic_map_action_support.dart';
- 
+
  final class BorderCatalogActions {
 @@ -675,7 +675,7 @@
        resource: projectRef,
@@ -6989,7 +6989,7 @@
 +          },
        },
      );
- 
+
 --- base/packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_actions.dart
 +++ final/packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_actions.dart
 @@ -5,6 +5,7 @@
@@ -7002,10 +7002,10 @@
  import '../../transactions/authoring_plan.dart';
 @@ -16,6 +17,7 @@
  import 'smart_tile_tiled_wang_projection.dart';
- 
+
  part 'smart_tile_catalog_support.dart';
 +part 'smart_tile_preset_lifecycle_actions.dart';
- 
+
  /// Canonical native Smart Tile catalog mutations shared by every transport.
  final class SmartTileCatalogActions {
 @@ -123,6 +125,9 @@
@@ -7017,7 +7017,7 @@
 +          duplicate: true),
      ]..sort((left, right) => left.id.compareTo(right.id)),
    );
- 
+
 @@ -147,6 +152,8 @@
        'smart_tile.preset.draft.delete' => _deleteDraft(planning),
        'smart_tile.preset.publish' => _publishPreset(planning),
@@ -7092,7 +7092,7 @@
 +          },
        },
      );
- 
+
 @@ -311,3 +326,17 @@
      }
    }
@@ -7500,7 +7500,7 @@
 +++ final/packages/map_authoring/lib/src/references/resource_usage_walk.dart
 @@ -115,6 +115,18 @@
          : ResourceUsageRelation.direct;
- 
+
  String? usageEntityId(Map<String, dynamic> document, String path) {
 +  final border = RegExp(r'^\$\.layers\[(\d+)\]\.content\.features\[(\d+)\]')
 +      .firstMatch(path);
@@ -7553,14 +7553,14 @@
 +    expect(draft.changeSet.changes.map((change) => change.storageKey).toSet(),
 +        {'project.json', assetCatalogStorageKey});
    });
- 
+
    test('unplaced decor blocks tileset removal, without cascade', () async {
 --- base/packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart
 +++ final/packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart
 @@ -4,8 +4,250 @@
  import 'package:map_core/map_core.dart';
  import 'package:test/test.dart';
- 
+
 +import '../assets/resource_source_fixture.dart' show sourcePng;
 +
  void main() {
@@ -7819,7 +7819,7 @@
              'name': 'Élia',
 @@ -51,7 +293,7 @@
      });
- 
+
      test('updates identity fields without rebuilding authored media slots', () {
 -      final before = _snapshot();
 +      final before = characterActionSnapshot();
@@ -7836,7 +7836,7 @@
            parameters: const <String, Object?>{'characterId': 'elia'},
          ),
 @@ -92,7 +334,7 @@
- 
+
        final clearDraft = const CharacterStudioCharacterActions().build(
          _context(
 -          snapshot: _snapshot(defaultPlayerCharacterId: 'elia'),
@@ -7854,7 +7854,7 @@
            parameters: const <String, Object?>{
              'characterId': 'elia',
 @@ -125,7 +367,7 @@
- 
+
        final replaceDraft = const CharacterStudioCharacterActions().build(
          _context(
 -          snapshot: _snapshot(),
@@ -7863,7 +7863,7 @@
            parameters: const <String, Object?>{
              'characterId': 'elia',
 @@ -146,7 +388,7 @@
- 
+
        final clearDraft = const CharacterStudioCharacterActions().build(
          _context(
 -          snapshot: _snapshot(),
@@ -7899,7 +7899,7 @@
              parameters: const <String, Object?>{'characterId': 'elia'},
            ),
 @@ -238,7 +480,7 @@
- 
+
      test('clear deletion resolves every project and map reference atomically',
          () {
 -      final snapshot = _snapshot(withReferences: true);
@@ -7937,7 +7937,7 @@
 @@ -374,10 +616,19 @@
    );
  }
- 
+
 -ProjectSnapshot _snapshot({
 +ProjectSnapshot characterActionSnapshot({
    bool withReferences = false,
@@ -8458,7 +8458,7 @@
 --- base/packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart
 +++ final/packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart
 @@ -6,6 +6,46 @@
- 
+
  void main() {
    group('BorderCatalogActions', () {
 +    test('delete and deprecation descriptors declare strict action parameters',
@@ -8711,7 +8711,7 @@
 @@ -32,7 +32,7 @@
        expect(actual.parts, candidate.parts);
      });
- 
+
 -    test('advertises the ten canonical catalog mutations', () {
 +    test('advertises the canonical catalog and lifecycle mutations', () {
        expect(
@@ -8787,7 +8787,7 @@
 --- base/packages/map_authoring/test/domains/maps/smart_tile_draft_actions_test.dart
 +++ final/packages/map_authoring/test/domains/maps/smart_tile_draft_actions_test.dart
 @@ -6,6 +6,312 @@
- 
+
  void main() {
    group('Smart Tile draft actions', () {
 +    test(
@@ -9650,12 +9650,12 @@
 +++ final/packages/map_authoring/test/references/resource_usage_border_test.dart
 @@ -3,9 +3,29 @@
  import 'package:test/test.dart';
- 
+
  import '../domains/maps/map_catalog_fixture.dart';
 +import '../domains/maps/border_deprecated_placement_test.dart'
 +    show placementFixture;
  import 'resource_usage_projection_test.dart' show decor, planche, noPokemon;
- 
+
  void main() {
 +  test('border target identifies the exact feature in a closed map', () {
 +    final fixture = placementFixture();
@@ -9830,7 +9830,7 @@
 +++ final/packages/map_authoring/test/tooling/jsonl_border_catalog_flow_test.dart
 @@ -12,10 +12,256 @@
  });
- 
+
  void main() {
 +  test(
 +      'new placement is refused when blueprint is deprecated after the initial check',
@@ -10086,9 +10086,9 @@
 +    final jsonl = await BorderCatalogHarness.create('jsonl');
      addTearDown(direct.dispose);
      addTearDown(jsonl.dispose);
- 
+
 @@ -48,7 +294,8 @@
- 
+
    test('JSONL rejects disconnected anchors then receipts the repaired publish',
        () async {
 -    final harness = await _Harness.create('jsonl-connected-anchor-repair');
@@ -10100,7 +10100,7 @@
 @@ -180,8 +427,8 @@
    });
  }
- 
+
 -final class _Harness {
 -  const _Harness({
 +final class BorderCatalogHarness {
@@ -10111,7 +10111,7 @@
 @@ -195,7 +442,8 @@
    final ProjectSnapshotLoader snapshots;
    final JsonlWorker worker;
- 
+
 -  static Future<_Harness> create(String suffix) async {
 +  static Future<BorderCatalogHarness> create(String suffix,
 +      {AuthoringTransactionFaultInjector? faultInjector}) async {

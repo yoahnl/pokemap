@@ -23,7 +23,7 @@ The test description was:
 00:06 +0 -1: source removal can return to definition-only after analysis [E]
   Test failed. See exception logs above.
   The test description was: source removal can return to definition-only after analysis
-  
+
 00:06 +0 -1: Some tests failed.
 
 Failing tests:

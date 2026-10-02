@@ -12,11 +12,11 @@
 00:04 +8 -1: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:04 +9 -1: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: tab transition retains focused title then shows preview diagnostics
 00:04 +10 -1: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
 00:04 +11 -1: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: guided initial placement is nonblocking and map entity role remains explicitly unbound
@@ -58,28 +58,28 @@
 00:16 +45 -2: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:17 +46 -2: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:17 +46 -3: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:18 +46 -3: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:20 +47 -3: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: small editor at enlarged text keeps all sections scrollable
 00:20 +48 -3: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: outer corner can be assigned and undone through the pattern
@@ -214,7 +214,7 @@ unexpected.
 01:05 +98 -4: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 01:07 +99 -4: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart: portrait resolves canonical character variant to verified asset bytes
 01:07 +100 -4: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart: unchanged source publication preserves all authored bytes
 01:08 +101 -4: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues/dialogue_preview_ui09_test.dart: canonical portrait speaker and clearing apply to the actual line without leaking previous portrait
@@ -456,7 +456,7 @@ unexpected.
 01:42 +181 -5: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:43 +181 -5: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -509,7 +509,7 @@ unexpected.
 01:43 +181 -6: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:43 +181 -6: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -562,7 +562,7 @@ unexpected.
 01:43 +181 -7: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:44 +181 -7: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -615,7 +615,7 @@ unexpected.
 01:44 +181 -8: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:45 +181 -8: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -667,7 +667,7 @@ unexpected.
 01:45 +181 -9: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:46 +181 -9: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
 01:47 +182 -9: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:49 +183 -9: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
@@ -712,7 +712,7 @@ The test description was:
 02:17 +196 -10: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:19 +197 -10: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:20 +198 -10: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:23 +199 -10: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -1443,7 +1443,7 @@ unexpected.
 05:52 +388 -11: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
   Test failed. See exception logs above.
   The test description was: UI10 full Studio frame early composition with isolated real project
-  
+
 05:52 +388 -11: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/scene_canvas_addition_test.dart: library drop uses graph coordinates after pan and zoom
 05:53 +389 -11: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui13_verification_dialogue_version_test.dart: an advanced read-only source is not simplified
 05:53 +390 -11: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui13_verification_dialogue_version_test.dart: an advanced read-only source is not simplified
@@ -1509,11 +1509,11 @@ unexpected.
               '/private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 06:04 +440 -12: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 06:05 +441 -12: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 06:05 +442 -12: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
@@ -1668,7 +1668,7 @@ unexpected.
 07:17 +540 -13: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
   Test failed. See exception logs above.
   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
-  
+
 07:17 +540 -13: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -1720,7 +1720,7 @@ unexpected.
 07:17 +540 -14: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:17 +540 -14: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -1773,7 +1773,7 @@ unexpected.
 07:18 +540 -15: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:18 +541 -15: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: an abandoned control does not disturb the one still working
 07:18 +542 -15: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: closing during the proof read adopts nothing and stays quiet
 07:19 +543 -15: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: a failed proof read stays recoverable
@@ -1853,7 +1853,7 @@ unexpected.
 07:42 +570 -16: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
   Test failed. See exception logs above.
   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
-  
+
 07:42 +571 -16: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:43 +572 -16: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:43 +573 -16: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
@@ -1862,7 +1862,7 @@ unexpected.
 07:43 +574 -17: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
 07:43 +575 -17: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: group drag and view undo preserve canonical order and document
 07:43 +576 -17: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: trackpad over chapter and text shortcuts never mutate story
 07:44 +577 -17: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: curve hit testing resolves semantic edge away from its label
@@ -1969,7 +1969,7 @@ unexpected.
 07:48 +630 -18: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
   Test failed. See exception logs above.
   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
-  
+
 07:50 +630 -18: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2020,7 +2020,7 @@ unexpected.
 07:50 +630 -19: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
   Test failed. See exception logs above.
   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
-  
+
 07:51 +630 -19: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_NBpYqb/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_NBpYqb/project.json
@@ -2104,7 +2104,7 @@ unexpected.
 07:59 +638 -20: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
-  
+
 08:00 +638 -20: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2157,7 +2157,7 @@ unexpected.
 08:00 +638 -21: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
-  
+
 08:00 +639 -21: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2210,7 +2210,7 @@ unexpected.
 08:01 +639 -22: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
-  
+
 08:02 +640 -22: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 08:02 +641 -22: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 08:02 +642 -22: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
@@ -2450,7 +2450,7 @@ unexpected.
 08:39 +766 ~2 -23: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
   Test failed. See exception logs above.
   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
-  
+
 08:45 +766 ~2 -23: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
 UI06 construction: 8 blocs et 7 fils construits, publication
 UI06 construction: publication terminée, relecture indépendante
@@ -2553,7 +2553,7 @@ The test description was:
 10:04 +817 ~2 -24: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
   Test failed. See exception logs above.
   The test description was: local stack selects a hidden instance and respects order command limits
-  
+
 10:16 +818 ~2 -24: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
 10:17 +819 ~2 -24: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
 10:26 +820 ~2 -24: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
@@ -2606,7 +2606,7 @@ The test description was:
 10:46 +839 ~2 -25: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
   Test failed. See exception logs above.
   The test description was: place move stack undo redo save and runtime return preserve document
-  
+
 10:47 +840 ~2 -25: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:48 +841 ~2 -25: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:49 +842 ~2 -25: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: failed navigation keeps visible and saved target; warm navigation preserves zoom
@@ -2767,7 +2767,7 @@ The test description was:
 12:41 +949 ~3 -26: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page [E]
   Test failed. See exception logs above.
   The test description was: Studio exports the saved two-map story through its own page
-  
+
 12:42 +950 ~3 -26: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile retains the normal draft confirmation
 12:42 +951 ~3 -26: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
@@ -2795,7 +2795,7 @@ The test description was:
 12:48 +951 ~3 -27: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
   Test failed. See exception logs above.
   The test description was: cancelled export keeps every exit guard until cleanup finishes
-  
+
 12:52 +951 ~3 -27: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -2822,7 +2822,7 @@ The test description was:
 12:52 +951 ~3 -28: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
   Test failed. See exception logs above.
   The test description was: home opens the export page on its mounted project and exports a package
-  
+
 12:53 +952 ~3 -28: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
 12:54 +953 ~3 -28: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
 12:55 +954 ~3 -28: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
@@ -3076,7 +3076,7 @@ The test description was:
 13:32 +1023 ~3 -29: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
   Test failed. See exception logs above.
   The test description was: the real map workspace links and unlinks both borders
-  
+
 13:32 +1024 ~3 -29: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:32 +1025 ~3 -29: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:32 +1026 ~3 -29: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
@@ -3131,7 +3131,7 @@ The test description was:
 13:33 +1030 ~3 -30: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
   Test failed. See exception logs above.
   The test description was: a draft blocks the link without losing its changes
-  
+
 13:33 +1031 ~3 -30: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: collapsed map library leaves the selection button accessible
 13:34 +1032 ~3 -30: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: catalogue revision checking refuses externally changed map folders
 13:34 +1033 ~3 -30: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/context_menu_host_test.dart: the real screen opens the menu and deletes through it
@@ -3431,7 +3431,7 @@ The test description was:
 15:40 +1194 ~3 -31: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities [E]
   Test failed. See exception logs above.
   The test description was: Clairbois creates edits saves and renames without changing existing identities
-  
+
 15:43 +1195 ~3 -31: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 15:47 +1196 ~3 -31: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
 15:47 +1197 ~3 -31: /private/tmp/uwu5-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds

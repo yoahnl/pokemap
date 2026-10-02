@@ -23,11 +23,11 @@
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 00:01 +11 -1: Some tests failed.
 
 Failing tests:

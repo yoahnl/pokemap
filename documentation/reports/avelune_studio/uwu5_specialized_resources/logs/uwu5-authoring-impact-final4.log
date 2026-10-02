@@ -93,10 +93,10 @@
               'pub_semver'
             ]
      Which: larger than expected
-  
+
   package:matcher                       expect
   test/package_boundary_test.dart 72:7  main.<fn>.<fn>
-  
+
 00:02 +80 -1: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:02 +81 -1: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:02 +82 -1: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
@@ -131,10 +131,10 @@
               ...
             ]
      Which: has length of <1304>
-  
+
   package:matcher                        expect
   test/package_boundary_test.dart 162:7  main.<fn>.<fn>
-  
+
 00:02 +83 -2: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:02 +84 -2: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:03 +85 -2: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
@@ -201,18 +201,18 @@
               ...
             ]
      Which: at location [44] is 'regionalMap' instead of 'sandboxPlayerState'
-  
+
   package:matcher                                expect
   test/registry/action_registry_test.dart 116:7  main.<fn>.<fn>
-  
+
 00:03 +91 -4: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:03 +91 -4: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations [E]
   Expected: empty
     Actual: Set:['element']
-  
+
   package:matcher                                expect
   test/registry/action_registry_test.dart 222:7  main.<fn>.<fn>
-  
+
 00:03 +92 -4: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:03 +93 -4: test/tooling/jsonl_border_catalog_flow_test.dart: new placement is refused when blueprint is deprecated after the initial check
 00:03 +94 -4: test/domains/maps/smart_tile_missing_source_lifecycle_test.dart: terrain metadata and copy preserve a missing logical source

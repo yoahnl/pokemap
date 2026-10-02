@@ -5,29 +5,29 @@
   Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                               expect
   test/domains/maps/border_deprecated_placement_test.dart 17:5  main.<fn>
-  
+
 00:00 +1 -1: new stroke cannot extend a deprecated publication
 00:00 +1 -2: new stroke cannot extend a deprecated publication [E]
   Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                               expect
   test/domains/maps/border_deprecated_placement_test.dart 30:5  main.<fn>
-  
+
 00:00 +1 -2: existing geometry can still be updated after deprecation
 00:00 +2 -2: relink cannot select a deprecated target
 00:00 +2 -3: relink cannot select a deprecated target [E]
   Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
     Actual: <Closure: () => BorderFeatureRelinkPreview>
      Which: returned <Instance of 'BorderFeatureRelinkPreview'>
-  
+
   package:matcher                                               expect
   test/domains/maps/border_deprecated_placement_test.dart 50:5  main.<fn>
-  
+
 00:00 +2 -3: Some tests failed.
 
 Failing tests:

@@ -116,7 +116,7 @@ test at test/conformance_security.test.ts:1:1478
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -127,7 +127,7 @@ test at test/conformance_security.test.ts:1:1478
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -144,7 +144,7 @@ test at test/protocol_compatibility.test.ts:1:3381
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -158,7 +158,7 @@ test at test/protocol_compatibility.test.ts:1:3381
       'pokemap_playtest',
       'pokemap_job'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
       at async Test.run (node:internal/test_runner/test:1389:7)
@@ -176,7 +176,7 @@ test at test/read_only_server.test.ts:1:1997
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -187,7 +187,7 @@ test at test/read_only_server.test.ts:1:1997
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
