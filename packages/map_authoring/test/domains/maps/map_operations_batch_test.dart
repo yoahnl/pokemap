@@ -126,7 +126,7 @@ void main() {
       expect(updated.layers, hasLength(5));
       expect(updated.version, ProjectVersion.v8);
       expect(
-        _resolvedLocalIds(updated.layers.first as TileLayer),
+        _resolvedLocalIds(updated.layers.whereType<TileLayer>().single),
         everyElement(11),
       );
       expect(draft.preview['operationCount'], 6);

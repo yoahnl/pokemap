@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+00:00 +0: resource CRUD through actual Studio UI survives independent installation
+UWU6_RESOURCE_SEED maps=2 borderLayers=0 terrain=published portraits=preloaded
+UWU6_RESOURCE_METADATA_US=4800164 reads=0 decodes=0
+UWU6_RESOURCE_IMAGE_UI imported=source_1790975922191271_1679687542 decor=decor-1790975922931584 copy=decor-copy-1790975926111719-1336944898 instance=studio-1790975924038782-0
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
+#2      UwUResourceHost.navigation (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/uwu_resource_host.dart:22:8)
+#3      editUwu6Terrain (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart:40:15)
+<asynchronous suspension>
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart:29:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  resource CRUD through actual Studio UI survives independent installation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +0 -1: resource CRUD through actual Studio UI survives independent installation [E]
+  Test failed. See exception logs above.
+  The test description was: resource CRUD through actual Studio UI survives independent installation
+
+00:24 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart: resource CRUD through actual Studio UI survives independent installation

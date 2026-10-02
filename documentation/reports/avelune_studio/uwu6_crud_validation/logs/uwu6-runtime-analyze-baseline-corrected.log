@@ -1,0 +1,6 @@
+Analyzing map_runtime...
+
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/src/presentation/flutter/battle_mobile_command_overlay.dart:5:8 • unnecessary_import
+   info • Can't use a relative path to import a library in 'lib'. Try fixing the relative path or changing the import to a 'package:' import • tool/import_battle_se_assets.dart:3:8 • avoid_relative_lib_imports
+
+2 issues found. (ran in 35.2s)

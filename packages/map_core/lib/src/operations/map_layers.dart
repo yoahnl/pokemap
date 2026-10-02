@@ -3,6 +3,7 @@ import '../models/enums.dart';
 import '../models/environment.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
+import 'map_visual_composition.dart';
 
 MapData addMapLayer(
   MapData map, {
@@ -61,7 +62,9 @@ MapData addMapLayer(
 }
 
 int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) =>
-    map.layers.length;
+    kind == MapLayerKind.border
+        ? resolveAuthoredLayerInsertIndex(map, activeLayerId: null)
+        : map.layers.length;
 
 MapData renameMapLayer(
   MapData map, {

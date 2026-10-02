@@ -1,0 +1,218 @@
+[
+  {
+    "path": "apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 45,
+    "bytes": 2059,
+    "sha256": "1429999f470af6ce8db5826ac71cb217bca362a31726d53d0e019738236819a1",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 162,
+    "bytes": 6074,
+    "sha256": "de6a369314ef5292996377458f375772159a6eae9754464505f80f7085fce4e5",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 86,
+    "bytes": 3761,
+    "sha256": "c644e30c825b6b8e6c6d4ba0175bb4fe956d4d1b6f50f3d60d5c9597b577025c",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/avelune_studio/test/support/uwu5_border_host.dart",
+    "attribution": "fichier initialement modifié/non suivi, extension autorisée",
+    "lines": 51,
+    "bytes": 1580,
+    "sha256": "27649fe74599c2ac1a0a75d67be476cd43252e5a44af8c2c19b336ab8812a5d6",
+    "baseSha256": "0bb7d487b539ac2904aff3367dca49855d97ed12de5be8b4f384d0bfdb3dd878"
+  },
+  {
+    "path": "apps/avelune_studio/tool/measure_resource_crud_recipes.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 214,
+    "bytes": 6497,
+    "sha256": "da091057f200c0f3899715c6b0c7682169f0b12f012da4b4172e09be54319840",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 142,
+    "bytes": 5966,
+    "sha256": "172e8a7ad05242ebaa206b299e10897f98b6fd4ceac41798bb05961c61a09252",
+    "baseSha256": "ae7d561f05faac28f14f40b94fa59e2f647287bce25828ce9e404671941ee19c"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 298,
+    "bytes": 11201,
+    "sha256": "5cc480442a255d8db46b552823ba9d1555cd43170eac0248c96e455ab2d52631",
+    "baseSha256": "7d5492fa2257c4a3b76645d6dc85b43b7c875de42d1a6376ee0b46f3e1eddf31"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart",
+    "attribution": "fichier initialement modifié/non suivi, extension autorisée",
+    "lines": 270,
+    "bytes": 9111,
+    "sha256": "dfee715d270cd4c573f6af3569cec124065b7c0eb609ed8470902affb63cae19",
+    "baseSha256": "a4f75e259e5874482e7b8ee5550a2f449ab26c4535a869644a5ad80eb55654b6"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart",
+    "attribution": "fichier initialement modifié/non suivi, extension autorisée",
+    "lines": 299,
+    "bytes": 10679,
+    "sha256": "576dc8e1fd89fc221cbf01267da8b54fa9f7d75a97e2d44016e0bcf0af3136fc",
+    "baseSha256": "e7358f9943489b72d26b94d89936153d594c5212579207c526faab7a38224909"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 292,
+    "bytes": 11444,
+    "sha256": "ac961d5f474326dec94d43520ae8d6278be9b0b03971d51f3e6cc0dac4d6009f",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_map_player_route.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 56,
+    "bytes": 2044,
+    "sha256": "7446752160b5e75b297d705b5f05ef154bbdb4f5bdb0bf3a843c1a7be8aec56d",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_map_ui_steps.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 146,
+    "bytes": 5580,
+    "sha256": "616c47e1d460580e930d23d7adfc461392cefb1d840fc445f6f3f8b6c5fdc5bd",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 86,
+    "bytes": 3195,
+    "sha256": "d75e9eb6ce4c96b0cc02a1ca29e94893169dc48d4f40051a09c35382402d514a",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 125,
+    "bytes": 5160,
+    "sha256": "10c9b68f493fa986caf39da9e9da31a65d329c3b459cab18cb2eecfff8049e31",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 60,
+    "bytes": 2304,
+    "sha256": "3867e408947d29bff745686a10446797bee92803692dd9ff69dfb0c6985e604a",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 265,
+    "bytes": 9394,
+    "sha256": "28734887b4e36cb51928154a92db833a2ff4c11914e5c4f96f9271a38c7a0e38",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 166,
+    "bytes": 6191,
+    "sha256": "093881c72628bbfb9e09bc5abf148748e3aaf86d2abae97de0dcde91c9f2d6d5",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_player_movement.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 47,
+    "bytes": 1928,
+    "sha256": "e4f7820f3e654bac9f8a90e88acf094ae3b110a4e13ec9915d68615dd8bd9744",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_player_visuals.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 50,
+    "bytes": 1703,
+    "sha256": "7bb27bd3fd77808a44ae63ed4ede58799ce3bfd02a87a79a1d57628a1f9dae02",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 127,
+    "bytes": 5075,
+    "sha256": "020de10d4f57e98db38f08eb946715eb5984717af4437732389b8b9c3112aed7",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "packages/map_authoring/test/domains/maps/border_layer_order_transport_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 98,
+    "bytes": 3967,
+    "sha256": "211cdb23ecf9b3737a90943a8ac2dff6afdf109afa3f132fb3751312961199fd",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "packages/map_authoring/test/domains/maps/map_operations_batch_test.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 835,
+    "bytes": 25785,
+    "sha256": "e23afe7cc62905b317a1603589c727d7f8229dbcaee978c61070e10186c30c70",
+    "baseSha256": "342613511bf6e96bfa689e6f0b86d5c108340a1d8e62d8632ae1c3ee28ca4861"
+  },
+  {
+    "path": "packages/map_core/lib/src/operations/map_layers.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 298,
+    "bytes": 9264,
+    "sha256": "f873866b8056c40e77e6ef1e038030d15a1402e216ff7090875461adcc15e694",
+    "baseSha256": "5db72dc892e854b5bc05a776a1f378ca723f79be158a623fab5273c32225d2d5"
+  },
+  {
+    "path": "packages/map_core/test/border/border_layer_default_order_test.dart",
+    "attribution": "fichier créé lot6",
+    "lines": 58,
+    "bytes": 2033,
+    "sha256": "c6d4fcbc8d6e18238bb8eb9bf643b6169ae870c4579e265310ccf587ade07b8e",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "packages/map_core/test/border/border_layer_operations_test.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 413,
+    "bytes": 12062,
+    "sha256": "48e530bae72ff0267ae3a9cfe72def44202f016e2d65d4f995984d7a4f8f1f60",
+    "baseSha256": "70bc5781ec7a8e035ab84300b83c7883123ff33c731ea1352022950b769db9be"
+  },
+  {
+    "path": "packages/map_core/test/border/border_project_map_preparation_test.dart",
+    "attribution": "fichier suivi initialement propre, delta lot6",
+    "lines": 337,
+    "bytes": 10390,
+    "sha256": "33ef8c58397914151f0734779df8011f1e4e158ac0187936f96ec90b454bb4ed",
+    "baseSha256": "3ac6a42bbcb5ae45bf0ab0395840875e52b9efd06f6e67b17392b3833b345f8d"
+  },
+  {
+    "path": "tools/pokemap_mcp/test/border_layer_order_stdio.test.ts",
+    "attribution": "fichier créé lot6",
+    "lines": 67,
+    "bytes": 3733,
+    "sha256": "a62c9238022f1a669737aa8ea067a7cbf62cb7441dcf06fe8f81180e676f8ba8",
+    "baseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

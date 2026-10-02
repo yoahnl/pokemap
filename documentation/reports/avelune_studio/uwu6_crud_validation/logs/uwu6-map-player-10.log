@@ -1,0 +1,52 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart
+00:00 +0: UI map CRUD persists and traverses real passages in the installed Player
+UWU6_MAP_STAGE=create-rename-folder
+UWU6_MAP_STAGE=duplicate-resize
+UWU6_MAP_STAGE=passages-delete
+UWU6_MAP_STAGE=export-independent-session
+UWU6_EXPORT_DIAGNOSTIC=stage:StudioExportStage.preparing;busy:true;active:true;canStart:false;error:null
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected:
+'/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-eeOwKh/fixture.avelunegame'
+  Actual: <null>
+   Which: not an <Instance of 'String'>
+null; Clairbois UwU | Rechercher dans vos projets et cartes | Accueil | Carte | Ressources |
+Histoire | Pokémon | Test du jeu | Fermer le projet | Clairbois UwU | Projet chargé | Exporter le
+jeu | Clairbois UwU · Créez un paquet .avelunegame pour Avelune Player. | Informations du jeu | Ces
+informations décrivent le paquet distribué. Elles ne renomment pas le projet auteur. | Titre du jeu
+| Version du jeu | Auteur | Langue principale | Langues disponibles | Options d’export | Choisissez
+les validations prévues par le format du paquet. | Publication | Paquet distribué dans Avelune
+Player | Test local | Paquet d’essai avec les validations de test | Fichier de destination |
+/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-eeOwKh/fixture.avelunegame |
+Choisir… | Un remplacement demandera confirmation. | Vérifications et export | Le paquet utilisera
+la version enregistrée du projet. | Préparation et contrôle des documents enregistrés… | Résumé |
+Vérifiez les informations avant de lancer l’export. | Titre | Clairbois UwU | Version | 0.1.0 |
+Auteur | Recette UwU VI | Langue principale | fr | Langues disponibles | fr | Mode | Test local |
+Destination | …/fixture.avelunegame | Contrôles à lancer | Les ressources et la compatibilité seront
+contrôlées pendant la construction du paquet. | Options avancées | Annuler l’export | Exporter le
+jeu
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart:213:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart line 213
+The test description was:
+  UI map CRUD persists and traverses real passages in the installed Player
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:53 +0 -1: UI map CRUD persists and traverses real passages in the installed Player [E]
+  Test failed. See exception logs above.
+  The test description was: UI map CRUD persists and traverses real passages in the installed Player
+
+00:53 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart: UI map CRUD persists and traverses real passages in the installed Player

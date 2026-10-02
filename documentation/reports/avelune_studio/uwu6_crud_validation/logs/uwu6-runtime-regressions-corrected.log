@@ -1,0 +1,163 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_draw_instruction_test.dart: flattens every feature ground before placements without re-sorting persisted placement order
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_draw_instruction_test.dart: keeps the two-tier cliff face before its top lip
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real trainer battle
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice resolves distinct wild and trainer backgrounds
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_collection_test.dart: collects only materialized snapshots including hidden layers in stable first-reference order
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_collection_test.dart: surfaces a missing snapshot reference instead of consulting sources
+00:01 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: normalizes cache key path and ARGB to its low 24 RGB bits
+00:01 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: coalesces concurrent loads for one normalized key
+00:01 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: dispose waits for an in-flight image and releases it once
+00:01 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: evicts a failed load so a later request retries
+00:01 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: default file loader preserves the controlled missing-asset failure
+00:01 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: default loader reads a real snapshot without source element or Surface metadata
+00:01 +13: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: real snapshot drawing preserves source rect, RGB key, and nearest pixels
+00:01 +14: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_asset_cache_test.dart: loads every ordered frame into a snapshot bundle
+00:02 +15: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle accepts fresh materialization and ignores an unused corrupt snapshot
+00:02 +16: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering keeps the exact legacy visual phases when no Border exists
+00:03 +17: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering keeps the exact legacy visual phases when no Border exists
+00:03 +18: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle permits a newer blueprint with a corrupt generation-only snapshot
+00:03 +19: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering a hidden Border activates authored legacy-direction order without painting itself
+00:03 +20: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle validates hidden Border features and blocks unmaterialized content
+00:03 +21: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering renders multiple Border layers among every authored visual slot in bottom-to-top order
+00:03 +22: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering renders multiple Border layers among every authored visual slot in bottom-to-top order
+00:03 +23: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering renders multiple Border layers among every authored visual slot in bottom-to-top order
+00:03 +24: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle blocks missing and corrupt used snapshot files
+00:03 +25: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle blocks missing and corrupt used snapshot files
+00:03 +26: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle blocks missing and corrupt used snapshot files
+00:03 +27: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle blocks missing and corrupt used snapshot files
+00:03 +28: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle blocks missing and corrupt used snapshot files
+00:03 +29: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering renders Border only in the background pass
+00:03 +30: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle copyWith preserves preparation only when no source input changes
+00:03 +31: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle copyWith preserves preparation only when no source input changes
+00:03 +32: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: prepareBorderRuntimeBundle copyWith preserves preparation only when no source input changes
+00:03 +33: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering keeps shadows and placed elements above authored backgrounds
+00:03 +34: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_map_layers_component_ordering_test.dart: MapLayersComponent Border authored ordering keeps shadows and placed elements above authored backgrounds
+00:03 +35: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: loadRuntimeMapBundle returns a Border-ready bundle
+00:03 +36: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: loadRuntimeMapBundle returns a Border-ready bundle
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_gsKu49/project.json mapId=map
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_gsKu49/project.json
+[runtime_loader] project manifest read ok bytes=3778
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=map relativePath=maps/map.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_gsKu49/maps/map.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_gsKu49/maps/map.json
+[runtime_loader] map file read ok bytes=1810
+[runtime_loader] map validated id=map size=2x1 layers=1 entities=0 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=map projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_gsKu49 tilesets=0
+00:03 +37: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: Border runtime host gate RuntimeMapGame prepares and renders a real snapshot before mount
+00:03 +38: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: Border runtime host gate PlayableMapGame prepares and renders a real snapshot before mount
+[runtime_game] tileset image load start map=map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_SRyAl8/project.json tilesets=0
+[runtime_game] world build start map=map
+[runtime] Spawn resolution failed (GameplaySpawnResolutionException: No player spawn found: set defaultSpawnId on the map metadata, or add a spawn entity with role playerStart), falling back to (0,0)
+[runtime_game] tileset image load ok count=0 map=map
+[runtime_game] mount root map start map=map
+[runtime_game] mount root map ok map=map
+[runtime_game] onLoad completed activeMapId=map
+[event_v2] mapEnter activation=mapact_1790976162985629_1 map=map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:03 +39: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: Border runtime host gate PlayableMapGame revalidates an invalid bundleTransformer result
+00:03 +40: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_readiness_test.dart: Border runtime host gate PlayableMapGame revalidates a prewarmed cached bundle before reuse
+[runtime_game] tileset image load start map=map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap_border_runtime_readiness_S0DO2T/project.json tilesets=0
+[runtime_game] world build start map=map
+[runtime] Spawn resolution failed (GameplaySpawnResolutionException: No player spawn found: set defaultSpawnId on the map metadata, or add a spawn entity with role playerStart), falling back to (0,0)
+[runtime_game] tileset image load ok count=0 map=map
+[runtime_game] mount root map start map=map
+[runtime_game] mount root map ok map=map
+[runtime_game] onLoad completed activeMapId=map
+[event_v2] mapEnter activation=mapact_1790976163073173_1 map=map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:04 +41: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: renders a ground cell from its persisted source rect with no filtering
+00:04 +42: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: selects animation frames at exact persisted duration boundaries
+00:04 +43: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: applies layer opacity
+00:04 +44: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: culls placements exclusively by persisted opaque world bounds
+00:04 +45: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: does not render an invisible layer collection
+00:04 +46: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: surfaces missing snapshots and invalid persisted source rectangles
+00:04 +47: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: renders flip then clockwise quarter turn for all eight transforms
+00:04 +48: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: scales native ground bounds into runtime display pixels
+00:04 +49: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: scales transformed placements without leaking transforms to the next instruction
+00:04 +50: /Users/karim/Project/pokemonProject/packages/map_runtime/test/border/border_runtime_renderer_test.dart: culls persisted opaque bounds in display-scaled world coordinates
+00:04 +51: /Users/karim/Project/pokemonProject/packages/map_runtime/test/placed_element_warp_traversal_controller_test.dart: PlacedElementWarpTraversalController releases the warp exactly when the one-shot duration completes
+00:04 +52: /Users/karim/Project/pokemonProject/packages/map_runtime/test/placed_element_warp_traversal_controller_test.dart: PlacedElementWarpTraversalController rejects a second traversal until the current one completes
+00:04 +53: /Users/karim/Project/pokemonProject/packages/map_runtime/test/placed_element_warp_traversal_controller_test.dart: PlacedElementWarpTraversalController clear cancels a pending traversal
+00:05 +54: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: runtime manifest collision normalization normalizes legacy element collision profiles on load
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_collision_normalization_0We5X3/project.json
+[runtime_loader] project manifest read ok bytes=1898
+00:05 +55: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: runtime manifest collision normalization normalizes legacy element collision profiles on load
+[runtime_loader] project manifest validated maps=0 tilesets=1 scenarios=0
+00:05 +56: /Users/karim/Project/pokemonProject/packages/map_runtime/test/smart_tile_runtime_render_test.dart: runtime renders shared Core visuals in background and foreground passes
+00:05 +56: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: reuses a previously validated manifest when loading a map bundle
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path/project.json
+[runtime_loader] project manifest read ok bytes=3149
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=1
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path/project-already-loaded.json mapId=p3_test_map
+[runtime_loader] bundle map resolved mapId=p3_test_map relativePath=maps/p3_scenario_field.json mapPath=/Users/karim/Project/pokemonProject/packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path/maps/p3_scenario_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path/maps/p3_scenario_field.json
+[runtime_loader] map file read ok bytes=469
+[runtime_loader] map validated id=p3_test_map size=3x3 layers=0 entities=1 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=p3_test_map projectRoot=/Users/karim/Project/pokemonProject/packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path tilesets=0
+00:05 +57: /Users/karim/Project/pokemonProject/packages/map_runtime/test/smart_tile_runtime_render_test.dart: runtime renders shared Core visuals in background and foreground passes
+00:05 +58: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: preloaded raw manifests share Event V2 authority with disk map loads
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/project.json mapId=train
+[runtime_loader] bundle map resolved mapId=train relativePath=train.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/train.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/train.json
+[runtime_loader] map file read ok bytes=404
+[runtime_loader] map validated id=train size=4x4 layers=0 entities=0 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=train projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T tilesets=0
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/project.json mapId=train
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/project.json
+[runtime_loader] project manifest read ok bytes=2087
+[runtime_loader] project manifest validated maps=1 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=train relativePath=train.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/train.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T/train.json
+[runtime_loader] map file read ok bytes=404
+[runtime_loader] map validated id=train size=4x4 layers=0 entities=0 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=train projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_preloaded_collision_authority_KpJp6T tilesets=0
+00:05 +59: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: preloaded raw manifests share Event V2 authority with disk map loads
+00:05 +60: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: preloaded raw manifests share Event V2 authority with disk map loads
+00:05 +61: /Users/karim/Project/pokemonProject/packages/map_runtime/test/smart_tile_runtime_render_test.dart: runtime renders 2x1, 2x2, and tall multi-cell atlas frames
+00:05 +62: /Users/karim/Project/pokemonProject/packages/map_runtime/test/load_runtime_map_bundle_collision_normalization_test.dart: rejects an unsupported future visual-stack version explicitly
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_unsupported_visual_stack_5x4xtU/future-map.json
+[runtime_loader] map file read ok bytes=452
+[runtime_loader] map load failed path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/runtime_unsupported_visual_stack_5x4xtU/future-map.json error=Map future-map cannot be composed by this runtime. Visual stack semantics version 99 is not supported. Open the map read-only with a compatible editor; legacy rendering was not used.
+00:06 +63: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_manifest_tilesets_smart_tile_test.dart: runtime manifest tileset collection collects visual-only object layer tilesets
+00:06 +64: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_manifest_tilesets_smart_tile_test.dart: runtime manifest tileset collection collects every multipart and animated Smart Tile atlas tileset
+00:06 +65: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_manifest_tilesets_smart_tile_test.dart: runtime manifest tileset collection collects placed-element frame tilesets once in encounter order
+00:06 +66: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_manifest_tilesets_smart_tile_test.dart: runtime manifest tileset collection Border layers and snapshots leave every runtime collector unchanged
+00:06 +67: All tests passed!

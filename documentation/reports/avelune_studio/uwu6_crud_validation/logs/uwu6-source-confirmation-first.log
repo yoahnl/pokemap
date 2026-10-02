@@ -1,0 +1,75 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=false
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Le fichier source restera intact.": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart:37:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart line 37
+The test description was:
+  source OFF ON OFF ON remains explicit, apply=false
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=false [E]
+  Test failed. See exception logs above.
+  The test description was: source OFF ON OFF ON remains explicit, apply=false
+
+00:05 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=true
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Le fichier source restera intact.": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart:37:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart line 37
+The test description was:
+  source OFF ON OFF ON remains explicit, apply=true
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:09 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=true [E]
+  Test failed. See exception logs above.
+  The test description was: source OFF ON OFF ON remains explicit, apply=true
+
+00:09 +0 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart
+00:10 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: cancelling the prepared source withdrawal writes nothing
+UWU5_SOURCE_CANCEL_HOST_US=185383
+00:15 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: source removal can return to definition-only after analysis
+00:20 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: confirmed source removal applies the announced logical effects
+00:26 +3 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart
+00:27 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source off on off invalidates plans and confirms only off
+00:28 +4 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: confirmed source removal applies the exact analyzed plan
+00:28 +5 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: erreur disarms removal and allows explicit source retention
+00:29 +6 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacité perdue disarms removal and allows explicit source retention
+00:29 +7 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: cancel accepts no mutation and ignores a late analysis
+00:29 +8 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacity false never permits choosing a source removal
+00:29 +9 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacity null never permits choosing a source removal
+00:29 +10 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: content-addressed source removal explicitly retains blob file
+00:29 +11 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1536.0, 1024.0)
+00:30 +12 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1280.0, 800.0)
+00:30 +13 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1024.0, 640.0)
+00:30 +14 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=false
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=true

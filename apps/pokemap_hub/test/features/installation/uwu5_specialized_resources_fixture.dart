@@ -13,7 +13,10 @@ import 'package:path/path.dart' as p;
 import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
 import 'uwu4_resource_replacement_player_support.dart';
 
-Future<void> prepareUwu5ExportFixture(M3StoryFixture source) async {
+Future<void> prepareUwu5ExportFixture(
+  M3StoryFixture source, {
+  bool discriminatingTerrain = false,
+}) async {
   await prepareUwu4ExportFixture(source);
   await source.maps.loadProject(source.session);
   final port = LocalResourceAdapter(
@@ -24,6 +27,20 @@ Future<void> prepareUwu5ExportFixture(M3StoryFixture source) async {
   try {
     final pixels = image.Image(width: 32, height: 32)
       ..clear(image.ColorRgba8(25, 211, 181, 255));
+    if (discriminatingTerrain) {
+      final colors = [
+        [25, 211, 181],
+        [55, 100, 240],
+        [220, 60, 90],
+        [245, 210, 80],
+      ];
+      for (var y = 0; y < 32; y++) {
+        for (var x = 0; x < 32; x++) {
+          final color = colors[(y ~/ 16) * 2 + x ~/ 16];
+          pixels.setPixelRgba(x, y, color[0], color[1], color[2], 255);
+        }
+      }
+    }
     final file = File(p.join(temporary.path, 'terrain.png'));
     await file.writeAsBytes(image.encodePng(pixels));
     final imported = await port.importImage(
@@ -45,7 +62,10 @@ Future<void> prepareUwu5ExportFixture(M3StoryFixture source) async {
     );
     for (var i = 0; i < 16; i++) {
       model.selectedRule = i;
-      model.assign(0, 0);
+      model.assign(
+        discriminatingTerrain ? i % 2 : 0,
+        discriminatingTerrain ? (i ~/ 2) % 2 : 0,
+      );
     }
     await model.save(
       (action, parameters) async =>
@@ -115,6 +135,10 @@ Future<void> prepareUwu5ExportFixture(M3StoryFixture source) async {
       0,
     );
     cells[8 * base.map.size.width + 5] = 1;
+    if (discriminatingTerrain) {
+      cells[9 * base.map.size.width + 5] = 1;
+      cells[9 * base.map.size.width + 6] = 1;
+    }
     await source.maps.saveMap(
       source.session,
       base,

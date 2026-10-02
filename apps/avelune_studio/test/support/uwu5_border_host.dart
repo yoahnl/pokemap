@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+import '../resource_io/resource_fixture.dart';
 import 'uwu4_resource_host.dart';
 import 'uwu_resource_host.dart';
 
@@ -9,6 +10,7 @@ Future<UwUResourceHost> openUwU5BorderHost(
   WidgetTester tester, {
   Size size = const Size(1536, 1024),
   double textScale = 1,
+  Future<void> Function(ResourceFixture)? configure,
 }) => openUwU4ResourceHost(
   tester,
   size: size,
@@ -44,5 +46,6 @@ Future<UwUResourceHost> openUwU5BorderHost(
         publish: false,
       ),
     );
+    await configure?.call(fixture);
   },
 );

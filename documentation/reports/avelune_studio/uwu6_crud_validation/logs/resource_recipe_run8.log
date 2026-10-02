@@ -1,0 +1,42 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+00:00 +0: resource CRUD through actual Studio UI survives independent installation
+UWU6_RESOURCE_SEED maps=2 borderLayers=0 terrain=published portraits=preloaded
+UWU6_RESOURCE_METADATA_US=4746438 reads=0 decodes=0
+UWU6_RESOURCE_IMAGE_UI imported=source_1790976443573968_285502701 decor=decor-1790976444410027 copy=decor-copy-1790976447567816-2967612348 instance=studio-1790976445621717-0
+UWU6_RESOURCE_TERRAIN_UI source=uwu5-path copy=terrain-copy-1790976462788789-3531510319
+UWU6_RESOURCE_CHARACTER_UI removed=personnage-libre,guide replacement=uwu5-replacement
+UWU6_RESOURCE_FIRST_BORDER_UI id=studio-bordures features=1 index=0
+UWU6_RESOURCE_BORDER_UI deprecated-reactivated-deprecated=uwu5-border
+UWU6_RESOURCE_CLOSED_MAP_UI=jardin entries=5
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.last (dart:core/iterable.dart:679:7)
+#1      _LastFinderMixin.filter (package:flutter_test/src/finders.dart:1410:28)
+#3      Iterable.single (dart:core/iterable.dart:694:13)
+#4      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#5      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#6      Uwu6ResourceHost.text (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart:202:18)
+<asynchronous suspension>
+#7      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart:66:7)
+<asynchronous suspension>
+#8      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#9      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 2 frames from dart:async-patch and package:stack_trace)
+
+The test description was:
+  resource CRUD through actual Studio UI survives independent installation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:56 +0 -1: resource CRUD through actual Studio UI survives independent installation [E]
+  Test failed. See exception logs above.
+  The test description was: resource CRUD through actual Studio UI survives independent installation
+
+00:56 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart: resource CRUD through actual Studio UI survives independent installation

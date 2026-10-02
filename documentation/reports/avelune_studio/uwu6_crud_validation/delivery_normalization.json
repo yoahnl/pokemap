@@ -1,0 +1,150 @@
+{
+  "policy": "Logs: trailing spaces trimmed. Patch: whitespace-only context lines emptied; git apply reverse check passed. Test messages and source bytes unchanged. Original evidence remains untouched in source checkout.",
+  "normalizedEvidence": [
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/delta_lot6.patch",
+      "originalSha256": "9a2323dffc03a463e2e941df297861d7c40e1a218d3cda9b52e713b149ca7803",
+      "committedSha256": "b0a38dfd6e6dfb4b867dfabe3a2555298b1a8ff0b4f6a18e92b785f7ba7111d2"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run1.log",
+      "originalSha256": "a2bd27dc125d78957a9e68c66d2449802806a7a9f414ce62009a554ec1cfbdd9",
+      "committedSha256": "bd3b35a7b0f59d15dbfdc258f52780fecad554b88d967ca905fc53f9f7678ce0"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run2.log",
+      "originalSha256": "fa33b63873d2c90310261bcdbdc48ee222050159779b317bc2fc44bae4a2068e",
+      "committedSha256": "ae19deaabfffbe40e55778a5f9d16a9bcc4bec8bfe8b2a4d22b8a8343ad85c13"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run3.log",
+      "originalSha256": "fe45bfdeca0826367ef964c34e0e58e9ee549215094bc9bd1c443f0367771325",
+      "committedSha256": "e84edc703c902f05c31cff1ce656dacd48655cec14d23179394699f1dcbe876d"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run4.log",
+      "originalSha256": "f3985040426236ad2c6428be545ced441110d6b38ec29337dbea32a4371c5a88",
+      "committedSha256": "6065b5032990d1241ba91ac41c6bcd6c646cf2b00552872f289fa06eda7576fd"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run5.log",
+      "originalSha256": "1943b39d3c4b496879c36640b151e1e47643c66a4514bf3695efe8e855ba8e2e",
+      "committedSha256": "f82c3424b456e9aff854818ef4dfc48ffba978e16d91339eda664b97eb9c1e8e"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run6.log",
+      "originalSha256": "dad608219e2dd7726cb489694f1431934ed41bd443785cc40295078da8c58290",
+      "committedSha256": "d015b8603df430efd366e16dc19b10c010c1f9ee1988500e11a799e9d47a9c0f"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run7.log",
+      "originalSha256": "0d107d1af47c4b9a302578b8bf964abc1debe9155045a8b5278acedd0253ca2e",
+      "committedSha256": "13526e0485f1d5c36e3e72bfb8e1e0f7339d1ba5d64e1e6a30c4bce06ac19403"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run8.log",
+      "originalSha256": "bd1324446995f657ddadc1ebe66cca7a6012c3d69a0b6f273332de1182e5e9ee",
+      "committedSha256": "11d788f5f68b2a02fecb68f8251cfae6725a59b4625f25b9912da52a2e923a22"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-baseline-corrected.log",
+      "originalSha256": "5957de11709c8f4c68f4ee13555dfba0f9e4163f47aeee72f21b2fe42df47c26",
+      "committedSha256": "03e3264c431f1661cd32994c4e6ca44c5a6978ef94bc2de24082c3aca43f1e89"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-boundaries-final.log",
+      "originalSha256": "afe1fc1bd350939f1c257b5684a42215faa4d712530dde003c94eb25ded445e1",
+      "committedSha256": "e1f84b1ad2086f21decaf9aa93deefef33b6a79c36cea24fadc9747432b0a5cc"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-generic-red.log",
+      "originalSha256": "af6e894b27f4d9ec29e33ef668ac335fd766912201e2ab5e8d329755f9c5d308",
+      "committedSha256": "d5e8389dcda9b3cf88fe8c51183bde321666ab9fde55cbc3e925b5f73948dd25"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-host-red2.log",
+      "originalSha256": "7b568ea9c58cce632c4191c36bd89813db9d0b821820a73c1eb8274e445324a4",
+      "committedSha256": "4d73beea1edd3ce8a78b869ad5afce0a660ffe34254efa14316b90167090530c"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-pure-red2.log",
+      "originalSha256": "4ef721a281bdb68e9e7b360e3570c3129083f01998d421b06063602152613ae7",
+      "committedSha256": "5f6682abee9f5391941cfbd2d54356a86ad1bae97735a6d60603c6e1f1164fff"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-final-collision-sdk-probe.log",
+      "originalSha256": "576c7fbf6f0e0614d67b41164c553ea868d309f70169278bbd80d4096d31eb75",
+      "committedSha256": "1f1df8951e3c7e98a1223f1157a99ca4a56c5c28ba7ee347ae50cfa3bab05801"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-analyze-collision-final.log",
+      "originalSha256": "d319898c4b1020e0809f0eb2d6fec6e63597f5ba827e3a034f8733325205eeba",
+      "committedSha256": "7158f53a0ed47df8c7a92183ddf18a41beac09e1de37b018496d08279ebb4635"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-analyze-final.log",
+      "originalSha256": "3797b692d55d74f1e8043bf28474af09a7cc18fdca1deedb98b7ca826970495d",
+      "committedSha256": "689b946510f8d9a70353ccc05c0ac796376aee7748eb2ccfd1a6493d10aad180"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-macos-build-final.log",
+      "originalSha256": "342020a1e8530cbb888c8dc3f029f611733e22791463dcd4037b3ebafd501d6e",
+      "committedSha256": "2b6eb7474a852cc403baf4d35e9140cbd5edc371382bc391a143f60df4c83d42"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-player-10.log",
+      "originalSha256": "c9b2cfbf1091a5f93c0644c645668745cebbca7713b00969ed7075933788b1c9",
+      "committedSha256": "5bb8dea910fcbe78d13b29ac7cc65727f456e63c8e8b6a4d5fea1cde11d107f7"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-player-11.log",
+      "originalSha256": "4977f9705629338595a8314e202e3202969c91039adf28b96e1964c92b26c241",
+      "committedSha256": "a7e5c827ad44eed5f069baeaa0eafa06cb3c176e59a2c527046a5b3423df1a5c"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-regressions.log",
+      "originalSha256": "c403dc32d02f336c4255e6afe631db7512c2e4fb11a327436c8f4fc7cd462cb9",
+      "committedSha256": "fb838dc62c4b2f39497cdfc440b286daee96913c4eecc7e582c5c9cc5b7d7061"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-mcp-baseline.log",
+      "originalSha256": "476b004af683d7f6755f961585d6d53a1e77a62d216e979d62a1ccc17c7e1ded",
+      "committedSha256": "649035bc3a89f3e3ecaad5c2efb987a62508008ea8858ec1459db38b57c7a351"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-mcp-final.log",
+      "originalSha256": "83f35419aca50e5d7aa37158f88284849e8ff962708f452c82697a100e4c4c87",
+      "committedSha256": "86fd99b6ed67ebb0c8ef0ec59ff579ee02e092d1b412a9cb9af3716b243c0801"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-runtime-analyze-baseline-corrected.log",
+      "originalSha256": "ec4a9d53fe0a37866358f3eb1d46861b54bc287bba497f476bc473382c561fa0",
+      "committedSha256": "576018c0639d23a02391b49b4e8754a4fbc4791be494943c6b5de1eff353e2aa"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-runtime-analyze-final.log",
+      "originalSha256": "f1dacc0231002dbd80eb333fb3dadaab1c12ceea8ff6e115a5cf035d3a942efd",
+      "committedSha256": "7834a11e18a3d9ff4acfceee027c25ddc4bd9dbbd7d46fdb382ae26fc65f3ba4"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-source-confirmation-first.log",
+      "originalSha256": "38590a481bfc352984a306f72d5571244e6921ef2e63b5c70781213649455e28",
+      "committedSha256": "e460a5b43c5f798f7da4d83c4779956da8d66bd8560a7e396055ae28588a9a34"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-analyze-final2.log",
+      "originalSha256": "8690ad8033d46b93ef93f7971614419563d309597e5e663b7a429d08e0fed177",
+      "committedSha256": "ca898e5aa0f03253552c5c7dee92e5ac768030c90eb5b524092ceee85baf8e22"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-baseline.log",
+      "originalSha256": "18b7405d1cf3eca80130c91abb58eafc537571f15dc415c99d746b71f992624a",
+      "committedSha256": "3d5fb4929310e79762935e0a7d4d811ec2a91ba4a11a1da86c015d66c0abeff9"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-full-final.log",
+      "originalSha256": "0707eecb67b46cd85e48e366ac6cc35855f2a7b9f4129749e256bcfd9577c327",
+      "committedSha256": "566e46e692565652c3ba04ca51b07dda11d62302e8fc4ad66c243ff1170f75d2"
+    }
+  ]
+}

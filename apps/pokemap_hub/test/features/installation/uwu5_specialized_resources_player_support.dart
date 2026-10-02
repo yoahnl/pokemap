@@ -23,6 +23,9 @@ Future<void> playUwu5InstalledPackage(
   Directory temporary, {
   required ProjectManifest authored,
   required MapData authoredMap,
+  Future<void> Function(PlayableMapGame game)? verifyAdditionalMovement,
+  void Function(RuntimeMapBundle bundle)? verifyBundle,
+  Future<void> Function(ui.Image frame)? verifyFrame,
 }) async {
   final support = Directory(p.join(temporary.path, 'player'));
   late PlayableMapGame game;
@@ -55,6 +58,7 @@ Future<void> playUwu5InstalledPackage(
           projectFilePath: projectFile.path,
           mapId: authored.newGame.startMapId,
         );
+        verifyBundle?.call(bundle);
         expect(bundle.manifest.smartTileCatalog, authored.smartTileCatalog);
         expect(bundle.manifest.borderCatalog, authored.borderCatalog);
         expect(bundle.manifest.characters, authored.characters);
@@ -160,7 +164,7 @@ Future<void> playUwu5InstalledPackage(
     );
   });
   await tester.pump();
-  await _captureAndCheckPixels(tester, capture);
+  await _captureAndCheckPixels(tester, capture, verifyFrame);
   await tester.runAsync(() async {
     expect(
       game.handleRuntimeInputEvent(
@@ -211,18 +215,24 @@ Future<void> playUwu5InstalledPackage(
     await _until(game, () => game.debugFlowPhaseName == 'overworld');
   });
   await pumpIo(tester, frames: 4);
+  await tester.runAsync(() async => verifyAdditionalMovement?.call(game));
   await tester.runAsync(() => verifyUwu5InstalledMovement(game));
   expect(game.gameStateSnapshot.currentMapId, authored.newGame.startMapId);
   await tester.pumpWidget(const SizedBox());
   await tester.runAsync(adapter.dispose);
 }
 
-Future<void> _captureAndCheckPixels(WidgetTester tester, GlobalKey key) async {
+Future<void> _captureAndCheckPixels(
+  WidgetTester tester,
+  GlobalKey key,
+  Future<void> Function(ui.Image frame)? verifyFrame,
+) async {
   await tester.runAsync(() async {
     final boundary =
         key.currentContext!.findRenderObject() as RenderRepaintBoundary;
     final frame = await boundary.toImage(pixelRatio: 1);
     try {
+      await verifyFrame?.call(frame);
       final rgba =
           (await frame.toByteData(format: ui.ImageByteFormat.rawRgba))!;
       var terrain = 0, border = 0;

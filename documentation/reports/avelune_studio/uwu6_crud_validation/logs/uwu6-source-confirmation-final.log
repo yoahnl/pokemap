@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=false
+00:07 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=true
+00:12 +2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart
+00:13 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: cancelling the prepared source withdrawal writes nothing
+UWU5_SOURCE_CANCEL_HOST_US=174218
+00:18 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: source removal can return to definition-only after analysis
+00:23 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart: confirmed source removal applies the announced logical effects
+00:26 +5: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart
+00:27 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source off on off invalidates plans and confirms only off
+00:28 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: confirmed source removal applies the exact analyzed plan
+00:28 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: erreur disarms removal and allows explicit source retention
+00:28 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacité perdue disarms removal and allows explicit source retention
+00:29 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: cancel accepts no mutation and ignores a late analysis
+00:29 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacity false never permits choosing a source removal
+00:29 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: capacity null never permits choosing a source removal
+00:29 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: content-addressed source removal explicitly retains blob file
+00:29 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1536.0, 1024.0)
+00:29 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1280.0, 800.0)
+00:29 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart: source removal controls remain reachable at Size(1024.0, 640.0)
+00:29 +16: All tests passed!

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
-
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -15,7 +14,6 @@ import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
-
 import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
 import '../../../../avelune_studio/test/support/clairbois_player_recipe.dart'
     show playClairboisRoute;
@@ -25,8 +23,11 @@ Future<void> playCreatedPackage(
   File package,
   Directory temporary,
   ProjectManifest authored,
-  int grid,
-) async {
+  int grid, {
+  Map<String, MapData>? expectedMaps,
+  Future<void> Function(PlayableMapGame, bool Function(RuntimeInputEvent))?
+  beforeClairboisRoute,
+}) async {
   final playerRoot = Directory(p.join(temporary.path, 'player'));
   late PlayableMapGame game;
   final adapter =
@@ -73,10 +74,10 @@ Future<void> playCreatedPackage(
         );
         expect(bundle.manifest.settings.tileWidth, grid);
         expect(bundle.manifest.settings.tileHeight, grid);
-        expect(bundle.manifest.maps.map((map) => map.id), [
-          'first-map',
-          'maison',
-        ]);
+        expect(
+          bundle.manifest.maps.map((map) => map.id),
+          expectedMaps?.keys ?? ['first-map', 'maison'],
+        );
         expect(bundle.manifest.tilesets, isNotEmpty);
         final catalog = AssetCatalog.fromJson(
           jsonDecode(
@@ -98,12 +99,16 @@ Future<void> playCreatedPackage(
             mapId: entry.id,
           );
           expect(mapBundle.map.id, entry.id);
-          expect(
-            mapBundle.map.size,
-            entry.id == 'first-map'
-                ? const GridSize(width: 32, height: 26)
-                : const GridSize(width: 12, height: 10),
-          );
+          if (expectedMaps == null) {
+            expect(
+              mapBundle.map.size,
+              entry.id == 'first-map'
+                  ? const GridSize(width: 32, height: 26)
+                  : const GridSize(width: 12, height: 10),
+            );
+          } else {
+            expect(mapBundle.map, expectedMaps[entry.id]);
+          }
           expect(
             p.isWithin(installedRoot, mapBundle.projectRootDirectory),
             isTrue,
@@ -192,6 +197,7 @@ Future<void> playCreatedPackage(
     expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 16, y: 16));
     expect(game.gameStateSnapshot.trainerProfile.avatarCharacterId, 'player');
   });
+  await beforeClairboisRoute?.call(game, adapter.handleInput);
   await playClairboisRoute(tester, game, input: adapter.handleInput);
   await tester.runAsync(() async {
     final checkpoint = await adapter.captureCheckpoint();
@@ -238,7 +244,6 @@ GamePackageHostCompatibility _compatibility() => GamePackageHostCompatibility(
   currentProjectFormat: 'v8',
   supportedSaveFormats: const {1},
 );
-
 Future<void> _checkCharacterFrames(RuntimeMapBundle bundle) async {
   final imageSizes = <String, ui.Size>{};
   for (final entry in bundle.runtimeImageAbsolutePathsById.entries) {

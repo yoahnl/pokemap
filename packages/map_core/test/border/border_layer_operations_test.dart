@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('Border layer operations', () {
-    test('add appends a Border layer, promotes V2, and preserves map data', () {
+    test('add fronts a Border layer, promotes V2, and preserves map data', () {
       final source = _map(
         layers: <MapLayer>[_tileLayer()],
         placedElements: const <MapPlacedElement>[
@@ -26,10 +26,10 @@ void main() {
       expect(source.layers, hasLength(1));
       expect(updated.version, ProjectVersion.v8);
       expect(updated.layers.map((layer) => layer.id), <String>[
-        'ground',
         'borders',
+        'ground',
       ]);
-      expect(updated.layers.last, isA<BorderLayer>());
+      expect(updated.layers.first, isA<BorderLayer>());
       expect(updated.placedElements, source.placedElements);
       expect(updated.entities, source.entities);
       expect(updated.connections, source.connections);
