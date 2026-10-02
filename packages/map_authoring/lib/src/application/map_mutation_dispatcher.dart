@@ -48,6 +48,7 @@ import '../ports/artifact_store.dart';
 import '../registry/mutation_registry.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
+import '../domains/assets/resource_source_actions.dart';
 import '../support/authoring_performance_observer.dart';
 import '../domains/maps/border_actions.dart';
 import '../domains/maps/border_catalog_actions.dart';
@@ -124,6 +125,7 @@ final class MapMutationDispatcher {
         );
     final borderCatalog = BorderCatalogActions(artifactStore: artifacts);
     final assets = AssetActions(artifactStore: artifacts);
+    final resourceSources = ResourceSourceActions(artifactStore: artifacts);
     final presentationMedia = PresentationMediaImportActions(
       artifactStore: artifacts,
       probe: presentationMediaProbe,
@@ -255,6 +257,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: assets.build,
+        ),
+      for (final descriptor in ResourceSourceActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: resourceSources.build,
         ),
       for (final descriptor in PresentationMediaImportActions.descriptors)
         MapMutationActionRegistration(

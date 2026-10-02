@@ -9,7 +9,9 @@ final class ResourceMutationPreparation {
     required this.manifestRevision,
     required List<String> changedPaths,
     required this.confirmationRequired,
+    Map<String, Object?> impact = const {},
   }) : parameters = _freezeParameters(parameters),
+       impact = _freezeParameters(impact),
        changedPaths = List.unmodifiable(changedPaths);
 
   final String sessionId;
@@ -19,6 +21,7 @@ final class ResourceMutationPreparation {
   final String manifestRevision;
   final List<String> changedPaths;
   final bool confirmationRequired;
+  final Map<String, Object?> impact;
   bool get noChange => changedPaths.isEmpty;
 }
 

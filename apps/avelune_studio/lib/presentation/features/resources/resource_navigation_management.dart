@@ -57,6 +57,17 @@ extension ResourceNavigationManagement on ResourceNavigation {
     if (pendingReceipt != null) {
       return 'Relisez la publication précédente avant une nouvelle modification.';
     }
+    if (const {
+      'element.delete',
+      'element.duplicate',
+      'tileset.remove',
+      'tileset.source.replace',
+    }.contains(actionId)) {
+      final owners = _lifecycleDraftOwners(actionId, parameters);
+      if (owners.isNotEmpty) {
+        return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
+      }
+    }
     if (actionId == 'element.category.assign' &&
         decors.values.any(
           (draft) => draft.original?.id == parameters['elementId'],

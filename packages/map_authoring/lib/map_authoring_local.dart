@@ -11,6 +11,8 @@ export 'src/transactions/action_planner.dart' show AuthoringPlanningContext;
 export 'src/transactions/authoring_plan.dart' show AuthoringMutationDraft;
 export 'src/domains/assets/resource_management_actions.dart'
     show ResourceManagementActions;
+export 'src/domains/assets/resource_source_actions.dart'
+    show ResourceSourceActions;
 export 'src/domains/assets/asset_store.dart' show assetBlobResourceIdentity;
 export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;

@@ -24,12 +24,14 @@ class ResourceManagementDialog extends StatefulWidget {
     required this.submit,
     required this.dirty,
     this.valid,
+    this.maxWidth = 560,
   });
   final String title, submitLabel;
   final Widget Function(VoidCallback refresh, bool busy) fields;
   final Future<String?> Function() submit;
   final bool Function() dirty;
   final bool Function()? valid;
+  final double maxWidth;
 
   @override
   State<ResourceManagementDialog> createState() =>
@@ -108,7 +110,7 @@ class _ResourceManagementDialogState extends State<ResourceManagementDialog> {
         insetPadding: const EdgeInsets.all(20),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: 560,
+            maxWidth: widget.maxWidth,
             maxHeight: MediaQuery.sizeOf(context).height - 40,
           ),
           child: Padding(

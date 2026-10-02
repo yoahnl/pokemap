@@ -2,57 +2,16 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
+part 'map_element_placement_commands.dart';
+
 class MapEditingCommands {
   MapEditingCommands(this.document, this.project);
   final EditableMapDocument document;
   final ProjectManifest project;
   static int _nextId = 0;
 
-  String? place(ProjectElementEntry element, GridPos position) {
-    var map = document.current;
-    final layer = supportLayer(
-      map,
-      preferredLayerId: element.recommendedLayerId,
-    );
-    if (!map.layers.any((entry) => entry.id == layer.id)) {
-      final layers = [...map.layers];
-      layers.insert(
-        resolveAuthoredLayerInsertIndex(map, activeLayerId: null),
-        layer,
-      );
-      map = map.copyWith(layers: layers);
-    }
-    String id;
-    do {
-      id = 'studio-${DateTime.now().microsecondsSinceEpoch}-${_nextId++}';
-    } while (map.placedElements.any((element) => element.id == id));
-    final instance = MapPlacedElement(
-      id: id,
-      layerId: layer.id,
-      elementId: element.id,
-      pos: position,
-      properties: const {
-        pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
-      },
-      visualOrder:
-          map.placedElements
-              .where((e) => e.layerId == layer.id)
-              .fold(
-                0,
-                (rank, e) => e.visualOrder > rank ? e.visualOrder : rank,
-              ) +
-          1,
-    );
-    if (!_fits(instance, element)) {
-      document.error = 'Ce décor dépasse les limites de la carte.';
-      return null;
-    }
-    document.commit(upsertMapPlacedElement(map, instance: instance));
-    document.selectedId = id;
-    document.stackPosition = position;
-    document.stackPixelPosition = null;
-    return id;
-  }
+  String? place(ProjectElementEntry element, GridPos position) =>
+      _placeElement(element, position);
 
   void move(String id, GridPos position) {
     final instance = document.current.placedElements

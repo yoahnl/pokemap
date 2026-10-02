@@ -1,6 +1,32 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
+  void _reconcileResourceBrushes() {
+    final project = _controller.project;
+    if (project == null) return;
+    var changed = false;
+    for (final view in _views.values) {
+      final brushId = view.brush?.id;
+      if (brushId != null) {
+        final before = view.brush;
+        view.brush = project.elements
+            .where((element) => element.id == brushId)
+            .firstOrNull;
+        changed |= before != view.brush;
+        if (view.brush == null && view.tool == StudioMapTool.place) {
+          view.tool = StudioMapTool.select;
+        }
+      }
+      final tileId = view.tile?.tilesetId;
+      if (tileId != null && !project.tilesets.any((t) => t.id == tileId)) {
+        view.tile = null;
+        changed = true;
+        if (view.tool == StudioMapTool.paint) view.tool = StudioMapTool.select;
+      }
+    }
+    if (changed) retainWorkspaceBrush(_visuals, _view);
+  }
+
   void _initializePokemon() {
     final port = widget.pokemonPort;
     if (port != null) {

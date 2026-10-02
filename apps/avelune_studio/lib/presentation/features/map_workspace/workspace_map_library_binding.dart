@@ -17,6 +17,7 @@ extension _WorkspaceMapLibrary on _MapWorkspaceScreenState {
   }
 
   void _reconcileCatalogueView() {
+    _reconcileResourceBrushes();
     final project = _controller.project;
     if (project == null) return;
     final ids = project.maps.map((map) => map.id).toSet();

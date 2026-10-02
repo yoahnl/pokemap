@@ -24,6 +24,9 @@ class ResourceCatalogView extends StatelessWidget {
     this.onInformation,
     this.onMove,
     this.onUsages,
+    this.onReplace,
+    this.onRemove,
+    this.onDuplicate,
   });
   final List<ResourceItem> items;
   final ResourceItem? selected;
@@ -33,12 +36,16 @@ class ResourceCatalogView extends StatelessWidget {
   final bool grid, catalogEmpty;
   final ValueChanged<ResourceItem> onSelect;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
+  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
 
   Widget actions(ResourceItem item) => ResourceItemActions(
     item: item,
     onInformation: onInformation,
     onMove: onMove,
     onUsages: onUsages,
+    onReplace: onReplace,
+    onRemove: onRemove,
+    onDuplicate: onDuplicate,
   );
 
   String metadata(ResourceItem item) {

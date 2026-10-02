@@ -27,6 +27,9 @@ class ResourceDetailPanel extends StatelessWidget {
     this.onInformation,
     this.onMove,
     this.onUsages,
+    this.onReplace,
+    this.onRemove,
+    this.onDuplicate,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -39,6 +42,7 @@ class ResourceDetailPanel extends StatelessWidget {
   final bool canUse;
   final bool canEditTerrain;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
+  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,9 @@ class ResourceDetailPanel extends StatelessWidget {
                   onInformation: onInformation,
                   onMove: onMove,
                   onUsages: onUsages,
+                  onReplace: onReplace,
+                  onRemove: onRemove,
+                  onDuplicate: onDuplicate,
                 ),
                 const SizedBox(height: 16),
                 Text(

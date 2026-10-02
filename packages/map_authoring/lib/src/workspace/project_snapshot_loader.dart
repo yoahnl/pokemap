@@ -642,7 +642,19 @@ final class ProjectSnapshotLoader {
         if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
           continue;
         }
-        if (!record.logicalPath.startsWith('assets/pokemon/menu/')) continue;
+        final managedTilesetSource = manifest.tilesets.any((tileset) =>
+            tileset.relativePath == record.logicalPath &&
+            tileset.source is ProjectRegularAtlasTilesetSource &&
+            (tileset.source as ProjectRegularAtlasTilesetSource).assetId ==
+                record.id);
+        if (managedTilesetSource &&
+            record.logicalPath == assetBlobStorageKey(record.artifact)) {
+          continue;
+        }
+        if (!managedTilesetSource &&
+            !record.logicalPath.startsWith('assets/pokemon/menu/')) {
+          continue;
+        }
         final path = validateProjectRelativePath(record.logicalPath).join('/');
         if (!occupiedPaths.add(path)) {
           throw const ProjectSnapshotException(
@@ -656,7 +668,9 @@ final class ProjectSnapshotLoader {
         } else {
           resources.add(_LoadedProjectResource(
             relativePath: path,
-            identity: 'asset:${record.id}',
+            identity: managedTilesetSource
+                ? 'assetLogical:${record.id}'
+                : 'asset:${record.id}',
             bytes: bytes,
           ));
         }
@@ -756,7 +770,7 @@ final class ProjectSnapshotLoader {
       if (await _readOptional(access, path) != null) {
         throw const ProjectSnapshotException(
           'project.changed_during_snapshot',
-          'A Pokemon menu image appeared while the snapshot was loading.',
+          'A logical asset image appeared while the snapshot was loading.',
         );
       }
     }

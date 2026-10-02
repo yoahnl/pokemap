@@ -211,6 +211,11 @@ class MapWorkspaceController {
       redo: redo,
       canRestore: (next) {
         final before = document.current;
+        final resourceProblem = _historyResourceProblem(before, next, manifest);
+        if (resourceProblem != null) {
+          document.error = resourceProblem;
+          return false;
+        }
         if (_historyHasMissingMapDestination(next, manifest)) {
           document.error =
               'Cette annulation restaurerait une destination supprimée.';

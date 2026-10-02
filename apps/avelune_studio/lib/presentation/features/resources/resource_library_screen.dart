@@ -40,6 +40,9 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onInformation,
     this.onMove,
     this.onUsages,
+    this.onReplace,
+    this.onRemove,
+    this.onDuplicate,
     this.onManageContainers,
   });
   final ProjectManifest project;
@@ -60,6 +63,7 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ProjectSmartTileAuthoringDraft>? onResumeTerrain;
   final bool Function(ResourceItem)? canEditTerrain;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
+  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final ValueChanged<ResourceKind>? onManageContainers;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
@@ -139,6 +143,24 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
             : (item) {
                 close?.call();
                 widget.onUsages?.call(item);
+              },
+        onReplace: widget.onReplace == null
+            ? null
+            : (item) {
+                close?.call();
+                widget.onReplace?.call(item);
+              },
+        onRemove: widget.onRemove == null
+            ? null
+            : (item) {
+                close?.call();
+                widget.onRemove?.call(item);
+              },
+        onDuplicate: widget.onDuplicate == null
+            ? null
+            : (item) {
+                close?.call();
+                widget.onDuplicate?.call(item);
               },
         canEditTerrain:
             item != null && (widget.canEditTerrain?.call(item) ?? false),

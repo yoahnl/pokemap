@@ -10,10 +10,14 @@ class ResourceItemActions extends StatelessWidget {
     this.onInformation,
     this.onMove,
     this.onUsages,
+    this.onReplace,
+    this.onRemove,
+    this.onDuplicate,
     this.buttons = false,
   });
   final ResourceItem item;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
+  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final bool buttons;
 
   @override
@@ -29,6 +33,18 @@ class ResourceItemActions extends StatelessWidget {
           Icons.account_tree_outlined,
           onUsages!,
         ),
+      if (item.tileset != null && onReplace != null)
+        ('Remplacer l’image source…', Icons.compare_outlined, onReplace!),
+      if (item.element != null && onDuplicate != null)
+        ('Dupliquer la définition…', Icons.copy_outlined, onDuplicate!),
+      if (onRemove != null && (item.tileset != null || item.element != null))
+        (
+          item.element == null
+              ? 'Supprimer la planche…'
+              : 'Supprimer la définition…',
+          Icons.delete_outline,
+          onRemove!,
+        ),
     ];
     if (actions.isEmpty) return const SizedBox();
     if (buttons) {
@@ -41,6 +57,9 @@ class ResourceItemActions extends StatelessWidget {
               label: label,
               icon: icon,
               secondary: true,
+              variant: icon == Icons.delete_outline
+                  ? StudioButtonVariant.destructive
+                  : StudioButtonVariant.secondary,
               onPressed: () => action(item),
             ),
         ],
@@ -68,7 +87,13 @@ class ResourceItemActions extends StatelessWidget {
                   value: index,
                   child: Row(
                     children: [
-                      Icon(actions[index].$2, size: 18),
+                      Icon(
+                        actions[index].$2,
+                        size: 18,
+                        color: actions[index].$2 == Icons.delete_outline
+                            ? Theme.of(context).colorScheme.error
+                            : null,
+                      ),
                       const SizedBox(width: 10),
                       Flexible(child: Text(actions[index].$1)),
                     ],

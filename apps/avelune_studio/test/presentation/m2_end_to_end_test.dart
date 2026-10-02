@@ -183,6 +183,10 @@ void main() {
       expect(project.elements.any((e) => e.name == 'Bosquet M2'), isTrue);
     });
     await tester.tap(find.byTooltip('Enregistrer et tester'));
+    await WidgetResourcePort.pending;
+    await tester.runAsync(() async {
+      await tester.pump();
+    });
     await pumpIo(tester, frames: 200);
     final gameFinder = find.byType(GameWidget<PlayableMapGame>);
     expect(gameFinder, findsOneWidget);

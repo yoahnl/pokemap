@@ -1,11 +1,15 @@
 import 'package:avelune_studio/features/resources/domain/resource_mutation_preparation.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_usage_port.dart';
+import 'package:avelune_studio/features/resources/domain/resource_lifecycle_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'm2_ui_fixture.dart';
 
 class WidgetResourceManagementPort extends WidgetResourcePort
-    implements ResourceMutationPreparationPort, ResourceUsageProvider {
+    implements
+        ResourceMutationPreparationPort,
+        ResourceUsageProvider,
+        ResourceLifecyclePreparationPort {
   WidgetResourceManagementPort(super.port, super.tester, {this.wrapUsages});
   final ResourceUsagePort Function(ResourceUsagePort)? wrapUsages;
   ResourceMutationPreparationPort get preparation =>
@@ -25,6 +29,22 @@ class WidgetResourceManagementPort extends WidgetResourcePort
   @override
   Future<String> captureResourceRevision() =>
       _read(preparation.captureResourceRevision);
+
+  @override
+  Future<ResourceReplacementPreview> prepareReplacement(
+    ResourceReplacementRequest request,
+  ) => _read(
+    () =>
+        (port as ResourceLifecyclePreparationPort).prepareReplacement(request),
+  );
+
+  @override
+  Future<void> releasePreparation(ResourceMutationPreparation preparation) =>
+      _read(
+        () => (port as ResourceLifecyclePreparationPort).releasePreparation(
+          preparation,
+        ),
+      );
 
   @override
   Future<ResourceMutationPreparation> prepareOperation(

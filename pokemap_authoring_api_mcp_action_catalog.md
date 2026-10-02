@@ -1098,6 +1098,17 @@ Les suppressions de conteneurs occupés sont refusées. Le déplacement d'un
 preset ne publie pas son brouillon de préparation. Ces commandes traversent
 le dispatcher canonique et les transactions revisionnées communes.
 
+Le remplacement compatible d’une source utilise `tileset.source.replace`
+avec un artifact figé. Les dimensions et la grille restent identiques ; les
+références mutables sont réconciliées et les snapshots publiés conservés.
+`tileset.remove` retire une définition inutilisée ; `removeSource` est une
+option séparée, revalidée sur les usages. Aucun blob partagé n’est purgé.
+`element.duplicate` crée une nouvelle définition indépendante, partageant
+ses sources ; `element.delete` refuse les usages directs, indirects et de
+conservation technique. Les deux suppressions et le remplacement exigent
+la confirmation du plan à risque élevé. Le dispatcher, la CLI JSONL,
+le transport MCP stdio et les contrôleurs Studio utilisent ces contrats.
+
 ### 13.2 Environnements
 
 ```text

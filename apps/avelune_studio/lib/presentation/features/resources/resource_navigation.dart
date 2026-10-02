@@ -11,9 +11,11 @@ import '../characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import '../../../features/resources/domain/resource_mutation_preparation.dart';
+import '../../../features/resources/domain/resource_lifecycle_port.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 part 'resource_navigation_terrain.dart';
 part 'resource_navigation_management.dart';
+part 'resource_navigation_lifecycle.dart';
 
 enum ResourcePage { library, decor, terrain, characters }
 
@@ -40,6 +42,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   final bool Function(ResourceUsageEntry)? canOpenUsage;
   ResourceMutationReceipt? pendingReceipt;
   bool _disposed = false;
+  bool get isDisposed => _disposed;
   int _managementDialogs = 0;
   void changed() {
     if (!_disposed) notifyListeners();
@@ -154,6 +157,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     notifyListeners();
     try {
       for (final draft in decors.values.toList()) {
+        _validateDecorOwner(draft);
         final snapshot = draft.build();
         await accept(await port.saveElement(snapshot));
         if (draft.build() == snapshot) {
@@ -251,6 +255,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   }
 
   Future<void> saveDecor(ProjectElementEntry element) async {
+    _validateDecorOwner(decor);
     busy = true;
     notifyListeners();
     try {

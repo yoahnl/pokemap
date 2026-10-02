@@ -510,6 +510,26 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if (const {
+    'tileset.source.replace',
+    'tileset.remove',
+    'element.duplicate',
+    'element.delete'
+  }.contains(actionId)) {
+    final source = actionId.startsWith('tileset.');
+    return {
+      AuthoringTransport.directApi: source
+          ? 'test/domains/assets/resource_source_api_test.dart'
+          : 'test/domains/assets/element_definition_transaction_test.dart',
+      AuthoringTransport.cli: source
+          ? 'test/domains/assets/resource_source_api_test.dart'
+          : 'test/domains/assets/element_definition_transaction_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts',
+    };
+  }
+  if (const {
     'tileset.metadata.update',
     'tileset_folder.upsert',
     'tileset_folder.delete',
@@ -1140,6 +1160,14 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(
+    ['tileset.source.replace', 'tileset.remove'],
+    'test/domains/assets/resource_source_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['element.duplicate', 'element.delete'],
+    'test/domains/assets/element_definition_transaction_test.dart',
+  ),
   _ContractEvidenceRule(
     [
       'tileset.metadata.',

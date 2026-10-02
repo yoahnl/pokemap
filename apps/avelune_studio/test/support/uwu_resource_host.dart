@@ -7,6 +7,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_catalog.
 import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_usage_results.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -27,6 +28,7 @@ class UwUResourceHost {
     Size size = const Size(1536, 1024),
     double textScale = 1,
     ResourceUsagePort Function(ResourceUsagePort)? wrapUsages,
+    PickResourceImage? imagePicker,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -52,6 +54,7 @@ class UwUResourceHost {
       fixture.app(
         tester,
         textScale: textScale,
+        imagePicker: imagePicker,
         resourcePort: WidgetResourceManagementPort(
           fixture.resources,
           tester,
@@ -129,13 +132,14 @@ class UwUResourceHost {
     await pumpIo(tester, frames: 20);
   }
 
-  Future<ProjectManifest> reopen() async => (await tester.runAsync(() async {
-    final sessions = LocalProjectSessionAdapter();
-    final session = await sessions.open(fixture.directory.path);
-    try {
-      return await LocalMapWorkspaceAdapter().loadProject(session);
-    } finally {
-      await sessions.close(session);
-    }
-  }))!;
+  Future<ProjectManifest> reopen() async =>
+      (await WidgetResourcePort.serial(tester, () async {
+        final sessions = LocalProjectSessionAdapter();
+        final session = await sessions.open(fixture.directory.path);
+        try {
+          return await LocalMapWorkspaceAdapter().loadProject(session);
+        } finally {
+          await sessions.close(session);
+        }
+      }))!;
 }

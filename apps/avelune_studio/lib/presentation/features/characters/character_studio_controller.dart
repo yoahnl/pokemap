@@ -4,6 +4,8 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/characters/application/character_studio_draft.dart';
 import '../../../features/characters/application/character_studio_frame_bounds.dart';
 
+part 'character_studio_draft_dependencies.dart';
+
 enum CharacterStudioSection { library, identity, animations, portraits }
 
 typedef CharacterStudioMutation =

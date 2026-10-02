@@ -13,6 +13,7 @@ import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/resource_port.dart';
 import '../domain/resource_mutation_preparation.dart';
+import '../domain/resource_lifecycle_port.dart';
 import '../domain/resource_usage_port.dart';
 import 'local_resource_usage_adapter.dart';
 import 'border_resource_sources.dart';
@@ -24,11 +25,14 @@ part 'local_resource_mutation.dart';
 part 'local_resource_preparation.dart';
 part 'local_resource_receipt.dart';
 part 'local_resource_reconciliation.dart';
+part 'local_resource_lifecycle_preparation.dart';
+part 'local_resource_lifecycle_apply.dart';
 
 final class LocalResourceAdapter
     implements
         ResourcePort,
         ResourceMutationPreparationPort,
+        ResourceLifecyclePreparationPort,
         ResourceUsageProvider {
   LocalResourceAdapter({
     required this.session,
@@ -43,6 +47,8 @@ final class LocalResourceAdapter
   final Future<void> Function()? beforeTransactionPrecondition;
   final Future<void> Function()? beforeReconciliation;
   final Set<ResourceMutationPreparation> _appliedPreparations = {};
+  final Map<ResourceMutationPreparation, _ResourcePreparedContext> _prepared =
+      {};
   @override
   late final ResourceUsagePort usages = LocalResourceUsageAdapter(
     session: session,
@@ -53,6 +59,9 @@ final class LocalResourceAdapter
     'asset.delete',
     'asset.replace',
     'element.delete',
+    'element.duplicate',
+    'tileset.source.replace',
+    'tileset.remove',
     ...ResourceManagementActions.actionIds,
     'tileset.import_image',
     'element.upsert',
@@ -143,12 +152,37 @@ final class LocalResourceAdapter
     String actionId,
     Map<String, Object?> parameters, {
     String? expectedSnapshotRevision,
-  }) => _prepareResourceOperation(
-    this,
-    actionId,
-    parameters,
-    expectedSnapshotRevision,
-  );
+  }) => _lifecycleActions.contains(actionId)
+      ? _prepareLifecycleOperation(
+          this,
+          actionId,
+          parameters,
+          expectedSnapshotRevision: expectedSnapshotRevision,
+        )
+      : _prepareResourceOperation(
+          this,
+          actionId,
+          parameters,
+          expectedSnapshotRevision,
+        );
+
+  @override
+  Future<ResourceReplacementPreview> prepareReplacement(
+    ResourceReplacementRequest request,
+  ) => _prepareResourceReplacement(this, request);
+
+  @override
+  Future<void> releasePreparation(
+    ResourceMutationPreparation preparation,
+  ) async {
+    final active = _prepared[preparation];
+    if (active?.applying == true) {
+      active!.releaseRequested = true;
+      return;
+    }
+    final context = _prepared.remove(preparation);
+    if (context != null) await context.close();
+  }
 
   @override
   Future<ResourceMutationReceipt> applyPrepared(
@@ -164,6 +198,14 @@ final class LocalResourceAdapter
       );
     }
     try {
+      if (_lifecycleActions.contains(preparation.actionId)) {
+        return await _applyLifecycleOperation(
+          this,
+          preparation,
+          confirmDestructive: confirmDestructive,
+          validateBeforeApply: validateBeforeApply,
+        );
+      }
       return await _run(
         preparation.actionId,
         (_) => preparation.parameters,
@@ -183,6 +225,9 @@ final class LocalResourceAdapter
   @override
   Future<void> dispose() async {
     _disposed = true;
+    for (final preparation in _prepared.keys.toList()) {
+      await releasePreparation(preparation);
+    }
     await usages.dispose();
   }
 

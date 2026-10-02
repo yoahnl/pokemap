@@ -144,6 +144,9 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                         onInformation: widget.onInformation,
                         onMove: widget.onMove,
                         onUsages: widget.onUsages,
+                        onReplace: widget.onReplace,
+                        onRemove: widget.onRemove,
+                        onDuplicate: widget.onDuplicate,
                       ),
                     ),
                     if (inlineDetail) ...[

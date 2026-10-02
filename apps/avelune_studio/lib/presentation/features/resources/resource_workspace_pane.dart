@@ -15,6 +15,7 @@ import 'resource_character_portrait_import.dart';
 import 'resource_character_animation_import.dart';
 import 'resource_management_bindings.dart';
 import 'resource_reconciliation_notice.dart';
+import 'resource_lifecycle_bindings.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -238,6 +239,11 @@ class ResourceWorkspacePane extends StatelessWidget {
                   openResourceInformation(context, n, item),
               onMove: (item) => moveResource(context, n, item),
               onUsages: (item) => openResourceUsages(context, n, item),
+              onReplace: (item) =>
+                  replaceResourceImage(context, n, item, picker),
+              onRemove: (item) => removeResourceDefinition(context, n, item),
+              onDuplicate: (item) =>
+                  duplicateResourceDefinition(context, n, item),
               onManageContainers: (family) =>
                   manageResourceContainers(context, n, family),
               onTerrain: n.prepareTerrain,
