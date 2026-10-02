@@ -27,11 +27,11 @@
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 00:02 +11 -1: Some tests failed.
 
 Failing tests:
@@ -124,11 +124,11 @@ Failing tests:
 00:04 +9 -1: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:04 +10 -1: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
 00:04 +11 -1: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: guided initial placement is nonblocking and map entity role remains explicitly unbound
 00:04 +12 -1: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
@@ -169,28 +169,28 @@ Failing tests:
 00:17 +45 -2: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:18 +46 -2: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:19 +46 -3: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:19 +46 -3: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:20 +47 -3: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: small editor at enlarged text keeps all sections scrollable
 00:20 +48 -3: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/terrain_editor_test.dart: outer corner can be assigned and undone through the pattern
@@ -325,7 +325,7 @@ unexpected.
 00:58 +98 -4: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 00:59 +99 -4: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:59 +100 -4: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 01:00 +101 -4: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues/dialogue_preview_ui09_test.dart: canonical portrait speaker and clearing apply to the actual line without leaking previous portrait
@@ -567,7 +567,7 @@ unexpected.
 01:31 +181 -5: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:31 +181 -5: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -620,7 +620,7 @@ unexpected.
 01:31 +181 -6: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:32 +181 -6: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -673,7 +673,7 @@ unexpected.
 01:32 +181 -7: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:32 +181 -7: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -726,7 +726,7 @@ unexpected.
 01:32 +181 -8: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:33 +181 -8: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -778,7 +778,7 @@ unexpected.
 01:33 +181 -9: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:33 +181 -9: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
 01:35 +182 -9: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:36 +183 -9: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
@@ -823,7 +823,7 @@ The test description was:
 02:05 +197 -10: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:05 +197 -10: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:06 +198 -10: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:09 +199 -10: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -1276,7 +1276,7 @@ unexpected.
 05:38 +387 -11: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
   Test failed. See exception logs above.
   The test description was: UI10 full Studio frame early composition with isolated real project
-  
+
 05:38 +387 -11: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_2LfE1A/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_2LfE1A/project.json
@@ -1622,11 +1622,11 @@ unexpected.
               '/private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 05:56 +440 -12: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:56 +441 -12: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:57 +442 -12: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
@@ -1766,7 +1766,7 @@ unexpected.
 07:01 +525 -13: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
   Test failed. See exception logs above.
   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
-  
+
 07:01 +525 -13: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -1818,7 +1818,7 @@ unexpected.
 07:01 +525 -14: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:01 +525 -14: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -1871,7 +1871,7 @@ unexpected.
 07:02 +525 -15: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:02 +526 -15: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: an abandoned control does not disturb the one still working
 07:03 +527 -15: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: closing during the proof read adopts nothing and stays quiet
 07:03 +528 -15: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: a failed proof read stays recoverable
@@ -1949,14 +1949,14 @@ unexpected.
 07:22 +554 -16: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
   Test failed. See exception logs above.
   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
-  
+
 07:22 +554 -16: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:23 +555 -16: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:23 +555 -17: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: first declared outcome connects without a fabricated effect
 07:23 +555 -17: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
 07:23 +556 -17: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: outcome pointer uses exact second step after pan and zoom
 07:24 +557 -17: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: fact pointer chooses exact completion slot and false value
 07:24 +558 -17: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/story_graph_canvas_test.dart: fact pointer chooses exact completion slot and false value
@@ -2067,7 +2067,7 @@ unexpected.
 07:29 +615 -18: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
   Test failed. See exception logs above.
   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
-  
+
 07:30 +615 -18: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2118,7 +2118,7 @@ unexpected.
 07:30 +615 -19: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
   Test failed. See exception logs above.
   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
-  
+
 07:30 +615 -19: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_uZ8kz6/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_uZ8kz6/project.json
@@ -2202,7 +2202,7 @@ unexpected.
 07:39 +623 -20: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
-  
+
 07:40 +623 -20: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2255,7 +2255,7 @@ unexpected.
 07:40 +623 -21: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
-  
+
 07:40 +624 -21: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -2308,7 +2308,7 @@ unexpected.
 07:41 +624 -22: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
-  
+
 07:42 +625 -22: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:42 +626 -22: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:42 +627 -22: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
@@ -2549,7 +2549,7 @@ unexpected.
 08:20 +751 ~2 -23: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
   Test failed. See exception logs above.
   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
-  
+
 08:26 +751 ~2 -23: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
 UI06 construction: 8 blocs et 7 fils construits, publication
 UI06 construction: publication terminée, relecture indépendante
@@ -2652,7 +2652,7 @@ The test description was:
 09:40 +802 ~2 -24: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
   Test failed. See exception logs above.
   The test description was: local stack selects a hidden instance and respects order command limits
-  
+
 09:49 +803 ~2 -24: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
 09:50 +804 ~2 -24: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
 09:57 +805 ~2 -24: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
@@ -2705,7 +2705,7 @@ The test description was:
 10:16 +824 ~2 -25: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
   Test failed. See exception logs above.
   The test description was: place move stack undo redo save and runtime return preserve document
-  
+
 10:17 +825 ~2 -25: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:18 +826 ~2 -25: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:19 +827 ~2 -25: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
@@ -2866,7 +2866,7 @@ The test description was:
 12:05 +934 ~3 -26: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page [E]
   Test failed. See exception logs above.
   The test description was: Studio exports the saved two-map story through its own page
-  
+
 12:05 +935 ~3 -26: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile retains the normal draft confirmation
 12:06 +936 ~3 -26: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 12:12 +936 ~3 -26: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
@@ -2895,7 +2895,7 @@ The test description was:
 12:12 +936 ~3 -27: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
   Test failed. See exception logs above.
   The test description was: cancelled export keeps every exit guard until cleanup finishes
-  
+
 12:15 +936 ~3 -27: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -2922,7 +2922,7 @@ The test description was:
 12:15 +936 ~3 -28: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
   Test failed. See exception logs above.
   The test description was: home opens the export page on its mounted project and exports a package
-  
+
 12:17 +937 ~3 -28: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
 12:17 +938 ~3 -28: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
 12:18 +939 ~3 -28: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
@@ -3177,7 +3177,7 @@ The test description was:
 12:53 +1010 ~3 -29: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
   Test failed. See exception logs above.
   The test description was: the real map workspace links and unlinks both borders
-  
+
 12:53 +1011 ~3 -29: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 12:53 +1012 ~3 -29: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 12:53 +1013 ~3 -29: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
@@ -3230,7 +3230,7 @@ The test description was:
 12:54 +1016 ~3 -30: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
   Test failed. See exception logs above.
   The test description was: a draft blocks the link without losing its changes
-  
+
 12:54 +1016 ~3 -30: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: collapsed map library leaves the selection button accessible
 12:55 +1017 ~3 -30: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: catalogue revision checking refuses externally changed map folders
 12:55 +1018 ~3 -30: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: another session owner cannot refresh a baseline then overwrite old UI groups
@@ -3530,7 +3530,7 @@ The test description was:
 14:49 +1179 ~3 -31: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities [E]
   Test failed. See exception logs above.
   The test description was: Clairbois creates edits saves and renames without changing existing identities
-  
+
 14:52 +1180 ~3 -31: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 14:56 +1181 ~3 -31: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 14:56 +1182 ~3 -31: /private/tmp/uwu4-baseline-snapshot/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds
@@ -3623,11 +3623,11 @@ No issues found!
 00:02 +1 -1: an editor still holding a removed definition cannot resurrect it [E]
   Expected: null
     Actual: <Instance of 'ResourceMutationReceipt'>
-  
+
   package:matcher                                                   expect
   package:flutter_test/src/widget_tester.dart 473:18                expect
   test/resource_io/resource_decor_owner_concurrency_test.dart 67:7  main.<fn>
-  
+
 00:02 +1 -1: unchanged owner saves through its real port and reopens independently
 00:03 +2 -1: Some tests failed.
 
@@ -3698,19 +3698,19 @@ No issues found!
   VisualLibraryException(visual.action_unsupported): The requested element action is unsupported.
   package:map_authoring/src/domains/assets/element_actions.dart 103:9  ElementActions.build
   test/domains/assets/element_definition_actions_test.dart 15:44       main.<fn>
-  
+
 00:00 +0 -1: duplicate preserves complete animated definition
 00:00 +0 -2: duplicate preserves complete animated definition [E]
   VisualLibraryException(visual.action_unsupported): The requested element action is unsupported.
   package:map_authoring/src/domains/assets/element_actions.dart 103:9  ElementActions.build
   test/domains/assets/element_definition_actions_test.dart 15:44       main.<fn>
-  
+
 00:00 +0 -2: duplicate preserves extension fields on source and independent copy
 00:00 +0 -3: duplicate preserves extension fields on source and independent copy [E]
   VisualLibraryException(visual.action_unsupported): The requested element action is unsupported.
   package:map_authoring/src/domains/assets/element_actions.dart 103:9  ElementActions.build
   test/domains/assets/element_definition_actions_test.dart 40:42       main.<fn>
-  
+
 00:00 +0 -3: duplicate refuses collision absent category source and unknown input
 00:00 +1 -3: duplicate refuses uncertified and unsupported source
 00:00 +2 -3: deletion refuses declared closed map absent from snapshot
@@ -3718,19 +3718,19 @@ No issues found!
   Expected: throws <Instance of 'VisualLibraryException'> with `code`: 'element.usage_inventory_incomplete'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                expect
   test/domains/assets/element_definition_actions_test.dart 82:5  main.<fn>
-  
+
 00:00 +2 -4: deletion refuses retained source from unplaced border preparation
 00:00 +2 -5: deletion refuses retained source from unplaced border preparation [E]
   Expected: throws <Instance of 'VisualLibraryException'> with `code`: 'element.references_blocking'
     Actual: <Closure: () => AuthoringMutationDraft>
      Which: returned <Instance of 'AuthoringMutationDraft'>
-  
+
   package:matcher                                                expect
   test/domains/assets/element_definition_actions_test.dart 91:5  main.<fn>
-  
+
 00:00 +2 -5: delete free definition keeps images category and unrelated elements
 00:00 +3 -5: Some tests failed.
 
@@ -3867,13 +3867,13 @@ Formatted 7 files (3 changed) in 0.04 seconds.
 ================================================================================
 /tmp/uwu4-final-pinned-analyze-after-m2.log
 ================================================================================
-Analyzing avelune_studio...                                     
+Analyzing avelune_studio...
 No issues found! (ran in 14.4s)
 
 ================================================================================
 /tmp/uwu4-final-pinned-analyze.log
 ================================================================================
-Analyzing avelune_studio...                                     
+Analyzing avelune_studio...
 No issues found! (ran in 45.7s)
 
 ================================================================================
@@ -3904,11 +3904,11 @@ No issues found! (ran in 45.7s)
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 00:01 +11 -1: Some tests failed.
 
 Failing tests:
@@ -3917,7 +3917,7 @@ Failing tests:
 ================================================================================
 /tmp/uwu4-final-pinned-build-macos.log
 ================================================================================
-Building macOS application...                                   
+Building macOS application...
 ✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
 
 ================================================================================
@@ -4078,20 +4078,20 @@ Studio project access activateProjectDirectory failed: MissingPluginException
 00:00 +0 -1: undo refuses removed definitions without erasing unrelated history [E]
   Expected: _MapData:<MapData(id: jardin, name: Jardin des essais, size: GridSize(width: 24, height: 16), version: ProjectVersion.v8, visualStack: null, tilesetId: atelier, layers: [MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [TileLayerPaletteEntry(tilesetId: atelier, localTileId: 0, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false)), TileLayerPaletteEntry(tilesetId: atelier, localTileId: 1, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false))], cells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), MapLayer.tile(id: decor, name: Décors, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), MapLayer.collision(id: collision, name: Limites, isVisible: true, opacity: 1.0, collisions: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true])], placedElements: [MapPlacedElement(id: jardin-rocher, layerId: decor, elementId: rocher, pos: GridPos(x: 11, y: 5), pixelOffset: PixelOffset(x: 0, y: 0), pixelSize: null, visualOrder: 0, quarterTurns: 0, applyCollision: true, opacity: 1.0, animation: null, shadowOverride: null, behaviors: [], properties: {}), MapPlacedElement(id: jardin-caisse, layerId: decor, elementId: caisse, pos: GridPos(x: 12, y: 6), pixelOffset: PixelOffset(x: 0, y: 0), pixelSize: null, visualOrder: 0, quarterTurns: 0, applyCollision: true, opacity: 1.0, animation: null, shadowOverride: null, behaviors: [], properties: {})], entities: [MapEntity(id: depart, name: Départ, kind: MapEntityKind.spawn, pos: GridPos(x: 8, y: 9), size: GridSize(width: 1, height: 1), npc: null, sign: null, item: null, spawn: MapEntitySpawnData(spawnKey: , role: EntitySpawnRole.playerStart, facing: EntityFacing.south, categoryTag: ), editorVisual: null, blocksMovement: false, properties: {})], connections: [], warps: [], triggers: [], gameplayZones: [], mapMetadata: MapMetadata(displayName: , mapType: MapType.route, musicPath: null, battleMusicPath: null, weather: MapWeather.none, isIndoor: false, allowEscapeRope: true, defaultSpawnId: null, tags: []), properties: {}, events: [])>
     Actual: _MapData:<MapData(id: jardin, name: Jardin des essais, size: GridSize(width: 24, height: 16), version: ProjectVersion.v8, visualStack: null, tilesetId: atelier, layers: [MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [TileLayerPaletteEntry(tilesetId: atelier, localTileId: 0, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false)), TileLayerPaletteEntry(tilesetId: atelier, localTileId: 1, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false))], cells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), MapLayer.tile(id: decor, name: Décors, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), MapLayer.collision(id: collision, name: Limites, isVisible: true, opacity: 1.0, collisions: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true])], placedElements: [MapPlacedElement(id: jardin-arbre, layerId: decor, elementId: arbre, pos: GridPos(x: 5, y: 4), pixelOffset: PixelOffset(x: 0, y: 0), pixelSize: null, visualOrder: 0, quarterTurns: 0, applyCollision: true, opacity: 1.0, animation: null, shadowOverride: null, behaviors: [], properties: {}), MapPlacedElement(id: jardin-rocher, layerId: decor, elementId: rocher, pos: GridPos(x: 11, y: 5), pixelOffset: PixelOffset(x: 0, y: 0), pixelSize: null, visualOrder: 0, quarterTurns: 0, applyCollision: true, opacity: 1.0, animation: null, shadowOverride: null, behaviors: [], properties: {}), MapPlacedElement(id: jardin-caisse, layerId: decor, elementId: caisse, pos: GridPos(x: 12, y: 6), pixelOffset: PixelOffset(x: 0, y: 0), pixelSize: null, visualOrder: 0, quarterTurns: 0, applyCollision: true, opacity: 1.0, animation: null, shadowOverride: null, behaviors: [], properties: {})], entities: [MapEntity(id: depart, name: Départ, kind: MapEntityKind.spawn, pos: GridPos(x: 8, y: 9), size: GridSize(width: 1, height: 1), npc: null, sign: null, item: null, spawn: MapEntitySpawnData(spawnKey: , role: EntitySpawnRole.playerStart, facing: EntityFacing.south, categoryTag: ), editorVisual: null, blocksMovement: false, properties: {})], connections: [], warps: [], triggers: [], gameplayZones: [], mapMetadata: MapMetadata(displayName: , mapType: MapType.route, musicPath: null, battleMusicPath: null, weather: MapWeather.none, isIndoor: false, allowEscapeRope: true, defaultSpawnId: null, tags: []), properties: {}, events: [])>
-  
+
   package:matcher                                             expect
   package:flutter_test/src/widget_tester.dart 473:18          expect
   test/map_workspace/resource_deleted_history_test.dart 26:5  main.<fn>
-  
+
 00:00 +0 -1: a stale decor brush cannot place a removed definition
 00:00 +0 -2: a stale decor brush cannot place a removed definition [E]
   Expected: null
     Actual: 'studio-1790934308537501-0'
-  
+
   package:matcher                                             expect
   package:flutter_test/src/widget_tester.dart 473:18          expect
   test/map_workspace/resource_deleted_history_test.dart 49:5  main.<fn>
-  
+
 00:00 +0 -2: Some tests failed.
 
 Failing tests:
@@ -4169,7 +4169,7 @@ unexpected.
 00:10 +0 -1: replaced Studio source exports and renders from installed Player alone [E]
   Test failed. See exception logs above.
   The test description was: replaced Studio source exports and renders from installed Player alone
-  
+
 00:10 +0 -1: Some tests failed.
 
 Failing tests:
@@ -4375,7 +4375,7 @@ The test description was:
 00:04 +0 -1: replaced Studio source exports and renders from installed Player alone [E]
   Test failed. See exception logs above.
   The test description was: replaced Studio source exports and renders from installed Player alone
-  
+
 00:04 +0 -1: Some tests failed.
 
 Failing tests:
@@ -4415,9 +4415,9 @@ Failing tests:
   Expected: throws <Instance of 'AuthoringPlanException'> with `code`: 'plan.stale'
     Actual: <Instance of 'Future<AuthoringMutationResult>'>
      Which: emitted <Instance of 'AuthoringMutationResult'>
-  
+
   test/domains/assets/resource_mutation_locked_precondition_test.dart 50:5  main.<fn>
-  
+
 00:00 +0 -1: unchanged locked precondition permits normal canonical deletion
 00:00 +1 -1: Some tests failed.
 
@@ -4524,7 +4524,7 @@ The test description was:
 00:16 +0 -1: real import decor terrain save reload and runtime journey [E]
   Test failed. See exception logs above.
   The test description was: real import decor terrain save reload and runtime journey
-  
+
 00:16 +0 -1: large resource library remains usable at narrow enlarged text
 00:18 +1 -1: Some tests failed.
 
@@ -4566,7 +4566,7 @@ The test description was:
 00:27 +0 -1: real import decor terrain save reload and runtime journey [E]
   Test failed. See exception logs above.
   The test description was: real import decor terrain save reload and runtime journey
-  
+
 00:27 +0 -1: large resource library remains usable at narrow enlarged text
 00:29 +1 -1: Some tests failed.
 
@@ -4576,7 +4576,7 @@ Failing tests:
 ================================================================================
 /tmp/uwu4-m2-protocol-analyze.log
 ================================================================================
-Analyzing m2_end_to_end_test.dart...                            
+Analyzing m2_end_to_end_test.dart...
 No issues found! (ran in 5.6s)
 
 ================================================================================
@@ -4637,7 +4637,7 @@ The test description was:
 00:12 +0 -1: real import decor terrain save reload and runtime journey [E]
   Test failed. See exception logs above.
   The test description was: real import decor terrain save reload and runtime journey
-  
+
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test (but after the test had completed):
 Expected: exactly one matching candidate
@@ -4660,7 +4660,7 @@ When the exception was thrown, this was the stack:
 ════════════════════════════════════════════════════════════════════════════════════════════════════
   Test failed. See exception logs above.
   The test description was: real import decor terrain save reload and runtime journey
-  
+
 00:15 +0 -1: large resource library remains usable at narrow enlarged text
 00:17 +1 -1: Some tests failed.
 
@@ -4670,13 +4670,13 @@ Failing tests:
 ================================================================================
 /tmp/uwu4-macos-final-build-after-guard.log
 ================================================================================
-Building macOS application...                                   
+Building macOS application...
 ✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
 
 ================================================================================
 /tmp/uwu4-macos-final-build.log
 ================================================================================
-Building macOS application...                                   
+Building macOS application...
 ✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
 
 ================================================================================
@@ -4709,7 +4709,7 @@ test at test/conformance_security.test.ts:1:1478
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -4720,7 +4720,7 @@ test at test/conformance_security.test.ts:1:1478
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu4-baseline-snapshot/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -4737,7 +4737,7 @@ test at test/protocol_compatibility.test.ts:1:3381
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -4751,7 +4751,7 @@ test at test/protocol_compatibility.test.ts:1:3381
       'pokemap_playtest',
       'pokemap_job'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu4-baseline-snapshot/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
       at async Test.run (node:internal/test_runner/test:1389:7)
@@ -4769,7 +4769,7 @@ test at test/read_only_server.test.ts:1:1997
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -4780,7 +4780,7 @@ test at test/read_only_server.test.ts:1:1997
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/private/tmp/uwu4-baseline-snapshot/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -4983,7 +4983,7 @@ test at test/conformance_security.test.ts:1:1478
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -4994,7 +4994,7 @@ test at test/conformance_security.test.ts:1:1478
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -5011,7 +5011,7 @@ test at test/protocol_compatibility.test.ts:1:3381
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -5025,7 +5025,7 @@ test at test/protocol_compatibility.test.ts:1:3381
       'pokemap_playtest',
       'pokemap_job'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
       at async Test.run (node:internal/test_runner/test:1389:7)
@@ -5043,7 +5043,7 @@ test at test/read_only_server.test.ts:1:1997
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   ... Skipped lines
-  
+
     [
       'pokemap_artifact',
       'pokemap_describe',
@@ -5054,7 +5054,7 @@ test at test/read_only_server.test.ts:1:1997
   +   'pokemap_project_create_preview',
   +   'pokemap_project_create'
     ]
-  
+
       at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
@@ -5122,7 +5122,7 @@ test at test/read_only_server.test.ts:1:1997
 ================================================================================
 /tmp/uwu4-publication-analyze.log
 ================================================================================
-Analyzing avelune_studio...                                     
+Analyzing avelune_studio...
 No issues found! (ran in 15.2s)
 
 ================================================================================
@@ -5186,8 +5186,8 @@ No issues found! (ran in 15.2s)
 /tmp/uwu4-publication-build.log
 ================================================================================
 Xcode is fetching Swift Package Manager dependencies. This may take several minutes...
-  Fetching from https://github.com/sparkle-project/Sparkle...     
-Building macOS application...                                   
+  Fetching from https://github.com/sparkle-project/Sparkle...
+Building macOS application...
  1 | #import "/tmp/uwu4-publish-20261002/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/AVAssetTrackUtils.h"
  2 | #import "/tmp/uwu4-publish-20261002/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h"
  3 | #import "/tmp/uwu4-publish-20261002/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
@@ -5195,21 +5195,21 @@ Building macOS application...
 
 1 warning generated.
 /tmp/uwu4-publish-20261002/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
- 36 | 
+ 36 |
  37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
  38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
     |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
  39 |                                   error:(NSError *_Nullable *_Nullable)outError;
- 40 | 
+ 40 |
 
 14 | NS_ASSUME_NONNULL_BEGIN
-15 | 
+15 |
 16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
 17 | 	AVKeyValueStatusUnknown = 0,
 18 | 	AVKeyValueStatusLoading = 1,
 /Users/karim/.pub-cache/hosted/pub.dev/video_player_avfoundation-2.12.0/darwin/video_player_avfoundation/Sources/video_player_avfoundation/NativeVideoViewFactory.swift:53:8: warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
 51 |   #endif
-52 | 
+52 |
 53 |   func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
    |        `- warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
 54 |     return VideoPlayerPluginMessagesPigeonCodec.shared
@@ -5219,10 +5219,10 @@ Building macOS application...
 36 | @optional
 37 | - (nullable NSObject<FlutterMessageCodec>*)createArgsCodec;
 38 | @end
-39 | 
+39 |
 /Users/karim/.pub-cache/hosted/pub.dev/video_player_avfoundation-2.12.0/darwin/video_player_avfoundation/Sources/video_player_avfoundation/NativeVideoViewFactory.swift:53:8: warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
 51 |   #endif
-52 | 
+52 |
 53 |   func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
    |        `- warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
 54 |     return VideoPlayerPluginMessagesPigeonCodec.shared
@@ -5232,9 +5232,9 @@ Building macOS application...
 36 | @optional
 37 | - (nullable NSObject<FlutterMessageCodec>*)createArgsCodec;
 38 | @end
-39 | 
+39 |
 /Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:205:14: warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
- 18 | 
+ 18 |
  19 | @MainActor class WrappedMediaPlayer {
  20 |   private(set) var eventHandler: AudioPlayersStreamHandler
  21 |   private(set) var isPlaying: Bool
@@ -5244,7 +5244,7 @@ Building macOS application...
 204 |         let status = playerItem.status
 205 |         self.eventHandler.onLog(message: "player status: \(status), change: \(change)")
     |              `- warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
-206 | 
+206 |
 207 |         switch status {
 
 /Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:211:16: warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
@@ -5256,7 +5256,7 @@ Building macOS application...
 213 |         default:
     :
 248 |   }
-249 | 
+249 |
 250 |   private func reset() {
 251 |     playerItemStatusObservation?.invalidate()
 252 |     playerItemStatusObservation = nil
@@ -5280,15 +5280,15 @@ Building macOS application...
 
 1 warning generated.
 /tmp/uwu4-publish-20261002/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
- 36 | 
+ 36 |
  37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
  38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
     |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
  39 |                                   error:(NSError *_Nullable *_Nullable)outError;
- 40 | 
+ 40 |
 
 14 | NS_ASSUME_NONNULL_BEGIN
-15 | 
+15 |
 16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
 17 | 	AVKeyValueStatusUnknown = 0,
 18 | 	AVKeyValueStatusLoading = 1,
@@ -5660,10 +5660,10 @@ Formatted 2 files (0 changed) in 0.03 seconds.
 00:00 +0 -1: asset replacement alone cannot reconcile content addressed tileset [E]
   Expected: non-empty
     Actual: WhereIterable<AuthoringResourceChange>:[]
-  
+
   package:matcher                                                expect
   test/domains/assets/resource_source_regression_test.dart 23:5  main.<fn>
-  
+
 00:00 +0 -1: Some tests failed.
 
 Failing tests:
@@ -5911,13 +5911,13 @@ No issues found!
 ================================================================================
 /tmp/uwu4-studio-final-analyze-after-guard.log
 ================================================================================
-Analyzing avelune_studio...                                     
+Analyzing avelune_studio...
 No issues found! (ran in 15.2s)
 
 ================================================================================
 /tmp/uwu4-studio-final-analyze.log
 ================================================================================
-Analyzing avelune_studio...                                     
+Analyzing avelune_studio...
 No issues found! (ran in 35.6s)
 
 ================================================================================
@@ -5937,11 +5937,11 @@ No issues found! (ran in 35.6s)
 00:02 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:02 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: tab transition retains focused title then shows preview diagnostics
 00:02 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
 00:03 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
@@ -5983,29 +5983,29 @@ No issues found! (ran in 35.6s)
 00:15 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:15 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:16 +45 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_timeline_gestures_ui10_test.dart: timeline empty lane, reorder, resize once and Escape preserve authored time
 00:16 +45 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:17 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:19 +47 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
 00:19 +48 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
@@ -6140,7 +6140,7 @@ unexpected.
 00:57 +98 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 00:58 +99 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:58 +100 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart: unchanged source publication preserves all authored bytes
 00:59 +101 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_adapter_ui09_test.dart: 100 entries load only the requested source by ID without any map
@@ -6382,7 +6382,7 @@ unexpected.
 01:33 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:34 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -6435,7 +6435,7 @@ unexpected.
 01:34 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:35 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -6488,7 +6488,7 @@ unexpected.
 01:35 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:35 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -6541,7 +6541,7 @@ unexpected.
 01:35 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:36 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -6594,7 +6594,7 @@ unexpected.
 01:36 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:37 +182 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:39 +183 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
 01:41 +184 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
@@ -6638,7 +6638,7 @@ The test description was:
 02:09 +196 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:10 +197 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:11 +198 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:15 +199 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -6839,12 +6839,12 @@ The test description was:
   Bad state: Cannot close sink while adding stream.
   package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
   package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
-  
+
 04:38 +273 -12: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_navigation_test.dart [E]
   Bad state: Cannot close sink while adding stream.
   package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
   package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
-  
+
 One or more uncaught errors occurred shutting down:
   Bad state: Cannot add event while adding stream.
   Bad state: Cannot add event while adding stream.
@@ -6865,11 +6865,11 @@ One or more uncaught errors occurred shutting down:
 00:01 +7 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:01 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: invalid command number and title remain blocked until corrected
 00:02 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: tab transition retains focused title then shows preview diagnostics
 00:02 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
@@ -6911,29 +6911,29 @@ One or more uncaught errors occurred shutting down:
 00:12 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:12 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:12 +46 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:13 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:13 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:15 +47 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
 00:15 +48 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
@@ -7068,7 +7068,7 @@ unexpected.
 00:56 +98 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 00:56 +99 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:57 +100 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:57 +101 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_adapter_ui09_test.dart: 100 entries load only the requested source by ID without any map
@@ -7310,7 +7310,7 @@ unexpected.
 01:30 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:30 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -7363,7 +7363,7 @@ unexpected.
 01:30 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:31 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -7416,7 +7416,7 @@ unexpected.
 01:31 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:32 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -7469,7 +7469,7 @@ unexpected.
 01:32 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:32 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -7521,7 +7521,7 @@ unexpected.
 01:32 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:33 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
 01:35 +182 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:36 +183 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps
@@ -7566,7 +7566,7 @@ The test description was:
 02:05 +197 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:06 +197 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:07 +198 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:10 +199 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -8018,7 +8018,7 @@ unexpected.
 05:47 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
   Test failed. See exception logs above.
   The test description was: UI10 full Studio frame early composition with isolated real project
-  
+
 05:47 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_wEa0Lj/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_wEa0Lj/project.json
@@ -8364,11 +8364,11 @@ unexpected.
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 06:03 +440 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 06:03 +441 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 06:03 +442 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
@@ -8465,34 +8465,34 @@ unexpected.
 07:14 +531 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart: close-save retains concurrent draft changes and refuses completion [E]
   Expected: true
     Actual: <false>
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/resource_io/resource_navigation_save_test.dart 118:7  main.<fn>
-  
+
 07:14 +531 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_organization_host_test.dart: real terrains empty categories remain listed and survive reopen
 07:14 +531 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart: saved draft clears active pointer even when map save subsequently fails [E]
   Expected: true
     Actual: <false>
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/resource_io/resource_navigation_save_test.dart 141:7  main.<fn>
-  
+
 07:14 +531 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_organization_host_test.dart: real terrains empty categories remain listed and survive reopen
 07:14 +531 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart: resource write error preserves draft, active pointer and retry state [E]
   Écriture indisponible
   dart:async                                                  _Completer.completeError
   test/resource_io/resource_navigation_save_test.dart 168:17  main.<fn>
-  
+
   Expected: contains 'Écriture indisponible'
     Actual: 'La catégorie de ce décor n’existe plus. Votre préparation est conservée.'
      Which: does not contain 'Écriture indisponible'
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/resource_io/resource_navigation_save_test.dart 173:7  main.<fn>
-  
+
 07:15 +532 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: two entities sharing an identifier stay two documents
 07:15 +533 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view
 07:16 +534 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view
@@ -8551,7 +8551,7 @@ unexpected.
 07:17 +537 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
   Test failed. See exception logs above.
   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
-  
+
 07:17 +537 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 07:18 +538 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 07:18 +539 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
@@ -8608,7 +8608,7 @@ unexpected.
 07:19 +541 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:19 +542 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -8661,7 +8661,7 @@ unexpected.
 07:20 +542 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:21 +543 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart: staged illustration renders through shared canvas without project writes
 07:22 +544 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart: missing unrelated media does not prevent text or stale source recovery
 07:23 +545 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_outer_corner_test.dart: outer corner uses its own source and survives a published draft
@@ -8734,14 +8734,14 @@ unexpected.
 07:40 +566 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
   Test failed. See exception logs above.
   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
-  
+
 07:40 +566 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:40 +567 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:41 +567 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: first declared outcome connects without a fabricated effect
 07:41 +567 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
 07:41 +568 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: outcome pointer uses exact second step after pan and zoom
 07:41 +569 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: fact pointer chooses exact completion slot and false value
 07:41 +570 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: secondary relationship keeps canonical owner outside displayed story
@@ -8851,7 +8851,7 @@ unexpected.
 07:48 +627 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
   Test failed. See exception logs above.
   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
-  
+
 07:50 +627 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_cerBy6/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_cerBy6/project.json
@@ -8911,7 +8911,7 @@ unexpected.
 07:50 +627 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
   Test failed. See exception logs above.
   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
-  
+
 07:50 +627 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle tilesets collected ids=atelier,source_1790936412379536_112232233
 [runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_cerBy6/assets/atelier.png
@@ -8987,7 +8987,7 @@ unexpected.
 08:01 +635 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
-  
+
 08:02 +636 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -9040,7 +9040,7 @@ unexpected.
 08:03 +636 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
-  
+
 08:04 +636 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -9093,7 +9093,7 @@ unexpected.
 08:04 +636 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
-  
+
 08:05 +637 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_preparation_ui04_test.dart: examining missing contexts selects every cardinal configuration
 08:05 +638 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_preparation_ui04_test.dart: assignment removal undo redo are local and history is bounded
 08:05 +639 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_preparation_ui04_test.dart: continuous scratch strokes and clear do not alter associations
@@ -9333,7 +9333,7 @@ unexpected.
 08:43 +763 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
   Test failed. See exception logs above.
   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
-  
+
 08:49 +763 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
 UI06 construction: 8 blocs et 7 fils construits, publication
 UI06 construction: publication terminée, relecture indépendante
@@ -9436,7 +9436,7 @@ The test description was:
 10:08 +814 ~2 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
   Test failed. See exception logs above.
   The test description was: local stack selects a hidden instance and respects order command limits
-  
+
 10:17 +815 ~2 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
 10:18 +816 ~2 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui07_story_construction_test.dart: UI07 authors chapters steps scene association and true side relation from empty stories
 10:24 +817 ~2 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
@@ -9489,7 +9489,7 @@ The test description was:
 10:45 +836 ~2 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
   Test failed. See exception logs above.
   The test description was: place move stack undo redo save and runtime return preserve document
-  
+
 10:45 +837 ~2 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:46 +838 ~2 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: paint gesture is one history step and text input does not delete selection
 10:46 +839 ~2 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: search and map shortcut preserve the author project
@@ -9572,7 +9572,7 @@ The test description was:
 11:36 +887 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey [E]
   Test failed. See exception logs above.
   The test description was: real import decor terrain save reload and runtime journey
-  
+
 11:36 +887 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
 11:37 +888 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
 11:37 +889 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
@@ -9658,7 +9658,7 @@ The test description was:
 12:32 +945 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page [E]
   Test failed. See exception logs above.
   The test description was: Studio exports the saved two-map story through its own page
-  
+
 12:33 +946 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile retains the normal draft confirmation
 12:34 +947 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 12:39 +947 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
@@ -9687,7 +9687,7 @@ The test description was:
 12:39 +947 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
   Test failed. See exception logs above.
   The test description was: cancelled export keeps every exit guard until cleanup finishes
-  
+
 12:42 +947 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -9714,7 +9714,7 @@ The test description was:
 12:42 +947 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
   Test failed. See exception logs above.
   The test description was: home opens the export page on its mounted project and exports a package
-  
+
 12:44 +948 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
 12:45 +949 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
 12:46 +950 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
@@ -9971,7 +9971,7 @@ The test description was:
 13:24 +1022 ~3 -33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
   Test failed. See exception logs above.
   The test description was: the real map workspace links and unlinks both borders
-  
+
 13:24 +1023 ~3 -33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:24 +1024 ~3 -33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 
@@ -10023,7 +10023,7 @@ The test description was:
 13:25 +1027 ~3 -34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
   Test failed. See exception logs above.
   The test description was: a draft blocks the link without losing its changes
-  
+
 13:25 +1027 ~3 -34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: collapsed map library leaves the selection button accessible
 13:26 +1028 ~3 -34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: catalogue revision checking refuses externally changed map folders
 13:26 +1029 ~3 -34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: another session owner cannot refresh a baseline then overwrite old UI groups
@@ -10324,7 +10324,7 @@ The test description was:
 15:32 +1190 ~3 -35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities [E]
   Test failed. See exception logs above.
   The test description was: Clairbois creates edits saves and renames without changing existing identities
-  
+
 15:35 +1191 ~3 -35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 15:39 +1192 ~3 -35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
 15:40 +1193 ~3 -35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds
@@ -10374,11 +10374,11 @@ Failing tests:
 00:03 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:04 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
 00:04 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: guided initial placement is nonblocking and map entity role remains explicitly unbound
 00:04 +12 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
@@ -10419,28 +10419,28 @@ Failing tests:
 00:16 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:17 +46 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:17 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:17 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:19 +47 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: small editor at enlarged text keeps all sections scrollable
 00:19 +48 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: outer corner can be assigned and undone through the pattern
@@ -10575,7 +10575,7 @@ unexpected.
 00:59 +98 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 01:00 +99 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 01:00 +100 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 01:01 +101 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_preview_ui09_test.dart: canonical portrait speaker and clearing apply to the actual line without leaking previous portrait
@@ -10817,7 +10817,7 @@ unexpected.
 01:33 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:34 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -10870,7 +10870,7 @@ unexpected.
 01:34 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:35 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -10923,7 +10923,7 @@ unexpected.
 01:35 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:35 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -10976,7 +10976,7 @@ unexpected.
 01:35 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:36 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -11028,7 +11028,7 @@ unexpected.
 01:36 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:36 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
 01:38 +182 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:40 +183 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
@@ -11073,7 +11073,7 @@ The test description was:
 02:09 +196 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:10 +197 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_scene_picker_test.dart: the scene battle picker returns the authored unique identity
 02:11 +198 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:14 +199 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -11537,7 +11537,7 @@ unexpected.
 05:35 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
   Test failed. See exception logs above.
   The test description was: UI10 full Studio frame early composition with isolated real project
-  
+
 05:35 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
 [runtime_game] tileset image load start map=jardin
 [runtime_game] tileset cache resolve requested=1
@@ -11871,11 +11871,11 @@ unexpected.
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 05:50 +440 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:50 +441 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:50 +442 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
@@ -12030,7 +12030,7 @@ unexpected.
 07:06 +540 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
   Test failed. See exception logs above.
   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
-  
+
 07:06 +540 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -12082,7 +12082,7 @@ unexpected.
 07:06 +540 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:06 +540 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -12135,7 +12135,7 @@ unexpected.
 07:07 +540 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:07 +541 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: an abandoned control does not disturb the one still working
 07:07 +542 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: closing during the proof read adopts nothing and stays quiet
 07:08 +543 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: a failed proof read stays recoverable
@@ -12213,14 +12213,14 @@ unexpected.
 07:27 +569 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
   Test failed. See exception logs above.
   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
-  
+
 07:27 +569 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:28 +570 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:28 +570 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: first declared outcome connects without a fabricated effect
 07:28 +570 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
 07:29 +571 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: outcome pointer uses exact second step after pan and zoom
 07:29 +572 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: fact pointer chooses exact completion slot and false value
 07:29 +573 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: fact pointer chooses exact completion slot and false value
@@ -12332,7 +12332,7 @@ unexpected.
 07:35 +630 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
   Test failed. See exception logs above.
   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
-  
+
 07:36 +630 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -12383,7 +12383,7 @@ unexpected.
 07:36 +630 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
   Test failed. See exception logs above.
   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
-  
+
 07:36 +630 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_xa3PmF/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_xa3PmF/project.json
@@ -12467,7 +12467,7 @@ unexpected.
 07:45 +638 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
-  
+
 07:47 +639 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -12520,7 +12520,7 @@ unexpected.
 07:47 +639 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
-  
+
 07:48 +639 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -12573,7 +12573,7 @@ unexpected.
 07:48 +639 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
-  
+
 07:49 +640 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:49 +641 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:49 +642 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
@@ -12813,7 +12813,7 @@ unexpected.
 08:29 +766 ~2 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
   Test failed. See exception logs above.
   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
-  
+
 08:35 +766 ~2 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
 UI06 construction: 8 blocs et 7 fils construits, publication
 UI06 construction: publication terminée, relecture indépendante
@@ -12916,7 +12916,7 @@ The test description was:
 09:55 +817 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
   Test failed. See exception logs above.
   The test description was: local stack selects a hidden instance and respects order command limits
-  
+
 10:04 +818 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
 10:05 +819 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
 10:12 +820 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
@@ -12969,7 +12969,7 @@ The test description was:
 10:32 +839 ~2 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
   Test failed. See exception logs above.
   The test description was: place move stack undo redo save and runtime return preserve document
-  
+
 10:33 +840 ~2 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: overview opens the exact story and step without publishing
 10:33 +841 ~2 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: paint gesture is one history step and text input does not delete selection
 10:34 +842 ~2 -25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: search and map shortcut preserve the author project
@@ -13131,7 +13131,7 @@ The test description was:
 12:24 +950 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page [E]
   Test failed. See exception logs above.
   The test description was: Studio exports the saved two-map story through its own page
-  
+
 12:25 +951 ~3 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -13158,7 +13158,7 @@ The test description was:
 12:29 +951 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
   Test failed. See exception logs above.
   The test description was: cancelled export keeps every exit guard until cleanup finishes
-  
+
 12:35 +952 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -13185,7 +13185,7 @@ The test description was:
 12:35 +952 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
   Test failed. See exception logs above.
   The test description was: home opens the export page on its mounted project and exports a package
-  
+
 12:37 +953 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
 12:38 +954 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: a failed rule keeps close blocked after its new state is saved
 12:39 +955 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: a failed rule keeps close blocked after its new state is saved
@@ -13439,7 +13439,7 @@ The test description was:
 13:14 +1025 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
   Test failed. See exception logs above.
   The test description was: the real map workspace links and unlinks both borders
-  
+
 13:14 +1026 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:14 +1027 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:14 +1028 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
@@ -13492,7 +13492,7 @@ The test description was:
 13:15 +1031 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
   Test failed. See exception logs above.
   The test description was: a draft blocks the link without losing its changes
-  
+
 13:15 +1031 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: collapsed map library leaves the selection button accessible
 13:16 +1032 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: catalogue revision checking refuses externally changed map folders
 13:16 +1033 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/context_menu_host_test.dart: the real screen opens the menu and deletes through it
@@ -13793,7 +13793,7 @@ The test description was:
 15:15 +1194 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities [E]
   Test failed. See exception logs above.
   The test description was: Clairbois creates edits saves and renames without changing existing identities
-  
+
 15:18 +1195 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 15:22 +1196 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: invalid dimensions and cancellation leave the project untouched
 15:23 +1197 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds
@@ -13841,11 +13841,11 @@ Failing tests:
 00:02 +7 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                            LateError._throwLocalNotInitialized
   test/cinematics/cinematic_viewport_parity_ui10_test.dart  main.<fn>
-  
+
 00:02 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: invalid command number and title remain blocked until corrected
 00:02 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: tab transition retains focused title then shows preview diagnostics
 00:02 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
@@ -13888,29 +13888,29 @@ Failing tests:
 00:13 +45 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:13 +46 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
 00:14 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
 00:14 +46 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
   LateInitializationError: Local 'fixture' has not been initialized.
   dart:_internal                                             LateError._throwLocalNotInitialized
   test/cinematics/cinematic_spatial_gestures_ui10_test.dart  main.<fn>
-  
+
 00:15 +47 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
 00:16 +48 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
 00:16 +49 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
@@ -14044,7 +14044,7 @@ unexpected.
 00:56 +98 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields [E]
   Test failed. See exception logs above.
   The test description was: UI10 recovers missing actor through real controls and preserves invalid fields
-  
+
 00:57 +99 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:57 +100 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true
 00:58 +101 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_adapter_ui09_test.dart: 100 entries load only the requested source by ID without any map
@@ -14286,7 +14286,7 @@ unexpected.
 01:30 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1440.0x900.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1440.0x900.0 inspector edit keyboard save and reopen
-  
+
 01:30 +181 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -14339,7 +14339,7 @@ unexpected.
 01:30 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 16 pixel cells after actual zoom pan and publication
-  
+
 01:31 +181 -6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -14392,7 +14392,7 @@ unexpected.
 01:31 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
-  
+
 01:31 +181 -7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -14445,7 +14445,7 @@ unexpected.
 01:31 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication [E]
   Test failed. See exception logs above.
   The test description was: UI10 destination uses 32 pixel cells after actual zoom pan and publication
-  
+
 01:32 +181 -8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -14498,7 +14498,7 @@ unexpected.
 01:32 +181 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
   Test failed. See exception logs above.
   The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
-  
+
 01:34 +182 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
 01:36 +183 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
 01:37 +184 -9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
@@ -14542,7 +14542,7 @@ The test description was:
 02:05 +196 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
   Test failed. See exception logs above.
   The test description was: real home creator downloads Clairbois and opens an independent copy
-  
+
 02:06 +197 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:07 +198 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart: combat actions stay reachable at 1280x800 with large text
 02:10 +199 -10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/pokemon/pokemon_external_import_host_test.dart: external search previews without writing and imports in Studio
@@ -15025,7 +15025,7 @@ unexpected.
 05:31 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project [E]
   Test failed. See exception logs above.
   The test description was: UI10 full Studio frame early composition with isolated real project
-  
+
 05:31 +387 -11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
 [step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
 [step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
@@ -15340,11 +15340,11 @@ unexpected.
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart: 321 lignes',
               '/Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart: 389 lignes'
             ]
-  
+
   package:matcher                                            expect
   package:flutter_test/src/widget_tester.dart 473:18         expect
   test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
-  
+
 05:53 +440 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:53 +441 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
 05:53 +442 -12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
@@ -15499,7 +15499,7 @@ unexpected.
 07:08 +540 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view [E]
   Test failed. See exception logs above.
   The test description was: preview camera zoom shake fade uses playback transform and Stop restores author view
-  
+
 07:09 +540 -13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -15552,7 +15552,7 @@ unexpected.
 07:09 +540 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:10 +541 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 07:11 +542 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
 07:11 +543 -14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
@@ -15608,7 +15608,7 @@ unexpected.
 07:11 +544 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners [E]
   Test failed. See exception logs above.
   The test description was: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
-  
+
 07:12 +545 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_fixture_test.dart: UI11 isolated presentation fixture publishes real image and text
 07:13 +546 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_fixture_test.dart: UI11 isolated presentation fixture publishes real image and text
 07:13 +547 -15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_fixture_test.dart: UI11 isolated presentation fixture publishes real image and text
@@ -15683,12 +15683,12 @@ unexpected.
 07:32 +568 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip [E]
   Test failed. See exception logs above.
   The test description was: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
-  
+
 07:32 +569 -16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
 07:33 +569 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly [E]
   Cette carte est absente, invalide ou utilise un format non pris en charge.
   package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 126:7  LocalMapWorkspaceAdapter.loadMap
-  
+
 07:33 +569 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: pending outcome identity avoids another result and preserves source names
 07:33 +570 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: first declared outcome connects without a fabricated effect
 07:34 +571 -17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/story_graph_canvas_test.dart: first declared outcome connects without a fabricated effect
@@ -15801,7 +15801,7 @@ unexpected.
 07:42 +630 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
   Test failed. See exception logs above.
   The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
-  
+
 07:43 +630 -18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -15852,7 +15852,7 @@ unexpected.
 07:43 +630 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption [E]
   Test failed. See exception logs above.
   The test description was: UI10 leaving real runtime cancels cinematic without continuation or event consumption
-  
+
 07:44 +630 -19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
 [runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_upkPhf/project.json mapId=jardin
 [runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_upkPhf/project.json
@@ -15936,7 +15936,7 @@ unexpected.
 07:53 +638 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 16x16 reset=false
-  
+
 07:54 +639 -20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -15989,7 +15989,7 @@ unexpected.
 07:54 +639 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x24 reset=false
-  
+
 07:55 +639 -21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following MapWorkspaceFailure was thrown while running async test code:
@@ -16042,7 +16042,7 @@ unexpected.
 07:55 +639 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true [E]
   Test failed. See exception logs above.
   The test description was: preview matches real Flame actors camera shake fade at 32x32 reset=true
-  
+
 07:56 +640 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:56 +641 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
 07:56 +642 -22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
@@ -16282,7 +16282,7 @@ unexpected.
 08:35 +766 ~2 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
   Test failed. See exception logs above.
   The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
-  
+
 08:41 +766 ~2 -23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
 UI06 construction: 8 blocs et 7 fils construits, publication
 UI06 construction: publication terminée, relecture indépendante
@@ -16385,7 +16385,7 @@ The test description was:
 09:59 +817 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart: local stack selects a hidden instance and respects order command limits [E]
   Test failed. See exception logs above.
   The test description was: local stack selects a hidden instance and respects order command limits
-  
+
 10:08 +818 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
 10:09 +819 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
 10:16 +820 ~2 -24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart: a dedicated three-pose strip imports and its timing reopens
@@ -16453,7 +16453,7 @@ The test description was:
 10:39 +840 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document [E]
   Test failed. See exception logs above.
   The test description was: place move stack undo redo save and runtime return preserve document
-  
+
 10:40 +841 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: search and map shortcut preserve the author project
 10:41 +842 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: search and map shortcut preserve the author project
 10:42 +843 ~2 -26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_narrative_overview_navigation_test.dart: search and map shortcut preserve the author project
@@ -16614,7 +16614,7 @@ The test description was:
 12:29 +949 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_service_test.dart: Studio exports the saved two-map story through its own page [E]
   Test failed. See exception logs above.
   The test description was: Studio exports the saved two-map story through its own page
-  
+
 12:30 +950 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile retains the normal draft confirmation
 12:31 +951 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 12:36 +951 ~3 -27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
@@ -16643,7 +16643,7 @@ The test description was:
 12:36 +951 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
   Test failed. See exception logs above.
   The test description was: cancelled export keeps every exit guard until cleanup finishes
-  
+
 12:40 +951 ~3 -28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
@@ -16670,7 +16670,7 @@ The test description was:
 12:40 +951 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
   Test failed. See exception logs above.
   The test description was: home opens the export page on its mounted project and exports a package
-  
+
 12:41 +952 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
 12:42 +953 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
 12:44 +954 ~3 -29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
@@ -16927,7 +16927,7 @@ The test description was:
 13:20 +1027 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: the real map workspace links and unlinks both borders [E]
   Test failed. See exception logs above.
   The test description was: the real map workspace links and unlinks both borders
-  
+
 13:20 +1028 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 13:20 +1029 ~3 -30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes
 
@@ -16978,7 +16978,7 @@ The test description was:
 13:21 +1031 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: a draft blocks the link without losing its changes [E]
   Test failed. See exception logs above.
   The test description was: a draft blocks the link without losing its changes
-  
+
 13:21 +1031 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_host_test.dart: collapsed map library leaves the selection button accessible
 13:21 +1032 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: catalogue revision checking refuses externally changed map folders
 13:21 +1033 ~3 -31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart: another session owner cannot refresh a baseline then overwrite old UI groups
@@ -17278,7 +17278,7 @@ The test description was:
 15:23 +1194 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart: Clairbois creates edits saves and renames without changing existing identities [E]
   Test failed. See exception logs above.
   The test description was: Clairbois creates edits saves and renames without changing existing identities
-  
+
 15:26 +1195 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 15:30 +1196 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace duplicates the saved source into an independent map
 15:30 +1197 ~3 -32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart: workspace analyzes growth without writing then reloads new bounds
@@ -17418,7 +17418,7 @@ Try correcting the name to the name of an existing method, or defining a method 
   dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
   dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
   dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
-  
+
 00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1536.0, 1024.0)
 00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1280.0, 800.0)
 00:01 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1024.0, 640.0)
@@ -17462,7 +17462,7 @@ The test description was:
 00:12 +3 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: free definition then planche removal preserve source and map [E]
   Test failed. See exception logs above.
   The test description was: free definition then planche removal preserve source and map
-  
+
 00:12 +3 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: duplicate saves only its focused decor owner after explicit choice
 00:17 +4 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart
 00:18 +4 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1536.0, 1024.0)
@@ -17521,7 +17521,7 @@ Try correcting the name to the name of an existing getter, or defining a getter 
   dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
   dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
   dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
-  
+
 00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1536.0, 1024.0)
 00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1280.0, 800.0)
 00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1024.0, 640.0)
@@ -17583,7 +17583,7 @@ Try correcting the name to the name of an existing getter, or defining a getter 
   dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
   dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
   dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
-  
+
 00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1536.0, 1024.0)
 00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1280.0, 800.0)
 00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart: replacement confirmation remains reachable at Size(1024.0, 640.0)
@@ -17618,7 +17618,7 @@ The test description was:
 00:03 +0 -1: decor duplicate action opens independent definition dialog [E]
   Test failed. See exception logs above.
   The test description was: decor duplicate action opens independent definition dialog
-  
+
 00:03 +0 -1: used decor removal refuses and leaves definitions untouched
 00:05 +1 -1: image source replacement is reachable without placing image
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
@@ -17645,7 +17645,7 @@ The test description was:
 00:10 +1 -2: image source replacement is reachable without placing image [E]
   Test failed. See exception logs above.
   The test description was: image source replacement is reachable without placing image
-  
+
 00:10 +1 -2: Some tests failed.
 
 Failing tests:
@@ -17689,7 +17689,7 @@ The test description was:
 00:03 +0 -1: decor duplicate action opens independent definition dialog [E]
   Test failed. See exception logs above.
   The test description was: decor duplicate action opens independent definition dialog
-  
+
 00:03 +0 -1: used decor removal refuses and leaves definitions untouched
 00:05 +1 -1: image source replacement is reachable without placing image
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
@@ -17716,7 +17716,7 @@ The test description was:
 00:10 +1 -2: image source replacement is reachable without placing image [E]
   Test failed. See exception logs above.
   The test description was: image source replacement is reachable without placing image
-  
+
 00:10 +1 -2: Some tests failed.
 
 Failing tests:
@@ -17766,7 +17766,7 @@ The test description was:
 00:03 +0 -1: decor duplicate action opens independent definition dialog [E]
   Test failed. See exception logs above.
   The test description was: decor duplicate action opens independent definition dialog
-  
+
 00:03 +0 -1: used decor removal refuses and leaves definitions untouched
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following StateError was thrown running a test:
@@ -17797,7 +17797,7 @@ The test description was:
 00:04 +0 -2: used decor removal refuses and leaves definitions untouched [E]
   Test failed. See exception logs above.
   The test description was: used decor removal refuses and leaves definitions untouched
-  
+
 00:04 +0 -2: image source replacement is reachable without placing image
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following StateError was thrown running a test:
@@ -17828,7 +17828,7 @@ The test description was:
 00:06 +0 -3: image source replacement is reachable without placing image [E]
   Test failed. See exception logs above.
   The test description was: image source replacement is reachable without placing image
-  
+
 00:06 +0 -3: Some tests failed.
 
 Failing tests:
@@ -18083,8 +18083,8 @@ for name, old, new in changed:
 
 (pack / 'inventaire.json').write_text(json.dumps(inventory, ensure_ascii=False,
                                               indent=2) + '\n')
-(pack / 'delta_local.txt').write_text('BASE REELLE: HEAD archive + modifications locales initiales.\n'
-                                   + '\n'.join(delta))
+delta_text = 'BASE REELLE: HEAD archive + modifications locales initiales.\n' + '\n'.join(delta)
+(pack / 'delta_local.txt').write_text('\n'.join(line.rstrip() for line in delta_text.splitlines()).rstrip() + '\n')
 (pack / 'source_annex.txt').write_text('CONTENU INTEGRAL DES SOURCES DU DELTA LOT 4.\n'
                                     'Rapport, journaux et captures exclus pour eviter la recursion.\n'
                                     + ''.join(annex))
@@ -18097,7 +18097,7 @@ for script in ['/tmp/run_avelune_owned.py', '/tmp/uwu3-usages-measure.dart',
     p = pathlib.Path(script)
     if p.is_file():
         logs.append('\nSCRIPT DE PREUVE: ' + script + '\n' + p.read_text())
-(pack / 'journaux_consolides.txt').write_text(''.join(logs))
+(pack / 'journaux_consolides.txt').write_text('\n'.join(line.rstrip() for line in ''.join(logs).splitlines()).rstrip() + '\n')
 initial_status = initial['status']
 if not isinstance(initial_status, str):
     initial_status = '\n'.join(initial_status)

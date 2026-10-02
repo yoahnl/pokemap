@@ -456,3 +456,8 @@ Contrôles frais du clone,SDK/framework3.48.0-0.4.pre :
 Les journaux de cette reprise sont inclus dans journaux_consolides.txt.
 Les réserves globales précédentes restent déclarées ;aucune nouvelle suite globale
 verte ni recette native supplémentaire n'est déduite de ces contrôles ciblés.
+Le contrôle élargi aux nouveaux fichiers de preuves a aussi trouvé293 lignes
+d'espaces finaux dans les transcriptions de logs/diffs. Elles sont normalisées
+avant push, sans changement des sources ni des valeurs/résultats. Les lignes de
+contexte vides du diff lisible sont affichées vides ;Git et source_annex.txt restent
+les preuves exactes du code. Aucun attribut/contrôle Git affaibli.

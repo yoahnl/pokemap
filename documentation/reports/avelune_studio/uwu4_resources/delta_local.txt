@@ -3,17 +3,17 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +++ final/apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart
 @@ -1,6 +1,8 @@
  import 'package:map_core/map_core_domain.dart';
- 
+
  import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 +
 +part 'map_element_placement_commands.dart';
- 
+
  class MapEditingCommands {
    MapEditingCommands(this.document, this.project);
 @@ -8,51 +10,8 @@
    final ProjectManifest project;
    static int _nextId = 0;
- 
+
 -  String? place(ProjectElementEntry element, GridPos position) {
 -    var map = document.current;
 -    final layer = supportLayer(
@@ -61,7 +61,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 -  }
 +  String? place(ProjectElementEntry element, GridPos position) =>
 +      _placeElement(element, position);
- 
+
    void move(String id, GridPos position) {
      final instance = document.current.placedElements
 
@@ -179,7 +179,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +  }
 +  return null;
 +}
- 
+
  bool _historyHasMissingMapDestination(MapData map, ProjectManifest manifest) {
    final mapIds = manifest.maps.map((entry) => entry.id).toSet();
 
@@ -199,7 +199,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
  part 'local_resource_reconciliation.dart';
 +part 'local_resource_lifecycle_preparation.dart';
 +part 'local_resource_lifecycle_apply.dart';
- 
+
  final class LocalResourceAdapter
      implements
          ResourcePort,
@@ -268,7 +268,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +    final context = _prepared.remove(preparation);
 +    if (context != null) await context.close();
 +  }
- 
+
    @override
    Future<ResourceMutationReceipt> applyPrepared(
 @@ -164,6 +198,14 @@
@@ -295,7 +295,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +    }
      await usages.dispose();
    }
- 
+
 
 --- baseline/apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_apply.dart
 +++ final/apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_apply.dart
@@ -687,7 +687,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
    }) : parameters = _freezeParameters(parameters),
 +       impact = _freezeParameters(impact),
         changedPaths = List.unmodifiable(changedPaths);
- 
+
    final String sessionId;
 @@ -19,6 +21,7 @@
    final String manifestRevision;
@@ -696,19 +696,19 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +  final Map<String, Object?> impact;
    bool get noChange => changedPaths.isEmpty;
  }
- 
+
 
 --- baseline/apps/avelune_studio/lib/presentation/features/characters/character_studio_controller.dart
 +++ final/apps/avelune_studio/lib/presentation/features/characters/character_studio_controller.dart
 @@ -3,6 +3,8 @@
- 
+
  import '../../../features/characters/application/character_studio_draft.dart';
  import '../../../features/characters/application/character_studio_frame_bounds.dart';
 +
 +part 'character_studio_draft_dependencies.dart';
- 
+
  enum CharacterStudioSection { library, identity, animations, portraits }
- 
+
 
 --- baseline/apps/avelune_studio/lib/presentation/features/characters/character_studio_draft_dependencies.dart
 +++ final/apps/avelune_studio/lib/presentation/features/characters/character_studio_draft_dependencies.dart
@@ -725,7 +725,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +++ final/apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart
 @@ -1,6 +1,32 @@
  part of 'map_workspace_screen.dart';
- 
+
  extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
 +  void _reconcileResourceBrushes() {
 +    final project = _controller.project;
@@ -761,7 +761,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +++ final/apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart
 @@ -17,6 +17,7 @@
    }
- 
+
    void _reconcileCatalogueView() {
 +    _reconcileResourceBrushes();
      final project = _controller.project;
@@ -785,7 +785,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
    final ValueChanged<ResourceItem> onSelect;
    final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
 +  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
- 
+
    Widget actions(ResourceItem item) => ResourceItemActions(
      item: item,
      onInformation: onInformation,
@@ -795,7 +795,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +    onRemove: onRemove,
 +    onDuplicate: onDuplicate,
    );
- 
+
    String metadata(ResourceItem item) {
 
 --- baseline/apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart
@@ -815,7 +815,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
    final bool canEditTerrain;
    final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
 +  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
- 
+
    @override
    Widget build(BuildContext context) {
 @@ -81,6 +85,9 @@
@@ -921,7 +921,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
    final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
 +  final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
    final bool buttons;
- 
+
    @override
 @@ -29,6 +33,18 @@
            Icons.account_tree_outlined,
@@ -1377,7 +1377,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
    final bool Function() dirty;
    final bool Function()? valid;
 +  final double maxWidth;
- 
+
    @override
    State<ResourceManagementDialog> createState() =>
 @@ -108,7 +110,7 @@
@@ -1401,9 +1401,9 @@ BASE REELLE: HEAD archive + modifications locales initiales.
  part 'resource_navigation_terrain.dart';
  part 'resource_navigation_management.dart';
 +part 'resource_navigation_lifecycle.dart';
- 
+
  enum ResourcePage { library, decor, terrain, characters }
- 
+
 @@ -40,6 +42,7 @@
    final bool Function(ResourceUsageEntry)? canOpenUsage;
    ResourceMutationReceipt? pendingReceipt;
@@ -1422,7 +1422,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
          if (draft.build() == snapshot) {
 @@ -251,6 +255,7 @@
    }
- 
+
    Future<void> saveDecor(ProjectElementEntry element) async {
 +    _validateDecorOwner(decor);
      busy = true;
@@ -1973,7 +1973,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
  import 'resource_management_bindings.dart';
  import 'resource_reconciliation_notice.dart';
 +import 'resource_lifecycle_bindings.dart';
- 
+
  class ResourceWorkspacePane extends StatelessWidget {
    const ResourceWorkspacePane({
 @@ -238,6 +239,11 @@
@@ -2826,7 +2826,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 @@ -129,13 +132,14 @@
      await pumpIo(tester, frames: 20);
    }
- 
+
 -  Future<ProjectManifest> reopen() async => (await tester.runAsync(() async {
 -    final sessions = LocalProjectSessionAdapter();
 -    final session = await sessions.open(fixture.directory.path);
@@ -2857,7 +2857,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +import 'package:avelune_studio/features/resources/domain/resource_lifecycle_port.dart';
  import 'package:flutter_test/flutter_test.dart';
  import 'm2_ui_fixture.dart';
- 
+
  class WidgetResourceManagementPort extends WidgetResourcePort
 -    implements ResourceMutationPreparationPort, ResourceUsageProvider {
 +    implements
@@ -2887,7 +2887,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +          preparation,
 +        ),
 +      );
- 
+
    @override
    Future<ResourceMutationPreparation> prepareOperation(
 
@@ -3476,7 +3476,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +        declaredMediaType: declaredMediaType,
 +      ))
 +          .toJson();
- 
+
    @override
    Future<void> attachProject({
 @@ -215,25 +216,29 @@
@@ -3486,7 +3486,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 -  ) => _session(projectHandle).planMutation(request);
 +  ) =>
 +      _session(projectHandle).planMutation(request);
- 
+
    @override
    Future<Map<String, Object?>> plan(
      ProjectHandle projectHandle,
@@ -3494,7 +3494,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 -  ) async => (await planMutation(projectHandle, request)).toJson();
 +  ) async =>
 +      (await planMutation(projectHandle, request)).toJson();
- 
+
    @override
    Future<AuthoringMutationConfirmationResult> confirmMutation(
      ProjectHandle projectHandle, {
@@ -3502,7 +3502,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 -  }) => _session(projectHandle).confirmMutation(planId);
 +  }) =>
 +      _session(projectHandle).confirmMutation(planId);
- 
+
    @override
    Future<Map<String, Object?>> confirm(
      ProjectHandle projectHandle, {
@@ -3510,7 +3510,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 -  }) async => (await confirmMutation(projectHandle, planId: planId)).toJson();
 +  }) async =>
 +      (await confirmMutation(projectHandle, planId: planId)).toJson();
- 
+
    @override
    Future<AuthoringMutationResult> applyMutation(
 @@ -259,32 +264,37 @@
@@ -3531,7 +3531,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +        confirmationToken: confirmationToken,
 +      ))
 +          .toJson();
- 
+
    @override
    Future<AuthoringMutationResult> undoMutation(
      ProjectHandle projectHandle, {
@@ -3544,7 +3544,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +      _session(
 +        projectHandle,
 +      ).undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
- 
+
    @override
    Future<Map<String, Object?>> undo(
      ProjectHandle projectHandle, {
@@ -3562,7 +3562,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +        idempotencyKey: idempotencyKey,
 +      ))
 +          .toJson();
- 
+
    @override
    Future<AuthoringMutationHistoryResult> listMutationHistory(
 @@ -299,11 +309,13 @@
@@ -3581,7 +3581,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +        cursor: cursor,
 +      ))
 +          .toJson();
- 
+
    @override
    Future<AuthoringMutationResult> recoverMutation(
 @@ -380,18 +392,18 @@
@@ -3612,7 +3612,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +        _history = history,
 +        _recoveryExecutor = recoveryExecutor,
 +        _performanceObserver = performanceObserver;
- 
+
    static Future<_LocalMapAuthoringSession> open({
      required String canonicalProjectRoot,
 @@ -529,9 +541,8 @@
@@ -3661,7 +3661,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 @@ -733,6 +744,32 @@
      }
    }
- 
+
 +  AuthoringTransactionPrecondition? _lockedResourcePrecondition(
 +    AuthoringPlan plan,
 +    AuthoringTransactionPrecondition? supplied,
@@ -3759,7 +3759,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +import 'dart:convert';
 +
  import 'package:map_core/map_core.dart';
- 
+
  import '../../contracts/action_descriptor.dart';
 +import '../../contracts/artifact_ref.dart';
  import '../../transactions/action_planner.dart';
@@ -3772,11 +3772,11 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +import 'resource_information_document.dart';
  import 'tileset_actions.dart';
  import 'visual_organization_actions.dart';
- 
+
 +part 'element_definition_management.dart';
 +
  const int _elementBatchUpsertLimit = 512;
- 
+
  final class ElementActions {
 @@ -19,17 +30,41 @@
      visualLibraryDescriptor(
@@ -3811,7 +3811,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +      },
      ),
    ]);
- 
+
    AuthoringMutationDraft build(AuthoringPlanningContext context) {
      final parameters = VisualLibraryParameters(context.request.parameters);
      switch (context.request.actionId) {
@@ -4638,7 +4638,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +++ final/packages/map_authoring/lib/src/parity/full_authoring_parity.dart
 @@ -509,6 +509,26 @@
  };
- 
+
  Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
 +  if (const {
 +    'tileset.source.replace',
@@ -4665,7 +4665,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
      'tileset_folder.upsert',
 @@ -1140,6 +1160,14 @@
  }
- 
+
  const _contractEvidenceRules = <_ContractEvidenceRule>[
 +  _ContractEvidenceRule(
 +    ['tileset.source.replace', 'tileset.remove'],
@@ -6236,7 +6236,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 @@ -1098,6 +1098,17 @@
  preset ne publie pas son brouillon de préparation. Ces commandes traversent
  le dispatcher canonique et les transactions revisionnées communes.
- 
+
 +Le remplacement compatible d’une source utilise `tileset.source.replace`
 +avec un artifact figé. Les dimensions et la grille restent identiques ; les
 +références mutables sont réconciliées et les snapshots publiés conservés.
@@ -6249,7 +6249,7 @@ BASE REELLE: HEAD archive + modifications locales initiales.
 +le transport MCP stdio et les contrôleurs Studio utilisent ces contrats.
 +
  ### 13.2 Environnements
- 
+
  ```text
 
 --- baseline/tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts
