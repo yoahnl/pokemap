@@ -2324,7 +2324,7 @@ _QueryRecord _resourceUsageRecord(ProjectSnapshot snapshot, String identity) {
   final separator = identity.indexOf(':');
   if (separator < 1 ||
       separator == identity.length - 1 ||
-      !const {'images', 'decors', 'terrains'}
+      !const {'images', 'decors', 'terrains', 'borders'}
           .contains(identity.substring(0, separator))) {
     throw const AuthoringQueryException('query.resource_usage_identity_invalid',
         'Expected a family-qualified resource identity.');

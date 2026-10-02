@@ -26,47 +26,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            StudioPageHeader(
-              title: 'Ressources',
-              alignActionsToEnd: true,
-              description: bounds.maxHeight < 650
-                  ? null
-                  : 'Vos décors, terrains et images, prêts à donner vie à la carte.',
-              actions: [
-                if (widget.onManageContainers != null)
-                  StudioButton(
-                    key: const ValueKey('resource-manage-containers'),
-                    label: state.kind == ResourceKind.images
-                        ? 'Gérer les dossiers'
-                        : 'Gérer les catégories',
-                    icon: Icons.folder_outlined,
-                    secondary: true,
-                    onPressed: () => widget.onManageContainers!(state.kind),
-                  ),
-                ...resourceCreationButtons(
-                  context: context,
-                  project: widget.project,
-                  visuals: widget.visuals,
-                  onCreateBorder: widget.onCreateBorder,
-                  onCreatePath: widget.onTerrain,
-                  onImport: widget.onImport,
-                  onCharacters: widget.onCharacters,
-                ),
-                StudioButton(
-                  label: widget.targetMapName == null
-                      ? 'Retour à la carte'
-                      : 'Carte : ${widget.targetMapName}',
-                  icon: Icons.arrow_back,
-                  secondary: true,
-                  onPressed: widget.onBack,
-                ),
-                StudioButton(
-                  label: 'Importer une image',
-                  icon: Icons.add_photo_alternate_outlined,
-                  onPressed: widget.onImport,
-                ),
-              ],
-            ),
+            libraryHeader(context, bounds),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: StudioTabs<ResourceKind>(
@@ -86,6 +46,8 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
               ResourceBorderDraftBar(
                 records: widget.project.borderCatalog.records,
                 onResume: widget.onResumeBorder,
+                onManage: widget.onManageBorder,
+                compact: bounds.maxHeight < 650,
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -112,7 +74,13 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                 widget.onResumeTerrain != null)
               ResourceTerrainDraftList(
                 drafts: widget.terrainDrafts,
+                compact:
+                    bounds.maxHeight < 650 ||
+                    MediaQuery.textScalerOf(context).scale(14) > 20,
                 onResume: widget.onResumeTerrain!,
+                onManage: widget.onManageTerrainDraft,
+                status: widget.terrainDraftStatus,
+                canResume: widget.canResumeTerrain,
               ),
             Expanded(
               child: Padding(
@@ -147,6 +115,12 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                         onReplace: widget.onReplace,
                         onRemove: widget.onRemove,
                         onDuplicate: widget.onDuplicate,
+                        canEditTerrain: widget.canEditTerrain,
+                        onTerrainEdit: (item) {
+                          if (widget.canEditTerrain?.call(item) ?? false) {
+                            widget.onTerrain(item);
+                          }
+                        },
                       ),
                     ),
                     if (inlineDetail) ...[

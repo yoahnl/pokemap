@@ -115,6 +115,18 @@ ResourceUsageRelation resourceUsageRelationFor(String kind) =>
         : ResourceUsageRelation.direct;
 
 String? usageEntityId(Map<String, dynamic> document, String path) {
+  final border = RegExp(r'^\$\.layers\[(\d+)\]\.content\.features\[(\d+)\]')
+      .firstMatch(path);
+  if (border != null) {
+    final layers = document['layers'];
+    if (layers is! List) return null;
+    final layer = layers[int.parse(border.group(1)!)];
+    final content = layer is Map ? layer['content'] : null;
+    final features = content is Map ? content['features'] : null;
+    if (features is! List) return null;
+    final feature = features[int.parse(border.group(2)!)];
+    return feature is Map ? feature['id'] as String? : null;
+  }
   final match = RegExp(r'^\$\.(placedElements|entities|borders)\[(\d+)\]')
       .firstMatch(path);
   if (match == null) return null;

@@ -13,9 +13,11 @@ import 'resource_category_tree.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
 import 'resource_terrain_draft_list.dart';
+import 'resource_terrain_actions.dart';
 import 'resource_border_draft_bar.dart';
 import 'resource_creation_buttons.dart';
 part 'resource_library_layout.dart';
+part 'resource_library_header.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -28,6 +30,7 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onTerrain,
     required this.onCreateBorder,
     required this.onResumeBorder,
+    this.onManageBorder,
     required this.onImport,
     this.onCharacters,
     required this.onBack,
@@ -36,6 +39,9 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.canUse = true,
     this.terrainDrafts = const [],
     this.onResumeTerrain,
+    this.onManageTerrainDraft,
+    this.terrainDraftStatus,
+    this.canResumeTerrain,
     this.canEditTerrain,
     this.onInformation,
     this.onMove,
@@ -54,6 +60,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem> onTerrain;
   final VoidCallback onCreateBorder;
   final ValueChanged<BorderBlueprintRecord> onResumeBorder;
+  final void Function(BorderBlueprintRecord, BorderResourceAction)?
+  onManageBorder;
   final VoidCallback onImport;
   final VoidCallback? onCharacters;
   final VoidCallback onBack;
@@ -61,6 +69,10 @@ class ResourceLibraryScreen extends StatefulWidget {
   final bool canUse;
   final List<ProjectSmartTileAuthoringDraft> terrainDrafts;
   final ValueChanged<ProjectSmartTileAuthoringDraft>? onResumeTerrain;
+  final void Function(ProjectSmartTileAuthoringDraft, TerrainResourceAction)?
+  onManageTerrainDraft;
+  final String Function(ProjectSmartTileAuthoringDraft)? terrainDraftStatus;
+  final bool Function(ProjectSmartTileAuthoringDraft)? canResumeTerrain;
   final bool Function(ResourceItem)? canEditTerrain;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;

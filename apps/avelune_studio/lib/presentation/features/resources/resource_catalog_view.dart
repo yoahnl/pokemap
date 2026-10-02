@@ -27,6 +27,8 @@ class ResourceCatalogView extends StatelessWidget {
     this.onReplace,
     this.onRemove,
     this.onDuplicate,
+    this.onTerrainEdit,
+    this.canEditTerrain,
   });
   final List<ResourceItem> items;
   final ResourceItem? selected;
@@ -38,6 +40,9 @@ class ResourceCatalogView extends StatelessWidget {
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
 
+  final ValueChanged<ResourceItem>? onTerrainEdit;
+  final bool Function(ResourceItem)? canEditTerrain;
+
   Widget actions(ResourceItem item) => ResourceItemActions(
     item: item,
     onInformation: onInformation,
@@ -46,6 +51,7 @@ class ResourceCatalogView extends StatelessWidget {
     onReplace: onReplace,
     onRemove: onRemove,
     onDuplicate: onDuplicate,
+    onTerrainEdit: (canEditTerrain?.call(item) ?? true) ? onTerrainEdit : null,
   );
 
   String metadata(ResourceItem item) {
@@ -81,12 +87,7 @@ class ResourceCatalogView extends StatelessWidget {
           itemCount: items.length,
           mainAxisExtent:
               (258 + (MediaQuery.textScalerOf(context).scale(14) - 14) * 5)
-                  .clamp(
-                    180,
-                    bounds.maxHeight < 320
-                        ? (bounds.maxHeight - 24).clamp(180, 320)
-                        : 400,
-                  ),
+                  .clamp(180, 400),
           itemBuilder: (context, index) {
             final item = items[index];
             return Tooltip(

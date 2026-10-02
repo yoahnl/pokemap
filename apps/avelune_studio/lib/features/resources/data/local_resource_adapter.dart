@@ -27,6 +27,7 @@ part 'local_resource_receipt.dart';
 part 'local_resource_reconciliation.dart';
 part 'local_resource_lifecycle_preparation.dart';
 part 'local_resource_lifecycle_apply.dart';
+part 'local_character_removal_adapter.dart';
 
 final class LocalResourceAdapter
     implements
@@ -67,11 +68,19 @@ final class LocalResourceAdapter
     'element.upsert',
     'smart_tile.preset.draft.upsert',
     'smart_tile.preset.publish',
+    'smart_tile.preset.rename',
+    'smart_tile.preset.duplicate',
+    'smart_tile.preset.delete',
+    'smart_tile.preset.draft.delete',
     'border.blueprint.draft.upsert',
     'border.blueprint.publish',
+    'border.blueprint.delete',
+    'border.blueprint.set_deprecated',
     'map.library.reorganize',
     'characterStudio.character.create',
     'characterStudio.character.update',
+    'characterStudio.character.deletePlan',
+    'characterStudio.character.delete',
     'characterStudio.animationClip.upsert',
     'characterStudio.animationClip.delete',
     'characterStudio.portraitState.create',
@@ -191,6 +200,11 @@ final class LocalResourceAdapter
     String? Function()? validateBeforeApply,
   }) async {
     _requireAvailable();
+    if (preparation.actionId == 'characterStudio.character.deletePlan') {
+      throw const ResourceFailure(
+        'L’inspection ne peut pas être appliquée. Préparez le retrait après avoir choisi une résolution.',
+      );
+    }
     if (preparation.sessionId != session.sessionId ||
         !_appliedPreparations.add(preparation)) {
       throw const ResourceFailure(

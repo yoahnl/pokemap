@@ -78,6 +78,8 @@ final class ResourceMutationReceipt {
     this.snapshotBeforeRevision,
     this.resourceRevisions = const {},
     this.pathRevisions = const {},
+    this.changedMaps = const {},
+    this.mapRevisions = const {},
   });
 
   final ProjectManifest before;
@@ -91,6 +93,8 @@ final class ResourceMutationReceipt {
   final String? snapshotBeforeRevision;
   final Map<String, String?> resourceRevisions;
   final Map<String, String?> pathRevisions;
+  final Map<String, MapData> changedMaps;
+  final Map<String, String> mapRevisions;
   bool get noChange => changedPaths.isEmpty;
 }
 

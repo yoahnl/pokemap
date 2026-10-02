@@ -5,8 +5,13 @@ import 'package:map_core/map_core.dart';
 import '../../../contracts/action_descriptor.dart';
 import '../../../transactions/action_planner.dart';
 import '../../../transactions/authoring_plan.dart';
+import '../../../workspace/project_snapshot.dart';
 import '../../narrative/dialogue_source_store.dart';
+import '../../assets/asset_store.dart';
+import '../../narrative/dialogue_authoring_service.dart';
 import 'character_studio_action_support.dart';
+
+part 'character_studio_deletion_safety.dart';
 
 final class CharacterStudioCharacterActions {
   const CharacterStudioCharacterActions();
@@ -41,11 +46,13 @@ final class CharacterStudioCharacterActions {
       characterStudioActionDescriptor(
         'characterStudio.character.deletePlan',
         'Inspect every dependency before deleting a character',
+        inputSchema: _characterDeletionSchema(plan: true),
         risk: AuthoringRiskLevel.low,
       ),
       characterStudioActionDescriptor(
         'characterStudio.character.delete',
         'Delete one character and resolve every dependency',
+        inputSchema: _characterDeletionSchema(plan: false),
         risk: AuthoringRiskLevel.high,
       ),
     ],
@@ -335,6 +342,8 @@ final class CharacterStudioCharacterActions {
     final characterId = parameters.string('characterId');
     final characterIndex = _characterIndex(manifest, characterId);
     final before = manifest.characters[characterIndex];
+    _requireDeletionInventory(context.snapshot);
+    final clearProblems = _characterClearProblems(context, characterId);
     final references = buildCharacterStudioReferenceIndex(
       manifest,
       maps: context.snapshot.maps,
@@ -356,13 +365,12 @@ final class CharacterStudioCharacterActions {
       ],
       'requiresResolution': dependencyCount > 0,
       'choices': const <Object?>['replace', 'clear', 'cancel'],
+      'clearAllowed': clearProblems.isEmpty,
+      'clearProblems': clearProblems,
       'replacementCandidates': <Object?>[
         for (final character in manifest.characters)
           if (character.id != characterId)
-            <String, Object?>{
-              'id': character.id,
-              'name': character.name,
-            },
+            _characterReplacementPreview(context, characterId, character),
       ],
     };
     final characters = <ProjectCharacterEntry>[
@@ -403,6 +411,16 @@ final class CharacterStudioCharacterActions {
         details: <String, Object?>{'resolution': resolution},
       );
     }
+    if (resolution == 'clear' && clearProblems.isNotEmpty) {
+      throw CharacterStudioActionException(
+          clearProblems.any((problem) =>
+                  problem['code'] == 'default_player_required' ||
+                  problem['code'] == 'last_avatar_required')
+              ? 'character_studio.character.player_required'
+              : 'character_studio.character.clear_incompatible',
+          'Referenced player or animation requirements need a valid replacement.',
+          details: {'problems': clearProblems});
+    }
     String? replacementId;
     if (resolution == 'replace') {
       replacementId = parameters.string('replacementId');
@@ -421,6 +439,19 @@ final class CharacterStudioCharacterActions {
         'character_studio.character.replacement_unexpected',
         'replacementId is only accepted with replace resolution.',
       );
+    }
+    if (replacementId != null) {
+      final problems = _characterReplacementProblems(
+          context,
+          characterId,
+          manifest.characters
+              .singleWhere((value) => value.id == replacementId));
+      if (problems.isNotEmpty) {
+        throw CharacterStudioActionException(
+            'character_studio.character.replacement_incompatible',
+            'The replacement cannot satisfy the referenced character requirements.',
+            details: {'replacementId': replacementId, 'problems': problems});
+      }
     }
     final resolvedManifest = _resolveManifestReferences(
       manifest.copyWith(characters: characters),
@@ -445,6 +476,19 @@ final class CharacterStudioCharacterActions {
           replacementId: replacementId,
         );
         if (afterSource != beforeSource) {
+          final compiled = const DialogueAuthoringCompiler()
+              .compile(entry: dialogue, source: afterSource);
+          if (!compiled.canPublish) {
+            throw CharacterStudioActionException(
+                'character_studio.dialogue_compile_failed',
+                'The resolved dialogue cannot be compiled.',
+                details: {
+                  'dialogueId': dialogue.id,
+                  'diagnostics': [
+                    for (final item in compiled.diagnostics) item.toJson()
+                  ]
+                });
+          }
           projectedDialogueSources[dialogue.id] = utf8.encode(afterSource);
         }
       }
@@ -479,9 +523,27 @@ List<Map<String, Object?>> _dialoguePortraitReferences(
   for (final dialogue in context.snapshot.manifest.dialogues) {
     final identity = dialogueSourceResourceIdentity(dialogue.id);
     final bytes = context.snapshot.findResourceBytes(identity);
-    if (bytes == null) continue;
+    if (bytes == null) {
+      throw CharacterStudioActionException(
+          'character_studio.dialogue_resource_unavailable',
+          'A required dialogue source is unavailable.',
+          details: {'dialogueId': dialogue.id});
+    }
     final source = _decodeDialogueSource(dialogue.id, bytes);
-    for (final match in _portraitDirectivePattern.allMatches(source)) {
+    final compiled = const DialogueAuthoringCompiler()
+        .compile(entry: dialogue, source: source);
+    if (!compiled.canPublish) {
+      throw CharacterStudioActionException(
+          'character_studio.dialogue_compile_failed',
+          'A required dialogue source cannot be analyzed safely.',
+          details: {
+            'dialogueId': dialogue.id,
+            'diagnostics': [
+              for (final item in compiled.diagnostics) item.toJson()
+            ]
+          });
+    }
+    for (final match in _characterDialogueDirectivePattern.allMatches(source)) {
       if (match.group(2) != characterId) continue;
       final lineNumber =
           '\n'.allMatches(source.substring(0, match.start)).length + 1;
@@ -517,7 +579,7 @@ String _rewriteDialoguePortraitCharacter(
   final lines = source.split('\n');
   final rewritten = <String>[];
   for (final line in lines) {
-    final match = _portraitDirectivePattern.firstMatch(line);
+    final match = _characterDialogueDirectivePattern.firstMatch(line);
     if (match == null || match.group(2) != deletedId) {
       rewritten.add(line);
       continue;
@@ -528,6 +590,11 @@ String _rewriteDialoguePortraitCharacter(
   }
   return rewritten.join('\n');
 }
+
+final RegExp _characterDialogueDirectivePattern = RegExp(
+  r'^([ \t]*<<(?:portrait|speaker)\s+)([^\s>]+)((?:\s+[^\s>]+)?>>[ \t]*\r?)$',
+  multiLine: true,
+);
 
 final RegExp _portraitDirectivePattern = RegExp(
   r'^([ \t]*<<portrait\s+)([^\s>]+)(\s+[^\s>]+>>[ \t]*\r?)$',

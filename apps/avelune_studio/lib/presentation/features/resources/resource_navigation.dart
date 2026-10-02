@@ -10,9 +10,13 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import '../characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
+import 'resource_terrain_management.dart';
+import 'resource_border_management.dart';
+import 'resource_character_management.dart';
 import '../../../features/resources/domain/resource_mutation_preparation.dart';
 import '../../../features/resources/domain/resource_lifecycle_port.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
+import '../../../features/map_workspace/domain/map_workspace_port.dart';
 part 'resource_navigation_terrain.dart';
 part 'resource_navigation_management.dart';
 part 'resource_navigation_lifecycle.dart';
@@ -48,6 +52,11 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     if (!_disposed) notifyListeners();
   }
 
+  String? Function(String blueprintId)? borderDrawingOwner;
+  List<String> Function(String characterId)? additionalCharacterOwners;
+  void Function(Set<String> dialogueIds)? characterSourcesChanged;
+  String? Function(Set<String> dialogueIds)? characterSourceProblem;
+  final Map<String, bool Function()> borderEditorOwners = {};
   final library = ResourceLibraryState();
   final Map<String, DecorDraft> decors = {};
   @override
@@ -93,22 +102,11 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       for (final draft in project.smartTileCatalog.drafts) draft.id: draft,
       for (final model in terrains.values) model.draft.id: model.draft,
     };
-    return drafts.values
-        .where(
-          (draft) => terrainDraftCompatibilityProblem(project, draft) == null,
-        )
-        .toList();
+    return drafts.values.toList();
   }
 
-  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts => terrainDrafts
-      .where(
-        (draft) =>
-            !workspace.project!.smartTileCatalog.presets.any(
-              (preset) => preset.id == draft.targetPresetId,
-            ) ||
-            terrains[draft.id]?.dirty == true,
-      )
-      .toList();
+  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts =>
+      terrainDrafts;
 
   bool canEditTerrain(ResourceItem item) =>
       item.terrain != null &&

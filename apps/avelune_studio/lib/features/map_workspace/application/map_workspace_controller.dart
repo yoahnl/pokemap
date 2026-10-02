@@ -8,6 +8,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.da
 part 'map_workspace_catalog_commands.dart';
 part 'map_workspace_catalog_preparation.dart';
 part 'map_workspace_history_destinations.dart';
+part 'map_workspace_resource_references.dart';
 
 class MapWorkspaceController {
   MapWorkspaceController(this.session, this.port, {this.catalogPort});
@@ -98,6 +99,7 @@ class MapWorkspaceController {
     } catch (failure) {
       if (!_disposed &&
           generation == _generation &&
+          mapEpoch == _mapEpochs[entry.id] &&
           isCurrent?.call() != false) {
         error = _message(failure);
       }

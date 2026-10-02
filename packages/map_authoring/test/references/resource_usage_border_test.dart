@@ -3,9 +3,29 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../domains/maps/map_catalog_fixture.dart';
+import '../domains/maps/border_deprecated_placement_test.dart'
+    show placementFixture;
 import 'resource_usage_projection_test.dart' show decor, planche, noPokemon;
 
 void main() {
+  test('border target identifies the exact feature in a closed map', () {
+    final fixture = placementFixture();
+    final report = const ResourceUsageProjection().analyze(fixture.snapshot,
+        const ResourceUsageTarget(family: 'borders', id: 'fence'));
+    expect(report.complete, isTrue, reason: report.coverageIssues.toString());
+    final usage = report.entries.single;
+    expect(usage.ownerKind, 'map');
+    expect(usage.ownerId, fixture.map.id);
+    expect(usage.ownerLabel, fixture.map.name);
+    expect(usage.entityId, 'existing');
+    expect(usage.relation, ResourceUsageRelation.direct);
+    expect(usage.location, contains('content.features[0].blueprintId'));
+    final other = const ResourceUsageProjection().analyze(fixture.snapshot,
+        const ResourceUsageTarget(family: 'borders', id: 'other'));
+    expect(other.complete, true);
+    expect(other.entries, isEmpty);
+  });
+
   test('published and draft borders retain their unplaced source element', () {
     final metrics = BorderPrimitiveAssetMetrics(
       assetFingerprint: 'pixel-metrics',

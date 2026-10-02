@@ -5,6 +5,7 @@ import '../../../features/characters/application/character_studio_draft.dart';
 import '../../../features/characters/application/character_studio_frame_bounds.dart';
 
 part 'character_studio_draft_dependencies.dart';
+part 'character_studio_lifecycle.dart';
 
 enum CharacterStudioSection { library, identity, animations, portraits }
 
@@ -15,7 +16,9 @@ typedef CharacterStudioMutation =
     );
 
 final class CharacterStudioController extends ChangeNotifier {
-  CharacterStudioController({required this.project, required this.mutate});
+  CharacterStudioController({required this.project, required this.mutate}) {
+    selectedId = project().characters.firstOrNull?.id;
+  }
 
   final ProjectManifest Function() project;
   final CharacterStudioMutation mutate;
@@ -38,27 +41,11 @@ final class CharacterStudioController extends ChangeNotifier {
     final characters = project().characters;
     final id = selectedId;
     return id == null
-        ? characters.firstOrNull
+        ? null
         : characters.where((character) => character.id == id).firstOrNull;
   }
 
-  void refreshClean() {
-    final characters = {
-      for (final character in project().characters) character.id: character,
-    };
-    var changed = false;
-    for (final draft in _drafts.values) {
-      final current = characters[draft.saved.id];
-      if (!draft.dirty && current != null && current != draft.saved) {
-        draft.saved = current;
-        draft.name = current.name;
-        draft.frameWidth = current.frameWidth;
-        draft.frameHeight = current.frameHeight;
-        changed = true;
-      }
-    }
-    if (changed) notifyListeners();
-  }
+  void refreshClean() => reconcileCatalog(project());
 
   CharacterStudioDraft? get selectedDraft {
     final character = selectedCharacter;

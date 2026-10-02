@@ -38,6 +38,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   bool _confirmingClose = false;
   String? _error;
   List<String> _warningCodes = const [];
+  late final bool Function() _dirtyOwner;
 
   @override
   void initState() {
@@ -45,6 +46,10 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     final record = widget.initialRecord;
     _name = TextEditingController(text: record?.draft.definition.name ?? '');
     _pendingId = record?.id;
+    _dirtyOwner = () => _hasChanges || _saving;
+    if (_pendingId != null) {
+      widget.navigation.borderEditorOwners[_pendingId!] = _dirtyOwner;
+    }
     for (final primitive
         in record?.draft.definition.primitives ?? <BorderPrimitiveDraft>[]) {
       final element = widget.project.elements
@@ -56,6 +61,9 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
 
   @override
   void dispose() {
+    if (widget.navigation.borderEditorOwners[_pendingId] == _dirtyOwner) {
+      widget.navigation.borderEditorOwners.remove(_pendingId);
+    }
     _name.dispose();
     super.dispose();
   }
@@ -123,6 +131,9 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         _saving = false;
         _error = failure.message;
         _pendingId = failure.borderId ?? _pendingId;
+        if (_pendingId != null) {
+          widget.navigation.borderEditorOwners[_pendingId!] = _dirtyOwner;
+        }
         _warningCodes = failure.warningCodes;
       });
     } catch (failure) {

@@ -25,9 +25,24 @@ AuthoringActionDescriptor _descriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'catalogFormatVersion': ProjectSmartTileCatalog.currentFormatVersion,
         'projectWidePreflight': true,
+        if (id == 'smart_tile.preset.delete' ||
+            id == 'smart_tile.preset.draft.delete')
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              id == 'smart_tile.preset.delete' ? 'presetId' : 'draftId': {
+                'type': 'string',
+                'minLength': 1,
+              },
+            },
+            'required': [
+              id == 'smart_tile.preset.delete' ? 'presetId' : 'draftId'
+            ],
+          },
       },
     );
 
@@ -310,4 +325,18 @@ Iterable<SmartTileVisualSource> _patternVisualSources(
       yield part.source;
     }
   }
+}
+
+List<int> _encodeSmartTileManifest(
+  ProjectSnapshot snapshot,
+  ProjectManifest manifest,
+) {
+  final merged = jsonDecode(
+    utf8.decode(encodeResourceInformationDocument(snapshot, manifest)),
+  ) as Map<String, dynamic>;
+  final catalog = merged['smartTileCatalog'];
+  if (catalog is Map<String, dynamic>) {
+    catalog['formatVersion'] = manifest.smartTileCatalog.formatVersion;
+  }
+  return utf8.encode(const JsonEncoder.withIndent('  ').convert(merged));
 }

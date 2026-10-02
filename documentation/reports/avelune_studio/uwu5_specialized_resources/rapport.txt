@@ -1,0 +1,475 @@
+AVELUNE STUDIO — LOT 5 UWU V — RESSOURCES SPÉCIALISÉES
+État des preuves : 2 octobre 2026. Suite Studio finale exécutée et comparée à la base locale.
+Ce document distingue livraison technique, recette automatisée, manipulation native et validation de Yoahn.
+
+1. BASE RÉELLE, PÉRIMÈTRE ET SDK
+HEAD local : a63ac8656d8456a91c1570b03ff91100de4f1a50 ; branche main.
+457 chemins modifiés/non suivis avant intervention ; index vide.
+Le checkout inclut les lots précédents. Aucun remplacement par origin, aucune
+écriture Git, changement de version (0.3.18+318), release, CI ou roadmap.
+Repère distant fourni : e86db603d323eff74ba9d9dbceb3bac664b6d462.
+La capture initiale state.json/working_tree.tar.gz/initial.diff a été constituée
+avant modifications ; son état Git est reproduit intégralement dans git_initial.txt.
+SHA256 initial.diff : c34be9d26e6a9801782a4abcc3230673248fd95c49e9d3e7f9a4af00fb02249a.
+La baseline exécutable /tmp/uwu5-baseline-snapshot associe archive HEAD et octets
+du working tree initial, pas seulement l'ancien commit. L'extraction a exclu une
+symlink absolue obsolète sous packages/map_editor/macos/Flutter/
+ephemeral_backup_20260323/Packages/.packages/file_picker ; original intact.
+Le projet personnel Le train de 17h42 et les ressources externes n'ont pas été modifiés.
+Hors périmètre : purge des blobs, nouveaux moteurs, migration de format générale,
+refonte Character Studio, lot 6 et clôture des FG-010/FG-011, encore TODO.
+
+SDK épinglé : /tmp/avelune-flutter-3.48/bin/flutter, 3.48.0-0.4.pre,
+révision e3005e3402d9cfa2043114c8bc53c59d12e9b98e.
+Dart associé 3.14.0-95.2.beta. Studio et Hub résolvent flutter/flutter_test dans
+file:///private/tmp/avelune-flutter-3.48/packages/ via package_config.json.
+Le Dart global est 3.13.4 : les premiers runs npm globaux n'étaient donc pas une
+preuve d'homogénéité. Le run MCP final impose PATH, DART et POKEMAP_TEST_DART
+vers le SDK épinglé. Aucune modification opportuniste des versions du dépôt.
+Les runs utilisent /tmp/run_avelune_owned.py : runner PID et descendants capturés,
+commande/date de naissance revérifiées avant nettoyage des seuls harnesses
+appartenant au run. Aucun kill global ni arrêt d'une session utilisateur.
+
+2. AUDIT CIBLÉ ET PROPRIÉTAIRES
+L'audit a relu le prompt complet, instructions racine/proches, codex_rule.md,
+fiches 005/008/009/011 et plan commun, contrats et usages réellement branchés.
+Le statut historique d'une action dans un registre n'a pas été pris pour preuve UI.
+
+Capacité | Propriétaire et contrat | Déjà présent | Delta du lot
+Confirmation source | ResourceRemovalDialog, tileset.remove, resource source actions | retrait logique/capacité | capacité, choix et effet cohérents, retour OFF
+Terrains/chemins | SmartTileCatalogActions, TerrainDraftController | upsert/publish/delete | rename/duplicate bornés, états de gestion, gardes propriétaires
+Bordures | BorderCatalogActions, BorderActions, éditeur existant | delete jamais publié, set_deprecated | raccordement UI, disponibilité des nouveaux traits, usages corrects
+Personnages | CharacterStudio, character.deletePlan/delete | inspection et résolution canonique | port spécialisé, résolution guidée, préconditions, réconciliation ciblée
+Sessions | file commune, ResourceMutationReceipt, EditableMapDocument | lots précédents | chemins/révisions de cartes ciblées, invalidation des attentes et historique sûr
+Usages | projection canonique de références | lot 3 | famille bordure correcte, lecture complète des dépendances concernées
+
+Verdicts des passes :
+- Audit canonique : préconditions tardives B/C/D insuffisantes ; copie non
+  create-only et métadonnées imbriquées perdues ; qualifications personnage
+  et clear susceptibles de casser une apparence/joueur. Défauts reproduits.
+- Audit Studio : conserver le refus des modifications de cartes ordinaires,
+  ajouter un chemin spécialisé et réconcilier seulement les propriétaires touchés.
+- Passe UI : menus existants réemployés ; petites fenêtres ont révélé collection
+  masquée/overflow de 20 px, corrigés avec tests de vignette réellement accessible.
+- Revue finale indépendante des sources : invariants B/C/D et réconciliation
+  PASS ; limites natives, qualification contractuelle et écrivains externes
+  non coopératifs conservées. Ce n'est pas une acceptation artistique de Yoahn.
+
+3. A — AS-RES-CRUD-005 : LA CONFIRMATION DIT LA VÉRITÉ
+RED vrai host : cocher retrait de source préparait un plan sourceRemoved sans
+sourceRemovalSupported ; onChanged devenait null et l'interface annonçait
+conservation. logs/uwu5-source-toggle-red.log (+0/-1).
+Le plan canonique annonce désormais capacité, retrait du fichier logique et
+chemin ; le dialogue sépare capacité, intention et effets effectivement préparés.
+Le choix commence OFF, peut revenir OFF après refus/perte de capacité,
+invalide ancien plan/confirmation et interdit un plan incompatible avec le choix.
+Un second rouge sur perte de capacité a établi la confirmation incohérente ;
+le refus maintient la possibilité de conserver la source.
+
+Matrice :
+PASS — bascule réelle UI → plan → confirmation → apply → relecture indépendante.
+PASS — choix source OFF conserve le fichier logique ; ON retire seulement la
+source prévue si son contrat le permet. Asset logique et blob ne sont pas confondus.
+PASS — annulation réelle ne modifie ni manifeste, ni catalogue d'assets, ni PNG.
+PASS — capacité tardivement perdue, erreur, concurrence et intention obsolète.
+PASS — 3 tests host finaux ; 11 tests de dialogue contrôlé ; 26 canoniques/API/précondition.
+NON VÉRIFIÉ — manipulation native de la bascule (voir section 9).
+Aucun nouveau nettoyage de blobs, aucune reprise générale du lot 4.
+
+4. B — AS-RES-CRUD-008 : TERRAINS ET CHEMINS
+Même famille Smart Tile, même rendu, éditeur et propriétaire de brouillon.
+Extensions sémantiques minimales de renommage/duplication, quatre descripteurs
+bornés ; pas de mutate arbitraire, catalogue de chemins séparé ou saveAll.
+Renommer modifie les métadonnées, sans publier les règles d'un draft voisin.
+La copie est create-only, indépendante et non publiée, avec nouvelles identités
+éditables source/target/atlas/material/animation. Les PNG référencés sont partagés,
+pas dupliqués implicitement. Modèle intégral, 20 topologies et métadonnées
+conservables sont préservés, y compris dépendances héritées du catalogue.
+
+RED puis GREEN : métadonnées imbriquées et dépendances héritées étaient perdues
+(logs/uwu5-terrain-raw-red.log, uwu5-terrain-inherited-red.log).
+Une régression introduite dans l'encodeur conservait formatVersion=2 alors que
+les patterns/drafts du contrat actuel exigent 4. Trois tests MCP rouges l'ont
+révélée. Correction bornée : seul le catalogue Smart Tiles effectivement écrit
+prend la version canonique 4 ; aucun double lecteur ou migration universelle.
+Test de relecture indépendante API/JSONL ajouté ; trois rouges devenus verts
+(logs/uwu5-smart-encoder-red.log, uwu5-smart-encoder-green.log).
+Le refus de reprise d'un preset avancé non représentable dans l'atelier reste
+explicite ; gestion de ses métadonnées permise sans conversion destructive.
+
+Matrice :
+PASS — rename accentué, no-op, conflit, sauvegarde/réouverture, publication conservée.
+PASS — copie indépendante complète ; refus de collision d'ID/destination obsolète.
+PASS — listes des drafts, reprise, annulation, suppression du draft seul.
+PASS — suppression de preset utilisé/dépendant refusée, y compris carte fermée
+et référence apparue après lecture initiale sous injection déterministe du verrou.
+PASS — propriétaires brouillons et file commune ; aucun autre draft publié.
+PASS — pinceau retiré désarmé et undo/redo empêchant la restauration orpheline,
+sans effacer l'historique tiers. RED historique conservé dans les logs.
+PASS — relecture indépendante, direct API, JSONL, nouveau MCP STDIO strict.
+PASS — source manquante précisément qualifiée : PNG logique absent/blob conservé,
+rename/copy réussissent sans recréation ni perte ; blob absent, plan refuse
+project.asset_blob_missing avant écriture. Comparaison raw hors propriétaire,
+relecture indépendante ;7tests ciblés PASS,2.34s,analyse/format verts.
+PASS — rendu/collision exportés et jouables depuis l'installation indépendante.
+NON VÉRIFIÉ — recette manuelle native complète et acceptation visuelle indépendante.
+
+5. C — AS-RES-CRUD-009 : BORDURES
+Blueprint jamais publié : suppression permise selon usages/draft/propriétaire.
+Blueprint publié : suppression refusée ; dépréciation/réactivation seules.
+Publication, snapshot et draft modifié restent distincts. Les hashes des snapshots,
+le latest et les données de collision/rendu ne sont pas reconstruits pour
+déprécier une publication. Pas de purge de versions.
+
+RED : feature_create/stroke_add/relink acceptaient de nouveaux placements d'un
+blueprint déprécié ; garde dans le propriétaire canonique et revalidation tardive
+corrigent cinq actions de placement, sans changer le lecteur des traits existants.
+La source d'usage des bordures est borders + ID, pas un faux item images.
+RED host : un choix retiré retombait silencieusement sur another-border.
+Le repli est supprimé : outil désarmé, choix explicite requis. Les tests de
+dessin sélectionnent désormais le véritable modèle ; preview/angles/undo et
+sauvegarde restent assertés.
+
+Matrice :
+PASS — suppression jamais publié libre ; refus si utilisé ou draft actif.
+PASS — impossibilité de supprimer une publication, même sans carte ouverte.
+PASS — dépréciation/réactivation avec draft modifié et snapshots identiques.
+PASS — nouveaux choix/traits refusés si dépréciés ; anciens traits rendus,
+collisions préservées et undo existant maintenu.
+PASS — inspection des usages et garde des éditeurs/traits non enregistrés.
+PASS — tests host Carte, contrats, JSONL et réouverture/export/Player.
+PASS — deux interruptions déterministes avant/après promotion de project.json :
+avant, manifeste inchangé ; après, statut modifié sans reçu de succès ; recovery
+explicite recovered, snapshots/PNG/carte fermée/draft/latest/raw préservés et
+réouverture indépendante.24tests statut/reprise PASS,3.30s. Hooks transactionnels,
+pas qualification matérielle d'un volume OS. Nouveau test145lignes ; harnais
+JSONL existant rendu réutilisable, faultInjector facultatif, tests seulement.
+NON VÉRIFIÉ — manipulation native complète et validation artistique de Yoahn.
+
+6. D — AS-RES-CRUD-011 : PERSONNAGES ET RÉFÉRENCES
+Le parcours appartient au Character Studio existant, aucun second CRUD.
+deletePlan({characterId}) est une inspection dryRun, non applicable.
+delete({characterId,resolution?,replacementId?}) porte la décision replace/clear
+conforme au handler. La UI montre usages et refus avant application.
+Lecture complète des cartes fermées et sources Yarn nécessaires ; un document
+absent/illisible ne devient pas zéro référence.
+
+Matrice de résolution :
+Propriétaire | Remplacer | Effacer | Garde
+NPC/entité carte | ID exact candidat valide | selon contrat de l'entité | carte touchée dirty, préimage
+Acteur narratif/Yarn | speaker/portrait ciblés | seulement suppression admise | source requise UTF-8/compilation, brouillon
+Portrait qualifié | personnage et expression compatibles | seulement si contractuellement valide | expression absente refusée
+Apparence/clip | candidat qualifié conservant références valides | pas de clip injouable | validation canonique
+Joueur/avatar par défaut | remplaçant jouable explicite | refus | défaut et contrat de lancement
+Référence absente/ambiguë | pas de premier candidat automatique | pas de cascade implicite | diagnostic/refus
+
+Les candidats sont qualifiés par les contrats disponibles, pas par une promesse
+que chaque PNG arbitraire a été décodé. Les PNG, atlas et assets restent présents.
+Les lignes de dialogue non ciblées et champs étrangers conservables sont préservés.
+
+Port spécialisé : allowlist exacte des cartes/Yarn annoncés par le plan et leurs
+révisions ; inspection non applicable. Le refus de cartes pour les mutations
+ordinaires est maintenu. Préconditions sous verrou et préimages, transaction
+récupérable multi-document existante. Pas de nouvelle file ni écriture JSON UI.
+
+Réconciliation :
+- Cartes propres : rebase des entités ciblées, autres objets et historique conservés.
+  Un undo ancien ne réinjecte pas un NPC pointant vers le personnage disparu.
+- Dialogues : seuls caches/sources/sessions/preview touchés sont invalidés.
+- Combats : relecture des liens concernés, sans effacer trainer/table dirty étrangers.
+- Attentes anciennes : générations de carte/dialogue/Combat invalidées ;
+  catch/finally et réponses tardives ne publient pas une ancienne session.
+- Reçu enregistré avant rafraîchissement UI. Apply réussi puis callback en erreur :
+  reçu conservé, relecture contrôlée proposée, pas de replay de la suppression.
+
+Matrice :
+PASS — libre, posé, joueur, portrait et plusieurs sources, replace/clear ou refus
+selon contrat réel ; cartes fermées et références incomplètes.
+PASS — gardes ciblées, abandon, double application, conflit/staging/session.
+PASS — panne transactionnelle et modification après contrôle initial, sans cascade.
+PASS — save échoué conserve la saisie ; projet changé ne reçoit pas la réponse tardive.
+PASS — 30 tests canoniques personnages ; 14 tests réconciliation/races/historique ;
+hôtes de suppression et résolutions inclus dans les 58 tests UI B/C/D.
+PASS — sauvegarde/relecture indépendante et dialogue avec portrait du remplaçant
+depuis le paquet installé, dossier auteur rendu inaccessible.
+NON VÉRIFIÉ — parcours manuel natif complet.
+
+Limite transactionnelle commune : verrou et préconditions protègent les writers
+coopératifs et les préimages vérifiées. Un écrivain externe ignorant ce verrou
+n'est pas rendu atomique par un deuxième contrôle. Aucune atomicité générale
+multi-fichiers contre ce processus n'est revendiquée.
+
+7. RECETTE STUDIO → EXPORT → INSTALLATION → PLAYER
+Test principal : apps/pokemap_hub/test/features/installation/
+uwu5_specialized_resources_player_e2e_test.dart ; vrais hôtes/commandes/adaptateurs.
+Avec la régression UwU4 : 2 PASS, exit0,37.02s ; analyse des 4 fichiers No issues found.
+Fixture temporaire S : 2 cartes 24×16,3 tilesets,2 personnages avant/1 après,1 Yarn.
+Les données d'amorçage sont des fixtures via API publique, pas des mutations
+du projet personnel. Le trait est créé via vraie UI ; données terrain gérées
+par commandes canoniques et vrai owner. Le remplacement passe par Character Studio.
+Export Test local via bouton/service, installation du paquet réel, fermeture des
+contrôleurs auteur puis seul dossier temporaire renommé en .offline.
+Aucun JSON corrigé après export, aucun paquet reconstruit par le test.
+SHA256 paquet témoin :
+0cb23758a4637408f037e185ce43bc5b7b5553d11f1d0902f6835806f40438de.
+Paquet non versionné comme binaire lourd ; identité conservée dans preuve.
+
+Assertions Player : 8190 pixels terrain,33033 pixels bordure, mouvement vers
+(5,8), collision bloquée à (0,8), dialogue et portrait replacement:neutral,
+retour à la carte. Ces résultats viennent du Player installé automatisé,
+pas de StudioPlaytestView sur dossier auteur ni d'un combat manuel natif.
+Capture : captures/uwu5-installed-specialized-resources.png.
+Limite antérieure observée : ajout d'une couche Border en fin derrière Sol
+opaque. La fixture canonique amorce une couche vide front avant Sol ; l'UI
+ajoute/sauve ensuite son vrai trait. Le défaut générique addBorderLayer,
+hors mandat, n'a pas été corrigé ni masqué par un patch du paquet.
+
+8. COMMANDES ET RÉSULTATS
+commandes_exactes.txt conserve les commandes racine, cwd, SDK et logs, y compris
+tentatives intermédiaires ; logs/ contient les sorties durables. Le wrapper
+imprime exit/durée/PID sur la console : les codes ci-dessous sont observés,
+pas déduits de la seule dernière ligne du log.
+Les totaux de groupes se chevauchent ; ne pas les additionner comme nouveaux tests.
+
+Contrôle | Résultat frais | Code | Preuve
+Baseline Studio complète,SDK épinglé | +1217 ~3 -31,16:06 | 1 | uwu5-baseline-studio-full.log
+Baseline Studio analyse | No issues found,15.72s | 0 | uwu5-baseline-studio-analyze.log
+Baseline authoring spécialisé | 22 PASS,11.97s | 0 | uwu5-baseline-authoring-specialized.log
+A canonique/API/précondition | 26 PASS | 0 | uwu5-source-canonical-final.log
+A dialogue contrôlé | 11 PASS | 0 | uwu5-source-dialog-tests-final-clean.log
+A vrais hôtes finaux | 3 PASS,22.58s | 0 | uwu5-source-host-final2.log
+B API/JSONL/parité/version | 58 PASS,28.92s | 0 | uwu5-smart-format-green.log
+B mesure copie finale | 4 PASS,2.55s | 0 | uwu5-terrain-timing-final.log
+D contrats/parité | 30 PASS,5.15s | 0 | uwu5-character-final4.log
+Réconciliation/races/historique | 14 PASS,13.83s | 0 | uwu5-root-reconciliation-final.log
+B/C/D UI et régressions | +58,fin log01:35 | 0 | uwu5-bcd-ui-final-green.log
+Captures B/C/D 3 tailles | 9 PASS | 0 | uwu5-bcd-final-captures.log
+JSONL bordures après formatage | 4 PASS | 0 | uwu5-jsonl-final-format.log
+Authoring impact14fichiers | +97 -4,14.80s | 1 | uwu5-authoring-impact-final3.log
+Authoring impact final16fichiers | +101 -4,6.33s | 1 | uwu5-authoring-impact-final4.log
+Source absente/lifecycle/version | 7 PASS,2.34s | 0 | uwu5-terrain-missing-source-final.log
+Dépréciation/récupération/placements | 24 PASS,3.30s | 0 | uwu5-border-recovery-final.log
+Authoring mêmes réserves baseline | +16 -4,2.26s | 1 | uwu5-authoring-boundaries-baseline.log
+Architecture Studio | +11 -1,5.59s | 1 | uwu5-architecture-final2.log
+Quick Studio et derniers tests | 35 PASS,27.95s | 0 | uwu5-studio-quick-and-final-targets.log
+Quick Hub5fichiers releaseCI | 12 PASS,6.48s | 0 | uwu5-hub-quick-final.log
+Quick core3fichiers roadmap | 33 PASS,30.77s | 0 | uwu5-core-quick-final.log
+Hub export/install UwU5+UwU4 | 2 PASS,37.02s | 0 | player_export_install_final.log
+Hub analyse complète | No issues found,12.24s | 0 | uwu5-hub-analyze-final.log
+Studio analyse complète | No issues found,5.93s | 0 | uwu5-studio-analyze-final4.log
+Authoring analyse complète finale | No issues found,1.61s | 0 | uwu5-authoring-analyze-final3.log
+Studio analyse ultime (Dart épinglé) | No issues found,5.94s | 0 | uwu5-studio-analyze-final5.log
+Build macOS debug | Built Avelune Studio.app,24.10s | 0 | uwu5-build-macos-final2.log
+Format final107Dart | 107 files,0 changed,.28s (wrapper.54s) | 0 | uwu5-format-final2.log
+Studio complète ultime | +1282 ~3 -31,986.26s | 1 | uwu5-studio-full-final4.log
+
+MCP final : npm test, au cwd tools/pokemap_mcp, précédé de PATH=/tmp/avelune-
+flutter-3.48/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin,
+DART et POKEMAP_TEST_DART=/tmp/avelune-flutter-3.48/bin/dart.
+Build TypeScript inclus. 92 tests :89 PASS,3 FAIL,0 skip/cancel ; exit1,522.73s.
+Les trois FAIL sont les assertions de liste d'outils obsolète :
+conformance_security/all twelve tools ; mutation_server/packaged stdio exchange ;
+read_only_server/cursor pagination. Actual contient project_create_preview et
+project_create, Expected les omet. Même assertion observée au départ.
+Baseline MCP91/86/5 : trois listes identiques, deux tests ne pouvaient pas démarrer
+dans le snapshot sans .git (git rev-parse), non comparables comme défaut produit.
+Les trois worker.timeout d'un run intermédiaire concurrent Studio+MCP ne sont
+pas qualifiés de préexistants. Replays isolés SDK3.14 :4/4 final en32.09s,
+2/2 baseline en16.03s ; puis suite entière finale quiet89/3 sans worker.timeout.
+L'effet charge vs SDK n'est pas séparé expérimentalement. Aucun timeout augmenté.
+Les trois échecs introduits SmartTile ont été corrigés avant cette suite finale.
+
+MCP live : vrai nouveau STDIO→worker Dart exécute les8actions strictes du lot PASS.
+La connexion déjà ouverte décrit17commandes/370actions mais son ancien catalogue
+n'a pas rename/duplicate et garde les6anciens schémas. PARTIAL pour cette connexion,
+aucun faux succès InMemory pris pour live. mcp_session_evidence.txt détaille.
+Reconnexion de cette session à faire avant sa recette utilisateur live.
+
+Attribution des autres FAIL :
+- Authoring : archive/freezed_annotation attendus absents de l'allowlist ;
+  Environment1304lignes face au plafond1300 ; regionalMap supplémentaire ;
+  resource kind element non enregistré. Quatre assertions reproduites à
+  l'identique sur la base locale ; aucun contrôle modifié.
+- Architecture Studio : huit fichiers >300 lignes EXACTEMENT identiques à la base :
+  studio_game_export_controller318,pokemon_commerce_page303,
+  map_workspace_canvas474,map_workspace_tool_strip306,
+  home_visual_test312,pokemon_capture_sprite_test362,
+  studio_project_item_icons_export_test321,decor_transform_host_test389.
+  Les11autres contrôles passent, dont imports privés et frontières pures.
+- Studio :31échecs baseline,31finaux,aucun nouveau ni disparu.29signatures
+  Expected/Actual strictement identiques après normalisation des seuls chemins.
+  Deux différences volatiles détaillées dans comparaison_echecs_studio.txt :
+  export home attend le même fichier de destination temporaire mais reçoit null,
+  seuls6caractères du nonce changent ; map_workspace_journey attend une identité
+  studio-<timestamp>-1 mais reçoit studio-<timestamp>-2, timestamps renouvelés.
+  Même désaccord propriétaire1/2 dans les deux runs, pas cause déduite du seul nom.
+  Les3skips existaient au départ. Comparaison des4assertions authoring et3listes
+  MCP dans comparaison_echecs_contrats.txt : corps Expected/Actual identiques.
+Aucun quota d'échec admis, aucun skip ou assertion supprimé, aucun moteur hors scope.
+Un ancien run complet intermédiaire +1280 ~3 -32 révélait un helper de test
+compact obsolète : clic Actions absent de son protocole. Correction du helper
+par vrai clic Actions puis action, pas copie de callback. Les35tests ciblés
+passent ; suite ultime relancée après cette correction.
+Deux commandes d'impact initiales avaient des chemins de tests inexistants :
+erreurs de lancement, jamais présentées comme preuve finale.
+Deux premiers chargements du nouveau test source manquante avaient des noms
+publics source/error incorrects : erreurs du test, pas RED produit. Corrigées
+dans les tests seuls ; aucun changement produit pour source manquante/recovery.
+Un quick run concurrent a échoué sur objectif_cdylib pendant la compilation
+Studio ; replay exclusif35PASS. Pas de correctif produit pour cette collision.
+
+9. VISUEL ET NATIF
+A : captures widget/dialogue à1536×1024,1280×800,1024×640 texte150%.
+B/C/D :18captures dans vrais hôtes automatisés (9 tests), bibliothèque et action
+aux mêmes tailles. Test de layout/focus/menu compact et accès aux commandes.
+La petite capture A comporte un debug banner et un contenu local déjà défilé :
+preuve de composant contrôlé, pas fenêtre native ni validation indépendante.
+Les autres copies UwU3/UwU4 du dossier viennent de régressions rejouées, pas d'une
+nouvelle recette native. PNG des maquettes non incorporés ; tokens existants.
+Comparaison réalisée au cadre Avelune existant ; aucun kit graphique nouveau.
+Les captures rendent visibles les états et actions ; pas preuve de tout parcours.
+Inventaire final des preuves :32captures PNG (22spécifiques UwU5,10régressions
+rejouées) et56logs durables.108fichiers sources/tests dans l'annexe et le patch,
+sans tronquage, fichier manquant ni différence de SHA ; aucune source étrangère modifiée.
+Limites ergonomiques : noms longs de vignettes compactes parfois à consulter
+par défilement local/détail, hashes techniques longs dans confirmations.
+
+Recette native A : NON VÉRIFIÉ.
+Build/bootstrap du fixture jetable observés, projet exact confirmé via Marionette.
+CUA a retourné noWindowsAvailable avec deux applications de même bundle ID.
+Copie temporaire à bundle ID distinct : lancement échoué timeoutReached.
+La session propre a été arrêtée par q ; application utilisateur PID41908 et
+Flutter concurrent PID71866 préservés. Les5fichiers témoins du fixture sont
+inchangés, aucune suppression native revendiquée. Build ≠ test manuel.
+Procédure restante : lancer une seule instance identifiable de Studio,
+ouvrir le fixture jetable, retirer ses usages puis image/tileset, cocher retrait
+source et attendre l'aperçu ; confirmer que le retour OFF reste actif,
+annuler puis vérifier source présente ; recommencer ON et vérifier indépendamment
+le fichier logique/catalogue, blob selon le contrat. Rejouer B/C/D et Player
+nativement et demander la validation visuelle de Yoahn.
+
+10. PERFORMANCE MESURÉE ET LIMITES
+Mesures sur sources finales, pas chiffres hérités du lot3 :
+Usages fixtures S/M/L : 3cartes1152cases chacune ;
+S8atlas208tilesets224éléments72résultats ; M132/332/596/940 ;
+L512/712/1736/3600.
+Cold152633/81696/141508µs ;900039/1476471/3254871octets,11lectures.
+Warm p50 21948/33200/69921µs ;0octet,11contrôles d'identité.
+Fraîcheur1526/1388/1300µs ;PNGblobreads0. Fixture compatible ressources,
+Pokémon désactivé,200diagnostics conservés. Mesure spécifique des usages,
+pas benchmark certifiant toutes les opérations spécialisées.
+CopieB fixture0carte/1tileset : plan9801µs,apply32693µs ;4testsPASS.
+FixturePlayerS2cartes : Cplan/apply121112/202134µs ;
+D99560/219423µs. Ces timings incluent leur frontière réelle.
+AnnulationA host :176133µs autour du clic Annuler, pompes réelles incluses,
+aucune écriture ; pas mesure pure de moteur ni nouveau budget arbitraire.
+Pas de mémoire, de seuilS/M/L global ou garantie de grande migration inventés.
+Aucune analyse disque dans build(), frappe ou survol ; opérations explicites,
+invalidations ciblées, pas de décodage PNG pour titre/status/suppression personnage.
+
+11. DELTA, CONTENU INTÉGRAL ET HYGIÈNE
+108 fichiers sources/tests concernés, inventaire_sources.txt : chemin,
+initialDirty, SHA256 final, lignes et hunks exacts. delta_sources.patch compare
+les octets de la base locale capturée, pas le seul HEAD. annexe_sources.txt contient
+l'intégralité des108sources/tests, vérifiée contre les fichiers et SHA256.
+Logs/captures/rapport exclus de l'annexe pour éviter récursion/base64.
+Changements antérieurs conservés et attribués dans git_initial.txt.
+
+Zones principales et nécessité :
+- map_authoring/assets : capacité/effects source ; maps SmartTile/Border :
+  contrats rename/copy/status/delete/placement et préconditions, encodeur ciblé.
+- map_authoring/character_studio : inventaire, qualifications/résolutions,
+  limites clear et transaction ; API/queries/parity/referencewalk : branchement.
+- Studio resources/characters : menus/formulaires/états/gardes et reçu spécialisé.
+- Studio map/dialogues/pokemon : seuls rebase/attentes/historique touchés par
+  le retrait d'un personnage ; pas nouveaux écrans Pokémon ni combat refondu.
+- Tests Studio/authoring : comportement/hôtes/races/réouverture/parité ;
+  Hub4fichiers : export/installation/autonomie réelle ; MCP1test : STDIO strict.
+Les API publiques/schémas changés sont couverts par direct/JSONL/MCP et parité.
+
+Markdown hygiene : FAIL préexistant2nouveauxMD déjà présents avant le lot
+(app_store_submission_audit_20261001.md et post_ci_001_quick_checks_evidence_pack.md).
+Octets initiaux conservés,0nouveauMD du lot,aucun override.
+git diff --check :exit0 ; scanner des108sources/tests suivis et non suivis :
+0ligne trailing whitespace ; comparaison des108contenus/SHA de l'annexe :
+0écart ; fichiers initiaux hors lot :0écart, suppressions initiales comprises.
+État Git final exact dans git_final.txt :main,HEAD a63ac8656d8456a91c1570b03ff91100de4f1a50,
+index vide,635chemins dirty/non suivis,457déjà présents avant le lot.
+Stat global (inclut les changements antérieurs, pas le seul lot5) :
+183files changed,5253insertions(+),9354deletions(-). Aucun Gitwrite.
+Les suppressions préexistantes sont restées absentes, pas restaurées ni attribuées
+au lot5. Les preuves texte brutes (.log et contexte .patch) conservent leur padding
+de diagnostics/diffs ; le scanner whitespace vise les sources/tests, suivis et non suivis.
+Aucun commentaire ajouté
+dans le delta manuel, aucun changement privé ou dépendance map_editor introduit.
+
+12. NOTION ET VERDICT
+005 TO REVIEW initial conservé ;008/009/011 DOING au travail effectif.
+Historique de Preuve initial intégral archivé dans chaque corps. Pas de nouveau
+ticket/domaine, aucune mutation d'autres fiches, aucun DONE.
+Mises à jour finales :005/008/009/011 TO REVIEW ; Preuve actualisée, historique
+initial conservé, cases démontrées seulement :005correctif source1/7 (autres
+critères lot4 inchangés),0087/7,0096/6,0117/7. Aucun DONE. Réinterrogation des
+quatre fiches après écriture, statut/Preuve/historique/cases vérifiés.
+
+Périmètre | Implémentation | Tests | Recette/réouverture/export | Réserve exacte | Statut proposé
+005 correctif confirmation | PASS borné | PASS host3/dialogue11/canon26 | réouverturePASS | nativeNONVÉRIFIÉ, reste lot4 inchangé | TO REVIEW
+008 terrains/chemins | PASS | PASS API/JSONL/MCP/host/historique | réouverture/PlayerPASS | nativeNONVÉRIFIÉ, sessionMCPliveancienne | TO REVIEW
+009 bordures | PASS | PASS status/placement/guards | snapshots/rendu/collisionPlayerPASS | nativeNONVÉRIFIÉ, défaut layering antérieur horsscope | TO REVIEW
+011 personnages | PASS | PASS résolutions/races/rebase | relecture/PlayerdialoguePASS | nativeNONVÉRIFIÉ, writerexternehorsverrou | TO REVIEW
+LesFAILglobaux etNONVÉRIFIÉ ne deviennent pas PASS par ce tableau.
+Clôture produit/visuelle appartient à Yoahn.
+
+13. AUTO-CRITIQUE
+Le delta est conséquent parce que le mandat regroupe trois cycles de vie et
+leurs garanties inter-workspaces ; aucune généralisation universelle ajoutée.
+Risques réels : livecatalogue ancien, manipulation native non réalisée,
+formats avancés explicitement refusés dans l'atelier simplifié, écrivains externes
+non coopératifs, réserves globales reproduites. La preuve Player est automatisée
+et ciblée, pas une certification de tous les projets, des combats ou du lot6.
+Les testshôtes naviguent les vrais contrôles et propriétaires ; les fixtures de
+port et composants contrôlés sont nommées séparément. Aucun green global annoncé.
+
+PUBLICATION AUTORISÉE — 2026-10-02
+
+Demande de Yoahn : « Let's go commit et push ». Cette autorisation remplace
+l'interdiction Git pour la publication du lot, sans autoriser une release.
+Le checkout personnel reste sur a63ac8656d8456a91c1570b03ff91100de4f1a50,
+avec ses changements préexistants et son index préservés. Publication préparée
+dans /tmp/uwu5-publish-20261002 sur origin/main
+e86db603d323eff74ba9d9dbceb3bac664b6d462 : patch des 108 sources appliqué
+sans conflit, SHA-256 de chaque source et des 99 fichiers de preuves vérifié.
+Les 32 captures et toutes les preuves du lot sont incluses.
+
+La version 0.3.19+319 déjà publiée sur origin est conservée, sans bump.
+Le pub get verrouillé du Hub refusait sa ligne locale avelune_studio restée
+sur 0.3.18+318 (exit 65). flutter pub get --offline actualise uniquement cette
+ligne de apps/pokemap_hub/pubspec.lock vers 0.3.19+319 : correction minimale
+d'intégration, aucune nouvelle dépendance ni changement de version produit.
+map_authoring n'a pas de lockfile suivi ; son pub get offline local reste ignoré.
+
+Vérifications fraîches dans la copie intégrée, SDK Flutter
+3.48.0-0.4.pre / Dart 3.14.0-95.2.beta :
+- Studio : 13 fichiers ciblés, +46 All tests passed!, exit 0, 81.09 s.
+- map_authoring : 10 fichiers ciblés, +68 All tests passed!, exit 0, 11.73 s.
+- Hub : uwu5_specialized_resources_player_e2e_test.dart,
+  +1 All tests passed!, exit 0, 38.79 s ; véritable paquet installé,
+  dossier auteur inaccessible, dialogue/portrait/déplacement/collision vérifiés.
+- MCP : npm ci --ignore-scripts --offline, npm run build, puis
+  node --import tsx --test --test-concurrency=1
+  test/specialized_terrain_stdio.test.ts : 1 pass / 0 fail, exit 0, 9.52 s.
+  DART et POKEMAP_TEST_DART pointent vers le SDK épinglé.
+- dart analyze : Studio, Hub et map_authoring, exit 0, No issues found!.
+- dart format --output=none --set-exit-if-changed : les 107 fichiers Dart
+  de inventaire_sources.txt, 0 changed, exit 0.
+- git diff --check et bash tools/scripts/check_markdown_hygiene.sh : exit 0,
+  aucun nouveau Markdown dans ce delta publié.
+Les commandes de test complètes et leurs sorties sont dans
+logs/publication_studio.log, publication_authoring.log,
+publication_hub.log et publication_mcp.log.
+Chaque runner suit et récole uniquement ses propres descendants confirmés.
+
+Les suites globales et le build décrits plus haut ne sont pas prétendus rejoués
+dans cette phase de publication. Leurs réserves historiques restent explicites.
+Aucune validation native supplémentaire, aucune release déclenchée, aucun
+ticket passé DONE. Les quatre tickets restent TO REVIEW avec leurs limites.

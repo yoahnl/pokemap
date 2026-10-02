@@ -753,6 +753,18 @@ final class _LocalMapAuthoringSession {
       'tileset.remove',
       'element.duplicate',
       'element.delete',
+      'smart_tile.preset.rename',
+      'smart_tile.preset.duplicate',
+      'smart_tile.preset.delete',
+      'smart_tile.preset.draft.delete',
+      'border.blueprint.delete',
+      'border.blueprint.set_deprecated',
+      'border_layer.feature_create',
+      'border_layer.stroke_add',
+      'border_layer.region_fill',
+      'border_layer.feature_set_blueprint',
+      'border_layer.relink_apply',
+      'characterStudio.character.delete',
     };
     if (!guarded.contains(plan.request.actionId)) return supplied;
     return () async {

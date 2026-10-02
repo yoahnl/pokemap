@@ -20,6 +20,7 @@ final class ResourceUsageProjection {
       'images' => 'tileset',
       'decors' => 'element',
       'terrains' => 'preset',
+      'borders' => 'border',
       _ => throw ArgumentError.value(target.family, 'family'),
     };
     final definition = documents
@@ -58,6 +59,7 @@ final class ResourceUsageProjection {
         'tileset' => 'images',
         'element' => 'decors',
         'preset' => 'terrains',
+        'border' => 'borders',
         _ => null,
       };
       entries.add(ResourceUsageEntry(

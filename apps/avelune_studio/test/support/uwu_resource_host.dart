@@ -81,6 +81,10 @@ class UwUResourceHost {
 
   Future<void> tap(String key) async {
     final finder = find.byKey(ValueKey(key));
+    if (key == 'resource-manage-containers' && finder.evaluate().isEmpty) {
+      await tester.tap(find.text('Actions').first);
+      await pumpIo(tester, frames: 6);
+    }
     await tester.ensureVisible(finder);
     await tester.tap(finder);
     await pumpIo(tester, frames: 12);

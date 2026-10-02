@@ -5,6 +5,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../domains/assets/asset_store.dart';
+import '../../domains/assets/resource_information_document.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -16,6 +17,7 @@ import 'smart_tile_native_transition_guard.dart';
 import 'smart_tile_tiled_wang_projection.dart';
 
 part 'smart_tile_catalog_support.dart';
+part 'smart_tile_preset_lifecycle_actions.dart';
 
 /// Canonical native Smart Tile catalog mutations shared by every transport.
 final class SmartTileCatalogActions {
@@ -123,6 +125,9 @@ final class SmartTileCatalogActions {
           'smartTileDraft',
         ],
       ),
+      _presetLifecycleDescriptor('smart_tile.preset.rename', duplicate: false),
+      _presetLifecycleDescriptor('smart_tile.preset.duplicate',
+          duplicate: true),
     ]..sort((left, right) => left.id.compareTo(right.id)),
   );
 
@@ -147,6 +152,8 @@ final class SmartTileCatalogActions {
       'smart_tile.preset.draft.delete' => _deleteDraft(planning),
       'smart_tile.preset.publish' => _publishPreset(planning),
       'smart_tile.preset.delete' => _deletePreset(planning),
+      'smart_tile.preset.rename' => _renameSmartTilePreset(planning),
+      'smart_tile.preset.duplicate' => _duplicateSmartTilePreset(planning),
       _ => throw semanticFailure(
           'smart_tile.action_unsupported',
           'The requested Smart Tile catalog action is unsupported.',
@@ -615,6 +622,13 @@ final class SmartTileCatalogActions {
       );
     }
     final references = <Map<String, Object?>>[
+      for (final draft in catalog.drafts)
+        if (draft.targetPresetId == presetId ||
+            draft.sourcePresetId == presetId)
+          <String, Object?>{
+            'draftId': draft.id,
+            'targetPresetId': draft.targetPresetId
+          },
       for (final map in planning.snapshot.maps)
         for (final layer in map.layers.whereType<SmartTileLayer>())
           if (layer.presetId == presetId)
@@ -662,10 +676,7 @@ AuthoringMutationDraft _manifestDraft(
     projectedManifest: manifest,
   );
   final beforeBytes = planning.snapshot.resourceBytes('project');
-  final afterBytes = encodeProjectAuthoringDocument(
-    planning.snapshot,
-    manifest,
-  );
+  final afterBytes = _encodeSmartTileManifest(planning.snapshot, manifest);
   if (_sameBytes(beforeBytes, afterBytes)) {
     throw semanticFailure(
       'smart_tile.no_change',
@@ -737,10 +748,7 @@ AuthoringMutationDraft _manifestAndMapDraft(
   final project = _resource(planning.snapshot, 'project', 'project');
   final mapResource = _resource(planning.snapshot, 'map', map.id);
   final projectBefore = planning.snapshot.resourceBytes('project');
-  final projectAfter = encodeProjectAuthoringDocument(
-    planning.snapshot,
-    manifest,
-  );
+  final projectAfter = _encodeSmartTileManifest(planning.snapshot, manifest);
   final projectChanged = !_sameBytes(projectBefore, projectAfter);
   final mapAfter = encodeMapAuthoringDocument(map);
   return AuthoringMutationDraft(

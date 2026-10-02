@@ -58,6 +58,35 @@ extension ResourceNavigationManagement on ResourceNavigation {
       return 'Relisez la publication précédente avant une nouvelle modification.';
     }
     if (const {
+      'characterStudio.character.deletePlan',
+      'characterStudio.character.delete',
+    }.contains(actionId)) {
+      final owners = characterManagementOwners(actionId, parameters);
+      if (owners.isNotEmpty) {
+        return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
+      }
+    }
+    if (const {
+      'border.blueprint.delete',
+      'border.blueprint.set_deprecated',
+    }.contains(actionId)) {
+      final owners = borderManagementOwners(actionId, parameters);
+      if (owners.isNotEmpty) {
+        return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
+      }
+    }
+    if (const {
+      'smart_tile.preset.rename',
+      'smart_tile.preset.duplicate',
+      'smart_tile.preset.delete',
+      'smart_tile.preset.draft.delete',
+    }.contains(actionId)) {
+      final owners = terrainManagementOwners(actionId, parameters);
+      if (owners.isNotEmpty) {
+        return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
+      }
+    }
+    if (const {
       'element.delete',
       'element.duplicate',
       'tileset.remove',
@@ -90,10 +119,10 @@ extension ResourceNavigationManagement on ResourceNavigation {
     bool confirmDestructive = false,
   }) async {
     if (busy) throw const ResourceFailure('Une opération est déjà en cours.');
-    final problem = _managementProblem(
-      preparation.actionId,
-      preparation.parameters,
-    );
+    String? validate() =>
+        _managementProblem(preparation.actionId, preparation.parameters) ??
+        _characterPublicationProblem(this, preparation);
+    final problem = validate();
     if (problem != null) throw ResourceFailure(problem);
     busy = true;
     changed();
@@ -101,8 +130,7 @@ extension ResourceNavigationManagement on ResourceNavigation {
       final receipt = await _preparationPort.applyPrepared(
         preparation,
         confirmDestructive: confirmDestructive,
-        validateBeforeApply: () =>
-            _managementProblem(preparation.actionId, preparation.parameters),
+        validateBeforeApply: validate,
       );
       return await accept(receipt);
     } on ResourceFailure catch (failure) {
@@ -159,9 +187,26 @@ Future<ProjectManifest> _acceptResourceReceipt(
       );
     }
     if (navigation.workspace.project != receipt.manifest) {
+      navigation.workspace.acceptResourceMaps({
+        for (final entry in receipt.changedMaps.entries)
+          entry.key: MapWorkspaceDocument(
+            map: entry.value,
+            revision: receipt.mapRevisions[entry.key]!,
+            mapId: entry.key,
+          ),
+      });
       navigation.workspace.acceptResources(receipt.before, receipt.manifest);
     }
     navigation.characters.refreshClean();
+    navigation.reconcileCharacterManagement(receipt);
+    if (receipt.actionId == 'characterStudio.character.delete') {
+      navigation.characterSourcesChanged?.call({
+        for (final entry in receipt.before.dialogues)
+          if (receipt.changedPaths.contains(entry.relativePath)) entry.id,
+      });
+    }
+    navigation.reconcileTerrainManagement(receipt);
+    navigation.reconcileBorderManagement(receipt);
     for (final model in navigation.terrains.values) {
       model.manifest = receipt.manifest;
     }
@@ -185,6 +230,17 @@ Future<ProjectManifest> _acceptResourceReceipt(
       partialReceipt: receipt,
     );
   }
+}
+
+String? _characterPublicationProblem(
+  ResourceNavigation navigation,
+  ResourceMutationPreparation preparation,
+) {
+  if (preparation.actionId != 'characterStudio.character.delete') return null;
+  return navigation.characterSourceProblem?.call({
+    for (final entry in navigation.workspace.project!.dialogues)
+      if (preparation.changedPaths.contains(entry.relativePath)) entry.id,
+  });
 }
 
 Future<ProjectManifest> _mutateResources(

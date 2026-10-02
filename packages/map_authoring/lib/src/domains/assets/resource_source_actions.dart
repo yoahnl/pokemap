@@ -254,6 +254,10 @@ AuthoringMutationDraft removeResourceSource(
         'tilesetId': tileset.id,
         'assetId': asset.id,
         'sourceRemoved': true,
+        'sourceRemovalSupported': true,
+        'logicalFileRemoved':
+            asset.logicalPath != assetBlobStorageKey(asset.artifact),
+        'logicalSourcePath': asset.logicalPath,
         'blobPreserved': true
       },
       referenceImpact: {

@@ -104,6 +104,26 @@ class EditableMapDocument {
     _repairSelection();
   }
 
+  void acceptResourceContent(MapWorkspaceDocument updated) {
+    if (dirty || saving) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Enregistrez ou annulez cette carte avant de modifier ses références.',
+      );
+    }
+    if (updated.map.copyWith(entities: current.entities) != current) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'La publication contient d’autres changements que les références de personnages.',
+      );
+    }
+    current = current.copyWith(entities: updated.map.entities);
+    saved = current;
+    base = updated;
+    _catalogName = updated.map.name;
+    _repairSelection();
+  }
+
   void _repairSelection() {
     if (selected == null) selectedId = null;
   }

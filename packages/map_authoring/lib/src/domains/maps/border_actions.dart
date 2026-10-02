@@ -165,6 +165,20 @@ final class BorderActions {
     return geometry;
   }
 
+  BorderBlueprintRevision _requirePlaceableBlueprint(
+      ProjectManifest manifest, String blueprintId) {
+    final revision = requirePublishedBlueprint(manifest, blueprintId);
+    if (manifest.borderCatalog.recordById(blueprintId)!.isDeprecated) {
+      throw semanticFailure('border.blueprint_deprecated',
+          'This Border blueprint is unavailable for new placements.', details: {
+        'blueprintId': blueprintId
+      }, remediation: const [
+        'Reactivate the blueprint before placing new features.'
+      ]);
+    }
+    return revision;
+  }
+
   BorderPreviewArtifact preview({
     required ProjectManifest manifest,
     required MapData map,
@@ -234,7 +248,7 @@ final class BorderActions {
         featureId: featureId,
         targetBlueprintId: targetBlueprintId,
         targetBlueprintRevision:
-            requirePublishedBlueprint(manifest, targetBlueprintId),
+            _requirePlaceableBlueprint(manifest, targetBlueprintId),
         visualSnapshots: manifest.borderCatalog.visualSnapshots,
         tileSizePx: tileSizePx,
         resolverVersion: resolverVersion,
@@ -387,6 +401,9 @@ final class BorderActions {
         final featureId = parameters.string('featureId');
         final layer = _borderLayer(context.map, layerId);
         final feature = _feature(layer, featureId);
+        if (actionId == 'border_layer.stroke_add') {
+          _requirePlaceableBlueprint(context.manifest, feature.blueprintId);
+        }
         final geometry = feature.geometry;
         if (geometry is! BorderStrokeGeometry) {
           throw semanticFailure(
@@ -468,6 +485,9 @@ final class BorderActions {
             'Region actions require region Border geometry.',
           );
         }
+        if (actionId == 'border_layer.region_fill') {
+          _requirePlaceableBlueprint(context.manifest, feature.blueprintId);
+        }
         final region = _regionParameters(parameters, context.map.size);
         final cells = List<bool>.from(geometry.cells);
         for (var y = region.y; y < region.bottom; y++) {
@@ -498,7 +518,7 @@ final class BorderActions {
             details: {'featureId': featureId},
           );
         }
-        final revision = requirePublishedBlueprint(
+        final revision = _requirePlaceableBlueprint(
           context.manifest,
           blueprintId,
         );

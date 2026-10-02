@@ -56,10 +56,17 @@ class _ResourceRemovalDialogState extends State<ResourceRemovalDialog> {
       _working = true;
       _confirmed = false;
       _error = null;
+      _sourceRemovalReason = null;
     });
     try {
       final result = await widget.prepare(_removeSource);
       if (mounted && sequence == _sequence) {
+        if (widget.item.tileset != null &&
+            (result.impact['sourceRemoved'] == true) != _removeSource) {
+          throw StateError(
+            'Le plan ne correspond plus au choix de conservation de la source.',
+          );
+        }
         setState(() {
           _preparation = result;
           _sourceRemovalSupported =
@@ -70,7 +77,10 @@ class _ResourceRemovalDialogState extends State<ResourceRemovalDialog> {
       }
     } on Object catch (failure) {
       if (mounted && sequence == _sequence) {
-        setState(() => _error = '$failure');
+        setState(() {
+          _error = '$failure';
+          _sourceRemovalSupported = false;
+        });
       }
     } finally {
       if (mounted && sequence == _sequence) {
@@ -131,14 +141,12 @@ class _ResourceRemovalDialogState extends State<ResourceRemovalDialog> {
                 title: const Text(
                   'Supprimer aussi le fichier source inutilisé',
                 ),
-                subtitle: Text(
-                  _sourceRemovalSupported
-                      ? 'Seulement si l’analyse canonique démontre son retrait sûr.'
-                      : _sourceRemovalReason ??
-                            'Le fichier source restera intact.',
-                ),
+                subtitle: Text(_sourceRemovalMessage()),
                 value: _removeSource,
-                onChanged: busy || _working || !_sourceRemovalSupported
+                onChanged:
+                    busy ||
+                        _working ||
+                        (!_sourceRemovalSupported && !_removeSource)
                     ? null
                     : (value) {
                         _removeSource = value == true;
@@ -187,7 +195,11 @@ class _ResourceRemovalDialogState extends State<ResourceRemovalDialog> {
             CheckboxListTile(
               key: const ValueKey('resource-removal-confirm'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Je confirme le retrait de cette définition.'),
+              title: Text(
+                _preparation?.impact['sourceRemoved'] == true
+                    ? 'Je confirme le retrait de la définition et de sa source logique.'
+                    : 'Je confirme le retrait de cette définition.',
+              ),
               value: _confirmed,
               onChanged:
                   busy || _working || _preparation == null || dirty.isNotEmpty
@@ -201,5 +213,21 @@ class _ResourceRemovalDialogState extends State<ResourceRemovalDialog> {
         );
       },
     );
+  }
+
+  String _sourceRemovalMessage() {
+    if (_working) return 'Analyse du choix en cours ; rien n’est supprimé.';
+    if (_preparation?.impact['sourceRemoved'] == true) {
+      return _preparation!.impact['logicalFileRemoved'] == true
+          ? 'La source logique et son fichier seront retirés. Le blob est conservé.'
+          : 'La source logique sera retirée. Son fichier adressé par contenu est conservé.';
+    }
+    if (_removeSource) {
+      return 'Aucun retrait préparé. Décochez pour conserver la source ou réanalysez.';
+    }
+    return _sourceRemovalReason ??
+        (_sourceRemovalSupported
+            ? 'La source reste conservée ; cochez pour analyser son retrait.'
+            : 'Le fichier source restera intact.');
   }
 }

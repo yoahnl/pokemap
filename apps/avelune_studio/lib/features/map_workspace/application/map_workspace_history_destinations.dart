@@ -8,6 +8,19 @@ String? _historyResourceProblem(
   final retainedElements = before.placedElements
       .map((e) => e.elementId)
       .toSet();
+  final retainedCharacters = before.entities
+      .map((entity) => entity.npc?.characterId)
+      .whereType<String>()
+      .toSet();
+  final availableCharacters = manifest.characters.map((c) => c.id).toSet();
+  if (next.entities.any((entity) {
+    final id = entity.npc?.characterId;
+    return id != null &&
+        !retainedCharacters.contains(id) &&
+        !availableCharacters.contains(id);
+  })) {
+    return 'Cette annulation restaurerait un personnage supprimé.';
+  }
   final availableElements = manifest.elements.map((e) => e.id).toSet();
   if (next.placedElements.any(
     (e) =>
@@ -29,6 +42,18 @@ String? _historyResourceProblem(
     (id) => !retainedTilesets.contains(id) && !availableTilesets.contains(id),
   )) {
     return 'Cette annulation restaurerait une planche supprimée.';
+  }
+  Set<String> presets(MapData map) => {
+    for (final layer in map.layers.whereType<SmartTileLayer>()) layer.presetId,
+  };
+  final retainedPresets = presets(before);
+  final availablePresets = manifest.smartTileCatalog.presets
+      .map((preset) => preset.id)
+      .toSet();
+  if (presets(next).any(
+    (id) => !retainedPresets.contains(id) && !availablePresets.contains(id),
+  )) {
+    return 'Cette annulation restaurerait un terrain supprimé.';
   }
   return null;
 }

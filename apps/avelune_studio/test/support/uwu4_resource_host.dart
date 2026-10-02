@@ -15,6 +15,7 @@ Future<UwUResourceHost> openUwU4ResourceHost(
   Size size = const Size(1536, 1024),
   double textScale = 1,
   PickResourceImage? imagePicker,
+  Future<void> Function(ResourceFixture)? configure,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -49,6 +50,7 @@ Future<UwUResourceHost> openUwU4ResourceHost(
         ),
       );
     }
+    await configure?.call(resources);
     final controller = WidgetMapController(
       resources.session,
       resources.maps,

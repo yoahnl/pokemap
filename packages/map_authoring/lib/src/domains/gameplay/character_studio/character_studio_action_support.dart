@@ -10,6 +10,7 @@ import '../../../transactions/authoring_plan.dart';
 import '../../../transactions/change_set.dart';
 import '../../../workspace/project_snapshot.dart';
 import '../../maps/map_lifecycle_adapter.dart';
+import '../../assets/resource_information_document.dart';
 import '../../narrative/dialogue_source_store.dart';
 
 final class CharacterStudioActionException implements Exception {
@@ -31,6 +32,7 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
   String id,
   String summary, {
   AuthoringRiskLevel risk = AuthoringRiskLevel.medium,
+  Map<String, Object?>? inputSchema,
 }) {
   return AuthoringActionDescriptor(
     id: id,
@@ -39,7 +41,10 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     inputSchemaId: 'pokemap.authoring/$id.input.v1',
     outputSchemaId: 'pokemap.authoring/$id.output.v1',
     riskLevel: risk,
-    resourceKinds: const <String>[
+    resourceKinds: <String>[
+      if (id == 'characterStudio.character.delete' ||
+          id == 'characterStudio.character.deletePlan')
+        'map',
       'project',
       'dialogue',
       'characterStudioCatalog',
@@ -51,6 +56,7 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     requiredPermissions: const <AuthoringPermission>[
       AuthoringPermission.projectWrite,
     ],
+    extensions: {if (inputSchema != null) 'inputSchema': inputSchema},
     guarantees: const <AuthoringGuarantee>[
       AuthoringGuarantee.dryRun,
       AuthoringGuarantee.idempotent,
@@ -102,7 +108,9 @@ AuthoringMutationDraft characterStudioProjectDraft(
         resource: mapResource,
         storageKey: storageKey,
         beforeBytes: snapshot.resourceBytes(resourceIdentity),
-        afterBytes: encodeMapAuthoringDocument(map),
+        afterBytes: operation == 'characterStudio.character.delete'
+            ? _encodeCharacterDeletionMap(snapshot, map)
+            : encodeMapAuthoringDocument(map),
       ),
     );
     mapDiffs.add(
@@ -161,7 +169,10 @@ AuthoringMutationDraft characterStudioProjectDraft(
           resource: project,
           storageKey: snapshot.resourceStorageKeys['project'] ?? 'project.json',
           beforeBytes: snapshot.resourceBytes('project'),
-          afterBytes: _encodeCharacterStudioProject(snapshot, projected),
+          afterBytes: operation == 'characterStudio.character.delete' ||
+                  operation == 'characterStudio.character.deletePlan'
+              ? encodeResourceInformationDocument(snapshot, projected)
+              : _encodeCharacterStudioProject(snapshot, projected),
         ),
         ...mapChanges,
         ...dialogueChanges,
@@ -448,4 +459,23 @@ void requireCharacterStudioActionMode({
       '$actionId must be requested with dryRun disabled.',
     );
   }
+}
+
+List<int> _encodeCharacterDeletionMap(ProjectSnapshot snapshot, MapData map) {
+  final raw = Map<String, Object?>.from(
+      jsonDecode(utf8.decode(snapshot.resourceBytes('map:${map.id}'))) as Map);
+  final entities = raw['entities'] as List? ?? const [];
+  final projected = {for (final entity in map.entities) entity.id: entity};
+  for (final item in entities) {
+    if (item is! Map || item['npc'] is! Map) continue;
+    final entity = projected[item['id']];
+    if (entity?.npc == null) continue;
+    final npc = item['npc'] as Map;
+    if (entity!.npc!.characterId == null) {
+      npc.remove('characterId');
+    } else {
+      npc['characterId'] = entity.npc!.characterId;
+    }
+  }
+  return utf8.encode(const JsonEncoder.withIndent('  ').convert(raw));
 }

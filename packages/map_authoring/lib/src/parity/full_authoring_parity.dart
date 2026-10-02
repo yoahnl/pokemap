@@ -1221,7 +1221,11 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/smart_tile_catalog_actions_test.dart',
   ),
   _ContractEvidenceRule(
-    ['smart_tile.preset.draft.'],
+    [
+      'smart_tile.preset.draft.',
+      'smart_tile.preset.rename',
+      'smart_tile.preset.duplicate'
+    ],
     'test/domains/maps/smart_tile_draft_actions_test.dart',
   ),
   _ContractEvidenceRule(

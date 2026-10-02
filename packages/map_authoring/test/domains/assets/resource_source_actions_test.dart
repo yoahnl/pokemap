@@ -121,6 +121,24 @@ void main() {
             .afterBytes,
         isNull);
     expect(draft.preview['blobPreserved'], isTrue);
+    expect(draft.preview['sourceRemovalSupported'], isTrue);
+    expect(draft.preview['logicalFileRemoved'], isTrue);
+    expect(draft.preview['logicalSourcePath'], fixture.path);
+  });
+
+  test('content-addressed source withdrawal never removes its physical blob',
+      () async {
+    final fixture = ResourceSourceFixture(addressed: true);
+    final draft = await const ResourceSourceActions().build(catalogContext(
+        fixture.snapshot(),
+        'tileset.remove',
+        {'tilesetId': 'sheet', 'removeSource': true}));
+    expect(draft.preview['sourceRemoved'], isTrue);
+    expect(draft.preview['sourceRemovalSupported'], isTrue);
+    expect(draft.preview['logicalFileRemoved'], isFalse);
+    expect(draft.preview['blobPreserved'], isTrue);
+    expect(draft.changeSet.changes.map((change) => change.storageKey).toSet(),
+        {'project.json', assetCatalogStorageKey});
   });
 
   test('unplaced decor blocks tileset removal, without cascade', () async {

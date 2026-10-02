@@ -254,7 +254,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       );
       if (loaded == null) return;
       _visuals = loaded.visuals;
-      _resources = loaded.resources;
+      _bindResourceManagement(loaded.resources);
       _narrative = loaded.narrative;
       _initializeScenes();
       _initializeStories();

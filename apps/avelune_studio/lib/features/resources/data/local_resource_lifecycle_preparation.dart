@@ -6,6 +6,14 @@ const _lifecycleActions = {
   'element.duplicate',
   'element.delete',
   'element.upsert',
+  'smart_tile.preset.rename',
+  'smart_tile.preset.duplicate',
+  'smart_tile.preset.delete',
+  'smart_tile.preset.draft.delete',
+  'border.blueprint.delete',
+  'border.blueprint.set_deprecated',
+  'characterStudio.character.deletePlan',
+  'characterStudio.character.delete',
 };
 
 final class _ResourcePreparedContext {
@@ -138,11 +146,14 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
         parameters: fields,
         expectedRevision: snapshot.revision,
         idempotencyKey: id,
+        dryRun: actionId == 'characterStudio.character.deletePlan',
       ),
     );
     adapter._requireAvailable();
     final mapPaths = before.manifest.maps.map((m) => m.relativePath).toSet();
-    if (planned.plan.changeSet.changes.any(
+    if (_characterRemovalAction(actionId)) {
+      _validateCharacterRemovalChanges(planned.plan, before.manifest);
+    } else if (planned.plan.changeSet.changes.any(
       (c) => c.resource.kind == 'map' || mapPaths.contains(c.storageKey),
     )) {
       throw const ResourceFailure(

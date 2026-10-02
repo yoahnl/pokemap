@@ -7,6 +7,7 @@ import '../domain/pokemon_workspace_models.dart';
 
 part 'pokemon_combat_validation.dart';
 part 'pokemon_combat_drafts.dart';
+part 'pokemon_combat_character_references.dart';
 
 enum PokemonCombatView { wild, trainers, unique }
 

@@ -6,6 +6,46 @@ import 'package:test/test.dart';
 
 void main() {
   group('BorderCatalogActions', () {
+    test('delete and deprecation descriptors declare strict action parameters',
+        () {
+      for (final id in [
+        'border.blueprint.delete',
+        'border.blueprint.set_deprecated'
+      ]) {
+        final schema = BorderCatalogActions.descriptors
+            .firstWhere((descriptor) => descriptor.id == id)
+            .extensions['inputSchema'] as Map;
+        expect(schema['additionalProperties'], false);
+        expect(
+            (schema['properties'] as Map).keys,
+            unorderedEquals([
+              'blueprintId',
+              if (id.endsWith('set_deprecated')) 'isDeprecated'
+            ]));
+      }
+    });
+
+    test('physical deletion of any published blueprint is forbidden', () async {
+      final fixture = _fixture(records: [_record(publishedRevision: 1)]);
+      await expectLater(
+          fixture.actions.build(_context(fixture.snapshot,
+              actionId: 'border.blueprint.delete',
+              parameters: {'blueprintId': 'fence'})),
+          throwsA(isA<MapAuthoringException>().having((error) => error.code,
+              'code', 'border.blueprint.delete_published_forbidden')));
+    });
+
+    test('deprecation cannot stand in for deleting a never-published draft',
+        () async {
+      final fixture = _fixture(records: [_record()]);
+      await expectLater(
+          fixture.actions.build(_context(fixture.snapshot,
+              actionId: 'border.blueprint.set_deprecated',
+              parameters: {'blueprintId': 'fence', 'isDeprecated': true})),
+          throwsA(isA<MapAuthoringException>().having((error) => error.code,
+              'code', 'border.blueprint.deprecation_requires_publication')));
+    });
+
     test('advertises the complete canonical blueprint lifecycle', () {
       expect(
         BorderCatalogActions.descriptors.map((descriptor) => descriptor.id),

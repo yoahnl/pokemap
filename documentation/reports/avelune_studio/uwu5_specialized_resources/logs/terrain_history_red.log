@@ -1,0 +1,49 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart
+00:00 +0: deleted terrain cannot return through map undo after saved removal
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: _MapData:<MapData(id: garden, name: Jardin, size: GridSize(width: 4, height: 4), version:
+ProjectVersion.v8, visualStack: MapVisualStackConfig(semanticsVersion: 1), tilesetId: , layers:
+[MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose:
+MapLayerPurpose.visual, palette: [], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+placedElements: [], entities: [], connections: [], warps: [], triggers: [], gameplayZones: [],
+mapMetadata: MapMetadata(displayName: , mapType: MapType.route, musicPath: null, battleMusicPath:
+null, weather: MapWeather.none, isIndoor: false, allowEscapeRope: true, defaultSpawnId: null, tags:
+[]), properties: {}, events: [])>
+  Actual: _MapData:<MapData(id: garden, name: Jardin, size: GridSize(width: 4, height: 4), version:
+ProjectVersion.v8, visualStack: MapVisualStackConfig(semanticsVersion: 1), tilesetId: , layers:
+[MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose:
+MapLayerPurpose.visual, palette: [], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+MapLayer.smartTile(id: painted-path, name: Chemin peint, isVisible: true, opacity: 1.0, presetId:
+path-draft, usage: SmartTileUsage.path, materialPalette: [, material-path-draft], field:
+SmartTileField.cell(semanticCells: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+patternStrokes: [], layerSeed: 0, candidateWeights: {}, animationActivation:
+SmartTileAnimationActivation.always, encounterBehavior: null, properties: {})], placedElements: [],
+entities: [], connections: [], warps: [], triggers: [], gameplayZones: [], mapMetadata:
+MapMetadata(displayName: , mapType: MapType.route, musicPath: null, battleMusicPath: null, weather:
+MapWeather.none, isIndoor: false, allowEscapeRope: true, defaultSpawnId: null, tags: []),
+properties: {}, events: [])>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart:49:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart line 49
+The test description was:
+  deleted terrain cannot return through map undo after saved removal
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:07 +0 -1: deleted terrain cannot return through map undo after saved removal [E]
+  Test failed. See exception logs above.
+  The test description was: deleted terrain cannot return through map undo after saved removal
+  
+00:07 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart: deleted terrain cannot return through map undo after saved removal

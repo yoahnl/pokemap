@@ -13,16 +13,26 @@ class ResourceItemActions extends StatelessWidget {
     this.onReplace,
     this.onRemove,
     this.onDuplicate,
+    this.onTerrainEdit,
     this.buttons = false,
   });
   final ResourceItem item;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
+  final ValueChanged<ResourceItem>? onTerrainEdit;
   final bool buttons;
 
   @override
   Widget build(BuildContext context) {
     final actions = <(String, IconData, ValueChanged<ResourceItem>)>[
+      if (item.terrain != null && onTerrainEdit != null)
+        ('Modifier les raccords', Icons.edit_outlined, onTerrainEdit!),
+      if (item.terrain != null && onInformation != null)
+        (
+          'Renommer le terrain…',
+          Icons.drive_file_rename_outline,
+          onInformation!,
+        ),
       if (item.tileset != null && onInformation != null)
         ('Modifier les informations', Icons.edit_outlined, onInformation!),
       if (onMove != null)
@@ -35,6 +45,10 @@ class ResourceItemActions extends StatelessWidget {
         ),
       if (item.tileset != null && onReplace != null)
         ('Remplacer l’image source…', Icons.compare_outlined, onReplace!),
+      if (item.terrain != null && onDuplicate != null)
+        ('Dupliquer le terrain…', Icons.copy_outlined, onDuplicate!),
+      if (item.terrain != null && onRemove != null)
+        ('Supprimer le terrain…', Icons.delete_outline, onRemove!),
       if (item.element != null && onDuplicate != null)
         ('Dupliquer la définition…', Icons.copy_outlined, onDuplicate!),
       if (onRemove != null && (item.tileset != null || item.element != null))

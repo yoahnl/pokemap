@@ -16,14 +16,20 @@ enum ResourceUsagePhase {
 class ResourceUsageDialog extends StatefulWidget {
   const ResourceUsageDialog({
     super.key,
-    required this.item,
+    this.item,
+    this.target,
+    this.name,
     required this.port,
     required this.changes,
     required this.dirtyOwners,
     required this.onOpen,
     required this.canOpen,
-  });
-  final ResourceItem item;
+  }) : assert(item != null || (target != null && name != null));
+  final ResourceItem? item;
+  final ResourceUsageTarget? target;
+  final String? name;
+  ResourceUsageTarget get resolvedTarget =>
+      target ?? ResourceUsageTarget(family: item!.kind.name, id: item!.id);
   final ResourceUsagePort port;
   final Listenable changes;
   final List<String> Function() dirtyOwners;
@@ -95,7 +101,7 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
     });
     try {
       final report = await widget.port.analyze(
-        ResourceUsageTarget(family: widget.item.kind.name, id: widget.item.id),
+        widget.resolvedTarget,
         cancelled: () => _cancelled || !mounted || sequence != _sequence,
       );
       if (!mounted || _cancelled || sequence != _sequence) return;
@@ -181,7 +187,7 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              Text(widget.item.name),
+              Text(widget.name ?? widget.item!.name),
               const SizedBox(height: 8),
               Text(status, key: const ValueKey('resource-usage-status')),
               if (_error != null)
