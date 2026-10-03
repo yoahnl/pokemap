@@ -33,8 +33,15 @@ void main() {
     );
     expect(module, contains('pokemap_hub:'));
     expect(module, contains('path: ../../pokemap_hub'));
-    expect(runtime, contains('HubInstalledGamePlayer('));
-    expect(runtime, contains('InstallGamePackageUseCase'));
+    expect(runtime, contains('runAveluneEmbeddedRuntime()'));
+    expect(
+      File('lib/embedding/avelune_runtime_app.dart').readAsStringSync(),
+      contains('HubInstalledGamePlayer('),
+    );
+    expect(
+      File('lib/embedding/avelune_library_bridge.dart').readAsStringSync(),
+      contains('InstallGamePackageUseCase'),
+    );
   });
 
   test('the retired Flutter mobile hosts cannot be distributed', () {

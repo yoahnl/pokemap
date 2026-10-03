@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -46,6 +47,50 @@ final class HubRuntimeStartupPreparedData {
   final HubInstalledPresentationRuntime? presentationRuntime;
 }
 
+final class HubRuntimeStartupLifetime {
+  bool _closed = false;
+  final _closedSignal = Completer<void>();
+  final _pending = <Future<void>>{};
+  final _cleanup = <Future<void> Function()>[];
+
+  void ensureActive() {
+    if (_closed) throw const _HubRuntimeStartupCancelled();
+  }
+
+  void own(Future<void> Function() cleanup) => _cleanup.add(cleanup);
+
+  Future<void> waitForGate(Future<void> gate) async {
+    await Future.any([gate, _closedSignal.future]);
+    ensureActive();
+  }
+
+  Future<T> run<T>(Future<T> Function() work) async {
+    ensureActive();
+    final complete = Completer<void>();
+    _pending.add(complete.future);
+    try {
+      return await work();
+    } finally {
+      complete.complete();
+      _pending.remove(complete.future);
+    }
+  }
+
+  Future<void> close() async {
+    _closed = true;
+    if (!_closedSignal.isCompleted) _closedSignal.complete();
+    await Future.wait(_pending.toList());
+    for (final cleanup in _cleanup) {
+      await cleanup();
+    }
+    _cleanup.clear();
+  }
+}
+
+final class _HubRuntimeStartupCancelled implements Exception {
+  const _HubRuntimeStartupCancelled();
+}
+
 final class HubRuntimeStartupBootstrap
     implements RuntimeStartupBootstrapPort<HubRuntimeStartupPreparedData> {
   const HubRuntimeStartupBootstrap({
@@ -67,6 +112,7 @@ final class HubRuntimeStartupBootstrap
     this.startupWorkGate,
     this.audioMixer,
     this.splashJingle,
+    this.lifetime,
   });
 
   final Directory supportRoot;
@@ -87,23 +133,37 @@ final class HubRuntimeStartupBootstrap
   final Future<void>? startupWorkGate;
   final RuntimeAudioMixer? audioMixer;
   final RuntimeSplashJingleController? splashJingle;
+  final HubRuntimeStartupLifetime? lifetime;
 
   @override
   Future<RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>> prepare({
     required RuntimeStartupBootstrapStageSink onStageCompleted,
-  }) async {
+  }) =>
+      lifetime?.run(() => _prepare(onStageCompleted)) ??
+      _prepare(onStageCompleted);
+
+  Future<RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>> _prepare(
+    RuntimeStartupBootstrapStageSink onStageCompleted,
+  ) async {
     HubInstalledPresentationRuntime? presentationRuntime;
     try {
-      if (startupWorkGate != null) await startupWorkGate;
+      final workGate = startupWorkGate;
+      if (workGate != null) {
+        await (lifetime?.waitForGate(workGate) ?? workGate);
+      }
+      lifetime?.ensureActive();
       final launch = await launchResolver.resolve(game);
+      lifetime?.ensureActive();
       onStageCompleted(RuntimeStartupBootstrapStage.projectResolution);
 
       final loadedPreferences =
           await (preferencesRead ?? preferencesRepository.load());
+      lifetime?.ensureActive();
       final preferences = loadedPreferences.preferences;
       onStageCompleted(RuntimeStartupBootstrapStage.playerPreferences);
 
       final controlProfile = await controlProfileRepository.load();
+      lifetime?.ensureActive();
       onStageCompleted(RuntimeStartupBootstrapStage.controlProfile);
 
       final store = saveRepositoryFactory(supportRoot, launch.identity);
@@ -137,6 +197,7 @@ final class HubRuntimeStartupBootstrap
         ),
         defaultSlotDisplayName: 'Slot 1',
       );
+      lifetime?.ensureActive();
       onStageCompleted(RuntimeStartupBootstrapStage.hostStorage);
 
       final startupAdapter = HubRuntimeStartupAdapter(
@@ -146,10 +207,13 @@ final class HubRuntimeStartupBootstrap
       onStageCompleted(RuntimeStartupBootstrapStage.presentationBinding);
 
       final projectFile = await launch.assets.resolveReference(launch.project);
+      lifetime?.ensureActive();
       final projectText = await projectFile.readAsString();
+      lifetime?.ensureActive();
       final installedProject = await Isolate.run(
         () => _parseInstalledProject(projectText),
       );
+      lifetime?.ensureActive();
       if (installedProject.presentationCinematics.isNotEmpty) {
         final media =
             _referencesPresentationMedia(installedProject)
@@ -160,6 +224,7 @@ final class HubRuntimeStartupBootstrap
                   catalog: ProjectMediaCatalog(),
                   mediaUris: const <String, Uri>{},
                 );
+        lifetime?.ensureActive();
         presentationRuntime = HubInstalledPresentationRuntime(
           runtimeSourceId: launch.identity.gameId,
           media: media,
@@ -169,6 +234,7 @@ final class HubRuntimeStartupBootstrap
           frameDeltas: presentationFrameDeltas,
           beforeTerminal: presentationBeforeTerminal,
         );
+        lifetime?.own(presentationRuntime.close);
       }
 
       final gameSource = HubRuntimeGameSource(
@@ -251,6 +317,7 @@ final class HubRuntimeStartupBootstrap
       );
     } on Object catch (error, stackTrace) {
       await presentationRuntime?.close();
+      if (error is _HubRuntimeStartupCancelled) rethrow;
       final recorded = await recordPlayerLaunchFailure(
         game: game,
         supportRoot: supportRoot,

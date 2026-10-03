@@ -443,6 +443,22 @@ abstract interface class RuntimePlayerPauseDataPort {
       loadPauseDetails();
 }
 
+final class RuntimePlayerCompanionMenuData {
+  RuntimePlayerCompanionMenuData({
+    required this.pauseMenuState,
+    required Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+        pauseDetails,
+  }) : pauseDetails = immutableRuntimePlayerPauseDetails(pauseDetails);
+
+  final PlayerPauseMenuState pauseMenuState;
+  final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+      pauseDetails;
+}
+
+abstract interface class RuntimePlayerCompanionMenuPort {
+  Future<RuntimePlayerCompanionMenuData> readCompanionMenuData();
+}
+
 Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
     immutableRuntimePlayerPauseDetails(
   Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details,

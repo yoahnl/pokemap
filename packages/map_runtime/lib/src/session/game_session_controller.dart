@@ -70,12 +70,35 @@ final class GameSessionController
 
   GameSessionSnapshot get snapshot => _snapshot;
 
+  Future<RuntimePlayerCompanionMenuData?> readCompanionMenuData() async {
+    final adapter = _adapter;
+    final descriptor = _descriptor;
+    final snapshot = _snapshot;
+    final state = snapshot.state;
+    if (_controllerDisposed ||
+        adapter is! RuntimePlayerCompanionMenuPort ||
+        (state != GameSessionState.running &&
+            state != GameSessionState.paused)) {
+      return null;
+    }
+    bool isCurrent() => !_controllerDisposed && identical(_adapter, adapter) &&
+        identical(_descriptor, descriptor) && identical(_snapshot, snapshot);
+    try {
+      final data = await (adapter as RuntimePlayerCompanionMenuPort).readCompanionMenuData();
+      return isCurrent() ? data : null;
+    } catch (_) {
+      if (!isCurrent()) return null;
+      rethrow;
+    }
+  }
+
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     if (_controllerDisposed) return;
     if (_adapter case final RuntimePlayerPreferencesPort port) {
       port.applyPlayerPreferences(preferences);
     }
   }
+
   Stream<GameSessionSnapshot> get snapshots => _snapshots.stream;
   GameCompletionEvent? get committedCompletion => _committedCompletion;
 

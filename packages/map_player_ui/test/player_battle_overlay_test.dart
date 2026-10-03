@@ -9,6 +9,238 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  testWidgets('companion root places fight above bag run and party',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(620, 540));
+    final commands = <BattlePresentationCommand>[];
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(viewportSize: const Size(960, 540)),
+      onCommand: commands.add,
+      display: PlayerBattleDisplay.commandsOnly,
+    );
+    final fight =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-0')));
+    final bag =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-1')));
+    final run =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-3')));
+    final party =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-2')));
+
+    expect(fight.left, closeTo(bag.left, .5));
+    expect(fight.right, closeTo(party.right, .5));
+    expect(fight.bottom, lessThan(bag.top));
+    expect(fight.height, greaterThan(bag.height));
+    expect(bag.top, closeTo(run.top, .5));
+    expect(run.top, closeTo(party.top, .5));
+    expect(bag.bottom, closeTo(party.bottom, .5));
+    expect(bag.right, lessThan(run.left));
+    expect(run.right, lessThan(party.left));
+    expect(bag.width, closeTo(run.width, .5));
+    expect(run.width, closeTo(party.width, .5));
+    expect(find.byKey(const ValueKey<String>('battle-dialogue-panel')),
+        findsNothing);
+
+    for (final index in [0, 1, 3, 2]) {
+      await tester.tap(find.byKey(ValueKey<String>('battle-entry-$index')));
+      expect(
+        commands.last,
+        isA<BattleSelectEntryCommand>()
+            .having((command) => command.entryIndex, 'runtime index', index)
+            .having((command) => command.snapshotRevision, 'revision', 12)
+            .having((command) => command.expectedMode, 'mode',
+                BattleCommandOverlayMode.root),
+      );
+    }
+    expect(commands, hasLength(4));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('companion moves retain four slots and a full width cancel',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(620, 540));
+    final commands = <BattlePresentationCommand>[];
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(entries: _richMoveEntries.take(3).toList()),
+      onCommand: commands.add,
+      display: PlayerBattleDisplay.commandsOnly,
+    );
+    final grid = tester
+        .getRect(find.byKey(const ValueKey<String>('battle-panel-moves-grid')));
+    final first =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-0')));
+    final second =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-1')));
+    final third =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-entry-2')));
+    final cancel =
+        tester.getRect(find.byKey(const ValueKey<String>('battle-back')));
+
+    expect(first.top, closeTo(grid.top, .5));
+    expect(second.top, closeTo(first.top, .5));
+    expect(first.left, closeTo(third.left, .5));
+    expect(third.bottom, closeTo(grid.bottom, .5));
+    expect(first.height, closeTo(third.height, .5));
+    expect(first.width, closeTo(second.width, .5));
+    expect(first.width, closeTo(third.width, .5));
+    expect(first.bottom, lessThan(third.top));
+    expect(cancel.top, greaterThan(grid.bottom));
+    expect(cancel.left, closeTo(grid.left, .5));
+    expect(cancel.right, closeTo(grid.right, .5));
+    expect(find.text('Annuler'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('battle-entry-3')), findsNothing);
+    await tester.tapAt(Offset(second.center.dx, third.center.dy));
+    expect(commands, isEmpty);
+
+    for (var index = 0; index < 3; index++) {
+      await tester.tap(find.byKey(ValueKey<String>('battle-entry-$index')));
+      expect(
+          commands.last,
+          isA<BattleSelectEntryCommand>()
+              .having((command) => command.entryIndex, 'runtime index', index));
+    }
+    await tester.tap(find.byKey(const ValueKey<String>('battle-back')));
+    expect(
+      commands.last,
+      isA<BattleBackCommand>()
+          .having((command) => command.snapshotRevision, 'revision', 9)
+          .having((command) => command.expectedMode, 'mode',
+              BattleCommandOverlayMode.fight),
+    );
+    expect(commands, hasLength(4));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('primary HUD keeps battle narration without command controls',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const viewport = Size(800, 600);
+    await tester.binding.setSurfaceSize(viewport);
+    final commands = <BattlePresentationCommand>[];
+    final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(
+        viewportSize: viewport,
+        phase: BattlePresentationPhase.presentingTurn,
+        mode: BattleCommandOverlayMode.continueOnly,
+        narrationLines: const ['Pikachu utilise Tonnerre !'],
+        entries: const [],
+      ),
+      onCommand: commands.add,
+      display: PlayerBattleDisplay.hudOnly,
+    );
+
+    expect(find.text('Pikachu utilise Tonnerre !'), findsOneWidget);
+    final dialogue = tester
+        .getRect(find.byKey(const ValueKey<String>('battle-dialogue-panel')));
+    _expectRectClose(dialogue, layout.commandPanelRect);
+    expect(find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('battle-hud-target-player')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('battle-command-panel')),
+        findsNothing);
+    expect(find.byKey(const ValueKey<String>('battle-back')), findsNothing);
+    await tester.tap(find.text('Pikachu utilise Tonnerre !'));
+    expect(commands, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('companion command layouts fit small viewports and large text',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final viewport in const [Size(320, 240), Size(508, 379)]) {
+      for (final textScaler in const [
+        TextScaler.noScaling,
+        TextScaler.linear(2),
+      ]) {
+        for (final root in [true, false]) {
+          await tester.binding.setSurfaceSize(viewport);
+          final commands = <BattlePresentationCommand>[];
+          await _pumpOverlay(
+            tester,
+            snapshot: root ? _rootSnapshot() : _snapshot(),
+            onCommand: commands.add,
+            display: PlayerBattleDisplay.commandsOnly,
+            textScaler: textScaler,
+          );
+          final panel = tester.getRect(
+              find.byKey(const ValueKey<String>('battle-command-panel')));
+          expect(panel.left, greaterThanOrEqualTo(0));
+          expect(panel.top, greaterThanOrEqualTo(0));
+          expect(panel.right, lessThanOrEqualTo(viewport.width));
+          expect(panel.bottom, lessThanOrEqualTo(viewport.height));
+          for (final index in root ? [0, 1, 2, 3] : [0, 1]) {
+            final entry = tester
+                .getRect(find.byKey(ValueKey<String>('battle-entry-$index')));
+            expect(panel.inflate(.5).contains(entry.topLeft), isTrue);
+            expect(panel.inflate(.5).contains(entry.bottomRight), isTrue);
+          }
+          if (root) {
+            await tester
+                .tap(find.byKey(const ValueKey<String>('battle-entry-3')));
+            expect(
+                commands.single,
+                isA<BattleSelectEntryCommand>().having(
+                    (command) => command.entryIndex, 'runtime index', 3));
+          } else {
+            await tester
+                .tap(find.byKey(const ValueKey<String>('battle-entry-0')));
+            expect(commands, isEmpty);
+            await tester.tap(find.byKey(const ValueKey<String>('battle-back')));
+            expect(commands.single, isA<BattleBackCommand>());
+          }
+          expect(tester.takeException(), isNull,
+              reason:
+                  '$viewport with $textScaler in ${root ? 'root' : 'moves'}');
+        }
+      }
+    }
+  });
+
+  testWidgets(
+      'companion commands use their own viewport without duplicating HUD',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(620, 540));
+    BattlePresentationCommand? command;
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(viewportSize: const Size(960, 540)),
+      onCommand: (value) => command = value,
+      display: PlayerBattleDisplay.commandsOnly,
+    );
+    expect(find.byKey(const ValueKey<String>('battle-command-panel')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
+        findsNothing);
+    await tester.tap(find.text('ATTAQUER').first);
+    expect(command, isA<BattleSelectEntryCommand>());
+    expect(command!.snapshotRevision, 12);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('primary companion mode preserves HUD and removes command panel',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(800, 600));
+    await _pumpOverlay(tester,
+        snapshot: _rootSnapshot(),
+        onCommand: (_) {},
+        display: PlayerBattleDisplay.hudOnly);
+    expect(find.byKey(const ValueKey<String>('battle-command-panel')),
+        findsNothing);
+    expect(find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('battle-hud-target-player')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'runtime battle overlay consumes the canonical geometry at captured viewports',
     (tester) async {
@@ -1647,6 +1879,7 @@ Future<void> _pumpOverlay(
   Widget Function(String assetPath)? itemIconBuilder,
   TextScaler textScaler = TextScaler.noScaling,
   ThemeData? theme,
+  PlayerBattleDisplay display = PlayerBattleDisplay.full,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -1658,6 +1891,7 @@ Future<void> _pumpOverlay(
         data: MediaQueryData(textScaler: textScaler),
         child: Scaffold(
           body: PlayerBattleOverlay(
+            display: display,
             snapshot: snapshot,
             onCommand: onCommand,
             itemIconBuilder: itemIconBuilder,
@@ -1812,6 +2046,7 @@ BattleCommandOverlaySnapshot _snapshot({
   int? playerTargetDisplayedHp,
   int? playerHpTweenDurationMs,
   int playerHpTweenRevision = 0,
+  List<String> narrationLines = const [],
 }) {
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
@@ -1852,7 +2087,7 @@ BattleCommandOverlaySnapshot _snapshot({
     prompt: phase == BattlePresentationPhase.forcedReplacement
         ? 'Choisissez un remplaçant.'
         : 'Choisissez une capacité.',
-    narrationLines: const <String>[],
+    narrationLines: narrationLines,
     entries: entries ??
         const <BattleCommandOverlayEntry>[
           BattleCommandOverlayEntry(

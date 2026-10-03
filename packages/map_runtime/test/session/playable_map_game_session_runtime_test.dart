@@ -1,11 +1,127 @@
 import 'dart:io';
 
+import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('companion menu reads preserve the loaded world and movement authority',
+      () async {
+    final identity = GameIdentity(
+      gameId: 'org.example.runtime-fixture',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v1,
+      saveFormat: 1,
+      compatibilityId: 'fixture-v1',
+    );
+    final createdAt = DateTime.utc(2026, 8, 19);
+    final save = const GameStateSaveEnvelopeMapper().create(
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      saveId: '123e4567-e89b-42d3-a456-426614174002',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+      status: SaveStatus.active,
+      playTimeSeconds: 90,
+      gameState: const GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174002',
+        currentMapId: 'golden_field',
+        playerPosition: GridPos(x: 1, y: 1),
+        trainerProfile: TrainerProfile(name: 'Session trainer', money: 1234),
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'sparkitten',
+            natureId: 'hardy',
+            abilityId: 'blaze',
+            level: 7,
+            currentHp: 23,
+          ),
+        ]),
+        bag: Bag(entries: [BagEntry(itemId: 'poke-ball', quantity: 2)]),
+      ),
+    );
+    late PlayableMapGame game;
+    final runtime = PlayableMapGameSessionRuntime(
+      descriptor: GameSessionDescriptor(
+        sessionId: 'session-companion-purity',
+        sessionToken: 'secret',
+        identity: identity,
+        profileId: 'player-1',
+        slotId: 'slot-1',
+        launchMode: GameSessionLaunchMode.continueGame,
+        installedVersionHandle: 'verified-fixture',
+        saveReadHandle: 'opaque-save',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const {'map.v1'},
+        locale: 'fr-FR',
+        accessibility: const GameSessionAccessibilityOptions(),
+      ),
+      projectFilePath: () async => File(
+        '../../examples/playable_runtime_host/golden_battle_slice/project.json',
+      ).absolute.path,
+      initialSave: () async => save,
+      mountGame: (mounted) async {
+        game = mounted;
+        game.onGameResize(Vector2(640, 480));
+        await game.load();
+      },
+      unmountGame: (_) async {},
+      now: () => DateTime.utc(2026, 8, 20),
+    );
+    addTearDown(runtime.dispose);
+    await runtime.load((_) {});
+    await runtime.resume();
+    expect(game.isLoaded, isTrue);
+    for (var index = 0;
+        index < 240 && game.debugIsMapActivationDispatchInFlight;
+        index++) {
+      game.update(.016);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+    final before = game.companionGameStateSnapshot;
+    final revision = game.debugGameStateRevision;
+    final authority = game.inputAuthoritySnapshot;
+    expect(authority.acceptsOverworldInput, isTrue);
+
+    final first = await runtime.readCompanionMenuData();
+    final second = await runtime.readCompanionMenuData();
+
+    expect(game.debugGameStateRevision, revision);
+    final after = game.companionGameStateSnapshot;
+    expect(after.party, same(before.party));
+    expect(after.bag, same(before.bag));
+    expect(after.trainerProfile, same(before.trainerProfile));
+    expect(after.currentMapId, before.currentMapId);
+    expect(after.playerPosition, before.playerPosition);
+    expect(after.playerFacing, before.playerFacing);
+    expect(after.pauseMenuState, before.pauseMenuState);
+    for (final data in [first, second]) {
+      expect(data.pauseMenuState, before.pauseMenuState);
+      expect(
+          data.pauseDetails[RuntimePlayerPauseSection.profile]!.profile!.money,
+          1234);
+      expect(
+          data.pauseDetails[RuntimePlayerPauseSection.party]!.entries.single
+              .pokemonSummary!.currentHp,
+          before.party.members.single.currentHp);
+      expect(
+          data.pauseDetails[RuntimePlayerPauseSection.bag]!.entries.single
+              .bagItem!.quantity,
+          2);
+    }
+    expect(game.inputAuthoritySnapshot, authority);
+    expect(
+        runtime.handleInput(
+            const RuntimeInputEvent.press(RuntimeInputControl.right)),
+        isTrue);
+    runtime.handleInput(
+        const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
 
   test('localizes unavailable runtime services from the session locale',
       () async {

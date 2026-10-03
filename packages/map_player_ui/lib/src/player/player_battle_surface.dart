@@ -24,6 +24,8 @@ enum PlayerBattleEntryTone {
 
 enum PlayerBattlePanelKind { commands, moves, target, message }
 
+enum PlayerBattleDisplay { full, hudOnly, commandsOnly }
+
 @immutable
 final class PlayerBattleCommandViewData {
   const PlayerBattleCommandViewData({
@@ -189,6 +191,7 @@ class PlayerBattleSurface extends StatelessWidget {
     required this.onAction,
     this.itemIconBuilder,
     this.paintBackground = true,
+    this.display = PlayerBattleDisplay.full,
     this.onPanelTargeted,
     this.onHudTargeted,
   });
@@ -197,6 +200,7 @@ class PlayerBattleSurface extends StatelessWidget {
   final ValueChanged<PlayerBattleAction> onAction;
   final Widget Function(String assetPath)? itemIconBuilder;
   final bool paintBackground;
+  final PlayerBattleDisplay display;
   final ValueChanged<PlayerBattlePanelKind>? onPanelTargeted;
   final VoidCallback? onHudTargeted;
 
@@ -208,6 +212,19 @@ class PlayerBattleSurface extends StatelessWidget {
       );
 
   Widget _build(BuildContext context) {
+    if (display == PlayerBattleDisplay.commandsOnly) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(PlayerSpacing.sm),
+          child: _BattleCompanionCommandPanel(
+            data: data,
+            onAction: onAction,
+            itemIconBuilder: itemIconBuilder,
+            profile: context.playerBattleProfile,
+          ),
+        ),
+      );
+    }
     if (data.viewportLayout case final layout?
         when _usesCanonicalBattleStructure(context.playerBattleProfile)) {
       return _buildViewportLayout(context, layout);
@@ -260,9 +277,8 @@ class PlayerBattleSurface extends StatelessWidget {
               // BETA-BAT-028 : parité `show_team_info` — la barre glisse en
               // 0,2 s après le message d'apparition, l'ennemi depuis le haut.
               child: AnimatedSlide(
-                offset: data.enemy.isRevealed
-                    ? Offset.zero
-                    : const Offset(0, -2),
+                offset:
+                    data.enemy.isRevealed ? Offset.zero : const Offset(0, -2),
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
                 child: GestureDetector(
@@ -299,14 +315,20 @@ class PlayerBattleSurface extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned.fromRect(
-              rect: layout.panelRect,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => onPanelTargeted?.call(data.panelKind),
-                child: panel,
+            if (display == PlayerBattleDisplay.hudOnly)
+              Positioned.fromRect(
+                rect: layout.panelRect,
+                child: _BattlePrimaryDialogue(data: data, profile: battle),
+              )
+            else
+              Positioned.fromRect(
+                rect: layout.panelRect,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => onPanelTargeted?.call(data.panelKind),
+                  child: panel,
+                ),
               ),
-            ),
           ],
         );
       },
@@ -443,17 +465,28 @@ class PlayerBattleSurface extends StatelessWidget {
                     ),
                   ),
                 ),
-                Align(
-                  alignment: alignment,
-                  child: Padding(
-                    padding: EdgeInsets.all(margin),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () => onPanelTargeted?.call(data.panelKind),
-                      child: commandPanel,
+                if (display == PlayerBattleDisplay.hudOnly)
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SizedBox(
+                      width: contentWidth,
+                      height: math.min(120, contentHeight * .24),
+                      child:
+                          _BattlePrimaryDialogue(data: data, profile: battle),
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: alignment,
+                    child: Padding(
+                      padding: EdgeInsets.all(margin),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () => onPanelTargeted?.call(data.panelKind),
+                        child: commandPanel,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );
@@ -845,6 +878,155 @@ class _BattleGenderSymbol extends StatelessWidget {
           },
         ),
       );
+}
+
+class _BattlePrimaryDialogue extends StatelessWidget {
+  const _BattlePrimaryDialogue({required this.data, required this.profile});
+
+  final PlayerBattleViewData data;
+  final ProjectBattlePresentationProfile? profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final panel = _panelProfile(profile, PlayerBattlePanelKind.message);
+    return PlayerPanel(
+      key: const ValueKey<String>('battle-dialogue-panel'),
+      role: PlayerPanelRole.battleHud,
+      surfaceRole: ProjectPresentationSurfaceRole.battleHud,
+      padding: const EdgeInsets.all(PlayerSpacing.sm),
+      windowStyleOverride: _battleWindowStyle(
+        id: 'battle-primary-dialogue',
+        shape: panel.shape,
+        padding: PlayerSpacing.sm,
+      ),
+      surfaceColorOverride:
+          PokeMapPlayerProjectColorResolver.tryOpaqueHex(panel.surfaceColor),
+      borderColorOverride:
+          PokeMapPlayerProjectColorResolver.tryOpaqueHex(panel.borderColor),
+      textColorOverride:
+          PokeMapPlayerProjectColorResolver.tryOpaqueHex(panel.textColor),
+      child: _BattleDialoguePane(data: data, onBack: null, showChrome: false),
+    );
+  }
+}
+
+class _BattleCompanionCommandPanel extends StatelessWidget {
+  const _BattleCompanionCommandPanel({
+    required this.data,
+    required this.onAction,
+    required this.itemIconBuilder,
+    required this.profile,
+  });
+
+  final PlayerBattleViewData data;
+  final ValueChanged<PlayerBattleAction> onAction;
+  final Widget Function(String assetPath)? itemIconBuilder;
+  final ProjectBattlePresentationProfile? profile;
+
+  Widget _entry(PlayerBattleCommandViewData entry) => _BattleEntryButton(
+        entry: entry,
+        interactionsEnabled: data.interactionsEnabled,
+        autofocus: entry.selected,
+        iconBuilder: itemIconBuilder,
+        dense: false,
+        centerLabel: true,
+        showSecondaryLabel: entry.moveTypeId != null || entry.isBagItem,
+        showProjectIcon: profile?.showCommandIcons ?? false,
+        selectionColor: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          _panelProfile(profile, data.panelKind).selectionColor,
+        ),
+        onPressed: () => onAction(PlayerBattleSelectEntryAction(
+          snapshotRevision: data.revision,
+          entryIndex: entry.index,
+        )),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final panel = _panelProfile(profile, data.panelKind);
+    final fight = data.commands
+        .where((entry) => entry.commandId == ProjectBattleCommandId.fight)
+        .firstOrNull;
+    final root = fight != null &&
+        data.commands.every((entry) => entry.commandId != null);
+    final moves = data.commands.isNotEmpty &&
+        data.commands.every((entry) => entry.moveTypeId != null);
+    final selectionColor = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      panel.selectionColor,
+    );
+    final secondary = <PlayerBattleCommandViewData>[
+      for (final id in const [
+        ProjectBattleCommandId.bag,
+        ProjectBattleCommandId.run,
+        ProjectBattleCommandId.party,
+      ])
+        ...data.commands.where((entry) => entry.commandId == id),
+    ];
+    return FocusTraversalGroup(
+      key: const ValueKey<String>('battle-command-panel'),
+      policy: ReadingOrderTraversalPolicy(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Expanded(
+            child: root
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Expanded(flex: 3, child: _entry(fight)),
+                      if (secondary.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: PlayerSpacing.sm),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              for (var index = 0;
+                                  index < secondary.length;
+                                  index++) ...<Widget>[
+                                if (index > 0)
+                                  const SizedBox(width: PlayerSpacing.xs),
+                                Expanded(child: _entry(secondary[index])),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : _BattleSeparatedEntries(
+                    data: data,
+                    onAction: onAction,
+                    itemIconBuilder: itemIconBuilder,
+                    spacingScale: 1,
+                    showProjectIcons: profile?.showCommandIcons ?? false,
+                    selectionColor: selectionColor,
+                    fixedMoveGrid: moves,
+                  ),
+          ),
+          if (data.canGoBack) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.sm),
+            PlayerActionButton(
+              key: const ValueKey<String>('battle-back'),
+              label: context.playerL10n.cancel,
+              icon: Icons.arrow_back_rounded,
+              minimumHeight: 64,
+              backgroundColor: context.playerBattleChrome.surfaceSelected,
+              foregroundColor: context.playerBattleChrome.textPrimary,
+              shape: BeveledRectangleBorder(
+                borderRadius: BorderRadius.circular(PlayerRadii.sm),
+              ),
+              onPressed: data.interactionsEnabled
+                  ? () => onAction(PlayerBattleBackAction(
+                        snapshotRevision: data.revision,
+                      ))
+                  : null,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _BattleCommandPanel extends StatelessWidget {
@@ -1257,10 +1439,15 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
 }
 
 class _BattleDialoguePane extends StatelessWidget {
-  const _BattleDialoguePane({required this.data, required this.onBack});
+  const _BattleDialoguePane({
+    required this.data,
+    required this.onBack,
+    this.showChrome = true,
+  });
 
   final PlayerBattleViewData data;
   final VoidCallback? onBack;
+  final bool showChrome;
 
   @override
   Widget build(BuildContext context) {
@@ -1275,12 +1462,13 @@ class _BattleDialoguePane extends StatelessWidget {
       label: '${data.battleLabel}, ${data.prompt}',
       child: Row(
         children: <Widget>[
-          Icon(
-            Icons.eco_outlined,
-            size: 18,
-            color: context.playerBattleChrome.outline,
-          ),
-          const SizedBox(width: PlayerSpacing.xs),
+          if (showChrome)
+            Icon(
+              Icons.eco_outlined,
+              size: 18,
+              color: context.playerBattleChrome.outline,
+            ),
+          if (showChrome) const SizedBox(width: PlayerSpacing.xs),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1313,14 +1501,14 @@ class _BattleDialoguePane extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: PlayerSpacing.xs),
-          if (onBack == null)
+          if (showChrome) const SizedBox(width: PlayerSpacing.xs),
+          if (showChrome && onBack == null)
             Icon(
               Icons.eco_outlined,
               size: 18,
               color: context.playerBattleChrome.outline,
             )
-          else
+          else if (onBack != null)
             IconButton(
               key: const ValueKey<String>('battle-back'),
               tooltip: context.playerL10n.back,
@@ -1377,6 +1565,7 @@ class _BattleSeparatedEntries extends StatelessWidget {
     required this.spacingScale,
     required this.showProjectIcons,
     required this.selectionColor,
+    this.fixedMoveGrid = false,
   });
 
   final PlayerBattleViewData data;
@@ -1385,6 +1574,7 @@ class _BattleSeparatedEntries extends StatelessWidget {
   final double spacingScale;
   final bool showProjectIcons;
   final Color? selectionColor;
+  final bool fixedMoveGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -1413,6 +1603,7 @@ class _BattleSeparatedEntries extends StatelessWidget {
         spacingScale: spacingScale,
         showProjectIcons: showProjectIcons,
         selectionColor: selectionColor,
+        fixedTwoRows: fixedMoveGrid,
       );
     }
     return ListView.separated(
@@ -1454,6 +1645,7 @@ class _BattleSeparatedGrid extends StatelessWidget {
     required this.spacingScale,
     required this.showProjectIcons,
     required this.selectionColor,
+    this.fixedTwoRows = false,
   });
 
   final PlayerBattleViewData data;
@@ -1462,18 +1654,26 @@ class _BattleSeparatedGrid extends StatelessWidget {
   final double spacingScale;
   final bool showProjectIcons;
   final Color? selectionColor;
+  final bool fixedTwoRows;
 
   @override
   Widget build(BuildContext context) {
-    final rowCount = (data.commands.length + 1) ~/ 2;
+    final rowCount = fixedTwoRows ? 2 : (data.commands.length + 1) ~/ 2;
     return Column(
       children: <Widget>[
         for (var row = 0; row < rowCount; row++) ...<Widget>[
           if (row > 0) SizedBox(height: PlayerSpacing.xs * spacingScale),
           Expanded(
             child: Row(
+              crossAxisAlignment: fixedTwoRows
+                  ? CrossAxisAlignment.stretch
+                  : CrossAxisAlignment.center,
               children: <Widget>[
-                Expanded(child: _entry(data.commands[row * 2])),
+                Expanded(
+                  child: row * 2 < data.commands.length
+                      ? _entry(data.commands[row * 2])
+                      : const SizedBox.shrink(),
+                ),
                 SizedBox(width: PlayerSpacing.xs * spacingScale),
                 Expanded(
                   child: row * 2 + 1 < data.commands.length
@@ -1636,6 +1836,7 @@ class _BattleEntryButton extends StatefulWidget {
     required this.iconBuilder,
     required this.dense,
     this.showSecondaryLabel = true,
+    this.centerLabel = false,
     required this.onPressed,
     required this.showProjectIcon,
     required this.selectionColor,
@@ -1647,6 +1848,7 @@ class _BattleEntryButton extends StatefulWidget {
   final Widget Function(String assetPath)? iconBuilder;
   final bool dense;
   final bool showSecondaryLabel;
+  final bool centerLabel;
   final VoidCallback onPressed;
   final bool showProjectIcon;
   final Color? selectionColor;
@@ -1821,14 +2023,22 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                                widget.centerLabel
+                                                    ? CrossAxisAlignment.center
+                                                    : CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: <Widget>[
                                               Text(
                                                 entry.primaryLabel,
-                                                maxLines:
-                                                    widget.dense ? 1 : null,
-                                                overflow: widget.dense
+                                                textAlign: widget.centerLabel
+                                                    ? TextAlign.center
+                                                    : TextAlign.start,
+                                                maxLines: widget.dense ||
+                                                        widget.centerLabel
+                                                    ? 1
+                                                    : null,
+                                                overflow: widget.dense ||
+                                                        widget.centerLabel
                                                     ? TextOverflow.ellipsis
                                                     : null,
                                                 style: context.playerTypography

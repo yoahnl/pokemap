@@ -8,6 +8,7 @@ class PlayerBattleScene extends StatelessWidget {
     required this.data,
     required this.onAction,
     this.stage,
+    this.display = PlayerBattleDisplay.full,
     this.itemIconBuilder,
     this.onPanelTargeted,
     this.onHudTargeted,
@@ -16,6 +17,7 @@ class PlayerBattleScene extends StatelessWidget {
   final PlayerBattleViewData data;
   final ValueChanged<PlayerBattleAction> onAction;
   final Widget? stage;
+  final PlayerBattleDisplay display;
   final Widget Function(String assetPath)? itemIconBuilder;
   final ValueChanged<PlayerBattlePanelKind>? onPanelTargeted;
   final VoidCallback? onHudTargeted;
@@ -31,10 +33,11 @@ class PlayerBattleScene extends StatelessWidget {
                 ),
           ),
           PlayerBattleSurface(
+            display: display,
             data: data,
             onAction: onAction,
             itemIconBuilder: itemIconBuilder,
-            paintBackground: false,
+            paintBackground: display == PlayerBattleDisplay.commandsOnly,
             onPanelTargeted: onPanelTargeted,
             onHudTargeted: onHudTargeted,
           ),

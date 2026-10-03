@@ -584,6 +584,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// celui de [_onBattleFinished]) le tueraient avant son reveal — il doit
   /// justement survivre au démontage du combat pour fondre sur l'overworld.
   BattleTransitionOverlayComponent? _battleExitCurtain;
+  final _battleExitTransitionVisible = ValueNotifier<bool>(false);
   BattleOverlayComponent? _battleOverlay;
   Map<String, String> _battleSpeciesDisplayNames = const <String, String>{};
   Map<int, double> _battleXpProgressAtMount = const <int, double>{};
@@ -2138,6 +2139,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ValueListenable<BattleCommandOverlaySnapshot?>
       get battleCommandOverlayListenable => _battleCommandOverlayNotifier;
 
+  ValueListenable<bool> get battleExitTransitionVisible => _battleExitTransitionVisible;
+
   void _setBattleCommandOverlaySnapshot(
     BattleCommandOverlaySnapshot? snapshot,
   ) {
@@ -2263,6 +2266,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return _gameState;
   }
+
+  GameState get companionGameStateSnapshot => !isLoaded
+      ? _gameState
+      : _gameState.copyWith(
+          currentMapId: _activeMapId,
+          playerPosition: _world.player.pos,
+          playerFacing: _world.player.facing.asFacing,
+          playerMovementMode: _world.player.movementMode,
+        );
 
   /// Snapshot used by a Shop/PC route opened from an executing Scene.
   ///
@@ -3878,6 +3890,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _battleExitTransitionVisible.value = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled when the runtime closed.',
     );
@@ -9078,10 +9091,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       onDismissed: () {
         if (identical(_battleExitCurtain, curtain)) {
           _battleExitCurtain = null;
+          _battleExitTransitionVisible.value = false;
         }
       },
     );
     _battleExitCurtain = curtain;
+    _battleExitTransitionVisible.value = true;
     try {
       await camera.viewport.add(curtain);
       // Sous le fondu, le runner tient le verrou de commandes : un plan
@@ -9336,6 +9351,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _dismissBattleExitCurtainImmediately() {
     final curtain = _battleExitCurtain;
     _battleExitCurtain = null;
+    _battleExitTransitionVisible.value = false;
     curtain?.removeFromParent();
   }
 

@@ -1,0 +1,61 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <application
+        android:name=".AveluneApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Avelune"
+        android:enableOnBackInvokedCallback="true">
+        <activity
+            android:name=".presentation.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".runtime.RuntimeActivity"
+            android:exported="false"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Avelune.Runtime" />
+        <activity
+            android:name=".runtime.RuntimeCompanionActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:taskAffinity="${applicationId}.gameplay_companion"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Avelune.Runtime" />
+        <activity
+            android:name=".runtime.SurfaceProbeActivity"
+            android:enabled="${surfaceProbeEnabled}"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Avelune.Runtime" />
+        <activity
+            android:name=".runtime.SurfaceProbeCompanionActivity"
+            android:enabled="${surfaceProbeEnabled}"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:taskAffinity="${applicationId}.surface_probe"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Avelune.Runtime" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+</manifest>

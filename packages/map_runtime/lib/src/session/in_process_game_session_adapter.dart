@@ -47,6 +47,7 @@ final class InProcessGameSessionAdapter
         RuntimePlayerPreferencesPort,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort,
         RuntimeOverworldInteractionPort {
@@ -182,6 +183,15 @@ final class InProcessGameSessionAdapter
       );
     }
     return port.loadPauseDetails();
+  }
+
+  @override
+  Future<RuntimePlayerCompanionMenuData> readCompanionMenuData() {
+    final runtime = _runtime;
+    if (_disposed || runtime is! RuntimePlayerCompanionMenuPort) {
+      throw StateError('Companion menu presentation is unavailable.');
+    }
+    return (runtime as RuntimePlayerCompanionMenuPort).readCompanionMenuData();
   }
 
   @override

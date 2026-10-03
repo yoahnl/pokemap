@@ -65,9 +65,13 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     this.pauseFocusController,
     this.onPreSessionResult,
     this.showPreSessionInteraction = true,
+    this.showPlayerOverlay = true,
+    this.beforePauseAction,
   });
 
   final RuntimePlayerSnapshot snapshot;
+  final bool showPlayerOverlay;
+  final Future<bool> Function()? beforePauseAction;
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
@@ -241,7 +245,7 @@ class _RuntimePlayerSurfaceRouterState
 
   @override
   Widget build(BuildContext context) {
-    final overlay = _overlay(context);
+    final overlay = widget.showPlayerOverlay ? _overlay(context) : null;
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -404,8 +408,8 @@ class _RuntimePlayerSurfaceRouterState
               widget.activeInputSource ?? widget.snapshot.activeInputSource,
           logicalSelectionId: widget.snapshot.logicalSelectionId,
           labels: widget.pauseMenuLabels,
-          presentation:
-              _pausePresentation.resolveVisibility(widget.snapshot.pauseMenuState),
+          presentation: _pausePresentation
+              .resolveVisibility(widget.snapshot.pauseMenuState),
           saveMessage: _saveDialogRoute != null ||
                   widget.snapshot.saveReceipt == null ||
                   identical(widget.snapshot.saveReceipt, _shownSaveReceipt)
@@ -629,21 +633,39 @@ class _RuntimePlayerSurfaceRouterState
     unawaited(widget.onAction(action));
   }
 
-  void _dispatchPauseAction(
+  Future<void> _dispatchPauseAction(
     BuildContext context,
     PlayerPauseAction action,
-  ) {
+  ) async {
     if (!widget.snapshot.isActionEnabled(_pauseAction(action))) return;
-    switch (action) {
-      case PlayerPauseAction.save:
-        if (widget.snapshot.activeSaveAddress == null) return;
-        unawaited(_showSaveDialog());
-      case PlayerPauseAction.returnToTitle:
-        unawaited(_showSaveDialog(returnToTitle: true));
-      default:
-        _dispatch(_pauseAction(action));
+    if (_preparingPauseAction) return;
+    _preparingPauseAction = true;
+    try {
+      if (widget.beforePauseAction != null) {
+        if (!await widget.beforePauseAction!()) return;
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted ||
+            widget.snapshot.phase != RuntimePlayerPhase.paused ||
+            !widget.snapshot.isActionEnabled(_pauseAction(action))) {
+          return;
+        }
+      }
+      if (!mounted) return;
+      switch (action) {
+        case PlayerPauseAction.save:
+          if (widget.snapshot.activeSaveAddress == null) return;
+          unawaited(_showSaveDialog());
+        case PlayerPauseAction.returnToTitle:
+          unawaited(_showSaveDialog(returnToTitle: true));
+        default:
+          _dispatch(_pauseAction(action));
+      }
+    } finally {
+      _preparingPauseAction = false;
     }
   }
+
+  bool _preparingPauseAction = false;
 
   Future<void> _showSaveDialog({bool returnToTitle = false}) async {
     if (_saveDialogRoute != null) return;
