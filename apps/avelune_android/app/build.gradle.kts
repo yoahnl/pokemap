@@ -4,6 +4,22 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val aveluneKeystorePath = providers.environmentVariable("AVELUNE_KEYSTORE_PATH").orNull
+val aveluneKeystorePassword = providers.environmentVariable("AVELUNE_KEYSTORE_PASSWORD").orNull
+val aveluneKeyAlias = providers.environmentVariable("AVELUNE_KEY_ALIAS").orNull
+val aveluneKeyPassword = providers.environmentVariable("AVELUNE_KEY_PASSWORD").orNull
+val hasAveluneReleaseSigning = listOf(
+    aveluneKeystorePath,
+    aveluneKeystorePassword,
+    aveluneKeyAlias,
+    aveluneKeyPassword,
+).all { !it.isNullOrBlank() }
+if (providers.environmentVariable("AVELUNE_REQUIRE_RELEASE_SIGNING").orNull == "true" &&
+    !hasAveluneReleaseSigning
+) {
+    throw GradleException("Stable Avelune release signing is required but incomplete.")
+}
+
 val brandResources = layout.buildDirectory.dir("generated/aveluneBrand")
 val prepareAveluneBrand by tasks.registering(Sync::class) {
     from(rootProject.file("../pokemap_hub/assets/avelune/logo")) {
@@ -21,8 +37,8 @@ android {
         applicationId = "com.yoahnl.avelune.player"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.gradleProperty("aveluneVersionCode").orElse("3").get().toInt()
+        versionName = providers.gradleProperty("aveluneVersionName").orElse("1.0.1").get()
         manifestPlaceholders["surfaceProbeEnabled"] = "false"
     }
 
@@ -37,6 +53,17 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (hasAveluneReleaseSigning) {
+            create("aveluneRelease") {
+                storeFile = file(aveluneKeystorePath!!)
+                storePassword = aveluneKeystorePassword
+                keyAlias = aveluneKeyAlias
+                keyPassword = aveluneKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["surfaceProbeEnabled"] = "true"
@@ -45,6 +72,11 @@ android {
             initWith(getByName("debug"))
             matchingFallbacks += "debug"
             manifestPlaceholders["surfaceProbeEnabled"] = "false"
+        }
+        getByName("release") {
+            if (hasAveluneReleaseSigning) {
+                signingConfig = signingConfigs.getByName("aveluneRelease")
+            }
         }
     }
 

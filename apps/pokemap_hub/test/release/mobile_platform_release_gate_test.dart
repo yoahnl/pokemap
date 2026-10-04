@@ -47,11 +47,6 @@ void main() {
   test('the retired Flutter mobile hosts cannot be distributed', () {
     expect(File('ios/Runner.xcodeproj/project.pbxproj').existsSync(), isFalse);
     expect(File('android/app/build.gradle.kts').existsSync(), isFalse);
-    expect(
-      File('../../.github/workflows/avelune_android_release.yml').existsSync(),
-      isFalse,
-    );
-
     final support =
         jsonDecode(
               File('tool/release/platform_support.json').readAsStringSync(),
@@ -64,8 +59,39 @@ void main() {
     );
     expect(
       (platforms['android'] as Map)['distributionLifecycle'],
-      'planned-native-host',
+      'native-kotlin-host',
     );
-    expect((platforms['android'] as Map)['releaseGate'], 'none');
+    expect((platforms['android'] as Map)['releaseGate'], 'github-actions');
+    expect(
+      (platforms['android'] as Map)['deviceDistribution'],
+      'google-play-internal',
+    );
   });
+
+  test(
+    'Kotlin owns the existing Play identity and embeds the shared runtime',
+    () {
+      final host =
+          File('../avelune_android/app/build.gradle.kts').readAsStringSync();
+      final module =
+          File(
+            '../avelune_android/flutter_runtime/pubspec.yaml',
+          ).readAsStringSync();
+      final workflow =
+          File(
+            '../../.github/workflows/avelune_android_release.yml',
+          ).readAsStringSync();
+
+      expect(host, contains('applicationId = "com.yoahnl.avelune.player"'));
+      expect(host, contains('flutter_release:1.0'));
+      expect(module, contains('path: ../../pokemap_hub'));
+      expect(
+        workflow,
+        contains('apps/avelune_android/tool/build_runtime.sh release'),
+      );
+      expect(workflow, contains('apps/avelune_android/tool/publish_play.py'));
+      expect(workflow, isNot(contains('working-directory: apps/pokemap_hub')));
+      expect(workflow, isNot(contains('flutter build appbundle')));
+    },
+  );
 }

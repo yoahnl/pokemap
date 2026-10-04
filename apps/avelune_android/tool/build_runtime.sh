@@ -3,10 +3,11 @@ set -euo pipefail
 
 runtime_root="$(cd "$(dirname "$0")/.." && pwd)"
 runtime_mode="${1:-debug}"
+runtime_platforms="android-arm64"
 case "$runtime_mode" in
   debug) runtime_task="assembleAarDebug" ;;
   profile) runtime_task="assembleAarProfile" ;;
-  release) runtime_task="assembleAarRelease" ;;
+  release) runtime_task="assembleAarRelease"; runtime_platforms="android-arm,android-arm64,android-x64" ;;
   *) echo 'Usage: bash tool/build_runtime.sh [debug|profile|release]' >&2; exit 2 ;;
 esac
 
@@ -25,7 +26,7 @@ bash "$runtime_root/gradlew" \
   -Pis-plugin=false \
   -PbuildNumber=1.0 \
   -Ptarget=lib/main.dart \
-  -Ptarget-platform=android-arm64 \
+  -Ptarget-platform="$runtime_platforms" \
   -Pdart-obfuscation=false \
   -Ptrack-widget-creation=true \
   -Ptree-shake-icons=false \

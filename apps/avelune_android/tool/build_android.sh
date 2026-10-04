@@ -12,11 +12,6 @@ if [[ ! -d "$ANDROID_HOME/platforms/android-36" ]]; then
     exit 1
 fi
 
-if [[ ! -f "$avelune_root/flutter_runtime/build/host/outputs/repo/com/yoahnl/avelune/runtime/android/flutter_debug/1.0/flutter_debug-1.0.pom" ]]; then
-    printf '%s\n' "Build the shared runtime first: bash apps/avelune_android/tool/build_runtime.sh" >&2
-    exit 1
-fi
-
 native_has_task=false
 for native_argument in "$@"; do
     if [[ "$native_argument" != -* ]]; then
@@ -25,6 +20,16 @@ for native_argument in "$@"; do
 done
 if [[ "$native_has_task" == false ]]; then
     set -- :host_core:test :app:testDebugUnitTest :app:assembleDebug "$@"
+fi
+
+native_runtime_mode=debug
+case "$*" in
+    *Release*) native_runtime_mode=release ;;
+    *Profile*) native_runtime_mode=profile ;;
+esac
+if [[ ! -f "$avelune_root/flutter_runtime/build/host/outputs/repo/com/yoahnl/avelune/runtime/android/flutter_$native_runtime_mode/1.0/flutter_$native_runtime_mode-1.0.pom" ]]; then
+    printf '%s\n' "Build the shared runtime first: bash apps/avelune_android/tool/build_runtime.sh $native_runtime_mode" >&2
+    exit 1
 fi
 
 exec "$avelune_root/gradlew" -p "$avelune_root" --console=plain "$@"
