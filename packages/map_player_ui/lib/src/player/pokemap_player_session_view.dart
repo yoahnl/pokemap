@@ -645,7 +645,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       return;
     }
     final bridge = _gamepadBridge?.rebind(_controlProfile) ??
-        RuntimePlayerGamepadBridge(controlProfile: _controlProfile);
+        RuntimePlayerGamepadBridge(
+          controlProfile: _controlProfile,
+          useSecondaryForSprint: () =>
+              _inputSurface() == PlayerInputSurface.gameplay &&
+              (widget.gameplayInputAuthority?.value.acceptsOverworldInput ??
+                  true),
+        );
     _gamepadBridge = bridge;
     if (widget.connectedControllerIds != null) {
       _handleControllerInventoryChanged();

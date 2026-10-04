@@ -25,6 +25,7 @@ final class RuntimePlayerGamepadBridge {
     double stickDeadZone = kRuntimePlayerTouchDeadZone,
     double stickReleaseDeadZone = .25,
     PlayerControlProfile? controlProfile,
+    this.useSecondaryForSprint,
   })  : assert(
             stickReleaseDeadZone >= 0 && stickReleaseDeadZone < stickDeadZone),
         _stickDeadZone = stickDeadZone,
@@ -34,6 +35,7 @@ final class RuntimePlayerGamepadBridge {
   final double _stickDeadZone;
   final double _stickReleaseDeadZone;
   final PlayerControlProfile _controlProfile;
+  final bool Function()? useSecondaryForSprint;
   final Map<String, _RuntimePlayerGamepadState> _devices = {};
   final Map<String, Set<GamepadButton>> _blockedButtons = {};
   final Map<String, Offset> _blockedSticks = {};
@@ -43,6 +45,7 @@ final class RuntimePlayerGamepadBridge {
       stickDeadZone: _stickDeadZone,
       stickReleaseDeadZone: _stickReleaseDeadZone,
       controlProfile: controlProfile,
+      useSecondaryForSprint: useSecondaryForSprint,
     );
     for (final entry in _blockedButtons.entries) {
       next._blockedButtons[entry.key] = Set.of(entry.value);
@@ -100,7 +103,13 @@ final class RuntimePlayerGamepadBridge {
     if (control == null) return const [];
     final previous = state.controls;
     if (pressed) {
-      state.buttons[button] = control;
+      state.buttons.putIfAbsent(
+        button,
+        () => control == RuntimeInputControl.secondary &&
+                (useSecondaryForSprint?.call() ?? false)
+            ? RuntimeInputControl.sprint
+            : control,
+      );
     } else {
       state.buttons.remove(button);
     }
