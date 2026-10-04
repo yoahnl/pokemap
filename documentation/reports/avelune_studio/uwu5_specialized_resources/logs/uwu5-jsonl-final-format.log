@@ -1,6 +1,0 @@
-00:00 +0: loading test/tooling/jsonl_border_catalog_flow_test.dart
-00:00 +0: new placement is refused when blueprint is deprecated after the initial check
-00:00 +1: JSONL border status preserves dirty draft snapshots maps and raw metadata
-00:01 +2: Border blueprint lifecycle is byte-identical through direct and JSONL
-00:01 +3: JSONL rejects disconnected anchors then receipts the repaired publish
-00:01 +4: All tests passed!

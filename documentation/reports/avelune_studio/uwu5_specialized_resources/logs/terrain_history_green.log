@@ -1,8 +1,0 @@
-00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart
-00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart: deleted terrain cannot return through map undo after saved removal
-00:07 +1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/resource_deleted_history_test.dart
-00:08 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/resource_deleted_history_test.dart: undo refuses removed definitions without erasing unrelated history
-00:08 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/resource_deleted_history_test.dart: a stale decor brush cannot place a removed definition
-00:08 +3: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_deleted_destination_history_test.dart
-00:09 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu2_deleted_destination_history_test.dart: undo refuses a deleted decor destination and retains other history
-00:10 +4: All tests passed!

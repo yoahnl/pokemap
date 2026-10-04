@@ -1,2 +1,0 @@
-Markdown hygiene: 2 new Markdown files exceed the default limit of 0.
-Use POKEMAP_MARKDOWN_MAX_NEW only when the user explicitly approved a bounded bulk documentation task.

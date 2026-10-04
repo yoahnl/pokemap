@@ -1,7 +1,0 @@
-00:00 +0: loading test/domains/maps/smart_tile_lifecycle_api_test.dart
-00:00 +0: terrain lifecycle preserves raw nested data outside its owner
-00:00 +1: JSONL rename persists metadata then publication keeps the new title
-00:00 +2: JSONL published copy isolates resources and applies no implicit publication
-UWU5_TERRAIN_COPY_PLAN_US=9801 APPLY_US=32693 MAPS=0 TILESETS=1
-00:01 +3: rename no-op writes nothing and deletion cannot orphan the retained draft
-00:01 +4: All tests passed!

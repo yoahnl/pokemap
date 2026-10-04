@@ -1,5 +1,0 @@
-[]
-Native app processes: []
-Final test metadata:
-{}
-No unowned process was terminated

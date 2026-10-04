@@ -1,5 +1,0 @@
-00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart
-00:00 +0: closing creator does not save the mounted project draft
-00:05 +1: cancelled switch retains A and created B can be reopened
-00:10 +2: failed save from real creation guard keeps draft and B on disk
-00:15 +3: All tests passed!

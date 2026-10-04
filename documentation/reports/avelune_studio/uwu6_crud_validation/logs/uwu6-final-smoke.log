@@ -1,7 +1,0 @@
-00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart
-00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart: empty project creates and reopens its first map without playability fiction
-00:04 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart: first authored border stays visible over opaque ground
-UwU6 first border: 0 → 3072 blue pixels
-00:06 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=false
-00:11 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart: source OFF ON OFF ON remains explicit, apply=true
-00:16 +4: All tests passed!

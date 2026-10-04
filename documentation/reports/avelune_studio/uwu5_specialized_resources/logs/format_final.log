@@ -1,4 +1,0 @@
-SDK /tmp/avelune-flutter-3.48/bin/dart ; 105 fichiers Dart du delta source.
-Commande : dart format --output=none --set-exit-if-changed <fichiers de inventaire_sources.txt finissant par .dart>
-Exit 0
-Formatted 105 files (0 changed) in 0.32 seconds.
