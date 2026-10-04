@@ -97,7 +97,7 @@ fun Modifier.popupGamepadKeys(dismiss: () -> Unit): Modifier = composed {
 
 @Composable
 fun AveluneMoon(modifier: Modifier) {
-    Image(painterResource(R.drawable.avelune_moon), null, modifier)
+    Image(painterResource(R.drawable.avelune_symbol), null, modifier)
 }
 
 @Composable

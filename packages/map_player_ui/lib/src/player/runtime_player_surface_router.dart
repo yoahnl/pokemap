@@ -67,11 +67,13 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     this.showPreSessionInteraction = true,
     this.showPlayerOverlay = true,
     this.beforePauseAction,
+    this.pauseRootActionsOnly = false,
   });
 
   final RuntimePlayerSnapshot snapshot;
   final bool showPlayerOverlay;
   final Future<bool> Function()? beforePauseAction;
+  final bool pauseRootActionsOnly;
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
@@ -383,6 +385,7 @@ class _RuntimePlayerSurfaceRouterState
           opacity: widget.touchControlsOpacity,
         ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
+          rootActionsOnly: widget.pauseRootActionsOnly,
           controlProfile: widget.controlProfile,
           controllerFamily: widget.controllerFamily,
           focusController: widget.pauseFocusController,

@@ -421,6 +421,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.integrated = false,
     this.iconOnly = false,
     this.tile = false,
+    this.fitTileContent = false,
     this.minimumHeight = 48,
     this.contentPadding =
         const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -448,6 +449,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final bool integrated;
   final bool iconOnly;
   final bool tile;
+  final bool fitTileContent;
   final double minimumHeight;
   final EdgeInsetsGeometry contentPadding;
   final bool showFocusHighlight;
@@ -575,17 +577,10 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                   : widget.tile
                       ? Tooltip(
                           message: widget.disabledReason ?? widget.label,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (widget.leading != null) ...[
-                                widget.leading!,
-                                const SizedBox(height: 6),
-                              ],
-                              Text(widget.label, textAlign: TextAlign.center),
-                            ],
-                          ),
+                          child: widget.fitTileContent
+                              ? FittedBox(
+                                  fit: BoxFit.scaleDown, child: _tileContent())
+                              : _tileContent(),
                         )
                       : widget.iconOnly
                           ? Stack(alignment: Alignment.center, children: [
@@ -717,6 +712,18 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       ),
     );
   }
+
+  Widget _tileContent() => Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (widget.leading != null) ...[
+            widget.leading!,
+            const SizedBox(height: 6),
+          ],
+          Text(widget.label, textAlign: TextAlign.center),
+        ],
+      );
 
   Widget _actionContent(bool compact) {
     final icon =

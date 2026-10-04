@@ -179,6 +179,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.onCompanionInput,
     this.beforePauseAction,
     this.relayedControllerInput = false,
+    this.pauseRootActionsOnly = false,
   }) : assert(
           presentationFrame == null || presentationContentPort != null,
         ), assert(!relayedControllerInput || controllerInputEvents != null);
@@ -189,6 +190,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final bool Function(RuntimeInputEvent)? onCompanionInput;
   final Future<bool> Function()? beforePauseAction;
   final bool relayedControllerInput;
+  final bool pauseRootActionsOnly;
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
@@ -1151,6 +1153,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           hardwareGamepadEnabled: !widget.controllerInputEnabled,
           pauseMenuLabels: widget.pauseMenuLabels,
           pausePresentation: widget.pausePresentation,
+          pauseRootActionsOnly: widget.pauseRootActionsOnly,
           gameSceneBuilder: widget.gameSceneBuilder,
           onShowDiagnostics: widget.onShowDiagnostics,
           gameplayTouchMenuEnabled:

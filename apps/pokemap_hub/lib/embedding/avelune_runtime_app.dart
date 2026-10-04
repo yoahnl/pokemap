@@ -94,8 +94,10 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
             launchResolver: _bridge.launchResolver,
             game: game,
             hostBranding: aveluneRuntimeSplashBranding,
-            splashLogo: const AssetImage(
-              'assets/avelune/logo/avelune_moon.png',
+            splashLogo: AssetImage(
+              Platform.isAndroid
+                  ? 'assets/avelune/logo/avelune_symbol_android.png'
+                  : 'assets/avelune/logo/avelune_moon.png',
               package: 'pokemap_hub',
             ),
             splashWordmark: const AssetImage(

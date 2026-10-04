@@ -7,7 +7,7 @@ plugins {
 val brandResources = layout.buildDirectory.dir("generated/aveluneBrand")
 val prepareAveluneBrand by tasks.registering(Sync::class) {
     from(rootProject.file("../pokemap_hub/assets/avelune/logo")) {
-        include("avelune_moon.png", "avelune_glass_wordmark.png")
+        include("avelune_glass_wordmark.png")
         into("drawable-nodpi")
     }
     into(brandResources)

@@ -1,12 +1,104 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/embedding/avelune_gameplay_companion.dart';
+import 'package:pokemap_hub/embedding/avelune_gameplay_companion_app.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final (size, textScale) in [
+    (const Size(538, 468), 1.0),
+    (const Size(390, 844), 1.0),
+    (const Size(844, 390), 1.0),
+    (const Size(538, 468), 1.6),
+  ]) {
+    testWidgets('companion root keeps all large actions visible without scrolling $size/$textScale', (tester) async {
+      final calls = await _mountMenu(tester, size: size, textScale: textScale);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(find.byType(PlayerPauseSummaryCard), findsNothing);
+      expect(find.byType(PlayerMenuHeader), findsNothing);
+      expect(find.byType(PlayerMenuFooter), findsNothing);
+      expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
+      final viewport = Offset.zero & size;
+      for (final action in PlayerPauseAction.values
+          .where((action) => action != PlayerPauseAction.resume)) {
+        final button = find.byKey(ValueKey('pause.${action.name}'));
+        expect(button, findsOneWidget);
+        final rect = tester.getRect(button);
+        expect(rect.width, greaterThanOrEqualTo(120));
+        expect(rect.height, greaterThanOrEqualTo(68));
+        expect(viewport.contains(rect.topLeft), isTrue);
+        expect(viewport.contains(rect.bottomRight), isTrue);
+      }
+      final bag = find.byKey(const ValueKey('pause.bag'));
+      final before = tester.getRect(bag);
+      await tester.drag(bag, const Offset(0, -160));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(bag), before);
+      expect(calls, isEmpty);
+      await tester.tap(bag);
+      await tester.pumpAndSettle();
+      expect(calls.map((call) => call['kind']), ['pause', 'player']);
+      expect((calls.last['payload'] as Map)['action'], 'openBag');
+      expect((calls.last['payload'] as Map)['snapshotRevision'], 7);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  testWidgets('companion action grid repairs an obsolete resume selection', (tester) async {
+    final calls = await _mountMenu(tester, logicalSelectionId: 'pause.resume');
+    expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
+    final party = tester.widget<PlayerMenuSelectableRow>(
+      find.byKey(const ValueKey('pause.party')),
+    );
+    expect(party.selected, isTrue);
+    expect(calls, isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('companion action grid retains physical direction and confirmation', (tester) async {
+    final calls = await _mountMenu(tester);
+    const channel = MethodChannel('com.avelune.runtime/companion');
+    for (final control in ['right', 'primary']) {
+      for (final phase in ['press', 'release']) {
+        await _nativeCall(channel, 'input', {
+          'sessionId': 'session-grid', 'revision': 8,
+          'control': control, 'phase': phase, 'isRepeat': false,
+        });
+        await tester.pumpAndSettle();
+      }
+      if (control == 'right') {
+        final row = tester.widget<PlayerMenuSelectableRow>(find.byKey(const ValueKey('pause.bag')));
+        expect(row.selected, isTrue);
+        expect(calls, isEmpty);
+      }
+    }
+    expect(calls.map((call) => call['kind']), ['pause', 'player']);
+    expect((calls.last['payload'] as Map)['action'], 'openBag');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('companion action grid preserves hidden and disabled actions', (tester) async {
+    final calls = await _mountMenu(tester, hiddenPokedex: true);
+    expect(find.byKey(const ValueKey('pause.pokedex')), findsNothing);
+    final map = find.byKey(const ValueKey('pause.map'));
+    expect(tester.widget<PlayerMenuSelectableRow>(map).onPressed, isNull);
+    await tester.tap(map);
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   test('transport starts without opening a menu or creating a player', () async {
     final owner = AveluneGameplayCompanionOwner();
@@ -193,6 +285,49 @@ void main() {
     await _nativeCall(channel, 'input', input);
     expect(inputs, [const RuntimeInputEvent.press(RuntimeInputControl.primary)]);
   });
+}
+
+Future<List<Map<String, dynamic>>> _mountMenu(
+  WidgetTester tester, {
+  Size size = const Size(538, 468),
+  double textScale = 1,
+  bool hiddenPokedex = false,
+  String logicalSelectionId = 'pause.party',
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
+  addTearDown(tester.view.reset);
+  addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  const channel = MethodChannel('com.avelune.runtime/companion');
+  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final state = AveluneGameplayCompanionSnapshot(
+    sessionId: 'session-grid', revision: 8,
+    companionAttached: true, mode: AveluneGameplayCompanionMode.menu,
+    player: RuntimePlayerSnapshot(
+      revision: 7, phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Avelune test', pauseSection: RuntimePlayerPauseSection.root,
+      logicalSelectionId: logicalSelectionId,
+      pauseMenuState: PlayerPauseMenuState(visibilityOverrides: {
+        if (hiddenPokedex) ProjectPauseActionId.pokedex: false,
+      }),
+      actions: [
+        for (final action in RuntimePlayerAction.values)
+          action == RuntimePlayerAction.openMap
+              ? RuntimePlayerActionAvailability.disabled(action, reason: 'Carte verrouillée')
+              : RuntimePlayerActionAvailability.enabled(action),
+      ],
+    ),
+  );
+  final calls = <Map<String, dynamic>>[];
+  messenger.setMockMethodCallHandler(channel, (call) async {
+    if (call.method == 'intent') calls.add(Map<String, dynamic>.from(call.arguments as Map));
+    return state.toPayload();
+  });
+  addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+  await tester.pumpWidget(const AveluneGameplayCompanionApp());
+  await tester.pumpAndSettle();
+  return calls;
 }
 
 AveluneGameplayCompanionSnapshot _savedSnapshot() {

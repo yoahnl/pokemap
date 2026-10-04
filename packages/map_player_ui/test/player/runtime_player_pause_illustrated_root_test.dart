@@ -81,6 +81,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('actions only root keeps the full party detail surface',
+      (tester) async {
+    await _surface(tester, const Size(538, 468));
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      gameTitle: 'Voyage',
+      pauseSection: RuntimePlayerPauseSection.party,
+      actions: _actions(),
+      onSelected: (_) {},
+      onBackToRoot: () {},
+      rootActionsOnly: true,
+      detailTitle: 'Compagnons',
+      detail: const SizedBox(
+        key: ValueKey('actual-party-detail'),
+        width: double.infinity,
+        child: Text('Contenu réel de l’équipe'),
+      ),
+      presentation: _presentation,
+    )));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('runtime-pause-action-grid')), findsNothing);
+    expect(find.byKey(const ValueKey('actual-party-detail')), findsOneWidget);
+    expect(find.text('Compagnons'), findsOneWidget);
+    expect(find.byKey(const ValueKey('pause.party')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final optionsHidden in [true, false]) {
     testWidgets(
         'return to title stays reachable when Options is ${optionsHidden ? 'hidden' : 'disabled'}',

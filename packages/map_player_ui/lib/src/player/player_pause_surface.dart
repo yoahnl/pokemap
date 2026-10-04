@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -448,6 +450,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.compositionLayoutName,
     this.illustrated = false,
     this.mobileGrid = false,
+    this.fillViewport = false,
   });
 
   final String gameTitle;
@@ -465,6 +468,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final String? compositionLayoutName;
   final bool illustrated;
   final bool mobileGrid;
+  final bool fillViewport;
 
   @override
   Widget build(BuildContext context) {
@@ -474,6 +478,55 @@ class PlayerPauseNavigation extends StatelessWidget {
     final firstEnabledAction = visibleActions
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
+    if (fillViewport) {
+      return LayoutBuilder(
+        key: const ValueKey('runtime-pause-action-grid'),
+        builder: (context, constraints) {
+          if (visibleActions.isEmpty || constraints.biggest.isEmpty) {
+            return const SizedBox.expand();
+          }
+          final columns = MediaQuery.textScalerOf(context).scale(1) >= 1.5
+              ? math.min(2, visibleActions.length)
+              : math
+                  .sqrt(visibleActions.length *
+                      constraints.maxWidth /
+                      constraints.maxHeight)
+                  .round()
+                  .clamp(1, math.min(4, visibleActions.length))
+                  .toInt();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0;
+                  index < visibleActions.length;
+                  index += columns) ...[
+                if (index > 0) const SizedBox(height: PlayerSpacing.sm),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var column = 0;
+                          column < columns &&
+                              index + column < visibleActions.length;
+                          column++) ...[
+                        if (column > 0) const SizedBox(width: PlayerSpacing.sm),
+                        Expanded(
+                          child: _action(
+                              context,
+                              visibleActions[index + column],
+                              firstEnabledAction,
+                              pausePresentation),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      );
+    }
     return SingleChildScrollView(
       key: scrollKey ??
           ValueKey<String>(
@@ -606,7 +659,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     final availability = _availability(context, action);
     final logicalId = _logicalId(action);
     final controller = focusController;
-    if (illustrated) {
+    if (illustrated || fillViewport) {
       final theme = context.playerMenuTheme;
       final selected = controller?.logicalSelectionId == logicalId;
       final color = selected
@@ -626,19 +679,26 @@ class PlayerPauseNavigation extends StatelessWidget {
         id: logicalId,
         label: presentation.label(action, context.playerL10n),
         leading: SizedBox(
-            width: mobileGrid ? 24 : 48,
+            width: fillViewport
+                ? 32
+                : mobileGrid
+                    ? 24
+                    : 48,
             child: Icon(presentation.icon(action),
                 size: mobileGrid ? 24 : 32, color: color)),
-        integrated: !mobileGrid,
-        tile: mobileGrid,
+        integrated: !mobileGrid && !fillViewport,
+        tile: mobileGrid || fillViewport,
+        fitTileContent: fillViewport,
         contentPadding: EdgeInsets.symmetric(
             horizontal: mobileGrid ? 4 : 12, vertical: mobileGrid ? 6 : 10),
-        minimumHeight: mobileGrid
-            ? 72
-            : composition == null ||
-                    composition!.entrySize == ProjectPauseEntrySize.regular
-                ? 64
-                : _entryHeight(composition!.entrySize),
+        minimumHeight: fillViewport
+            ? 0
+            : mobileGrid
+                ? 72
+                : composition == null ||
+                        composition!.entrySize == ProjectPauseEntrySize.regular
+                    ? 64
+                    : _entryHeight(composition!.entrySize),
         selected: selected,
         showFocusHighlight: controller?.showFocusHighlight ?? false,
         focusNode: controller?.nodeFor(logicalId,

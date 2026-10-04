@@ -106,6 +106,7 @@ class _AveluneGameplayCompanionAppState extends State<AveluneGameplayCompanionAp
             titlePresentation: presentation.title,
             pauseMenuLabels: presentation.pauseMenuLabels,
             pausePresentation: presentation.pausePresentation,
+            pauseRootActionsOnly: true,
             gameSceneBuilder: (_) => const SizedBox.expand(),
             touchControlsAvailable: false,
             controllerInputEnabled: true,
