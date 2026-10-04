@@ -91,6 +91,46 @@ final class RuntimePlayerCoordinator {
   PlayerSaveSummary? get latestSave => _latestSave;
   bool get isDisposed => _disposed;
 
+  Future<RuntimePlayerSnapshot?> readCompanionMenu() async {
+    final snapshot = _snapshot;
+    if (_disposed ||
+        (snapshot.phase != RuntimePlayerPhase.playing &&
+            snapshot.phase != RuntimePlayerPhase.paused)) {
+      return null;
+    }
+    if (snapshot.phase == RuntimePlayerPhase.paused) return snapshot;
+    RuntimePlayerCompanionMenuData? data;
+    try {
+      data = await _sessions.readCompanionMenuData();
+    } catch (_) {
+      if (_disposed || !identical(snapshot, _snapshot)) return null;
+      rethrow;
+    }
+    if (_disposed || !identical(snapshot, _snapshot) || data == null) {
+      return null;
+    }
+    return RuntimePlayerSnapshot(
+      revision: snapshot.revision,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: snapshot.gameTitle,
+      pauseSection: RuntimePlayerPauseSection.root,
+      pauseMenuState: data.pauseMenuState,
+      pauseDetails: data.pauseDetails,
+      actions: _pauseActions(
+        section: RuntimePlayerPauseSection.root,
+        includeReturnToRoot: false,
+        pauseDetails: data.pauseDetails,
+        pauseMenuState: data.pauseMenuState,
+      ),
+      preferences: snapshot.preferences,
+      defaultPreferences: snapshot.defaultPreferences,
+      activeSaveAddress: snapshot.activeSaveAddress,
+      favoriteItemIds: _favoriteItemIds,
+      bagFavoritesAvailable: _bagFavoritesAvailable,
+      activeInputSource: snapshot.activeInputSource,
+    );
+  }
+
   Future<void> initialize() {
     return _serialize(() async {
       _ensureOpen();
@@ -179,8 +219,10 @@ final class RuntimePlayerCoordinator {
       }
       final gateway = _inventoryPreferencesGateway;
       final sessionId = _sessions.snapshot.descriptor?.sessionId;
-      final ownsItem = _snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag)
-              ?.entries.any((entry) =>
+      final ownsItem = _snapshot
+              .pauseDetailFor(RuntimePlayerPauseSection.bag)
+              ?.entries
+              .any((entry) =>
                   entry.bagItem?.itemId == itemId &&
                   entry.bagItem!.quantity > 0) ??
           false;
@@ -331,7 +373,8 @@ final class RuntimePlayerCoordinator {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
-        safeMessage: 'La surface joueur a changé avant l’arrivée de cette action.',
+        safeMessage:
+            'La surface joueur a changé avant l’arrivée de cette action.',
       );
     }
     if (!_snapshot.isActionEnabled(command.action)) {
@@ -353,7 +396,8 @@ final class RuntimePlayerCoordinator {
         if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Un profil et un emplacement sont requis pour une nouvelle partie.',
+            safeMessage:
+                'Un profil et un emplacement sont requis pour une nouvelle partie.',
           );
         }
         return _launchNewGame(
@@ -372,7 +416,8 @@ final class RuntimePlayerCoordinator {
         if (save == null || !save.canContinue) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Aucune sauvegarde compatible n’est disponible pour continuer.',
+            safeMessage:
+                'Aucune sauvegarde compatible n’est disponible pour continuer.',
           );
         }
         return _launchSave(save, GameSessionLaunchMode.continueGame);
@@ -384,7 +429,8 @@ final class RuntimePlayerCoordinator {
         if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Un profil et un emplacement sont requis pour charger une sauvegarde.',
+            safeMessage:
+                'Un profil et un emplacement sont requis pour charger une sauvegarde.',
           );
         }
         final address = _address(slot);
@@ -550,7 +596,8 @@ final class RuntimePlayerCoordinator {
                 commandSection == RuntimePlayerPauseSection.bag ||
                     commandSection == RuntimePlayerPauseSection.party,
               RuntimePlayerPauseCommandKind.reorderPartyMember ||
-              RuntimePlayerPauseCommandKind.setPartyLead => false,
+              RuntimePlayerPauseCommandKind.setPartyLead =>
+                false,
             }) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
@@ -634,7 +681,8 @@ final class RuntimePlayerCoordinator {
           }
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
-            safeMessage: 'Les préférences du joueur n’ont pas pu être sauvegardées.',
+            safeMessage:
+                'Les préférences du joueur n’ont pas pu être sauvegardées.',
           );
         }
         if (!_isCurrentSession(preferencesSessionId)) {
@@ -645,7 +693,8 @@ final class RuntimePlayerCoordinator {
         _preferences = preferences;
         _sessions.applyPlayerPreferences(preferences);
         if (localeChanged && _snapshot.phase == RuntimePlayerPhase.paused) {
-          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details;
+          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+              details;
           String? pauseDataFailure;
           try {
             details = await _sessions.loadPauseDetails();
@@ -797,13 +846,15 @@ final class RuntimePlayerCoordinator {
             status: RuntimePlayerCommandStatus.accepted,
           );
         }
-        if (command.payload case RuntimePlayerExitRequest(:final saveBeforeExit)) {
+        if (command.payload
+            case RuntimePlayerExitRequest(:final saveBeforeExit)) {
           if (saveBeforeExit) {
             final saved = await _dispatchSerialized(RuntimePlayerCommand(
               action: RuntimePlayerAction.save,
               snapshotRevision: _snapshot.revision,
             ));
-            if (saved.status != RuntimePlayerCommandStatus.accepted) return saved;
+            if (saved.status != RuntimePlayerCommandStatus.accepted)
+              return saved;
           }
           return _returnToTitle(checkpoint: false);
         }
@@ -1345,7 +1396,8 @@ final class RuntimePlayerCoordinator {
     if (handle == null || handle.trim().isEmpty) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'La sauvegarde sélectionnée n’a pas pu être ouverte en sécurité.',
+        safeMessage:
+            'La sauvegarde sélectionnée n’a pas pu être ouverte en sécurité.',
       );
     }
     return _launch(
@@ -1918,7 +1970,8 @@ final class RuntimePlayerCoordinator {
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.resume,
       ),
-      if (_isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState)) ...[
+      if (_isPauseActionVisible(
+          ProjectPauseActionId.party, pauseMenuState)) ...[
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openParty,
         ),
@@ -2037,8 +2090,7 @@ final class RuntimePlayerCoordinator {
   }
 
   bool _isCurrentSession(String? sessionId) =>
-      !_disposed &&
-      _sessions.snapshot.descriptor?.sessionId == sessionId;
+      !_disposed && _sessions.snapshot.descriptor?.sessionId == sessionId;
 
   bool _canPublishPauseData(String? sessionId) =>
       _isCurrentSession(sessionId) &&
@@ -2160,8 +2212,7 @@ final class RuntimePlayerCoordinator {
     // celle-ci, sans avoir à la reconnaître.
     return SceneInteractionPrompt(
       localizationKey: 'player.new_game.confirm_overwrite_unusable',
-      fallbackText:
-          'Cette sauvegarde ne peut pas être poursuivie : {reason} '
+      fallbackText: 'Cette sauvegarde ne peut pas être poursuivie : {reason} '
           'La remplacer effacera définitivement sa progression.',
       arguments: <String, String>{
         'reason': playerSaveUnavailableReasonText(reason),

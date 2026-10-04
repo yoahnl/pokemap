@@ -9,6 +9,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'character_studio_controller.dart';
 import 'character_studio_portrait_actions.dart';
+import 'character_studio_portrait_state_dialog.dart';
 
 class CharacterStudioPortraitPanel extends StatefulWidget {
   const CharacterStudioPortraitPanel({
@@ -172,29 +173,10 @@ class _CharacterStudioPortraitPanelState
   }
 
   Future<void> _createState() async {
-    final field = TextEditingController();
     final name = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nouvel état de portrait'),
-        content: TextField(
-          controller: field,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Nom de l’état'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, field.text.trim()),
-            child: const Text('Créer l’état'),
-          ),
-        ],
-      ),
+      builder: (context) => const CharacterStudioPortraitStateDialog(),
     );
-    field.dispose();
     if (name == null || name.isEmpty || !mounted) return;
     await widget.controller.createPortraitState(name);
   }

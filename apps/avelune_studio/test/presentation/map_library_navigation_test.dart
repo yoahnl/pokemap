@@ -34,6 +34,7 @@ void main() {
       find.widgetWithText(TextField, 'Nom du dossier'),
       'Jardins',
     );
+    await tester.pump();
     await tester.tap(find.text('Créer'));
     await pumpIo(tester);
     expect(find.text('Jardins'), findsOneWidget);
@@ -59,7 +60,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byType(DropdownButtonFormField<String>).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Parc').last);
+    await tester.tap(find.text('Jardins / Parc').last);
     await tester.pump();
     await tester.tap(find.text('Déplacer les cartes'));
     await pumpIo(tester);

@@ -4,6 +4,10 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'tileset_actions.dart';
+import 'resource_information_actions.dart';
+import 'resource_information_document.dart';
+
+part 'visual_organization_validation.dart';
 
 /// Canonical authoring semantics for the visual-library hierarchy.
 final class VisualOrganizationActions {
@@ -19,23 +23,27 @@ final class VisualOrganizationActions {
       'tileset_folder.upsert',
       'Create or replace one tileset library folder',
       resourceKinds: const ['project', 'tilesetFolder'],
+      inputSchema: _organizationObjectSchema('folder', 'parentFolderId'),
     ),
     visualLibraryDescriptor(
       'tileset_folder.delete',
       'Delete one empty tileset library folder',
       risk: AuthoringRiskLevel.high,
       resourceKinds: const ['project', 'tilesetFolder'],
+      inputSchema: _organizationIdSchema('folderId'),
     ),
     visualLibraryDescriptor(
       'element_category.upsert',
       'Create or replace one visual element category',
       resourceKinds: const ['elementCategory', 'project'],
+      inputSchema: _organizationObjectSchema('category', 'parentCategoryId'),
     ),
     visualLibraryDescriptor(
       'element_category.delete',
       'Delete one empty visual element category',
       risk: AuthoringRiskLevel.high,
       resourceKinds: const ['elementCategory', 'project'],
+      inputSchema: _organizationIdSchema('categoryId'),
     ),
   ]);
 
@@ -72,6 +80,8 @@ final class VisualOrganizationActions {
         );
       case 'tileset_folder.upsert':
         parameters.allow(const {'folder'});
+        _validateOrganizationObject(
+            parameters.object('folder'), 'parentFolderId');
         final folder = ProjectTilesetFolder.fromJson(
           Map<String, dynamic>.from(parameters.object('folder')),
         );
@@ -83,6 +93,8 @@ final class VisualOrganizationActions {
           context.snapshot,
           next,
           operation: 'tileset_folder.upsert',
+          encodedManifest:
+              encodeResourceInformationDocument(context.snapshot, next),
           path: '/tilesetFolders/${folder.id}',
           after: folder.toJson(),
         );
@@ -101,11 +113,15 @@ final class VisualOrganizationActions {
           context.snapshot,
           next,
           operation: 'tileset_folder.delete',
+          encodedManifest:
+              encodeResourceInformationDocument(context.snapshot, next),
           path: '/tilesetFolders/$folderId',
           before: current.toJson(),
         );
       case 'element_category.upsert':
         parameters.allow(const {'category'});
+        _validateOrganizationObject(
+            parameters.object('category'), 'parentCategoryId');
         final category = ProjectElementCategory.fromJson(
           Map<String, dynamic>.from(parameters.object('category')),
         );
@@ -117,6 +133,8 @@ final class VisualOrganizationActions {
           context.snapshot,
           next,
           operation: 'element_category.upsert',
+          encodedManifest:
+              encodeResourceInformationDocument(context.snapshot, next),
           path: '/elementCategories/${category.id}',
           after: category.toJson(),
         );
@@ -135,6 +153,8 @@ final class VisualOrganizationActions {
           context.snapshot,
           next,
           operation: 'element_category.delete',
+          encodedManifest:
+              encodeResourceInformationDocument(context.snapshot, next),
           path: '/elementCategories/$categoryId',
           before: current.toJson(),
         );
@@ -150,11 +170,21 @@ final class VisualOrganizationActions {
     ProjectManifest manifest, {
     required ProjectTilesetFolder folder,
   }) {
+    folder = folder.copyWith(name: resourceInformationName(folder.name));
+    _validateOrganizationParent(
+        folder.id,
+        folder.parentFolderId,
+        {
+          for (final entry in manifest.tilesetFolders)
+            entry.id: entry.parentFolderId,
+        },
+        'tileset_folder');
     final folders = [
       for (final current in manifest.tilesetFolders)
-        if (current.id != folder.id) current,
-      folder,
-    ]..sort((left, right) => left.id.compareTo(right.id));
+        if (current.id == folder.id) folder else current,
+      if (!manifest.tilesetFolders.any((entry) => entry.id == folder.id))
+        folder,
+    ];
     return manifest.copyWith(tilesetFolders: folders);
   }
 
@@ -187,11 +217,21 @@ final class VisualOrganizationActions {
     ProjectManifest manifest, {
     required ProjectElementCategory category,
   }) {
+    category = category.copyWith(name: resourceInformationName(category.name));
+    _validateOrganizationParent(
+        category.id,
+        category.parentCategoryId,
+        {
+          for (final entry in manifest.elementCategories)
+            entry.id: entry.parentCategoryId,
+        },
+        'element_category');
     final categories = [
       for (final current in manifest.elementCategories)
-        if (current.id != category.id) current,
-      category,
-    ]..sort((left, right) => left.id.compareTo(right.id));
+        if (current.id == category.id) category else current,
+      if (!manifest.elementCategories.any((entry) => entry.id == category.id))
+        category,
+    ];
     return manifest.copyWith(elementCategories: categories);
   }
 
@@ -226,65 +266,9 @@ final class VisualOrganizationActions {
     required int tileWidth,
     required int tileHeight,
     required double displayScale,
-  }) {
-    if (tileWidth <= 0 ||
-        tileHeight <= 0 ||
-        !displayScale.isFinite ||
-        displayScale <= 0) {
-      throw VisualLibraryException(
-        'visual_grid.invalid',
-        'The project visual grid values must be positive.',
-      );
-    }
-    final mismatches = <String>[];
-    for (final tileset in manifest.tilesets) {
-      final source = tileset.source;
-      if (source is ProjectRegularAtlasTilesetSource &&
-          (source.tileWidth != tileWidth || source.tileHeight != tileHeight)) {
-        mismatches.add(tileset.id);
-      }
-    }
-    if (mismatches.isNotEmpty) {
-      throw VisualLibraryException(
-        'visual_grid.tileset_mismatch',
-        'Every regular atlas must use the project visual grid.',
-        details: {'tilesetIds': mismatches..sort()},
-      );
-    }
-    return manifest.copyWith(
-      settings: manifest.settings.copyWith(
-        tileWidth: tileWidth,
-        tileHeight: tileHeight,
-        displayScale: displayScale,
-      ),
-    );
-  }
-}
-
-ProjectTilesetFolder _tilesetFolder(
-  ProjectManifest manifest,
-  String folderId,
-) {
-  for (final folder in manifest.tilesetFolders) {
-    if (folder.id == folderId) return folder;
-  }
-  throw VisualLibraryException(
-    'tileset_folder.unknown',
-    'The tileset folder identity is unknown.',
-    details: {'folderId': folderId},
-  );
-}
-
-ProjectElementCategory _elementCategory(
-  ProjectManifest manifest,
-  String categoryId,
-) {
-  for (final category in manifest.elementCategories) {
-    if (category.id == categoryId) return category;
-  }
-  throw VisualLibraryException(
-    'element_category.unknown',
-    'The element category identity is unknown.',
-    details: {'categoryId': categoryId},
-  );
+  }) =>
+      _updateProjectVisualGrid(manifest,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          displayScale: displayScale);
 }

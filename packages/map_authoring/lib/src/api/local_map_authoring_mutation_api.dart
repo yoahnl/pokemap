@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import '../contracts/action_descriptor.dart';
+import '../contracts/artifact_ref.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../application/map_mutation_dispatcher.dart';
@@ -61,20 +62,21 @@ final class LocalMapAuthoringMutationApi
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
     AuthoringPerformanceObserver? performanceObserver,
-  }) : _policy = policy,
-       _snapshotLoader = snapshotLoader,
-       _actor = actor ?? _localActor,
-       _authorizationLimits = authorizationLimits,
-       _clock = clock ?? _systemClock,
-       _faultInjector = faultInjector {
+  })  : _policy = policy,
+        _snapshotLoader = snapshotLoader,
+        _actor = actor ?? _localActor,
+        _authorizationLimits = authorizationLimits,
+        _clock = clock ?? _systemClock,
+        _faultInjector = faultInjector {
     artifacts = artifactStore ??
         MemoryArtifactStore(
           maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
         );
-    _dispatcher =
-        dispatcher ??
+    _dispatcher = dispatcher ??
         MapMutationDispatcher.canonical(
           artifactStore: artifacts,
+          retainedAssetBlobReader: (snapshot, artifact) => _snapshotLoader
+              .readRetainedAssetBlob(snapshot.projectHandle, artifact),
           tiledImageCollectionRasterCodec: tiledImageCollectionRasterCodec,
           performanceObserver: performanceObserver,
         );
@@ -161,10 +163,12 @@ final class LocalMapAuthoringMutationApi
   Future<Map<String, Object?>> stageArtifact({
     required String sourcePath,
     String? declaredMediaType,
-  }) async => (await stageArtifactFile(
-    sourcePath: sourcePath,
-    declaredMediaType: declaredMediaType,
-  )).toJson();
+  }) async =>
+      (await stageArtifactFile(
+        sourcePath: sourcePath,
+        declaredMediaType: declaredMediaType,
+      ))
+          .toJson();
 
   @override
   Future<void> attachProject({
@@ -215,25 +219,29 @@ final class LocalMapAuthoringMutationApi
   Future<AuthoringMutationPlanResult> planMutation(
     ProjectHandle projectHandle,
     AuthoringRequest request,
-  ) => _session(projectHandle).planMutation(request);
+  ) =>
+      _session(projectHandle).planMutation(request);
 
   @override
   Future<Map<String, Object?>> plan(
     ProjectHandle projectHandle,
     AuthoringRequest request,
-  ) async => (await planMutation(projectHandle, request)).toJson();
+  ) async =>
+      (await planMutation(projectHandle, request)).toJson();
 
   @override
   Future<AuthoringMutationConfirmationResult> confirmMutation(
     ProjectHandle projectHandle, {
     required String planId,
-  }) => _session(projectHandle).confirmMutation(planId);
+  }) =>
+      _session(projectHandle).confirmMutation(planId);
 
   @override
   Future<Map<String, Object?>> confirm(
     ProjectHandle projectHandle, {
     required String planId,
-  }) async => (await confirmMutation(projectHandle, planId: planId)).toJson();
+  }) async =>
+      (await confirmMutation(projectHandle, planId: planId)).toJson();
 
   @override
   Future<AuthoringMutationResult> applyMutation(
@@ -259,32 +267,37 @@ final class LocalMapAuthoringMutationApi
     required String planId,
     required String operationId,
     String? confirmationToken,
-  }) async => (await applyMutation(
-    projectHandle,
-    planId: planId,
-    operationId: operationId,
-    confirmationToken: confirmationToken,
-  )).toJson();
+  }) async =>
+      (await applyMutation(
+        projectHandle,
+        planId: planId,
+        operationId: operationId,
+        confirmationToken: confirmationToken,
+      ))
+          .toJson();
 
   @override
   Future<AuthoringMutationResult> undoMutation(
     ProjectHandle projectHandle, {
     required String entryId,
     required String idempotencyKey,
-  }) => _session(
-    projectHandle,
-  ).undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
+  }) =>
+      _session(
+        projectHandle,
+      ).undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
 
   @override
   Future<Map<String, Object?>> undo(
     ProjectHandle projectHandle, {
     required String entryId,
     required String idempotencyKey,
-  }) async => (await undoMutation(
-    projectHandle,
-    entryId: entryId,
-    idempotencyKey: idempotencyKey,
-  )).toJson();
+  }) async =>
+      (await undoMutation(
+        projectHandle,
+        entryId: entryId,
+        idempotencyKey: idempotencyKey,
+      ))
+          .toJson();
 
   @override
   Future<AuthoringMutationHistoryResult> listMutationHistory(
@@ -299,11 +312,13 @@ final class LocalMapAuthoringMutationApi
     ProjectHandle projectHandle, {
     required int limit,
     String? cursor,
-  }) async => (await listMutationHistory(
-    projectHandle,
-    limit: limit,
-    cursor: cursor,
-  )).toJson();
+  }) async =>
+      (await listMutationHistory(
+        projectHandle,
+        limit: limit,
+        cursor: cursor,
+      ))
+          .toJson();
 
   @override
   Future<AuthoringMutationResult> recoverMutation(
@@ -380,18 +395,18 @@ final class _LocalMapAuthoringSession {
     required AuthoringHistoryStore history,
     required SecureAuthoringRecoveryExecutor recoveryExecutor,
     required AuthoringPerformanceObserver? performanceObserver,
-  }) : _snapshotLoader = snapshotLoader,
-       _dispatcher = dispatcher,
-       _actor = actor,
-       _plans = plans,
-       _planner = planner,
-       _policy = policy,
-       _confirmations = confirmations,
-       _executor = executor,
-       _undoService = undoService,
-       _history = history,
-       _recoveryExecutor = recoveryExecutor,
-       _performanceObserver = performanceObserver;
+  })  : _snapshotLoader = snapshotLoader,
+        _dispatcher = dispatcher,
+        _actor = actor,
+        _plans = plans,
+        _planner = planner,
+        _policy = policy,
+        _confirmations = confirmations,
+        _executor = executor,
+        _undoService = undoService,
+        _history = history,
+        _recoveryExecutor = recoveryExecutor,
+        _performanceObserver = performanceObserver;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -529,9 +544,8 @@ final class _LocalMapAuthoringSession {
     final page = await _history.list(
       projectId: projectId,
       limit: limit,
-      cursor: cursor == null
-          ? null
-          : AuthoringHistoryCursor.fromWireValue(cursor),
+      cursor:
+          cursor == null ? null : AuthoringHistoryCursor.fromWireValue(cursor),
     );
     return AuthoringMutationHistoryResult(page);
   }
@@ -562,9 +576,8 @@ final class _LocalMapAuthoringSession {
         actionId: descriptor.id,
         actionVersion: descriptor.version,
         riskLevel: descriptor.riskLevel,
-        requestBytes: utf8
-            .encode(canonicalAuthoringJson(request.toJson()))
-            .length,
+        requestBytes:
+            utf8.encode(canonicalAuthoringJson(request.toJson())).length,
         touchedResources: 0,
         additionalPermissions: descriptor.requiredPermissions.map(
           _permissionScope,
@@ -573,7 +586,8 @@ final class _LocalMapAuthoringSession {
     );
     final snapshot = await _loadSnapshot(
       cacheValidation: ProjectSnapshotCacheValidation.session,
-      repairRequest: request.actionId == 'pokemon.catalog.write' ? request : null,
+      repairRequest:
+          request.actionId == 'pokemon.catalog.write' ? request : null,
     );
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.plan,
@@ -666,7 +680,7 @@ final class _LocalMapAuthoringSession {
         confirmationToken: confirmationToken == null
             ? null
             : AuthoringConfirmationToken.fromWireValue(confirmationToken),
-        precondition: precondition,
+        precondition: _lockedResourcePrecondition(plan, precondition),
       );
       projected = receipt.status == AuthoringReceiptStatus.applied &&
               changes != null &&
@@ -733,6 +747,68 @@ final class _LocalMapAuthoringSession {
     }
   }
 
+  AuthoringTransactionPrecondition? _lockedResourcePrecondition(
+    AuthoringPlan plan,
+    AuthoringTransactionPrecondition? supplied,
+  ) {
+    const guarded = {
+      'tileset.source.replace',
+      'tileset.remove',
+      'element.duplicate',
+      'element.delete',
+      'smart_tile.preset.rename',
+      'smart_tile.preset.duplicate',
+      'smart_tile.preset.delete',
+      'smart_tile.preset.draft.delete',
+      'border.blueprint.delete',
+      'border.blueprint.set_deprecated',
+      'border_layer.feature_create',
+      'border_layer.stroke_add',
+      'border_layer.region_fill',
+      'border_layer.feature_set_blueprint',
+      'border_layer.relink_apply',
+      'characterStudio.character.delete',
+    };
+    final retained =
+        (plan.referenceImpact['retainedBlobDigests'] as List?) ?? const [];
+    if (!guarded.contains(plan.request.actionId) && retained.isEmpty) {
+      return supplied;
+    }
+    return () async {
+      await supplied?.call();
+      if (guarded.contains(plan.request.actionId)) {
+        final current = await _loadSnapshot(repairRequest: plan.request);
+        if (current.revision != plan.baseRevision) {
+          throw AuthoringPlanException(
+            code: 'plan.stale',
+            message: 'Resource dependencies changed before publication.',
+            remediation: const [
+              'Reanalyze the resource before applying changes.'
+            ],
+          );
+        }
+      }
+      for (final digest in retained) {
+        final artifact =
+            plan.artifacts.singleWhere((value) => value.id == digest);
+        final bytes = await _snapshotLoader.readRetainedAssetBlob(
+          projectHandle,
+          ContentArtifactRef(
+            digest: artifact.sha256!,
+            mediaType: artifact.mediaType,
+            byteLength: artifact.byteLength!,
+          ),
+        );
+        if (bytes == null) {
+          throw AuthoringPlanException(
+            code: 'plan.stale',
+            message: 'A retained asset blob disappeared before publication.',
+          );
+        }
+      }
+    };
+  }
+
   Future<ProjectSnapshot> _loadSnapshot({
     ProjectSnapshotCacheValidation cacheValidation =
         ProjectSnapshotCacheValidation.canonical,
@@ -750,11 +826,15 @@ final class _LocalMapAuthoringSession {
             : ProjectSnapshotLoadPolicy.editorReadProjection,
       );
       if (snapshot.loadDiagnostics.isNotEmpty) {
-        final repairsItems = repairRequest?.actionId == 'pokemon.catalog.write' &&
-            repairRequest?.parameters['relativePath'] == snapshot.manifest.pokemon.catalogFiles['items'] &&
-            snapshot.loadDiagnostics.every((diagnostic) => diagnostic.code == 'project.item_catalog_invalid');
+        final repairsItems =
+            repairRequest?.actionId == 'pokemon.catalog.write' &&
+                repairRequest?.parameters['relativePath'] ==
+                    snapshot.manifest.pokemon.catalogFiles['items'] &&
+                snapshot.loadDiagnostics.every((diagnostic) =>
+                    diagnostic.code == 'project.item_catalog_invalid');
         if (!repairsItems) {
-          throw ProjectSnapshotException(snapshot.loadDiagnostics.first.code, 'Repair the invalid resource before applying other changes.');
+          throw ProjectSnapshotException(snapshot.loadDiagnostics.first.code,
+              'Repair the invalid resource before applying other changes.');
         }
       }
       return snapshot;
@@ -769,7 +849,8 @@ void _requireApplicablePlan(AuthoringPlan plan) {
   if (plan.nonApplicableReason == 'no_changes') {
     throw AuthoringPlanException(
       code: 'plan.no_changes',
-      message: 'This preview preserves every existing choice and has no changes to apply.',
+      message:
+          'This preview preserves every existing choice and has no changes to apply.',
       remediation: const ['Review the preserved choices in the preview.'],
     );
   }

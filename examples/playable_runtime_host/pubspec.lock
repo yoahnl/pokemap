@@ -356,7 +356,7 @@ packages:
     source: hosted
     version: "2.0.35"
   flutter_riverpod:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: flutter_riverpod
       sha256: e2026c72738a925a60db30258ff1f29974e40716749f3c9850aabf34ffc1a14c
@@ -908,7 +908,7 @@ packages:
     source: hosted
     version: "2.1.8"
   pokemap_hub:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       path: "../../apps/pokemap_hub"
       relative: true

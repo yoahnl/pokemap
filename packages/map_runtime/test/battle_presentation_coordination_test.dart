@@ -1,4 +1,5 @@
-import 'dart:ui' show Canvas, PictureRecorder;
+import 'dart:io';
+import 'dart:ui' show Canvas, PictureRecorder, ImageByteFormat;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -93,6 +94,21 @@ Future<void> _pump(BattleOverlayComponent overlay, double seconds) async {
 }
 
 typedef BattleSfxPlayerLog = List<String>;
+
+Future<String> _projectBallSprite() async {
+  final directory = await Directory.systemTemp.createTemp('project-ball-');
+  addTearDown(() => directory.delete(recursive: true));
+  final recorder = PictureRecorder();
+  Canvas(recorder);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(64, 2048);
+  picture.dispose();
+  final bytes = await image.toByteData(format: ImageByteFormat.png);
+  image.dispose();
+  final sprite = File('${directory.path}/animation.png');
+  await sprite.writeAsBytes(bytes!.buffer.asUint8List());
+  return sprite.path;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -222,13 +238,27 @@ void main() {
       'BETA-BAT-022 : l’intro fait sortir le joueur de sa Poké Ball — '
       'lancer, ouverture, grossissement', () async {
     final seLog = <String>[];
+    final directory = await Directory.systemTemp.createTemp('project-ball-');
+    addTearDown(() => directory.delete(recursive: true));
+    final picture = PictureRecorder();
+    Canvas(picture);
+    final recording = picture.endRecording();
+    final image = await recording.toImage(64, 2048);
+    recording.dispose();
+    final bytes = await image.toByteData(format: ImageByteFormat.png);
+    image.dispose();
+    final sprite = File('${directory.path}/animation.png');
+    await sprite.writeAsBytes(bytes!.buffer.asUint8List());
     final overlay = BattleOverlayComponent(
       session: _fatalSession(),
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
       introEnabled: true,
+      resolveBallSpritePath: (_) async => sprite.path,
+      resolveCombatantBallItemId: (_, __) => 'project_capture_item',
       playSfx: (name, {required volume, required pitch}) => seLog.add(name),
     );
+    addTearDown(overlay.onRemove);
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
 
@@ -332,15 +362,18 @@ void main() {
     final seLog = <String>[];
     final pitchLog = <int>[];
     final before = _fatalSession();
+    final sprite = await _projectBallSprite();
     final overlay = BattleOverlayComponent(
       session: before,
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
+      resolveBallSpritePath: (_) async => sprite,
       playSfx: (name, {required volume, required pitch}) {
         seLog.add(name);
         pitchLog.add(pitch);
       },
     );
+    addTearDown(overlay.onRemove);
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
     // La planche de Ball se charge en fond (chemin sans intro) : lui laisser
@@ -442,15 +475,18 @@ void main() {
     final seLog = <String>[];
     final pitchLog = <int>[];
     final before = _fatalSession();
+    final sprite = await _projectBallSprite();
     final overlay = BattleOverlayComponent(
       session: before,
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
+      resolveBallSpritePath: (_) async => sprite,
       playSfx: (name, {required volume, required pitch}) {
         seLog.add(name);
         pitchLog.add(pitch);
       },
     );
+    addTearDown(overlay.onRemove);
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
     for (var i = 0; i < 20; i++) {

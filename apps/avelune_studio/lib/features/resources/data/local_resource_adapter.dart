@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:map_authoring/map_authoring.dart' show MapAuthoringException;
+import 'package:map_authoring/map_authoring.dart'
+    show MapAuthoringException, AssetCatalog;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
@@ -10,29 +12,75 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/resource_port.dart';
+import '../domain/resource_mutation_preparation.dart';
+import '../domain/resource_lifecycle_port.dart';
+import '../domain/resource_usage_port.dart';
+import 'local_resource_usage_adapter.dart';
 import 'border_resource_sources.dart';
 import 'resource_no_change.dart';
 
 part 'local_border_resource_adapter.dart';
 part 'local_resource_character_operations.dart';
+part 'local_resource_mutation.dart';
+part 'local_resource_preparation.dart';
+part 'local_resource_receipt.dart';
+part 'local_resource_reconciliation.dart';
+part 'local_resource_lifecycle_preparation.dart';
+part 'local_resource_lifecycle_apply.dart';
+part 'local_character_removal_adapter.dart';
 
-final class LocalResourceAdapter implements ResourcePort {
-  LocalResourceAdapter({required this.session, required this.mapAdapter});
+final class LocalResourceAdapter
+    implements
+        ResourcePort,
+        ResourceMutationPreparationPort,
+        ResourceLifecyclePreparationPort,
+        ResourceUsageProvider {
+  LocalResourceAdapter({
+    required this.session,
+    required this.mapAdapter,
+    this.beforeTransactionPrecondition,
+    this.beforeReconciliation,
+  });
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   bool _disposed = false;
+  final Future<void> Function()? beforeTransactionPrecondition;
+  final Future<void> Function()? beforeReconciliation;
+  final Set<ResourceMutationPreparation> _appliedPreparations = {};
+  final Map<ResourceMutationPreparation, _ResourcePreparedContext> _prepared =
+      {};
+  @override
+  late final ResourceUsagePort usages = LocalResourceUsageAdapter(
+    session: session,
+  );
 
-  static const _actions = {
+  static final _actions = {
+    'asset.move',
+    'asset.delete',
+    'asset.replace',
+    'element.delete',
+    'element.duplicate',
+    'tileset.source.replace',
+    'tileset.remove',
+    ...ResourceManagementActions.actionIds,
     'tileset.import_image',
     'element.upsert',
     'smart_tile.preset.draft.upsert',
     'smart_tile.preset.publish',
+    'smart_tile.preset.rename',
+    'smart_tile.preset.duplicate',
+    'smart_tile.preset.delete',
+    'smart_tile.preset.draft.delete',
     'border.blueprint.draft.upsert',
     'border.blueprint.publish',
+    'border.blueprint.delete',
+    'border.blueprint.set_deprecated',
     'map.library.reorganize',
     'characterStudio.character.create',
     'characterStudio.character.update',
+    'characterStudio.character.deletePlan',
+    'characterStudio.character.delete',
     'characterStudio.animationClip.upsert',
     'characterStudio.animationClip.delete',
     'characterStudio.portraitState.create',
@@ -70,227 +118,131 @@ final class LocalResourceAdapter implements ResourcePort {
     Map<String, Object?> parameters,
   ) => _run(actionId, (_) => parameters);
 
+  Future<ResourceMutationReceipt> replaceAsset(
+    String assetId,
+    String sourcePath,
+  ) => _run(
+    'asset.replace',
+    (_) => {'assetId': assetId},
+    sourcePath: sourcePath,
+  );
+
+  Future<ResourceMutationReceipt> removeUnusedElement(
+    String id, {
+    required bool confirm,
+  }) => _run(
+    'element.delete',
+    (_) => {'elementId': id},
+    confirmDestructive: confirm,
+  );
+
   @override
   Future<ResourceMutationReceipt> saveElement(ProjectElementEntry element) =>
       _saveResourceElement(this, element);
 
-  Future<ResourceMutationReceipt> _run(
+  void _requireAvailable() {
+    if (_disposed) throw const ResourceFailure('Le projet a été fermé.');
+  }
+
+  @override
+  Future<String> captureResourceRevision() =>
+      _readResourceSnapshot(this, (snapshot, _) => snapshot.revision);
+
+  @override
+  Future<String?> resourceFingerprint(String tilesetId, String revision) =>
+      _readResourceFingerprint(this, tilesetId, revision);
+
+  @override
+  Future<void> reconcileReceipt(ResourceMutationReceipt receipt) =>
+      _reconcileResourceReceipt(this, receipt);
+
+  @override
+  Future<ResourceMutationPreparation> prepareOperation(
     String actionId,
-    Map<String, Object?> Function(ProjectManifest manifest) parameters, {
-    String? sourcePath,
-    String? createdTilesetId,
-    List<BorderResourcePrimitive>? borderSources,
-    String? expectedBeforeRevision,
-  }) => mapAdapter.withResourceMutation(() async {
-    try {
-      if (_disposed || !_actions.contains(actionId)) {
-        throw const ResourceFailure(
-          'Cette opération de ressource est indisponible.',
+    Map<String, Object?> parameters, {
+    String? expectedSnapshotRevision,
+  }) => _lifecycleActions.contains(actionId)
+      ? _prepareLifecycleOperation(
+          this,
+          actionId,
+          parameters,
+          expectedSnapshotRevision: expectedSnapshotRevision,
+        )
+      : _prepareResourceOperation(
+          this,
+          actionId,
+          parameters,
+          expectedSnapshotRevision,
         );
-      }
-      final before = await mapAdapter.resourceBaseline(session);
-      if (expectedBeforeRevision != null &&
-          before.revision != expectedBeforeRevision) {
-        throw const ResourceFailure(
-          'Le projet a changé pendant la préparation. Reprenez la bordure.',
-        );
-      }
-      final fields = Map<String, Object?>.from(parameters(before.manifest));
-      if (resourceMutationIsUnchanged(before.manifest, actionId, fields)) {
-        await mapAdapter.resourceBaseline(session);
-        return ResourceMutationReceipt(
-          before: before.manifest,
-          manifest: before.manifest,
-          beforeRevision: before.revision,
-          revision: before.revision,
-          changedPaths: const [],
-        );
-      }
-      const reader = LocalProjectFileReader();
-      final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [session.directoryPath],
-        fileReader: reader,
-      );
-      final handles = WorkspaceHandleStore();
-      final opened = await ProjectOpenService(
-        policy: policy,
-        fileReader: reader,
-        handles: handles,
-      ).openProject(session.directoryPath);
-      final snapshots = ProjectSnapshotLoader(handles: handles);
-      final artifacts = LocalArtifactStore(
-        allowedSourceRoots: [session.directoryPath],
-        maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
-      );
-      final api = LocalMapAuthoringMutationApi(
-        policy: policy,
-        snapshotLoader: snapshots,
-        artifactStore: artifacts,
-      );
-      String? artifactHandle;
-      final stagedHandles = <String>{};
-      var attached = false;
-      try {
-        if (sourcePath != null) {
-          await artifacts.authorizeSourceFile(sourcePath);
-          final staged = await api.stageArtifactFile(
-            sourcePath: sourcePath,
-            declaredMediaType: 'image/png',
-          );
-          artifactHandle = staged.reference.handle;
-          stagedHandles.add(artifactHandle);
-          fields['artifactHandle'] = artifactHandle;
-        }
-        if (borderSources != null) {
-          final handlesByPath = <String, String>{};
-          fields['primitiveSources'] = <Object?>[
-            for (final source in borderSources)
-              <String, Object?>{
-                'primitiveId': source.draft.id,
-                'frames': <Object?>[
-                  for (final frame in source.frames)
-                    <String, Object?>{
-                      'artifactHandle': await _stageBorderFrame(
-                        api,
-                        artifacts,
-                        frame,
-                        handlesByPath,
-                        stagedHandles,
-                      ),
-                      'sourceProjectRelativePath': frame.relativePath,
-                      'sourceRectPx': <String, int>{
-                        'x': frame.rect.x,
-                        'y': frame.rect.y,
-                        'width': frame.rect.width,
-                        'height': frame.rect.height,
-                      },
-                      if (frame.durationMs != null)
-                        'durationMs': frame.durationMs,
-                      if (frame.transparentColorArgb != null)
-                        'transparentColorArgb': frame.transparentColorArgb,
-                    },
-                ],
-              },
-          ];
-        }
-        await api.attachProject(
-          projectRootPath: session.directoryPath,
-          workspaceHandle: opened.workspaceHandle,
-          projectHandle: opened.projectHandle,
-        );
-        attached = true;
-        final snapshot = await snapshots.load(
-          opened.projectHandle,
-          policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-        );
-        if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-            before.revision) {
-          throw const ResourceFailure(
-            'Le projet a changé sur le disque. Rien n’a été écrasé.',
-          );
-        }
-        final operationId = _identity('resource');
-        final planned = await api.planMutation(
-          opened.projectHandle,
-          AuthoringRequest(
-            requestId: operationId,
-            actionId: actionId,
-            actionVersion: 1,
-            workspaceHandle: opened.workspaceHandle.value,
-            parameters: fields,
-            expectedRevision: snapshot.revision,
-            idempotencyKey: operationId,
-          ),
-        );
-        final changes = planned.plan.changeSet.changes;
-        final mapPaths = before.manifest.maps
-            .map((map) => map.relativePath)
-            .toSet();
-        if (changes.any(
-          (change) =>
-              change.resource.kind == 'map' ||
-              mapPaths.contains(change.storageKey),
-        )) {
-          throw const ResourceFailure(
-            'Cette publication toucherait une carte. Le travail ouvert a été préservé.',
-          );
-        }
-        final manifestChanges = changes.where(
-          (change) => change.storageKey == 'project.json',
-        );
-        if (manifestChanges.isEmpty && changes.isEmpty) {
-          await mapAdapter.resourceBaseline(session);
-          return ResourceMutationReceipt(
-            before: before.manifest,
-            manifest: before.manifest,
-            beforeRevision: before.revision,
-            revision: before.revision,
-            changedPaths: const [],
-          );
-        }
-        final bytes = manifestChanges.single.afterBytes;
-        if (bytes == null) throw const FormatException('Manifest missing.');
-        final manifest = ProjectManifest.fromJson(
-          jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
-        );
-        if (actionId != 'map.library.reorganize' &&
-            jsonEncode(before.manifest.maps) != jsonEncode(manifest.maps)) {
-          throw const ResourceFailure(
-            'Une ressource ne peut pas remplacer le catalogue de cartes.',
-          );
-        }
-        final receipt = ResourceMutationReceipt(
-          before: before.manifest,
-          manifest: manifest,
-          beforeRevision: before.revision,
-          revision: narrativeEventBytesFingerprint(bytes),
-          changedPaths: List.unmodifiable(
-            changes.map((change) => change.storageKey),
-          ),
-          createdTilesetId: createdTilesetId,
-        );
-        if (_disposed) throw const ResourceFailure('Le projet a été fermé.');
-        try {
-          await api.applyMutation(
-            opened.projectHandle,
-            planId: planned.planId,
-            operationId: operationId,
-          );
-        } on Object catch (failure) {
-          try {
-            await api.recoverMutation(
-              opened.projectHandle,
-              operationId: operationId,
-            );
-          } on Object {
-            throw ResourceFailure(
-              'La publication a échoué. Le journal de reprise $operationId est conservé ; votre carte reste ouverte. $failure',
-            );
-          }
-        }
-        await mapAdapter.acceptResourceMutation(
-          session,
-          receipt,
-          allowMapOrganization: actionId == 'map.library.reorganize',
-        );
-        return receipt;
-      } finally {
-        for (final handle in stagedHandles) {
-          await artifacts.release(handle);
-        }
-        if (attached) await api.detachWorkspace(opened.workspaceHandle);
-        handles.closeWorkspace(opened.workspaceHandle);
-      }
-    } on ResourceFailure {
-      rethrow;
-    } on Object catch (error) {
-      throw _resourceFailure(error);
+
+  @override
+  Future<ResourceReplacementPreview> prepareReplacement(
+    ResourceReplacementRequest request,
+  ) => _prepareResourceReplacement(this, request);
+
+  @override
+  Future<void> releasePreparation(
+    ResourceMutationPreparation preparation,
+  ) async {
+    final active = _prepared[preparation];
+    if (active?.applying == true) {
+      active!.releaseRequested = true;
+      return;
     }
-  });
+    final context = _prepared.remove(preparation);
+    if (context != null) await context.close();
+  }
+
+  @override
+  Future<ResourceMutationReceipt> applyPrepared(
+    ResourceMutationPreparation preparation, {
+    bool confirmDestructive = false,
+    String? Function()? validateBeforeApply,
+  }) async {
+    _requireAvailable();
+    if (preparation.actionId == 'characterStudio.character.deletePlan') {
+      throw const ResourceFailure(
+        'L’inspection ne peut pas être appliquée. Préparez le retrait après avoir choisi une résolution.',
+      );
+    }
+    if (preparation.sessionId != session.sessionId ||
+        !_appliedPreparations.add(preparation)) {
+      throw const ResourceFailure(
+        'Cette préparation est déjà appliquée ou appartient à un autre projet.',
+      );
+    }
+    try {
+      if (_lifecycleActions.contains(preparation.actionId)) {
+        return await _applyLifecycleOperation(
+          this,
+          preparation,
+          confirmDestructive: confirmDestructive,
+          validateBeforeApply: validateBeforeApply,
+        );
+      }
+      return await _run(
+        preparation.actionId,
+        (_) => preparation.parameters,
+        expectedBeforeRevision: preparation.manifestRevision,
+        expectedSnapshotRevision: preparation.snapshotRevision,
+        confirmDestructive: confirmDestructive,
+        validateBeforeApply: validateBeforeApply,
+      );
+    } on ResourceFailure catch (failure) {
+      if (failure.partialReceipt == null) {
+        _appliedPreparations.remove(preparation);
+      }
+      rethrow;
+    }
+  }
 
   @override
   Future<void> dispose() async {
     _disposed = true;
+    for (final preparation in _prepared.keys.toList()) {
+      await releasePreparation(preparation);
+    }
+    await usages.dispose();
   }
 
   String _identity(String prefix) =>

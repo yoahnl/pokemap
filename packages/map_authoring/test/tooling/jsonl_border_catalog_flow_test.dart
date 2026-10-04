@@ -12,10 +12,256 @@ typedef _ApplyAction = Future<Map<String, Object?>> Function({
 });
 
 void main() {
+  test(
+      'new placement is refused when blueprint is deprecated after the initial check',
+      () async {
+    final harness = await BorderCatalogHarness.create('uwu5-border-late');
+    addTearDown(harness.dispose);
+    await harness.runJsonlLifecycle();
+    final projectFile = File('${harness.root.path}/project.json');
+    final raw =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    final record = (raw['borderCatalog']['records'] as List).single as Map;
+    record['isDeprecated'] = false;
+    raw['maps'] = [
+      {'id': 'closed', 'name': 'Carte fermée', 'relativePath': 'closed.json'}
+    ];
+    final map = MapData(
+        id: 'closed',
+        name: 'Carte fermée',
+        version: ProjectVersion.v8,
+        size: const GridSize(width: 6, height: 6),
+        layers: const [BorderLayer(id: 'border', name: 'Bordures')]);
+    final mapFile = File('${harness.root.path}/closed.json');
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    await projectFile.writeAsString(jsonEncode(raw));
+    final opened =
+        await harness._jsonl('open', {'projectRoot': harness.root.path});
+    final project = opened['projectHandle'] as String;
+    final validation =
+        await harness._jsonl('validate', {'projectHandle': project});
+    final plan = await harness._jsonl('plan', {
+      'projectHandle': project,
+      'request': _request(
+          workspaceHandle: opened['workspaceHandle'] as String,
+          revision: validation['snapshotRevision'] as String,
+          actionId: 'border_layer.feature_create',
+          sequence: 'late-placement',
+          parameters: {
+            'mapId': 'closed',
+            'layerId': 'border',
+            'featureId': 'new',
+            'name': 'Trait nouveau',
+            'blueprintId': 'fence',
+            'seed': '17',
+            'geometry':
+                encodeBorderFeatureGeometryJson(BorderStrokeGeometry(strokes: [
+              BorderStroke(
+                  id: 'stroke',
+                  closed: false,
+                  points: const [GridPos(x: 1, y: 1), GridPos(x: 2, y: 1)])
+            ]))
+          }).toJson()
+    });
+    final before = await mapFile.readAsBytes();
+    var initialPassed = false;
+    await expectLater(
+        harness.mutations.applyMutation(ProjectHandle(project),
+            planId: plan['planId'] as String,
+            operationId: 'late-placement', precondition: () async {
+          initialPassed = true;
+          record['isDeprecated'] = true;
+          await projectFile.writeAsString(jsonEncode(raw));
+        }),
+        throwsA(isA<AuthoringPlanException>()
+            .having((error) => error.code, 'code', 'plan.stale')));
+    expect(initialPassed, true);
+    expect(await mapFile.readAsBytes(), before);
+    expect(
+        MapData.fromJson(jsonDecode(await mapFile.readAsString()))
+            .layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .features,
+        isEmpty);
+  });
+
+  test(
+      'JSONL border status preserves dirty draft snapshots maps and raw metadata',
+      () async {
+    final harness = await BorderCatalogHarness.create('uwu5-border-status');
+    addTearDown(harness.dispose);
+    await harness.runJsonlLifecycle();
+    final file = File('${harness.root.path}/project.json');
+    final original =
+        ProjectManifest.fromJson(jsonDecode(await file.readAsString()));
+    final record = original.borderCatalog.records.single;
+    final dirty = BorderBlueprintDraft(
+        baseRevision: record.latestPublished!.revision,
+        definition: BorderBlueprintDraftDefinition(
+            name: 'Préparation non publiée',
+            previewSeed: record.draft.definition.previewSeed,
+            template: record.draft.definition.template,
+            primitives: record.draft.definition.primitives,
+            defaults: record.draft.definition.defaults,
+            ground: record.draft.definition.ground,
+            categoryId: record.draft.definition.categoryId,
+            sortOrder: record.draft.definition.sortOrder));
+    final feature = BorderFeature(
+        id: 'existing',
+        name: 'Clôture',
+        blueprintId: 'fence',
+        seed: BorderSignedInt64.fromInt(17),
+        geometry: BorderStrokeGeometry(strokes: [
+          BorderStroke(
+              id: 'line',
+              points: const [
+                GridPos(x: 1, y: 1),
+                GridPos(x: 2, y: 1),
+                GridPos(x: 3, y: 1)
+              ],
+              closed: false)
+        ]),
+        overrides: const [],
+        keepOutRegions: const []);
+    final map = MapData(
+        id: 'closed',
+        name: 'Carte fermée',
+        version: ProjectVersion.v8,
+        size: const GridSize(width: 6, height: 6),
+        layers: [
+          BorderLayer(
+              id: 'border',
+              name: 'Bordures',
+              content: BorderLayerContent(features: [feature]))
+        ]);
+    final mapFile = File('${harness.root.path}/closed.json');
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    final prepared = original.copyWith(
+        maps: const [
+          ProjectMapEntry(
+              id: 'closed', name: 'Carte fermée', relativePath: 'closed.json')
+        ],
+        borderCatalog: ProjectBorderCatalog(
+            formatVersion: original.borderCatalog.formatVersion,
+            records: [
+              BorderBlueprintRecord(
+                  id: record.id,
+                  draft: dirty,
+                  latestPublished: record.latestPublished,
+                  isDeprecated: true)
+            ],
+            visualSnapshots: original.borderCatalog.visualSnapshots));
+    final raw = prepared.toJson();
+    (raw['elements'] as List).single['unrelatedMetadata'] = {
+      'nested': ['été', 12]
+    };
+    await file.writeAsString(jsonEncode(raw));
+    final rawElements = jsonEncode(raw['elements']);
+    final mapBytes = await mapFile.readAsBytes();
+    BorderMaterialization resolution(ProjectManifest manifest) {
+      final preview = const BorderActions().preview(
+          manifest: manifest,
+          map: map,
+          layerId: 'border',
+          featureId: 'existing',
+          projectRevision: 'fixed',
+          tileSizePx: const GridSize(width: 16, height: 16),
+          resolverVersion: 1);
+      expect(preview.result.materialization, isNotNull);
+      return preview.result.materialization!;
+    }
+
+    final originalRendering = resolution(prepared);
+    final snapshotBytes = <String, List<int>>{};
+    for (final snapshot in original.borderCatalog.visualSnapshots) {
+      for (final frame in snapshot.frames) {
+        snapshotBytes[frame.relativeAssetPath] =
+            await File('${harness.root.path}/${frame.relativeAssetPath}')
+                .readAsBytes();
+      }
+    }
+    final opened =
+        await harness._jsonl('open', {'projectRoot': harness.root.path});
+    final project = opened['projectHandle'] as String;
+    final usages = await harness._jsonl('query', {
+      'projectHandle': project,
+      'request': AuthoringQueryRequest(
+              resourceKind: 'resourceUsage',
+              operation: AuthoringQueryOperation.get,
+              ids: ['borders:fence'],
+              view: AuthoringQueryView.detail)
+          .toJson()
+    });
+    expect(usages['items'], hasLength(1));
+    var operation = 0;
+    for (final value in [false, true, false]) {
+      final validation =
+          await harness._jsonl('validate', {'projectHandle': project});
+      final plan = await harness._jsonl('plan', {
+        'projectHandle': project,
+        'request': _request(
+                workspaceHandle: opened['workspaceHandle'] as String,
+                revision: validation['snapshotRevision'] as String,
+                actionId: 'border.blueprint.set_deprecated',
+                parameters: {'blueprintId': 'fence', 'isDeprecated': value},
+                sequence: 'status-$value-${validation['snapshotRevision']}')
+            .toJson()
+      });
+      expect(jsonDecode(await file.readAsString()), raw);
+      final confirmed = await harness._jsonl(
+          'confirm', {'projectHandle': project, 'planId': plan['planId']});
+      await harness._jsonl('apply', {
+        'projectHandle': project,
+        'planId': plan['planId'],
+        'operationId': 'border-status-${operation++}',
+        'confirmationToken': confirmed['confirmationToken']
+      });
+      raw.addAll(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+      final current = ProjectManifest.fromJson(raw);
+      final updated = current.borderCatalog.records.single;
+      expect(updated.isDeprecated, value);
+      expect(updated.draft, dirty);
+      expect(updated.latestPublished, record.latestPublished);
+      expect(current.borderCatalog.visualSnapshots,
+          original.borderCatalog.visualSnapshots);
+      final rendered = resolution(current);
+      expect(rendered.placements, originalRendering.placements);
+      expect(rendered.ground, originalRendering.ground);
+      expect(rendered.receipt.outputFingerprint,
+          originalRendering.receipt.outputFingerprint);
+      expect(jsonEncode(raw['elements']), rawElements);
+      expect(await mapFile.readAsBytes(), mapBytes);
+      for (final entry in snapshotBytes.entries) {
+        expect(await File('${harness.root.path}/${entry.key}').readAsBytes(),
+            entry.value);
+      }
+    }
+    await harness
+        ._jsonl('close', {'workspaceHandle': opened['workspaceHandle']});
+    final reopened = await harness.readApi.open(harness.root.path);
+    final independent = await harness.snapshots
+        .load(ProjectHandle(reopened['projectHandle'] as String));
+    expect(independent.manifest.borderCatalog.records.single.draft, dirty);
+    expect(independent.manifest.borderCatalog.records.single.latestPublished,
+        record.latestPublished);
+    expect(
+        independent.manifest.borderCatalog.records.single.isDeprecated, false);
+    expect(
+        independent.maps.single.layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .features
+            .single,
+        feature);
+  });
+
   test('Border blueprint lifecycle is byte-identical through direct and JSONL',
       () async {
-    final direct = await _Harness.create('direct');
-    final jsonl = await _Harness.create('jsonl');
+    final direct = await BorderCatalogHarness.create('direct');
+    final jsonl = await BorderCatalogHarness.create('jsonl');
     addTearDown(direct.dispose);
     addTearDown(jsonl.dispose);
 
@@ -48,7 +294,8 @@ void main() {
 
   test('JSONL rejects disconnected anchors then receipts the repaired publish',
       () async {
-    final harness = await _Harness.create('jsonl-connected-anchor-repair');
+    final harness =
+        await BorderCatalogHarness.create('jsonl-connected-anchor-repair');
     addTearDown(harness.dispose);
     final opened = await harness._jsonl('open', <String, Object?>{
       'projectRoot': harness.root.path,
@@ -180,8 +427,8 @@ void main() {
   });
 }
 
-final class _Harness {
-  const _Harness({
+final class BorderCatalogHarness {
+  const BorderCatalogHarness({
     required this.root,
     required this.readApi,
     required this.mutations,
@@ -195,7 +442,8 @@ final class _Harness {
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
 
-  static Future<_Harness> create(String suffix) async {
+  static Future<BorderCatalogHarness> create(String suffix,
+      {AuthoringTransactionFaultInjector? faultInjector}) async {
     final root = await Directory.systemTemp.createTemp(
       'pokemap-border-catalog-$suffix-',
     );
@@ -245,8 +493,9 @@ final class _Harness {
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: snapshots,
+      faultInjector: faultInjector,
     );
-    return _Harness(
+    return BorderCatalogHarness(
       root: root,
       readApi: readApi,
       mutations: mutations,

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
-
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
 import 'studio_resource_decoder.dart';
 
@@ -128,15 +127,17 @@ final class StudioImageStore {
       final aliases = images.keys
           .where((id) => identical(images[id], image))
           .toSet();
+      for (final id in aliases.intersection(ids)) {
+        images.remove(id);
+      }
+      if (aliases.difference(ids).isNotEmpty) continue;
       final owners = {
         for (final entry in _leases.entries)
           if (entry.value.any(aliases.contains)) entry.key,
       };
-      images.removeWhere((id, value) => identical(value, image));
       _cache.evictImage(image, dispose: owners.isEmpty);
       _used.remove(image);
       if (owners.isNotEmpty) _retired[image] = owners;
-      ids = {...ids, ...aliases};
     }
     for (final id in ids) {
       _failures.remove(id);

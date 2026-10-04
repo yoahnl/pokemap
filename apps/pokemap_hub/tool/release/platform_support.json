@@ -49,16 +49,16 @@
       "deviceDistribution": "xcode-cloud"
     },
     "android": {
-      "status": "build-target",
-      "distributionLifecycle": "planned-native-host",
-      "releaseGate": "none",
+      "status": "build-and-distribution-target",
+      "distributionLifecycle": "native-kotlin-host",
+      "releaseGate": "github-actions",
       "capabilities": {
         "image": "supported",
         "audio": "supported",
         "video": "supported",
         "captions": "supported"
       },
-      "deviceDistribution": "none"
+      "deviceDistribution": "google-play-internal"
     },
     "web": {
       "status": "unsupported",

@@ -6,6 +6,312 @@ import 'package:test/test.dart';
 
 void main() {
   group('Smart Tile draft actions', () {
+    test(
+        'lifecycle descriptors expose exact selectors and strict input schemas',
+        () {
+      for (final id in [
+        'smart_tile.preset.rename',
+        'smart_tile.preset.duplicate'
+      ]) {
+        final descriptor = SmartTileCatalogActions.descriptors
+            .firstWhere((item) => item.id == id);
+        final schema = descriptor.extensions['inputSchema'] as Map;
+        expect(schema['additionalProperties'], isFalse);
+        expect(schema['oneOf'], [
+          {
+            'required': ['presetId']
+          },
+          {
+            'required': ['draftId']
+          }
+        ]);
+        expect((schema['properties'] as Map).keys,
+            containsAll(['name', 'presetId', 'draftId']));
+      }
+    });
+    test('normalized identical rename is a genuine empty change set', () {
+      final fixture =
+          _fixture(presets: [_publishedPreset()], publishedResources: true);
+      final mutation = _build(fixture,
+          actionId: 'smart_tile.preset.rename',
+          parameters: {'presetId': 'grass', 'name': '  Published grass  '});
+      expect(mutation.changeSet.changes, isEmpty);
+    });
+
+    test(
+        'rename only a saved draft preserves its publication and other draft fields',
+        () {
+      final original = _completeDraft().copyWith(sourcePresetId: 'grass');
+      final fixture = _fixture(
+          presets: [_publishedPreset()],
+          drafts: [original],
+          publishedResources: true);
+      final mutation = _build(fixture,
+          actionId: 'smart_tile.preset.rename',
+          parameters: {'draftId': original.id, 'name': 'Raccords en cours'});
+      final catalog = _projectedManifest(mutation).smartTileCatalog;
+      expect(catalog.presets, fixture.manifest.smartTileCatalog.presets);
+      expect(
+          catalog.drafts.single, original.copyWith(name: 'Raccords en cours'));
+    });
+
+    test('duplicate published preset preserves all rules and is not published',
+        () {
+      final preset = _publishedPreset().copyWith(
+          tags: ['été'],
+          seedSalt: 83,
+          transformPolicy: const SmartTileTransformPolicy(allowHFlip: true));
+      final fixture = _fixture(presets: [preset], publishedResources: true);
+      final mutation =
+          _build(fixture, actionId: 'smart_tile.preset.duplicate', parameters: {
+        'presetId': preset.id,
+        'newDraftId': 'draft-copy',
+        'targetPresetId': 'copy',
+        'name': 'Copie publiée'
+      });
+      final catalog = _projectedManifest(mutation).smartTileCatalog;
+      final copy = catalog.drafts.single;
+      expect(catalog.presets.single, preset);
+      expect(copy.tags, preset.tags);
+      expect(copy.transformPolicy, preset.transformPolicy);
+      expect(copy.seedSalt, preset.seedSalt);
+      expect(copy.atlases.single.tilesetId, _publishedAtlas.tilesetId);
+      expect(copy.sourcePresetId, isNull);
+      expect(mutation.preview['sourceVersion'], 'published');
+    });
+
+    test(
+        'duplicate refuses a destination already published or targeted by another draft',
+        () {
+      final source = _completeDraft(targetPresetId: 'unpublished');
+      for (final fixture in [
+        _fixture(
+            presets: [_publishedPreset()],
+            drafts: [source],
+            publishedResources: true),
+        _fixture(drafts: [
+          source,
+          _completeDraft(id: 'other', targetPresetId: 'grass')
+        ]),
+      ]) {
+        expect(
+            () => _build(fixture,
+                    actionId: 'smart_tile.preset.duplicate',
+                    parameters: {
+                      'draftId': source.id,
+                      'newDraftId': 'new-copy',
+                      'targetPresetId': 'grass',
+                      'name': 'Copie'
+                    }),
+            throwsA(_domainCode('smart_tile.duplicate.identity_conflict')));
+      }
+    });
+
+    test('lifecycle actions reject ambiguous or unexpected fields', () {
+      final fixture = _fixture(drafts: [_completeDraft()]);
+      for (final parameters in [
+        {'draftId': 'draft-grass', 'presetId': 'grass', 'name': 'Nom'},
+        {'draftId': 'draft-grass', 'name': 'Nom', 'rules': []},
+        {'name': 'Nom'},
+      ]) {
+        expect(
+            () => _build(fixture,
+                actionId: 'smart_tile.preset.rename', parameters: parameters),
+            throwsA(isA<MapAuthoringException>()));
+      }
+    });
+    test('rename changes published and linked draft names without publication',
+        () {
+      final original = _completeDraft().copyWith(
+        sourcePresetId: 'grass',
+        name: 'Préparation modifiée',
+        tags: ['conserver'],
+      );
+      final fixture = _fixture(
+        presets: [_publishedPreset()],
+        drafts: [original],
+        publishedResources: true,
+      );
+      final mutation = _build(fixture,
+          actionId: 'smart_tile.preset.rename',
+          parameters: {'presetId': 'grass', 'name': '  Chemin fleuri  '});
+      final projected = _projectedManifest(mutation).smartTileCatalog;
+      expect(
+          projected.presets.single,
+          fixture.manifest.smartTileCatalog.presets.single
+              .copyWith(name: 'Chemin fleuri'));
+      expect(projected.drafts.single, original.copyWith(name: 'Chemin fleuri'));
+      expect(projected.atlases, fixture.manifest.smartTileCatalog.atlases);
+      expect(mutation.changeSet.changes.map((change) => change.resource.kind),
+          ['project']);
+    });
+
+    test(
+        'duplicate creates an independent draft and isolates editable resources',
+        () {
+      final original = _completeDraft().copyWith(tags: ['copie complète']);
+      final fixture = _fixture(drafts: [original]);
+      final mutation =
+          _build(fixture, actionId: 'smart_tile.preset.duplicate', parameters: {
+        'draftId': original.id,
+        'newDraftId': 'draft-copy',
+        'targetPresetId': 'copy',
+        'name': 'Copie',
+      });
+      final catalog = _projectedManifest(mutation).smartTileCatalog;
+      final copy =
+          catalog.drafts.firstWhere((draft) => draft.id == 'draft-copy');
+      expect(catalog.drafts.firstWhere((draft) => draft.id == original.id),
+          original);
+      expect(copy.targetPresetId, 'copy');
+      expect(copy.sourcePresetId, isNull);
+      expect(copy.sourceTilesetIds, original.sourceTilesetIds);
+      expect(copy.tags, original.tags);
+      expect(copy.rules.single.candidates.single.weight,
+          original.rules.single.candidates.single.weight);
+      expect(copy.atlases.single.id, isNot(original.atlases.single.id));
+      expect(copy.atlases.single.tilesetId, original.atlases.single.tilesetId);
+      expect(copy.materials.single.id, isNot(original.materials.single.id));
+      expect(copy.primaryAtlasId, copy.atlases.single.id);
+      expect(copy.defaultMaterialId, copy.materials.single.id);
+      final source = copy.rules.single.candidates.single.parts.single.source
+          as SmartTileFrameSource;
+      expect(source.frame.atlasId, copy.atlases.single.id);
+      expect(catalog.presets, isEmpty);
+    });
+
+    test('duplicate refuses an existing draft identity instead of upserting it',
+        () {
+      final original = _completeDraft();
+      final fixture = _fixture(drafts: [original]);
+      expect(
+          () => _build(fixture,
+                  actionId: 'smart_tile.preset.duplicate',
+                  parameters: {
+                    'draftId': original.id,
+                    'newDraftId': original.id,
+                    'targetPresetId': 'copy',
+                    'name': 'Copie'
+                  }),
+          throwsA(_domainCode('smart_tile.duplicate.identity_conflict')));
+    });
+
+    test('duplicate isolates dependencies inherited by a saved draft', () {
+      final original = ProjectSmartTileAuthoringDraft.fromJson({
+        ..._publishedPreset().toJson()..remove('status'),
+        'id': 'inherited',
+        'targetPresetId': 'original-draft',
+        'lastStage': 'connections',
+        'sourceTilesetIds': ['tileset'],
+        'primaryAtlasId': 'published-atlas',
+      });
+      final fixture = _fixture(
+          drafts: [original],
+          presets: [_publishedPreset()],
+          publishedResources: true);
+      final mutation =
+          _build(fixture, actionId: 'smart_tile.preset.duplicate', parameters: {
+        'draftId': original.id,
+        'newDraftId': 'copy-draft',
+        'targetPresetId': 'copy',
+        'name': 'Copie'
+      });
+      final projected = _projectedManifest(mutation);
+      final copy = projected.smartTileCatalog.drafts.last;
+      expect(copy.atlases.single.id, isNot('published-atlas'));
+      expect(copy.materials.single.id, isNot('published-grass'));
+      expect(copy.primaryAtlasId, copy.atlases.single.id);
+      expect(copy.defaultMaterialId, copy.materials.single.id);
+      expect(projected.smartTileCatalog.drafts.first, original);
+      expect(
+          compileSmartTileAuthoringDraft(
+              draft: copy,
+              catalog: projected.smartTileCatalog,
+              manifest: projected),
+          isA<SmartTileDraftCompilationSuccess>());
+    });
+
+    test('published and saved animated copies preserve exact animation data',
+        () {
+      const animation =
+          ProjectSmartTileAnimation(id: 'wind', name: 'Vent', frames: [
+        ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(
+                atlasId: 'published-atlas', column: 0, row: 0),
+            durationMs: 173)
+      ]);
+      final original = _publishedPreset();
+      final candidate = original.rules.single.candidates.single
+          .copyWith(label: 'Vent d’été', weight: 7, parts: [
+        const SmartTileVisualPart(
+            source: SmartTileVisualSource.animation(animationId: 'wind'))
+      ]);
+      final preset = original.copyWith(rules: [
+        original.rules.single.copyWith(candidates: [candidate]),
+        original.rules.single.copyWith(id: 'fallback', candidates: [candidate])
+      ], fallbackRuleId: 'fallback', seedSalt: 12);
+      final saved = ProjectSmartTileAuthoringDraft.fromJson({
+        ...preset.toJson()..remove('status'),
+        'id': 'saved',
+        'lastStage': 'connections',
+        'targetPresetId': 'saved-target',
+        'primaryAtlasId': 'published-atlas',
+        'sourceTilesetIds': ['tileset']
+      });
+      final fixture = _fixture(
+          presets: [preset],
+          drafts: [saved],
+          animations: [animation],
+          publishedResources: true);
+      for (final selector in [
+        {'presetId': preset.id},
+        {'draftId': saved.id}
+      ]) {
+        final mutation = _build(fixture,
+            actionId: 'smart_tile.preset.duplicate',
+            parameters: {
+              ...selector,
+              'newDraftId': 'copy-draft',
+              'targetPresetId': 'copy',
+              'name': 'Copie'
+            });
+        final catalog = _projectedManifest(mutation).smartTileCatalog;
+        final copy = catalog.drafts.last;
+        final copiedAnimation = copy.animations.single;
+        expect(copiedAnimation.id, isNot(animation.id));
+        expect(
+            copiedAnimation,
+            animation.copyWith(id: copiedAnimation.id, frames: [
+              animation.frames.single.copyWith(
+                  frame: animation.frames.single.frame
+                      .copyWith(atlasId: copy.atlases.single.id))
+            ]));
+        final copiedCandidate = copy.rules.first.candidates.single;
+        expect(copiedCandidate.label, candidate.label);
+        expect(copiedCandidate.weight, candidate.weight);
+        expect(
+            (copiedCandidate.parts.single.source as SmartTileAnimationSource)
+                .animationId,
+            copiedAnimation.id);
+        expect(copy.fallbackRuleId, preset.fallbackRuleId);
+        expect(copy.seedSalt, preset.seedSalt);
+        expect(catalog.animations.single, animation);
+        expect(catalog.presets.single, preset);
+      }
+    });
+
+    test('preset deletion refuses a retained authoring draft dependency', () {
+      final original = _completeDraft().copyWith(sourcePresetId: 'grass');
+      final fixture = _fixture(
+          presets: [_publishedPreset()],
+          drafts: [original],
+          publishedResources: true);
+      expect(
+          () => _build(fixture,
+              actionId: 'smart_tile.preset.delete',
+              parameters: {'presetId': 'grass'}),
+          throwsA(_domainCode('smart_tile.preset.references_blocking')));
+    });
     test('registers durable draft upsert and delete descriptors', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),
@@ -155,10 +461,8 @@ void main() {
         actionId: 'smart_tile.preset.draft.upsert',
         parameters: <String, Object?>{'draft': draft.toJson()},
       );
-      final persistedDraft = _projectedManifest(upsert)
-          .smartTileCatalog
-          .drafts
-          .single;
+      final persistedDraft =
+          _projectedManifest(upsert).smartTileCatalog.drafts.single;
       final publishFixture = _fixture(
         drafts: <ProjectSmartTileAuthoringDraft>[persistedDraft],
       );
@@ -351,6 +655,7 @@ void main() {
   List<ProjectSmartTileAuthoringDraft> drafts =
       const <ProjectSmartTileAuthoringDraft>[],
   bool publishedResources = false,
+  List<ProjectSmartTileAnimation> animations = const [],
 }) {
   final artifact = ContentArtifactRef.fromBytes(
     _pngBytes,
@@ -389,6 +694,7 @@ void main() {
       ),
     ],
     smartTileCatalog: ProjectSmartTileCatalog(
+      animations: animations,
       categories: const <ProjectSmartTileCategory>[
         ProjectSmartTileCategory(id: 'nature', name: 'Nature'),
       ],

@@ -69,8 +69,9 @@ class WorkspaceActions {
 
   Future<bool> allowClose() => _allowClose();
 
-  bool get hasPendingChanges =>
-      controller.dirty ||
+  bool get hasPendingChanges => controller.dirty || hasCatalogDependencyDraft;
+
+  bool get hasCatalogDependencyDraft =>
       resources()?.dirty == true ||
       narrative()?.dirty == true ||
       dialogues?.call()?.dirty == true ||

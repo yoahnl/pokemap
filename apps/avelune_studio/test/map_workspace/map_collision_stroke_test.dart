@@ -111,4 +111,68 @@ void main() {
     );
     expect(document.dirty, isFalse);
   });
+
+  for (final frontFirst in [true, false]) {
+    test(
+      'ground eraser removes the visible path above terrain ($frontFirst)',
+      () {
+        final terrain = MapLayer.smartTile(
+          id: 'terrain',
+          name: 'Pelouse',
+          presetId: 'grass-preset',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const ['', 'grass'],
+          field: SmartTileField.cell(
+            semanticCells: List<int>.filled(320, 0)..[2 * 20 + 2] = 1,
+          ),
+        );
+        final path = MapLayer.smartTile(
+          id: 'path',
+          name: 'Chemin',
+          presetId: 'path-preset',
+          usage: SmartTileUsage.path,
+          materialPalette: const ['', 'dirt'],
+          field: SmartTileField.cell(
+            semanticCells: List<int>.filled(320, 0)..[2 * 20 + 2] = 1,
+          ),
+        );
+        final map = workspaceMap('a').copyWith(
+          layers: frontFirst ? [path, terrain] : [terrain, path],
+          properties: frontFirst ? {} : {'tileLayerOrder': 'bottom_to_top'},
+        );
+        final document = EditableMapDocument(
+          MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
+        );
+        final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+        addTearDown(view.dispose);
+        final stroke = MapCanvasStroke.start(
+          map: map,
+          project: workspaceProject,
+          view: view,
+          commands: MapEditingCommands(document, workspaceProject),
+          origin: const GridPos(x: 2, y: 2),
+        )!;
+        final result = stroke.commit();
+        final layers = result.layers.whereType<SmartTileLayer>();
+        expect(
+          smartTileMaterialIdAt(
+            layers.singleWhere((layer) => layer.id == 'path'),
+            mapSize: map.size,
+            x: 2,
+            y: 2,
+          ),
+          isNull,
+        );
+        expect(
+          smartTileMaterialIdAt(
+            layers.singleWhere((layer) => layer.id == 'terrain'),
+            mapSize: map.size,
+            x: 2,
+            y: 2,
+          ),
+          'grass',
+        );
+      },
+    );
+  }
 }

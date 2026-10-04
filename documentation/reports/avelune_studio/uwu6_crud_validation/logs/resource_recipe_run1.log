@@ -1,0 +1,33 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+00:00 +0: resource CRUD through actual Studio UI survives independent installation
+UWU6_RESOURCE_SEED maps=2 borderLayers=0 terrain=published portraits=preloaded
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: not <Instance of 'ProjectRegularAtlasTilesetSource'>
+  Actual: <Instance of 'ProjectRegularAtlasTilesetSource'>
+
+When the exception was thrown, this was the stack:
+#4      editUwu6Images (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart:114:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart:28:21)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart line 114
+The test description was:
+  resource CRUD through actual Studio UI survives independent installation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:18 +0 -1: resource CRUD through actual Studio UI survives independent installation [E]
+  Test failed. See exception logs above.
+  The test description was: resource CRUD through actual Studio UI survives independent installation
+  
+00:19 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart: resource CRUD through actual Studio UI survives independent installation

@@ -14,11 +14,9 @@ extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
     var alignment = draft?.alignment;
     if (alignment == null) {
       final models = MapBorderEditingCommands.publishedLines(widget.project);
-      final blueprint =
-          models
-              .where((entry) => entry.id == widget.view.borderBlueprintId)
-              .firstOrNull ??
-          models.firstOrNull;
+      final blueprint = models
+          .where((entry) => entry.id == widget.view.borderBlueprintId)
+          .firstOrNull;
       alignment = blueprint == null
           ? BorderStrokeAlignment.cellCenters
           : borderTemplateStrokeAlignment(
@@ -35,13 +33,12 @@ extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
 
   void _addBorderAngle(Offset localPosition) {
     final models = MapBorderEditingCommands.publishedLines(widget.project);
-    final blueprint =
-        models
-            .where((entry) => entry.id == widget.view.borderBlueprintId)
-            .firstOrNull ??
-        models.firstOrNull;
+    final blueprint = models
+        .where((entry) => entry.id == widget.view.borderBlueprintId)
+        .firstOrNull;
     if (blueprint == null) {
-      widget.document.error = 'Aucune bordure publiée à tracer.';
+      widget.document.error =
+          'Choisissez une bordure publiée disponible avant de tracer.';
       widget.onChanged();
       return;
     }

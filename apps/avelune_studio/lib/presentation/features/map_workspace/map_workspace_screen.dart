@@ -64,11 +64,13 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
+import '../../../features/resources/domain/resource_usage_port.dart';
 import '../resources/resource_image_import.dart';
 import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
 import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
+import 'map_catalogue_workspace_actions.dart';
 import 'studio_home_map_preview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -84,6 +86,7 @@ part 'workspace_cinematic_binding.dart';
 part 'workspace_presentation_binding.dart';
 part 'workspace_keyboard_binding.dart';
 part 'workspace_lifecycle_binding.dart';
+part 'workspace_resource_usage_binding.dart';
 part 'workspace_context_menu_binding.dart';
 part 'workspace_navigation_binding.dart';
 part 'workspace_world_binding.dart';
@@ -153,9 +156,9 @@ class MapWorkspaceScreen extends StatefulWidget {
 
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
-  final _search = TextEditingController();
-  final _homeSearch = TextEditingController();
-  bool _palette = true;
+  final _search = TextEditingController(),
+      _homeSearch = TextEditingController();
+  bool _palette = true, _connectionBusy = false;
   WorkspaceSpace _space = WorkspaceSpace.map;
   WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
   final _storyViewState = NarrativeOverviewViewState();
@@ -201,20 +204,12 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   String? _resourceError, _connectionError;
-  bool _connectionBusy = false;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
   int _navigationRequest = 0;
   late final WorkspaceActions _actions;
   StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
-  MapWorkspaceViewState? get _view {
-    final id = _controller.active?.base.mapId;
-    return id == null
-        ? null
-        : _views.putIfAbsent(id, MapWorkspaceViewState.new);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -239,6 +234,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );
+    _configureCatalogueGuard();
     widget.registerExitGuard(_allowCloseWithExport);
     widget.home?.allowSwitch = _allowCloseWithExport;
     _initializePokemon();
@@ -252,10 +248,13 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
         mounted: () => mounted,
         changed: _changed,
         onUse: _useResource,
+        openUsage: _openResourceUsage,
+        canOpenUsage: _canOpenResourceUsage,
+        additionalDraftOwners: _resourceUsageDraftOwners,
       );
       if (loaded == null) return;
       _visuals = loaded.visuals;
-      _resources = loaded.resources;
+      _bindResourceManagement(loaded.resources);
       _narrative = loaded.narrative;
       _initializeScenes();
       _initializeStories();
@@ -277,6 +276,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _changed() {
+    _reconcileCatalogueView();
     _releaseStaleMapState();
     final map = _controller.active?.current;
     if (map != null && _visuals != null && !identical(map, _preparedMap)) {

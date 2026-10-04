@@ -15,6 +15,7 @@ void main() {
           'map.delete_apply',
           'map.duplicate',
           'map.rename',
+          'map.update_metadata',
           'map.resize_apply',
           'map.save',
         ],

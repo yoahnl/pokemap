@@ -1,0 +1,40 @@
+00:00 +0: loading test/domains/gameplay/character_studio_character_actions_test.dart
+00:00 +0: Character Studio character actions deletion contracts expose disjoint strict schemas
+00:00 +1: Character Studio character actions inspection refuses missing maps instead of claiming no dependencies
+00:00 +2: Character Studio character actions inspection refuses a missing required Yarn source
+00:00 +3: Character Studio character actions replacement refuses missing portrait used by a Yarn directive
+00:00 +4: Character Studio character actions clear refuses removal of configured playable default and last avatar
+00:00 +5: Character Studio character actions inspection refuses invalid UTF-8 sources without loss
+00:00 +6: Character Studio character actions replacement qualifies all configured player base directions
+00:00 +7: Character Studio character actions deletion preserves unknown nested project and map metadata
+00:00 +8: Character Studio character actions replacement qualifies the custom clip used by a cinematic appearance
+00:00 +9: Character Studio character actions clear refuses orphaning a required cinematic character animation
+00:00 +10: Character Studio character actions inspection refuses malformed portrait Yarn instead of claiming no usages
+00:00 +11: Character Studio character actions speaker directives are real character references and are resolved without changing text
+00:00 +11 -1: Character Studio character actions speaker directives are real character references and are resolved without changing text [E]
+  Expected: an object with length of <1>
+    Actual: []
+     Which: has length of <0>
+  
+  package:matcher                                                           expect
+  test/domains/gameplay/character_studio_character_actions_test.dart 224:7  main.<fn>.<fn>
+  
+00:00 +11 -1: Character Studio character actions registers every specialized character and portrait action
+00:00 +12 -1: Character Studio character actions creates a unique identity with bounded dimensions and role tags
+00:00 +13 -1: Character Studio character actions updates identity fields without rebuilding authored media slots
+00:00 +14 -1: Character Studio character actions sets and clears the default player through a semantic slot
+00:00 +15 -1: Character Studio character actions assigns, replaces, and clears one portrait slot only
+00:00 +16 -1: Character Studio character actions delete plan reports project and map dependencies in dry-run
+00:00 +17 -1: Character Studio character actions delete plan reports dialogue portrait dependencies
+00:00 +18 -1: Character Studio character actions referenced deletion requires an explicit resolution
+00:00 +19 -1: Character Studio character actions clear deletion resolves every project and map reference atomically
+00:00 +20 -1: Character Studio character actions replace deletion rewrites every dependency to another character
+00:00 +21 -1: Character Studio character actions clear deletion removes dialogue portrait directives
+00:00 +22 -1: Character Studio character actions replace deletion rewrites dialogue portrait character IDs
+00:00 +23 -1: Some tests failed.
+
+Failing tests:
+  test/domains/gameplay/character_studio_character_actions_test.dart: Character Studio character actions speaker directives are real character references and are resolved without changing text
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

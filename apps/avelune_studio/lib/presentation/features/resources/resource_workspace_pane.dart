@@ -8,11 +8,17 @@ import 'resource_navigation.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
-import 'border_creation_dialog.dart';
+import 'resource_border_lifecycle.dart';
+import 'resource_character_lifecycle.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../characters/character_studio_page.dart';
 import 'resource_character_portrait_import.dart';
 import 'resource_character_animation_import.dart';
+import 'resource_management_bindings.dart';
+import 'resource_reconciliation_notice.dart';
+import 'resource_lifecycle_bindings.dart';
+import 'resource_terrain_lifecycle.dart';
+import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -168,6 +174,7 @@ class ResourceWorkspacePane extends StatelessWidget {
         visuals: visuals,
         controller: n.characters,
         onBack: n.showLibrary,
+        onRemove: (character) => removeStudioCharacter(context, n, character),
         onImport: () => importCharacterSheet(context),
         port: n.port,
         onImportPortrait: (stateId) =>
@@ -232,28 +239,30 @@ class ResourceWorkspacePane extends StatelessWidget {
               canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,
+              onInformation: (item) =>
+                  renameResourceOrTerrain(context, n, item),
+              onMove: (item) => moveResource(context, n, item),
+              onUsages: (item) => openResourceUsages(context, n, item),
+              onReplace: (item) =>
+                  replaceResourceImage(context, n, item, picker),
+              onRemove: (item) => removeResourceOrTerrain(context, n, item),
+              onDuplicate: (item) =>
+                  duplicateResourceOrTerrain(context, n, item),
+              onManageContainers: (family) =>
+                  manageResourceContainers(context, n, family),
               onTerrain: n.prepareTerrain,
-              onCreateBorder: () => showDialog<bool>(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => BorderCreationDialog(
-                  navigation: n,
-                  project: n.workspace.project!,
-                  visuals: visuals,
-                ),
-              ),
-              onResumeBorder: (record) => showDialog<bool>(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => BorderCreationDialog(
-                  navigation: n,
-                  project: n.workspace.project!,
-                  visuals: visuals,
-                  initialRecord: record,
-                ),
-              ),
+              onCreateBorder: () => openBorderPreparation(context, n),
+              onResumeBorder: (record) =>
+                  openBorderPreparation(context, n, record),
+              onManageBorder: (record, action) =>
+                  manageBorderResource(context, n, record, action),
               terrainDrafts: n.pendingTerrainDrafts,
               onResumeTerrain: n.resumeTerrain,
+              canResumeTerrain: (draft) =>
+                  terrainDraftCompatibilityProblem(project, draft) == null,
+              terrainDraftStatus: (draft) => terrainPreparationStatus(n, draft),
+              onManageTerrainDraft: (draft, action) =>
+                  manageTerrainPreparation(context, n, draft, action),
               canEditTerrain: n.canEditTerrain,
               onImport: () => import(context),
               onCharacters: n.openCharacters,
@@ -266,6 +275,8 @@ class ResourceWorkspacePane extends StatelessWidget {
     return Column(
       children: [
         if (n.error != null) StudioNotice(n.error!, isError: true, maxLines: 2),
+        if (n.pendingReceipt != null)
+          ResourceReconciliationNotice(navigation: n),
         if (n.busy) const LinearProgressIndicator(),
         Expanded(
           child: AbsorbPointer(absorbing: n.busy, child: content),

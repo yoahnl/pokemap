@@ -1,0 +1,589 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart: UI map CRUD persists and traverses real passages in the installed Player
+UWU6_MAP_STAGE=create-rename-folder
+UWU6_MAP_STAGE=duplicate-resize
+UWU6_MAP_STAGE=passages-delete
+UWU6_MAP_STAGE=export-independent-session
+UWU6_EXPORT_PHASE=StudioExportStage.preparing:11ms
+UWU6_EXPORT_PHASE=StudioExportStage.building:17623ms
+UWU6_EXPORT_PHASE=StudioExportStage.writing:20922ms
+UWU6_EXPORT_PHASE=StudioExportStage.completed:21746ms
+UWU6_EXPORT_DIAGNOSTIC=elapsedMs:21780;stage:StudioExportStage.completed;busy:false;active:false;canStart:true;error:null
+UWU6_MAP_PACKAGE_SHA256=e8f064b3b9f02412e0f9b4935e2ff88bc48f591534c3e6be9a4c39762d9fd2d8
+UWU6_MAP_IDENTITY=first-map:maps/first-map.json:Première carte
+UWU6_MAP_IDENTITY=maison:maps/maison.json:La maison de Clairbois
+UWU6_MAP_IDENTITY=studio_map_1790977536370672:maps/studio_map_1790977536370672.json:Île aux étoiles
+UWU6_MAP_IDENTITY=studio_map_1790977536370672_copy:maps/studio_map_1790977536370672_copy.json:Île — copie jouable
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/project.json mapId=first-map
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/maps/first-map.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/maps/first-map.json
+[runtime_loader] map file read ok bytes=41178
+[runtime_loader] map validated id=first-map size=32x26 layers=10 entities=3 placedElements=49 warps=2 triggers=0
+[runtime_loader] bundle tilesets collected ids=starter,nature-atlas,herbe-claire,berges-douces,relief-psdk,couronne-relief,voyageur,emile,maison-menthe,maison-violette,maison-bleue,sapin,arbre-feuillu,banc-gris,jardiniere,fleurs-orange,fleurs-blanches,buisson,panneau
+[runtime_loader] bundle tileset path id=starter path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/49c8ee49425cdf3715743c1cfbe67a3b02ec7778734a91d68b2fc0cc30e88248.blob
+[runtime_loader] bundle tileset path id=nature-atlas path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/1674b8fb427f111e193f7a51d55e80709b0fa9d6d3c9ffa1fa04462cddc4cae1.blob
+[runtime_loader] bundle tileset path id=herbe-claire path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/5da313795e47a5de78e81adb0f35b4eb9e25f23240a4c16240603c118e95207d.blob
+[runtime_loader] bundle tileset path id=berges-douces path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/3850c0a92900911feb48c7c7a928dd2d2067c69dc47136a33ee1b186f11b375a.blob
+[runtime_loader] bundle tileset path id=relief-psdk path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/f4e9485f66e6149941ae3ec01814b485f72782de2fd62502d831e8503e46679d.blob
+[runtime_loader] bundle tileset path id=couronne-relief path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/05c7090aa7ce74a305f719defff0133843bb751d5a5abcbaa72e1fce6b461923.blob
+[runtime_loader] bundle tileset path id=voyageur path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=emile path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/9ddfec20f9a302dc1dc47735aa7802e03ce6cd8801755b260b8f287c3f3b1ea0.blob
+[runtime_loader] bundle tileset path id=maison-menthe path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/42469be8de62fb4db20a5c4bae25fb476326442c1717db0a8e1859d774cd1a4b.blob
+[runtime_loader] bundle tileset path id=maison-violette path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/e25b9335c71dec78ff71dd0a69a1e163153fe5832344eb7fe1bfffc85e26e000.blob
+[runtime_loader] bundle tileset path id=maison-bleue path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/10f048b025b4c0caea7b3d1279ec7879a35e8ad2863e52731cd81e69cb58d651.blob
+[runtime_loader] bundle tileset path id=sapin path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/fa9611e9ef0462baa5804b7155e59c7733cc5905eccc4f84d93e99a14ff9f067.blob
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=banc-gris path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/3b281d0c6dddf83015534e4444d3f8acde47f9e36b9c37310d227120800f7cf1.blob
+[runtime_loader] bundle tileset path id=jardiniere path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/042e11db7825b693846824a20a02da53fbb8ca25276ee2863ef6903e1a64ad84.blob
+[runtime_loader] bundle tileset path id=fleurs-orange path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/569d7509ca9770420fdeaaa4e3a122416d1ac3b900381edd1a7ba405afdcf9a2.blob
+[runtime_loader] bundle tileset path id=fleurs-blanches path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/a8460b601a3a68916a6b25b61e3eb98ba097d0f803418c4ce99570261322dd4a.blob
+[runtime_loader] bundle tileset path id=buisson path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/15d5eb2784a42103b57cec659ee354f82beff2af75e5ce9047dc4bba7429349d.blob
+[runtime_loader] bundle tileset path id=panneau path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project/assets/.pokemap-store/9c481e488b42fba589960f6a1ba1a5c3bb8626c1ba7d665bc26b8e44e8414ec0.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/.transactions/1790977583689622-2929852721/staged-version/project tilesets=19
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=first-map
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file read ok bytes=41178
+[runtime_loader] map validated id=first-map size=32x26 layers=10 entities=3 placedElements=49 warps=2 triggers=0
+[runtime_loader] bundle tilesets collected ids=starter,nature-atlas,herbe-claire,berges-douces,relief-psdk,couronne-relief,voyageur,emile,maison-menthe,maison-violette,maison-bleue,sapin,arbre-feuillu,banc-gris,jardiniere,fleurs-orange,fleurs-blanches,buisson,panneau
+[runtime_loader] bundle tileset path id=starter path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/49c8ee49425cdf3715743c1cfbe67a3b02ec7778734a91d68b2fc0cc30e88248.blob
+[runtime_loader] bundle tileset path id=nature-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/1674b8fb427f111e193f7a51d55e80709b0fa9d6d3c9ffa1fa04462cddc4cae1.blob
+[runtime_loader] bundle tileset path id=herbe-claire path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/5da313795e47a5de78e81adb0f35b4eb9e25f23240a4c16240603c118e95207d.blob
+[runtime_loader] bundle tileset path id=berges-douces path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3850c0a92900911feb48c7c7a928dd2d2067c69dc47136a33ee1b186f11b375a.blob
+[runtime_loader] bundle tileset path id=relief-psdk path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/f4e9485f66e6149941ae3ec01814b485f72782de2fd62502d831e8503e46679d.blob
+[runtime_loader] bundle tileset path id=couronne-relief path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/05c7090aa7ce74a305f719defff0133843bb751d5a5abcbaa72e1fce6b461923.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=emile path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9ddfec20f9a302dc1dc47735aa7802e03ce6cd8801755b260b8f287c3f3b1ea0.blob
+[runtime_loader] bundle tileset path id=maison-menthe path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42469be8de62fb4db20a5c4bae25fb476326442c1717db0a8e1859d774cd1a4b.blob
+[runtime_loader] bundle tileset path id=maison-violette path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/e25b9335c71dec78ff71dd0a69a1e163153fe5832344eb7fe1bfffc85e26e000.blob
+[runtime_loader] bundle tileset path id=maison-bleue path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/10f048b025b4c0caea7b3d1279ec7879a35e8ad2863e52731cd81e69cb58d651.blob
+[runtime_loader] bundle tileset path id=sapin path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/fa9611e9ef0462baa5804b7155e59c7733cc5905eccc4f84d93e99a14ff9f067.blob
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=banc-gris path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3b281d0c6dddf83015534e4444d3f8acde47f9e36b9c37310d227120800f7cf1.blob
+[runtime_loader] bundle tileset path id=jardiniere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/042e11db7825b693846824a20a02da53fbb8ca25276ee2863ef6903e1a64ad84.blob
+[runtime_loader] bundle tileset path id=fleurs-orange path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/569d7509ca9770420fdeaaa4e3a122416d1ac3b900381edd1a7ba405afdcf9a2.blob
+[runtime_loader] bundle tileset path id=fleurs-blanches path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/a8460b601a3a68916a6b25b61e3eb98ba097d0f803418c4ce99570261322dd4a.blob
+[runtime_loader] bundle tileset path id=buisson path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/15d5eb2784a42103b57cec659ee354f82beff2af75e5ce9047dc4bba7429349d.blob
+[runtime_loader] bundle tileset path id=panneau path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9c481e488b42fba589960f6a1ba1a5c3bb8626c1ba7d665bc26b8e44e8414ec0.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=19
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=first-map
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file read ok bytes=41178
+[runtime_loader] map validated id=first-map size=32x26 layers=10 entities=3 placedElements=49 warps=2 triggers=0
+[runtime_loader] bundle tilesets collected ids=starter,nature-atlas,herbe-claire,berges-douces,relief-psdk,couronne-relief,voyageur,emile,maison-menthe,maison-violette,maison-bleue,sapin,arbre-feuillu,banc-gris,jardiniere,fleurs-orange,fleurs-blanches,buisson,panneau
+[runtime_loader] bundle tileset path id=starter path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/49c8ee49425cdf3715743c1cfbe67a3b02ec7778734a91d68b2fc0cc30e88248.blob
+[runtime_loader] bundle tileset path id=nature-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/1674b8fb427f111e193f7a51d55e80709b0fa9d6d3c9ffa1fa04462cddc4cae1.blob
+[runtime_loader] bundle tileset path id=herbe-claire path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/5da313795e47a5de78e81adb0f35b4eb9e25f23240a4c16240603c118e95207d.blob
+[runtime_loader] bundle tileset path id=berges-douces path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3850c0a92900911feb48c7c7a928dd2d2067c69dc47136a33ee1b186f11b375a.blob
+[runtime_loader] bundle tileset path id=relief-psdk path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/f4e9485f66e6149941ae3ec01814b485f72782de2fd62502d831e8503e46679d.blob
+[runtime_loader] bundle tileset path id=couronne-relief path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/05c7090aa7ce74a305f719defff0133843bb751d5a5abcbaa72e1fce6b461923.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=emile path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9ddfec20f9a302dc1dc47735aa7802e03ce6cd8801755b260b8f287c3f3b1ea0.blob
+[runtime_loader] bundle tileset path id=maison-menthe path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42469be8de62fb4db20a5c4bae25fb476326442c1717db0a8e1859d774cd1a4b.blob
+[runtime_loader] bundle tileset path id=maison-violette path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/e25b9335c71dec78ff71dd0a69a1e163153fe5832344eb7fe1bfffc85e26e000.blob
+[runtime_loader] bundle tileset path id=maison-bleue path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/10f048b025b4c0caea7b3d1279ec7879a35e8ad2863e52731cd81e69cb58d651.blob
+[runtime_loader] bundle tileset path id=sapin path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/fa9611e9ef0462baa5804b7155e59c7733cc5905eccc4f84d93e99a14ff9f067.blob
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=banc-gris path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3b281d0c6dddf83015534e4444d3f8acde47f9e36b9c37310d227120800f7cf1.blob
+[runtime_loader] bundle tileset path id=jardiniere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/042e11db7825b693846824a20a02da53fbb8ca25276ee2863ef6903e1a64ad84.blob
+[runtime_loader] bundle tileset path id=fleurs-orange path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/569d7509ca9770420fdeaaa4e3a122416d1ac3b900381edd1a7ba405afdcf9a2.blob
+[runtime_loader] bundle tileset path id=fleurs-blanches path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/a8460b601a3a68916a6b25b61e3eb98ba097d0f803418c4ce99570261322dd4a.blob
+[runtime_loader] bundle tileset path id=buisson path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/15d5eb2784a42103b57cec659ee354f82beff2af75e5ce9047dc4bba7429349d.blob
+[runtime_loader] bundle tileset path id=panneau path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9c481e488b42fba589960f6a1ba1a5c3bb8626c1ba7d665bc26b8e44e8414ec0.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=19
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=maison
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=maison relativePath=maps/maison.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/maison.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/maison.json
+[runtime_loader] map file read ok bytes=5056
+[runtime_loader] map validated id=maison size=12x10 layers=3 entities=0 placedElements=7 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=library-atlas,sol-parquet,voyageur,table,livre,etagere,plante,commode,chaise
+[runtime_loader] bundle tileset path id=library-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6596615a24d375b7af4b9f025ea660bd83e1d8aef9b38a2a39674f22646691e5.blob
+[runtime_loader] bundle tileset path id=sol-parquet path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/772456bc11ee0c20e8c280b5c0cd63d7bb2976f886dc6069dd711368cd2aff56.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=table path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/fdb729504b878d3b3adb1dae174e772a8853fdd0b63400594995bb77c9371c5f.blob
+[runtime_loader] bundle tileset path id=livre path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/4fa8ae5fb1bb48cc38c1dfdc0f2cbb93d803b47b024b61b1362e71dd845d00ca.blob
+[runtime_loader] bundle tileset path id=etagere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9f06c56b0554fbe5c60d41ed1364728f72e5b55721805506ab44e23f9c0338f4.blob
+[runtime_loader] bundle tileset path id=plante path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/5f2815e9822b150d824c7a11024ef0ed3f5b0665b55b8486447a400afbf426de.blob
+[runtime_loader] bundle tileset path id=commode path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/28720e12536df31a105f8d2b111b3bf18adca0c631ca599fe5a9320d39570308.blob
+[runtime_loader] bundle tileset path id=chaise path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/d5ebb7c38f8b779390eeb76a38a5489c42972991c80723d6de7ddc3a75dd6c4c.blob
+[runtime_loader] bundle load ok mapId=maison projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=9
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=studio_map_1790977536370672
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=studio_map_1790977536370672 relativePath=maps/studio_map_1790977536370672.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672.json
+[runtime_loader] map file read ok bytes=5597
+[runtime_loader] map validated id=studio_map_1790977536370672 size=32x26 layers=1 entities=0 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=arbre-feuillu,voyageur
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle load ok mapId=studio_map_1790977536370672 projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=2
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=studio_map_1790977536370672_copy
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=studio_map_1790977536370672_copy relativePath=maps/studio_map_1790977536370672_copy.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672_copy.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672_copy.json
+[runtime_loader] map file read ok bytes=7092
+[runtime_loader] map validated id=studio_map_1790977536370672_copy size=36x29 layers=1 entities=0 placedElements=0 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=arbre-feuillu,voyageur
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle load ok mapId=studio_map_1790977536370672_copy projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=2
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=first-map
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/first-map.json
+[runtime_loader] map file read ok bytes=41178
+[runtime_loader] map validated id=first-map size=32x26 layers=10 entities=3 placedElements=49 warps=2 triggers=0
+[runtime_loader] bundle tilesets collected ids=starter,nature-atlas,herbe-claire,berges-douces,relief-psdk,couronne-relief,voyageur,emile,maison-menthe,maison-violette,maison-bleue,sapin,arbre-feuillu,banc-gris,jardiniere,fleurs-orange,fleurs-blanches,buisson,panneau
+[runtime_loader] bundle tileset path id=starter path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/49c8ee49425cdf3715743c1cfbe67a3b02ec7778734a91d68b2fc0cc30e88248.blob
+[runtime_loader] bundle tileset path id=nature-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/1674b8fb427f111e193f7a51d55e80709b0fa9d6d3c9ffa1fa04462cddc4cae1.blob
+[runtime_loader] bundle tileset path id=herbe-claire path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/5da313795e47a5de78e81adb0f35b4eb9e25f23240a4c16240603c118e95207d.blob
+[runtime_loader] bundle tileset path id=berges-douces path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3850c0a92900911feb48c7c7a928dd2d2067c69dc47136a33ee1b186f11b375a.blob
+[runtime_loader] bundle tileset path id=relief-psdk path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/f4e9485f66e6149941ae3ec01814b485f72782de2fd62502d831e8503e46679d.blob
+[runtime_loader] bundle tileset path id=couronne-relief path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/05c7090aa7ce74a305f719defff0133843bb751d5a5abcbaa72e1fce6b461923.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=emile path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9ddfec20f9a302dc1dc47735aa7802e03ce6cd8801755b260b8f287c3f3b1ea0.blob
+[runtime_loader] bundle tileset path id=maison-menthe path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42469be8de62fb4db20a5c4bae25fb476326442c1717db0a8e1859d774cd1a4b.blob
+[runtime_loader] bundle tileset path id=maison-violette path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/e25b9335c71dec78ff71dd0a69a1e163153fe5832344eb7fe1bfffc85e26e000.blob
+[runtime_loader] bundle tileset path id=maison-bleue path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/10f048b025b4c0caea7b3d1279ec7879a35e8ad2863e52731cd81e69cb58d651.blob
+[runtime_loader] bundle tileset path id=sapin path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/fa9611e9ef0462baa5804b7155e59c7733cc5905eccc4f84d93e99a14ff9f067.blob
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=banc-gris path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/3b281d0c6dddf83015534e4444d3f8acde47f9e36b9c37310d227120800f7cf1.blob
+[runtime_loader] bundle tileset path id=jardiniere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/042e11db7825b693846824a20a02da53fbb8ca25276ee2863ef6903e1a64ad84.blob
+[runtime_loader] bundle tileset path id=fleurs-orange path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/569d7509ca9770420fdeaaa4e3a122416d1ac3b900381edd1a7ba405afdcf9a2.blob
+[runtime_loader] bundle tileset path id=fleurs-blanches path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/a8460b601a3a68916a6b25b61e3eb98ba097d0f803418c4ce99570261322dd4a.blob
+[runtime_loader] bundle tileset path id=buisson path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/15d5eb2784a42103b57cec659ee354f82beff2af75e5ce9047dc4bba7429349d.blob
+[runtime_loader] bundle tileset path id=panneau path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9c481e488b42fba589960f6a1ba1a5c3bb8626c1ba7d665bc26b8e44e8414ec0.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=19
+[runtime_game] tileset image load start map=first-map
+[runtime_game] tileset cache resolve requested=21
+[runtime_game] tileset cache resolve ok result=21
+[runtime_game] onLoad start map=first-map projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json tilesets=19
+[runtime] New game created from project contract on first-map at (16, 16)
+[runtime_game] tileset image load ok count=21 map=first-map
+[runtime_game] mount root map start map=first-map
+[step_studio_trace] npc_mount_added map=first-map entity=emile-village
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[runtime_game] mount root map ok map=first-map
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=maison
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json mapId=studio_map_1790977536370672_copy
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/project.json
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=first-map
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1790977584390705_1 map=first-map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest read ok bytes=66741
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=studio_map_1790977536370672_copy relativePath=maps/studio_map_1790977536370672_copy.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672_copy.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/studio_map_1790977536370672_copy.json
+[runtime_loader] project manifest validated maps=4 tilesets=30 scenarios=0
+[runtime_loader] bundle map resolved mapId=maison relativePath=maps/maison.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/maison.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/maps/maison.json
+[runtime_loader] map file read ok bytes=7092
+[runtime_loader] map file read ok bytes=5056
+[runtime_loader] map validated id=studio_map_1790977536370672_copy size=36x29 layers=1 entities=0 placedElements=0 warps=1 triggers=0
+[runtime_loader] map validated id=maison size=12x10 layers=3 entities=0 placedElements=7 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=arbre-feuillu,voyageur
+[runtime_loader] bundle tileset path id=arbre-feuillu path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6982936038a243fb1045ceeed2800deb4df602ca940771d38d946465ef456b60.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle load ok mapId=studio_map_1790977536370672_copy projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=2
+[runtime_loader] bundle tilesets collected ids=library-atlas,sol-parquet,voyageur,table,livre,etagere,plante,commode,chaise
+[runtime_loader] bundle tileset path id=library-atlas path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/6596615a24d375b7af4b9f025ea660bd83e1d8aef9b38a2a39674f22646691e5.blob
+[runtime_loader] bundle tileset path id=sol-parquet path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/772456bc11ee0c20e8c280b5c0cd63d7bb2976f886dc6069dd711368cd2aff56.blob
+[runtime_loader] bundle tileset path id=voyageur path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/42c316b5f8904623f2aafa57bb0314c362b4f4162ec61bcc70348b0e44354721.blob
+[runtime_loader] bundle tileset path id=table path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/fdb729504b878d3b3adb1dae174e772a8853fdd0b63400594995bb77c9371c5f.blob
+[runtime_loader] bundle tileset path id=livre path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/4fa8ae5fb1bb48cc38c1dfdc0f2cbb93d803b47b024b61b1362e71dd845d00ca.blob
+[runtime_loader] bundle tileset path id=etagere path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/9f06c56b0554fbe5c60d41ed1364728f72e5b55721805506ab44e23f9c0338f4.blob
+[runtime_loader] bundle tileset path id=plante path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/5f2815e9822b150d824c7a11024ef0ed3f5b0665b55b8486447a400afbf426de.blob
+[runtime_loader] bundle tileset path id=commode path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/28720e12536df31a105f8d2b111b3bf18adca0c631ca599fe5a9320d39570308.blob
+[runtime_loader] bundle tileset path id=chaise path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/assets/.pokemap-store/d5ebb7c38f8b779390eeb76a38a5489c42972991c80723d6de7ddc3a75dd6c4c.blob
+[runtime_loader] bundle load ok mapId=maison projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project tilesets=9
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve requested=11
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] tileset cache resolve ok result=11
+[warp] Triggered warp warp-1790977554464339-1 mode=onEnter -> map=studio_map_1790977536370672_copy pos=(2, 2)
+[warp] start transition warp=warp-1790977554464339-1 map=first-map -> studio_map_1790977536370672_copy target=(2, 2)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=studio_map_1790977536370672_copy
+[warp] fade out durationMs=170
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=studio_map_1790977536370672_copy
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+[perf][warp] mountMap=0ms
+[warp] player placed at map=studio_map_1790977536370672_copy pos=(2, 2)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache resolve requested=21
+[runtime_game] tileset cache resolve ok result=21
+[perf][warp] total=317ms
+[warp] transition completed
+[warp] gameplay unlocked map=studio_map_1790977536370672_copy pos=(2, 2)
+[event_v2] mapEnter activation=mapact_1790977585073053_2 map=studio_map_1790977536370672_copy reason=warp result=MapEnterProductionDispatchLegacyFallback
+UWU6_INSTALLED_PASSAGE=studio_map_1790977536370672_copy:2,2
+UWU6_INSTALLED_EXTENDED_SURFACE=33,2;collision=34,2
+[warp] Triggered warp warp-1790977552212946-0 mode=onEnter -> map=first-map pos=(16, 16)
+[warp] start transition warp=warp-1790977552212946-0 map=studio_map_1790977536370672_copy -> first-map target=(16, 16)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=first-map
+[warp] fade out durationMs=170
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=first-map
+[runtime_game] tileset cache resolve requested=21
+[runtime_game] tileset cache resolve ok result=21
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+[step_studio_trace] npc_mount_added map=first-map entity=emile-village
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[perf][warp] mountMap=1ms
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[warp] player placed at map=first-map pos=(16, 16)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache resolve requested=11
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=11
+[runtime_game] tileset cache resolve ok result=4
+[perf][warp] total=322ms
+[warp] transition completed
+[warp] gameplay unlocked map=first-map pos=(16, 16)
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1790977585543137_3 map=first-map reason=warp result=MapEnterProductionDispatchLegacyFallback
+UWU6_INSTALLED_PASSAGE=first-map:16,16
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[interact] NPC: emile-village
+[dialogue] interaction entity=emile-village
+[dialogue] resolved dialogueId=bienvenue
+[dialogue] resolved file=dialogues/bienvenue.json
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=emile-village phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu-map-catalogue-w6Hy8m/player/games/games.avelune.clairbois-uwu/versions/0.1.0/project/dialogues/bienvenue.json
+[dialogue] starting at node "Start"
+[dialogue] content loaded source=emile-village elapsedMs=89
+[dialogue] opening dialogue for entity=emile-village
+[scenario_lock] cleared source=emile-village reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Émile: Bienvenue à Clairbois ! Ce petit village est le début de votre aventure."
+[dialogue] line text="Émile: La maison au toit violet vous attend. Entrez donc, les livres sont à votre disposition."
+[dialogue] line text="Émile: Tout ce que vous voyez peut être modifié dans Avelune Studio. À vous d’imaginer la suite !"
+[dialogue] dialogue closed
+[dialogue] finished
+[warp] Triggered warp entrer-maison mode=onEnter -> map=maison pos=(6, 8)
+[warp] start transition warp=entrer-maison map=first-map -> maison target=(6, 8)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=maison
+[warp] fade out durationMs=170
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=maison
+[runtime_game] tileset cache resolve requested=11
+[runtime_game] tileset cache resolve ok result=11
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+[perf][warp] mountMap=0ms
+[warp] player placed at map=maison pos=(6, 8)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache resolve requested=21
+[runtime_game] tileset cache resolve ok result=21
+[perf][warp] total=339ms
+[warp] transition completed
+[warp] gameplay unlocked map=maison pos=(6, 8)
+[event_v2] mapEnter activation=mapact_1790977585986270_4 map=maison reason=warp result=MapEnterProductionDispatchLegacyFallback
+[warp] Triggered warp sortir-maison mode=onEnter -> map=first-map pos=(15, 7)
+[warp] start transition warp=sortir-maison map=maison -> first-map target=(15, 7)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=first-map
+[warp] fade out durationMs=170
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=first-map
+[runtime_game] tileset cache resolve requested=21
+[runtime_game] tileset cache resolve ok result=21
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+[step_studio_trace] npc_mount_added map=first-map entity=emile-village
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[perf][warp] mountMap=0ms
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[warp] player placed at map=first-map pos=(15, 7)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache resolve requested=11
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=11
+[runtime_game] tileset cache resolve ok result=4
+[perf][warp] total=345ms
+[warp] transition completed
+[warp] gameplay unlocked map=first-map pos=(15, 7)
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=first-map entity=emile-village present=true
+[npc_patrol] read movement entity=emile-village pos=(17,11) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1790977586328766_5 map=first-map reason=warp result=MapEnterProductionDispatchLegacyFallback
+00:56 +1: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+00:57 +1: /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart: resource CRUD through actual Studio UI survives independent installation
+UWU6_RESOURCE_SEED maps=2 borderLayers=0 terrain=published portraits=preloaded
+UWU6_RESOURCE_METADATA_US=3831361 reads=0 decodes=0
+UWU6_RESOURCE_IMAGE_UI imported=source_1790977593842324_1975094161 decor=decor-1790977594423582 copy=decor-copy-1790977596791439-2652036833 instance=studio-1790977595290273-0
+UWU6_RESOURCE_TERRAIN_UI source=uwu5-path copy=terrain-copy-1790977608841325-1291907181
+UWU6_RESOURCE_CHARACTER_UI removed=personnage-libre,guide replacement=uwu5-replacement
+UWU6_RESOURCE_FIRST_BORDER_UI id=studio-bordures features=1 index=0
+UWU6_RESOURCE_BORDER_UI deprecated-reactivated-deprecated=uwu5-border
+UWU6_RESOURCE_CLOSED_MAP_UI=jardin entries=5
+UWU6_RESOURCE_EXPORT_START stage=StudioExportStage.preparing busy=true canStart=false error=null
+UWU6_RESOURCE_EXPORT_UI=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/uwu6-resources.avelunegame authorSessionsClosed=true
+UWU6_RESOURCE_AUTHOR_CLOSED=true sourceAbsent=true
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/maps/jardin.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/.transactions/1790977632475665-129346253/staged-version/project tilesets=3
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=3
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=3
+UWU4_PACKAGE_SHA256=60db18cf5bd88275ace8a3db2b483a473ec94605f20931f386e8d2c2c7eadabe
+UWU4_INSTALLED_PIXELS_SHA256=5b63704e7c045ea110c7d077f8ad11c00a591da87939ecf78206f13cdd05e57f
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=3
+[runtime_game] tileset cache resolve ok result=3
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json tilesets=3
+[runtime] New game created from project contract on jardin at (8, 9)
+[runtime_game] tileset image load ok count=3 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] map file read ok bytes=5735
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1790977632848067_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[runtime_loader] map file read ok bytes=5735
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/pixels-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=1
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+UWU4_RENDER_REPLACED_PIXELS=8281
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/maps/jardin.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/.transactions/1790977633481339-2779952598/staged-version/project tilesets=3
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=3
+UWU6_INSTALLED_CONNECTION_RECTS={(16, 0), (16, 16), (0, 0)} cells=5,8;5,9;6,9
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/jardin.json
+[runtime_loader] map file read ok bytes=12669
+[runtime_loader] map validated id=jardin size=24x16 layers=5 entities=3 placedElements=4 warps=1 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier,source_1790977588551415_822084732,source_1790977593842324_1975094161
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle tileset path id=source_1790977588551415_822084732 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/7e3789e07bdee00eb0694c6f002a50244cda105a3d7a458355565beb6e1ea867.blob
+[runtime_loader] bundle tileset path id=source_1790977593842324_1975094161 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/ba293e6ad902d55a2c128b261feaa5f44631b8f83b9d809af330c7a0541589b7.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=3
+UWU5_PACKAGE_SHA256=60db18cf5bd88275ace8a3db2b483a473ec94605f20931f386e8d2c2c7eadabe
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=3
+[runtime_game] tileset cache resolve ok result=3
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json tilesets=3
+[runtime] New game created from project contract on jardin at (8, 9)
+[runtime_game] tileset image load ok count=3 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/project.json
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] project manifest read ok bytes=44422
+[runtime_loader] map file read ok bytes=5735
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/maps/clairiere.json
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1790977633731883_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[runtime_loader] map file read ok bytes=5735
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project tilesets=1
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+UWU6_INSTALLED_CONNECTION_PIXELS green=8281 yellow=8190 blue=8190
+UWU5_INSTALLED_TERRAIN_PIXELS=8281
+UWU5_INSTALLED_DEPRECATED_BORDER_PIXELS=33033
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0fe95-f029-7002-8000-7514cafd6d5b:zone:1790977634351
+[dialogue] resolved dialogueId=zone
+[dialogue] resolved file=dialogues/zone.json
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0fe95-f029-7002-8000-7514cafd6d5b:zone:1790977634351 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/uwu6-resources-player-Cf2Ll2/specialized-installation/player/games/games.avelune.avelune-atelier-des-cartes/versions/0.1.0/project/dialogues/zone.json
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0fe95-f029-7002-8000-7514cafd6d5b:zone:1790977634351 elapsedMs=3
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0fe95-f029-7002-8000-7514cafd6d5b:zone:1790977634351 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Bienvenue sur le quai."
+UWU5_INSTALLED_DIALOGUE_PORTRAIT=uwu5-replacement:neutral
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0fe95-f029-7002-8000-7514cafd6d5b:zone:1790977634351 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+UWU6_INSTALLED_VISUAL_BORDER_CROSSED=10,8 automaticCollision=false
+UWU5_INSTALLED_RENAMED_TERRAIN_TRAVERSED=5,8
+UWU5_INSTALLED_COLLISION_BLOCKED=0,8
+01:44 +2: All tests passed!

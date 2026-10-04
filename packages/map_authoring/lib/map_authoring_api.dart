@@ -5,6 +5,8 @@
 /// should import `map_authoring_local.dart` instead.
 library;
 
+export 'src/references/resource_usage_report.dart';
+
 export 'package:map_core/map_core.dart' show ProjectCapabilityTruthRecord;
 
 export 'src/api/authoring_mutation_api.dart';

@@ -58,6 +58,7 @@ _ProjectCaptureItemDefinition _$ProjectCaptureItemDefinitionFromJson(
   allowedEncounterKinds: (json['allowedEncounterKinds'] as List<dynamic>)
       .map((e) => $enumDecode(_$EncounterKindEnumMap, e))
       .toSet(),
+  animationSpritePath: json['animationSpritePath'] as String?,
 );
 
 Map<String, dynamic> _$ProjectCaptureItemDefinitionToJson(
@@ -68,6 +69,7 @@ Map<String, dynamic> _$ProjectCaptureItemDefinitionToJson(
   'allowedEncounterKinds': instance.allowedEncounterKinds
       .map((e) => _$EncounterKindEnumMap[e]!)
       .toList(),
+  'animationSpritePath': ?instance.animationSpritePath,
 };
 
 const _$EncounterKindEnumMap = {

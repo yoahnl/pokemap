@@ -4,6 +4,8 @@ extension _WorkspaceKeyboardBinding on _MapWorkspaceScreenState {
   bool get _keyboardBusy =>
       _space != WorkspaceSpace.map ||
       _controller.loading ||
+      _controller.catalogBusy ||
+      ModalRoute.of(context)?.isCurrent == false ||
       _actions.testing ||
       _actions.closing;
 

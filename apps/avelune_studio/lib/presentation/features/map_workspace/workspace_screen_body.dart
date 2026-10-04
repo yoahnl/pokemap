@@ -32,6 +32,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                 absorbing:
                     _actions.testing ||
                     _actions.closing ||
+                    _controller.catalogBusy ||
                     _resources?.busy == true ||
                     _connectionBusy ||
                     _narrative?.saving == true,
@@ -108,7 +109,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                             _gestureGeneration++;
                             unawaited(_controller.activate(entry));
                           },
-                          onOrganizeMaps: _resources == null
+                          onOrganizeMaps: _controller.catalogPort == null
                               ? null
                               : _organizeMaps,
                           onLinkMaps: widget.mapConnectionPort == null

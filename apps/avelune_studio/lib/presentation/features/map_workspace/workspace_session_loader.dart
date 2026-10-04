@@ -7,6 +7,7 @@ import 'map_workspace_screen.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_view_state.dart';
 import '../characters/character_workspace_visuals.dart';
+import '../../../features/resources/domain/resource_usage_port.dart';
 
 void retainWorkspaceBrush(
   MapWorkspaceVisuals? visuals,
@@ -35,6 +36,9 @@ loadWorkspaceSession(
   required bool Function() mounted,
   required VoidCallback changed,
   required Future<void> Function(ResourceItem) onUse,
+  Future<bool> Function(ResourceUsageEntry)? openUsage,
+  bool Function(ResourceUsageEntry)? canOpenUsage,
+  List<String> Function()? additionalDraftOwners,
 }) async {
   final workspace = widget.controller;
   await workspace.initialize();
@@ -71,6 +75,9 @@ loadWorkspaceSession(
           port: widget.resourcePort!,
           visuals: visuals,
           onUse: onUse,
+          openUsage: openUsage,
+          canOpenUsage: canOpenUsage,
+          additionalDraftOwners: additionalDraftOwners,
         );
   resources?.addListener(changed);
   visuals.addListener(changed);

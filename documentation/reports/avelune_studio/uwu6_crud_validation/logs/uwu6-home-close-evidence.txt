@@ -1,0 +1,56 @@
+Home close lifecycle, 2026-10-03
+SDK /tmp/uwu6-native-flutter-e3005-20261003/bin/flutter (e3005e3402d9cfa2043114c8bc53c59d12e9b98e; Flutter 3.48.0-0.4.pre).
+flutter/flutter_test rootUri /private/tmp/uwu6-native-flutter-e3005-20261003/packages/... in apps/avelune_studio/.dart_tool/package_config.json.
+
+Cause: ProjectSessionScreen initState left _sessionId null when its owner already contained an open project. Closing published project=null; _sessionChanged compared null to null and did not reset Home. The old map entries and preview builder survived their visual owner. Rendering reconstructed StudioMapVisual against disposed StudioResourceNotifications.
+Fix: synchronize _sessionId from the current owner in initState and didUpdateWidget. Only two lines added. Existing onCreateMap wiring is preexisting, not this correction. No rendering, resource owner, or notifications suppression changed.
+
+Reproduction 1: ordinary UI picker -> Home -> Export page -> Home -> Close -> UI picker reopens; PASS (+1), runner PID 42569 exit0, 10.33s, descendants tracked15. Log uwu6-home-close-red.log. Despite filename this first protocol PASSED and did not reproduce.
+Reproduction 2: ordinary picker and already-open owner at mount; +1/-1, runnerPID49287 exit1,11.87s, descendants2. Preopened mode reproduces StudioResourceNotifications used after disposed. Log uwu6-home-preopened-close-red.log. No sleep or scheduling gamble; owner starts deterministically preopened.
+Green: two modes + real Home regression + session races +15, PID49984 exit0 17.54s descendants4. Log uwu6-home-close-green.log.
+Final: three modes picker/preopened/replaced-owner -> Export page -> Home -> Close -> picker reopen. Closed session null, maps empty, mapLibrary/previewBuilder null, no previews anywhere in tree, newly loaded visuals count2. Plus home_real_project_test and project_session_races_test: +16 All tests passed, PID51179 exit0 23.20s descendants6. Log uwu6-home-close-final.log.
+Commands cwd apps/avelune_studio; owned runner /tmp/run_avelune_owned.py; flutter test --no-pub test/home/home_closed_preview_lifecycle_test.dart test/home/home_real_project_test.dart test/application/project_session_races_test.dart --concurrency=1 --reporter=expanded. Each owned runner tracked descendants and checked command/start ownership before cleanup.
+Analyze: flutter analyze --no-pub lib/presentation/features/project_session/project_session_screen.dart test/home/home_closed_preview_lifecycle_test.dart, No issues found; durable uwu6-home-close-analyze.log.
+Format: dart format --output=none --set-exit-if-changed [two files], 2 files 0 changed exit0. git diff --check scoped source exit0; new file final lines inspected no trailing spaces/comments.
+
+Limits: focused host navigates the real export page but does not apply export (covered by distinct installed recipes). LocalProjectSessionAdapter/real on-disk M2 fixture/StudioMapResources are used; this does not certify macOS bookmark permissions or native actions. Fixtures disposable only; no original/native c82b mutation. No Git write, comment, API/MCP/schema/CI change. Native closing replay belongs to root.
+
+Final files:
+apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart: lines=299, sha256=acf478bcef7cd74715990cb18527f7196fe1f3c376412b5a4e7ccaa8caba9128
+apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart: lines=121, sha256=3df98869ed4bf37963451df6ba30484ab25c6591574f86c0126e8b8b56deab10
+
+Git scoped final:
+ M apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+?? apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart
+
+Diff source against HEAD (onCreateMap three lines preexist correction):
+diff --git a/apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart b/apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+index 0fc674de8..64ade6ae7 100644
+--- a/apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
++++ b/apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+@@ -49,6 +49,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
+   @override
+   void initState() {
+     super.initState();
++    _sessionId = widget.session.state.project?.sessionId;
+     _recents = RecentProjectsController(widget.recentProjects)
+       ..addListener(_refresh);
+     unawaited(_recents.load());
+@@ -62,6 +63,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
+     if (oldWidget.session != widget.session) {
+       oldWidget.session.removeListener(_sessionChanged);
+       widget.session.addListener(_sessionChanged);
++      _sessionId = widget.session.state.project?.sessionId;
+       _pickerGeneration++;
+       _picking = false;
+       _home.reset();
+@@ -272,6 +274,9 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
+                       ? _home.mapPreviewBuilder
+                       : null,
+                   onMap: (id) => _home.navigate('map', id),
++                  onCreateMap: project == null || busy
++                      ? null
++                      : () => _home.navigate('createMap'),
+                   statusAtTop:
+                       busy || state.problem != null || _pickerError != null,
+                   status: ProjectOpenControls(

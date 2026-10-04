@@ -1,0 +1,408 @@
+{
+  "head": "a63ac8656d8456a91c1570b03ff91100de4f1a50",
+  "localBaseHead": "a63ac8656d8456a91c1570b03ff91100de4f1a50",
+  "owned": [
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart",
+      "localBaseSha256": "c316ad69d563cc14fa5ea028f9f1a842e384fc5980c948fc643a2fc143788968",
+      "finalSha256": "0c124afef934d0aa63f9b13a9460372fbdf8c609d7160d7ec600b6e2dc4a3086",
+      "lines": 110,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_commands.dart",
+      "localBaseSha256": "aa3ce763e3204b41f1a8af33b59038c2c5136a19887ef649ef8fec238434681b",
+      "finalSha256": "3ccdf5285117e6d23b4a762cc3d29bd0799adf1ace777d474f5292efbac8fe8d",
+      "lines": 137,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_preparation.dart",
+      "localBaseSha256": null,
+      "finalSha256": "05e97b73702f23072ebef794f853d61ee8425648ac729a0290348fd159770151",
+      "lines": 166,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart",
+      "localBaseSha256": "2595e2a70a3a0e9d304557d39b8b2164aa4db77fdfe514474ebce32e83aa7e1b",
+      "finalSha256": "c7865582d3fa2463b0972a95add62616abb5a2e7a21eeb50dfe9d6aa6e793b29",
+      "lines": 289,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart",
+      "localBaseSha256": null,
+      "finalSha256": "963911d25d3712c8f3812a7e7d467d1b8d6440321eb494e461139d9d3fcfd816",
+      "lines": 16,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_adapter.dart",
+      "localBaseSha256": "6d7328ec5c62331546d4e980db1423a1a35aa14ef9300c9a6f1d44bbd3d4acc2",
+      "finalSha256": "77489c238747f17cba9a2247a6543c1bbaadcd1e9958f3be8c553e70925ec508",
+      "lines": 299,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_diagnostics.dart",
+      "localBaseSha256": null,
+      "finalSha256": "926ab8361212b010a0afc88a305edcf6fe493b36453966a5a6aa1a43338d503e",
+      "lines": 112,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_preparation.dart",
+      "localBaseSha256": null,
+      "finalSha256": "9dc9512884bde31ad4a197970a3bc08b391ccfab68c7833972deac53a6a44ea7",
+      "lines": 130,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_receipt.dart",
+      "localBaseSha256": null,
+      "finalSha256": "a4212359f3190c8c17a6a9b86b83cb35ecec87525205970b88875f8a762c7c0e",
+      "lines": 59,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_port.dart",
+      "localBaseSha256": "d3f4df7070431af91d0a935b21ddb5dc66462053473263b33de3d0c40b6122d7",
+      "finalSha256": "0624e955c854ae7a0322f8360306946ddbbf4958b6179405b0425da1c113c867",
+      "lines": 53,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_preparation.dart",
+      "localBaseSha256": null,
+      "finalSha256": "e54abe8e43d65acefaa1d8ac248815def0aa1d767e7573f5dd9e8581f9fa8ad8",
+      "lines": 84,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart",
+      "localBaseSha256": "4da98454e5a07147ee2cd800a74bb94f9ed460b930061f9429d64cf442723bb9",
+      "finalSha256": "71efa137355c9c097d0d22823e419355821661b3bc559089ccd3452c167e95a2",
+      "lines": 97,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_form_dialog.dart",
+      "localBaseSha256": "c8118ec0e0b14aa43b56b9da68c7744691369bb98ce2cac71a83f63055392a8a",
+      "finalSha256": "18b305fd9c9618328bfb164f4e3cb40784fc8dcb64873c9c04af74909d861226",
+      "lines": 159,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_delete_dialog.dart",
+      "localBaseSha256": null,
+      "finalSha256": "c36117be3a794dd5e8a4f97f028d4b41ef32fa9017405e4cdbc5178dea88bca7",
+      "lines": 81,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_duplicate_dialog.dart",
+      "localBaseSha256": null,
+      "finalSha256": "a6fd3ce942b0603efefdbec4ddb2a9d609abbb25ba807dfa4ae9ce6b5c82cdcd",
+      "lines": 118,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart",
+      "localBaseSha256": "2834f2bd8dce6ed0f63ecc90eb7d0f8543d3904e8617202b1b3bf9af04b1b2e3",
+      "finalSha256": "516aea2d38c6575d72475d3b3a30e31a36fd7263f5cb08c2bbabdae671c2b7df",
+      "lines": 292,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart",
+      "localBaseSha256": "3b40d8b3bb9afe38289c092389982c3caf7fd946b85c4b79f0da671e5c8d4bd9",
+      "finalSha256": "592cedf1c9d6a49cf73bab8dd2cca03933801a6d96402b35953a090210a78089",
+      "lines": 189,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart",
+      "localBaseSha256": "09bdaebe7263fd28c998acc2b2ddfb6f9d907dbe159445496dadca0b3a1881c3",
+      "finalSha256": "e60d23fa5b3e8109af55fb37fba564fd842a1a3670a4f83a5a50cbff81f11b51",
+      "lines": 122,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_issues.dart",
+      "localBaseSha256": null,
+      "finalSha256": "542ae4838f9268badd76ea9fa21f06e391efe394e9cb0f726a6dcffad6a245f9",
+      "lines": 46,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_workspace_actions.dart",
+      "localBaseSha256": null,
+      "finalSha256": "d8f9a2fc54713bf8070efc054b5abbdf48b5910437cf4217e25f051caf801df3",
+      "lines": 86,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_dialog.dart",
+      "localBaseSha256": null,
+      "finalSha256": "914bc9718519b67152e7cc592aaf41cbe6fc036ee61d2f182cea63823cd27daf",
+      "lines": 178,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_preview.dart",
+      "localBaseSha256": null,
+      "finalSha256": "2809fac79d532baf581cdfc7d17ff17f8d0c91d23bdf937c808d6688068e5729",
+      "lines": 79,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart",
+      "localBaseSha256": "901ed4a0a64695771f1eab21c3fcfa658c715ba875dc85962f7e38f1d55eeec0",
+      "finalSha256": "1fb43bbdd108a8f3f303c637b9571b42f7c09b0c546e2896d7e2f729a8b1f29b",
+      "lines": 73,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart",
+      "localBaseSha256": "4f0c674b15f69f95fc282ba3d9472a3fe7db13a87bdd5fcac0ecdb593d1a4269",
+      "finalSha256": "2133748e5ce074c34320dd7df3b5bed63796d33ead7bb591a79ef2d851102127",
+      "lines": 213,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart",
+      "localBaseSha256": "78a008444085f248b1faa9f7a71f95f920d287757467f202a75b840b9c2684da",
+      "finalSha256": "8914a5d2e3377fe6f2b388a95f9f4adf4dbad738ec45a01f2cbb3a5114e4657d",
+      "lines": 299,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "localBaseSha256": "8cbee4d6ea24f915a5c6d6a672d334cebfcf7a1c38573660fbca72f3abbc53aa",
+      "finalSha256": "f2a6401c44032cf9f403790b932bae77e8a33145e0a2b6078ad91e29743aa455",
+      "lines": 295,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart",
+      "localBaseSha256": "f79059158a9c777b2fd50ea549fa8b63608c435fd5a150ce8b4d1e17933614ef",
+      "finalSha256": "79d5bf386dbb90f7842f772372d983e9449b16e5ac24e609318fa4cd94efcebb",
+      "lines": 258,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart",
+      "localBaseSha256": "36518156c011eff5028e88aa500d7bd092f67ecf6d91a587b4616983c337e553",
+      "finalSha256": "91586f2c21e22404b039e89f2e01d2944babdf45a553e3b72b55b05eba4921c6",
+      "lines": 55,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart",
+      "localBaseSha256": "a2206ef522b7eb38cc43401cf60ec62d6679443ad53d1f865a48f689c5071659",
+      "finalSha256": "beb71932dee99551fd1e241a4ae1b729cf993acb63b01c76e534fbca6ca542bd",
+      "lines": 174,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_fixture.dart",
+      "localBaseSha256": "67c9a599799e098c25f3facf365d57611d3ad3d0397bdeb0a1f493b2dec6acff",
+      "finalSha256": "a5e8a5bf48c07bcf50dcb29003d25e2a5dd6e0ee75effa7339b627e041aa508a",
+      "lines": 174,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "71b0b6a8ba223a172f63e959e7eaf875791b5eb57acce4b664a9c84b631bc44e",
+      "lines": 186,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "8430e985d1d9ec668f9e7089e25236996507b81291c74d0b746b981b32a739d7",
+      "lines": 109,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart",
+      "localBaseSha256": "cd0c1737ba990eb63c364f3b862d050ab5e62791783287c863809fef5d78baa0",
+      "finalSha256": "fb4318887e0db53915aa0f77528c221a42b88006de7143b359278d2d6265c9c1",
+      "lines": 214,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "5b7c00288cba4c8418430514b0d5e1d63432a2710eb486438c9a19783ce195d5",
+      "lines": 228,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "9617f81af43d218e413502a4a1bed9759fc70e692104384de020dd5e2f05f76f",
+      "lines": 112,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "a8032424216b42b0a48346b3cf1ea6f5d7dfda0b814400c93daade9f37b1b5af",
+      "lines": 111,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_lifecycle_layout_host_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "f58fbf6c8faf74789546411c5560635ae10c993d266f8d4c88ebef4cbb5e847c",
+      "lines": 106,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu2_deleted_destination_history_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "ea1de334aa832e14f4c49039c9ed708c0d82343e7caa2813f1da4e687a5ec78e",
+      "lines": 119,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "0ff98f91bf8b7ae09513b8e8c40d110c9d6e4e23d0f32ad7827f4179a587b469",
+      "lines": 177,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "apps/avelune_studio/test/support/map_catalogue_host_fixture.dart",
+      "localBaseSha256": "f179ce31b8f007a8458482b4ccb3049c70a0280f62934e2e77a67e8d2abc4cce",
+      "finalSha256": "a908e96fbf985b4fdc29efca400ba5fcd47931c9793a73b7a163dddbb3ac2c0e",
+      "lines": 215,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/test/support/widget_map_catalog_port.dart",
+      "localBaseSha256": "2dd3a60e95e63b7d79eb801592bac97357ec0ae80f29d9f323989629b62e50fe",
+      "finalSha256": "c8321833c1489e493a0376d42377bd3fc01d8cdb511a82dd78cf40804b4bfaa9",
+      "lines": 84,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "apps/avelune_studio/tool/measure_map_catalogue_mutations.dart",
+      "localBaseSha256": "311a8009a302894377c9c19fa9ec7ef312cbd5f21735aaf41b975895a3f0dd1f",
+      "finalSha256": "cd9cd566a116e9ca130816a264c4fa46e2cfdd16a52c73d0ca5abe7a779f6b23",
+      "lines": 273,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_authoring/lib/map_authoring.dart",
+      "localBaseSha256": "e1b9861ac53e5d0b67b725400c2dd28390a85ed21278e01c0df015f886f367d5",
+      "finalSha256": "adfc185766f1c18b5d36c95281e176f168f6527af813d732a283a588bce212ef",
+      "lines": 198,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_authoring/lib/map_authoring_local.dart",
+      "localBaseSha256": "4b59f3c011812bb4a21102c64b073ec49181a6d7ecc253ee137c062b12d1419b",
+      "finalSha256": "0b8070d37221add12000eb91f3f71d56888fd282717412c7124034b231a66d1a",
+      "lines": 59,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/maps/map_duplicate_codec_guard.dart",
+      "localBaseSha256": null,
+      "finalSha256": "7e82afe0c22c8ff283b326f695113c1932f633fd9c6fc5ca34ff1979e1491323",
+      "lines": 34,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/maps/map_lifecycle_actions.dart",
+      "localBaseSha256": "20d2e7c839ab4ebc2d41309e863cee55edcba0368237ec4ae6a4bac145c02f15",
+      "finalSha256": "512d20010ba089d86c2d0878d110eef4f80162356fd71dd56b149f659a6864c8",
+      "lines": 139,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/maps/map_lifecycle_adapter.dart",
+      "localBaseSha256": "5aa1883794611caf946f6b88418813447bff940c3aacb7eeacb9f7544dd6800b",
+      "finalSha256": "a14f12dcc479432c915cb6d23a843661c89a0024d0c8d8f14fa57fbb7230921e",
+      "lines": 1096,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/maps/map_lifecycle_analysis.dart",
+      "localBaseSha256": null,
+      "finalSha256": "e37a3bed52684fae321c337634221cbf598f2a67220820a28a0b115ca1ecbbe6",
+      "lines": 24,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/maps/map_resize_dependencies.dart",
+      "localBaseSha256": null,
+      "finalSha256": "8cd30c5080e8e6f7a0fd0a3cc2efdcc5759cffdf12ba1dd9d805da76f4d87d32",
+      "lines": 107,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_catalog_dependency_contract_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "4df53483b3e9bacba4fd8adebd372ce706df719c9eacb82568b294abe72fd1c0",
+      "lines": 177,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_catalog_fixture.dart",
+      "localBaseSha256": null,
+      "finalSha256": "95871e107628551ce88883c2fa49f5460fce9d2545e678f86f4285b3767c0399",
+      "lines": 79,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_catalog_reference_safety_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "8c0222255429e5f61a44c7d676a6d01793c47775b86f1f258862dd2a8cc3d426",
+      "lines": 181,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_catalog_safety_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "a024f14882c4f51011d670ffcb49d8afa7112c2623b940fb5e7ca65423f66d8b",
+      "lines": 100,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_catalog_transport_test.dart",
+      "localBaseSha256": null,
+      "finalSha256": "e43804f1dec158437560613ef172f41ec39a991e4e3e796bd303a98ee27ce8ac",
+      "lines": 174,
+      "existedInLocalBase": false
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_lifecycle_transaction_test.dart",
+      "localBaseSha256": "3fb8f982839bdafefeb7abd9cbba4c9eaf870decf5da64c611aa2b3a9c6a0e02",
+      "finalSha256": "f070ee12abc60e2b07014ede19ff90e3e08cd3cd8fffdc09062709429ee94b9f",
+      "lines": 738,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "packages/map_core/lib/src/read_models/narrative_dependency_index.dart",
+      "localBaseSha256": "08446bb90c993fb3f6e4d6aaf0c63d7dac60e151748143c28433c820027d6401",
+      "finalSha256": "960fe2478c5d017cc5a7b7b6586f74000c61acb1fb8d90e7bf31a413430b4ef3",
+      "lines": 2820,
+      "existedInLocalBase": true
+    },
+    {
+      "path": "tools/pokemap_mcp/test/map_lifecycle_server.test.ts",
+      "localBaseSha256": null,
+      "finalSha256": "d96e5a6d1b89debcf75983ec0777d0d8dfc4e63df09384ba384bc6bc53f42333",
+      "lines": 150,
+      "existedInLocalBase": false
+    }
+  ],
+  "otherDeltaSinceLocalBase": [
+    "documentation/reports/avelune/app_store_submission_audit_20261001.md"
+  ]
+}

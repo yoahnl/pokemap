@@ -1,0 +1,60 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+00:00 +0: resource CRUD through actual Studio UI survives independent installation
+UWU6_RESOURCE_SEED maps=2 borderLayers=0 terrain=published portraits=preloaded
+UWU6_RESOURCE_IMAGE_UI imported=source_1790975486092554_2824098378 decor=decor-1790975486757024 copy=decor-copy-1790975489113656-2649547919 instance=studio-1790975487648585-0
+
+Warning: A call to tap() with finder "Found 1 widget with widget matching predicate (ignoring all but first): [
+  RawTooltip-[LabeledGlobalKey<RawTooltipState>#5425d]("Ressources", hover delay: 0:00:00.400000, touch delay: 0:00:01.500000, dismiss delay: 0:00:00.100000, triggerMode: TooltipTriggerMode.longPress, enableFeedback: true, positionDelegate: Closure: (TooltipPositionContext) => Offset from Function '_getDefaultPositionDelegate@2950220820':., state: RawTooltipState#7ef54(ticker inactive)),
+]" derived an Offset (Offset(92.0, 236.0)) that would not hit test on the specified widget.
+Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
+The finder corresponds to this RenderBox: _RenderLayoutSurrogateProxyBox#c7db5 relayoutBoundary=up5
+The hit test result at that offset is: HitTestResult(RenderStack#4057b@Offset(92.0, 236.0), RenderCustomMultiChildLayoutBox#d785f@Offset(92.0, 236.0), _RenderInkFeatures#3a419@Offset(92.0, 236.0), RenderPhysicalModel#f3e17@Offset(92.0, 236.0), RenderSemanticsAnnotations#f98ad@Offset(92.0, 236.0), RenderSemanticsAnnotations#fa64a@Offset(92.0, 236.0), RenderRepaintBoundary#b2a45@Offset(92.0, 236.0), RenderSemanticsAnnotations#86bae@Offset(92.0, 236.0), RenderRepaintBoundary#669e7@Offset(92.0, 236.0), RenderIgnorePointer#f6604@Offset(92.0, 236.0), RenderAnimatedOpacity#40d6b@Offset(92.0, 236.0), RenderAnimatedOpacity#3f6f0@Offset(92.0, 236.0), _RenderColoredBox#17148@Offset(92.0, 236.0), RenderAnimatedOpacity#5266b@Offset(92.0, 236.0), RenderIgnorePointer#0894f@Offset(92.0, 236.0), RenderAnimatedOpacity#9c27a@Offset(92.0, 236.0), RenderRepaintBoundary#b0475@Offset(92.0, 236.0), RenderSemanticsAnnotations#a5484@Offset(92.0, 236.0), RenderOffstage#7dc32@Offset(92.0, 236.0), RenderSemanticsAnnotations#677e8@Offset(92.0, 236.0), _RenderTheater#b6cad@Offset(92.0, 236.0), RenderAbsorbPointer#ff8d8@Offset(92.0, 236.0), RenderPointerListener#fb88d@Offset(92.0, 236.0), RenderSemanticsAnnotations#2726b@Offset(92.0, 236.0), RenderCustomPaint#efd77@Offset(92.0, 236.0), RenderSemanticsAnnotations#f556f@Offset(92.0, 236.0), RenderSemanticsAnnotations#8af42@Offset(92.0, 236.0), RenderSemanticsAnnotations#07349@Offset(92.0, 236.0), RenderTapRegionSurface#02363@Offset(92.0, 236.0), RenderSemanticsAnnotations#ee5da@Offset(92.0, 236.0), RenderSemanticsAnnotations#abb51@Offset(92.0, 236.0), HitTestEntry<HitTestTarget>#dddc4(_ReusableRenderView#f37f8), HitTestEntry<HitTestTarget>#81680(<AutomatedTestWidgetsFlutterBinding>))
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2165:25)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
+#3      Uwu6ResourceHost.go (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart:207:18)
+#4      editUwu6Terrain (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart:38:14)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart:29:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+#8      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+To silence this warning, pass "warnIfMissed: false" to "tap()".
+To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      UwUResourceHost.tap (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/uwu_resource_host.dart:88:18)
+#4      UwUResourceHost.action (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/uwu_resource_host.dart:96:11)
+#5      editUwu6Terrain (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart:40:14)
+<asynchronous suspension>
+#6      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart:29:7)
+<asynchronous suspension>
+#7      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#8      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  resource CRUD through actual Studio UI survives independent installation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +0 -1: resource CRUD through actual Studio UI survives independent installation [E]
+  Test failed. See exception logs above.
+  The test description was: resource CRUD through actual Studio UI survives independent installation
+  
+00:24 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart: resource CRUD through actual Studio UI survives independent installation

@@ -1,10 +1,21 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/artifact_ref.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import '../../references/resource_usage_projection.dart';
+import '../../references/resource_usage_report.dart';
+import '../../workspace/project_snapshot.dart';
+import 'asset_store.dart';
+import 'resource_information_actions.dart';
+import 'resource_information_document.dart';
 import 'tileset_actions.dart';
 import 'visual_organization_actions.dart';
+
+part 'element_definition_management.dart';
 
 const int _elementBatchUpsertLimit = 512;
 
@@ -21,15 +32,39 @@ final class ElementActions {
       'Create or replace a validated batch of visual elements atomically',
     ),
     visualLibraryDescriptor(
+      'element.duplicate',
+      'Create an independent visual definition sharing its registered sources',
+      inputSchema: {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['sourceElementId', 'newElementId', 'name', 'categoryId'],
+        'properties': {
+          for (final key in ['sourceElementId', 'newElementId', 'categoryId'])
+            key: {'type': 'string', 'minLength': 1},
+          'name': {'type': 'string', 'minLength': 1, 'maxLength': 120},
+        },
+      },
+    ),
+    visualLibraryDescriptor(
       'element.delete',
       'Delete one unreferenced visual element',
       risk: AuthoringRiskLevel.high,
+      inputSchema: {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['elementId'],
+        'properties': {
+          'elementId': {'type': 'string', 'minLength': 1}
+        },
+      },
     ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = VisualLibraryParameters(context.request.parameters);
     switch (context.request.actionId) {
+      case 'element.duplicate':
+        return _buildElementDuplicate(context, this);
       case 'element.upsert':
         parameters.allow(const {'element', 'category'});
         final element = ProjectElementEntry.fromJson(
@@ -86,6 +121,7 @@ final class ElementActions {
       case 'element.delete':
         parameters.allow(const {'elementId'});
         final elementId = parameters.string('elementId');
+        _requireElementDeletionCoverage(context.snapshot, elementId);
         final next = delete(
           context.snapshot.manifest,
           maps: context.snapshot.maps,
@@ -98,6 +134,8 @@ final class ElementActions {
           path: '/elements/$elementId',
           before: {'elementId': elementId},
           referenceImpact: {'references': const <String>[]},
+          encodedManifest:
+              encodeResourceInformationDocument(context.snapshot, next),
         );
       default:
         throw VisualLibraryException(

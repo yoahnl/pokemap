@@ -1,0 +1,2561 @@
+--- base-locale/apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart
++++ final/apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart
+@@ -0,0 +1,45 @@
++import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
++import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import '../support/map_catalogue_host_fixture.dart';
++
++void main() {
++  testWidgets(
++    'empty project creates and reopens its first map without playability fiction',
++    (tester) async {
++      final fixture = await MapCatalogueHostFixture.open(tester, empty: true);
++      expect(fixture.host.maps.active, isNull);
++      expect(fixture.host.maps.project!.characters, isEmpty);
++      final entry = await fixture.createMap('Première île');
++      final original = fixture.host.maps.active!.current;
++      await fixture.paintCollision();
++      expect(fixture.host.maps.active!.dirty, isTrue);
++      await fixture.tapKey('Enregistrer');
++      final disk = await fixture.reopen();
++      expect(disk.project.maps.single, entry);
++      expect(disk.maps[entry.id], fixture.host.maps.active!.current);
++      expect(disk.maps[entry.id], isNot(original));
++      expect(disk.project.characters, isEmpty);
++      expect(disk.project.settings.defaultPlayerCharacterId, isNull);
++      expect(disk.project.newGame.startMapId, isNot(entry.id));
++      expect(disk.maps[entry.id]!.entities, isEmpty);
++      expect(disk.maps[entry.id]!.size.width, greaterThan(0));
++      expect(disk.maps[entry.id]!.size.height, greaterThan(0));
++      final path = fixture.host.session.state.project!.directoryPath;
++      await fixture.host.dispose();
++      final afterClose = await tester.runAsync(() async {
++        final sessions = LocalProjectSessionAdapter();
++        final session = await sessions.open(path);
++        try {
++          final maps = LocalMapWorkspaceAdapter();
++          final project = await maps.loadProject(session);
++          return (await maps.loadMap(session, project.maps.single)).map;
++        } finally {
++          await sessions.close(session);
++        }
++      });
++      expect(afterClose, disk.maps[entry.id]);
++    },
++  );
++}
+
+--- base-locale/apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart
++++ final/apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart
+@@ -0,0 +1,162 @@
++import 'dart:io';
++import 'dart:ui' as ui;
++
++import 'package:flutter/material.dart';
++import 'package:flutter/rendering.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:image/image.dart' as image;
++import 'package:map_core/map_core.dart';
++import 'package:avelune_studio/features/resources/domain/resource_port.dart';
++import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
++import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
++
++import '../support/m2_ui_fixture.dart';
++import '../support/uwu5_border_host.dart';
++
++void main() {
++  testWidgets('first authored border stays visible over opaque ground', (
++    tester,
++  ) async {
++    final host = await openUwU5BorderHost(
++      tester,
++      configure: (fixture) async {
++        final source = File('${fixture.root.path}/opaque-ground.png');
++        final pixels = image.Image(width: 16, height: 24);
++        image.fill(pixels, color: image.ColorRgb8(200, 60, 40));
++        await source.writeAsBytes(image.encodePng(pixels));
++        final imported = await fixture.resources.importImage(
++          ResourceImageImport(
++            sourcePath: source.path,
++            name: 'Sol opaque',
++            tileWidth: 16,
++            tileHeight: 24,
++          ),
++        );
++        final base = await fixture.loadMap();
++        await fixture.maps.saveMap(
++          fixture.session,
++          base,
++          base.map.copyWith(
++            layers: [
++              TileLayer(
++                id: 'ground',
++                name: 'Sol',
++                cells: List.filled(16, 1),
++                palette: [
++                  TileLayerPaletteEntry(
++                    tilesetId: imported.createdTilesetId!,
++                    localTileId: 0,
++                  ),
++                ],
++              ),
++              CollisionLayer(
++                id: 'collision',
++                name: 'Collision témoin',
++                collisions: List.generate(16, (index) => index == 15),
++              ),
++            ],
++          ),
++        );
++      },
++    );
++    final fixture = host.fixture;
++    expect(
++      fixture.controller.active!.current.layers.whereType<BorderLayer>(),
++      isEmpty,
++    );
++    await tester.tap(find.byTooltip('Carte').first);
++    await pumpIo(tester, frames: 20);
++    await tester.runAsync(() => fixture.visuals!.settled);
++    await pumpIo(tester, frames: 6);
++    final before = await _bluePixels(tester, fixture);
++    expect(before, 0);
++    final initial = fixture.controller.active!.current;
++    await tester.tap(find.text('Bordures').first);
++    await pumpIo(tester, frames: 6);
++    await tester.tap(find.byKey(const ValueKey('border-model-picker')));
++    await pumpIo(tester, frames: 2);
++    await tester.tap(find.text('Clôture du jardin').last);
++    await pumpIo(tester, frames: 3);
++    final canvas = tester.getRect(find.byKey(const ValueKey('map-canvas')));
++    for (final x in [1, 2]) {
++      await tester.tapAt(
++        canvas.topLeft +
++            Offset((x + .5) * canvas.width / 4, 1.5 * canvas.height / 4),
++      );
++      await pumpIo(tester, frames: 4);
++    }
++    await tester.tap(find.text('Terminer le tracé'));
++    await pumpIo(tester, frames: 20);
++    await tester.tap(find.byKey(const ValueKey('Sélectionner')));
++    await pumpIo(tester, frames: 8);
++    await tester.runAsync(() => fixture.visuals!.settled);
++    await pumpIo(tester, frames: 8);
++    final map = fixture.controller.active!.current;
++    final layer = map.layers.whereType<BorderLayer>().single;
++    final feature = layer.content.features.single;
++    expect(feature.blueprintId, 'garden-fence');
++    expect(feature.materialization, isNotNull);
++    expect(
++      feature.materialization!.receipt.blueprintRevision,
++      fixture.controller.project!.borderCatalog
++          .recordById('garden-fence')!
++          .latestPublished!
++          .revision,
++    );
++    expect(fixture.visuals!.borderPreviewIssue, isNull);
++    final visiblePixels = await _bluePixels(tester, fixture);
++    expect(visiblePixels, greaterThan(0));
++    debugPrint('UwU6 first border: $before → $visiblePixels blue pixels');
++    expect(
++      map.layers.whereType<TileLayer>().single,
++      initial.layers.whereType<TileLayer>().single,
++    );
++    expect(
++      map.layers.whereType<CollisionLayer>().single,
++      initial.layers.whereType<CollisionLayer>().single,
++    );
++    await fixture.capture(tester, 'uwu6-first-border-visible-1536');
++    await tester.tap(find.byKey(const ValueKey('Enregistrer')));
++    await pumpIo(tester, frames: 20);
++    expect(fixture.controller.active!.dirty, isFalse);
++    final saved = (await tester.runAsync(() async {
++      final sessions = LocalProjectSessionAdapter();
++      final reopened = await sessions.open(fixture.directory.path);
++      try {
++        final adapter = LocalMapWorkspaceAdapter();
++        final project = await adapter.loadProject(reopened);
++        return await adapter.loadMap(reopened, project.maps.single);
++      } finally {
++        await sessions.close(reopened);
++      }
++    }))!;
++    expect(saved.map.layers.whereType<BorderLayer>().single, layer);
++    expect(tester.takeException(), isNull);
++  });
++}
++
++Future<int> _bluePixels(WidgetTester tester, M2UiFixture fixture) async {
++  final canvas = tester.getRect(find.byKey(const ValueKey('map-canvas')));
++  final boundary =
++      fixture.captureKey.currentContext!.findRenderObject()
++          as RenderRepaintBoundary;
++  return (await tester.runAsync(() async {
++    final captured = await boundary.toImage();
++    final bytes = (await captured.toByteData(
++      format: ui.ImageByteFormat.rawRgba,
++    ))!;
++    var count = 0;
++    for (var y = canvas.top.ceil(); y < canvas.bottom.floor(); y++) {
++      for (var x = canvas.left.ceil(); x < canvas.right.floor(); x++) {
++        final index = (y * captured.width + x) * 4;
++        if (bytes.getUint8(index) == 80 &&
++            bytes.getUint8(index + 1) == 150 &&
++            bytes.getUint8(index + 2) == 200) {
++          count++;
++        }
++      }
++    }
++    captured.dispose();
++    return count;
++  }))!;
++}
+
+--- base-locale/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart
++++ final/apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart
+@@ -0,0 +1,86 @@
++import 'dart:convert';
++import 'dart:io';
++
++import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
++import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import '../support/uwu4_resource_host.dart';
++
++void main() {
++  for (final apply in [false, true]) {
++    testWidgets('source OFF ON OFF ON remains explicit, apply=$apply', (
++      tester,
++    ) async {
++      final host = await openUwU4ResourceHost(tester);
++      final project = await host.reopen();
++      final sheet = project.tilesets.single;
++      final source = File(
++        '${host.fixture.directory.path}/${sheet.relativePath}',
++      );
++      final catalog = File(
++        '${host.fixture.directory.path}/assets/.pokemap-assets.json',
++      );
++      final pixels = (await tester.runAsync(source.readAsBytes))!;
++      await host.action('decors:tree', 'Supprimer la définition…');
++      await host.tap('resource-removal-confirm');
++      await host.tap('resource-management-save');
++      await host.family(ResourceKind.images);
++      final before = (await tester.runAsync(catalog.readAsBytes))!;
++      await host.action('images:${sheet.id}', 'Supprimer la planche…');
++      final choice = find.byKey(const ValueKey('resource-removal-source'));
++      final confirmation = find.byKey(
++        const ValueKey('resource-removal-confirm'),
++      );
++      final submit = find.byKey(const ValueKey('resource-management-save'));
++      expect(tester.widget<CheckboxListTile>(choice).value, isFalse);
++      expect(tester.widget<CheckboxListTile>(choice).onChanged, isNotNull);
++      expect(find.textContaining('La source reste conservée'), findsOneWidget);
++      for (final enabled in [true, false, true]) {
++        await host.tap('resource-removal-confirm');
++        expect(tester.widget<StudioButton>(submit).onPressed, isNotNull);
++        await host.tap('resource-removal-source');
++        expect(tester.widget<CheckboxListTile>(choice).value, enabled);
++        expect(tester.widget<CheckboxListTile>(choice).onChanged, isNotNull);
++        expect(tester.widget<CheckboxListTile>(confirmation).value, isFalse);
++        expect(tester.widget<StudioButton>(submit).onPressed, isNull);
++        expect(
++          find.textContaining('La source reste conservée'),
++          enabled ? findsNothing : findsOneWidget,
++        );
++        expect(await tester.runAsync(catalog.readAsBytes), before);
++        expect(await tester.runAsync(source.readAsBytes), pixels);
++      }
++      final addressed = sheet.relativePath.startsWith('assets/.pokemap-store/');
++      expect(
++        find.textContaining(
++          addressed
++              ? 'fichier adressé par contenu'
++              : 'son fichier seront retirés',
++        ),
++        findsOneWidget,
++      );
++      await host.fixture.capture(tester, 'uwu6-source-off-on-off-on-$apply');
++      if (apply) {
++        await host.tap('resource-removal-confirm');
++        await host.tap('resource-management-save');
++        expect((await host.reopen()).tilesets, isEmpty);
++        final after = jsonDecode(
++          (await tester.runAsync(catalog.readAsString))!,
++        );
++        expect(after['records'], isEmpty);
++        expect(await tester.runAsync(source.exists), addressed);
++        if (addressed) {
++          expect(await tester.runAsync(source.readAsBytes), pixels);
++        }
++      } else {
++        await host.tap('resource-management-cancel');
++        expect((await host.reopen()).tilesets.single, sheet);
++        expect(await tester.runAsync(catalog.readAsBytes), before);
++        expect(await tester.runAsync(source.readAsBytes), pixels);
++      }
++      expect(tester.takeException(), isNull);
++    });
++  }
++}
+
+--- base-locale/apps/avelune_studio/test/support/uwu5_border_host.dart
++++ final/apps/avelune_studio/test/support/uwu5_border_host.dart
+@@ -2,6 +2,7 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:map_core/map_core_domain.dart';
++import '../resource_io/resource_fixture.dart';
+ import 'uwu4_resource_host.dart';
+ import 'uwu_resource_host.dart';
+ 
+@@ -9,6 +10,7 @@
+   WidgetTester tester, {
+   Size size = const Size(1536, 1024),
+   double textScale = 1,
++  Future<void> Function(ResourceFixture)? configure,
+ }) => openUwU4ResourceHost(
+   tester,
+   size: size,
+@@ -44,5 +46,6 @@
+         publish: false,
+       ),
+     );
++    await configure?.call(fixture);
+   },
+ );
+
+--- base-locale/apps/avelune_studio/tool/measure_resource_crud_recipes.dart
++++ final/apps/avelune_studio/tool/measure_resource_crud_recipes.dart
+@@ -0,0 +1,214 @@
++import 'dart:convert';
++import 'dart:io';
++
++import 'package:map_authoring/map_authoring_local.dart';
++import 'package:map_core/map_core.dart';
++
++import '../test/support/resource_stress_fixture.dart';
++import 'package:avelune_studio/features/resources/data/local_resource_usage_adapter.dart';
++import '../../../tools/performance/benchmark_support.dart';
++
++Future<void> main() async {
++  stdout.writeln(
++    jsonEncode({
++      'kind': 'environment',
++      'sdk': Platform.version,
++      'os': Platform.operatingSystemVersion,
++      'rssBytes': ProcessInfo.currentRss,
++      'mode': 'dart-jit',
++      'threshold': 'none; descriptive local measures',
++      'fixture':
++          'ResourceStressFixture, existing generator, 200 diagnostics retained',
++      'configuration':
++          'temporary resource-only projects with Pokemon explicitly disabled',
++      'scales': {'S': 8, 'M': 132, 'L': 512},
++      'warmSamples': 3,
++    }),
++  );
++  for (final scale in {'S': 8, 'M': 132, 'L': 512}.entries) {
++    final fixture = await ResourceStressFixture.create(atlasCount: scale.value);
++    try {
++      final manifest = fixture.manifest.copyWith(
++        pokemon: const ProjectPokemonConfig(
++          enabled: false,
++          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
++        ),
++      );
++      await File(
++        '${fixture.directory.path}/project.json',
++      ).writeAsString(jsonEncode(manifest.toJson()));
++      final manifestBytes = await File(
++        '${fixture.directory.path}/project.json',
++      ).length();
++      final mapBytes = await Future.wait(
++        manifest.maps.map(
++          (entry) =>
++              File('${fixture.directory.path}/${entry.relativePath}').length(),
++        ),
++      );
++      final reader = MeasuredUsageReader();
++      final profiles = <ProjectSnapshotLoadProfile>[];
++      final port = LocalResourceUsageAdapter(
++        session: fixture.session,
++        reader: reader,
++        profileSink: profiles.add,
++      );
++      try {
++        final target = ResourceUsageTarget(
++          family: 'images',
++          id: fixture.lateAtlasId,
++        );
++        final cold = Stopwatch()..start();
++        final report = await port.analyze(target);
++        cold.stop();
++        if (!report.complete) {
++          stdout.writeln(
++            jsonEncode({
++              'kind': 'result',
++              'scale': scale.key,
++              'status': 'NON VERIF',
++              'issues': report.coverageIssues,
++            }),
++          );
++          continue;
++        }
++        final coldCounts = reader.counts();
++        final warm = <int>[];
++        final samples = <Map<String, Object?>>[];
++        for (var index = 0; index < 3; index++) {
++          reader.reset();
++          final timer = Stopwatch()..start();
++          final next = await port.analyze(target);
++          timer.stop();
++          if (!next.complete || next.revision != report.revision) {
++            throw StateError('The measured fixture changed.');
++          }
++          warm.add(timer.elapsedMicroseconds);
++          samples.add({
++            'us': timer.elapsedMicroseconds,
++            ...reader.counts(),
++            'cacheHit': profiles.last.cacheHit,
++          });
++        }
++        reader.reset();
++        final verify = Stopwatch()..start();
++        final current = await port.isCurrent(report);
++        verify.stop();
++        stdout.writeln(
++          jsonEncode({
++            'kind': 'result',
++            'scale': scale.key,
++            'status': 'MEASURED',
++            'maps': manifest.maps.length,
++            'tilesets': manifest.tilesets.length,
++            'elements': manifest.elements.length,
++            'diagnostics': fixture.errorCount,
++            'atlasCount': fixture.atlasCount,
++            'manifestBytes': manifestBytes,
++            'mapsBytes': mapBytes.fold(0, (a, b) => a + b),
++            'totalMapCells': fixture.maps.values.fold(
++              0,
++              (a, map) => a + map.size.width * map.size.height,
++            ),
++            'reportEntries': report.entries.length,
++            'revision': report.revision,
++            'cold': {'us': cold.elapsedMicroseconds, ...coldCounts},
++            'warm': {'percentiles': percentileFields(warm), 'samples': samples},
++            'freshness': {
++              'us': verify.elapsedMicroseconds,
++              'current': current,
++              ...reader.counts(),
++            },
++            'rssBytes': ProcessInfo.currentRss,
++          }),
++        );
++      } finally {
++        await port.dispose();
++      }
++    } finally {
++      await fixture.dispose();
++    }
++  }
++}
++
++final class MeasuredUsageReader
++    implements
++        ProjectFileReader,
++        ProjectDirectoryReader,
++        ProjectSnapshotCacheIdentityReader,
++        ProjectResourceProbeReader {
++  final delegate = const LocalProjectFileReader();
++  int reads = 0;
++  int bytes = 0;
++  int identities = 0;
++  int directories = 0;
++  int probes = 0;
++  int binaryReads = 0;
++  void reset() {
++    reads = bytes = identities = directories = probes = binaryReads = 0;
++  }
++
++  Map<String, Object?> counts() => {
++    'reads': reads,
++    'bytes': bytes,
++    'identityReads': identities,
++    'directoryReads': directories,
++    'probes': probes,
++    'binaryReads': binaryReads,
++  };
++  @override
++  Future<String> canonicalizeDirectory(String path) =>
++      delegate.canonicalizeDirectory(path);
++  @override
++  Future<List<String>> listFiles({
++    required String projectRoot,
++    required String relativeDirectory,
++  }) {
++    directories++;
++    return delegate.listFiles(
++      projectRoot: projectRoot,
++      relativeDirectory: relativeDirectory,
++    );
++  }
++
++  @override
++  Future<ProjectResourceIdentity?> readIdentity({
++    required String projectRoot,
++    required String relativePath,
++  }) {
++    identities++;
++    return delegate.readIdentity(
++      projectRoot: projectRoot,
++      relativePath: relativePath,
++    );
++  }
++
++  @override
++  Future<ProjectResourceProbe> probeResource({
++    required String projectRoot,
++    required String relativePath,
++  }) {
++    probes++;
++    return delegate.probeResource(
++      projectRoot: projectRoot,
++      relativePath: relativePath,
++    );
++  }
++
++  @override
++  Future<List<int>> readBytes({
++    required String projectRoot,
++    required String relativePath,
++  }) async {
++    reads++;
++    if (relativePath.endsWith('.png') || relativePath.endsWith('.blob')) {
++      binaryReads++;
++    }
++    final result = await delegate.readBytes(
++      projectRoot: projectRoot,
++      relativePath: relativePath,
++    );
++    bytes += result.length;
++    return result;
++  }
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart
++++ final/apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart
+@@ -80,15 +80,20 @@
+         'Recette locale',
+       );
+       await tester.tap(find.text('Test local').first);
++      await tester.pump();
+       await tester.tap(find.byKey(const ValueKey('start-game-export')));
+-      for (
+-        var i = 0;
+-        i < 200 && workspace.gameExport!.outputPath == null;
+-        i++
+-      ) {
++      final exporting = Stopwatch()..start();
++      await pumpIo(tester, frames: 2);
++      expect(
++        workspace.gameExport!.operationActive ||
++            workspace.gameExport!.outputPath != null ||
++            workspace.gameExport!.error != null,
++        true,
++      );
++      while (workspace.gameExport!.operationActive) {
+         await pumpIo(tester, frames: 2);
+-        if (workspace.gameExport!.error != null) break;
+       }
++      print('CLAIRBOIS_EXPORT_COMPLETED_MS=${exporting.elapsedMilliseconds}');
+       expect(
+         workspace.gameExport!.outputPath,
+         package.path,
+
+--- base-locale/apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart
++++ final/apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart
+@@ -1,7 +1,6 @@
+ import 'dart:convert';
+ import 'dart:io';
+ import 'dart:ui' as ui;
+-
+ import 'package:flame/game.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter/rendering.dart';
+@@ -15,7 +14,6 @@
+ import 'package:path/path.dart' as p;
+ import 'package:pokemap_hub/pokemap_hub_player.dart';
+ import 'package:pub_semver/pub_semver.dart';
+-
+ import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+ import '../../../../avelune_studio/test/support/clairbois_player_recipe.dart'
+     show playClairboisRoute;
+@@ -25,8 +23,11 @@
+   File package,
+   Directory temporary,
+   ProjectManifest authored,
+-  int grid,
+-) async {
++  int grid, {
++  Map<String, MapData>? expectedMaps,
++  Future<void> Function(PlayableMapGame, bool Function(RuntimeInputEvent))?
++  beforeClairboisRoute,
++}) async {
+   final playerRoot = Directory(p.join(temporary.path, 'player'));
+   late PlayableMapGame game;
+   final adapter =
+@@ -73,10 +74,10 @@
+         );
+         expect(bundle.manifest.settings.tileWidth, grid);
+         expect(bundle.manifest.settings.tileHeight, grid);
+-        expect(bundle.manifest.maps.map((map) => map.id), [
+-          'first-map',
+-          'maison',
+-        ]);
++        expect(
++          bundle.manifest.maps.map((map) => map.id),
++          expectedMaps?.keys ?? ['first-map', 'maison'],
++        );
+         expect(bundle.manifest.tilesets, isNotEmpty);
+         final catalog = AssetCatalog.fromJson(
+           jsonDecode(
+@@ -98,12 +99,16 @@
+             mapId: entry.id,
+           );
+           expect(mapBundle.map.id, entry.id);
+-          expect(
+-            mapBundle.map.size,
+-            entry.id == 'first-map'
+-                ? const GridSize(width: 32, height: 26)
+-                : const GridSize(width: 12, height: 10),
+-          );
++          if (expectedMaps == null) {
++            expect(
++              mapBundle.map.size,
++              entry.id == 'first-map'
++                  ? const GridSize(width: 32, height: 26)
++                  : const GridSize(width: 12, height: 10),
++            );
++          } else {
++            expect(mapBundle.map, expectedMaps[entry.id]);
++          }
+           expect(
+             p.isWithin(installedRoot, mapBundle.projectRootDirectory),
+             isTrue,
+@@ -192,6 +197,7 @@
+     expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 16, y: 16));
+     expect(game.gameStateSnapshot.trainerProfile.avatarCharacterId, 'player');
+   });
++  await beforeClairboisRoute?.call(game, adapter.handleInput);
+   await playClairboisRoute(tester, game, input: adapter.handleInput);
+   await tester.runAsync(() async {
+     final checkpoint = await adapter.captureCheckpoint();
+@@ -238,7 +244,6 @@
+   currentProjectFormat: 'v8',
+   supportedSaveFormats: const {1},
+ );
+-
+ Future<void> _checkCharacterFrames(RuntimeMapBundle bundle) async {
+   final imageSizes = <String, ui.Size>{};
+   for (final entry in bundle.runtimeImageAbsolutePathsById.entries) {
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart
+@@ -13,7 +13,10 @@
+ import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
+ import 'uwu4_resource_replacement_player_support.dart';
+ 
+-Future<void> prepareUwu5ExportFixture(M3StoryFixture source) async {
++Future<void> prepareUwu5ExportFixture(
++  M3StoryFixture source, {
++  bool discriminatingTerrain = false,
++}) async {
+   await prepareUwu4ExportFixture(source);
+   await source.maps.loadProject(source.session);
+   final port = LocalResourceAdapter(
+@@ -24,6 +27,20 @@
+   try {
+     final pixels = image.Image(width: 32, height: 32)
+       ..clear(image.ColorRgba8(25, 211, 181, 255));
++    if (discriminatingTerrain) {
++      final colors = [
++        [25, 211, 181],
++        [55, 100, 240],
++        [220, 60, 90],
++        [245, 210, 80],
++      ];
++      for (var y = 0; y < 32; y++) {
++        for (var x = 0; x < 32; x++) {
++          final color = colors[(y ~/ 16) * 2 + x ~/ 16];
++          pixels.setPixelRgba(x, y, color[0], color[1], color[2], 255);
++        }
++      }
++    }
+     final file = File(p.join(temporary.path, 'terrain.png'));
+     await file.writeAsBytes(image.encodePng(pixels));
+     final imported = await port.importImage(
+@@ -45,7 +62,10 @@
+     );
+     for (var i = 0; i < 16; i++) {
+       model.selectedRule = i;
+-      model.assign(0, 0);
++      model.assign(
++        discriminatingTerrain ? i % 2 : 0,
++        discriminatingTerrain ? (i ~/ 2) % 2 : 0,
++      );
+     }
+     await model.save(
+       (action, parameters) async =>
+@@ -115,6 +135,10 @@
+       0,
+     );
+     cells[8 * base.map.size.width + 5] = 1;
++    if (discriminatingTerrain) {
++      cells[9 * base.map.size.width + 5] = 1;
++      cells[9 * base.map.size.width + 6] = 1;
++    }
+     await source.maps.saveMap(
+       source.session,
+       base,
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart
+@@ -23,6 +23,9 @@
+   Directory temporary, {
+   required ProjectManifest authored,
+   required MapData authoredMap,
++  Future<void> Function(PlayableMapGame game)? verifyAdditionalMovement,
++  void Function(RuntimeMapBundle bundle)? verifyBundle,
++  Future<void> Function(ui.Image frame)? verifyFrame,
+ }) async {
+   final support = Directory(p.join(temporary.path, 'player'));
+   late PlayableMapGame game;
+@@ -55,6 +58,7 @@
+           projectFilePath: projectFile.path,
+           mapId: authored.newGame.startMapId,
+         );
++        verifyBundle?.call(bundle);
+         expect(bundle.manifest.smartTileCatalog, authored.smartTileCatalog);
+         expect(bundle.manifest.borderCatalog, authored.borderCatalog);
+         expect(bundle.manifest.characters, authored.characters);
+@@ -160,7 +164,7 @@
+     );
+   });
+   await tester.pump();
+-  await _captureAndCheckPixels(tester, capture);
++  await _captureAndCheckPixels(tester, capture, verifyFrame);
+   await tester.runAsync(() async {
+     expect(
+       game.handleRuntimeInputEvent(
+@@ -211,18 +215,24 @@
+     await _until(game, () => game.debugFlowPhaseName == 'overworld');
+   });
+   await pumpIo(tester, frames: 4);
++  await tester.runAsync(() async => verifyAdditionalMovement?.call(game));
+   await tester.runAsync(() => verifyUwu5InstalledMovement(game));
+   expect(game.gameStateSnapshot.currentMapId, authored.newGame.startMapId);
+   await tester.pumpWidget(const SizedBox());
+   await tester.runAsync(adapter.dispose);
+ }
+ 
+-Future<void> _captureAndCheckPixels(WidgetTester tester, GlobalKey key) async {
++Future<void> _captureAndCheckPixels(
++  WidgetTester tester,
++  GlobalKey key,
++  Future<void> Function(ui.Image frame)? verifyFrame,
++) async {
+   await tester.runAsync(() async {
+     final boundary =
+         key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+     final frame = await boundary.toImage(pixelRatio: 1);
+     try {
++      await verifyFrame?.call(frame);
+       final rgba =
+           (await frame.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+       var terrain = 0, border = 0;
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart
+@@ -0,0 +1,292 @@
++import 'dart:io';
++
++import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
++import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
++import 'package:crypto/crypto.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++import 'package:path/path.dart' as p;
++
++import '../../../../avelune_studio/test/support/capture_m3_widget.dart';
++import '../../../../avelune_studio/test/support/map_catalogue_host_fixture.dart';
++import '../../../../avelune_studio/test/support/load_desktop_capture_fonts.dart';
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
++import '../../../../avelune_studio/test/support/project_creation_workspace_fixture.dart';
++import 'as_project_creation_player_support.dart';
++import 'uwu6_map_player_route.dart';
++import 'uwu6_map_ui_steps.dart';
++
++void main() {
++  testWidgets(
++    'UI map CRUD persists and traverses real passages in the installed Player',
++    (tester) async {
++      await tester.runAsync(loadDesktopCaptureFonts);
++      final capture = GlobalKey();
++      final fixture = await MapCatalogueHostFixture.open(
++        tester,
++        captureKey: capture,
++      );
++      final ui = Uwu6MapUiSteps(fixture);
++      final initial = await fixture.reopen();
++      print('UWU6_MAP_STAGE=create-rename-folder');
++      final source = await fixture.createMap('Île des essais');
++      await captureM3Widget(tester, capture, 'uwu6-map-new-empty');
++      await ui.collision(const GridPos(x: 4, y: 4));
++      await fixture.tapKey('Enregistrer');
++      await fixture.renameMap(source.id, 'Île aux étoiles');
++      final folder = await fixture.createFolder('Région des étoiles');
++      await fixture.mapAction(source.id, 'Déplacer…');
++      await fixture.choose('Dossier de destination', folder.name);
++      await tester.tap(find.text('Déplacer').last);
++      await pumpIo(tester, frames: 20);
++      final sourceDisk = await fixture.reopen();
++      final renamed = sourceDisk.project.maps.singleWhere(
++        (m) => m.id == source.id,
++      );
++      expect(renamed.relativePath, source.relativePath);
++      expect(renamed.groupId, folder.id);
++      expect(sourceDisk.maps[source.id]!.name, 'Île aux étoiles');
++      print('UWU6_MAP_STAGE=duplicate-resize');
++      final copy = await ui.duplicate(renamed);
++      final duplicated = await fixture.reopen();
++      expect(copy.id, isNot(source.id));
++      expect(copy.relativePath, isNot(source.relativePath));
++      expect(
++        duplicated.maps[copy.id],
++        sourceDisk.maps[source.id]!.copyWith(id: copy.id, name: copy.name),
++      );
++      await ui.collision(const GridPos(x: 5, y: 4));
++      await fixture.tapKey('Enregistrer');
++      final beforeGrowth = await fixture.reopen();
++      expect(beforeGrowth.maps[source.id], sourceDisk.maps[source.id]);
++      expect(beforeGrowth.maps[copy.id], isNot(duplicated.maps[copy.id]));
++      final grown = GridSize(
++        width: beforeGrowth.maps[copy.id]!.size.width + 4,
++        height: beforeGrowth.maps[copy.id]!.size.height + 3,
++      );
++      await ui.resize(copy.id, grown);
++      await tester.tap(find.byTooltip('Recentrer'));
++      await pumpIo(tester, frames: 5);
++      await ui.collision(GridPos(x: grown.width - 2, y: 2));
++      await fixture.tapKey('Enregistrer');
++      final beforeRefusal = await fixture.reopen();
++      final beforeRefusalBytes = await tester.runAsync(
++        () => _documents(
++          fixture.host.session.state.project!.directoryPath,
++          beforeRefusal.project,
++        ),
++      );
++      expect(beforeRefusal.maps[copy.id]!.size, grown);
++      await ui.resize(
++        copy.id,
++        const GridSize(width: 3, height: 3),
++        apply: false,
++      );
++      final submit = tester.widget<StudioButton>(
++        find.widgetWithText(StudioButton, 'Appliquer le redimensionnement'),
++      );
++      expect(submit.onPressed, isNull);
++      await captureM3Widget(tester, capture, 'uwu6-map-shrink-refused');
++      await tester.tap(find.text('Annuler').last);
++      await pumpIo(tester, frames: 5);
++      expect((await fixture.reopen()).maps, beforeRefusal.maps);
++      expect(
++        await tester.runAsync(
++          () => _documents(
++            fixture.host.session.state.project!.directoryPath,
++            beforeRefusal.project,
++          ),
++        ),
++        beforeRefusalBytes,
++      );
++      print('UWU6_MAP_STAGE=passages-delete');
++      await ui.passage(
++        'first-map',
++        const GridPos(x: 2, y: 3),
++        const GridPos(x: 16, y: 16),
++      );
++      await ui.select('first-map');
++      await ui.passage(
++        copy.id,
++        const GridPos(x: 16, y: 17),
++        const GridPos(x: 2, y: 2),
++      );
++      final referenced = await fixture.reopen();
++      final referencedBytes = await tester.runAsync(
++        () => _documents(
++          fixture.host.session.state.project!.directoryPath,
++          referenced.project,
++        ),
++      );
++      await fixture.mapAction(copy.id, 'Supprimer la carte…');
++      final delete = tester.widget<StudioButton>(
++        find.widgetWithText(StudioButton, 'Supprimer définitivement'),
++      );
++      expect(delete.onPressed, isNull);
++      await tester.tap(find.text('Fermer').last);
++      await pumpIo(tester, frames: 5);
++      expect((await fixture.reopen()).maps, referenced.maps);
++      expect(
++        await tester.runAsync(
++          () => _documents(
++            fixture.host.session.state.project!.directoryPath,
++            referenced.project,
++          ),
++        ),
++        referencedBytes,
++      );
++      final work = await fixture.createMap('Travail provisoire');
++      await fixture.mapAction(work.id, 'Supprimer la carte…');
++      await tester.tap(find.text('Supprimer définitivement').last);
++      await pumpIo(tester, frames: 30);
++      final persisted = await fixture.reopen();
++      expect(persisted.project.maps.any((m) => m.id == work.id), false);
++      expect(persisted.maps[source.id], sourceDisk.maps[source.id]);
++      expect(persisted.maps['maison'], initial.maps['maison']);
++      expect(
++        persisted.maps['first-map']!.warps,
++        containsAll(initial.maps['first-map']!.warps),
++      );
++      expect(persisted.project.settings, initial.project.settings);
++      await captureM3Widget(tester, capture, 'uwu6-map-crud-persisted');
++      final author = Directory(
++        fixture.host.session.state.project!.directoryPath,
++      );
++      await fixture.host.dispose();
++      expect(fixture.host.session.state.project, isNull);
++      final reopened = ProjectCreationWorkspaceFixture(
++        tester,
++        fixture.parent,
++        fixture.host.packageFile,
++      );
++      addTearDown(reopened.dispose);
++      await reopened.mount(captureKey: capture, size: const Size(1536, 1024));
++      await tester.tap(find.text('Utiliser un chemin exact'));
++      await tester.pump(const Duration(milliseconds: 300));
++      await tester.enterText(
++        find.widgetWithText(TextField, 'Dossier du projet'),
++        author.path,
++      );
++      await tester.testTextInput.receiveAction(TextInputAction.done);
++      await pumpIo(tester, frames: 35);
++      expect(reopened.maps.project, persisted.project);
++      expect(reopened.maps.project!.maps.any((m) => m.id == work.id), false);
++      print('UWU6_MAP_STAGE=export-independent-session');
++      final beforeExportBytes = await tester.runAsync(
++        () => _documents(author.path, persisted.project),
++      );
++      await tester.tap(find.text('Accueil'));
++      await pumpIo(tester, frames: 12);
++      await tester.tap(find.text('Exporter le jeu…'));
++      await pumpIo(tester, frames: 12);
++      await tester.enterText(
++        find.widgetWithText(TextField, 'Auteur'),
++        'Recette UwU VI',
++      );
++      await tester.tap(find.text('Test local').first);
++      await tester.pump();
++      expect(
++        tester
++            .widget<StudioButton>(
++              find.byKey(const ValueKey('start-game-export')),
++            )
++            .onPressed,
++        isNotNull,
++      );
++      final export =
++          tester
++              .widget<MapWorkspaceScreen>(find.byType(MapWorkspaceScreen))
++              .gameExport!;
++      final exporting = Stopwatch()..start();
++      var observedStage = export.stage;
++      final stages = export.changes.listen((_) {
++        if (observedStage == export.stage) return;
++        observedStage = export.stage;
++        print(
++          'UWU6_EXPORT_PHASE=$observedStage:${exporting.elapsedMilliseconds}ms',
++        );
++      });
++      addTearDown(stages.cancel);
++      await tester.tap(find.byKey(const ValueKey('start-game-export')));
++      await pumpIo(tester, frames: 2);
++      expect(
++        export.operationActive ||
++            export.outputPath != null ||
++            export.error != null,
++        true,
++      );
++      while (export.operationActive) {
++        await pumpIo(tester, frames: 2);
++      }
++      print(
++        'UWU6_EXPORT_DIAGNOSTIC=elapsedMs:${exporting.elapsedMilliseconds};stage:${export.stage};busy:${export.busy};active:${export.operationActive};canStart:${export.canStart};error:${export.error}',
++      );
++      await captureM3Widget(tester, capture, 'uwu6-map-export-observed');
++      expect(
++        export.outputPath,
++        fixture.host.packageFile.path,
++        reason:
++            '${export.error}; ${tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).whereType<String>().join(" | ")}',
++      );
++      print(
++        'UWU6_MAP_PACKAGE_SHA256=${await tester.runAsync(() async => sha256.convert(await fixture.host.packageFile.readAsBytes()).toString())}',
++      );
++      final witness = Platform.environment['AVELUNE_CREATION_PACKAGE_DIR'];
++      if (witness != null) {
++        await tester.runAsync(() async {
++          await Directory(witness).create(recursive: true);
++          await fixture.host.packageFile.copy(
++            p.join(witness, 'uwu6-map-lifecycle.avelunegame'),
++          );
++        });
++      }
++      for (final entry in persisted.project.maps) {
++        print(
++          'UWU6_MAP_IDENTITY=${entry.id}:${entry.relativePath}:${entry.name}',
++        );
++      }
++      expect(
++        await tester.runAsync(() => _documents(author.path, persisted.project)),
++        beforeExportBytes,
++      );
++      await captureM3Widget(tester, capture, 'uwu6-map-export-result');
++      await reopened.dispose();
++      await tester.runAsync(() async {
++        expect(
++          p.isWithin(
++            await fixture.parent.resolveSymbolicLinks(),
++            await author.resolveSymbolicLinks(),
++          ),
++          true,
++        );
++        await author.rename('${author.path}.offline');
++        expect(await author.exists(), false);
++      });
++      await playCreatedPackage(
++        tester,
++        fixture.host.packageFile,
++        fixture.parent,
++        persisted.project,
++        32,
++        expectedMaps: persisted.maps,
++        beforeClairboisRoute:
++            (game, input) => playUwu6AddedMap(tester, game, input, copy.id),
++      );
++      expect(await tester.runAsync(author.exists), false);
++      expect(tester.takeException(), isNull);
++    },
++    timeout: const Timeout(Duration(minutes: 3)),
++  );
++}
++
++Future<Map<String, List<int>>> _documents(
++  String root,
++  ProjectManifest project,
++) async => {
++  for (final path in [
++    'project.json',
++    ...project.maps.map((entry) => entry.relativePath),
++  ])
++    path: await File(p.join(root, path)).readAsBytes(),
++};
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_map_player_route.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_map_player_route.dart
+@@ -0,0 +1,56 @@
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_runtime/map_runtime.dart';
++
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
++
++Future<void> playUwu6AddedMap(
++  WidgetTester tester,
++  PlayableMapGame game,
++  bool Function(RuntimeInputEvent) input,
++  String addedMapId,
++) async {
++  Future<void> step(String mapId, GridPos position) async {
++    expect(
++      input(const RuntimeInputEvent.press(RuntimeInputControl.down)),
++      true,
++    );
++    game.update(.016);
++    input(const RuntimeInputEvent.release(RuntimeInputControl.down));
++    for (var i = 0; i < 200; i++) {
++      if (game.gameStateSnapshot.currentMapId == mapId &&
++          game.debugLastCompletedMapActivation?.mapId == mapId &&
++          !game.debugIsMapActivationDispatchInFlight &&
++          !game.inputAuthoritySnapshot.isGameplayLocked) {
++        break;
++      }
++      await pumpIo(tester, frames: 2);
++    }
++    expect(game.gameStateSnapshot.currentMapId, mapId);
++    expect(game.debugPlayerGridPosition, position);
++    print('UWU6_INSTALLED_PASSAGE=$mapId:${position.x},${position.y}');
++  }
++
++  expect(game.gameStateSnapshot.currentMapId, 'first-map');
++  expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 16));
++  await step(addedMapId, const GridPos(x: 2, y: 2));
++  void press(RuntimeInputControl control) {
++    expect(input(RuntimeInputEvent.press(control)), true);
++    game.update(.016);
++    input(RuntimeInputEvent.release(control));
++    game.update(.3);
++  }
++
++  for (var i = 0; i < 31; i++) {
++    press(RuntimeInputControl.right);
++  }
++  expect(game.debugPlayerGridPosition, const GridPos(x: 33, y: 2));
++  press(RuntimeInputControl.right);
++  expect(game.debugPlayerGridPosition, const GridPos(x: 33, y: 2));
++  print('UWU6_INSTALLED_EXTENDED_SURFACE=33,2;collision=34,2');
++  for (var i = 0; i < 31; i++) {
++    press(RuntimeInputControl.left);
++  }
++  expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
++  await step('first-map', const GridPos(x: 16, y: 16));
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_map_ui_steps.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_map_ui_steps.dart
+@@ -0,0 +1,146 @@
++import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
++import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++
++import '../../../../avelune_studio/test/support/map_catalogue_host_fixture.dart';
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
++
++class Uwu6MapUiSteps {
++  Uwu6MapUiSteps(this.fixture);
++  final MapCatalogueHostFixture fixture;
++  WidgetTester get tester => fixture.tester;
++
++  Future<void> select(String id) => fixture.tapKey('map-library-$id');
++
++  Future<void> navigator({required bool visible}) async {
++    final toggle = find.byTooltip(
++      visible ? 'Afficher les cartes' : 'Masquer les cartes',
++    );
++    if (toggle.evaluate().isEmpty) return;
++    await tester.tap(toggle);
++    await pumpIo(tester, frames: 5);
++  }
++
++  Future<void> collision(GridPos position) async {
++    await navigator(visible: false);
++    await tester.tap(find.byTooltip('Recentrer'));
++    await pumpIo(tester, frames: 4);
++    await tester.ensureVisible(find.text('Collisions'));
++    await pumpIo(tester, frames: 4);
++    await tester.tap(find.text('Collisions'));
++    await pumpIo(tester, frames: 4);
++    expect(
++      tester
++          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
++          .view
++          .tool,
++      StudioMapTool.collisionPaint,
++    );
++    final point = cell(position);
++    expect(
++      tester
++          .getRect(find.byKey(const ValueKey('map-viewport')))
++          .contains(point),
++      true,
++    );
++    final surface = tester.renderObject<RenderBox>(
++      find.byKey(const ValueKey('map-canvas')),
++    );
++    expect(
++      tester.hitTestOnBinding(point).path.any((hit) => hit.target == surface),
++      true,
++      reason:
++          'Canvas=${tester.getRect(find.byKey(const ValueKey('map-canvas')))};viewport=${tester.getRect(find.byKey(const ValueKey('map-viewport')))};point=$point;hit=${tester.hitTestOnBinding(point).path.map((hit) => hit.target.runtimeType).join(',')}',
++    );
++    final before = fixture.host.maps.active!.current;
++    await tester.tapAt(point);
++    await pumpIo(tester, frames: 6);
++    expect(
++      fixture.host.maps.active!.current,
++      isNot(before),
++      reason:
++          'Collision drawn at $position: ${fixture.host.maps.active!.error}; $point',
++    );
++    expect(fixture.host.maps.active!.dirty, true);
++    await navigator(visible: true);
++  }
++
++  Future<ProjectMapEntry> duplicate(ProjectMapEntry source) async {
++    await fixture.mapAction(source.id, 'Dupliquer…');
++    await fixture.field('duplicate-map-name', 'Île — copie jouable');
++    await tester.tap(find.text('Dupliquer la carte').last);
++    await pumpIo(tester, frames: 30);
++    return fixture.host.maps.project!.maps.singleWhere(
++      (entry) => entry.name == 'Île — copie jouable',
++    );
++  }
++
++  Future<void> resize(String id, GridSize size, {bool apply = true}) async {
++    await fixture.mapAction(id, 'Redimensionner…');
++    await fixture.field('resize-map-width', '${size.width}');
++    await fixture.field('resize-map-height', '${size.height}');
++    await tester.tap(find.text('Analyser les conséquences'));
++    await pumpIo(tester, frames: 20);
++    if (apply) {
++      await tester.tap(find.text('Appliquer le redimensionnement'));
++      await pumpIo(tester, frames: 30);
++    }
++  }
++
++  Offset cell(GridPos position) {
++    final canvas = tester.widget<MapWorkspaceCanvas>(
++      find.byType(MapWorkspaceCanvas),
++    );
++    final surface = tester.renderObject<RenderBox>(
++      find.byKey(const ValueKey('map-canvas')),
++    );
++    final settings = canvas.project.settings;
++    return surface.localToGlobal(
++      Offset(
++        (position.x + .5) * settings.tileWidth * settings.displayScale,
++        (position.y + .5) * settings.tileHeight * settings.displayScale,
++      ),
++    );
++  }
++
++  Future<void> passage(String destination, GridPos from, GridPos target) async {
++    await navigator(visible: false);
++    await tester.ensureVisible(find.text('Passages'));
++    await pumpIo(tester, frames: 4);
++    await tester.tap(find.text('Passages'));
++    await pumpIo(tester, frames: 5);
++    await tester.tap(find.byTooltip('Recentrer'));
++    await pumpIo(tester, frames: 4);
++    final choice = find.byKey(ValueKey('warp-destination-$destination'));
++    await tester.ensureVisible(choice);
++    await pumpIo(tester, frames: 5);
++    await tester.tap(choice);
++    await pumpIo(tester, frames: 5);
++    expect(
++      tester
++          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
++          .view
++          .warpDestination
++          ?.id,
++      destination,
++    );
++    await tester.tapAt(cell(from));
++    await pumpIo(tester, frames: 6);
++    final warp = fixture.host.maps.active!.current.warps.last;
++    expect(warp.pos, from);
++    expect(warp.targetMapId, destination);
++    final owner = '${fixture.host.maps.active!.current.id}/${warp.id}';
++    await fixture.field('warp-target-x-$owner', '${target.x}');
++    await tester.testTextInput.receiveAction(TextInputAction.done);
++    await pumpIo(tester, frames: 3);
++    await fixture.field('warp-target-y-$owner', '${target.y}');
++    await tester.testTextInput.receiveAction(TextInputAction.done);
++    await pumpIo(tester, frames: 3);
++    await fixture.tapKey('Enregistrer');
++    expect(fixture.host.maps.active!.dirty, isFalse);
++    expect(fixture.host.maps.active!.current.warps.last.targetPos, target);
++    await navigator(visible: true);
++  }
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart
+@@ -0,0 +1,86 @@
++import 'package:flutter/services.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
++import 'uwu6_resource_host.dart';
++
++Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
++  final tester = host.tester;
++  await host.go('Carte');
++  expect(
++    host.fixture.controller.active!.current.layers.whereType<BorderLayer>(),
++    isEmpty,
++  );
++  await host.text('Bordures');
++  await host.tap('border-model-picker');
++  await host.text('Muret conservé');
++  await host.cell(10, 8);
++  await host.cell(13, 8);
++  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
++  await pumpIo(tester, frames: 6);
++  final map = host.fixture.controller.active!.current;
++  final border = map.layers.whereType<BorderLayer>().single;
++  expect(border.content.features, hasLength(1));
++  expect(
++    map.layers.indexOf(border),
++    0,
++    reason: 'First normal stroke must be above an opaque floor.',
++  );
++  final blockedCell = 8 * map.size.width + 11;
++  expect(
++    map.layers.whereType<CollisionLayer>().any(
++      (layer) => layer.collisions[blockedCell],
++    ),
++    false,
++  );
++  await host.text('Collisions');
++  await host.cell(11, 8);
++  final painted = host.fixture.controller.active!.current;
++  expect(
++    painted.layers.whereType<CollisionLayer>().any(
++      (layer) => layer.collisions[blockedCell],
++    ),
++    true,
++  );
++  expect(
++    painted.layers.whereType<BorderLayer>().single.content,
++    border.content,
++  );
++  await host.saveMap();
++  await host.fixture.capture(tester, 'uwu6-widget-first-border-stroke');
++  print(
++    'UWU6_RESOURCE_FIRST_BORDER_UI id=${border.id} features=${border.content.features.length} index=${map.layers.indexOf(border)}',
++  );
++  print('UWU6_RESOURCE_EXPLICIT_BORDER_COLLISION_UI=11,8 visualOnly=10,8');
++}
++
++Future<void> deprecateUwu6Border(Uwu6ResourceHost host) async {
++  await host.go('Ressources');
++  await host.text('Publiées');
++  final before = (await host.reopen()).borderCatalog.records.single;
++  await host.tap('border-resource-actions-${before.id}');
++  await host.text('Déprécier…');
++  await host.tap('resource-border-confirm');
++  await host.tap('resource-management-save');
++  final deprecated = (await host.reopen()).borderCatalog.records.single;
++  expect(deprecated.isDeprecated, true);
++  expect(deprecated.draft, before.draft);
++  expect(deprecated.latestPublished, before.latestPublished);
++  await host.text('Dépréciées');
++  await host.tap('border-resource-actions-${before.id}');
++  await host.text('Réactiver…');
++  await host.tap('resource-border-confirm');
++  await host.tap('resource-management-save');
++  expect((await host.reopen()).borderCatalog.records.single, before);
++  await host.text('Publiées');
++  await host.tap('border-resource-actions-${before.id}');
++  await host.text('Déprécier…');
++  await host.tap('resource-border-confirm');
++  await host.tap('resource-management-save');
++  expect((await host.reopen()).borderCatalog.records.single.isDeprecated, true);
++  await host.fixture.capture(host.tester, 'uwu6-widget-deprecated-border');
++  print(
++    'UWU6_RESOURCE_BORDER_UI deprecated-reactivated-deprecated=${before.id}',
++  );
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart
+@@ -0,0 +1,125 @@
++import 'dart:io';
++
++import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
++import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:path/path.dart' as p;
++
++import 'uwu4_resource_replacement_player_support.dart';
++import 'uwu5_specialized_resources_player_support.dart';
++import 'uwu6_resource_host.dart';
++import 'uwu6_resource_image_steps.dart';
++import 'uwu6_resource_specialized_steps.dart';
++import 'uwu6_resource_border_steps.dart';
++import 'uwu6_resource_player_movement.dart';
++import 'uwu6_resource_player_visuals.dart';
++import 'uwu6_resource_export_steps.dart';
++
++void main() {
++  testWidgets(
++    'resource CRUD through actual Studio UI survives independent installation',
++    (tester) async {
++      var host = await Uwu6ResourceHost.create(tester);
++      final temporary = host.temporary;
++      final source = host.fixture.directory;
++      final ownedSource = (await tester.runAsync(source.resolveSymbolicLinks))!;
++      final systemTemp =
++          (await tester.runAsync(Directory.systemTemp.resolveSymbolicLinks))!;
++      expect(p.isWithin(systemTemp, ownedSource), true);
++      final mapId = host.fixture.controller.active!.current.id;
++      print(
++        'UWU6_RESOURCE_SEED maps=${host.fixture.controller.project!.maps.length} borderLayers=0 terrain=published portraits=preloaded',
++      );
++      final image = await editUwu6Images(host);
++      await editUwu6Terrain(host);
++      await resolveUwu6Characters(host);
++      await drawUwu6Border(host);
++      await deprecateUwu6Border(host);
++      final expected = host.fixture.controller.active!.current;
++      await tester.pumpWidget(const SizedBox());
++      await host.close();
++
++      host = await Uwu6ResourceHost.openExisting(tester, source, temporary);
++      addTearDown(host.close);
++      final after = await host.reopen();
++      expect(
++        after.tilesets.singleWhere((entry) => entry.id == image.sheetId).name,
++        'Planche émeraude — témoin',
++      );
++      expect(after.smartTileCatalog.presets, hasLength(2));
++      expect(after.borderCatalog.records.single.isDeprecated, true);
++      expect(after.settings.defaultPlayerCharacterId, 'uwu5-replacement');
++      expect(host.fixture.controller.active!.current, expected);
++      final second = after.maps.singleWhere((entry) => entry.id != mapId);
++      await tester.pumpWidget(const SizedBox());
++      await host.close();
++      host = await Uwu6ResourceHost.openExisting(
++        tester,
++        source,
++        temporary,
++        initialMapId: second.id,
++      );
++      addTearDown(host.close);
++      await inspectUwu6ClosedUsages(host, image.sheetId, image.placedId, mapId);
++
++      final authored = await host.reopen();
++      await exportUwu6Resources(host);
++      final read = LocalProjectSessionAdapter();
++      final authoredMap =
++          (await tester.runAsync(() async {
++            final session = await read.open(source.path);
++            try {
++              final maps = LocalMapWorkspaceAdapter();
++              await maps.loadProject(session);
++              return (await maps.loadMap(
++                session,
++                authored.maps.singleWhere((entry) => entry.id == mapId),
++              )).map;
++            } finally {
++              await read.close(session);
++            }
++          }))!;
++      expect(authoredMap, expected);
++      await tester.pumpWidget(const SizedBox());
++      await host.close();
++      final hidden = Directory('${source.path}.uwu6-offline');
++      expect(await tester.runAsync(source.resolveSymbolicLinks), ownedSource);
++      expect(p.isWithin(systemTemp, ownedSource), true);
++      await tester.runAsync(() => source.rename(hidden.path));
++      final ownedHidden = (await tester.runAsync(hidden.resolveSymbolicLinks))!;
++      addTearDown(() async {
++        if (await hidden.exists()) {
++          expect(await hidden.resolveSymbolicLinks(), ownedHidden);
++          expect(p.isWithin(systemTemp, ownedHidden), true);
++          await hidden.delete(recursive: true);
++        }
++      });
++      expect(await tester.runAsync(source.exists), false);
++      print('UWU6_RESOURCE_AUTHOR_CLOSED=${host.closed} sourceAbsent=true');
++      await playReplacedPackage(
++        tester,
++        host.package,
++        Directory(p.join(temporary.path, 'pixels-installation')),
++        authored: authored,
++        tilesetId: image.sheetId,
++        elementId: image.decorId,
++        placedId: image.placedId,
++        expectedPixels: host.newPixels,
++      );
++      await playUwu5InstalledPackage(
++        tester,
++        host.package,
++        Directory(p.join(temporary.path, 'specialized-installation')),
++        authored: authored,
++        authoredMap: authoredMap,
++        verifyAdditionalMovement: verifyUwu6BorderVisualSemantics,
++        verifyBundle: verifyUwu6InstalledConnections,
++        verifyFrame: verifyUwu6InstalledConnectionPixels,
++      );
++      expect(await tester.runAsync(source.exists), false);
++      expect(tester.takeException(), isNull);
++    },
++    timeout: const Timeout(Duration(minutes: 5)),
++  );
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart
+@@ -0,0 +1,60 @@
++import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
++import '../../../../avelune_studio/test/support/project_creation_workspace_fixture.dart';
++import 'uwu6_resource_host.dart';
++
++Future<void> exportUwu6Resources(Uwu6ResourceHost host) async {
++  final tester = host.tester;
++  final directory = host.fixture.directory;
++  await tester.pumpWidget(const SizedBox());
++  await host.close();
++  final exporter = ProjectCreationWorkspaceFixture(
++    tester,
++    host.temporary,
++    host.package,
++  );
++  addTearDown(exporter.dispose);
++  await exporter.mount(size: const Size(1536, 1024));
++  await tester.tap(find.text('Utiliser un chemin exact'));
++  await tester.pump(const Duration(milliseconds: 300));
++  await tester.enterText(
++    find.widgetWithText(TextField, 'Dossier du projet'),
++    directory.path,
++  );
++  await tester.testTextInput.receiveAction(TextInputAction.done);
++  await pumpIo(tester, frames: 35);
++  expect(exporter.session.state.project!.directoryPath, directory.path);
++  await tester.tap(find.text('Accueil'));
++  await pumpIo(tester, frames: 12);
++  await tester.tap(find.text('Exporter le jeu…'));
++  await pumpIo(tester, frames: 12);
++  await tester.enterText(
++    find.widgetWithText(TextField, 'Auteur'),
++    'Recette UwU VI',
++  );
++  await tester.tap(find.text('Test local').first);
++  await tester.pump();
++  await tester.tap(find.byKey(const ValueKey('start-game-export')));
++  await pumpIo(tester, frames: 3);
++  final owner =
++      tester
++          .widget<MapWorkspaceScreen>(find.byType(MapWorkspaceScreen))
++          .gameExport!;
++  print(
++    'UWU6_RESOURCE_EXPORT_START stage=${owner.stage} busy=${owner.busy} canStart=${owner.canStart} error=${owner.error}',
++  );
++  for (var i = 0; i < 200 && owner.outputPath == null; i++) {
++    await pumpIo(tester, frames: 2);
++    if (owner.error != null) break;
++  }
++  expect(owner.outputPath, host.package.path, reason: owner.error);
++  await tester.pumpWidget(const SizedBox());
++  await exporter.dispose();
++  expect(exporter.session.state.project, isNull);
++  print(
++    'UWU6_RESOURCE_EXPORT_UI=${host.package.path} authorSessionsClosed=true',
++  );
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart
+@@ -0,0 +1,265 @@
++import 'dart:io';
++import 'dart:typed_data';
++
++import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
++import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
++import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
++import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
++import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
++import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
++import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
++import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
++import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
++import 'package:avelune_studio/presentation/theme/studio_theme.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:image/image.dart' as image;
++import 'package:map_core/map_core.dart';
++import 'package:path/path.dart' as p;
++
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
++import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
++import '../../../../avelune_studio/test/support/uwu_resource_host.dart';
++import '../../../../avelune_studio/test/support/widget_resource_journey_map_port.dart';
++import '../../../../avelune_studio/test/support/widget_resource_management_port.dart';
++import 'uwu5_specialized_resources_fixture.dart';
++import 'uwu5_specialized_resources_player_e2e_test.dart' show Uwu5StudioAssets;
++
++class Uwu6ResourceHost extends UwUResourceHost {
++  Uwu6ResourceHost(super.tester, super.fixture, this.temporary, this.package);
++  final Directory temporary;
++  final File package;
++  final navigationHome = StudioHomeNavigation();
++  late final StudioGameExportController exporter;
++  late final LocalProjectSessionAdapter sessions;
++  final oldPixels = image.encodePng(
++    image.Image(width: 32, height: 32)
++      ..clear(image.ColorRgba8(230, 44, 31, 255)),
++  );
++  final newPixels = image.encodePng(
++    image.Image(width: 32, height: 32)
++      ..clear(image.ColorRgba8(249, 9, 222, 255)),
++  );
++  bool replacement = false;
++  bool closed = false;
++
++  static Future<Uwu6ResourceHost> create(WidgetTester tester) async {
++    tester.view.physicalSize = const Size(1536, 1024);
++    tester.view.devicePixelRatio = 1;
++    addTearDown(tester.view.resetPhysicalSize);
++    addTearDown(tester.view.resetDevicePixelRatio);
++    final temporary =
++        (await tester.runAsync(
++          () => Directory.systemTemp.createTemp('uwu6-resources-player-'),
++        ))!;
++    final source =
++        (await tester.runAsync(() async {
++          final source = await M3StoryFixture.create();
++          await prepareUwu5ExportFixture(source, discriminatingTerrain: true);
++          final resources = LocalResourceAdapter(
++            session: source.session,
++            mapAdapter: source.maps,
++          );
++          await resources.mutate('characterStudio.character.create', {
++            'name': 'Personnage libre',
++            'tilesetId':
++                (await source.maps.loadProject(
++                  source.session,
++                )).characters.first.tilesetId,
++            'frameWidth': 1,
++            'frameHeight': 1,
++          });
++          await resources.dispose();
++          final manifest = await source.maps.loadProject(source.session);
++          final base = await source.maps.loadMap(
++            source.session,
++            manifest.maps.first,
++          );
++          await source.maps.saveMap(
++            source.session,
++            base,
++            base.map.copyWith(
++              layers:
++                  base.map.layers
++                      .where((layer) => layer is! BorderLayer)
++                      .toList(),
++            ),
++          );
++          return source;
++        }))!;
++    final host = await openExisting(tester, source.directory, temporary);
++    addTearDown(() async {
++      await tester.pumpWidget(const SizedBox());
++      await host.close();
++      if (await source.directory.exists()) {
++        await source.directory.delete(recursive: true);
++      }
++      if (await temporary.exists()) await temporary.delete(recursive: true);
++    });
++    return host;
++  }
++
++  static Future<Uwu6ResourceHost> openExisting(
++    WidgetTester tester,
++    Directory directory,
++    Directory temporary, {
++    String? initialMapId,
++  }) async {
++    final sessions = LocalProjectSessionAdapter();
++    final fixture =
++        (await tester.runAsync(() async {
++          final session = await sessions.open(directory.path);
++          final maps = LocalMapWorkspaceAdapter();
++          final port = WidgetResourceJourneyMapPort(maps, tester);
++          final controller = WidgetMapController(session, port, tester);
++          if (initialMapId == null) {
++            await controller.initialize();
++          } else {
++            controller.project = await maps.loadProject(session);
++            await controller.activate(
++              controller.project!.maps.singleWhere(
++                (entry) => entry.id == initialMapId,
++              ),
++            );
++          }
++          port.active = true;
++          return M2UiFixture(
++            directory,
++            session,
++            maps,
++            controller,
++            LocalResourceAdapter(session: session, mapAdapter: maps),
++          );
++        }))!;
++    final host = Uwu6ResourceHost(
++      tester,
++      fixture,
++      temporary,
++      File(p.join(temporary.path, 'uwu6-resources.avelunegame')),
++    );
++    host.sessions = sessions;
++    host.exporter = StudioGameExportController(
++      projectRoot: directory,
++      projectName: 'Recette ressources UwU VI',
++    );
++    await tester.pumpWidget(
++      DefaultAssetBundle(
++        bundle: Uwu5StudioAssets(),
++        child: MaterialApp(
++          theme: studioTheme(),
++          home: RepaintBoundary(
++            key: fixture.captureKey,
++            child: MapWorkspaceScreen(
++              controller: fixture.controller,
++              resourcePort: WidgetResourceManagementPort(
++                fixture.resources,
++                tester,
++              ),
++              home: host.navigationHome,
++              gameExport: host.exporter,
++              gameExportPicker:
++                  (_) async => StudioGameExportDestination(
++                    host.package.path,
++                    exists: await host.package.exists(),
++                  ),
++              imagePicker: host.pickImage,
++              loadVisuals:
++                  (session, project) async =>
++                      fixture.visuals = await StudioMapResources.load(
++                        session,
++                        project,
++                      ),
++              runtimeBuilder: (_, _, _) => const SizedBox(),
++              onClose: () async {},
++              registerExitGuard: (_) {},
++            ),
++          ),
++        ),
++      ),
++    );
++    await pumpIo(tester);
++    return host;
++  }
++
++  Future<PickedResourceImage> pickImage() async {
++    final bytes = Uint8List.fromList(replacement ? newPixels : oldPixels);
++    final file = File(
++      p.join(temporary.path, replacement ? 'new.png' : 'old.png'),
++    );
++    await WidgetResourcePort.serial(tester, () => file.writeAsBytes(bytes));
++    return PickedResourceImage(
++      file.path,
++      'Planche témoin UwU VI',
++      bytes,
++      32,
++      32,
++    );
++  }
++
++  Future<void> text(String label) async {
++    await tester.pump(const Duration(milliseconds: 350));
++    final target = find.text(label).last;
++    await tester.ensureVisible(target);
++    await tester.pump();
++    await tester.tap(target);
++    await pumpIo(tester, frames: 12);
++    await tester.pump(const Duration(milliseconds: 350));
++    await tester.pump();
++  }
++
++  Future<void> go(String label) async {
++    await tester.pump(const Duration(milliseconds: 350));
++    await tester.tap(find.byTooltip(label).first);
++    await pumpIo(tester, frames: 12);
++  }
++
++  @override
++  Future<void> tap(String key) async {
++    final target = find.byKey(ValueKey(key));
++    if (key == 'resource-manage-containers' && target.evaluate().isEmpty) {
++      await text('Actions');
++    }
++    await tester.ensureVisible(target);
++    await tester.pump();
++    await tester.tap(target);
++    await pumpIo(tester, frames: 12);
++    await tester.pump(const Duration(milliseconds: 300));
++    await tester.pump();
++  }
++
++  Future<void> cell(int x, int y) async {
++    final canvas = find.byKey(const ValueKey('map-canvas'));
++    final rect = tester.getRect(canvas);
++    final size = fixture.controller.active!.current.size;
++    await tester.tapAt(
++      rect.topLeft +
++          Offset(
++            (x + .5) * rect.width / size.width,
++            (y + .5) * rect.height / size.height,
++          ),
++    );
++    await pumpIo(tester, frames: 4);
++  }
++
++  Future<void> saveMap() async {
++    await tap('Enregistrer');
++    expect(
++      fixture.controller.active!.dirty,
++      false,
++      reason: fixture.controller.active!.error,
++    );
++  }
++
++  Future<void> close() async {
++    if (closed) return;
++    closed = true;
++    fixture.controller.dispose();
++    exporter.dispose();
++    navigationHome.dispose();
++    await WidgetResourcePort.serial(tester, fixture.resources.dispose);
++    await WidgetResourcePort.serial(
++      tester,
++      () => sessions.close(fixture.session),
++    );
++  }
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart
+@@ -0,0 +1,166 @@
++import 'dart:io';
++
++import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
++import 'package:avelune_studio/presentation/features/resources/resource_usage_results.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:path/path.dart' as p;
++
++import 'uwu6_resource_host.dart';
++
++Future<({String sheetId, String decorId, String placedId})> editUwu6Images(
++  Uwu6ResourceHost host,
++) async {
++  final tester = host.tester;
++  await host.go('Ressources');
++  await host.family(ResourceKind.images);
++  await host.text('Importer une image');
++  await host.text('Importer');
++  final imported = host.fixture.controller.project!.tilesets.singleWhere(
++    (item) => item.name == 'Planche témoin UwU VI',
++  );
++  await tester.enterText(
++    find.widgetWithText(TextField, 'Nom du décor'),
++    'Décor rouge témoin',
++  );
++  await host.text('Enregistrer et utiliser');
++  final original = host.fixture.controller.project!.elements.singleWhere(
++    (item) => item.name == 'Décor rouge témoin',
++  );
++  await host.cell(4, 6);
++  final placed = host.fixture.controller.active!.current.placedElements
++      .singleWhere((item) => item.elementId == original.id);
++  await host.saveMap();
++  await host.go('Ressources');
++  await host.family(ResourceKind.decors);
++  await host.action('decors:${original.id}', 'Dupliquer la définition…');
++  await host.enter('resource-duplicate-name', 'Copie traversable');
++  await host.tap('resource-management-save');
++  final copy = host.fixture.controller.project!.elements.singleWhere(
++    (item) => item.name == 'Copie traversable',
++  );
++  await tester.enterText(
++    find.widgetWithText(TextField, 'Nom du décor'),
++    'Copie indépendante éditée',
++  );
++  await host.text('Traversable');
++  await host.text('Enregistrer et utiliser');
++  final afterCopy = await host.reopen();
++  expect(
++    afterCopy.elements.singleWhere((item) => item.id == original.id),
++    original,
++  );
++  expect(copy.id, isNot(original.id));
++  expect(
++    afterCopy.elements.singleWhere((item) => item.id == copy.id).name,
++    'Copie indépendante éditée',
++  );
++  expect(
++    host.fixture.controller.active!.current.placedElements
++        .singleWhere((item) => item.id == placed.id)
++        .elementId,
++    original.id,
++  );
++
++  await host.go('Ressources');
++  await host.family(ResourceKind.images);
++  final decoder = host.fixture.visuals!.store.decoder;
++  final reads = decoder.reads;
++  final decodes = decoder.decodes;
++  final metadata = Stopwatch()..start();
++  await host.action('images:${imported.id}', 'Modifier les informations');
++  await host.enter('resource-information-name', 'Planche émeraude — témoin');
++  await host.tap('resource-management-save');
++  await host.tap('resource-manage-containers');
++  await host.tap('resource-container-create');
++  await host.enter('resource-container-name', 'Témoins visuels');
++  await host.tap('resource-management-save');
++  final folder = host.fixture.controller.project!.tilesetFolders.singleWhere(
++    (entry) => entry.name == 'Témoins visuels',
++  );
++  await host.text('Retour aux ressources');
++  await host.action('images:${imported.id}', 'Déplacer vers…');
++  await host.choose('resource-move-destination', 'Témoins visuels');
++  await host.tap('resource-management-save');
++  final named = (await host.reopen()).tilesets.singleWhere(
++    (entry) => entry.id == imported.id,
++  );
++  expect(
++    named.copyWith(name: imported.name, folderId: imported.folderId),
++    imported,
++  );
++  expect(named.folderId, folder.id);
++  metadata.stop();
++  expect(
++    decoder.decodes,
++    decodes,
++    reason: 'Changing title and folder must preserve decoded pixels.',
++  );
++  print(
++    'UWU6_RESOURCE_METADATA_US=${metadata.elapsedMicroseconds} reads=${decoder.reads - reads} decodes=${decoder.decodes - decodes}',
++  );
++  host.replacement = true;
++  final before = await tester.runAsync(
++    () =>
++        File(
++          p.join(host.fixture.directory.path, imported.relativePath),
++        ).readAsBytes(),
++  );
++  expect(before, host.oldPixels);
++  await host.action('images:${imported.id}', 'Remplacer l’image source…');
++  expect(find.text('Actuellement'), findsOneWidget);
++  expect(find.text('Après remplacement'), findsOneWidget);
++  await host.fixture.capture(tester, 'uwu6-widget-image-replacement');
++  await host.tap('resource-replacement-confirm');
++  await host.tap('resource-management-save');
++  final after = (await host.reopen()).tilesets.singleWhere(
++    (entry) => entry.id == imported.id,
++  );
++  final newBytes = await tester.runAsync(
++    () =>
++        File(
++          p.join(host.fixture.directory.path, after.relativePath),
++        ).readAsBytes(),
++  );
++  expect(newBytes, host.newPixels);
++  expect(after.id, imported.id);
++  expect(after.source, imported.source);
++  expect(newBytes, isNot(before));
++  expect(after.folderId, folder.id);
++  expect(after.name, 'Planche émeraude — témoin');
++  print(
++    'UWU6_RESOURCE_IMAGE_UI imported=${imported.id} decor=${original.id} copy=${copy.id} instance=${placed.id}',
++  );
++  return (sheetId: imported.id, decorId: original.id, placedId: placed.id);
++}
++
++Future<void> inspectUwu6ClosedUsages(
++  Uwu6ResourceHost host,
++  String sheetId,
++  String placedId,
++  String closedMapId,
++) async {
++  expect(host.fixture.controller.documents.containsKey(closedMapId), false);
++  await host.go('Ressources');
++  await host.family(ResourceKind.images);
++  await host.action('images:$sheetId', 'Voir les usages dans le projet');
++  await host.tap('resource-usage-analyze');
++  final report =
++      host.tester
++          .widget<ResourceUsageResults>(find.byType(ResourceUsageResults))
++          .report!;
++  expect(report.complete, true);
++  expect(
++    report.entries.any(
++      (entry) => entry.mapId == closedMapId && entry.entityId == placedId,
++    ),
++    true,
++  );
++  expect(report.entries.any((entry) => entry.ownerId.isNotEmpty), true);
++  expect(host.fixture.controller.documents.containsKey(closedMapId), false);
++  await host.fixture.capture(host.tester, 'uwu6-widget-closed-map-usages');
++  await host.text('Retour aux ressources');
++  print(
++    'UWU6_RESOURCE_CLOSED_MAP_UI=$closedMapId entries=${report.entries.length}',
++  );
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_player_movement.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_player_movement.dart
+@@ -0,0 +1,47 @@
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_runtime/map_runtime.dart';
++
++Future<void> verifyUwu6BorderVisualSemantics(PlayableMapGame game) async {
++  expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 8, y: 8));
++  await _step(game, RuntimeInputControl.right);
++  expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 9, y: 8));
++  await _step(game, RuntimeInputControl.right);
++  expect(
++    game.gameStateSnapshot.playerPosition,
++    const GridPos(x: 10, y: 8),
++    reason: 'A visual border has no collision contract by itself.',
++  );
++  print('UWU6_INSTALLED_VISUAL_BORDER_CROSSED=10,8 automaticCollision=false');
++  await _step(game, RuntimeInputControl.right);
++  expect(
++    game.gameStateSnapshot.playerPosition,
++    const GridPos(x: 10, y: 8),
++    reason: 'The collision painted explicitly on (11,8) must block movement.',
++  );
++  print('UWU6_INSTALLED_EXPLICIT_BORDER_COLLISION_BLOCKED=11,8 position=10,8');
++  await _step(game, RuntimeInputControl.left);
++  expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 9, y: 8));
++  await _step(game, RuntimeInputControl.left);
++  expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 8, y: 8));
++}
++
++Future<void> _step(PlayableMapGame game, RuntimeInputControl control) async {
++  final before = game.gameStateSnapshot.playerPosition;
++  expect(game.handleRuntimeInputEvent(RuntimeInputEvent.press(control)), true);
++  for (
++    var i = 0;
++    i < 80 && game.gameStateSnapshot.playerPosition == before;
++    i++
++  ) {
++    game.update(.016);
++    await Future<void>.delayed(Duration.zero);
++  }
++  game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
++  for (var i = 0; i < 80; i++) {
++    game.update(.016);
++    await Future<void>.delayed(Duration.zero);
++    if (!game.debugIsPlayerStepping && i > 0) return;
++  }
++  throw StateError('Installed Player movement did not finish.');
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_player_visuals.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_player_visuals.dart
+@@ -0,0 +1,50 @@
++import 'dart:ui' as ui;
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_runtime/map_runtime.dart';
++
++void verifyUwu6InstalledConnections(RuntimeMapBundle bundle) {
++  final layer = bundle.map.layers.whereType<SmartTileLayer>().single;
++  final visuals = resolveSmartTileLayerVisuals(
++    map: bundle.map,
++    layer: layer,
++    catalog: bundle.manifest.smartTileCatalog,
++    pass: SmartTileVisualPass.background,
++  );
++  expect(visuals, hasLength(3));
++  final frames = {
++    for (final visual in visuals) (visual.sourceRect.x, visual.sourceRect.y),
++  };
++  expect(frames.length, greaterThan(1));
++  final edited = visuals.singleWhere((v) => v.cellX == 5 && v.cellY == 8);
++  expect((edited.sourceRect.x, edited.sourceRect.y), (16, 0));
++  expect(visuals.map((v) => (v.cellX, v.cellY)).toSet(), {
++    (5, 8),
++    (5, 9),
++    (6, 9),
++  });
++  print('UWU6_INSTALLED_CONNECTION_RECTS=$frames cells=5,8;5,9;6,9');
++}
++
++Future<void> verifyUwu6InstalledConnectionPixels(ui.Image frame) async {
++  final pixels = (await frame.toByteData(format: ui.ImageByteFormat.rawRgba))!;
++  var green = 0, yellow = 0, blue = 0;
++  for (var i = 0; i < pixels.lengthInBytes; i += 4) {
++    if (pixels.getUint8(i + 3) != 255) continue;
++    final color = (
++      pixels.getUint8(i),
++      pixels.getUint8(i + 1),
++      pixels.getUint8(i + 2),
++    );
++    if (color == (25, 211, 181)) green++;
++    if (color == (245, 210, 80)) yellow++;
++    if (color == (55, 100, 240)) blue++;
++  }
++  expect(green, greaterThan(100));
++  expect(yellow, greaterThan(100));
++  expect(blue, greaterThan(100));
++  print(
++    'UWU6_INSTALLED_CONNECTION_PIXELS green=$green yellow=$yellow blue=$blue',
++  );
++}
+
+--- base-locale/apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart
++++ final/apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart
+@@ -0,0 +1,127 @@
++import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
++import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
++import 'uwu6_resource_host.dart';
++
++Future<void> editUwu6Terrain(Uwu6ResourceHost host) async {
++  final tester = host.tester;
++  await host.go('Ressources');
++  await host.family(ResourceKind.terrains);
++  final before = await host.reopen();
++  final preset = before.smartTileCatalog.presets.single;
++  await host.action('terrains:${preset.id}', 'Renommer le terrain…');
++  await host.enter('resource-terrain-name', 'Sentier émeraude — raccords');
++  await host.tap('resource-management-save');
++  expect(
++    (await host.reopen()).smartTileCatalog.presets.single.rules,
++    preset.rules,
++  );
++  await host.tap('resource-card-terrains:${preset.id}');
++  await host.text('Modifier les raccords');
++  final editor = tester.widget<TerrainEditorScreen>(
++    find.byType(TerrainEditorScreen),
++  );
++  final beforeRules = editor.controller.draft.rules;
++  await host.tap('terrain-rule-4');
++  expect(editor.controller.selectedRule, 4);
++  final atlas = tester.getRect(find.byKey(const ValueKey('atlas-selection')));
++  await tester.tapAt(
++    atlas.topLeft + Offset(atlas.width * .75, atlas.height * .25),
++  );
++  await pumpIo(tester, frames: 4);
++  expect(editor.controller.draft.rules, isNot(beforeRules));
++  await host.text('Publier et peindre');
++  for (var i = 0; i < 40 && editor.controller.busy; i++) {
++    await pumpIo(tester, frames: 3);
++  }
++  expect(editor.controller.busy, false);
++  expect(editor.controller.error, isNull);
++  final published = (await host.reopen()).smartTileCatalog.presets.single;
++  expect(published.name, 'Sentier émeraude — raccords');
++  expect(published.rules, isNot(preset.rules));
++  await host.go('Ressources');
++  if (find.byType(TerrainEditorScreen).evaluate().isNotEmpty) {
++    await host.text('Ressources › Terrains');
++  }
++  await host.family(ResourceKind.terrains);
++  await host.action('terrains:${preset.id}', 'Dupliquer le terrain…');
++  await host.enter('resource-terrain-name', 'Copie de chemin indépendante');
++  await host.tap('resource-management-save');
++  final withCopy = await host.reopen();
++  expect(withCopy.smartTileCatalog.presets, [published]);
++  final copy = withCopy.smartTileCatalog.drafts.single;
++  expect(copy.targetPresetId, isNot(preset.id));
++  expect(copy.sourcePresetId, isNull);
++  for (
++    var i = 0;
++    i < 40 && find.byType(TerrainEditorScreen).evaluate().isEmpty;
++    i++
++  ) {
++    await pumpIo(tester, frames: 3);
++  }
++  expect(find.byType(TerrainEditorScreen), findsOneWidget);
++  final copyOwner =
++      tester
++          .widget<TerrainEditorScreen>(find.byType(TerrainEditorScreen))
++          .controller;
++  await host.text('Publier et peindre');
++  for (var i = 0; i < 40 && copyOwner.busy; i++) {
++    await pumpIo(tester, frames: 3);
++  }
++  expect(copyOwner.busy, false);
++  expect(copyOwner.error, isNull);
++  final after = await host.reopen();
++  expect(after.smartTileCatalog.presets, hasLength(2));
++  expect(
++    after.smartTileCatalog.presets.singleWhere((p) => p.id == preset.id),
++    published,
++  );
++  expect(after.smartTileCatalog.drafts, isEmpty);
++  await host.go('Ressources');
++  if (find.byType(TerrainEditorScreen).evaluate().isNotEmpty) {
++    await host.text('Ressources › Terrains');
++  }
++  print(
++    'UWU6_RESOURCE_TERRAIN_UI source=${preset.id} copy=${copy.targetPresetId}',
++  );
++}
++
++Future<void> resolveUwu6Characters(Uwu6ResourceHost host) async {
++  final tester = host.tester;
++  await host.go('Ressources');
++  if (find.text('Personnages').evaluate().isEmpty) await host.text('Actions');
++  await host.text('Personnages');
++  final before = await host.reopen();
++  final free = before.characters.singleWhere(
++    (entry) => entry.name == 'Personnage libre',
++  );
++  await host.tap('character-studio-${free.id}');
++  await host.tap('character-studio-remove');
++  await host.tap('character-removal-confirm');
++  await host.tap('resource-management-save');
++  expect(
++    (await host.reopen()).characters.any((entry) => entry.id == free.id),
++    false,
++  );
++  await host.tap('character-studio-guide');
++  await host.tap('character-studio-remove');
++  expect(find.textContaining('Joueur'), findsWidgets);
++  await host.choose(
++    'character-removal-resolution',
++    'Remplacer par un autre personnage',
++  );
++  await host.choose('character-removal-replacement', 'Guide remplaçant');
++  await host.tap('character-removal-confirm');
++  await host.fixture.capture(tester, 'uwu6-widget-character-resolution');
++  await host.tap('resource-management-save');
++  final after = await host.reopen();
++  expect(after.characters.map((entry) => entry.id), ['uwu5-replacement']);
++  expect(after.settings.defaultPlayerCharacterId, 'uwu5-replacement');
++  expect(after.tilesets, before.tilesets);
++  print(
++    'UWU6_RESOURCE_CHARACTER_UI removed=${free.id},guide replacement=uwu5-replacement',
++  );
++}
+
+--- base-locale/packages/map_authoring/test/domains/maps/border_layer_order_transport_test.dart
++++ final/packages/map_authoring/test/domains/maps/border_layer_order_transport_test.dart
+@@ -0,0 +1,98 @@
++import 'dart:convert';
++import 'dart:io';
++
++import 'package:map_authoring/map_authoring.dart';
++import 'package:map_core/map_core.dart';
++import 'package:test/test.dart';
++
++import 'map_catalog_fixture.dart';
++
++void main() {
++  for (final transport in ['directApi', 'jsonl']) {
++    test('$transport first Border layer preserves front-first ordering on disk',
++        () async {
++      final root = await Directory.systemTemp.createTemp('uwu6-border-order-');
++      addTearDown(() => root.delete(recursive: true));
++      final map = catalogMap('garden');
++      final manifest = catalogSnapshot([map]).manifest;
++      await Directory('${root.path}/maps').create();
++      await File('${root.path}/project.json')
++          .writeAsString(jsonEncode(manifest.toJson()));
++      final mapFile = File('${root.path}/maps/garden.json');
++      await mapFile.writeAsString(jsonEncode(map.toJson()));
++      const reader = LocalProjectFileReader();
++      final policy = await WorkspacePolicy.create(
++          allowedRootPaths: [root.path], fileReader: reader);
++      final handles = WorkspaceHandleStore();
++      final snapshots = ProjectSnapshotLoader(handles: handles);
++      final reads = AuthoringReadApi(
++        openService: ProjectOpenService(
++            policy: policy, fileReader: reader, handles: handles),
++        snapshotLoader: snapshots,
++      );
++      final mutations = LocalMapAuthoringMutationApi(
++          policy: policy, snapshotLoader: snapshots);
++      final opened = await reads.openProject(root.path);
++      addTearDown(() => handles.closeWorkspace(opened.workspaceHandle));
++      await mutations.attachProject(
++          projectRootPath: root.path,
++          workspaceHandle: opened.workspaceHandle,
++          projectHandle: opened.projectHandle);
++      addTearDown(() => mutations.detachWorkspace(opened.workspaceHandle));
++      final worker = JsonlWorker(api: reads, mutations: mutations);
++      Future<Map<String, Object?>> wire(
++          String command, Map<String, Object?> args) async {
++        final result = AuthoringResult.fromJson(
++            jsonDecode(await worker.processLine(jsonEncode({
++          'id': command,
++          'command': command,
++          'args': args,
++        }))) as Map<String, dynamic>);
++        expect(result.status, AuthoringResultStatus.success,
++            reason: result.toJson().toString());
++        return result.data;
++      }
++
++      final snapshot = await snapshots.load(opened.projectHandle);
++      final request = AuthoringRequest(
++        requestId: 'first-border',
++        actionId: 'map.apply_operations',
++        actionVersion: 1,
++        workspaceHandle: opened.workspaceHandle.value,
++        expectedRevision: snapshot.revision,
++        idempotencyKey: 'first-border',
++        parameters: {
++          'mapId': 'garden',
++          'operations': [
++            {
++              'kind': 'layer.add',
++              'layerKind': 'border',
++              'layerId': 'border',
++              'name': 'Bordures'
++            },
++          ],
++        },
++      );
++      final planned = transport == 'directApi'
++          ? await mutations.plan(opened.projectHandle, request)
++          : await wire('plan', {
++              'projectHandle': opened.projectHandle.value,
++              'request': request.toJson()
++            });
++      final applied = transport == 'directApi'
++          ? await mutations.apply(opened.projectHandle,
++              planId: planned['planId']! as String, operationId: 'apply-border')
++          : await wire('apply', {
++              'projectHandle': opened.projectHandle.value,
++              'planId': planned['planId'],
++              'operationId': 'apply-border'
++            });
++      expect(applied, isNotEmpty);
++      final saved = MapData.fromJson(
++          jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
++      expect(saved.layers.first.id, 'border');
++      expect(saved.layers.skip(1), orderedEquals(map.layers));
++      expect(saved.visualStack, map.visualStack);
++    });
++  }
++}
+
+--- base-locale/packages/map_authoring/test/domains/maps/map_operations_batch_test.dart
++++ final/packages/map_authoring/test/domains/maps/map_operations_batch_test.dart
+@@ -126,7 +126,7 @@
+       expect(updated.layers, hasLength(5));
+       expect(updated.version, ProjectVersion.v8);
+       expect(
+-        _resolvedLocalIds(updated.layers.first as TileLayer),
++        _resolvedLocalIds(updated.layers.whereType<TileLayer>().single),
+         everyElement(11),
+       );
+       expect(draft.preview['operationCount'], 6);
+
+--- base-locale/packages/map_core/lib/src/operations/map_layers.dart
++++ final/packages/map_core/lib/src/operations/map_layers.dart
+@@ -3,6 +3,7 @@
+ import '../models/environment.dart';
+ import '../models/map_data.dart';
+ import '../models/map_layer.dart';
++import 'map_visual_composition.dart';
+ 
+ MapData addMapLayer(
+   MapData map, {
+@@ -61,7 +62,9 @@
+ }
+ 
+ int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) =>
+-    map.layers.length;
++    kind == MapLayerKind.border
++        ? resolveAuthoredLayerInsertIndex(map, activeLayerId: null)
++        : map.layers.length;
+ 
+ MapData renameMapLayer(
+   MapData map, {
+
+--- base-locale/packages/map_core/test/border/border_layer_default_order_test.dart
++++ final/packages/map_core/test/border/border_layer_default_order_test.dart
+@@ -0,0 +1,58 @@
++import 'package:map_core/map_core.dart';
++import 'package:test/test.dart';
++
++void main() {
++  for (final frontFirst in [true, false]) {
++    test('new Border layer paints above existing ground ($frontFirst)', () {
++      final ground = TileLayer(id: 'ground', name: 'Sol', cells: [0]);
++      final source = MapData(
++        id: 'garden',
++        name: 'Jardin',
++        size: const GridSize(width: 1, height: 1),
++        visualStack: frontFirst ? MapVisualStackConfig.canonicalV1 : null,
++        properties: frontFirst
++            ? const {}
++            : const {'tileLayerOrder': 'bottom_to_top'},
++        layers: [ground],
++      );
++      final updated = addBorderLayer(source, id: 'border', name: 'Bordures');
++      final plan = buildMapVisualCompositionPlan(updated).plan!;
++      final painted = plan.steps
++          .where((step) => step.layer != null)
++          .map((step) => step.layer!.id)
++          .toList();
++      expect(painted.indexOf('border'), greaterThan(painted.indexOf('ground')));
++      expect(updated.layers.whereType<TileLayer>().single, same(ground));
++      expect(source.layers, [ground]);
++      expect(MapData.fromJson(updated.toJson()).layers, updated.layers);
++      final generic = addMapLayer(
++        source,
++        kind: MapLayerKind.border,
++        id: 'border',
++        name: 'Bordures',
++      );
++      expect(generic, updated);
++    });
++  }
++
++  test('explicit insertion and existing authored order remain unchanged', () {
++    final source = MapData(
++      id: 'garden',
++      name: 'Jardin',
++      size: const GridSize(width: 1, height: 1),
++      visualStack: MapVisualStackConfig.canonicalV1,
++      layers: [
++        const MapLayer.border(id: 'old-border', name: 'Existing'),
++        TileLayer(id: 'ground', name: 'Sol', cells: [0]),
++      ],
++    );
++    final updated = addBorderLayer(
++      source,
++      id: 'new-border',
++      name: 'Behind ground',
++      insertIndex: 2,
++    );
++    expect(updated.layers.take(2), orderedEquals(source.layers));
++    expect(updated.layers.last.id, 'new-border');
++  });
++}
+
+--- base-locale/packages/map_core/test/border/border_layer_operations_test.dart
++++ final/packages/map_core/test/border/border_layer_operations_test.dart
+@@ -3,7 +3,7 @@
+ 
+ void main() {
+   group('Border layer operations', () {
+-    test('add appends a Border layer, promotes V2, and preserves map data', () {
++    test('add fronts a Border layer, promotes V2, and preserves map data', () {
+       final source = _map(
+         layers: <MapLayer>[_tileLayer()],
+         placedElements: const <MapPlacedElement>[
+@@ -26,10 +26,10 @@
+       expect(source.layers, hasLength(1));
+       expect(updated.version, ProjectVersion.v8);
+       expect(updated.layers.map((layer) => layer.id), <String>[
++        'borders',
+         'ground',
+-        'borders',
+       ]);
+-      expect(updated.layers.last, isA<BorderLayer>());
++      expect(updated.layers.first, isA<BorderLayer>());
+       expect(updated.placedElements, source.placedElements);
+       expect(updated.entities, source.entities);
+       expect(updated.connections, source.connections);
+
+--- base-locale/packages/map_core/test/border/border_project_map_preparation_test.dart
++++ final/packages/map_core/test/border/border_project_map_preparation_test.dart
+@@ -24,8 +24,8 @@
+       expect(result.manifest.version, ProjectVersion.v8);
+       expect(result.manifest.borderCatalog.records.single.id, 'coast');
+       expect(result.map.version, ProjectVersion.v8);
+-      expect(result.map.layers.last, isA<BorderLayer>());
+-      expect(result.map.layers.last.id, 'borders');
++      expect(result.map.layers.first, isA<BorderLayer>());
++      expect(result.map.layers.first.id, 'borders');
+       expect(() => ProjectValidator.validate(result.manifest), returnsNormally);
+       expect(
+         () => MapValidator.validate(
+@@ -36,7 +36,7 @@
+       );
+       expect(jsonEncode(manifest.toJson()), sourceManifestJson);
+       expect(jsonEncode(map.toJson()), sourceMapJson);
+-      expect(jsonEncode(result.map.layers.first.toJson()), sourceCollisionJson);
++      expect(jsonEncode(result.map.layers.last.toJson()), sourceCollisionJson);
+       expect(result.map.placedElements, map.placedElements);
+       expect(result.map.mapMetadata, map.mapMetadata);
+       expect(result.map.properties, map.properties);
+
+--- base-locale/tools/pokemap_mcp/test/border_layer_order_stdio.test.ts
++++ final/tools/pokemap_mcp/test/border_layer_order_stdio.test.ts
+@@ -0,0 +1,67 @@
++import assert from "node:assert/strict";
++import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { test } from "node:test";
++import { Client } from "@modelcontextprotocol/client";
++import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
++import type { JsonRecord } from "../src/authoring_client.js";
++import { canonicalPokemonConfig } from "./pokemon_fixture.js";
++
++function record(value: unknown): JsonRecord {
++  assert.ok(value && typeof value === "object" && !Array.isArray(value));
++  return value as JsonRecord;
++}
++
++test("first Border layer through live MCP stdio paints in front of ground", async () => {
++  const root = await mkdtemp(join(tmpdir(), "uwu6-border-stdio-"));
++  const manifestPath = join(root, "project.json");
++  const mapPath = join(root, "garden.json");
++  const ground = {runtimeType: "tile", id: "ground", name: "Sol", cells: [0]};
++  const manifest = {version: "v8", name: "Jardin", pokemon: canonicalPokemonConfig(), tilesets: [], maps: [
++    {id: "garden", name: "Jardin", relativePath: "garden.json"},
++  ]};
++  await writeFile(manifestPath, JSON.stringify(manifest));
++  await writeFile(mapPath, JSON.stringify({version: "v8", id: "garden", name: "Jardin",
++    size: {width: 1, height: 1}, visualStack: {semanticsVersion: 1}, layers: [ground]}));
++  const transport = new StdioClientTransport({command: process.execPath,
++    args: ["dist/src/index.js", "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart"],
++    cwd: process.cwd(), stderr: "pipe"});
++  const client = new Client({name: "uwu6-border-stdio", version: "1.0.0"});
++  async function data(name: string, args: JsonRecord): Promise<JsonRecord> {
++    const result = await client.callTool({name, arguments: args});
++    const envelope = record(result.structuredContent);
++    assert.equal(envelope.ok, true, JSON.stringify(envelope));
++    return record(envelope.data);
++  }
++  try {
++    await client.connect(transport);
++    const catalog = await data("pokemap_describe", {});
++    assert.ok((catalog.mutationActions as JsonRecord[]).some(a => a.id === "map.apply_operations"));
++    const opened = await data("pokemap_workspace", {operation: "open", projectRoot: root});
++    const projectHandle = opened.projectHandle;
++    const validation = await data("pokemap_validate", {projectHandle});
++    const beforeMap = await readFile(mapPath);
++    const beforeManifest = await readFile(manifestPath);
++    const planned = await data("pokemap_plan", {projectHandle, request: {
++      requestId: "first-border", actionId: "map.apply_operations", actionVersion: 1,
++      workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,
++      idempotencyKey: "first-border", dryRun: false, parameters: {mapId: "garden", operations: [
++        {kind: "layer.add", layerKind: "border", layerId: "border", name: "Bordures"},
++      ]}}});
++    assert.deepEqual(await readFile(mapPath), beforeMap);
++    const result = await data("pokemap_apply", {operation: "apply", projectHandle,
++      planId: planned.planId, operationId: "apply-first-border"});
++    assert.equal(record(result.receipt).status, "applied");
++    await data("pokemap_workspace", {operation: "close", workspaceHandle: opened.workspaceHandle});
++    const persisted = record(JSON.parse(await readFile(mapPath, "utf8")));
++    const layers = persisted.layers as JsonRecord[];
++    assert.equal(layers[0]!.id, "border");
++    assert.equal(layers[1]!.id, "ground");
++    assert.deepEqual(layers[1]!.cells, ground.cells);
++    assert.deepEqual(await readFile(manifestPath), beforeManifest);
++  } finally {
++    await client.close();
++    await rm(root, {recursive: true, force: true});
++  }
++});

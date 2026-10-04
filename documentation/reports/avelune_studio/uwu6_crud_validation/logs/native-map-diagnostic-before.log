@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart
+00:00 +0: saved incoming passage identifies its map in the deletion refusal
+00:00 +0 -1: saved incoming passage identifies its map in the deletion refusal [E]
+  Expected: 'jardin'
+    Actual: <null>
+     Which: not an <Instance of 'String'>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 473:18          expect
+  test/map_workspace/map_catalog_preparation_test.dart 171:7  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: saved incoming passage identifies its map in the deletion refusal

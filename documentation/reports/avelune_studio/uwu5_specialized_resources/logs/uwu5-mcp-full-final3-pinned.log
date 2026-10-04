@@ -1,0 +1,200 @@
+
+> @pokemap/mcp-server@0.1.0 test
+> npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts
+
+
+> @pokemap/mcp-server@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ MCP exposes and applies the canonical Border blueprint lifecycle (7745.377541ms)
+✔ checkout verifier certifies the packaged server from the requested repository (7734.287459ms)
+✔ checkout verifier rejects a project outside the requested repository (0.560583ms)
+✔ checkout verifier fails closed on stale presentation catalog evidence (0.143459ms)
+✔ checkout verifier rejects legacy cinematic actions and resources (0.149458ms)
+✔ parses artifact roots separately from project roots (1.678375ms)
+✔ accepts a bounded authoring deadline for large project mutations (0.333459ms)
+✖ all twelve tools publish strict schemas, outputs and annotations (42.874042ms)
+✔ project bootstrap maps inspect and confirmed repair to canonical commands (7.684416ms)
+✔ rate and UTF-8 size budgets fail closed before reaching a gateway (5.382125ms)
+✔ default authoring budget accepts the exact limit and rejects limit + 1 (2.71325ms)
+✔ strict schemas reject a deterministic malformed-envelope corpus (19.872083ms)
+✔ MCP emits the same map.create golden receipt as direct API, CLI and editor (7196.394958ms)
+✔ pokemap_game_export routes an opaque project handle to game_export (68.352292ms)
+✔ MCP describes queries and mutates canonical items (7695.615125ms)
+✔ packaged live MCP executes the complete item mutation smoke contract (7983.164166ms)
+✔ MENU-A packaged MCP authors quests and profile labels and scene visibility (7881.002583ms)
+✔ packaged MCP applies map lifecycle transactions and preserves their safety checks (7363.247458ms)
+✔ MCP renames a referenced map title without changing identity or path (7108.836833ms)
+✔ MCP pixel geometry discovers, plans, applies, queries and undoes (7225.658791ms)
+✔ MCP scene.upsert preserves a non-base Pokemon form (7194.461459ms)
+✔ MCP persists a typed pause menu visibility consequence (7344.285792ms)
+✔ CIN-033 certifies preSession and Presentation through live MCP (8202.531417ms)
+✔ MCP commits and undoes one atomic Presentation clip batch (7354.976ms)
+✔ MCP executes and rereads every cinematic library catalog action (7759.064959ms)
+✔ MCP applies and rereads the authored presentation profile (9814.315208ms)
+✔ MCP applies and rereads title motion and intro accessibility (7124.15475ms)
+✔ MCP authors, rereads, and safely deletes an encounter table (7318.226333ms)
+✔ MCP exposes Event V2 activation and safe raw asset replacement (7276.334583ms)
+✔ MCP preserves CLI plan/apply parity for one complete map batch (7195.186584ms)
+✔ MCP rejects generic operations for Smart Tile layer creation (6969.228667ms)
+✔ MCP paints every lattice from a geometric Wang selection (7107.596542ms)
+✔ MCP paints precise corners without changing other Wang lattices (7156.19125ms)
+✔ MCP applies Smart Tile cell edits through the canonical transport (7165.927667ms)
+✔ MCP upserts and paints a reusable Smart Tile pattern (7171.786458ms)
+✔ MCP sets and queries a Smart Tile encounter behavior (7232.988459ms)
+✔ MCP changes, reopens, undoes, and reapplies a Smart Tile layer preset (7538.919541ms)
+✔ MCP imports a Tiled tileset through one canonical receipt (7241.936ms)
+✔ MCP imports one complete TMX bundle through one canonical receipt (7148.055041ms)
+✔ MCP imports a TMX larger than its request budget through an artifact handle (7264.249916ms)
+✔ MCP packs a Tiled image collection through one canonical receipt (7364.979ms)
+✔ MCP marks dry-run plans non-applicable before confirmation or apply (7014.125125ms)
+✔ MCP normalizes and atomically merges the complete M01 Smart Tile fixture (7951.549709ms)
+✔ MCP previews and confirms literal Smart Tile reconstruction (7477.353125ms)
+✔ MCP organizes nested map folders without rewriting maps (7435.493709ms)
+✔ MCP reorganizes an element atlas and preserves its frames after reopen (7234.859917ms)
+✔ MCP completes a cold-start 34-element visual batch import (7510.104667ms)
+✔ MCP stages an H.264 MP4 as video instead of M4A audio (7372.68425ms)
+✔ CHS-057 live MCP certifies identity and portrait transports (7969.091042ms)
+✔ CHS-058 live MCP certifies animation frame and asset transports (7813.686625ms)
+✔ CHS-059 live MCP publishes all Character Studio transport evidence (7183.740291ms)
+✔ CHS-053 live MCP certifies the complete Character Studio lifecycle (7443.251667ms)
+✔ MCP returns a revision conflict without silently rebuilding the plan (7767.68925ms)
+✔ recovery requires an exact confirmation and preserves permission errors (4.989125ms)
+✔ authoring MCP refuses Bag commands and cannot write a user save (8025.133542ms)
+✔ playtest projection freezes validated bytes and removes them on dispose (22.626791ms)
+✔ playtest projection fails closed and cleans invalid catalog bytes (4.473833ms)
+✔ playtest projection rejects bytes changed by validation (3.919167ms)
+✔ playtest projection uses the canonical Authoring validator on its copy (14004.868417ms)
+✔ playtest projection rejects a symlink in its destination chain (3.21675ms)
+✔ playtest projection stops traversal at its entry quota (5.128625ms)
+✔ playtest projection fails closed when immutability is unavailable (0.644ms)
+✔ MCP writes canonical Pokemon species and rejects invalid schemas (9184.14825ms)
+✔ packaged MCP associates a project capture sprite with its item (7631.047709ms)
+✔ real MCP/JSONL bootstrap previews, confirms, creates and independently opens exact grid (7413.897959ms)
+✔ packaged MCP imports item icons as project-owned resources (7509.674417ms)
+✔ official SDK negotiates 2026-07-28 and preserves structured content (46.85725ms)
+✔ official SDK falls back to the documented 2025-11-25 handshake (27.023791ms)
+✔ unsupported pinned protocol fails closed (0.698792ms)
+✖ the packaged stdio entrypoint completes a real modern client exchange (376.6735ms)
+✔ Tasks remain disabled until the official 2026 extension API is stable (0.5915ms)
+✔ the packaged entrypoint refuses missing roots without protocol noise (150.926584ms)
+✔ MCP discovers, queries, upserts and deletes RailJourneys (7294.055917ms)
+✖ read-only MCP inspects a real project with cursor pagination (42.945167ms)
+✔ MCP exposes paginated project presentation preview contexts (7217.789041ms)
+✔ MCP exposes connection and bounded world graph reads (7035.945708ms)
+✔ resource templates project map catalog and diagnostics use explicit handles (7077.194166ms)
+✔ artifact reads are handle-only and unknown handles fail closed (5.378666ms)
+✔ workspace open cannot escape the configured roots (7107.023583ms)
+✔ MENU-I packaged MCP authors and queries regional map semantics (7643.82775ms)
+{"transport":"real MCP stdio with Dart canonical worker","actions":["tileset.source.replace","tileset.remove","element.duplicate","element.delete"],"retainedCandidate":true,"sourceBytesMatched":true,"sharedBytesPreserved":true,"independentReopen":true,"strictSchemas":[{"id":"tileset.source.replace","schema":{"additionalProperties":false,"properties":{"artifactHandle":{"minLength":1,"type":"string"},"tilesetId":{"minLength":1,"type":"string"}},"required":["tilesetId","artifactHandle"],"type":"object"}},{"id":"tileset.remove","schema":{"additionalProperties":false,"properties":{"removeSource":{"default":false,"type":"boolean"},"tilesetId":{"minLength":1,"type":"string"}},"required":["tilesetId"],"type":"object"}},{"id":"element.duplicate","schema":{"additionalProperties":false,"properties":{"categoryId":{"minLength":1,"type":"string"},"name":{"maxLength":120,"minLength":1,"type":"string"},"newElementId":{"minLength":1,"type":"string"},"sourceElementId":{"minLength":1,"type":"string"}},"required":["sourceElementId","newElementId","name","categoryId"],"type":"object"}},{"id":"element.delete","schema":{"additionalProperties":false,"properties":{"elementId":{"minLength":1,"type":"string"}},"required":["elementId"],"type":"object"}}]}
+✔ resource lifecycle traverses actual stdio server, retained PNGs and recoverable transactions (7698.40375ms)
+{"transport":"packaged stdio","actions":["tileset_folder.upsert","tileset.metadata.update","tileset_folder.delete","element_category.upsert","element.category.assign","element_category.delete","smart_tile.category.upsert","smart_tile.preset.category.assign","smart_tile.category.delete"],"read":{"resourceKind":"resourceUsage","id":"images:sheet","complete":false,"coverageIssues":["resource.usages.asset_catalog_unavailable"],"revisionChanged":true}}
+✔ resource management traverses packaged stdio server and canonical transactions (7881.760167ms)
+✔ runtime MCP renders through map_runtime and registers opaque PNG bytes (18481.462875ms)
+✔ sandboxed playtest job returns receipt, artifacts and ordered events (7064.907667ms)
+✔ playtest jobs support bounded cancellation (7072.570333ms)
+✔ failed playtest jobs can be retried as a new traced attempt (7043.9145ms)
+✔ Pokemon preflight failure never creates a runtime executor (7063.601875ms)
+✔ retry rebuilds and revalidates a fresh Pokemon projection (7013.449334ms)
+✔ terrain management traverses real MCP stdio without publishing copied drafts (9163.928167ms)
+✔ packaged MCP publishes source and authoritative dirty map coherently (7544.227084ms)
+✔ packaged MCP publishes UI07 story ownership without touching maps (7621.227667ms)
+✔ packaged MCP discovers and commits Studio native image import (7851.613083ms)
+ℹ tests 92
+ℹ suites 0
+ℹ pass 89
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 521437.030666
+
+✖ failing tests:
+
+test at test/conformance_security.test.ts:1:1478
+✖ all twelve tools publish strict schemas, outputs and annotations (42.874042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/conformance_security.test.ts:60:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/protocol_compatibility.test.ts:1:3381
+✖ the packaged stdio entrypoint completes a real modern client exchange (376.6735ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create',
+      'pokemap_render',
+      'pokemap_playtest',
+      'pokemap_job'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/protocol_compatibility.test.ts:134:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/read_only_server.test.ts:1:1997
+✖ read-only MCP inspects a real project with cursor pagination (42.945167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'pokemap_artifact',
+      'pokemap_describe',
+      'pokemap_query',
+      'pokemap_validate',
+  ...
+      'pokemap_game_export',
+  +   'pokemap_project_create_preview',
+  +   'pokemap_project_create'
+    ]
+  
+      at TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/read_only_server.test.ts:63:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+    expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

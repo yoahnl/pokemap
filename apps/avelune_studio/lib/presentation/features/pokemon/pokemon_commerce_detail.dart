@@ -19,6 +19,7 @@ class PokemonCommerceDetail extends StatelessWidget {
     required this.onOpenShop,
     this.onBack,
     this.onOpenReference,
+    this.pickPng,
   });
 
   final PokemonCommerceController commerce;
@@ -26,6 +27,7 @@ class PokemonCommerceDetail extends StatelessWidget {
   final void Function(ShopDefinition) onOpenShop;
   final VoidCallback? onBack;
   final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<String?> Function()? pickPng;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class PokemonCommerceDetail extends StatelessWidget {
         ? switch (currentSection) {
             PokemonCommerceSection.effects => PokemonItemEffects(
               commerce: commerce,
+              pickPng: pickPng,
             ),
             PokemonCommerceSection.references => PokemonCommerceReferences(
               commerce: commerce,
@@ -176,14 +179,16 @@ class PokemonCommerceDetail extends StatelessWidget {
                 StudioButton(
                   label: 'Annuler les modifications',
                   secondary: true,
-                  onPressed: commerce.dirty && !commerce.saving
+                  onPressed:
+                      commerce.dirty && !commerce.saving && !commerce.importing
                       ? commerce.discardSelected
                       : null,
                 ),
                 StudioButton(
                   label: commerce.saving ? 'Enregistrement…' : 'Enregistrer',
                   icon: Icons.save_outlined,
-                  onPressed: commerce.dirty && !commerce.saving
+                  onPressed:
+                      commerce.dirty && !commerce.saving && !commerce.importing
                       ? commerce.save
                       : null,
                 ),

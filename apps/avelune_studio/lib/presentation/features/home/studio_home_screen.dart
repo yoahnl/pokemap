@@ -21,6 +21,7 @@ class StudioHomeScreen extends StatefulWidget {
     this.onExport,
     this.onClose,
     this.onCreate,
+    this.onCreateMap,
     required this.onDestination,
     this.recentProjects = const [],
     required this.onRecent,
@@ -37,7 +38,7 @@ class StudioHomeScreen extends StatefulWidget {
   final String? projectName, projectPath;
   final bool busy, canTest;
   final VoidCallback onOpen;
-  final VoidCallback? onResume, onExport, onClose, onCreate;
+  final VoidCallback? onResume, onExport, onClose, onCreate, onCreateMap;
   final ValueChanged<String> onDestination, onMap;
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
@@ -278,6 +279,7 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
               groups: widget.mapLibrary?.groups ?? const [],
               onMap: widget.onMap,
               onBack: () => setState(() => _showAllMaps = false),
+              onCreateMap: widget.onCreateMap,
               busy: widget.busy,
               previewBuilder: widget.mapPreviewBuilder,
               query: _query,

@@ -49,6 +49,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
   @override
   void initState() {
     super.initState();
+    _sessionId = widget.session.state.project?.sessionId;
     _recents = RecentProjectsController(widget.recentProjects)
       ..addListener(_refresh);
     unawaited(_recents.load());
@@ -62,6 +63,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     if (oldWidget.session != widget.session) {
       oldWidget.session.removeListener(_sessionChanged);
       widget.session.addListener(_sessionChanged);
+      _sessionId = widget.session.state.project?.sessionId;
       _pickerGeneration++;
       _picking = false;
       _home.reset();
@@ -272,6 +274,9 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                       ? _home.mapPreviewBuilder
                       : null,
                   onMap: (id) => _home.navigate('map', id),
+                  onCreateMap: project == null || busy
+                      ? null
+                      : () => _home.navigate('createMap'),
                   statusAtTop:
                       busy || state.problem != null || _pickerError != null,
                   status: ProjectOpenControls(

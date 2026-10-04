@@ -49,6 +49,7 @@ final class PlayableMapGameSessionRuntime
         RuntimePlayerPreferencesPort,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort,
         RuntimeOverworldInteractionPort {
@@ -383,17 +384,32 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
       loadPauseDetails() async {
+    return (await _readPauseData(companion: false)).pauseDetails;
+  }
+
+  @override
+  Future<RuntimePlayerCompanionMenuData> readCompanionMenuData() =>
+      _readPauseData(companion: true);
+
+  Future<RuntimePlayerCompanionMenuData> _readPauseData(
+      {required bool companion}) async {
     final game = _requireGame();
     final projectRootDirectory = _projectRootDirectory;
     final pokemonConfig = _pokemonConfig;
     if (projectRootDirectory == null || pokemonConfig == null) {
-      return Future.value(
-        const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
+      return RuntimePlayerCompanionMenuData(
+        pauseMenuState: const PlayerPauseMenuState.empty(),
+        pauseDetails: const {},
       );
     }
     await _pausePortraitResolver?.ensureCatalogLoaded();
-    return const RuntimePlayerPauseDataBuilder().build(
-      gameState: game.gameStateSnapshot,
+    if (_disposed || !identical(game, _game)) {
+      throw StateError('Session closed.');
+    }
+    final gameState =
+        companion ? game.companionGameStateSnapshot : game.gameStateSnapshot;
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
       locale: descriptor.locale,
@@ -406,6 +422,8 @@ final class PlayableMapGameSessionRuntime
       portraitLookup: _pausePortraitResolver?.resolve,
       playtimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
     );
+    return RuntimePlayerCompanionMenuData(
+        pauseMenuState: gameState.pauseMenuState, pauseDetails: details);
   }
 
   @override

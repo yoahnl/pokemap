@@ -20,6 +20,7 @@ import 'workspace_handle_store.dart';
 enum ProjectSnapshotLoadPolicy {
   strict,
   editorReadProjection,
+  resourceUsageReadProjection,
 }
 
 typedef ProjectSnapshotLoadProfileSink = void Function(
@@ -222,6 +223,8 @@ final class ProjectSnapshotLoader {
   final WorkspaceHandleStore _handles;
   final ProjectSnapshotFingerprintCache? _fingerprintCache;
   final ProjectSnapshotCache? _snapshotCache;
+  final ProjectSnapshotCache _resourceUsageSnapshotCache =
+      ProjectSnapshotCache();
   final ProjectSnapshotDecodeExecutor _decodeExecutor;
   final PokemonCatalogCoherenceLoader _pokemonCatalogLoader;
   final ProjectSnapshotLoadProfileSink? profileSink;
@@ -229,6 +232,28 @@ final class ProjectSnapshotLoader {
 
   void requireActiveProject(ProjectHandle projectHandle) {
     _handles.requireActiveProject(projectHandle);
+  }
+
+  Future<List<int>?> readRetainedAssetBlob(
+    ProjectHandle projectHandle,
+    ContentArtifactRef artifact,
+  ) async {
+    final bytes = await _readOptional(
+      _handles.resolveProject(projectHandle),
+      assetBlobStorageKey(artifact),
+    );
+    if (bytes == null) return null;
+    final inspected = ContentArtifactRef.fromBytes(
+      bytes.bytes,
+      mediaType: artifact.mediaType,
+    );
+    if (inspected != artifact) {
+      throw const ProjectSnapshotException(
+        'project.asset_blob_mismatch',
+        'A retained asset blob does not match its content-addressed candidate.',
+      );
+    }
+    return bytes.bytes;
   }
 
   Future<PokemonCatalogCoherenceReport> validatePokemonCatalog(
@@ -264,10 +289,14 @@ final class ProjectSnapshotLoader {
   }) async {
     final profiler =
         profileSink == null ? null : _ProjectSnapshotLoadProfiler();
+    final snapshotCache =
+        policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection
+            ? _resourceUsageSnapshotCache
+            : _snapshotCache;
     final cacheIdentityReadsBefore =
-        profiler == null ? 0 : _snapshotCache?.identityReads ?? 0;
+        profiler == null ? 0 : snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
-    final cached = await _snapshotCache?.lookup(
+    final cached = await snapshotCache?.lookup(
       access,
       projectHandle,
       validation: cacheValidation,
@@ -280,7 +309,7 @@ final class ProjectSnapshotLoader {
             resourceBytes: cached.resourceByteLength,
             cacheHit: true,
             cacheIdentityReads:
-                (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
+                (snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
           ),
         );
       }
@@ -292,7 +321,7 @@ final class ProjectSnapshotLoader {
 
     final manifestDecodeTimer = profiler?.startStage();
     final identityCachingEnabled =
-        _fingerprintCache != null || _snapshotCache != null;
+        _fingerprintCache != null || snapshotCache != null;
     final manifestIdentity = !identityCachingEnabled
         ? null
         : await access.readResourceIdentity('project.json');
@@ -399,7 +428,7 @@ final class ProjectSnapshotLoader {
             itemCatalogBytes.bytes,
           );
         } on ProjectSnapshotException catch (error) {
-          if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+          if (policy == ProjectSnapshotLoadPolicy.strict ||
               error.code != 'project.item_catalog_invalid') {
             rethrow;
           }
@@ -445,7 +474,7 @@ final class ProjectSnapshotLoader {
           profiler?.recordInitialRead(dialogueReadTimer!);
         }
       } on ProjectSnapshotException catch (error) {
-        if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+        if (policy == ProjectSnapshotLoadPolicy.strict ||
             error.code != 'project.dialogue_source_missing') {
           rethrow;
         }
@@ -632,7 +661,22 @@ final class ProjectSnapshotLoader {
         ),
       );
       for (final record in catalog.records) {
-        if (!record.logicalPath.startsWith('assets/pokemon/menu/')) continue;
+        if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
+          continue;
+        }
+        final managedTilesetSource = manifest.tilesets.any((tileset) =>
+            tileset.relativePath == record.logicalPath &&
+            tileset.source is ProjectRegularAtlasTilesetSource &&
+            (tileset.source as ProjectRegularAtlasTilesetSource).assetId ==
+                record.id);
+        if (managedTilesetSource &&
+            record.logicalPath == assetBlobStorageKey(record.artifact)) {
+          continue;
+        }
+        if (!managedTilesetSource &&
+            !record.logicalPath.startsWith('assets/pokemon/menu/')) {
+          continue;
+        }
         final path = validateProjectRelativePath(record.logicalPath).join('/');
         if (!occupiedPaths.add(path)) {
           throw const ProjectSnapshotException(
@@ -646,7 +690,9 @@ final class ProjectSnapshotLoader {
         } else {
           resources.add(_LoadedProjectResource(
             relativePath: path,
-            identity: 'asset:${record.id}',
+            identity: managedTilesetSource
+                ? 'assetLogical:${record.id}'
+                : 'asset:${record.id}',
             bytes: bytes,
           ));
         }
@@ -659,6 +705,9 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(assetCatalogDecodeTimer!);
 
       for (final artifact in digests) {
+        if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
+          continue;
+        }
         final storageKey = assetBlobStorageKey(artifact);
         final assetBlobReadTimer = profiler?.startStage();
         final bytes = await _readRequiredAssetBlob(access, storageKey);
@@ -743,7 +792,7 @@ final class ProjectSnapshotLoader {
       if (await _readOptional(access, path) != null) {
         throw const ProjectSnapshotException(
           'project.changed_during_snapshot',
-          'A Pokemon menu image appeared while the snapshot was loading.',
+          'A logical asset image appeared while the snapshot was loading.',
         );
       }
     }
@@ -862,7 +911,7 @@ final class ProjectSnapshotLoader {
       completeIdentities[resource.relativePath] = identity;
     }
     if (completeIdentities.isNotEmpty) {
-      _snapshotCache?.store(
+      snapshotCache?.store(
         snapshot: snapshot,
         identities: completeIdentities,
         absentResourcePaths: [
@@ -882,7 +931,7 @@ final class ProjectSnapshotLoader {
             (total, resource) => total + resource.bytes.typedBytes.length,
           ),
           cacheIdentityReads:
-              (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
+              (snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
         ),
       );
     }

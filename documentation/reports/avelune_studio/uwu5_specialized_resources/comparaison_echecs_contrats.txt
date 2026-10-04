@@ -1,0 +1,34 @@
+LOT5 — COMPARAISON DES ÉCHECS CONTRATS/TRANSPORTS
+
+MCP baseline91/86PASS/5FAIL ; final SDK épinglé92/89PASS/3FAIL.
+Trois Expected/Actual de listes strictement identiques : True
+
+actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_render', 'pokemap_playtest', 'pokemap_job' ],
+actual: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export', 'pokemap_project_create_preview', 'pokemap_project_create' ],
+expected: [ 'pokemap_artifact', 'pokemap_describe', 'pokemap_query', 'pokemap_validate', 'pokemap_workspace', 'pokemap_project_bootstrap', 'pokemap_artifact_stage', 'pokemap_plan', 'pokemap_apply', 'pokemap_history', 'pokemap_recovery', 'pokemap_game_export' ],
+
+Authoring baseline16PASS/4FAIL ; final101PASS/4FAIL (uwu5-authoring-impact-final4.log) :
+[
+  {
+    "test": "test/package_boundary_test.dart: map_authoring package boundary pubspec keeps production dependencies within the approved set",
+    "sameExpectedActualBody": true
+  },
+  {
+    "test": "test/package_boundary_test.dart: map_authoring package boundary keeps Environment generation internals outside the action adapter",
+    "sameExpectedActualBody": true
+  },
+  {
+    "test": "test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds",
+    "sameExpectedActualBody": true
+  },
+  {
+    "test": "test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations",
+    "sameExpectedActualBody": true
+  }
+]
+
+Deux échecs MCP baseline sont non comparables (.git absent, git rev-parse), pas préexistants produit certifiés.
+Trois worker.timeout intermédiaires disparus au replay quiet SDK épinglé ; aucune causalité charge vs SDK isolée.

@@ -17,6 +17,7 @@ import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
+import '../models/script_asset.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import 'linked_asset_public_contracts.dart';
@@ -78,93 +79,93 @@ final class NarrativeDependencyKey {
   final String? sourceKind;
 
   const NarrativeDependencyKey.map(String mapId)
-      : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          mapId,
-          scope: _physicalMapScope,
-          parentId: mapId,
-          sourceKind: 'map',
-        );
+    : this(
+        NarrativeDependencyTargetKind.sourceMap,
+        mapId,
+        scope: _physicalMapScope,
+        parentId: mapId,
+        sourceKind: 'map',
+      );
 
   const NarrativeDependencyKey.mapSource({
     required String mapId,
     required String sourceKind,
     required String sourceId,
   }) : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          sourceId,
-          scope: _physicalMapScope,
-          parentId: mapId,
-          sourceKind: sourceKind,
-        );
+         NarrativeDependencyTargetKind.sourceMap,
+         sourceId,
+         scope: _physicalMapScope,
+         parentId: mapId,
+         sourceKind: sourceKind,
+       );
 
   const NarrativeDependencyKey.scene(String sceneId)
-      : this(NarrativeDependencyTargetKind.scene, sceneId);
+    : this(NarrativeDependencyTargetKind.scene, sceneId);
 
   const NarrativeDependencyKey.eventV2(String eventId)
-      : this(NarrativeDependencyTargetKind.eventV2, eventId);
+    : this(NarrativeDependencyTargetKind.eventV2, eventId);
 
   const NarrativeDependencyKey.railJourney(String journeyId)
-      : this(NarrativeDependencyTargetKind.railJourney, journeyId);
+    : this(NarrativeDependencyTargetKind.railJourney, journeyId);
 
   const NarrativeDependencyKey.projectNewGame()
-      : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          'newGame',
-          scope: 'project',
-          sourceKind: 'newGame',
-        );
+    : this(
+        NarrativeDependencyTargetKind.sourceMap,
+        'newGame',
+        scope: 'project',
+        sourceKind: 'newGame',
+      );
 
   const NarrativeDependencyKey.legacyScenario(String scenarioId)
-      : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          scenarioId,
-          scope: 'legacy',
-          sourceKind: 'scenario',
-        );
+    : this(
+        NarrativeDependencyTargetKind.sourceMap,
+        scenarioId,
+        scope: 'legacy',
+        sourceKind: 'scenario',
+      );
 
   const NarrativeDependencyKey.legacyScenarioNode({
     required String scenarioId,
     required String nodeId,
   }) : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          nodeId,
-          scope: 'legacy',
-          parentId: scenarioId,
-          sourceKind: 'scenarioNode',
-        );
+         NarrativeDependencyTargetKind.sourceMap,
+         nodeId,
+         scope: 'legacy',
+         parentId: scenarioId,
+         sourceKind: 'scenarioNode',
+       );
 
   const NarrativeDependencyKey.legacySourceClaim(String cohortId)
-      : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          cohortId,
-          scope: 'migration',
-          sourceKind: 'legacySourceClaim',
-        );
+    : this(
+        NarrativeDependencyTargetKind.sourceMap,
+        cohortId,
+        scope: 'migration',
+        sourceKind: 'legacySourceClaim',
+      );
 
   const NarrativeDependencyKey.legacyGlobalStoryPart({
     required String scenarioId,
     required String partKind,
     required String partId,
   }) : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          partId,
-          scope: 'legacy',
-          parentId: scenarioId,
-          sourceKind: partKind,
-        );
+         NarrativeDependencyTargetKind.sourceMap,
+         partId,
+         scope: 'legacy',
+         parentId: scenarioId,
+         sourceKind: partKind,
+       );
 
   const NarrativeDependencyKey.synthetic({
     required String sourceKind,
     required String sourceId,
     String? parentId,
   }) : this(
-          NarrativeDependencyTargetKind.sourceMap,
-          sourceId,
-          scope: 'synthetic',
-          parentId: parentId,
-          sourceKind: sourceKind,
-        );
+         NarrativeDependencyTargetKind.sourceMap,
+         sourceId,
+         scope: 'synthetic',
+         parentId: parentId,
+         sourceKind: sourceKind,
+       );
 
   /// Owning map for a physical map root or child source, if this key is one.
   String? get physicalMapId {
@@ -261,15 +262,15 @@ final class NarrativeDependencyNavigationIntent {
 
   @override
   int get hashCode => Object.hash(
-        kind,
-        assetId,
-        parentId,
-        rootId,
-        scope,
-        sourceKind,
-        mapId,
-        context,
-      );
+    kind,
+    assetId,
+    parentId,
+    rootId,
+    scope,
+    sourceKind,
+    mapId,
+    context,
+  );
 }
 
 @immutable
@@ -309,9 +310,7 @@ final class NarrativeDependencyUsage {
   final NarrativeDependencyResolution resolution;
   final NarrativeDependencyNavigationIntent? navigationIntent;
 
-  NarrativeDependencyUsage withResolution(
-    NarrativeDependencyResolution value,
-  ) {
+  NarrativeDependencyUsage withResolution(NarrativeDependencyResolution value) {
     return NarrativeDependencyUsage(
       target: target,
       owner: owner,
@@ -370,27 +369,27 @@ final class NarrativeDependencyIndex {
     required List<NarrativeDependencyUsage> usages,
     required List<NarrativeDependencyIssue> issues,
     required Map<NarrativeDependencyKey, List<NarrativeDependencyDefinition>>
-        definitionsByKey,
+    definitionsByKey,
     required Map<NarrativeDependencyKey, List<NarrativeDependencyUsage>>
-        usagesByTarget,
+    usagesByTarget,
     required Map<NarrativeDependencyKey, List<NarrativeDependencyUsage>>
-        usagesByOwner,
-  })  : definitions = UnmodifiableListView(definitions),
-        usages = UnmodifiableListView(usages),
-        issues = UnmodifiableListView(issues),
-        _definitionsByKey = UnmodifiableMapView(definitionsByKey),
-        _usagesByTarget = UnmodifiableMapView(usagesByTarget),
-        _usagesByOwner = UnmodifiableMapView(usagesByOwner);
+    usagesByOwner,
+  }) : definitions = UnmodifiableListView(definitions),
+       usages = UnmodifiableListView(usages),
+       issues = UnmodifiableListView(issues),
+       _definitionsByKey = UnmodifiableMapView(definitionsByKey),
+       _usagesByTarget = UnmodifiableMapView(usagesByTarget),
+       _usagesByOwner = UnmodifiableMapView(usagesByOwner);
 
   final List<NarrativeDependencyDefinition> definitions;
   final List<NarrativeDependencyUsage> usages;
   final List<NarrativeDependencyIssue> issues;
   final Map<NarrativeDependencyKey, List<NarrativeDependencyDefinition>>
-      _definitionsByKey;
+  _definitionsByKey;
   final Map<NarrativeDependencyKey, List<NarrativeDependencyUsage>>
-      _usagesByTarget;
+  _usagesByTarget;
   final Map<NarrativeDependencyKey, List<NarrativeDependencyUsage>>
-      _usagesByOwner;
+  _usagesByOwner;
 
   List<NarrativeDependencyDefinition> definitionsFor(
     NarrativeDependencyKey key,
@@ -402,9 +401,7 @@ final class NarrativeDependencyIndex {
     return _usagesByTarget[key] ?? const <NarrativeDependencyUsage>[];
   }
 
-  List<NarrativeDependencyUsage> usagesOwnedBy(
-    NarrativeDependencyKey owner,
-  ) {
+  List<NarrativeDependencyUsage> usagesOwnedBy(NarrativeDependencyKey owner) {
     return _usagesByOwner[owner] ?? const <NarrativeDependencyUsage>[];
   }
 }
@@ -416,11 +413,11 @@ final class NarrativeDependencyInspectionReadModel {
     required List<NarrativeDependencyDefinition> definitions,
     required List<NarrativeDependencyUsage> usages,
     required List<NarrativeDependencyIssue> issues,
-  })  : definitions = List<NarrativeDependencyDefinition>.unmodifiable(
-          definitions,
-        ),
-        usages = List<NarrativeDependencyUsage>.unmodifiable(usages),
-        issues = List<NarrativeDependencyIssue>.unmodifiable(issues);
+  }) : definitions = List<NarrativeDependencyDefinition>.unmodifiable(
+         definitions,
+       ),
+       usages = List<NarrativeDependencyUsage>.unmodifiable(usages),
+       issues = List<NarrativeDependencyIssue>.unmodifiable(issues);
 
   final NarrativeDependencyKey target;
   final List<NarrativeDependencyDefinition> definitions;
@@ -440,14 +437,17 @@ NarrativeDependencyInspectionReadModel inspectNarrativeDependency(
   final consumerOwners = <NarrativeDependencyKey>{
     for (final usage in usages) usage.owner,
   };
-  final issueIdentities = <(
-    NarrativeDependencyIssueKind,
-    NarrativeDependencyKey,
-    NarrativeDependencyKey?,
-    String?,
-    NarrativeDependencyCriticality,
-    String,
-  )>{};
+  final issueIdentities =
+      <
+        (
+          NarrativeDependencyIssueKind,
+          NarrativeDependencyKey,
+          NarrativeDependencyKey?,
+          String?,
+          NarrativeDependencyCriticality,
+          String,
+        )
+      >{};
   final issues = <NarrativeDependencyIssue>[];
   for (final issue in index.issues) {
     if (issue.target != target && !consumerOwners.contains(issue.owner)) {
@@ -484,8 +484,7 @@ final class _NarrativeDependencyIndexBuilder {
     this.project,
     List<MapData> maps,
     this.itemCatalog,
-  )
-      : maps = List<MapData>.unmodifiable(maps);
+  ) : maps = List<MapData>.unmodifiable(maps);
 
   final ProjectManifest project;
   final ProjectItemCatalog? itemCatalog;
@@ -499,6 +498,8 @@ final class _NarrativeDependencyIndexBuilder {
     _collectProjectDefinitions();
     _collectMaps();
     _collectNewGame();
+    _collectMapScriptReferences();
+    _collectRailMapReferences();
     _collectEvents();
     _collectLegacyClaims();
     _collectScenes();
@@ -650,9 +651,7 @@ final class _NarrativeDependencyIndexBuilder {
         record.id,
         label,
         path: 'eventRegistry.records[${record.id}]',
-        metadata: <String, String>{
-          'publicationStatus': publicationStatus,
-        },
+        metadata: <String, String>{'publicationStatus': publicationStatus},
       );
     }
   }
@@ -771,9 +770,11 @@ final class _NarrativeDependencyIndexBuilder {
                 'maps[${map.id}].entities[$index].npc.visibilityRule.predicate',
               );
             }
-            for (var conditionalIndex = 0;
-                conditionalIndex < npc.conditionalDialogues.length;
-                conditionalIndex++) {
+            for (
+              var conditionalIndex = 0;
+              conditionalIndex < npc.conditionalDialogues.length;
+              conditionalIndex++
+            ) {
               final conditional = npc.conditionalDialogues[conditionalIndex];
               final prefix =
                   'maps[${map.id}].entities[$index].npc.conditionalDialogues[$conditionalIndex]';
@@ -805,9 +806,22 @@ final class _NarrativeDependencyIndexBuilder {
           parentId: map.id,
           sourceKind: 'element',
         );
-        for (var behaviorIndex = 0;
-            behaviorIndex < element.behaviors.length;
-            behaviorIndex++) {
+        for (
+          var behaviorIndex = 0;
+          behaviorIndex < element.behaviors.length;
+          behaviorIndex++
+        ) {
+          final effect = element.behaviors[behaviorIndex].effect;
+          if (effect.type == MapPlacedElementEffectType.traverseWarp &&
+              effect.targetMapId != null) {
+            _usage(
+              target: _mapKey(effect.targetMapId!),
+              owner: owner,
+              path:
+                  'maps[${map.id}].placedElements[$index].behaviors[$behaviorIndex].effect.targetMapId',
+              criticality: NarrativeDependencyCriticality.runtimeBlocking,
+            );
+          }
           _collectAuthoredDialogueRef(
             element.behaviors[behaviorIndex].effect.dialogue,
             owner,
@@ -1079,8 +1093,8 @@ final class _NarrativeDependencyIndexBuilder {
             );
           }
         case ScriptConditionType.badgeOwned:
-          final badgeId =
-              condition.params[ScriptConditionParams.badgeId]?.trim();
+          final badgeId = condition.params[ScriptConditionParams.badgeId]
+              ?.trim();
           if (badgeId != null && badgeId.isNotEmpty) {
             _usage(
               target: NarrativeDependencyKey(
@@ -1107,8 +1121,8 @@ final class _NarrativeDependencyIndexBuilder {
             );
           }
         case ScriptConditionType.eventIsConsumed:
-          final eventId =
-              condition.params[ScriptConditionParams.eventId]?.trim();
+          final eventId = condition.params[ScriptConditionParams.eventId]
+              ?.trim();
           if (eventId != null && eventId.isNotEmpty) {
             _usage(
               target: mapId == null
@@ -1123,8 +1137,8 @@ final class _NarrativeDependencyIndexBuilder {
             );
           }
         case ScriptConditionType.playerOnMap:
-          final targetMapId =
-              condition.params[ScriptConditionParams.mapId]?.trim();
+          final targetMapId = condition.params[ScriptConditionParams.mapId]
+              ?.trim();
           if (targetMapId != null && targetMapId.isNotEmpty) {
             _usage(
               target: _mapKey(targetMapId),
@@ -1266,9 +1280,9 @@ final class _NarrativeDependencyIndexBuilder {
       outcomeReceived: (outcome) {
         final target = switch (outcome.producerKind) {
           NarrativeOutcomeProducerKind.scene => NarrativeDependencyKey(
-              NarrativeDependencyTargetKind.scene,
-              outcome.producerId,
-            ),
+            NarrativeDependencyTargetKind.scene,
+            outcome.producerId,
+          ),
           NarrativeOutcomeProducerKind.battle =>
             NarrativeDependencyKey.synthetic(
               sourceKind: 'battle',
@@ -1282,7 +1296,8 @@ final class _NarrativeDependencyIndexBuilder {
           owner: owner,
           path: '$prefix.outcome.producerId#${outcome.outcomeId}',
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
-          resolution: outcome.producerKind ==
+          resolution:
+              outcome.producerKind ==
                   NarrativeOutcomeProducerKind.legacyScenario
               ? NarrativeDependencyResolution.legacyExternal
               : null,
@@ -1449,13 +1464,17 @@ final class _NarrativeDependencyIndexBuilder {
         NarrativeDependencyTargetKind.storyline,
         storyline.id,
       );
-      for (var chapterIndex = 0;
-          chapterIndex < storyline.chapters.length;
-          chapterIndex++) {
+      for (
+        var chapterIndex = 0;
+        chapterIndex < storyline.chapters.length;
+        chapterIndex++
+      ) {
         final chapter = storyline.chapters[chapterIndex];
-        for (var sceneIndex = 0;
-            sceneIndex < chapter.directSceneLinkIds.length;
-            sceneIndex++) {
+        for (
+          var sceneIndex = 0;
+          sceneIndex < chapter.directSceneLinkIds.length;
+          sceneIndex++
+        ) {
           _usage(
             target: NarrativeDependencyKey.scene(
               chapter.directSceneLinkIds[sceneIndex],
@@ -1470,9 +1489,11 @@ final class _NarrativeDependencyIndexBuilder {
           final step = chapter.steps[stepIndex];
           final prefix =
               'storylines[${storyline.id}].chapters[$chapterIndex].steps[$stepIndex]';
-          for (var sceneIndex = 0;
-              sceneIndex < step.sceneLinkIds.length;
-              sceneIndex++) {
+          for (
+            var sceneIndex = 0;
+            sceneIndex < step.sceneLinkIds.length;
+            sceneIndex++
+          ) {
             _usage(
               target: NarrativeDependencyKey(
                 NarrativeDependencyTargetKind.scene,
@@ -1501,9 +1522,11 @@ final class _NarrativeDependencyIndexBuilder {
           }
         }
       }
-      for (var linkIndex = 0;
-          linkIndex < storyline.sceneLinks.length;
-          linkIndex++) {
+      for (
+        var linkIndex = 0;
+        linkIndex < storyline.sceneLinks.length;
+        linkIndex++
+      ) {
         final link = storyline.sceneLinks[linkIndex];
         final prefix = 'storylines[${storyline.id}].sceneLinks[$linkIndex]';
         _usage(
@@ -1537,13 +1560,17 @@ final class _NarrativeDependencyIndexBuilder {
             resolution: NarrativeDependencyResolution.legacyExternal,
           );
         }
-        for (var outcomeIndex = 0;
-            outcomeIndex < link.outcomeLinks.length;
-            outcomeIndex++) {
+        for (
+          var outcomeIndex = 0;
+          outcomeIndex < link.outcomeLinks.length;
+          outcomeIndex++
+        ) {
           final outcomeLink = link.outcomeLinks[outcomeIndex];
-          for (var effectIndex = 0;
-              effectIndex < outcomeLink.effects.length;
-              effectIndex++) {
+          for (
+            var effectIndex = 0;
+            effectIndex < outcomeLink.effects.length;
+            effectIndex++
+          ) {
             _collectStorylineEffect(
               outcomeLink.effects[effectIndex],
               owner,
@@ -1637,23 +1664,22 @@ final class _NarrativeDependencyIndexBuilder {
   ) {
     final target = switch (effect.type) {
       StorylineEffectType.activateStep ||
-      StorylineEffectType.completeStep =>
-        NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.step,
-          effect.targetId,
-        ),
+      StorylineEffectType.completeStep => NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.step,
+        effect.targetId,
+      ),
       StorylineEffectType.unlockStoryline => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.storyline,
-          effect.targetId,
-        ),
+        NarrativeDependencyTargetKind.storyline,
+        effect.targetId,
+      ),
       StorylineEffectType.emitFact => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.fact,
-          effect.targetId,
-        ),
+        NarrativeDependencyTargetKind.fact,
+        effect.targetId,
+      ),
       StorylineEffectType.setWorldRule => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.worldRule,
-          effect.targetId,
-        ),
+        NarrativeDependencyTargetKind.worldRule,
+        effect.targetId,
+      ),
       StorylineEffectType.affectRelationship =>
         NarrativeDependencyKey.synthetic(
           sourceKind: 'storylineRelationship',
@@ -1678,21 +1704,21 @@ final class _NarrativeDependencyIndexBuilder {
   ) {
     final target = switch (anchor.kind) {
       StorylineAnchorKind.storyline => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.storyline,
-          anchor.targetId,
-        ),
+        NarrativeDependencyTargetKind.storyline,
+        anchor.targetId,
+      ),
       StorylineAnchorKind.chapter => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.chapter,
-          anchor.targetId,
-        ),
+        NarrativeDependencyTargetKind.chapter,
+        anchor.targetId,
+      ),
       StorylineAnchorKind.step => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.step,
-          anchor.targetId,
-        ),
+        NarrativeDependencyTargetKind.step,
+        anchor.targetId,
+      ),
       StorylineAnchorKind.sceneOutcome => NarrativeDependencyKey.synthetic(
-          sourceKind: 'sceneOutcome',
-          sourceId: anchor.targetId,
-        ),
+        sourceKind: 'sceneOutcome',
+        sourceId: anchor.targetId,
+      ),
     };
     _usage(
       target: target,
@@ -1753,8 +1779,7 @@ final class _NarrativeDependencyIndexBuilder {
             NarrativeDependencyTargetKind.dialogue,
           CinematicTimelineStepKind.sound ||
           CinematicTimelineStepKind.music ||
-          CinematicTimelineStepKind.fx =>
-            NarrativeDependencyTargetKind.media,
+          CinematicTimelineStepKind.fx => NarrativeDependencyTargetKind.media,
           _ => null,
         };
         if (targetKind == null) continue;
@@ -1778,7 +1803,8 @@ final class _NarrativeDependencyIndexBuilder {
             );
           }
         }
-        final bindings = cinematic.stageContext?.actorBindings ??
+        final bindings =
+            cinematic.stageContext?.actorBindings ??
             const <CinematicActorBinding>[];
         for (var index = 0; index < bindings.length; index++) {
           final entityId = bindings[index].mapEntityId;
@@ -1794,7 +1820,7 @@ final class _NarrativeDependencyIndexBuilder {
         }
         final movementBindings =
             cinematic.stageContext?.movementTargetBindings ??
-                const <CinematicMovementTargetBinding>[];
+            const <CinematicMovementTargetBinding>[];
         for (var index = 0; index < movementBindings.length; index++) {
           final binding = movementBindings[index];
           final sourceId = binding.sourceId?.trim();
@@ -1802,8 +1828,7 @@ final class _NarrativeDependencyIndexBuilder {
             CinematicMovementTargetBindingKind.mapEntity => 'entity',
             CinematicMovementTargetBindingKind.mapEvent => 'event',
             CinematicMovementTargetBindingKind.abstractPoint ||
-            CinematicMovementTargetBindingKind.stagePoint =>
-              null,
+            CinematicMovementTargetBindingKind.stagePoint => null,
           };
           if (sourceKind == null || sourceId == null || sourceId.isEmpty) {
             continue;
@@ -1828,17 +1853,17 @@ final class _NarrativeDependencyIndexBuilder {
       );
       final sourceTarget = switch (rule.source.kind) {
         WorldRuleSourceKind.fact => NarrativeDependencyKey(
-            NarrativeDependencyTargetKind.fact,
-            rule.source.sourceId,
-          ),
+          NarrativeDependencyTargetKind.fact,
+          rule.source.sourceId,
+        ),
         WorldRuleSourceKind.storyStepCompletion => NarrativeDependencyKey(
-            NarrativeDependencyTargetKind.step,
-            rule.source.sourceId,
-          ),
+          NarrativeDependencyTargetKind.step,
+          rule.source.sourceId,
+        ),
         WorldRuleSourceKind.consumedEvent => NarrativeDependencyKey.synthetic(
-            sourceKind: 'legacyMapEvent',
-            sourceId: rule.source.sourceId,
-          ),
+          sourceKind: 'legacyMapEvent',
+          sourceId: rule.source.sourceId,
+        ),
       };
       _usage(
         target: sourceTarget,
@@ -1888,10 +1913,11 @@ final class _NarrativeDependencyIndexBuilder {
   void _collectLegacyScenarios() {
     final globalStoryCandidates =
         <String, StorylineLegacyGlobalStoryImportCandidate>{
-      for (final candidate
-          in buildLegacyGlobalStoryImportPreview(project).candidates)
-        candidate.sourceScenarioId: candidate,
-    };
+          for (final candidate in buildLegacyGlobalStoryImportPreview(
+            project,
+          ).candidates)
+            candidate.sourceScenarioId: candidate,
+        };
     for (final scenario in project.scenarios) {
       final owner = _definition(
         NarrativeDependencyTargetKind.sourceMap,
@@ -1908,9 +1934,11 @@ final class _NarrativeDependencyIndexBuilder {
       );
       final globalStoryCandidate = globalStoryCandidates[scenario.id];
       if (globalStoryCandidate != null) {
-        for (var chapterIndex = 0;
-            chapterIndex < globalStoryCandidate.draftStoryline.chapters.length;
-            chapterIndex++) {
+        for (
+          var chapterIndex = 0;
+          chapterIndex < globalStoryCandidate.draftStoryline.chapters.length;
+          chapterIndex++
+        ) {
           final chapter =
               globalStoryCandidate.draftStoryline.chapters[chapterIndex];
           final chapterKey = _definition(
@@ -1929,9 +1957,11 @@ final class _NarrativeDependencyIndexBuilder {
               'order': '${chapter.order}',
             },
           );
-          for (var stepIndex = 0;
-              stepIndex < chapter.steps.length;
-              stepIndex++) {
+          for (
+            var stepIndex = 0;
+            stepIndex < chapter.steps.length;
+            stepIndex++
+          ) {
             final step = chapter.steps[stepIndex];
             _definition(
               NarrativeDependencyTargetKind.sourceMap,
@@ -2068,7 +2098,7 @@ final class _NarrativeDependencyIndexBuilder {
   void _collectCycleIssues() {
     final eventIds =
         project.eventRegistry?.records.map((record) => record.id).toSet() ??
-            <String>{};
+        <String>{};
     final eventEdges = _eventCycleEdges
         .where(
           (edge) => eventIds.contains(edge.$1) && eventIds.contains(edge.$2),
@@ -2164,10 +2194,30 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
-      case SceneWarpInteractiveCommand(
-          :final destinationMapId,
-          :final warpId,
-        ):
+      case SceneMoveNpcInteractiveCommand(
+        :final mapId,
+        :final entityId,
+        :final warpId,
+      ):
+        _usage(
+          target: _mapKey(mapId),
+          owner: owner,
+          path: '$path.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        _usage(
+          target: _mapSourceChildKey(mapId, 'entity', entityId),
+          owner: owner,
+          path: '$path.entityId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        _usage(
+          target: _mapSourceChildKey(mapId, 'warp', warpId),
+          owner: owner,
+          path: '$path.warpId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      case SceneWarpInteractiveCommand(:final destinationMapId, :final warpId):
         _usage(
           target: _mapKey(destinationMapId),
           owner: owner,
@@ -2226,45 +2276,44 @@ final class _NarrativeDependencyIndexBuilder {
     }
     final target = switch (source.sourceKind) {
       SceneConditionSourceKind.inventoryItem => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.item,
-          source.sourceId,
-        ),
+        NarrativeDependencyTargetKind.item,
+        source.sourceId,
+      ),
       SceneConditionSourceKind.fact => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.fact,
-          source.sourceId,
-        ),
+        NarrativeDependencyTargetKind.fact,
+        source.sourceId,
+      ),
       SceneConditionSourceKind.storyStepCompletion ||
-      SceneConditionSourceKind.storyStepActive =>
-        NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.step,
-          source.sourceId,
-        ),
+      SceneConditionSourceKind.storyStepActive => NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.step,
+        source.sourceId,
+      ),
       SceneConditionSourceKind.consumedEvent =>
         NarrativeDependencyKey.synthetic(
           sourceKind: 'legacyMapEvent',
           sourceId: source.sourceId,
         ),
       SceneConditionSourceKind.dialogueOutcome => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.dialogue,
-          source.sourceId,
-        ),
+        NarrativeDependencyTargetKind.dialogue,
+        source.sourceId,
+      ),
       SceneConditionSourceKind.worldState => NarrativeDependencyKey(
-          NarrativeDependencyTargetKind.worldRule,
-          source.sourceId,
-        ),
+        NarrativeDependencyTargetKind.worldRule,
+        source.sourceId,
+      ),
       _ => NarrativeDependencyKey.synthetic(
-          sourceKind: 'legacyCondition.${source.sourceKind.name}',
-          sourceId: source.sourceId,
-        ),
+        sourceKind: 'legacyCondition.${source.sourceKind.name}',
+        sourceId: source.sourceId,
+      ),
     };
     final usesCanonicalResolution =
         source.sourceKind == SceneConditionSourceKind.inventoryItem ||
-            source.sourceKind == SceneConditionSourceKind.fact ||
-            source.sourceKind == SceneConditionSourceKind.storyStepCompletion ||
-            source.sourceKind == SceneConditionSourceKind.storyStepActive ||
-            source.sourceKind == SceneConditionSourceKind.consumedEvent ||
-            source.sourceKind == SceneConditionSourceKind.dialogueOutcome ||
-            source.sourceKind == SceneConditionSourceKind.worldState;
+        source.sourceKind == SceneConditionSourceKind.fact ||
+        source.sourceKind == SceneConditionSourceKind.storyStepCompletion ||
+        source.sourceKind == SceneConditionSourceKind.storyStepActive ||
+        source.sourceKind == SceneConditionSourceKind.consumedEvent ||
+        source.sourceKind == SceneConditionSourceKind.dialogueOutcome ||
+        source.sourceKind == SceneConditionSourceKind.worldState;
     _usage(
       target: target,
       owner: owner,
@@ -2308,6 +2357,23 @@ final class _NarrativeDependencyIndexBuilder {
         path: '$path.eventId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
+    } else if (consequence is SceneSetNpcPresenceConsequence) {
+      _usage(
+        target: _mapKey(consequence.mapId),
+        owner: owner,
+        path: '$path.mapId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      );
+      _usage(
+        target: _mapSourceChildKey(
+          consequence.mapId,
+          'entity',
+          consequence.entityId,
+        ),
+        owner: owner,
+        path: '$path.entityId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      );
     } else if (consequence is SceneCompleteStoryStepConsequence) {
       _usage(
         target: NarrativeDependencyKey(
@@ -2318,6 +2384,50 @@ final class _NarrativeDependencyIndexBuilder {
         path: '$path.stepId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
+    }
+  }
+
+  void _collectMapScriptReferences() {
+    for (final script in project.scripts) {
+      final owner = NarrativeDependencyKey.synthetic(
+        sourceKind: 'script',
+        sourceId: script.id,
+      );
+      for (final node in script.asset.nodes) {
+        for (var index = 0; index < node.commands.length; index++) {
+          final command = node.commands[index];
+          if (command.type != ScriptCommandType.warpPlayer) continue;
+          final mapId = command.params['mapId']?.trim();
+          if (mapId == null || mapId.isEmpty) continue;
+          _usage(
+            target: _mapKey(mapId),
+            owner: owner,
+            path:
+                'scripts[${script.id}].nodes[${node.id}].commands[$index].params.mapId',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          );
+        }
+      }
+    }
+  }
+
+  void _collectRailMapReferences() {
+    for (final journey
+        in project.railJourneyCatalog?.journeys ??
+            const <RailJourneyDefinition>[]) {
+      final owner = NarrativeDependencyKey.railJourney(journey.id);
+      for (final entry in {
+        'vehicleMapId': journey.vehicleMapId,
+        'origin.stationMapId': journey.origin.stationMapId,
+        'destination.stationMapId': journey.destination.stationMapId,
+      }.entries) {
+        _usage(
+          target: _mapKey(entry.value),
+          owner: owner,
+          path: 'railJourneyCatalog.journeys[${journey.id}].${entry.key}',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      }
     }
   }
 
@@ -2342,8 +2452,9 @@ final class _NarrativeDependencyIndexBuilder {
 
     final declaredMapIds = project.maps.map((entry) => entry.id).toSet();
     final loadedMapIds = maps.map((map) => map.id).toSet();
-    final hasUnavailableDeclaredMaps =
-        declaredMapIds.difference(loadedMapIds).isNotEmpty;
+    final hasUnavailableDeclaredMaps = declaredMapIds
+        .difference(loadedMapIds)
+        .isNotEmpty;
     final resolvedUsages = <NarrativeDependencyUsage>[];
     for (final usage in _usages) {
       NarrativeDependencyResolution resolution;
@@ -2355,8 +2466,8 @@ final class _NarrativeDependencyIndexBuilder {
         final physicalMapId = usage.target.physicalMapId;
         final isGlobalLegacyMapEvent =
             usage.target.kind == NarrativeDependencyTargetKind.sourceMap &&
-                usage.target.scope == 'synthetic' &&
-                usage.target.sourceKind == 'legacyMapEvent';
+            usage.target.scope == 'synthetic' &&
+            usage.target.sourceKind == 'legacyMapEvent';
         if (definitionCount > 1) {
           resolution = NarrativeDependencyResolution.ambiguous;
         } else if (isGlobalLegacyMapEvent &&
@@ -2486,21 +2597,17 @@ NarrativeDependencyKey _mapSourceChildKey(
   String mapId,
   String kind,
   String id,
-) =>
-    NarrativeDependencyKey.mapSource(
-      mapId: mapId,
-      sourceKind: kind,
-      sourceId: id,
-    );
+) => NarrativeDependencyKey.mapSource(
+  mapId: mapId,
+  sourceKind: kind,
+  sourceId: id,
+);
 
 const _physicalMapScope = 'map';
 
 /// Iterative Kosaraju traversal. It deliberately avoids recursive DFS so a
 /// large authoring project cannot overflow the VM stack while being indexed.
-Set<T> _cyclicNodes<T>(
-  Iterable<T> nodes,
-  Iterable<(T, T)> edges,
-) {
+Set<T> _cyclicNodes<T>(Iterable<T> nodes, Iterable<(T, T)> edges) {
   final adjacency = <T, List<T>>{};
   final reverse = <T, List<T>>{};
   for (final node in nodes) {
@@ -2558,9 +2665,7 @@ Set<T> _cyclicNodes<T>(
 }
 
 Map<NarrativeDependencyKey, List<NarrativeDependencyDefinition>>
-    _groupDefinitionsByKey(
-  List<NarrativeDependencyDefinition> definitions,
-) {
+_groupDefinitionsByKey(List<NarrativeDependencyDefinition> definitions) {
   final grouped =
       <NarrativeDependencyKey, List<NarrativeDependencyDefinition>>{};
   for (final definition in definitions) {
@@ -2573,9 +2678,7 @@ Map<NarrativeDependencyKey, List<NarrativeDependencyDefinition>>
 }
 
 Map<NarrativeDependencyKey, List<NarrativeDependencyUsage>>
-    _groupUsagesByTarget(
-  List<NarrativeDependencyUsage> usages,
-) {
+_groupUsagesByTarget(List<NarrativeDependencyUsage> usages) {
   final grouped = <NarrativeDependencyKey, List<NarrativeDependencyUsage>>{};
   for (final usage in usages) {
     grouped.putIfAbsent(usage.target, () => []).add(usage);

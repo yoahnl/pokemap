@@ -16,16 +16,19 @@ class PlayerBattleOverlay extends StatelessWidget {
     required this.snapshot,
     required this.onCommand,
     this.itemIconBuilder,
+    this.display = PlayerBattleDisplay.full,
   });
 
   final BattleCommandOverlaySnapshot snapshot;
   final ValueChanged<BattlePresentationCommand> onCommand;
   final Widget Function(String assetPath)? itemIconBuilder;
+  final PlayerBattleDisplay display;
 
   @override
   Widget build(BuildContext context) {
     final battle = context.playerBattleProfile;
     return PlayerBattleScene(
+      display: display,
       data: PlayerBattleViewData(
         revision: snapshot.revision,
         enemy: _hud(snapshot.enemyHud),

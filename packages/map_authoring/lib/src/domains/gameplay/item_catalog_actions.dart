@@ -83,7 +83,10 @@ final class ItemCatalogActions {
       after,
       capabilityTruth: itemSystemV1CapabilityTruth,
     );
-    if (validation.hasBlockingDiagnostics) {
+    final changesOnlyCaptureSprite =
+        context.request.actionId == 'item.update' &&
+            _changesOnlyCaptureSprite(catalog, after, _itemId(parameters));
+    if (validation.hasBlockingDiagnostics && !changesOnlyCaptureSprite) {
       throw ItemCatalogAuthoringException(
         'item.catalog_invalid',
         'The mutation would create an item catalog that the runtime cannot execute.',
@@ -103,6 +106,28 @@ final class ItemCatalogActions {
     }
     return _draft(context, catalog, after);
   }
+}
+
+bool _changesOnlyCaptureSprite(
+  ProjectItemCatalog before,
+  ProjectItemCatalog after,
+  String itemId,
+) {
+  final index = _definitionIndex(before, itemId);
+  final beforeCapture = before.entries[index].capture;
+  final afterCapture = after.entries[index].capture;
+  if (beforeCapture == null ||
+      afterCapture == null ||
+      beforeCapture.animationSpritePath == afterCapture.animationSpritePath) {
+    return false;
+  }
+  final restoredEntries = after.entries.toList(growable: false);
+  restoredEntries[index] = restoredEntries[index].copyWith(
+    capture: afterCapture.copyWith(
+      animationSpritePath: beforeCapture.animationSpritePath,
+    ),
+  );
+  return after.copyWith(entries: restoredEntries) == before;
 }
 
 ProjectItemCatalog _create(

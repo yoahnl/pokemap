@@ -16,7 +16,88 @@ import 'package:pokemap_hub/features/session/domain/repositories/control_profile
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
 
+import '../../../support/runtime_player_hub_fixture.dart';
+
 void main() {
+  test(
+    'closing cancels the splash frame gate before resolving a game',
+    () async {
+      final lifetime = HubRuntimeStartupLifetime();
+      final frame = Completer<void>();
+      final resolver = _PendingLaunchResolver(
+        Completer<InstalledGameLaunchContext>().future,
+      );
+      final bootstrap = HubRuntimeStartupBootstrap(
+        lifetime: lifetime,
+        startupWorkGate: frame.future,
+        supportRoot: Directory.systemTemp,
+        saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+        preferencesRepository: _UnusedPreferencesRepository(),
+        controlProfileRepository: _UnusedControlProfileRepository(),
+        launchResolver: resolver,
+        game: _game(),
+        onHubRequested: () async {},
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+        stopIntroPlayback: () async {},
+        defaultProfileDisplayNameForLocale: (_) => 'Joueur',
+        diagnosticLogFile: File('/dev/null'),
+      );
+      final preparation = bootstrap.prepare(onStageCompleted: (_) {});
+      final cancelled = expectLater(preparation, throwsA(isA<Exception>()));
+      await lifetime.close().timeout(const Duration(seconds: 1));
+      await cancelled;
+      expect(frame.isCompleted, isFalse);
+      expect(resolver.resolveCalls, 0);
+    },
+  );
+
+  test(
+    'closed preparation waits for late resolution and cannot touch saves',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'avelune-stop-bootstrap-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final context = await createRuntimePlayerLaunchContext(root);
+      final launch = Completer<InstalledGameLaunchContext>();
+      final lifetime = HubRuntimeStartupLifetime();
+      var saveCalls = 0;
+      final bootstrap = HubRuntimeStartupBootstrap(
+        lifetime: lifetime,
+        supportRoot: root,
+        saveRepositoryFactory: (_, _) {
+          saveCalls++;
+          throw StateError('a cancelled preparation must not open saves');
+        },
+        preferencesRepository: _UnusedPreferencesRepository(),
+        controlProfileRepository: _UnusedControlProfileRepository(),
+        launchResolver: _PendingLaunchResolver(launch.future),
+        game: context.game,
+        onHubRequested: () async {},
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+        stopIntroPlayback: () async {},
+        defaultProfileDisplayNameForLocale: (_) => 'Joueur',
+        diagnosticLogFile: File('/dev/null'),
+      );
+      final preparation = bootstrap.prepare(onStageCompleted: (_) {});
+      final cancelled = expectLater(preparation, throwsA(isA<Exception>()));
+      var closed = false;
+      final closing = lifetime.close().then((_) => closed = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(closed, isFalse);
+      launch.complete(context);
+      await cancelled;
+      await closing;
+      expect(closed, isTrue);
+      expect(saveCalls, 0);
+      expect(await Directory(root.path).list().map((e) => e.path).toList(), [
+        Directory('${root.path}/version').path,
+      ]);
+    },
+  );
+
   test(
     'waits until the splash reveal finishes before preparing the game',
     () async {

@@ -1,4 +1,5 @@
 import '../models/items/project_item_catalog.dart';
+import '../models/items/project_item_capabilities.dart';
 import '../models/items/project_item_definition.dart';
 
 enum ProjectItemCatalogCodecErrorCode {
@@ -143,11 +144,30 @@ ProjectItemDefinition _decodeEntry(Object? rawEntry, int index) {
     );
     _requireAllowedFields(
       captureObject,
-      const {'rateNumerator', 'rateDenominator', 'allowedEncounterKinds'},
+      const {
+        'rateNumerator',
+        'rateDenominator',
+        'allowedEncounterKinds',
+        'animationSpritePath',
+      },
       path: capturePath,
       entryIndex: index,
       itemId: itemId,
     );
+    final animationSpritePath = captureObject['animationSpritePath'];
+    if (animationSpritePath != null &&
+        (animationSpritePath is! String ||
+            !ProjectCaptureItemDefinition.isValidAnimationSpritePath(
+              animationSpritePath,
+            ))) {
+      throw _entryError(
+        ProjectItemCatalogCodecErrorCode.invalidValue,
+        'Capture animation sprite must be a safe PNG path under assets/ or data/',
+        '$capturePath.animationSpritePath',
+        index,
+        itemId,
+      );
+    }
   }
 
   final machine = entry['machine'];

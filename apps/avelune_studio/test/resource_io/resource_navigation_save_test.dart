@@ -42,6 +42,39 @@ void main() {
     workspace.dispose();
   });
 
+  test('image and decor sharing an ID retain separate draft owners', () {
+    final original = navigation.decor!..name = 'Décor à conserver';
+    final image = ProjectTilesetEntry(
+      id: workspaceElement.id,
+      name: 'Image homonyme',
+      relativePath: 'other.png',
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: 'other',
+        pixelWidth: 64,
+        pixelHeight: 64,
+        tileWidth: 16,
+        tileHeight: 16,
+      ),
+    );
+    workspace.project = workspace.project!.copyWith(
+      tilesets: [...workspace.project!.tilesets, image],
+    );
+    navigation.edit(
+      ResourceItem(
+        id: image.id,
+        name: image.name,
+        kind: ResourceKind.images,
+        tileset: image,
+      ),
+    );
+    expect(navigation.decor, isNot(same(original)));
+    expect(navigation.decor!.tileset.id, image.id);
+    expect(navigation.decors.values, contains(original));
+    navigation.openElement(workspaceElement, edit: true);
+    expect(navigation.decor, same(original));
+    expect(navigation.decor!.name, 'Décor à conserver');
+  });
+
   test(
     'open from map reveals exact resource without writing or losing drafts',
     () {

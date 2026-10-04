@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_reconciliation_retry_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_reconciliation_retry_test.dart: manifest publication receipt re-reads current revision without replay
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_navigation_receipt_recovery_test.dart: prepared metadata retains publication receipt and reconciles without replay
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_reconciliation_retry_test.dart: asset-only publication receipt re-reads current revision without replay
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_navigation_receipt_recovery_test.dart: asset-only mutation retains publication receipt and reconciles without replay
+00:02 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_noop_session_race_test.dart: no-op refuses session closed during final baseline read
+00:02 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_transaction_guard_test.dart: transaction refuses dirty owner after planning at real writer precondition
+00:02 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_transaction_guard_test.dart: transaction refuses disposed session after planning at real writer precondition
+00:03 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_transaction_guard_test.dart: double click refuses second pending apply and first publishes once
+00:04 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_pixel_invalidation_test.dart: canonical pixels invalidate only their consumers and removed brush releases its image
+00:05 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_pixel_invalidation_test.dart: canonical pixels invalidate only their consumers and removed brush releases its image
+00:05 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_decor_owner_concurrency_test.dart: an editor still holding a removed definition cannot resurrect it
+00:05 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_decor_owner_concurrency_test.dart: unchanged owner saves through its real port and reopens independently
+00:06 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_usage_cancellation_host_test.dart: cancelled actual analysis publishes no late report and prevents concurrent retry
+00:10 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: actual import decor placement closed map usages metadata organization and reopen
+00:12 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: actual import decor placement closed map usages metadata organization and reopen
+00:14 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: actual import decor placement closed map usages metadata organization and reopen
+00:20 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: actual import decor placement closed map usages metadata organization and reopen
+00:23 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart: referenced character is replaced through the real global resolution
+00:26 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart: deleted terrain cannot return through map undo after saved removal
+00:30 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart: deleted terrain cannot return through map undo after saved removal
+00:32 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart: unrelated dirty map does not block a free character removal
+00:33 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart: dirty border editor blocks withdrawal without losing focused input
+00:36 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart: dirty border editor blocks withdrawal without losing focused input
+00:38 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart: free removal preserves an unrelated focused character draft
+00:40 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart: stale border confirmation refuses and preserves publication
+00:41 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart: clear resolution preserves the map owner and independent data
+00:43 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart: border usage inspection targets the actual blueprint and does not write
+00:44 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart: reanalyzing requires a new explicit confirmation
+00:46 +28: All tests passed!

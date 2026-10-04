@@ -1,0 +1,45 @@
+00:00 +0: loading test/domains/assets/resource_source_actions_test.dart
+00:00 +0: test/domains/assets/resource_source_actions_test.dart: stable source replacement preserves geometry, original shared blob and other identity
+00:00 +1: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +2: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +3: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +4: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +5: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +6: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +7: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +8: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +9: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +10: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +11: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +12: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +13: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +14: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +15: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +16: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +17: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +18: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +19: test/domains/assets/resource_source_api_test.dart: JSONL replaces true logical PNG and retains original source identity
+00:00 +20: test/domains/assets/resource_information_transaction_test.dart: JSONL metadata persists independently with source unknown fields retained
+00:00 +21: test/domains/assets/resource_information_transaction_test.dart: JSONL metadata persists independently with source unknown fields retained
+00:00 +22: test/domains/assets/resource_information_transaction_test.dart: JSONL metadata persists independently with source unknown fields retained
+00:00 +23: test/domains/assets/resource_source_transaction_test.dart: partial replacement crash compensates all promoted preimages
+00:00 +24: test/domains/assets/resource_source_transaction_test.dart: partial replacement crash compensates all promoted preimages
+00:00 +25: test/domains/assets/resource_source_transaction_test.dart: partial replacement crash compensates all promoted preimages
+00:00 +26: test/references/resource_usage_closure_test.dart: typed dependency closure terminates cycles without unrelated matches
+00:00 +27: test/references/resource_usage_closure_test.dart: typed dependency closure terminates cycles without unrelated matches
+00:00 +28: test/references/resource_usage_closure_test.dart: typed dependency closure terminates cycles without unrelated matches
+00:00 +29: test/references/resource_usage_closure_test.dart: typed dependency closure terminates cycles without unrelated matches
+00:00 +30: test/references/resource_usage_closure_test.dart: typed dependency closure terminates cycles without unrelated matches
+00:00 +31: test/domains/assets/resource_source_transaction_test.dart: logical source removal is durable and retains blob recoverability
+00:00 +32: test/domains/assets/resource_information_transaction_test.dart: category taxonomies retain same identities independently
+00:01 +33: test/domains/assets/resource_information_transaction_test.dart: category taxonomies retain same identities independently
+00:01 +34: test/domains/assets/resource_information_transaction_test.dart: category taxonomies retain same identities independently
+00:01 +35: test/domains/assets/resource_information_transaction_test.dart: category taxonomies retain same identities independently
+00:01 +36: test/references/resource_usage_terrain_test.dart: unplaced terrain atlas rules and drafts retain exact source identity
+00:01 +37: test/references/resource_usage_transport_test.dart: direct resourceUsage reads closed maps without reading binaries
+00:01 +38: test/references/resource_usage_transport_test.dart: direct resourceUsage reads closed maps without reading binaries
+00:01 +39: test/domains/assets/resource_information_transaction_test.dart: terrain category move preserves published payload and isolated draft
+00:01 +40: test/domains/assets/resource_information_transaction_test.dart: terrain category move preserves published payload and isolated draft
+00:01 +41: test/domains/assets/resource_information_transaction_test.dart: terrain category move preserves published payload and isolated draft
+00:01 +42: test/domains/assets/resource_information_transaction_test.dart: pure preview shares dispatcher payload and creates no filesystem state
+00:01 +43: All tests passed!

@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("preferredLocale") private var locale = "fr-FR"
     @AppStorage("showDebugInfo") private var showDebug = false
 
     var body: some View {
@@ -28,19 +27,9 @@ struct SettingsView: View {
 
                                 Spacer()
 
-                                Menu {
-                                    Button("Français") { locale = "fr-FR" }
-                                    Button("English") { locale = "en-US" }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Text(locale == "en-US" ? "English" : "Français")
-                                        Image(systemName: "chevron.up.chevron.down")
-                                            .font(.caption2)
-                                    }
+                                Text("Français")
                                     .font(.subheadline.weight(.semibold))
-                                }
-                                .aveluneGlassButton()
-                                .accessibilityLabel("Langue de l’application")
+                                    .foregroundStyle(AveluneTheme.muted)
                             }
                             .padding(18)
                             .background(AveluneTheme.surface, in: RoundedRectangle(cornerRadius: 22))

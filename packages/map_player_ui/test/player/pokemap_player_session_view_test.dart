@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:ui' as ui show KeyEventDeviceType, PointerDeviceKind;
+import 'dart:ui' as ui
+    show KeyEventDeviceType, PointerDeviceKind, ViewFocusEvent, ViewFocusState, ViewFocusDirection;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,150 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final relayed in [false, true]) {
+    testWidgets(
+        '${relayed ? 'companion relay' : 'primary owner'} controller input while inactive and unfocused',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(RuntimePlayerSnapshot(
+        revision: 7,
+        phase: RuntimePlayerPhase.paused,
+        gameTitle: 'Aube',
+        pauseSection: RuntimePlayerPauseSection.root,
+        logicalSelectionId: 'pause.party',
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openParty),
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openBag),
+        ],
+      ));
+      final inputs = StreamController<RuntimeInputEvent>.broadcast();
+      addTearDown(controller.dispose);
+      addTearDown(inputs.close);
+      addTearDown(() {
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        tester.binding.handleViewFocusChanged(ui.ViewFocusEvent(
+          viewId: tester.view.viewId,
+          state: ui.ViewFocusState.focused,
+          direction: ui.ViewFocusDirection.undefined,
+        ));
+      });
+      await tester.pumpWidget(_app(_view(
+        controller,
+        controllerInputEvents: inputs.stream,
+        relayedControllerInput: relayed,
+        hapticFeedback: () async {},
+      )));
+      await tester.pumpAndSettle();
+      final focus = tester.widget<RuntimePlayerPauseShell>(
+          find.byType(RuntimePlayerPauseShell)).focusController!;
+      expect(focus.logicalSelectionId, 'pause.party');
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleViewFocusChanged(ui.ViewFocusEvent(
+        viewId: tester.view.viewId,
+        state: ui.ViewFocusState.unfocused,
+        direction: ui.ViewFocusDirection.undefined,
+      ));
+      await tester.pump();
+
+      inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.down));
+      await tester.pump();
+      inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.down));
+      await tester.pump();
+      final selected = focus.logicalSelectionId;
+      expect(controller.commands, isEmpty);
+      if (relayed) {
+        expect(selected, isNot('pause.party'));
+        expect(selected, anyOf('pause.resume', 'pause.bag'));
+      } else {
+        expect(selected, 'pause.party');
+      }
+
+      inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      await tester.pump();
+      inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      await tester.pump();
+
+      if (relayed) {
+        expect(controller.commands, hasLength(1));
+        expect(controller.commands.single.action,
+            selected == 'pause.bag' ? RuntimePlayerAction.openBag : RuntimePlayerAction.resume);
+        expect(controller.commands.single.snapshotRevision, 7);
+      } else {
+        expect(controller.commands, isEmpty);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  testWidgets('companion command ingress preserves the battle menu guard', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final commands = RuntimePlayerSessionCommandController();
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.battle));
+    final blocked = ValueNotifier(false);
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+    addTearDown(blocked.dispose);
+    await tester.pumpWidget(_app(_view(controller, commandController: commands, gameplayInputAuthority: authority, menuInteractionBlocked: blocked, hapticFeedback: () async {})));
+    final rejected = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    expect(rejected.status, RuntimePlayerCommandStatus.unavailable);
+    expect(controller.commands, isEmpty);
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld);
+    blocked.value = true;
+    final curtain = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    expect(curtain.status, RuntimePlayerCommandStatus.unavailable);
+    expect(controller.commands, isEmpty);
+    blocked.value = false;
+    final stale = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 0));
+    expect(stale.status, RuntimePlayerCommandStatus.stale);
+    final accepted = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    expect(accepted.status, RuntimePlayerCommandStatus.accepted);
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
+    await tester.pumpWidget(const SizedBox.shrink());
+    final detached = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    expect(detached.status, RuntimePlayerCommandStatus.unavailable);
+  });
+
+  testWidgets('companion menu disconnect restores primary menu without remounting game', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.paused));
+    final lifecycle = _SceneLifecycle();
+    final viewportKey = GlobalKey();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey, companionMenusAttached: true)));
+    expect(tester.widget<RuntimePlayerSurfaceRouter>(find.byType(RuntimePlayerSurfaceRouter)).showPlayerOverlay, isFalse);
+    expect(lifecycle.mounts, 1);
+    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey)));
+    expect(tester.widget<RuntimePlayerSurfaceRouter>(find.byType(RuntimePlayerSurfaceRouter)).showPlayerOverlay, isTrue);
+    expect(lifecycle.mounts, 1);
+    expect(lifecycle.disposals, 0);
+  });
+
+  testWidgets('companion owner forwards paused controller input and retains overworld input', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.paused));
+    final inputs = StreamController<RuntimeInputEvent>.broadcast();
+    final forwarded = <RuntimeInputEvent>[];
+    final gameplay = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    addTearDown(inputs.close);
+    await tester.pumpWidget(_app(_view(controller,
+      controllerInputEvents: inputs.stream, companionMenusAttached: true,
+      onCompanionInput: (event) { forwarded.add(event); return true; },
+      gameplayInputRoute: (event) { gameplay.add(event); return true; },
+    )));
+    inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    await tester.pump();
+    expect(forwarded, [const RuntimeInputEvent.press(RuntimeInputControl.down)]);
+    expect(gameplay, isEmpty);
+    inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.down));
+    await tester.pump();
+    controller.publish(_snapshot(revision: 2, phase: RuntimePlayerPhase.playing));
+    await tester.pump();
+    forwarded.clear();
+    gameplay.clear();
+    inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await tester.pump();
+    expect(forwarded, isEmpty);
+    expect(gameplay, contains(const RuntimeInputEvent.press(RuntimeInputControl.right)));
+  });
   testWidgets('OW006 hidden item world tap dispatches once without a capsule',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
@@ -3323,9 +3468,19 @@ PokeMapPlayerSessionView _view(
   ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame,
   PresentationFrameContentPort? presentationContentPort,
   Future<void> Function()? onPresentationSkip,
+  RuntimePlayerSessionCommandController? commandController,
+  bool companionMenusAttached = false,
+  bool Function(RuntimeInputEvent)? onCompanionInput,
+  bool relayedControllerInput = false,
+  ValueListenable<bool>? menuInteractionBlocked,
 }) {
   final viewportKey = gameplayViewportKey ?? GlobalKey();
   return PokeMapPlayerSessionView(
+    commandController: commandController,
+    companionMenusAttached: companionMenusAttached,
+    onCompanionInput: onCompanionInput,
+    relayedControllerInput: relayedControllerInput,
+    menuInteractionBlocked: menuInteractionBlocked,
     gameplayViewportKey: viewportKey,
     controller: controller,
     titlePresentation: const RuntimePlayerTitlePresentation(

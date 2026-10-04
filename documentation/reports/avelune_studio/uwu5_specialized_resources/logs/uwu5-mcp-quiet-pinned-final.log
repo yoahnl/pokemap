@@ -1,0 +1,12 @@
+✔ packaged live MCP executes the complete item mutation smoke contract (8125.344584ms)
+✔ MENU-A packaged MCP authors quests and profile labels and scene visibility (7742.096083ms)
+✔ packaged MCP applies map lifecycle transactions and preserves their safety checks (7304.0985ms)
+✔ terrain management traverses real MCP stdio without publishing copied drafts (7624.801125ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31992.328292

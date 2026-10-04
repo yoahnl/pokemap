@@ -49,3 +49,7 @@ flutter:
     - assets/home/hero_landscape.png
     - assets/home/avelune_symbol.png
     - assets/home/avelune_logo.png
+    - assets/pokemon/item_icons/icons.zip
+    - assets/pokemon/item_icons/manifest.json
+    - assets/pokemon/capture_sprites/sprites.zip
+    - assets/pokemon/capture_sprites/manifest.json

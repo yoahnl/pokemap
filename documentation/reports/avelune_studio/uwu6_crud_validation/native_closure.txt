@@ -1,0 +1,611 @@
+LOT 6 — Complément de clôture native
+Opération UwU VI : l’épreuve du réel
+
+POINT DE REPRISE — PAUSE DEMANDÉE PAR YOAHN, 3 OCTOBRE 2026
+Travail suspendu pour fermeture de ChatGPT ; les paragraphes suivants sont
+la chronologie et ne constituent pas tous le dernier état de validation.
+Aucune écriture Git, publication ou changement produit iOS réalisé.
+Les deux projets natifs ont été exportés par Studio puis rendus inaccessibles
+à leur ancienne adresse. Paquet Ressources final : SHA256
+75f6015674ae843cfc0cb7b0545f35385681e4d427a40379f1b88fc8e2d60eda.
+Avelune iOS Release est lancé sur My Mac, Designed for iPad, PID92169,
+wrapper /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/X/
+36393B2B-E447-512E-B63A-2C9144526C6D/d/Wrapper/AveluneiOS.app.
+Yoahn a autorisé uniquement l'ajout des deux jeux UwU VI dans sa bibliothèque.
+Cartes est effectivement installé sous games.avelune.uwu-vi-cartes-clairbois-natif,
+joué jusqu'au rendu de Première carte puis sauvegardé par le menu normal :
+save state first-map(16,16), profil default/slot-1. Les passages et mouvements
+dans cette cible de production restent NON VÉRIFIÉS : boutons AX fonctionnels,
+touches sans déplacement constaté, clics coordonnées du pilote noWindowsAvailable.
+Question humaine de diagnostic sur flèche Bas encore sans réponse.
+Ressources n'est pas encore importé dans Avelune iOS. Ne pas présenter le
+parcours antérieur Hub/Selbrume comme recette finale de cette cible.
+Bibliothèque réelle : conteneur UUID90DA71AE-498A-49B0-AABE-58D63E2C6AF0,
+Data/Library/Application Support/PokeMap. Baseline de Les Clairières et de ses
+sauvegardes conservée dans logs/native-ios-personal-library-baseline.json ;
+comparaison finale encore à réaliser après les imports autorisés.
+Hypothèse UTI réfutée : Cartes installé dans le binaire original, sans déclaration
+UTExportedTypeDeclarations. Expérience Info.plist uniquement dans copie /tmp,
+retirée ; ne pas livrer de correctif iOS à partir de cette hypothèse.
+Tests finaux : deux recettes installées après Home +2 PASS/exit0/113,23s ;
+Studio analyze No issues/exit0/7,06s ; deux runners Hub analyze No issues/
+exit0/16,62s ; build MCP exit0 et deux tests STDIO réels PASS/17,57s.
+Relecture uwu6_maps terminée sans finding bloquant introduit ; lecteur de blob
+non raccordé aux imports encapsulés portraits/tilesets, garantie limitée aux
+actions réellement câblées. Pas d'atomicité contre écrivain non coopératif.
+Annexe native_source_annex.txt : 23 fichiers texte intégraux, attribution à
+compléter. 28/28 empreintes de sources du gate initial encore inchangées.
+À reprendre : pilotage/diagnostic Player production, import Ressources, comparaison
+bibliothèque personnelle, complément final du rapport/matrice, Notion des deux
+tickets TO REVIEW et état Git exact. Aucune réserve native ne doit être cochée
+par transitivité. La recette n'est pas déclarée terminée.
+
+CHRONOLOGIE ANTÉRIEURE À CE POINT DE REPRISE
+
+État courant : recette native en cours le 3 octobre 2026. Projet vide créé,
+édité, sauvegardé et rouvert. Cartes Clairbois exportées par Studio, installées
+et jouées dans le Player natif isolé avec source auteur inaccessible. Ressources
+manipulées nativement ; leur export et Player indépendant restent à exécuter.
+Base locale a63ac8656d8456a91c1570b03ff91100de4f1a50 ; branche main.
+Les27sources livrées baed01fdb correspondent aux empreintes delta_lot6.json.
+Checkout local ancien avec acquis non commités : aucune écriture Git autorisée.
+Référence publication isolée /tmp/pokemap-uwu6-delivery-20261003, baed01fdb.
+SDK courant sain, récupéré avec autorisation : /tmp/uwu6-native-flutter-e3005-20261003,
+Flutter 3.48.0-0.4.pre/e3005e3402d9cfa2043114c8bc53c59d12e9b98e, Dart
+3.14.0-95.2.beta. Configurations résolues Studio/Hub/host alignées sur ses packages.
+L'échec de métadonnées Git décrit plus bas concernait la récupération antérieure,
+remplacée : il ne décrit pas le SDK ni les builds natifs exécutés actuellement.
+Réserves historiques conservées et séparées des preuves nouvelles.
+
+REPRISE APRÈS RÉCUPÉRATION — PREUVES COURANTES
+3 octobre, reprise finale du binaire après corrections : build Studio macOS
+debug réussi, terminal68147, VM55228. Ouverture de Ressources par la vraie
+entrée des projets récents ; activeProject confirme la racine possédée.
+Character Studio : création « Personnage de validation » avec la planche
+Voyageur passe sans le crash TextEditingController précédent. Le personnage
+libre natif est supprimé par inspection/confirmation. Pour Émile, le plan
+annonce la référence NPC first-map/emile-village et deux documents ; Annuler
+conserve les empreintes project.json72c0a97820538da05c8808b2702f5ffb3cd7d45986e1ac623fffb7958738f2b8
+et first-map.jsond37b7c3eb844904575f47fe2bb55c099e334ce537436bd8d626c62d63073f216.
+Second passage confirmé : remplacement explicite par player/Voyageur ; Émile
+retiré du catalogue et NPC conserve identité/dialogue/coordonnées, characterId
+devient player. Le second témoin libre est retiré séparément. PNG partagé conservé.
+Création d'état de portrait « Neutre natif » : nouveau crash natif constaté,
+TextEditingController disposed, assertion dependents et arbre vide. État
+persisté malgré le crash ; première capture conservée, pas un PASS. Le même
+problème de durée de vie est localisé dans _createState du panneau Portraits ;
+correction et régression ciblées confiées à la passe indépendante uwu6_maps.
+Le processus68147 est fermé normalement par q, exit0. Aucune donnée réparée
+dans la fixture pour contourner ce défaut.
+Les messages accessibility_bridge AXTree116 se répètent après des changements
+de routes ; ils existaient avant le crash Portraits. Leur cause moteur n'est
+pas certifiée par la correction de contrôleur : observation distincte conservée.
+
+Correctif bannière : passe native_player_preflight, vrai hôte canonique.
+Avant : candidat16 refusé, candidat32 publié et relu byte-identique, mais ancien
+tileset.candidate_geometry reste dans navigation.error. Rouge exit1/10,97s.
+Après : clear de error seulement après await accept(receipt), quatre tests
+verts exit0/28,05s incluant les deux protections de récupération de reçu.
+Analyse ciblée No issues found, exit0/3,16s. Logs native-replacement-banner-
+before/after/analyze.log conservés. Replay natif de ce correctif encore à faire.
+Analyse Hub finale nouvelle : flutter analyze --no-pub, exit0, No issues found
+9,9s ; runner10,86s, descendants identifiés/récoltés. Log native-final-hub-analysis.log.
+
+Suite Player Cartes : contournement réussi(35,28). Retour par flèches jusqu'à
+copie(2,2), Bas déclenche le passage inverse et retrouve first-map(16,16).
+Approche d'Émile(17,10), Bas puis Entrée : dialogue natif « Émile — Bienvenue à
+Clairbois ! Ce petit village est le début de votre aventure. » observé dans AX.
+Aucun accès au dossier auteur, toujours absent. Nouveau chemin aller-retour et
+dialogue conservé désormais prouvés depuis l'installation native du même paquet.
+Notion : les deux tickets principaux relus puis Preuve remplacée par une synthèse
+actuelle et complément daté ajouté à leur historique. Relecture après publication
+confirmée. TO REVIEW conservé ; Ressources indépendante encore NON VÉRIFIÉE.
+
+Player natif Cartes, preuve nouvelle : paquet produit par l'écran Exporter/Test
+local, 1552004 octets, SHA256 e4128249e6bdac5c4bb6680a8d16c707e13716ad861419729a66b92d80649d48.
+Capture native-closure-map-export-complete.png SHA e27776ac5ad8a759dfbb3b08073a73e41a2cf7a74a8d2bb74453ff13d6f01a2e.
+Studio fermé : activeProject.path=null. Source possédée renommée réversiblement
+uwu6-native-maps-c82b-author-offline ; ancienne adresse absente pendant le jeu.
+Player Hub construit, PID81252, parent runner80638, terminal53356, VM52241.
+Stockage isolé /private/tmp/uwu6-native-player-20261003-c82b, marqueur possédé.
+Assets Hub inclus après classification runtime : amber.webp et avelune_moon.png
+présents ; shell natif observé sans exceptions d'assets lors de cette exécution.
+Installation par Add a game puis NSOpenPanel choisissant le fichier réel. Reçu
+healthy=true, gameId=games.avelune.uwu-vi-cartes-clairbois-natif, version0.1.0,
+treeSha256=fef7329a96089672f310dfef5fd103b69cbbff260efe53730b3999402d3e5779.
+Lancement par Play, écran titre, Entrée, Nouveau jeu sélectionné, Entrée. Le
+lecteur charge exclusivement le project.json installé sous games/<id>/versions/0.1.0.
+Départ first-map(16,16), appui Bas : passage natif vers copie(2,2).
+Marches par les flèches normales : copie(31,2), puis(34,2), puis(36,2),
+puis(36,27). Deux tentatives supplémentaires Bas restent(36,27), en face de
+la collision explicitement peinte(36,28). Gauche atteint(35,27).
+Carte installée40x30 et grille projet32x32 ; aucune téléportation/injection.
+Capture native-closure-installed-player-first-map.png SHA 0c8fdf3cf0bacc8ebbdee55c7ec6e1050e16acc62f1941ff6c9917dfca507f96.
+Capture native-closure-installed-player-expanded-collision.png SHA b3ab234fa4f633143f6e7c9102aea794fe832eb6330e15720dc79161c5acc899.
+Ces captures montrent une vraie fenêtre native pilotée,1800x1130logiques,ratio2.
+La carte nouvelle n'a pas de sol graphique : la preuve de son déplacement et
+de sa collision est discriminée par les observations runtime en lecture seule.
+Retour et dialogue conservé encore à réaliser à ce point de la chronologie.
+
+Suite native Cartes, 3 octobre 2026 : fermeture puis réouverture par la ligne
+UwU VI — Cartes Clairbois natif des projets récents. L'extension en lecture seule
+confirme le chemin uwu6-native-maps-c82b, dans la racine de recette possédée.
+Quatre cartes et Îles de recette relus depuis le disque ; copie agrandie et
+passages aller-retour conservés. SHA copie ccea662025e40219cceb04a338452f83c2fa3d97119dc25a7fbf3cfe62eef6b4.
+Capture native-closure-map-library-reopened.png, 589960 octets,
+SHA256 4b2c96e9db244fe458014982770e857e0a8435a87ad09594b618208870272f70.
+La liste récente était défilée : un scroll remontant a révélé la ligne de recette.
+L'échec de scroll_to sur une ligne non construite n'est pas attribué au produit.
+Export lancé depuis l'accueil réel, Test local, NSOpenPanel vers la racine de
+recette hors du dossier auteur. Un premier lancement sans auteur a correctement
+refusé : Author name is required. Saisie Yoahn — recette UwU VI puis relance.
+Construction observée ; résultat final à consigner après achèvement.
+
+Player Hub de recette : première compilation refusée par un module Swift compilé
+contre un ancien horodatage de FlutterPluginRegistrarMacOS.h. Aucun patch produit.
+Après vérification de l'absence de processus de build concurrent pour ce host,
+mise à l'écart réversible du seul répertoire généré SwiftExplicitPrecompiledModules
+vers /tmp/uwu6-native-player-swift-modules-stale-20261003-c82b.
+Deuxième flutter run : build réussi et VM service 52009, mais shell Hub sans ses
+assets. Cause packaging confirmée par la passe native_player_preflight : Hub
+dev_dependency exclut les assets du package en build natif, alors que flutter test
+les inclut. Correction limitée au runner de recette en préparation ; application
+de cette seconde tentative quittée normalement par q, exit 0. Studio conservé.
+
+Les constats de blocage ci-dessous conservent leur chronologie et ne décrivent plus
+l'état courant du SDK ou de la connexion Studio.
+SDK officiel complet : /tmp/uwu6-native-flutter-e3005-20261003.
+flutter --version --machine : exit 0, 3.48.0-0.4.pre,
+e3005e3402d9cfa2043114c8bc53c59d12e9b98e, Dart 3.14.0-95.2.beta.
+Studio flutter pub get : exit 0, packages Flutter résolus dans ce SDK.
+Depuis apps/avelune_studio :
+/tmp/uwu6-native-flutter-e3005-20261003/bin/flutter run --no-pub -t dev/marionette_main.dart -d macos --debug --dart-define=MARIONETTE_PROJECT_PATH=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/uwu6-native-closure-20261003-c82b
+Résultat : Built build/macos/Build/Products/Debug/Avelune Studio.app.
+Runner PID 7777 ; application PID 9275 ; version 0.3.18+318 ; session terminal 22782.
+VM service ws://127.0.0.1:50633/13j02aKegZA=/ws.
+Identité projet vérifiée par ext.flutter.avelune.activeProject avant les observations.
+Pilotage : Marionette sur les contrôles Flutter réels et CUA sur la fenêtre/NSOpenPanel.
+Le premier lancement n'a pas activé la fenêtre (open returned 1). Des transitions
+restaient en attente de peinture ; Tab natif a activé la fenêtre et permis la suite.
+L'image creator-first-attempt conserve cette première observation, pas un PASS formulaire.
+
+Projet vide créé par Accueil → Nouveau projet → Projet vide → grille 32 × 32 →
+NSOpenPanel vers la racine possédée → Créer le projet.
+Titre : UwU VI — Projet vide natif ; dossier uwu6-native-empty-c82b.
+Manifeste initial : maps vide, grille 32 × 32, aucun joueur inventé.
+Nouvelle carte via le bouton réel : Île des essais native, 20 × 15 cases.
+ID studio_map_1791032907729777 ; maps/studio_map_1791032907729777.json.
+Édition native : outil Collisions, clic canvas, Enregistrer.
+Résultat disque : couche studio-collisions, seule case index 84 bloquée, soit (4,4).
+SHA document enregistré : 486f7f55d054ca17ebd9f16cd7d6bf0180b8753cf82f1e6f9f584f25a87f5dff.
+Fermer le projet puis clic récent : nouvelle session, même identité et édition relue.
+Preuves : native-closure-empty-project-created.png, native-closure-empty-first-map.png,
+native-closure-empty-map-saved.png, native-closure-empty-map-reopened.png.
+Fenêtre initiale 1000 × 720 logiques, ratio 2 ; agrandie par commande macOS de zoom :
+1800 × 1098 logiques. Ces tailles ne valent pas les trois configurations prescrites.
+Réserve à reproduire : palette compacte avec seconde rangée d'outils partiellement coupée.
+Pas de défaut CRUD produit établi à ce stade, pas de correction produit.
+
+Second projet créé par le même créateur natif avec Petit projet jouable Clairbois :
+UwU VI — Cartes Clairbois natif, dossier uwu6-native-maps-c82b dans la même racine.
+Paramètres affichés 32 × 32, village 32 × 26, maison 12 × 10.
+Téléchargement GitHub effectué par le créateur ; chemin actif confirmé après création.
+Les gestes CRUD et l'export de cette copie restent en cours.
+
+Cartes Clairbois — gestes exécutés à ce stade
+Création Carte native de travail : studio_map_1791033692881459,
+maps/studio_map_1791033692881459.json, dimensions héritées 32 × 26, grille 32 × 32.
+Collision native enregistrée (1,5), puis renommage Île élargie — Clairbois :
+ID et chemin inchangés. Dossier Îles de recette, ID studio_folder_1791033811337160.
+Déplacement logique dans ce dossier, aucun déplacement physique du document.
+Duplication UI : studio_map_1791033692881459_copy, Copie indépendante — native.
+Copie éditée en (8,6) : source conserve seulement (1,5), SHA source
+9910c3e10cfab3d5c4e2dfe31838d81875b6bbb2ac20f42f817794ca37fd33a2.
+Agrandissement UI 40 × 30, édition de collision (36,28), sauvegarde.
+Réduction vers 32 × 26 refusée, bouton désactivé : collisions seraient retirées.
+Capture native-closure-map-shrink-refused.png. Annulation sans perte de contenu.
+Passage natif copie (2,3) → first-map (16,16), ID warp-1791034158599853-0.
+Passage natif first-map (16,17) → copie (2,2), ID warp-1791034242110781-1.
+Passage entrer-maison de Clairbois conservé : (15,6) → maison (6,8).
+Suppression copie référencée refusée. Défaut d'identification du propriétaire reproduit
+et corrigé ci-dessous, sans modification du contrat de refus.
+Carte libre studio_map_1791034319158330 créée puis supprimée par confirmation UI :
+entrée absente du manifeste, fichier absent ; copie référencée byte-identique.
+Dossier occupé refusé : 2 cartes, 0 sous-dossiers, aucune cascade proposée.
+Dossier vide studio_folder_1791034451306929 créé, renommé puis supprimé par UI.
+
+Correction bornée 1 — nom du propriétaire dans le refus de suppression
+Cause : _boundedImpact produit une liste de ProjectReferenceKey.toJson directement ;
+Studio cherchait une propriété key enveloppée. Native avant : Document lié, aucune localisation.
+Correction local_map_catalog_diagnostics.dart : lire la clé directe ; résoudre kind map/id
+ou scope map/parentId, puis retrouver le titre dans le manifeste existant.
+Test ajouté dans map_catalog_preparation_test.dart : saved incoming passage identifies
+its map in the deletion refusal, port réel, refus + nom/ID + fichiers inchangés.
+Avant : exit 1, Expected jardin / Actual null, logs/native-map-diagnostic-before.log.
+Après : exit 0, +9 All tests passed, logs/native-map-diagnostic-after.log, 3.71 s.
+Replay natif après hot reload : Première carte + Voir la carte Première carte.
+Captures refus avant et propriétaire corrigé conservées séparément.
+
+Correction bornée 2 — collision indisponible dans la palette compacte
+La barre d'outils est masquée sous 900 px de hauteur ; MapCreationTools n'exposait
+aucune commande collision alors que la palette devient son point d'entrée.
+Ajout de deux StudioTool, modes collisionPaint/collisionErase existants ; aucun moteur ajouté.
+La zone Outils possède déjà son propre défilement, conservé. Boutons parfois partiels
+avant défilement : réserve de découvrabilité, pas une preuve d'overflow non défilable.
+Test initial compact palette exposes collision painting : rouge absence de bouton,
+logs/native-compact-collision-before.log ; vert après, logs/native-compact-collision-after.log.
+Revue indépendante uwu6_maps : limite architecture du fichier journey dépassée par cet ajout,
+et assertion initiale trop large. Test déplacé vers map_workspace_compact_collision_test.dart,
+journey restauré à sa base ; vérification bit exact, seul bit peint, effacement et sol inchangé.
+Premier essai renforcé : erreur du protocole, globalOfCell vise le coin inférieur droit,
+donc case voisine. Expected true / Actual false à la ligne 71. Aucun bug produit déduit.
+Protocole corrigé : RenderBox.localToGlobal du centre de case comme helper publié.
+Final : exit 0, +1 All tests passed, logs/native-compact-collision-final.log, 5.65 s.
+Replay natif 1000 × 720 : palette défilée, peinture de (9,9), sauvegarde,
+SHA copie 7e157fbc1182ec499dac2fcaf7ba29e58e8bda74de0d02d1bcf8a96c809450ff.
+Effacement par l'autre bouton, sauvegarde : mêmes cases (1,5),(8,6),(36,28),
+SHA initial exactement restauré ccea662025e40219cceb04a338452f83c2fa3d97119dc25a7fbf3cfe62eef6b4.
+Capture native-closure-compact-collision-tools.png, native pilotée, ratio 2.
+
+CONTRÔLES NOUVEAUX DU COMPLÉMENT — 3 OCTOBRE 2026
+
+Sources et attribution
+- Lecture des deux tickets AS-MAP-CRUD-008 / AS-RES-CRUD-012, du plan commun,
+  codex_rule.md, instructions fournies et compétence test-flutter-desktop.
+- Aucun nouveau périmètre produit ; pas de roadmap modifiée, pas de ticket amont modifié.
+- Le checkout original conserve les développements antérieurs. L'index initial est vide.
+- Référence publiée : baed01fdb9687b3d8ce76c92b0f8a38ed6fba54a.
+- Les fichiers de livraison absents du checkout original ont été lus dans la copie
+  /tmp/pokemap-uwu6-delivery-20261003, sans remplacement du checkout original.
+- Seul delta intentionnel du complément à cet instant : ce fichier texte.
+  Aucun fichier produit/test modifié. Aucun commentaire ajouté au code.
+
+SDK et résolution effective
+SDK : /tmp/avelune-flutter-3.48 ; framework e3005e3402d9cfa2043114c8bc53c59d12e9b98e ;
+engine e2149387c63888c6a51c8c3569dacda1c1532653 ; Dart 3.14.0-95.2.beta.
+Le binaire Dart et flutter_tools.snapshot exécutent --version --machine et devices.
+Studio package_config.json : flutter et flutter_test sous file:///tmp/avelune-flutter-3.48/packages/.
+Hub package_config.json : mêmes packages sous file:///private/tmp/avelune-flutter-3.48/packages/.
+Les deux adresses désignent le même SDK ; aucun changement de version demandé ou réalisé.
+Les SDK /tmp/avelune-flutter-3.48 et /tmp/avelune-flutter-348 ont un répertoire .git
+incomplet sans HEAD ni refs utilisables ; git rev-parse HEAD y retourne 128.
+Le script packages/flutter_tools/bin/macos_assemble.sh invoque bin/dart ;
+bin/internal/shared.sh exige les métadonnées Git de l'installation Flutter.
+Le succès des tests via snapshot ne démontre donc pas la capacité de construire macOS.
+La note de récupération précédente décrit l'extraction de sources/Dart, pas ce prérequis.
+Les archives officielles macOS consultées pour cette version ne sont pas disponibles
+aux URL essayées (HTTP 404). Aucun SDK actuel de l'utilisateur n'a été remplacé.
+Exception demandée à Yoahn : clone du seul dépôt officiel Flutter dans un nouveau
+dossier temporaire à la révision exacte, sans écriture Git PokeMap.
+Accord explicite reçu : « oui au nom de UwU » ; portée limitée à ce SDK temporaire.
+git ls-remote officiel : tag 3.48.0-0.4.pre = e3005e3402d9cfa2043114c8bc53c59d12e9b98e.
+git clone --depth=1 --branch 3.48.0-0.4.pre https://github.com/flutter/flutter.git /tmp/uwu6-native-flutter-e3005-20261003
+Résultat exit 0 ; HEAD exact confirmé. Aucun SDK existant remplacé, aucun Git PokeMap écrit.
+
+Amorçage autorisé avant tout geste natif
+Racine créée par l'outil canonique existant, exclusivement pour ce complément :
+/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/uwu6-native-closure-20261003-c82b
+Depuis apps/avelune_studio :
+/tmp/avelune-flutter-3.48/bin/cache/dart-sdk/bin/dart run tool/create_example_project.dart <racine ci-dessus>
+Résultat : exit 0. Fixture Atelier des cartes, deux cartes 24 × 16, ressources et guide.
+Cet amorçage ne remplace ni Clairbois 32 × 32 ni la création utilisateur d'un projet vide.
+Aucun geste CRUD natif n'a commencé ; aucun JSON n'a été réparé après un geste.
+La fixture reste disponible pour la reprise ; elle n'a pas été exportée ni supprimée.
+Aucun projet personnel Train/Clairbois ou sauvegarde Player n'a été manipulé.
+
+Échec conservé du premier lancement identifiable
+Depuis apps/avelune_studio :
+/tmp/avelune-flutter-3.48/bin/cache/dart-sdk/bin/dart /tmp/avelune-flutter-3.48/bin/cache/flutter_tools.snapshot run -t dev/marionette_main.dart -d macos --debug --dart-define=MARIONETTE_PROJECT_PATH=<racine ci-dessus>
+Le lancement a résolu les dépendances puis engagé le build ; session terminal 40671,
+terminée avec exit 1 avant ouverture de la fenêtre de recette.
+Diagnostic exact :
+fatal: not a git repository (or any of the parent directories): .git
+** BUILD FAILED **
+Error: Build process failed
+Il s'agit d'une limite de l'installation SDK, pas d'un défaut CRUD reproduit.
+Le lancement n'avait pas --no-pub ; la résolution effective ci-dessus a été recontrôlée.
+Pas de montée de version, pas de désactivation de contrôle, pas de répétition identique.
+
+Binaire existant et processus personnels
+Ancien produit Debug présent :
+apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app
+kernel_blob.bin : 149195136 octets ; date observée 2 octobre 2026 23:46.
+SHA-256 : 5e5756b08cd8a2edd6f9f25ffbafe92f2beb5a0f2429e9927bb46349e94b0724.
+Les marqueurs ext.flutter.avelune.activeProject, MARIONETTE_PROJECT_PATH,
+marionette_main.dart et MarionetteBinding ne sont pas présents dans ce kernel.
+Sa date et son existence ne certifient pas le build de recette et son projet actif.
+Ce binaire n'a pas été lancé pour contourner l'identification requise.
+PID 32951 : /Applications/Avelune Studio.app/Contents/MacOS/Avelune Studio,
+application installée 0.3.19+319, personnelle, laissée intacte.
+PID 71866 / PPID 71813 : flutter run utilisateur sous SDK 3.41.9, ENV=prod,
+laissé intact. Aucun processus utilisateur terminé.
+CUA est accessible et sa documentation native a été chargée ; aucune commande
+destructive ni action sur ces fenêtres personnelles n'a été effectuée.
+Marionette n'a pas reçu de connexion au nouveau projet : aucun VM service de
+recette n'a été ouvert. Aucune panne du pilote n'est présentée comme bug produit.
+
+Préflight Player natif — constat ciblé
+apps/pokemap_hub est un package Flutter, sans lib/main.dart ni runner macOS.
+PokeMapHubBootstrap existe dans lib/app/app_root.dart ; le vrai flux d'import
+réutilise GamePackageInstaller et le lancement InstalledGameLaunchResolver.
+Le stockage isolable existe via supportRootPortProvider/supportRootProvider
+dans lib/app/di/infrastructure_providers.dart. Aucun point d'entrée natif actuel
+n'applique cette isolation pour la recette.
+MacOSHubPlatformAdapter requiert MethodChannel('app.pokemap.hub/package_open'),
+méthodes ready, canSelectPackages, pickPackage. Aucun handler natif macOS de ce
+canal n'a été trouvé dans le dépôt actuel ni la référence publiée examinée.
+Le workflow desktop construit Studio ; la certification Hub est automatisée.
+examples/playable_runtime_host/dev/marionette_main.dart charge project.json auteur
+et n'installe pas un paquet via l'interface Hub : il n'est pas un substitut recevable.
+Le host mobile iOS ne constitue pas une fenêtre Player macOS.
+Verdict : aucun point d'entrée Hub macOS isolé opérationnel trouvé dans les
+sources et targets inspectés du checkout et de la copie baed01fdb. Ce constat
+ne certifie pas toutes les applications externes et ne constitue pas un bug
+du moteur runtime. Recette native Player installée NON VÉRIFIÉE.
+Les tests installés publiés restent des preuves
+automatisées et ne démontrent pas ce geste natif.
+Une reprise doit raccorder, de façon bornée, le bootstrap Hub et son sélecteur
+réel à un runner de développement existant, avec racine de stockage dédiée,
+puis vérifier le build et le canal. Aucun nouveau runner complet, bridge fictif,
+succès d'installation préfabriqué ou modification de bundle ID réalisé ici.
+
+Preuves publiées de référence — non rejouées dans ce complément
+Livraison baed01fdb, parent 421c45f09, delivery_receipt.json :
+SHA-256 4aac93e805b2d373b86fe811b270bd6811bba65bd0ca1a89645b877044a65de9.
+Deux recettes Hub : uwu6_map_lifecycle_player_e2e_test.dart et
+uwu6_resource_crud_player_e2e_test.dart ; exit 0, +2 PASS, 116,73 secondes.
+Tests Border : exit 0, +23 PASS, 5,58 secondes.
+Analyse Hub : exit 0, No issues found, 19,06 secondes.
+delivery-recipes.log : SHA-256 d3624b9fe797024d07e2c1b86921ae546f3a86225712e731613af9e94e6ac349.
+La preuve native ciblée antérieure de bascule source 005 à 1000 × 720 est
+conservée, sans revendiquer son rejeu ou une recette complète native Ressources.
+Réserves conservées : suite Studio rouge, 31 échecs comparés à la base du lot6 ;
+MCP suite globale rouge malgré replays isolés verts. Aucun résultat global vert.
+Aucune suite complète rouge relancée pour recopier un ancien total.
+Pas de code/test nouveau : pas de tests de non-régression artificiels.
+
+Matrice de clôture à cet instant
+Scénario | Preuve automatisée de référence | Recette native | Réouverture | Player natif autonome | Réserve exacte
+Projet vide → première carte | lot6 hôte/recette Cartes publiée, périmètre automatisé | NON VÉRIFIÉ | NON VÉRIFIÉ native | Non applicable sans prérequis | build Studio identifiable bloqué SDK
+Clairbois → CRUD cartes et passages | uwu6_map_lifecycle_player_e2e_test.dart, +2 PASS pour les deux recettes publiées | NON VÉRIFIÉ | NON VÉRIFIÉ native | NON VÉRIFIÉ | build Studio ; hôte Player macOS isolé absent
+Ressources → import, gestion, remplacement et retraits | uwu6_resource_crud_player_e2e_test.dart ; hôtes lot6 ; 005 natif ciblé historique | NON VÉRIFIÉ dans ce complément | NON VÉRIFIÉ native | NON VÉRIFIÉ | build Studio ; gestes complets non exécutés ; hôte Player
+Terrains, bordures, personnage et dialogue | recette Ressources et 23 tests Border publiés ; collision explicitement peinte | NON VÉRIFIÉ | NON VÉRIFIÉ native | NON VÉRIFIÉ | pas de geste courant, pas de capture native actuelle
+Fenêtres, texte 150 %, clavier et focus | tests hôtes/viewport antérieurs, distincts du natif | NON VÉRIFIÉ aux trois configurations | Non applicable | NON VÉRIFIÉ | aucune fenêtre de recette ; aucune dimension/échelle actuelle mesurée
+Configurations demandées : 1536 × 1024, 1280 × 800, 1024 × 640 à texte 150 %.
+Aucune capture créée ici : produire une ancienne image ou une image de test
+étiquetée native serait une preuve incorrecte. Aucun paquet nouveau, empreinte
+d'export, jeu installé ou parcours natif autonome à annoncer.
+
+Verdict AS-MAP-CRUD-008 : TO REVIEW maintenu ; réserve native non levée.
+Verdict AS-RES-CRUD-012 : TO REVIEW maintenu ; réserve native non levée.
+Ni FAIL produit inventé ni clôturable après acceptation : le complément n'est pas terminé.
+L'acceptation personnelle visuelle de Yoahn reste distincte et en attente.
+
+Reprise concrète et minimale
+1. Accord pour récupérer un SDK officiel complet exact dans une nouvelle racine,
+   ou fourniture d'un SDK sain à cette même révision ; ne pas fabriquer .git/HEAD.
+2. Relancer le point d'entrée Studio existant avec la fixture dédiée ; recouper
+   VM service → PID → fenêtre → ext.flutter.avelune.activeProject avant toute mutation.
+3. Exécuter les gestes des deux projets prescrits, sans mutation technique après
+   début ; résoudre volontairement les brouillons et relire indépendamment.
+4. Raccorder le host natif Player isolé au bootstrap et sélecteur canoniques.
+5. Export UI Test local hors source ; fermer auteur, renommer seulement sa racine
+   jetable après contrôle ; installer par UI Player, jouer les passages/dialogues
+   et témoins visuels/collisions explicites avec source absente.
+6. Mesurer réellement les fenêtres et l'échelle texte ; captures natives finales.
+7. Mettre à jour uniquement les deux tickets et leurs cases au périmètre prouvé.
+
+Suivi Notion courant
+Les deux fiches et le schéma ont été lus. Un complément daté d'investigation a
+été ajouté à chacune avec les deux limites, sans effacer l'historique ni cocher
+de critère natif. Statut TO REVIEW conservé ; aucun DONE et aucun ticket amont modifié.
+Les deux pages ont été relues après append et modification de Preuve : présence
+du complément et de sa synthèse confirmée, Statut TO REVIEW sur les deux fiches.
+Aucun critère natif coché. Mises à jour effectives, pas un texte seulement proposé.
+
+État Git final contrôlé, avant restitution intermédiaire
+main / a63ac8656d8456a91c1570b03ff91100de4f1a50 ; index vide.
+745 chemins au status contre 744 initiaux ; seul ajout :
+?? documentation/reports/avelune_studio/uwu6_crud_validation/native_closure.txt
+Aucun chemin initial retiré ; empreintes des sources contrôlées inchangées.
+La liste initiale complète se trouve au GATE INITIAL COMPLET ; la liste finale
+est exactement cette liste plus l'ajout ci-dessus. Aucun changement dissimulé.
+git diff : 799586 octets, SHA-256
+4ca9aeabd5fab78506f27c96ffe80673de4b0c920801bfd86d4a461fe6e8f0fc,
+identique au gate initial. git diff --stat :
+189 files changed, 5295 insertions(+), 9383 deletions(-)
+Ce stat porte sur les développements antérieurs suivis, pas le delta du complément.
+git diff --check : exit 0, aucune sortie.
+Contrôle des lignes du nouveau fichier non suivi : aucune whitespace finale.
+bash tools/scripts/check_markdown_hygiene.sh : exit 1,
+« Markdown hygiene: 2 new Markdown files exceed the default limit of 0. »
+Les deux fichiers existent déjà dans la liste initiale :
+documentation/reports/avelune/app_store_submission_audit_20261001.md
+documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md
+Le complément ajoute zéro Markdown. Aucune suppression ou override pour verdir
+ce contrôle ; réserve locale préexistante constatée, distincte du delta.
+Pas de nouvelle suite test à reaper ; flutter run de recette terminé exit 1,
+aucune fenêtre ni processus natif de recette lancé. Processus personnels conservés.
+Nettoyage de fixture différé jusqu'aux preuves ; sa racine dédiée reste disponible.
+
+Passes réalisées
+Audit : contrôle base réelle, 27 empreintes, SDK et binaire actuel ; pas de réaudit global.
+Implémentation : aucune correction produit car aucun défaut produit démontré.
+Tests : référence automatisée publiée identifiée ; aucun PASS natif déduit des tests.
+Build : premier lancement actuel échoué avant fenêtre ; cause SDK documentée.
+Préflight indépendant : agent native_player_preflight, lecture seule, confirme
+l'absence de host Hub macOS et l'isolation DI disponible ; aucun fichier écrit.
+Critique indépendante, native_player_preflight : attribution et hashes de livraison
+vérifiés ; aucun PASS natif fabriqué ; préciser version snapshot vs SDK sain et
+étendue bornée de recherche du host Player. Ces précisions sont intégrées.
+Auto-critique : le résultat recherché n'est pas atteint. Le préflight/rapport et
+les mises à jour Notion ne remplacent aucun geste natif. Les risques restants sont
+l'identification de plusieurs instances, le SDK incomplet, le stockage Player
+non raccordé à un host isolé et les fenêtres/texte non mesurés. Aucun correctif
+produit ne serait justifié à partir du seul échec d'environnement.
+Les consignes utilisateur interdisent commentaires et changements inutiles :
+elles prévalent sur les recettes générales du fichier codex_rule.md.
+
+PROGRESSION NATIVE — RESSOURCES, 3 OCTOBRE 2026
+
+Nouvelle instance Studio TTY20977 reconstruite depuis les sources finales avec le SDK officiel e3005. VM52959, fixture indépendante créée par le vrai créateur Clairbois32 : uwu6-native-resources-c82b, sous la racine possédée c82b. La recette Cartes installée a désormais aussi joué le retour et le dialogue Émile, dossier auteur toujours inaccessible.
+
+Import réel NSOpenPanel de native-candidates/red.png (32×32, SHA256 8ee24c3102bb5aaa1168b9e2f58915bad5d32d6119bcfdf82cc7cfdc514be1f7). Planche source_1791038179478200_745478915 ; décor decor-1791038181006311 « Carré témoin natif ». Pose native enregistrée studio-1791038244703293-0 en13,19. Duplication canonique par menu : decor-copy-1791038313732990-135526495, collision1case sur copie ; original collisionProfile null, identité/instance originales conservées.
+
+Métadonnées : « Planche magenta — recette native » ; dossier logique créé « Témoins natifs » studio_images_1791038436837177 puis déplacement réel. ID/path/grille inchangés. Annulation du remplacement magenta conserve exactement le hash rouge. Candidat16×16 refusé tileset.candidate_geometry sans conversion ni écriture. Remplacement compatible confirmé par checkbox CUA puis bouton réel ; SHA du fichier logique75abb41df20534fa56d769cd49e890925ff17fe490833910691334bf2e75058e, exactement celui du candidat magenta.png. L'ancien message d'erreur reste affiché après réussite : anomalie de retour UI à investiguer, aucune prétention de rollback. Refus réel de suppression du décor utilisé element.references_blocking ; instances conservées.
+
+Usages explicites : révision3a523b959b24fd6d61ced0023edd1986140bbfd8df9e2d97c826e98a6f91071b ; Direct2 / Indirect1 / Conservation2, définitions originale et copie plus Première carte. À cet instant carte encore ouverte : ce run ne certifie pas le critère carte fermée.
+
+Terrain avancé Clairbois berges renommé « Berges natives — conservées »,13règles conservées. Duplication native crée une préparation avancée indépendante en lecture seule ; retrait ciblé de cette préparation confirmé, original conservé. Aucun format avancé converti. Création native d'un chemin simple séparé : choix planche magenta,16pièces associées par gestes sur patron puis Publier et peindre, preset terrain-1791039175198881-1 « Chemin magenta natif », case16,16 enregistrée. Le témoin monocouleur prouve la source et le contrat, pas une appréciation artistique de raccords directionnels distincts.
+
+Bordure créée via patron avec le décor original traversable : border_1791039519094647_2088166663,3familles, publicationr1. Carte initialement sans Border préarrangée ; premier trait studio-border-1791039596909138-0 crée studio-bordures à l'index0, magenta réellement visible au-dessus du sol. Géométrie19,11→16,11→16,13 ;6placements. Collision explicitement peinte19,11 vraie ; le trait seul n'est pas revendiqué bloquant. Dépréciation→réactivation→dépréciation par contrôles réels ; identité et publication conservées, dernier état réservé pour export. Hash publication à réactivation37a28fb1a5c2166f313f7320141ae31ec553130c42def4f0ba088c2f8e0cb02d ; draft df272cabace6980ac1b31a90e11e72bca78a5157dd4b48d84a57a237f709e31b. Recette Ressources jusqu'au Player encore en cours ; aucun PASS par transitivité.
+
+VALIDATIONS FRAÎCHES
+Studio analyze --no-pub : exit0, No issues found!,24,3s (25,24s runner). Deux recettes Hub installées --concurrency=1 : exit0,+2 All tests passed!,120,38s runner. Vérification élargie préparation/cartes/architecture --concurrency=2 : exit1,+26/-2,11,84s. Journey assertion122 et limite de taille sur8fichiers sont reproduits indépendamment dans /tmp/uwu5-publish-20261002 par la passe uwu6_maps : journey +5/-1 exit1,14,77s ; architecture+6/-1 exit1,4,46s. Fichiers byte-identiques aux bases locale et publiée ; cause ultime du journey non qualifiée, non-régression du delta prouvée. Replays par Dart+flutter_tools.snapshot du SDK exact car ancien .git SDK incomplet ; aucun SDK partagé réparé. Nouveaux fichiers modifiés par ce complément sous300l. Processus de tests suivis et nettoyés par propriétaire. Logs finaux persistés dans logs/native-final-*.log ; logs de baseline à conserver dans ce complément.
+
+GATE INITIAL COMPLET
+{
+  "at": "2026-10-03T11:44:13.133651+00:00",
+  "commands": {
+    "root": {
+      "exit": 0,
+      "output": "/Users/karim/Project/pokemonProject\n"
+    },
+    "branch": {
+      "exit": 0,
+      "output": "main\n"
+    },
+    "head": {
+      "exit": 0,
+      "output": "a63ac8656d8456a91c1570b03ff91100de4f1a50\n"
+    },
+    "status": {
+      "exit": 0,
+      "output": " M \"apps/Avelune iOS/AveluneiOS/Presentation/Views/SettingsView.swift\"\n M apps/avelune_studio/lib/app/di/map_workspace_providers.dart\n M apps/avelune_studio/lib/app/studio_bootstrap.dart\n M apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart\n M apps/avelune_studio/lib/features/game_export/data/studio_game_export_controller.dart\n M apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart\n M apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart\n M apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart\n M apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart\n M apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_catalog.dart\n M apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart\n M apps/avelune_studio/lib/features/pokemon/application/pokemon_commerce_controller.dart\n M apps/avelune_studio/lib/features/pokemon/data/local_pokemon_commerce_adapter.dart\n M apps/avelune_studio/lib/features/pokemon/domain/pokemon_commerce_port.dart\n M apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart\n M apps/avelune_studio/lib/features/resources/domain/resource_port.dart\n M apps/avelune_studio/lib/platform/playtest/studio_playtest_view.dart\n M apps/avelune_studio/lib/platform/rendering/studio_image_store.dart\n M apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart\n M apps/avelune_studio/lib/platform/rendering/studio_map_resources_helpers.dart\n M apps/avelune_studio/lib/presentation/features/characters/character_studio_controller.dart\n M apps/avelune_studio/lib/presentation/features/characters/character_studio_page.dart\n M apps/avelune_studio/lib/presentation/features/home/studio_home_all_maps.dart\n M apps/avelune_studio/lib/presentation/features/home/studio_home_screen.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_border_tool_panel.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_inspector_tabs.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_tile.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_tree.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_border.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_visuals.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_close_actions.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_keyboard_binding.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_session_loader.dart\n M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_detail.dart\n M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_page.dart\n M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_item_effects.dart\n M apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart\n M apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart\n M apps/avelune_studio/lib/presentation/features/resources/border_creation_dialog.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_border_draft_bar.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_catalog.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_catalog_view.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_category_filter.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_category_tree.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_navigation.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_terrain_draft_list.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart\n M apps/avelune_studio/pubspec.yaml\n M apps/avelune_studio/test/application/m1_controller_test.dart\n M apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart\n M apps/avelune_studio/test/presentation/border_creation_journey_test.dart\n M apps/avelune_studio/test/presentation/m2_end_to_end_test.dart\n M apps/avelune_studio/test/presentation/map_library_navigation_test.dart\n M apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart\n M apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart\n M apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart\n M apps/avelune_studio/test/support/m2_ui_fixture.dart\n M apps/avelune_studio/test/support/project_creation_workspace_fixture.dart\n M apps/avelune_studio/test/support/ui_pokemon_commerce_port.dart\n M apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart\n M apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart\n M packages/map_authoring/lib/map_authoring.dart\n M packages/map_authoring/lib/map_authoring_api.dart\n M packages/map_authoring/lib/map_authoring_local.dart\n M packages/map_authoring/lib/src/api/authoring_read_api.dart\n M packages/map_authoring/lib/src/api/local_map_authoring_mutation_api.dart\n M packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart\n M packages/map_authoring/lib/src/domains/assets/asset_store.dart\n M packages/map_authoring/lib/src/domains/assets/element_actions.dart\n M packages/map_authoring/lib/src/domains/assets/tileset_actions.dart\n M packages/map_authoring/lib/src/domains/assets/visual_organization_actions.dart\n M packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_action_support.dart\n M packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_character_actions.dart\n M packages/map_authoring/lib/src/domains/gameplay/item_catalog_actions.dart\n M packages/map_authoring/lib/src/domains/maps/border_actions.dart\n M packages/map_authoring/lib/src/domains/maps/border_catalog_actions.dart\n M packages/map_authoring/lib/src/domains/maps/map_library_actions.dart\n M packages/map_authoring/lib/src/domains/maps/map_lifecycle_actions.dart\n M packages/map_authoring/lib/src/domains/maps/map_lifecycle_adapter.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_actions.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_support.dart\n M packages/map_authoring/lib/src/parity/full_authoring_parity.dart\n M packages/map_authoring/lib/src/registry/resource_kind_registry.dart\n M packages/map_authoring/lib/src/workspace/project_query_service.dart\n M packages/map_authoring/lib/src/workspace/project_snapshot.dart\n M packages/map_authoring/lib/src/workspace/project_snapshot_loader.dart\n M packages/map_authoring/lib/src/workspace/project_snapshot_map_projector.dart\n M packages/map_authoring/test/domains/distribution/game_package_export_api_test.dart\n M packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart\n M packages/map_authoring/test/domains/gameplay/item_catalog_actions_test.dart\n M packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart\n M packages/map_authoring/test/domains/maps/map_library_actions_test.dart\n M packages/map_authoring/test/domains/maps/map_lifecycle_contract_test.dart\n M packages/map_authoring/test/domains/maps/map_lifecycle_transaction_test.dart\n M packages/map_authoring/test/domains/maps/map_operations_batch_test.dart\n M packages/map_authoring/test/domains/maps/smart_tile_catalog_actions_test.dart\n M packages/map_authoring/test/domains/maps/smart_tile_draft_actions_test.dart\n M packages/map_authoring/test/parity/full_authoring_parity_test.dart\n M packages/map_authoring/test/tooling/jsonl_artifact_staging_test.dart\n M packages/map_authoring/test/tooling/jsonl_border_catalog_flow_test.dart\n M packages/map_core/lib/src/models/items/project_item_capabilities.dart\n M packages/map_core/lib/src/models/items/project_item_capabilities.freezed.dart\n M packages/map_core/lib/src/models/items/project_item_capabilities.g.dart\n M packages/map_core/lib/src/operations/map_layers.dart\n M packages/map_core/lib/src/read_models/narrative_dependency_index.dart\n M packages/map_core/lib/src/serialization/project_item_catalog_codec.dart\n M packages/map_core/lib/src/validation/project_item_catalog_validator.dart\n M packages/map_core/test/border/border_layer_operations_test.dart\n M packages/map_core/test/border/border_project_map_preparation_test.dart\n M packages/map_core/test/project_item_catalog_codec_test.dart\n M packages/map_core/test/project_item_catalog_model_test.dart\n M packages/map_core/test/project_item_catalog_validator_test.dart\n D packages/map_runtime/assets/battle/balls/ball-retreat.png\n D packages/map_runtime/assets/battle/balls/ball_1.png\n D packages/map_runtime/assets/battle/balls/ball_10.png\n D packages/map_runtime/assets/battle/balls/ball_11.png\n D packages/map_runtime/assets/battle/balls/ball_12.png\n D packages/map_runtime/assets/battle/balls/ball_13.png\n D packages/map_runtime/assets/battle/balls/ball_14.png\n D packages/map_runtime/assets/battle/balls/ball_15.png\n D packages/map_runtime/assets/battle/balls/ball_16.png\n D packages/map_runtime/assets/battle/balls/ball_17.png\n D packages/map_runtime/assets/battle/balls/ball_18.png\n D packages/map_runtime/assets/battle/balls/ball_19.png\n D packages/map_runtime/assets/battle/balls/ball_2.png\n D packages/map_runtime/assets/battle/balls/ball_20.png\n D packages/map_runtime/assets/battle/balls/ball_21.png\n D packages/map_runtime/assets/battle/balls/ball_22.png\n D packages/map_runtime/assets/battle/balls/ball_23.png\n D packages/map_runtime/assets/battle/balls/ball_24.png\n D packages/map_runtime/assets/battle/balls/ball_25.png\n D packages/map_runtime/assets/battle/balls/ball_26.png\n D packages/map_runtime/assets/battle/balls/ball_27.png\n D packages/map_runtime/assets/battle/balls/ball_28.png\n D packages/map_runtime/assets/battle/balls/ball_3.png\n D packages/map_runtime/assets/battle/balls/ball_4.png\n D packages/map_runtime/assets/battle/balls/ball_5.png\n D packages/map_runtime/assets/battle/balls/ball_6.png\n D packages/map_runtime/assets/battle/balls/ball_7.png\n D packages/map_runtime/assets/battle/balls/ball_8.png\n D packages/map_runtime/assets/battle/balls/ball_9.png\n D packages/map_runtime/assets/battle/balls/ball_catch.png\n D packages/map_runtime/assets/battle/balls/ball_s1.png\n D packages/map_runtime/assets/battle/balls/ball_s2.png\n D packages/map_runtime/assets/battle/balls/ball_stars.png\n D packages/map_runtime/assets/menu/items/icons.zip\n D packages/map_runtime/assets/menu/items/manifest.json\n M packages/map_runtime/lib/src/player/runtime_bag_item_icon_resolver.dart\n D packages/map_runtime/lib/src/player/runtime_bundled_item_icons.dart\n M packages/map_runtime/lib/src/presentation/flame/battle_animation_plan.dart\n D packages/map_runtime/lib/src/presentation/flame/battle_ball_manifest.dart\n M packages/map_runtime/lib/src/presentation/flame/battle_intro_animation_planner.dart\n M packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart\n M packages/map_runtime/lib/src/presentation/flame/battle_turn_animation_planner.dart\n M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart\n M packages/map_runtime/pubspec.yaml\n M packages/map_runtime/test/battle_intro_animation_planner_test.dart\n M packages/map_runtime/test/battle_intro_parity_test.dart\n M packages/map_runtime/test/battle_presentation_coordination_test.dart\n M packages/map_runtime/test/battle_turn_animation_planner_test.dart\n M packages/map_runtime/test/runtime_bag_item_icon_resolver_test.dart\n D packages/map_runtime/tool/assets/menu_item_illustrations/antidote.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/awakening.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/ether.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/manifest.json\n D packages/map_runtime/tool/assets/menu_item_illustrations/paralyze-heal.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/potion.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/revive.png\n D packages/map_runtime/tool/assets/menu_item_illustrations/super-potion.png\n D packages/map_runtime/tool/import_battle_ball_assets.dart\n D packages/map_runtime/tool/import_menu_item_icons.py\n M pokemap_authoring_api_mcp_action_catalog.md\n M tools/pokemap_mcp/test/mutation_server.test.ts\n?? apps/avelune_studio/assets/pokemon/capture_sprites/manifest.json\n?? apps/avelune_studio/assets/pokemon/capture_sprites/sprites.zip\n?? apps/avelune_studio/assets/pokemon/item_icons/icons.zip\n?? apps/avelune_studio/assets/pokemon/item_icons/manifest.json\n?? apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_character_reconciliation.dart\n?? apps/avelune_studio/lib/features/map_workspace/application/map_element_placement_commands.dart\n?? apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_commands.dart\n?? apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_preparation.dart\n?? apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart\n?? apps/avelune_studio/lib/features/map_workspace/application/map_workspace_resource_references.dart\n?? apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_adapter.dart\n?? apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_diagnostics.dart\n?? apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_preparation.dart\n?? apps/avelune_studio/lib/features/map_workspace/data/local_map_catalog_receipt.dart\n?? apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_port.dart\n?? apps/avelune_studio/lib/features/map_workspace/domain/map_catalog_preparation.dart\n?? apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_character_references.dart\n?? apps/avelune_studio/lib/features/pokemon/data/pokemon_capture_sprite_import.dart\n?? apps/avelune_studio/lib/features/pokemon/data/studio_project_item_icons.dart\n?? apps/avelune_studio/lib/features/resources/data/local_character_removal_adapter.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_apply.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_mutation.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_preparation.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_receipt.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_reconciliation.dart\n?? apps/avelune_studio/lib/features/resources/data/local_resource_usage_adapter.dart\n?? apps/avelune_studio/lib/features/resources/domain/resource_lifecycle_port.dart\n?? apps/avelune_studio/lib/features/resources/domain/resource_mutation_preparation.dart\n?? apps/avelune_studio/lib/features/resources/domain/resource_usage_port.dart\n?? apps/avelune_studio/lib/presentation/features/characters/character_removal_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/characters/character_removal_fields.dart\n?? apps/avelune_studio/lib/presentation/features/characters/character_studio_draft_dependencies.dart\n?? apps/avelune_studio/lib/presentation/features/characters/character_studio_lifecycle.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_creation_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_form_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_properties.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_delete_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_duplicate_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_group_actions.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_issues.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_workspace_actions.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_preview.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_resource_usage_binding.dart\n?? apps/avelune_studio/lib/presentation/features/pokemon/pokemon_capture_sprite_picker.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_border_confirmation_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_border_lifecycle.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_border_management.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_character_lifecycle.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_character_management.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_container_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_container_manager.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_containers.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_duplicate_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_information_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_item_actions.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_library_header.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_bindings.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_owner_guard.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_management_bindings.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_management_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_navigation_lifecycle.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_navigation_management.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_reconciliation_notice.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_replacement_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_actions.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_deletion_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_lifecycle.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_management.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_management_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_owner_guard.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_usage_dialog.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart\n?? apps/avelune_studio/test/application/map_resource_receipt_race_test.dart\n?? apps/avelune_studio/test/dialogues/character_sources_reconciliation_test.dart\n?? apps/avelune_studio/test/game_export/studio_project_item_icons_export_test.dart\n?? apps/avelune_studio/test/home/home_map_creation_entry_test.dart\n?? apps/avelune_studio/test/infrastructure/studio_playtest_project_item_icons_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_async_reads_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_external_groups_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_fixture.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_races_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_lifecycle_session_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_recovery_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_serialization_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_stale_document_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalog_transaction_guard_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalogue_home_entry_host_test.dart\n?? apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart\n?? apps/avelune_studio/test/map_workspace/map_lifecycle_host_test.dart\n?? apps/avelune_studio/test/map_workspace/map_lifecycle_layout_host_test.dart\n?? apps/avelune_studio/test/map_workspace/resource_deleted_history_test.dart\n?? apps/avelune_studio/test/map_workspace/uwu2_deleted_destination_history_test.dart\n?? apps/avelune_studio/test/map_workspace/uwu2_resize_runtime_host_test.dart\n?? apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_test.dart\n?? apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart\n?? apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart\n?? apps/avelune_studio/test/pokemon/combat_character_receipt_race_test.dart\n?? apps/avelune_studio/test/pokemon/pokemon_capture_sprite_test.dart\n?? apps/avelune_studio/test/presentation/map_catalogue_dialog_keyboard_test.dart\n?? apps/avelune_studio/test/presentation/map_catalogue_dialog_layout_test.dart\n?? apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart\n?? apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart\n?? apps/avelune_studio/test/resource_io/border_management_host_test.dart\n?? apps/avelune_studio/test/resource_io/border_management_layout_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_adapter_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_history_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_reconciliation_host_test.dart\n?? apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart\n?? apps/avelune_studio/test/resource_io/local_resource_usage_adapter_test.dart\n?? apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_asset_only_test.dart\n?? apps/avelune_studio/test/resource_io/resource_decor_owner_concurrency_test.dart\n?? apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_lifecycle_preparation_test.dart\n?? apps/avelune_studio/test/resource_io/resource_management_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_management_layout_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_navigation_receipt_recovery_test.dart\n?? apps/avelune_studio/test/resource_io/resource_noop_session_race_test.dart\n?? apps/avelune_studio/test/resource_io/resource_organization_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_pixel_invalidation_test.dart\n?? apps/avelune_studio/test/resource_io/resource_preparation_integrity_test.dart\n?? apps/avelune_studio/test/resource_io/resource_reconciliation_retry_test.dart\n?? apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart\n?? apps/avelune_studio/test/resource_io/resource_transaction_guard_test.dart\n?? apps/avelune_studio/test/resource_io/resource_usage_cancellation_host_test.dart\n?? apps/avelune_studio/test/resource_io/resource_usages_host_test.dart\n?? apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart\n?? apps/avelune_studio/test/resource_io/terrain_management_guards_host_test.dart\n?? apps/avelune_studio/test/resource_io/terrain_management_host_test.dart\n?? apps/avelune_studio/test/resource_io/terrain_management_layout_host_test.dart\n?? apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_support.dart\n?? apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart\n?? apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart\n?? apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart\n?? apps/avelune_studio/test/support/copy_uwu4_native_fixture.dart\n?? apps/avelune_studio/test/support/map_catalogue_host_fixture.dart\n?? apps/avelune_studio/test/support/uwu4_resource_host.dart\n?? apps/avelune_studio/test/support/uwu5_border_host.dart\n?? apps/avelune_studio/test/support/uwu5_character_host.dart\n?? apps/avelune_studio/test/support/uwu5_terrain_host.dart\n?? apps/avelune_studio/test/support/uwu_resource_host.dart\n?? apps/avelune_studio/test/support/widget_map_catalog_port.dart\n?? apps/avelune_studio/test/support/widget_resource_journey_map_port.dart\n?? apps/avelune_studio/test/support/widget_resource_management_port.dart\n?? apps/avelune_studio/tool/measure_map_catalogue_mutations.dart\n?? apps/avelune_studio/tool/measure_resource_crud_recipes.dart\n?? apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart\n?? apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_support.dart\n?? apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart\n?? apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart\n?? apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_movement.dart\n?? apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_map_player_route.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_map_ui_steps.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_player_movement.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_player_visuals.dart\n?? apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart\n?? documentation/reports/avelune/app_store_submission_audit_20261001.md\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/map-library-compact-1024.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/map-library-grouped-1536.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/native-create-map-dialog.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/native-created-renamed-moved.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/uwu-created-and-renamed.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/captures/uwu-folders-organized.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/contenu_integral_sources.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/evidence_pack.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_1/journaux_consolides.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/annexe_sources_finales.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/base_locale_empreintes.json\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-delete-blocked-1024.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-delete-blocked-1280.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-delete-blocked-1536.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-duplicate-1024.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-duplicate-1280.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-duplicate-1536.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-delete-final.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-delete.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-duplicate-final.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-duplicate.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-resize-analysis-final.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-resize-analysis.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-native-resize-refused-final.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-resize-refused-1024.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-resize-refused-1280.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/captures/uwu2-resize-refused-1536.png\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/comparaison_suites.json\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/empreintes_sources.json\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/evidence_pack.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/git_final.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/git_initial.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/inventaire_sources.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/mcp_summary.txt\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-affected-creation-export.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-baseline-lot1.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-baseline-studio-full.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-canonical-authoring-analysis.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-canonical-authoring.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-canonical-core-analysis.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-canonical-core.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-final-targeted-architecture.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-format-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-global-event-delete-red.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-host-second.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-lifecycle-measures-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-lifecycle-measures.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-lifecycle-red.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-macos-build-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-markdown-hygiene-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-mcp-build-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-mcp-lifecycle-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-preserved-lot1-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-session-red.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-studio-analysis-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-studio-analysis.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-studio-full-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-targeted-final.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-targeted-first.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-transaction-guard-green.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/logs/uwu2-transaction-guard-red.log\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/lot_2_vs_local_base.patch\n?? documentation/reports/avelune_studio/AS-MAP-CRUD_lot_2/mcp_catalogue_live.json\n?? documentation/reports/avelune_studio/uwu3_resources/captures/native-final-usages.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/native3containers.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-closed-map-usages.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-containers-1024.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-folder-occupied.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-information-1024.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-information-1280.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-information-1536.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-journey-closed-map-usages.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-journey-placed.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-journey-reopened-render.png\n?? documentation/reports/avelune_studio/uwu3_resources/captures/uwu3-usages-1024.png\n?? documentation/reports/avelune_studio/uwu3_resources/delta_local.txt\n?? documentation/reports/avelune_studio/uwu3_resources/journaux_consolides.txt\n?? documentation/reports/avelune_studio/uwu3_resources/rapport.txt\n?? documentation/reports/avelune_studio/uwu3_resources/source_annex.txt\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu3-decors-empty-category.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu3-folder-occupied.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu3-metadata-focused.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu3-terrains-empty-category.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-host-duplicate.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-host-removal-refusal.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-host-replacement-comparison.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-installed-replaced-resource.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-native-duplicate.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-native-free-planche.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-native-library-partial.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-native-removal-refusal.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-native-replacement-comparison.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-widget-replacement-1024.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-widget-replacement-1280.png\n?? documentation/reports/avelune_studio/uwu4_resources/captures/uwu4-widget-replacement-1536.png\n?? documentation/reports/avelune_studio/uwu4_resources/delta_local.txt\n?? documentation/reports/avelune_studio/uwu4_resources/etat_git.txt\n?? documentation/reports/avelune_studio/uwu4_resources/inventaire.json\n?? documentation/reports/avelune_studio/uwu4_resources/journaux_consolides.txt\n?? documentation/reports/avelune_studio/uwu4_resources/rapport.txt\n?? documentation/reports/avelune_studio/uwu4_resources/source_annex.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/annexe_sources.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/bordure-choix-des-pieces.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/bordure-compact-150.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu3-closed-map-usages.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu3-decors-empty-category.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu3-folder-occupied.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu3-metadata-focused.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu3-terrains-empty-category.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu4-host-duplicate.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu4-host-removal-refusal.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu4-host-replacement-comparison.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-deprecate-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-deprecate-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-deprecate-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-library-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-library-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-border-library-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-library-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-library-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-library-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-removal-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-removal-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-character-removal-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-library-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-library-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-library-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-rename-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-rename-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-host-terrain-rename-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-installed-specialized-resources.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-source-removal-1024.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-source-removal-1280.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/captures/uwu5-source-removal-1536.png\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/commandes_exactes.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/comparaison_echecs_contrats.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/comparaison_echecs_studio.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/delta_sources.patch\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/git_final.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/git_initial.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/inventaire_sources.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/format_final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/player_export_install_final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/source_dialog_final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/terrain_history_green.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/terrain_history_red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-architecture-final2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-analyze-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-analyze-final2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-analyze-final3.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-boundaries-baseline.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-impact-final3.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-authoring-impact-final4.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-baseline-authoring-specialized.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-baseline-mcp-full.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-baseline-studio-analyze.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-baseline-studio-full.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-bcd-final-captures.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-bcd-ui-final-green.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-border-availability-green2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-border-availability-red2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-border-placement-red5.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-border-recovery-analyze.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-border-recovery-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-build-macos-final2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-character-clip-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-character-final4.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-character-safety-red2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-character-speaker-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-core-quick-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-format-final2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-hub-analyze-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-hub-quick-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-jsonl-final-format.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-mcp-full-final3-pinned.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-mcp-quiet-pinned-baseline.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-mcp-quiet-pinned-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-root-reconciliation-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-smart-encoder-green.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-smart-encoder-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-smart-format-green.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-source-canonical-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-source-dialog-tests-final-clean.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-source-host-final2.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-source-toggle-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-studio-analyze-final4.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-studio-analyze-final5.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-studio-full-final4.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-studio-quick-and-final-targets.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-history-green.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-history-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-inherited-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-missing-source-analyze.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-missing-source-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-raw-red.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-terrain-timing-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/logs/uwu5-usages-measures-final.log\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/mcp_session_evidence.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/notion_final.txt\n?? documentation/reports/avelune_studio/uwu5_specialized_resources/rapport.txt\n?? documentation/reports/avelune_studio/uwu6_crud_validation/annexe_sources.txt\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/native-confirm-source-on-1000x720.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/native-source-on-1000x720.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/player-created-32.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu4-installed-replaced-resource.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu5-host-source-removal.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu5-installed-specialized-resources.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu5-source-removal-1024.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu5-source-removal-1280.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu5-source-removal-1536.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-first-border-visible-1536.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-map-crud-persisted.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-map-export-observed.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-map-export-result.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-map-new-empty.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-map-shrink-refused.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-widget-character-resolution.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-widget-closed-map-usages.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-widget-deprecated-border.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-widget-first-border-stroke.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/captures/uwu6-widget-image-replacement.png\n?? documentation/reports/avelune_studio/uwu6_crud_validation/delta_lot6.json\n?? documentation/reports/avelune_studio/uwu6_crud_validation/delta_lot6.patch\n?? documentation/reports/avelune_studio/uwu6_crud_validation/git_final.json\n?? documentation/reports/avelune_studio/uwu6_crud_validation/git_initial.json\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run1.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run2.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run3.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run4.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run5.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run6.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run7.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run8.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/resource_recipe_run9.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-analyze-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-baseline-corrected.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-boundaries-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-authoring-resource-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-final-contracts.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-generic-red.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-host-final2.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-host-red2.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-pure-red2.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-stdio-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-border-transports-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-checkout-catalog.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-core-analyze-baseline-corrected.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-core-analyze-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-core-quick-exact.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-core-quick-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-cross-safety.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-final-collision-sdk-probe.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-final-smoke.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-fresh-describe.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-analyze-collision-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-analyze-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-quick-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-hub-regressions-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-macos-build-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-empty-01.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-measures.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-player-10.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-player-11.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-player-12.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-map-regressions.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-maps-analyze-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-mcp-baseline.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-mcp-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-mcp-focused-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-primary-collision-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-primary-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-resource-measures-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-resource-measures.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-runtime-analyze-baseline-corrected.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-runtime-analyze-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-runtime-regressions-corrected.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-source-confirmation-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-source-confirmation-first.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-analyze-final2.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-baseline.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/logs/uwu6-studio-full-final.log\n?? documentation/reports/avelune_studio/uwu6_crud_validation/native_005_receipt.json\n?? documentation/reports/avelune_studio/uwu6_crud_validation/notion_updates.json\n?? documentation/reports/avelune_studio/uwu6_crud_validation/rapport.txt\n?? documentation/reports/avelune_studio/uwu6_crud_validation/sdk_recovery.json\n?? documentation/reports/ci/post_ci_001_quick_checks_evidence_pack.md\n?? packages/map_authoring/lib/map_authoring_resources.dart\n?? packages/map_authoring/lib/src/domains/assets/element_definition_management.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_information_actions.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_information_document.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_information_smart_categories.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_management_actions.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_source_guards.dart\n?? packages/map_authoring/lib/src/domains/assets/resource_source_references.dart\n?? packages/map_authoring/lib/src/domains/assets/visual_organization_validation.dart\n?? packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_deletion_safety.dart\n?? packages/map_authoring/lib/src/domains/gameplay/project_capture_sprite_provisioning_service.dart\n?? packages/map_authoring/lib/src/domains/gameplay/project_item_icon_provisioning_service.dart\n?? packages/map_authoring/lib/src/domains/maps/map_duplicate_codec_guard.dart\n?? packages/map_authoring/lib/src/domains/maps/map_lifecycle_analysis.dart\n?? packages/map_authoring/lib/src/domains/maps/map_metadata_actions.dart\n?? packages/map_authoring/lib/src/domains/maps/map_resize_dependencies.dart\n?? packages/map_authoring/lib/src/domains/maps/smart_tile_preset_lifecycle_actions.dart\n?? packages/map_authoring/lib/src/references/resource_usage_documents.dart\n?? packages/map_authoring/lib/src/references/resource_usage_projection.dart\n?? packages/map_authoring/lib/src/references/resource_usage_report.dart\n?? packages/map_authoring/lib/src/references/resource_usage_walk.dart\n?? packages/map_authoring/test/domains/assets/element_definition_actions_test.dart\n?? packages/map_authoring/test/domains/assets/element_definition_fixture.dart\n?? packages/map_authoring/test/domains/assets/element_definition_transaction_test.dart\n?? packages/map_authoring/test/domains/assets/resource_information_actions_test.dart\n?? packages/map_authoring/test/domains/assets/resource_information_fixture.dart\n?? packages/map_authoring/test/domains/assets/resource_information_transaction_test.dart\n?? packages/map_authoring/test/domains/assets/resource_information_transport_test.dart\n?? packages/map_authoring/test/domains/assets/resource_mutation_locked_precondition_test.dart\n?? packages/map_authoring/test/domains/assets/resource_organization_guards_test.dart\n?? packages/map_authoring/test/domains/assets/resource_source_actions_test.dart\n?? packages/map_authoring/test/domains/assets/resource_source_api_test.dart\n?? packages/map_authoring/test/domains/assets/resource_source_fixture.dart\n?? packages/map_authoring/test/domains/assets/resource_source_regression_test.dart\n?? packages/map_authoring/test/domains/assets/resource_source_transaction_fixture.dart\n?? packages/map_authoring/test/domains/assets/resource_source_transaction_test.dart\n?? packages/map_authoring/test/domains/gameplay/character_studio_deletion_fixture.dart\n?? packages/map_authoring/test/domains/gameplay/character_studio_deletion_transaction_test.dart\n?? packages/map_authoring/test/domains/maps/border_deprecated_placement_test.dart\n?? packages/map_authoring/test/domains/maps/border_layer_order_transport_test.dart\n?? packages/map_authoring/test/domains/maps/map_catalog_dependency_contract_test.dart\n?? packages/map_authoring/test/domains/maps/map_catalog_fixture.dart\n?? packages/map_authoring/test/domains/maps/map_catalog_reference_safety_test.dart\n?? packages/map_authoring/test/domains/maps/map_catalog_safety_test.dart\n?? packages/map_authoring/test/domains/maps/map_catalog_transport_test.dart\n?? packages/map_authoring/test/domains/maps/map_metadata_fixture.dart\n?? packages/map_authoring/test/domains/maps/map_metadata_transaction_test.dart\n?? packages/map_authoring/test/domains/maps/smart_tile_catalog_format_persistence_test.dart\n?? packages/map_authoring/test/domains/maps/smart_tile_lifecycle_api_test.dart\n?? packages/map_authoring/test/domains/maps/smart_tile_missing_source_lifecycle_test.dart\n?? packages/map_authoring/test/domains/maps/uwu5_terrain_locked_precondition_test.dart\n?? packages/map_authoring/test/ports/artifact_staging_lifetime_test.dart\n?? packages/map_authoring/test/references/resource_usage_border_test.dart\n?? packages/map_authoring/test/references/resource_usage_closure_test.dart\n?? packages/map_authoring/test/references/resource_usage_presentation_test.dart\n?? packages/map_authoring/test/references/resource_usage_projection_test.dart\n?? packages/map_authoring/test/references/resource_usage_terrain_test.dart\n?? packages/map_authoring/test/references/resource_usage_transport_test.dart\n?? packages/map_authoring/test/tooling/border_deprecation_recovery_test.dart\n?? packages/map_authoring/test/tooling/import_project_item_icons_test.dart\n?? packages/map_authoring/test/tooling/project_capture_sprite_provisioning_test.dart\n?? packages/map_authoring/test/workspace/project_snapshot_catalog_projection_test.dart\n?? packages/map_authoring/test/workspace/resource_usage_snapshot_policy_test.dart\n?? packages/map_authoring/tool/import_project_capture_sprites.dart\n?? packages/map_authoring/tool/import_project_item_icons.dart\n?? packages/map_core/test/border/border_layer_default_order_test.dart\n?? packages/map_runtime/lib/src/player/runtime_capture_sprite_resolver.dart\n?? packages/map_runtime/lib/src/presentation/flame/battle_combatant_ball_resolver.dart\n?? packages/map_runtime/test/battle_combatant_ball_resolver_test.dart\n?? packages/map_runtime/test/battle_project_capture_sprite_test.dart\n?? packages/map_runtime/test/runtime_capture_sprite_resolver_test.dart\n?? tools/pokemap_mcp/test/border_layer_order_stdio.test.ts\n?? tools/pokemap_mcp/test/map_lifecycle_server.test.ts\n?? tools/pokemap_mcp/test/map_metadata_server.test.ts\n?? tools/pokemap_mcp/test/project_capture_sprites.test.ts\n?? tools/pokemap_mcp/test/project_item_icons.test.ts\n?? tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts\n?? tools/pokemap_mcp/test/resource_management_fixture.ts\n?? tools/pokemap_mcp/test/resource_management_stdio.test.ts\n?? tools/pokemap_mcp/test/specialized_terrain_stdio.test.ts\n?? tools/scripts/assets/menu_item_illustrations/antidote.png\n?? tools/scripts/assets/menu_item_illustrations/awakening.png\n?? tools/scripts/assets/menu_item_illustrations/ether.png\n?? tools/scripts/assets/menu_item_illustrations/manifest.json\n?? tools/scripts/assets/menu_item_illustrations/paralyze-heal.png\n?? tools/scripts/assets/menu_item_illustrations/potion.png\n?? tools/scripts/assets/menu_item_illustrations/revive.png\n?? tools/scripts/assets/menu_item_illustrations/super-potion.png\n?? tools/scripts/import_menu_item_icons.py\n?? tools/scripts/import_project_ball_sprites.py\n"
+    },
+    "stat": {
+      "exit": 0,
+      "output": " .../Presentation/Views/SettingsView.swift          |   15 +-\n .../lib/app/di/map_workspace_providers.dart        |    5 +\n apps/avelune_studio/lib/app/studio_bootstrap.dart  |    7 +\n .../application/dialogue_workspace_controller.dart |    1 +\n .../data/studio_game_export_controller.dart        |   18 +\n .../application/editable_map_document.dart         |   60 +-\n .../application/map_editing_commands.dart          |   49 +-\n .../application/map_workspace_controller.dart      |  118 +-\n .../data/local_map_workspace_adapter.dart          |   46 +-\n .../data/local_map_workspace_catalog.dart          |  112 +\n .../application/pokemon_combat_controller.dart     |    1 +\n .../application/pokemon_commerce_controller.dart   |   38 +-\n .../data/local_pokemon_commerce_adapter.dart       |   27 +\n .../pokemon/domain/pokemon_commerce_port.dart      |   10 +\n .../resources/data/local_resource_adapter.dart     |  374 +-\n .../features/resources/domain/resource_port.dart   |   15 +\n .../platform/playtest/studio_playtest_view.dart    |   14 +\n .../lib/platform/rendering/studio_image_store.dart |    7 +-\n .../platform/rendering/studio_map_resources.dart   |    5 +-\n .../rendering/studio_map_resources_helpers.dart    |    7 +\n .../characters/character_studio_controller.dart    |   27 +-\n .../features/characters/character_studio_page.dart |   14 +-\n .../features/home/studio_home_all_maps.dart        |    8 +\n .../features/home/studio_home_screen.dart          |    4 +-\n .../map_workspace/map_border_tool_panel.dart       |    3 +-\n .../map_workspace/map_decor_inspector_tabs.dart    |    3 +\n .../map_workspace/map_library_navigator.dart       |  171 +-\n .../map_workspace/map_library_row_tile.dart        |   72 +-\n .../features/map_workspace/map_library_tree.dart   |   17 +\n .../map_workspace/map_selection_inspector.dart     |    3 +\n .../map_workspace/map_workspace_canvas_border.dart |   19 +-\n .../map_workspace_compact_navigator.dart           |   36 +-\n .../map_workspace/map_workspace_editor_pane.dart   |   29 +\n .../map_workspace/map_workspace_inspector.dart     |   13 +-\n .../map_workspace/map_workspace_layout.dart        |   17 +-\n .../map_workspace/map_workspace_screen.dart        |   24 +-\n .../map_workspace/map_workspace_view_state.dart    |   28 +\n .../map_workspace/map_workspace_visuals.dart       |    4 +\n .../features/map_workspace/workspace_actions.dart  |    5 +-\n .../map_workspace/workspace_close_actions.dart     |    4 +\n .../map_workspace/workspace_export_binding.dart    |    5 +-\n .../map_workspace/workspace_home_binding.dart      |    3 +\n .../map_workspace/workspace_keyboard_binding.dart  |    2 +\n .../map_workspace/workspace_lifecycle_binding.dart |  127 +\n .../workspace_map_library_binding.dart             |   66 +-\n .../map_workspace/workspace_screen_body.dart       |    3 +-\n .../map_workspace/workspace_session_loader.dart    |    7 +\n .../features/pokemon/pokemon_commerce_detail.dart  |    9 +-\n .../features/pokemon/pokemon_commerce_page.dart    |    4 +\n .../features/pokemon/pokemon_item_effects.dart     |   10 +-\n .../features/pokemon/pokemon_workspace_page.dart   |    1 +\n .../project_session/project_session_screen.dart    |    3 +\n .../features/resources/border_creation_dialog.dart |   11 +\n .../resources/resource_border_draft_bar.dart       |  180 +-\n .../features/resources/resource_catalog.dart       |    4 +-\n .../features/resources/resource_catalog_view.dart  |   96 +-\n .../resources/resource_category_filter.dart        |    3 +-\n .../features/resources/resource_category_tree.dart |    6 +-\n .../features/resources/resource_detail_panel.dart  |   20 +\n .../resources/resource_library_screen.dart         |  209 +-\n .../features/resources/resource_navigation.dart    |   86 +-\n .../resources/resource_terrain_draft_list.dart     |  151 +-\n .../resources/resource_workspace_pane.dart         |   51 +-\n apps/avelune_studio/pubspec.yaml                   |    4 +\n .../test/application/m1_controller_test.dart       |   14 +\n .../map_workspace/border_drawing_host_test.dart    |   10 +\n .../presentation/border_creation_journey_test.dart |    9 +-\n .../test/presentation/m2_end_to_end_test.dart      |    4 +\n .../presentation/map_library_navigation_test.dart  |    3 +-\n .../presentation/resource_catalog_ui03_test.dart   |   10 +-\n .../presentation/ui03_resource_journey_test.dart   |    5 +-\n .../resource_io/resource_navigation_save_test.dart |   33 +\n .../avelune_studio/test/support/m2_ui_fixture.dart |   19 +-\n .../project_creation_workspace_fixture.dart        |   15 +-\n .../test/support/ui_pokemon_commerce_port.dart     |   23 +\n .../as_project_creation_player_e2e_test.dart       |   17 +-\n .../as_project_creation_player_support.dart        |   35 +-\n packages/map_authoring/lib/map_authoring.dart      |    5 +\n packages/map_authoring/lib/map_authoring_api.dart  |    2 +\n .../map_authoring/lib/map_authoring_local.dart     |   12 +\n .../lib/src/api/authoring_read_api.dart            |    4 +-\n .../src/api/local_map_authoring_mutation_api.dart  |  174 +-\n .../src/application/map_mutation_dispatcher.dart   |   16 +-\n .../lib/src/domains/assets/asset_store.dart        |   23 +\n .../lib/src/domains/assets/element_actions.dart    |   38 +\n .../lib/src/domains/assets/tileset_actions.dart    |   13 +-\n .../assets/visual_organization_actions.dart        |  118 +-\n .../character_studio_action_support.dart           |   36 +-\n .../character_studio_character_actions.dart        |   81 +-\n .../src/domains/gameplay/item_catalog_actions.dart |   27 +-\n .../lib/src/domains/maps/border_actions.dart       |   24 +-\n .../src/domains/maps/border_catalog_actions.dart   |   23 +-\n .../lib/src/domains/maps/map_library_actions.dart  |   15 +\n .../src/domains/maps/map_lifecycle_actions.dart    |   52 +-\n .../src/domains/maps/map_lifecycle_adapter.dart    |  102 +-\n .../domains/maps/smart_tile_catalog_actions.dart   |   24 +-\n .../domains/maps/smart_tile_catalog_support.dart   |   31 +-\n .../lib/src/parity/full_authoring_parity.dart      |  101 +-\n .../lib/src/registry/resource_kind_registry.dart   |   12 +\n .../lib/src/workspace/project_query_service.dart   |   38 +\n .../lib/src/workspace/project_snapshot.dart        |   17 +-\n .../lib/src/workspace/project_snapshot_loader.dart |   49 +-\n .../workspace/project_snapshot_map_projector.dart  |   79 +-\n .../distribution/game_package_export_api_test.dart |  123 +\n .../character_studio_character_actions_test.dart   |  384 +-\n .../gameplay/item_catalog_actions_test.dart        |  167 +-\n .../domains/maps/border_catalog_actions_test.dart  |   40 +\n .../domains/maps/map_library_actions_test.dart     |   48 +\n .../domains/maps/map_lifecycle_contract_test.dart  |    1 +\n .../maps/map_lifecycle_transaction_test.dart       |   66 +\n .../domains/maps/map_operations_batch_test.dart    |    2 +-\n .../maps/smart_tile_catalog_actions_test.dart      |    4 +-\n .../maps/smart_tile_draft_actions_test.dart        |  314 +-\n .../test/parity/full_authoring_parity_test.dart    |   11 +-\n .../test/tooling/jsonl_artifact_staging_test.dart  |  131 +-\n .../tooling/jsonl_border_catalog_flow_test.dart    |  263 +-\n .../models/items/project_item_capabilities.dart    |   27 +\n .../items/project_item_capabilities.freezed.dart   |   43 +-\n .../models/items/project_item_capabilities.g.dart  |    2 +\n .../map_core/lib/src/operations/map_layers.dart    |    5 +-\n .../read_models/narrative_dependency_index.dart    |  569 +-\n .../serialization/project_item_catalog_codec.dart  |   22 +-\n .../validation/project_item_catalog_validator.dart |   14 +\n .../test/border/border_layer_operations_test.dart  |    6 +-\n .../border_project_map_preparation_test.dart       |    6 +-\n .../test/project_item_catalog_codec_test.dart      |   92 +\n .../test/project_item_catalog_model_test.dart      |   52 +\n .../test/project_item_catalog_validator_test.dart  |  101 +\n .../assets/battle/balls/ball-retreat.png           |  Bin 414387 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_1.png     |  Bin 88630 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_10.png    |  Bin 56206 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_11.png    |  Bin 82763 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_12.png    |  Bin 81546 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_13.png    |  Bin 79256 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_14.png    |  Bin 76501 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_15.png    |  Bin 80204 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_16.png    |  Bin 83339 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_17.png    |  Bin 58787 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_18.png    |  Bin 76693 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_19.png    |  Bin 78774 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_2.png     |  Bin 89357 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_20.png    |  Bin 57546 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_21.png    |  Bin 78352 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_22.png    |  Bin 59060 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_23.png    |  Bin 56429 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_24.png    |  Bin 80852 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_25.png    |  Bin 84470 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_26.png    |  Bin 78642 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_27.png    |  Bin 78455 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_28.png    |  Bin 56975 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_3.png     |  Bin 80072 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_4.png     |  Bin 73899 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_5.png     |  Bin 77067 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_6.png     |  Bin 79537 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_7.png     |  Bin 78068 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_8.png     |  Bin 85470 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_9.png     |  Bin 56196 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_catch.png |  Bin 458824 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_s1.png    |  Bin 397 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_s2.png    |  Bin 435 -> 0 bytes\n .../map_runtime/assets/battle/balls/ball_stars.png |  Bin 6140 -> 0 bytes\n packages/map_runtime/assets/menu/items/icons.zip   |  Bin 6127781 -> 0 bytes\n .../map_runtime/assets/menu/items/manifest.json    | 7325 --------------------\n .../src/player/runtime_bag_item_icon_resolver.dart |   10 +-\n .../lib/src/player/runtime_bundled_item_icons.dart |  107 -\n .../presentation/flame/battle_animation_plan.dart  |   11 +-\n .../presentation/flame/battle_ball_manifest.dart   |   41 -\n .../flame/battle_intro_animation_planner.dart      |   15 +-\n .../flame/battle_overlay_component.dart            |  119 +-\n .../flame/battle_turn_animation_planner.dart       |   33 +-\n .../src/presentation/flame/playable_map_game.dart  |   17 +\n packages/map_runtime/pubspec.yaml                  |    2 -\n .../test/battle_intro_animation_planner_test.dart  |    7 +-\n .../map_runtime/test/battle_intro_parity_test.dart |   35 +-\n .../battle_presentation_coordination_test.dart     |   38 +-\n .../test/battle_turn_animation_planner_test.dart   |   44 +-\n .../test/runtime_bag_item_icon_resolver_test.dart  |  171 +-\n .../assets/menu_item_illustrations/antidote.png    |  Bin 731774 -> 0 bytes\n .../assets/menu_item_illustrations/awakening.png   |  Bin 702685 -> 0 bytes\n .../tool/assets/menu_item_illustrations/ether.png  |  Bin 921156 -> 0 bytes\n .../assets/menu_item_illustrations/manifest.json   |   94 -\n .../menu_item_illustrations/paralyze-heal.png      |  Bin 751390 -> 0 bytes\n .../tool/assets/menu_item_illustrations/potion.png |  Bin 784768 -> 0 bytes\n .../tool/assets/menu_item_illustrations/revive.png |  Bin 959136 -> 0 bytes\n .../menu_item_illustrations/super-potion.png       |  Bin 931191 -> 0 bytes\n .../tool/import_battle_ball_assets.dart            |   66 -\n .../map_runtime/tool/import_menu_item_icons.py     |  181 -\n pokemap_authoring_api_mcp_action_catalog.md        |   27 +\n tools/pokemap_mcp/test/mutation_server.test.ts     |   38 +-\n 189 files changed, 5295 insertions(+), 9383 deletions(-)\n"
+    },
+    "cached": {
+      "exit": 0,
+      "output": ""
+    }
+  },
+  "diffSha256": "4ca9aeabd5fab78506f27c96ffe80673de4b0c920801bfd86d4a461fe6e8f0fc",
+  "diffBytes": 799586,
+  "files": [
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu6_empty_map_host_test.dart",
+      "sha256": "1429999f470af6ce8db5826ac71cb217bca362a31726d53d0e019738236819a1"
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart",
+      "sha256": "de6a369314ef5292996377458f375772159a6eae9754464505f80f7085fce4e5"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart",
+      "sha256": "c644e30c825b6b8e6c6d4ba0175bb4fe956d4d1b6f50f3d60d5c9597b577025c"
+    },
+    {
+      "path": "apps/avelune_studio/test/support/uwu5_border_host.dart",
+      "sha256": "27649fe74599c2ac1a0a75d67be476cd43252e5a44af8c2c19b336ab8812a5d6"
+    },
+    {
+      "path": "apps/avelune_studio/tool/measure_resource_crud_recipes.dart",
+      "sha256": "da091057f200c0f3899715c6b0c7682169f0b12f012da4b4172e09be54319840"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart",
+      "sha256": "172e8a7ad05242ebaa206b299e10897f98b6fd4ceac41798bb05961c61a09252"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/as_project_creation_player_support.dart",
+      "sha256": "5cc480442a255d8db46b552823ba9d1555cd43170eac0248c96e455ab2d52631"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart",
+      "sha256": "dfee715d270cd4c573f6af3569cec124065b7c0eb609ed8470902affb63cae19"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart",
+      "sha256": "576dc8e1fd89fc221cbf01267da8b54fa9f7d75a97e2d44016e0bcf0af3136fc"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart",
+      "sha256": "ac961d5f474326dec94d43520ae8d6278be9b0b03971d51f3e6cc0dac4d6009f"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_map_player_route.dart",
+      "sha256": "7446752160b5e75b297d705b5f05ef154bbdb4f5bdb0bf3a843c1a7be8aec56d"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_map_ui_steps.dart",
+      "sha256": "616c47e1d460580e930d23d7adfc461392cefb1d840fc445f6f3f8b6c5fdc5bd"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart",
+      "sha256": "d75e9eb6ce4c96b0cc02a1ca29e94893169dc48d4f40051a09c35382402d514a"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart",
+      "sha256": "10c9b68f493fa986caf39da9e9da31a65d329c3b459cab18cb2eecfff8049e31"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart",
+      "sha256": "3867e408947d29bff745686a10446797bee92803692dd9ff69dfb0c6985e604a"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart",
+      "sha256": "28734887b4e36cb51928154a92db833a2ff4c11914e5c4f96f9271a38c7a0e38"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart",
+      "sha256": "093881c72628bbfb9e09bc5abf148748e3aaf86d2abae97de0dcde91c9f2d6d5"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_player_movement.dart",
+      "sha256": "e4f7820f3e654bac9f8a90e88acf094ae3b110a4e13ec9915d68615dd8bd9744"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_player_visuals.dart",
+      "sha256": "7bb27bd3fd77808a44ae63ed4ede58799ce3bfd02a87a79a1d57628a1f9dae02"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart",
+      "sha256": "020de10d4f57e98db38f08eb946715eb5984717af4437732389b8b9c3112aed7"
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/border_layer_order_transport_test.dart",
+      "sha256": "211cdb23ecf9b3737a90943a8ac2dff6afdf109afa3f132fb3751312961199fd"
+    },
+    {
+      "path": "packages/map_authoring/test/domains/maps/map_operations_batch_test.dart",
+      "sha256": "e23afe7cc62905b317a1603589c727d7f8229dbcaee978c61070e10186c30c70"
+    },
+    {
+      "path": "packages/map_core/lib/src/operations/map_layers.dart",
+      "sha256": "f873866b8056c40e77e6ef1e038030d15a1402e216ff7090875461adcc15e694"
+    },
+    {
+      "path": "packages/map_core/test/border/border_layer_default_order_test.dart",
+      "sha256": "c6d4fcbc8d6e18238bb8eb9bf643b6169ae870c4579e265310ccf587ade07b8e"
+    },
+    {
+      "path": "packages/map_core/test/border/border_layer_operations_test.dart",
+      "sha256": "48e530bae72ff0267ae3a9cfe72def44202f016e2d65d4f995984d7a4f8f1f60"
+    },
+    {
+      "path": "packages/map_core/test/border/border_project_map_preparation_test.dart",
+      "sha256": "33ef8c58397914151f0734779df8011f1e4e158ac0187936f96ec90b454bb4ed"
+    },
+    {
+      "path": "tools/pokemap_mcp/test/border_layer_order_stdio.test.ts",
+      "sha256": "a62c9238022f1a669737aa8ea067a7cbf62cb7441dcf06fe8f81180e676f8ba8"
+    },
+    {
+      "path": "apps/avelune_studio/dev/marionette_main.dart",
+      "sha256": "32e5e055bbe415dc34123e8d06919e8bf4a79a7e35ff822ddce52783c8d3cf66"
+    }
+  ]
+}

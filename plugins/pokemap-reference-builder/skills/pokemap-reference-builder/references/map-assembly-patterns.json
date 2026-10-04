@@ -1,0 +1,3897 @@
+{
+  "schemaVersion": 1,
+  "title": "Reference Builder placement knowledge and native assembly examples",
+  "knowledgeDate": "2026-10-03",
+  "corpus": {
+    "decodedRepresentations": 187,
+    "conservativeIdentityGroups": 145,
+    "exactSourceByteClusters": 123,
+    "maxKnownSourceFamilies": 2,
+    "metricsSha256": "a1edf6988a88e8f6fdb2921ab784e6d625b945317774216f98f1388de44ccebb",
+    "spatialSha256": "de7f0263c7604d91989313d3b0a5cf559022f0467f7b7f8fb333f27b99b80fa7"
+  },
+  "corpusEvidenceKinds": {
+    "measured_observation": 5,
+    "technical_contract": 16,
+    "untested_hypothesis": 9
+  },
+  "corpusRules": [
+    {
+      "id": "MAP-SOURCE-001",
+      "category": "methodology",
+      "title": "Compter les représentations séparément des maps",
+      "observation": "Des variantes RMXP MapNNN ou des correspondances Tiled/RMXP Studio exactes décrivent une même identité; les autres chemins restent distincts.",
+      "measure": {
+        "representations": 187,
+        "logicalMaps": 145,
+        "pairedIdentities": 42,
+        "dimensionDisagreements": 0
+      },
+      "recommendation": "Dédupliquer seulement sur identité prouvée; conserver des projections séparées pour géométrie, navigation et events.",
+      "projectsObserved": 2,
+      "projects": [
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 42,
+      "occurrences": 42,
+      "exceptions": 0,
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [],
+      "limitations": [
+        "L'égalité des dimensions ne prouve pas l'équivalence de toutes les sémantiques."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-rlm/001-titlescreenanimation-6eac431ee0-tiled.json",
+        "normalized/pokemon-rlm/002-intro-ef9ecf5b00-tiled.json",
+        "normalized/pokemon-rlm/003-hub-b10de326ca-tiled.json"
+      ],
+      "provenancePathCount": 42
+    },
+    {
+      "id": "MAP-SOURCE-002",
+      "category": "methodology",
+      "title": "Mesurer la corrélation des sources",
+      "observation": "Les trois projets porteurs de maps ne sont pas trois réplications indépendantes.",
+      "measure": {
+        "exactSourceClusters": 123,
+        "logicalMaps": 145,
+        "sharedPsdkTmxWithRlm": 21,
+        "psdkTmxCandidates": 22,
+        "maxKnownSourceFamilies": 2
+      },
+      "recommendation": "Afficher projets, familles connues et clusters exacts; pondérer aussi les statistiques par cluster sans prétendre supprimer toute parenté.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 145,
+      "occurrences": 145,
+      "exceptions": {
+        "psdkTmxNotExactShared": [
+          "Data/Tiled/Maps/007 Cave.tmx"
+        ]
+      },
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [],
+      "limitations": [
+        "PSDK and RLM share source map bytes and engine/assets; distinct project count is not independent replication. Cluster weighting only handles exact file matches, not all common lineage."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 145
+    },
+    {
+      "id": "MAP-DIM-001",
+      "category": "dimensions",
+      "title": "Employer des profils observés plutôt qu'une taille universelle",
+      "observation": "Les dimensions couvrent plusieurs tailles et rapports; aucune taille idéale n'est démontrée.",
+      "measure": {
+        "width": {
+          "count": 145,
+          "min": 20,
+          "max": 115,
+          "mean": 36.46206896551724,
+          "median": 25,
+          "p25": 20,
+          "p75": 55,
+          "p90": 64
+        },
+        "height": {
+          "count": 145,
+          "min": 15,
+          "max": 96,
+          "mean": 33.97241379310345,
+          "median": 25,
+          "p25": 15,
+          "p75": 60,
+          "p90": 64
+        },
+        "area": {
+          "count": 145,
+          "min": 300,
+          "max": 7000,
+          "mean": 1608.7241379310344,
+          "median": 675,
+          "p25": 300,
+          "p75": 3472,
+          "p90": 4096
+        },
+        "aspectRatio": {
+          "count": 145,
+          "min": 0.38333333333333336,
+          "max": 4.2592592592592595,
+          "mean": 1.1991909550796807,
+          "median": 1.3333333333333333,
+          "p25": 1,
+          "p75": 1.3333333333333333,
+          "p90": 1.3433333333333333
+        }
+      },
+      "recommendation": "Proposer une plage descriptive selon usage et catégorie vérifiée, puis réserver les routes et endpoints avant le décor.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 145,
+      "occurrences": 145,
+      "exceptions": "Toute taille hors des percentiles peut être intentionnelle.",
+      "confidence": "medium",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Une fréquence de taille n'est pas un critère de qualité.",
+        "Scènes de titre, intros, templates et rôles inconnus sont présents."
+      ],
+      "evidenceKind": "measured_observation",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 145
+    },
+    {
+      "id": "MAP-DIM-002",
+      "category": "building",
+      "title": "Le profil de la catégorie building heuristique est local au fangame",
+      "observation": "La catégorie building provient de noms EN/FR/PT; elle ne détecte aucun bâtiment dessiné.",
+      "measure": {
+        "maps": 25,
+        "width": {
+          "count": 25,
+          "min": 20,
+          "max": 45,
+          "mean": 21.04,
+          "median": 20,
+          "p25": 20,
+          "p75": 20,
+          "p90": 20
+        },
+        "height": {
+          "count": 25,
+          "min": 15,
+          "max": 25,
+          "mean": 15.96,
+          "median": 15,
+          "p25": 15,
+          "p75": 15,
+          "p90": 17.200000000000003
+        },
+        "not20x15": 4
+      },
+      "recommendation": "Présenter ce profil comme point de comparaison optionnel après confirmation de la catégorie; ne pas imposer 20×15.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 25,
+      "occurrences": 25,
+      "exceptions": 4,
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 25,
+        "projection": "heuristic_building_geometry"
+      },
+      "unobserved": [
+        "buildingFootprint",
+        "doorApproach",
+        "buildingSpacing"
+      ],
+      "limitations": [
+        "Une famille source; noms heuristiques; footprints de bâtiments inconnus."
+      ],
+      "evidenceKind": "measured_observation",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json",
+        "normalized/pokemon-burning-scales/map-009-ce77a709-rmxp.json",
+        "normalized/pokemon-burning-scales/map-015-0cf59e4a-rmxp.json"
+      ],
+      "provenancePathCount": 25
+    },
+    {
+      "id": "MAP-TILE-001",
+      "category": "tileset",
+      "title": "Conserver l'échelle de cellule déclarée",
+      "observation": "Toutes les représentations acquises emploient des cellules 32×32.",
+      "measure": {
+        "cellSizes": {
+          "32x32": 187
+        }
+      },
+      "recommendation": "Lire l'échelle source et comparer références à échelle égale; laisser le modèle natif exprimer son échelle.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 187,
+      "occurrences": 187,
+      "exceptions": 0,
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 187,
+        "projection": "allRepresentations"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Ce corpus ne justifie pas d'interdire d'autres tailles de cellule."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 187
+    },
+    {
+      "id": "MAP-TILE-002",
+      "category": "tileset",
+      "title": "Les colonnes TSX ne sont pas toujours huit",
+      "observation": "Les références Tiled contiennent des largeurs d'atlas très différentes.",
+      "measure": {
+        "columns": {
+          "8": 90,
+          "10": 32,
+          "20": 36,
+          "32": 38,
+          "48": 39,
+          "96": 37,
+          "98": 18,
+          "115": 38,
+          "128": 36,
+          "150": 4
+        },
+        "countingUnit": "resolved_tileset_reference_in_decoded_map"
+      },
+      "recommendation": "Résoudre firstgid, localTileId, columns et tilecount depuis les métadonnées; réserver le huit colonnes au contrat RMXP régulier audité.",
+      "projectsObserved": 2,
+      "projects": [
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 47,
+      "occurrences": 368,
+      "exceptions": "Les atlas RMXP réguliers ont huit colonnes; références absentes restent inconnues.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 47,
+        "projection": "decoded_Tiled"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Les mêmes TSX sont référencés plusieurs fois; le compteur n'est pas un nombre d'atlas indépendants."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-rlm/000-blank-template-5e6c6d450c-tiled.json",
+        "normalized/pokemon-rlm/001-titlescreenanimation-6eac431ee0-tiled.json",
+        "normalized/pokemon-rlm/002-intro-ef9ecf5b00-tiled.json"
+      ],
+      "provenancePathCount": 47
+    },
+    {
+      "id": "MAP-TILE-003",
+      "category": "tileset",
+      "title": "Diagnostiquer les identités hors plage sans les effacer",
+      "observation": "L'analyse signale des placements hors plage connue; les lecteurs conservent les sources et les avertissements.",
+      "measure": {
+        "mapsWithFlag": 6,
+        "placementsFlagged": 24
+      },
+      "recommendation": "Valider les IDs contre un tileset connu; distinguer ID hors plage, référence manquante et sémantique inconnue avant de proposer une réparation.",
+      "projectsObserved": 2,
+      "projects": [
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 6,
+      "occurrences": 24,
+      "exceptions": "Source runtime non joué: ces signaux ne prouvent pas tous un défaut visible.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 187,
+        "projection": "allRepresentations"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Ne pas utiliser le compteur comme score artistique ni supprimer des placements automatiquement."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-rlm/003-hub-b10de326ca-tiled.json",
+        "normalized/pokemon-rlm/014-library-50f40a90fd-tiled.json",
+        "normalized/pokemon-rlm/016-gamecorner-864c182e83-tiled.json"
+      ],
+      "provenancePathCount": 6
+    },
+    {
+      "id": "MAP-GEOM-001",
+      "category": "geometry",
+      "title": "Vérifier chaque placement dans le repère source",
+      "observation": "Aucun placement hors des dimensions source n'a été trouvé dans les représentations analysées.",
+      "measure": {
+        "outOfBoundsPlacements": 0
+      },
+      "recommendation": "Valider coordonnées, calque et tileset dans le repère déclaré, y compris les offsets et chunks pour d'autres corpus.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 187,
+      "occurrences": 187,
+      "exceptions": 0,
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 187,
+        "projection": "allRepresentations"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Le corpus réel est fini et orthogonal; chunks infinis et orientations alternatives sont couverts par fixtures."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 187
+    },
+    {
+      "id": "MAP-LAYER-001",
+      "category": "layers",
+      "title": "Séparer métadonnées et occupation visuelle",
+      "observation": "Des calques systemtags et terrain_tag transportent des métadonnées plutôt que du décor.",
+      "measure": {
+        "affectedGeometryMaps": 40,
+        "excludedMetadataPlacements": 122588,
+        "totalLayerCount": {
+          "count": 145,
+          "min": 3,
+          "max": 87,
+          "mean": 20.041379310344826,
+          "median": 3,
+          "p25": 3,
+          "p75": 27,
+          "p90": 81
+        },
+        "visualTileLayerCount": {
+          "count": 145,
+          "min": 3,
+          "max": 79,
+          "mean": 17.986206896551725,
+          "median": 3,
+          "p25": 3,
+          "p75": 20,
+          "p90": 76
+        }
+      },
+      "recommendation": "Conserver les calques techniques, mais les exclure des proxies de couverture, superposition et répétition visuelle.",
+      "projectsObserved": 2,
+      "projects": [
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 40,
+      "occurrences": 122588,
+      "exceptions": "Un calque de passage n'est pas automatiquement une couche visuelle.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Même nettoyée des métadonnées, la couverture de tiles n'est ni densité de décor ni espace jouable."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-rlm/003-hub-b10de326ca-tiled.json",
+        "normalized/pokemon-rlm/004-elevator-1-d1c553ccff-tiled.json",
+        "normalized/pokemon-rlm/005-river-e21025c357-tiled.json"
+      ],
+      "provenancePathCount": 40
+    },
+    {
+      "id": "MAP-NAV-001",
+      "category": "navigation",
+      "title": "Une cellule non renseignée reste inconnue",
+      "observation": "Les grilles Tiled partielles n'explicitent aucune cellule walkable; l'absence de marque de blocage ne vaut pas sol ouvert.",
+      "measure": {
+        "partialMaps": 40,
+        "explicitWalkableCells": 0
+      },
+      "recommendation": "Publier la couverture et le modèle; ne calculer un taux exact et des composantes complètes que sur une grille complète.",
+      "projectsObserved": 2,
+      "projects": [
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 40,
+      "occurrences": 40,
+      "exceptions": 0,
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 135,
+        "projection": "available_navigation"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Les lower bounds et composantes connues des grilles partielles ne sont pas des résultats exacts sur la map entière."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-rlm/003-hub-b10de326ca-tiled.json",
+        "normalized/pokemon-rlm/004-elevator-1-d1c553ccff-tiled.json",
+        "normalized/pokemon-rlm/005-river-e21025c357-tiled.json"
+      ],
+      "provenancePathCount": 40
+    },
+    {
+      "id": "MAP-NAV-002",
+      "category": "navigation",
+      "title": "Contrôler les deux directions d'une transition",
+      "observation": "Le moteur exact Burning v19.1 teste le départ et le bit opposé à l'arrivée.",
+      "measure": {
+        "maps": 95,
+        "cellsVerifiedByIndependentOracle": 84119,
+        "blockedBits": "1 down, 2 left, 4 right, 8 up"
+      },
+      "recommendation": "Construire un graphe à quatre voisins en vérifiant les deux masques, puis conserver séparément les modes conditionnels.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 95,
+      "occurrences": 84119,
+      "exceptions": "Les collisions d'événements et traversées de bord sont hors du masque de tile.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 95,
+        "projection": "complete_static_Burning_only"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Une seule famille source avec grille statique complète.",
+        "Événements, progression et modes de déplacement non évalués; aucune preuve Player."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 95
+    },
+    {
+      "id": "MAP-NAV-003",
+      "category": "navigation",
+      "title": "Ne pas confondre terrain conditionnel et sol garanti",
+      "observation": "Certaines cellules dépendent d'eau, glace, rebords, ponts ou restrictions de déplacement.",
+      "measure": {
+        "conditionalCells": 15413,
+        "mapsWithConditionalCells": 19
+      },
+      "recommendation": "Exclure les cellules conditionnelles du graphe strict et qualifier chaque scénario avec ses capacités et son état.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 19,
+      "occurrences": 15413,
+      "exceptions": "Le marquage est conservateur: les drapeaux de tous les calques sont réunis.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 95,
+        "projection": "complete_static_Burning_only"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Une seule famille source avec grille statique complète.",
+        "Événements, progression et modes de déplacement non évalués; aucune preuve Player."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json",
+        "normalized/pokemon-burning-scales/map-005-da14c646-rmxp.json"
+      ],
+      "provenancePathCount": 19
+    },
+    {
+      "id": "MAP-NAV-004",
+      "category": "navigation",
+      "title": "Exiger les endpoints utiles plutôt qu'une seule composante globale",
+      "observation": "Plusieurs composantes strictes apparaissent fréquemment, sans preuve qu'elles soient toutes des accidents.",
+      "measure": {
+        "mapsWithMultipleComponents": 60,
+        "components": {
+          "count": 95,
+          "min": 0,
+          "max": 69,
+          "mean": 6.336842105263158,
+          "median": 2,
+          "p25": 1,
+          "p75": 6.5,
+          "p90": 17.60000000000001
+        }
+      },
+      "recommendation": "Contrôler spawn, arrivées, sorties activables et zones obligatoires selon scénario; ne pas rejeter automatiquement une map ayant plusieurs composantes.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 60,
+      "occurrences": 60,
+      "exceptions": {
+        "mapsWithZeroOrOneComponent": 35
+      },
+      "confidence": "medium",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 95,
+        "projection": "complete_static_Burning_only"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Une seule famille source avec grille statique complète.",
+        "Événements, progression et modes de déplacement non évalués; aucune preuve Player.",
+        "Une île, un étage ou une zone conditionnelle peut être intentionnel."
+      ],
+      "evidenceKind": "measured_observation",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json"
+      ],
+      "provenancePathCount": 60
+    },
+    {
+      "id": "MAP-PATH-001",
+      "category": "path",
+      "title": "Les chaînes de degré deux sont des proxies, pas des chemins dessinés",
+      "observation": "Le graphe strict permet de mesurer des chaînes et leurs virages sans reconnaître main_path ou secondary_path.",
+      "measure": {
+        "chainCount": 2920,
+        "lengthEdges": {
+          "count": 2920,
+          "min": 2,
+          "max": 67,
+          "mean": 2.6523972602739727,
+          "median": 2,
+          "p25": 2,
+          "p75": 2,
+          "p90": 3
+        },
+        "turns": {
+          "count": 2920,
+          "min": 0,
+          "max": 12,
+          "mean": 1,
+          "median": 1,
+          "p25": 1,
+          "p75": 1,
+          "p90": 2
+        }
+      },
+      "recommendation": "Utiliser ces mesures pour proposer une inspection; obtenir des labels de chemins avant de prescrire longueur, sinuosité ou hiérarchie.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 94,
+      "occurrences": 2920,
+      "exceptions": "Les boucles pures et surfaces larges sont mal représentées par des chaînes de degré deux.",
+      "confidence": "medium",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 95,
+        "projection": "complete_static_Burning_only"
+      },
+      "unobserved": [
+        "visualPathWidth",
+        "mainPath",
+        "secondaryPath",
+        "distanceBetweenVisualTurns"
+      ],
+      "limitations": [
+        "Une seule famille source avec grille statique complète.",
+        "Événements, progression et modes de déplacement non évalués; aucune preuve Player."
+      ],
+      "evidenceKind": "measured_observation",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json"
+      ],
+      "provenancePathCount": 94
+    },
+    {
+      "id": "MAP-COMPOSITION-001",
+      "category": "composition",
+      "title": "La couverture de tiles n'est pas une mesure de surcharge",
+      "observation": "La couche de fond couvre souvent toute la grille, sans distinguer eau, herbe, chemins, bâtiments ou décor.",
+      "measure": {
+        "tileCoverageRatio": {
+          "count": 145,
+          "min": 0,
+          "max": 1,
+          "mean": 0.9724137931034482,
+          "median": 1,
+          "p25": 1,
+          "p75": 1,
+          "p90": 1
+        },
+        "multiLayerRatio": {
+          "count": 145,
+          "min": 0,
+          "max": 0.9887152777777778,
+          "mean": 0.24059999772063012,
+          "median": 0.18,
+          "p25": 0.11328125,
+          "p75": 0.2733333333333333,
+          "p90": 0.554030230799421
+        }
+      },
+      "recommendation": "Employer coverage et multiLayerRatio comme diagnostics de représentation; réserver les recommandations d'espace libre à une analyse sémantique et à une review visuelle.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 145,
+      "occurrences": 145,
+      "exceptions": "Scènes et templates peuvent être vides volontairement.",
+      "confidence": "high",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [
+        "decorPlayableRatio",
+        "buildingDensity",
+        "landmarks",
+        "visualHierarchy"
+      ],
+      "limitations": [],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 145
+    },
+    {
+      "id": "MAP-WARP-001",
+      "category": "transitions",
+      "title": "Valider la destination descriptive d'un transfert",
+      "observation": "Les destinations directes appartiennent à au moins une variante décodée et restent dans ses dimensions.",
+      "measure": {
+        "events": 2733,
+        "transferCommandCount": 482,
+        "spatialTransferCoordinateCount": 407,
+        "directTransferCommands": 480,
+        "dynamicOrUnknownTransferCommands": 2,
+        "destinationsInsideDecodedVariant": 480,
+        "destinationsMissingFromDecodedCorpus": 0,
+        "destinationsOutsideAllDecodedVariants": 0
+      },
+      "recommendation": "Vérifier map cible et coordonnées connues; garder les variables et scripts en indéterminé jusqu'à résolution du scénario.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 133,
+      "occurrences": 480,
+      "exceptions": {
+        "variableOrUnknownTransferCommands": 2
+      },
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 140,
+        "projection": "RMXP_event_projections"
+      },
+      "unobserved": [],
+      "limitations": [
+        "Zéro dangling direct dans ce corpus n'est pas une preuve de transfert exécuté.",
+        "Conditions de pages conservées, predicates de branches et corps de scripts non évalués."
+      ],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 133
+    },
+    {
+      "id": "MAP-EXIT-001",
+      "category": "exits",
+      "title": "Distinguer commande de transfert et sortie spatiale candidate",
+      "observation": "Les transferts de pages action/touch sont séparés des transferts autorun et des doublons de pages.",
+      "measure": {
+        "transferCommands": 482,
+        "spatialCandidateCoordinates": 407
+      },
+      "recommendation": "Afficher les coordonnées candidates, le trigger et les conditions; ne pas annoncer largeur, visibilité ou connectivité sans labels et navigation qualifiée.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 129,
+      "occurrences": 407,
+      "exceptions": "Action, touch et conditions n'établissent pas à eux seuls une sortie active dans le scénario.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 140,
+        "projection": "RMXP_event_projections"
+      },
+      "unobserved": [
+        "exitWidth",
+        "exitVisibility",
+        "exitClearance",
+        "activeExitConnectivity"
+      ],
+      "limitations": [],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json"
+      ],
+      "provenancePathCount": 129
+    },
+    {
+      "id": "MAP-EVENT-001",
+      "category": "events",
+      "title": "Compter les events sans les renommer PNJ",
+      "observation": "Les projections RMXP contiennent events, pages, graphismes et commandes; les rôles spatiaux restent inconnus.",
+      "measure": {
+        "events": 2733,
+        "eventCount": {
+          "count": 140,
+          "min": 0,
+          "max": 132,
+          "mean": 19.521428571428572,
+          "median": 14,
+          "p25": 10,
+          "p75": 25,
+          "p90": 40.10000000000001
+        },
+        "densityPer1000Cells": {
+          "count": 140,
+          "min": 0,
+          "max": 95.65217391304348,
+          "mean": 25.93078289086518,
+          "median": 17.3015873015873,
+          "p25": 7.407407407407407,
+          "p75": 37.5,
+          "p90": 60
+        }
+      },
+      "recommendation": "Utiliser le compteur comme activité d'authoring; labeliser les PNJ, portes, panneaux et interactions avant de mesurer leur mise en scène.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 140,
+      "occurrences": 2733,
+      "exceptions": "Un event peut être invisible, scripté ou servir de contrôleur global.",
+      "confidence": "high",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 140,
+        "projection": "RMXP_event_projections"
+      },
+      "unobserved": [
+        "npcCount",
+        "npcPathDistance",
+        "npcGrouping",
+        "npcBlocking"
+      ],
+      "limitations": [],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-001-047cc900-rmxp.json",
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json"
+      ],
+      "provenancePathCount": 140
+    },
+    {
+      "id": "MAP-DOOR-001",
+      "category": "building",
+      "title": "Les noms de porte ne détectent pas les bâtiments",
+      "observation": "Les noms d'events ou de graphismes produisent des candidats door, sans empreinte de bâtiment.",
+      "measure": {
+        "doorCandidates": 77,
+        "mapsWithCandidates": 48,
+        "buildingFootprints": "unknown",
+        "doorApproach": "unknown"
+      },
+      "recommendation": "Soumettre les candidats à une validation sémantique; ne pas dériver espacement, orientation ou zone d'approche depuis leur nombre.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 48,
+      "occurrences": 77,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 140,
+        "projection": "RMXP_event_projections"
+      },
+      "unobserved": [
+        "buildingCount",
+        "doorOrientation",
+        "doorPathDistance",
+        "buildingBorderDistance"
+      ],
+      "limitations": [
+        "Heuristique de noms; faux positifs et faux négatifs non calibrés."
+      ],
+      "evidenceKind": "measured_observation",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json",
+        "normalized/pokemon-burning-scales/map-005-da14c646-rmxp.json"
+      ],
+      "provenancePathCount": 48
+    },
+    {
+      "id": "MAP-CATEGORY-001",
+      "category": "classification",
+      "title": "Montrer la méthode de classification et son incertitude",
+      "observation": "Les catégories connues viennent uniquement de mots-clés EN/FR/PT et d'un fallback de nom de fichier.",
+      "measure": {
+        "categoryEvidenceCounts": {
+          "unclassified": 112,
+          "heuristic_name_keyword": 33
+        },
+        "categories": {
+          "unknown": 112,
+          "building": 25,
+          "route": 3,
+          "cave": 5
+        }
+      },
+      "recommendation": "Afficher label et méthode; demander confirmation avant de recommander un template ou de comparer à un profil de catégorie.",
+      "projectsObserved": 3,
+      "projects": [
+        "pokemon-burning-scales",
+        "pokemon-rlm",
+        "psdk-technical-demo"
+      ],
+      "sourceFamilyCount": 2,
+      "mapsObserved": 33,
+      "occurrences": 33,
+      "exceptions": {
+        "unclassifiedMaps": 112
+      },
+      "confidence": "medium",
+      "machineCheckable": true,
+      "evaluationDenominator": {
+        "maps": 145,
+        "projection": "geometry_Tiled_preferred"
+      },
+      "unobserved": [
+        "confirmedCity",
+        "confirmedForest",
+        "manualCategoryGroundTruth"
+      ],
+      "limitations": [],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-003-8dfbcc08-rmxp.json",
+        "normalized/pokemon-burning-scales/map-005-da14c646-rmxp.json",
+        "normalized/pokemon-burning-scales/map-009-ce77a709-rmxp.json"
+      ],
+      "provenancePathCount": 33
+    },
+    {
+      "id": "MAP-WATER-001",
+      "category": "water",
+      "title": "Le terrain Surf ne mesure pas la qualité d'une rive",
+      "observation": "Les flags Essentials décrivent modes et restrictions de déplacement; aucune frontière eau-terre sémantique n'est annotée.",
+      "measure": {
+        "terrainDefinitions": 17,
+        "semanticSource": "Burning TerrainTag.rb",
+        "boundaryContinuity": "unknown",
+        "bridgeState": "unresolved"
+      },
+      "recommendation": "Conserver tags, flags et état dans les diagnostics de navigation; vérifier séparément les bords rendus avec une annotation sémantique.",
+      "projectsObserved": 1,
+      "projects": [
+        "pokemon-burning-scales"
+      ],
+      "sourceFamilyCount": 1,
+      "mapsObserved": 19,
+      "occurrences": 19,
+      "exceptions": "Toutes les cellules conditionnelles ne sont pas de l'eau.",
+      "confidence": "high",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 95,
+        "projection": "complete_static_Burning_only"
+      },
+      "unobserved": [
+        "waterLandAdjacencyQuality",
+        "shorelineStyle",
+        "waterContourContinuity"
+      ],
+      "limitations": [],
+      "evidenceKind": "technical_contract",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [
+        "normalized/pokemon-burning-scales/map-002-79a14354-rmxp.json",
+        "normalized/pokemon-burning-scales/map-004-bfb2cae3-rmxp.json",
+        "normalized/pokemon-burning-scales/map-005-da14c646-rmxp.json"
+      ],
+      "provenancePathCount": 19
+    },
+    {
+      "id": "MAP-UNC-PATH-001",
+      "category": "path",
+      "title": "Ruptures des longues lignes droites",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "reviewedVisualPaths",
+          "playerJourney",
+          "turnRhythm"
+        ]
+      },
+      "recommendation": "Tester si des ruptures utiles améliorent la lecture, en tenant compte de la destination et du rythme demandé.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "reviewedVisualPaths",
+        "playerJourney",
+        "turnRhythm"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-FOREST-001",
+      "category": "forest",
+      "title": "Clusters de végétation et répétition",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "decorObjectLabels",
+          "groundAnchors",
+          "clusterCounts",
+          "visualReview"
+        ]
+      },
+      "recommendation": "Explorer des clusters et des espacements irréguliers sur patches natifs revus; aucune densité par défaut n'est déduite des tiles.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "decorObjectLabels",
+        "groundAnchors",
+        "clusterCounts",
+        "visualReview"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-CITY-001",
+      "category": "city",
+      "title": "Chemin, embranchement, approche et porte",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "buildingFootprints",
+          "doorLabels",
+          "pathHierarchy",
+          "approachClearance"
+        ]
+      },
+      "recommendation": "Tester le schéma chemin principal → branche courte → approche → porte sur des bâtiments et portes réellement annotés.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "buildingFootprints",
+        "doorLabels",
+        "pathHierarchy",
+        "approachClearance"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-COMPOSITION-001",
+      "category": "composition",
+      "title": "Landmarks et espace libre",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "landmarkLabels",
+          "cameraFraming",
+          "requiredObjectives",
+          "visualReview"
+        ]
+      },
+      "recommendation": "Préserver la lisibilité des objectifs selon brief et caméra; une zone vide ou chargée n'est pas automatiquement un défaut.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "landmarkLabels",
+        "cameraFraming",
+        "requiredObjectives",
+        "visualReview"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-DECOR-001",
+      "category": "decoration",
+      "title": "Densité, symétrie et effet papier peint",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "decorObjectInstances",
+          "styleBrief",
+          "patternFrequency",
+          "reviewedExceptions"
+        ]
+      },
+      "recommendation": "Proposer une review lorsque des objets identifiés se répètent régulièrement; laisser les exceptions intentionnelles à l'auteur.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "decorObjectInstances",
+        "styleBrief",
+        "patternFrequency",
+        "reviewedExceptions"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-WATER-001",
+      "category": "water",
+      "title": "Continuité des frontières",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "semanticTerrainAdjacency",
+          "borderTiles",
+          "nativeRender"
+        ]
+      },
+      "recommendation": "Comparer les jonctions et coins modulaires à échelle égale avant de proposer une réparation de rive.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "semanticTerrainAdjacency",
+        "borderTiles",
+        "nativeRender"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-DOOR-001",
+      "category": "building",
+      "title": "Dégagement d'approche d'une porte",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "doorActivationCell",
+          "requiredApproachEndpoint",
+          "playerFootprint",
+          "movementState"
+        ]
+      },
+      "recommendation": "Déclarer un endpoint d'approche et le footprint du joueur; vérifier la collision utile indépendamment du canopy ou du sprite de porte.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "doorActivationCell",
+        "requiredApproachEndpoint",
+        "playerFootprint",
+        "movementState"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-SCALE-001",
+      "category": "composition",
+      "title": "Proportions et ancre au sol",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "reviewedObjectIdentity",
+          "width",
+          "height",
+          "groundAnchor",
+          "cameraScale"
+        ]
+      },
+      "recommendation": "Comparer largeur, hauteur et ancre de chaque objet revu; l'égalité d'aire ne garantit pas des proportions correctes.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "reviewedObjectIdentity",
+        "width",
+        "height",
+        "groundAnchor",
+        "cameraScale"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    },
+    {
+      "id": "MAP-UNC-WIDTH-001",
+      "category": "path",
+      "title": "Largeur minimale selon scénario",
+      "observation": "Observation sémantique non mesurée dans ce corpus.",
+      "measure": {
+        "status": "unknown",
+        "requiredData": [
+          "visualPathLabels",
+          "movementFootprint",
+          "passingRequirement",
+          "reviewedWidth"
+        ]
+      },
+      "recommendation": "Définir la largeur utile avec footprint, mouvements et usage; aucune règle universelle de deux cellules n'est prouvée.",
+      "projectsObserved": 0,
+      "projects": [],
+      "sourceFamilyCount": 0,
+      "mapsObserved": 0,
+      "occurrences": 0,
+      "exceptions": "unknown",
+      "confidence": "low",
+      "machineCheckable": false,
+      "evaluationDenominator": {
+        "maps": 0,
+        "projection": "no_reviewed_semantic_sample"
+      },
+      "unobserved": [
+        "visualPathLabels",
+        "movementFootprint",
+        "passingRequirement",
+        "reviewedWidth"
+      ],
+      "limitations": [
+        "Hypothèse à tester dans un lot ultérieur; aucun seuil esthétique validé."
+      ],
+      "evidenceKind": "untested_hypothesis",
+      "syntheticExamplesCountedAsEvidence": false,
+      "provenanceExamples": [],
+      "provenancePathCount": 0
+    }
+  ],
+  "placementPatterns": [
+    {
+      "id": "SUPPORT",
+      "condition": "Le support requis et l’emprise au sol de cet asset sont connus.",
+      "proposal": "Vérifier toutes les cellules de l’emprise au sol sur un support autorisé et un niveau compatible.",
+      "counterexample": "Un pied d’arbre terrestre posé sur l’eau sans îlot ni adaptation aquatique.",
+      "exceptions": [
+        "Palmiers sur sable compatible",
+        "Plantes aquatiques",
+        "Support occulté : statut inconnu, pas correction automatique"
+      ],
+      "evidence": [
+        "PHOTO-2-beach-palms",
+        "PHOTO-3-tree-bank",
+        "PHOTO-10-small-tree-pocket"
+      ],
+      "verificationNeeded": "Annotation manuelle du pied et du support ; rejet/acceptation sur des cas synthétiques et revue du rendu.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "OCCLUSION",
+      "proposal": "Distinguer ancre au sol, emprise occupée, débord du feuillage et ordre de rendu.",
+      "counterexample": "Rejeter un arbre correct parce qu’un pixel du feuillage recouvre de l’eau ou une face de falaise.",
+      "evidence": [
+        "PHOTO-3-tree-bank",
+        "PHOTO-10-small-tree-pocket"
+      ],
+      "verificationNeeded": "Pied connu, cas de feuillage devant/derrière le relief et revue à l’échelle du joueur.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "RELIEF",
+      "proposal": "Définir les régions de terrain et leurs relations de niveau avant les rebords, faces et pieds de falaise.",
+      "counterexample": "Empiler des faces rocheuses isolées sans surface supérieure ni contour raccordé.",
+      "exceptions": [
+        "Une capture recadrée peut cacher la surface ou la suite du relief",
+        "Une couche de rendu haute ne prouve pas un terrain élevé"
+      ],
+      "evidence": [
+        "PHOTO-4-rock-plateau",
+        "PHOTO-8-snow-contours",
+        "PHOTO-10-terraces"
+      ],
+      "verificationNeeded": "Catalogue de modules du tileset, annotation des contacts haut/bas et des niveaux ; comparaison native.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "CORNER",
+      "proposal": "Sélectionner les pièces droites et les angles rentrants/sortants selon l’orientation du contour et les régions voisines.",
+      "counterexample": "Employer un angle sortant pour un creux ou mélanger des familles de falaise incompatibles.",
+      "evidence": [
+        "PHOTO-9-headland",
+        "PHOTO-10-terraces"
+      ],
+      "verificationNeeded": "Exemples des deux types d’angles pour chaque orientation réellement disponible dans le tileset.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "STAIR",
+      "proposal": "Raccorder une arrivée basse et une arrivée haute connues, avec dégagement de l’emprise nécessaire.",
+      "counterexample": "Escalier dont le haut s’arrête contre une face pleine ou dont le bas tombe dans l’eau sans aménagement.",
+      "exceptions": [
+        "Escalier décoratif explicitement déclaré",
+        "Destination hors capture : ne pas inventer le raccord"
+      ],
+      "evidence": [
+        "PHOTO-2-beach-stair",
+        "PHOTO-8-stair",
+        "PHOTO-10-grass-pocket"
+      ],
+      "verificationNeeded": "Contacts visuels et parcours Player séparément ; aucune jouabilité conclue depuis les JPEG.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "CASCADE",
+      "proposal": "Raccorder l’eau supérieure, une rupture du relief et l’eau inférieure avec une largeur de contact cohérente.",
+      "counterexample": "Cascade détachée de l’amont, posée sur un sol plat ou sans bassin de réception prévu.",
+      "exceptions": [
+        "Cascade décorative ou hors champ explicitement documentée"
+      ],
+      "evidence": [
+        "PHOTO-3-cascade",
+        "PHOTO-6-cascade",
+        "PHOTO-9-cascade"
+      ],
+      "verificationNeeded": "Annotation du contact amont/face/aval et rendu du module animé ; niveaux moteur encore inconnus.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "BRIDGE",
+      "proposal": "Préserver le canal et adapter portée, orientation, raccords et arrivées à la position des deux rives.",
+      "counterexample": "Remplir la rivière avec du sol pour rendre le tablier traversable, ou laisser une arrivée détachée de la rive.",
+      "exceptions": [
+        "Chemin sur pilotis ou passerelle à embranchements : recette dédiée",
+        "Pont décoratif : rôle explicite"
+      ],
+      "evidence": [
+        "PHOTO-1-bridges",
+        "PHOTO-3-bridge",
+        "PHOTO-6-bridge"
+      ],
+      "verificationNeeded": "Support des arrivées et eau sous la portée ; collisions et traversal à prouver dans le projet.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "DOCK",
+      "proposal": "Distinguer un ponton d’un pont ; prévoir une arrivée terrestre et une extrémité aquatique intentionnelle.",
+      "counterexample": "Ajouter artificiellement une seconde rive à un ponton pour satisfaire la règle des ponts.",
+      "evidence": [
+        "PHOTO-2-dock"
+      ],
+      "verificationNeeded": "Rôle déclaré dans le catalogue ; emplacement du bateau et usages du ponton restent à définir.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "MODULE",
+      "proposal": "Employer des modules raccordables d’une même famille et contrôler les extrémités et changements de direction.",
+      "counterexample": "Juxtaposer des planches ou morceaux de bord dont les contacts ne coïncident pas.",
+      "evidence": [
+        "PHOTO-1-bridges",
+        "PHOTO-9-headland"
+      ],
+      "verificationNeeded": "Points de connexion annotés dans les assets réels ; source des modules inconnue dans les captures.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "VEGETATION",
+      "proposal": "Choisir d’abord le rôle : massif, lisière, arbre isolé, jardin ou culture. Adapter ensuite contour, espacement et variation.",
+      "counterexample": "Appliquer le même placement aléatoire à une forêt de fond, à une entrée de maison et à un champ.",
+      "exceptions": [
+        "Rangées d’arbres dans une masse forestière",
+        "Symétrie et répétition dans un jardin ou une culture"
+      ],
+      "evidence": [
+        "PHOTO-2-garden",
+        "PHOTO-4-forest-block",
+        "PHOTO-6-forest-edge",
+        "PHOTO-8-crops"
+      ],
+      "verificationNeeded": "Cas revus par Yoahn ; aucun seuil universel de densité ni score d’aléatoire déduit.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "CLEARANCE",
+      "proposal": "Réserver les approches et les passages utiles avant de placer les obstacles statiques.",
+      "counterexample": "Un arbre ou une clôture qui condamne une porte requise.",
+      "exceptions": [
+        "Acteur ou obstacle narratif volontaire",
+        "Bâtiment sans entrée fonctionnelle déclarée"
+      ],
+      "evidence": [
+        "PHOTO-1-central-plaza",
+        "PHOTO-5-center-approach",
+        "PHOTO-7-building-approach"
+      ],
+      "verificationNeeded": "Liste des accès requis et données de navigation ; la présence d’un personnage sur une capture ne prouve pas un défaut.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "WATER_OBJECT",
+      "proposal": "Choisir la variante aquatique appropriée : plante emergente, objet flottant, fond immergé ou rocher dépassant la surface.",
+      "counterexample": "Interdire tous les rochers et plantes dans l’eau, ou employer un rocher terrestre sans traitement de ligne d’eau.",
+      "evidence": [
+        "PHOTO-3-water-plants",
+        "PHOTO-7-water-rocks",
+        "PHOTO-9-submerged-rocks"
+      ],
+      "verificationNeeded": "Rôle de l’asset et ordre de rendu confirmés ; impossible de déduire les layers natifs depuis un JPEG.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "BIOME",
+      "proposal": "Composer les matériaux et les variantes végétales par région et par transition.",
+      "counterexample": "Distribuer les variantes de neige ou de végétation aride indépendamment dans toute la map.",
+      "exceptions": [
+        "Transition stylisée",
+        "Saisonnalité ou récit explicitement choisi"
+      ],
+      "evidence": [
+        "PHOTO-4-arid-route",
+        "PHOTO-7-tree-mass",
+        "PHOTO-8-transition"
+      ],
+      "verificationNeeded": "Direction artistique approuvée ; aucune loi climatique ou interdiction de mélange déduite.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "COMPOSITION",
+      "proposal": "Conserver des espaces ouverts et organiser les détails autour des repères et des usages de chaque zone.",
+      "counterexample": "Ajouter des objets uniquement pour remplir une zone vide ou atteindre un quota de décoration.",
+      "exceptions": [
+        "Aménagement dense volontaire",
+        "Grande surface d’eau ou place volontairement ouverte"
+      ],
+      "evidence": [
+        "PHOTO-1-central-plaza",
+        "PHOTO-2-garden",
+        "PHOTO-5-ruins",
+        "PHOTO-6-lake"
+      ],
+      "verificationNeeded": "Revue visuelle par Yoahn ; fréquence et densité ne constituent pas une mesure de beauté.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    },
+    {
+      "id": "INTENT",
+      "proposal": "Traiter le contexte inconnu comme inconnu, notamment les zones pouvant servir de démonstration ou de tests.",
+      "counterexample": "Transformer un placement isolé et inexpliqué en règle universelle de construction.",
+      "evidence": [
+        "PHOTO-10-props-area"
+      ],
+      "verificationNeeded": "Intention de la source et données natives si disponibles.",
+      "status": "qualitative_candidate_not_measured_universal_rule"
+    }
+  ],
+  "photoEvidence": [
+    {
+      "id": "PHOTO-1",
+      "sha256": "12879fd8536c6b2cdae4e9ff20ea68763699ed0f5248b778b463d4d3cc83fe32",
+      "width": 580,
+      "height": 529,
+      "title": "Village d’îlots",
+      "observation": "Une place centrale et des poches d’habitat sont organisées autour de passages sur l’eau.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-1-bridges",
+          "regionPx": [94, 191, 125, 159],
+          "observation": "Les passerelles de gauche rejoignent des terres et utilisent des segments droits et des changements de direction.",
+          "proposedLesson": "Un pont se compose d’une portée, de raccords et de zones d’arrivée cohérentes.",
+          "topics": [
+            "BRIDGE",
+            "MODULE"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-1-central-plaza",
+          "regionPx": [205, 200, 178, 148],
+          "observation": "La plate-forme centrale garde un espace libre autour du monument et plusieurs approches.",
+          "proposedLesson": "Un repère central a besoin d’une réserve de circulation.",
+          "topics": [
+            "CLEARANCE",
+            "COMPOSITION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-1-sand-palms",
+          "regionPx": [206, 348, 168, 67],
+          "observation": "Des palmiers prennent appui sur la plage entourant la place.",
+          "proposedLesson": "Un arbre ne doit pas être limité par défaut à l’herbe ; le support et le biome dépendent de l’asset.",
+          "topics": [
+            "SUPPORT",
+            "BIOME"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-2",
+      "sha256": "2d3da893bfdf4470bc57d018d08732a4c4ff7cb14b5c1355125476c2a4128b59",
+      "width": 784,
+      "height": 944,
+      "title": "Village fleuri et port",
+      "observation": "Le dessin volontaire des parterres et l’axe vers la plage structurent le village.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-2-garden",
+          "regionPx": [308, 271, 222, 114],
+          "observation": "Les parterres clôturés reprennent des formes régulières et la place laisse circuler autour.",
+          "proposedLesson": "La symétrie et la répétition sont adaptées aux aménagements humains.",
+          "topics": [
+            "VEGETATION",
+            "COMPOSITION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-2-beach-stair",
+          "regionPx": [386, 599, 47, 53],
+          "observation": "L’escalier coupe le rebord entre le village et la plage et présente une arrivée libre de chaque côté.",
+          "proposedLesson": "Un escalier doit raccorder les surfaces de départ et d’arrivée.",
+          "topics": [
+            "STAIR",
+            "RELIEF"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-2-dock",
+          "regionPx": [363, 745, 65, 117],
+          "observation": "Le ponton part de la plage et finit dans l’eau près d’un bateau.",
+          "proposedLesson": "Un ponton n’exige pas deux rives : son extrémité aquatique est intentionnelle.",
+          "topics": [
+            "DOCK"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-2-beach-palms",
+          "regionPx": [111, 653, 489, 95],
+          "observation": "Les pieds des palmiers visibles reposent sur le sable, avec des feuillages qui débordent.",
+          "proposedLesson": "Contrôler le support au sol plutôt que tous les pixels du dessin.",
+          "topics": [
+            "SUPPORT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-3",
+      "sha256": "37c06e1e8f36d153366bea50fdbb2608b8ed7e90e45cc27a0512493d711a1052",
+      "width": 480,
+      "height": 480,
+      "title": "Gorge forestière",
+      "observation": "Le cours d’eau traverse des ruptures du relief, puis une zone plus ouverte.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-3-cascade",
+          "regionPx": [211, 171, 72, 85],
+          "observation": "Une cascade prolonge l’eau supérieure à travers la face rocheuse et rejoint l’eau inférieure.",
+          "proposedLesson": "La cascade remplace une portion de face de falaise et raccorde deux surfaces d’eau.",
+          "topics": [
+            "CASCADE",
+            "RELIEF"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-3-bridge",
+          "regionPx": [337, 280, 82, 95],
+          "observation": "Le tablier traverse le bras d’eau et rejoint les zones terrestres au nord et au sud.",
+          "proposedLesson": "Préserver l’eau sous la traversée et raccorder ses deux arrivées.",
+          "topics": [
+            "BRIDGE"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-3-tree-bank",
+          "regionPx": [65, 77, 99, 128],
+          "observation": "Un grand arbre garde un pied visible sur l’herbe ; son feuillage masque une partie de la rive et du relief.",
+          "proposedLesson": "Le débord du feuillage est différent d’un pied placé dans l’eau.",
+          "topics": [
+            "SUPPORT",
+            "OCCLUSION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-3-water-plants",
+          "regionPx": [219, 252, 116, 82],
+          "observation": "Des plantes émergentes et des feuilles flottantes occupent le cours d’eau.",
+          "proposedLesson": "La compatibilité avec l’eau est propre à la famille d’assets.",
+          "topics": [
+            "WATER_OBJECT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-4",
+      "sha256": "ef63d066d345c358e27a56f26dd2a4f3b0b14df52ddd1751aa6e4b8b80913e8a",
+      "width": 736,
+      "height": 460,
+      "title": "Village et route aride",
+      "observation": "Les masses de forêt, le village et la zone rocheuse ont des rôles distincts.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-4-forest-block",
+          "regionPx": [179, 211, 138, 155],
+          "observation": "Une masse de forêt utilise des rangées régulières et délimite les passages alentour.",
+          "proposedLesson": "La répétition dans une forêt de fond peut construire une limite lisible.",
+          "topics": [
+            "VEGETATION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-4-rock-plateau",
+          "regionPx": [314, 172, 108, 171],
+          "observation": "Le grand volume rocheux possède un dessus et un contour avec des retours de face.",
+          "proposedLesson": "Construire une région de relief avant de choisir les pièces de son contour.",
+          "topics": [
+            "RELIEF",
+            "CORNER"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-4-crossing",
+          "regionPx": [106, 379, 39, 55],
+          "observation": "Le passage du bas à gauche traverse le canal entre deux zones terrestres.",
+          "proposedLesson": "Une traversée doit être examinée avec les surfaces qui l’encadrent.",
+          "topics": [
+            "BRIDGE"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-4-arid-route",
+          "regionPx": [434, 121, 133, 224],
+          "observation": "Le chemin sableux est accompagné de formations rocheuses et d’une végétation adaptée à cette zone.",
+          "proposedLesson": "Former une zone de biome cohérente plutôt que varier les espèces indépendamment partout.",
+          "topics": [
+            "BIOME",
+            "COMPOSITION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-5",
+      "sha256": "35e00ca1c135f3f76e319f5f40442f66ac754d3006953889651bbc950be45d46",
+      "width": 490,
+      "height": 544,
+      "title": "Petit village boisé",
+      "observation": "Les approches des bâtiments et quelques aménagements donnent une fonction aux clairières.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-5-ruins",
+          "regionPx": [152, 44, 139, 96],
+          "observation": "La zone pavée avec pierres, troncs et végétation forme un ensemble identifiable.",
+          "proposedLesson": "Des objets associés à une même fonction peuvent créer un repère local.",
+          "topics": [
+            "COMPOSITION",
+            "SUPPORT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-5-center-approach",
+          "regionPx": [238, 151, 101, 116],
+          "observation": "La façade du bâtiment central donne sur le chemin ; des personnages occupent temporairement l’approche.",
+          "proposedLesson": "Distinguer la réserve pour les obstacles statiques du placement potentiellement volontaire d’un acteur.",
+          "topics": [
+            "CLEARANCE"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-5-garden",
+          "regionPx": [223, 278, 160, 79],
+          "observation": "La maison, les haies et les cultures sont disposées comme un aménagement lié au bâtiment.",
+          "proposedLesson": "Choisir les accessoires selon leur relation au bâtiment et à l’espace disponible.",
+          "topics": [
+            "SUPPORT",
+            "COMPOSITION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-6",
+      "sha256": "227fe046ff4346464e5c9ab29dcd261dccb647008de737781ef1044e84c67210",
+      "width": 969,
+      "height": 969,
+      "title": "Village autour d’un lac",
+      "observation": "L’eau centrale reste largement ouverte tandis que la forêt encadre les zones bâties.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-6-cascade",
+          "regionPx": [406, 65, 110, 147],
+          "observation": "Les deux chutes se suivent dans l’axe du cours d’eau descendant vers le lac.",
+          "proposedLesson": "Les chutes et leurs contacts doivent suivre la succession des terrasses.",
+          "topics": [
+            "CASCADE",
+            "RELIEF"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-6-lake",
+          "regionPx": [307, 209, 424, 244],
+          "observation": "Le centre du lac est peu peuplé en objets, contrairement à la forêt qui l’entoure.",
+          "proposedLesson": "Le vide peut porter la composition ; une grande zone libre n’est pas un défaut à remplir.",
+          "topics": [
+            "COMPOSITION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-6-bridge",
+          "regionPx": [576, 665, 121, 84],
+          "observation": "Le petit tablier relie les deux zones bâties à travers le chenal.",
+          "proposedLesson": "La portée et les arrivées dépendent de la géométrie réelle des deux rives.",
+          "topics": [
+            "BRIDGE",
+            "STAIR"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-6-forest-edge",
+          "regionPx": [72, 191, 236, 274],
+          "observation": "La masse d’arbres suit une lisière irrégulière au bord du lac.",
+          "proposedLesson": "Définir la masse forestière et sa lisière avant les arbres isolés.",
+          "topics": [
+            "VEGETATION",
+            "SUPPORT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-7",
+      "sha256": "ea9d73e65e36b8da4de4a3677b06fcee316162c4564bac1e9fd82cf14861c690",
+      "width": 1280,
+      "height": 960,
+      "title": "Village forestier à plusieurs clairières",
+      "observation": "Les bâtiments occupent des poches reliées autour des masses d’arbres.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-7-tree-mass",
+          "regionPx": [371, 55, 785, 170],
+          "observation": "Les arbres forment un massif avec quelques variations de silhouette et de couleur.",
+          "proposedLesson": "La variation doit conserver une identité commune au massif.",
+          "topics": [
+            "VEGETATION",
+            "BIOME"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-7-building-approach",
+          "regionPx": [419, 193, 157, 158],
+          "observation": "Le bâtiment rouge se trouve dans une clairière et son entrée rejoint le chemin.",
+          "proposedLesson": "Réserver l’approche avant de remplir la clairière avec des arbres.",
+          "topics": [
+            "CLEARANCE"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-7-pond",
+          "regionPx": [576, 425, 243, 169],
+          "observation": "La mare a un contour fermé irrégulier et une végétation de bord.",
+          "proposedLesson": "Traiter eau, rive et végétation riveraine comme un assemblage.",
+          "topics": [
+            "RELIEF",
+            "WATER_OBJECT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-7-water-rocks",
+          "regionPx": [207, 820, 545, 139],
+          "observation": "Plusieurs rochers présentent une partie apparente et une partie visuellement immergée.",
+          "proposedLesson": "L’objet aquatique doit employer un traitement de ligne d’eau compatible.",
+          "topics": [
+            "WATER_OBJECT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-8",
+      "sha256": "57cf9dc31a4f35f633298c77c1a4ce438d0a26383d84fc0eae5fa8e9710efbb7",
+      "width": 452,
+      "height": 1280,
+      "title": "Route de montagne jusqu’à la neige",
+      "observation": "Le relief et les matériaux changent par zones le long d’une carte étroite.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-8-snow-contours",
+          "regionPx": [106, 142, 250, 155],
+          "observation": "Les surfaces enneigées conservent des contours rocheux avec des angles et des faces.",
+          "proposedLesson": "Le matériau de surface peut changer sans supprimer la structure du relief.",
+          "topics": [
+            "RELIEF",
+            "CORNER",
+            "BIOME"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-8-transition",
+          "regionPx": [1, 267, 450, 246],
+          "observation": "La neige, les arbres enneigés et les surfaces rocheuses se répartissent en zones de transition.",
+          "proposedLesson": "Définir les régions de biome et leurs contacts avant les variantes d’assets.",
+          "topics": [
+            "BIOME"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-8-stair",
+          "regionPx": [190, 509, 76, 99],
+          "observation": "L’escalier central s’inscrit dans une succession de terrasses.",
+          "proposedLesson": "Adapter la longueur visible de l’escalier et ses arrivées au relief qu’il traverse.",
+          "topics": [
+            "STAIR",
+            "RELIEF"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-8-crops",
+          "regionPx": [1, 1154, 168, 126],
+          "observation": "Des cultures régulières occupent le bas de la route, avec des passages entre les bandes.",
+          "proposedLesson": "La répétition organisée peut exprimer l’usage agricole d’une zone.",
+          "topics": [
+            "VEGETATION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-9",
+      "sha256": "03a5b23a4ae673645de808d9409e84263447de3fe4e3b19cc1825b113683d248",
+      "width": 784,
+      "height": 544,
+      "title": "Habitat au bord d’un bassin rocheux",
+      "observation": "Les rives, les chutes et les promontoires rocheux organisent les espaces habitables.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-9-cascade",
+          "regionPx": [210, 217, 107, 95],
+          "observation": "L’eau supérieure rejoint le bassin par une chute alignée avec l’ouverture de la face rocheuse.",
+          "proposedLesson": "Une chute doit raccorder l’amont, la face et le bassin inférieur.",
+          "topics": [
+            "CASCADE",
+            "RELIEF"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-9-headland",
+          "regionPx": [434, 154, 134, 171],
+          "observation": "Le promontoire intérieur assemble des contours rentrants et sortants autour d’une masse rocheuse.",
+          "proposedLesson": "Choisir les angles d’après le contour de la région, pas en répétant une même pièce.",
+          "topics": [
+            "RELIEF",
+            "CORNER"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-9-submerged-rocks",
+          "regionPx": [155, 305, 218, 87],
+          "observation": "Le fond du bassin contient des silhouettes de rochers sous l’eau.",
+          "proposedLesson": "Ne pas confondre un fond aquatique, un rocher émergent et un rocher terrestre.",
+          "topics": [
+            "WATER_OBJECT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-9-house-approach",
+          "regionPx": [588, 146, 134, 181],
+          "observation": "La maison de droite rejoint une zone de chemin, avec une clôture située au bord de la berge.",
+          "proposedLesson": "Coordonner approche de bâtiment, clôture et limite de terrain.",
+          "topics": [
+            "CLEARANCE",
+            "SUPPORT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    },
+    {
+      "id": "PHOTO-10",
+      "sha256": "4219df64f73a33772e3e16edc9b61f5cbf35d4c086ed9ba4c8a3b5a506392c2c",
+      "width": 755,
+      "height": 1280,
+      "title": "Grande route entre massif et forêt",
+      "observation": "Les poches herbeuses et les espaces forestiers sont insérés dans un système de contours.",
+      "source": "user_attachment",
+      "author": "unknown",
+      "project": "unknown",
+      "license": "unknown",
+      "tileset": "unknown",
+      "cellSize": "unknown",
+      "annotations": [
+        {
+          "id": "PHOTO-10-terraces",
+          "regionPx": [30, 1, 329, 256],
+          "observation": "Les faces du massif se succèdent avec des retours d’angles et des surfaces rocheuses intermédiaires.",
+          "proposedLesson": "Construire des terrasses cohérentes ; l’ordre des couches d’image ne suffit pas à représenter les niveaux de terrain.",
+          "topics": [
+            "RELIEF",
+            "CORNER"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-10-grass-pocket",
+          "regionPx": [298, 363, 167, 173],
+          "observation": "Une poche herbeuse est délimitée par la roche, avec une ouverture et un accès visibles.",
+          "proposedLesson": "Une clairière ou un plateau intérieur a besoin d’un contour cohérent et d’accès volontairement placés.",
+          "topics": [
+            "RELIEF",
+            "STAIR"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-10-small-tree-pocket",
+          "regionPx": [510, 438, 81, 68],
+          "observation": "Un arbre pousse sur une petite surface herbeuse bordée de roche ; son feuillage dépasse le contour de cette surface.",
+          "proposedLesson": "Un débord visuel hors du support ne signifie pas que le pied manque de support.",
+          "topics": [
+            "SUPPORT",
+            "OCCLUSION"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        },
+        {
+          "id": "PHOTO-10-props-area",
+          "regionPx": [488, 850, 215, 229],
+          "observation": "La clairière à droite contient des objets de types variés, de petites clôtures et une mare.",
+          "proposedLesson": "L’intention de cette zone n’est pas connue ; ne pas ériger chaque placement en modèle esthétique.",
+          "topics": [
+            "INTENT"
+          ],
+          "status": "observed_pixels_and_proposed_interpretation"
+        }
+      ]
+    }
+  ],
+  "photoLimits": [
+    "Dix captures fournies, pas dix projets identifiés ni dix sources indépendantes.",
+    "Aucune tuile, dimension de cellule, collision, layer natif ou hauteur moteur identifiée avec certitude.",
+    "Le placement au sol peut être masqué par le feuillage, le relief ou les bâtiments.",
+    "Les zones hors champ ne sont pas des erreurs ; les destinations hors capture restent inconnues.",
+    "JPEG et rectangles conservés pour analyse locale ; droits et autorat inconnus, aucune republication autorisée par ce fichier.",
+    "Les 30 règles techniques du corpus existant et leurs dénominateurs ne sont pas modifiés par cet échantillon visuel.",
+    "Bundled annotations are guidance; no model training or automatic semantic enforcement is implied."
+  ],
+  "nativeAssemblies": [
+    {
+      "id": "TREE-12",
+      "mapId": 12,
+      "observation": "The forest body repeats two-column canopy pieces, then closes at its south edge with dedicated lower-canopy and trunk/shadow rows. This end of the mass sits over visually grassy source cells; the whole canopy rectangle is not a ground support mask.",
+      "proposedPluginRule": "Distinguish a complete isolated tree from forest body and edge pieces. Declare ground anchors/support masks and visual overhang separately; never use a partial canopy module as a complete tree.",
+      "groundSupportCandidate": [
+        [25, 32],
+        [26, 32]
+      ],
+      "limits": "The focus is the lower end of a forest mass, not a complete isolated tree. Footprint and anchor are visual annotations awaiting review; collision footprint is unknown. Kanto terrain tags are all zero and do not establish dry ground. Repetition is intentional here.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Viridian Forest",
+      "mapSourcePath": "Data/Map012.rxdata",
+      "mapSourceSha256": "5bc52b312bf6d369f7cb7c69685a90fe928b0d5b931fdaaeb4f62463331c0a67",
+      "mapSizeCells": [76, 80],
+      "tilesetId": 21,
+      "contextRegionCells": [24, 28, 5, 7],
+      "focusRegionCells": [25, 29, 2, 4],
+      "sourceCell": {
+        "x": 25,
+        "y": 32,
+        "layer": 2,
+        "tileId": 824
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [387, 387],
+            [387, 387],
+            [388, 389],
+            [385, 388]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 0]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [800, 801],
+            [808, 809],
+            [816, 817],
+            [824, 825]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 385,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 0, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 387,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [96, 0, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 388,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 0, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 389,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 0, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 800,
+          "sourcePriority": 2,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 1664, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 801,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [32, 1664, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 808,
+          "sourcePriority": 2,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 1696, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 809,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [32, 1696, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 816,
+          "sourcePriority": 2,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 1728, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 817,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [32, 1728, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 824,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 1760, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 825,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [32, 1760, 32, 32],
+          "sourceRef": "ASSET-1"
+        }
+      ],
+      "topicIds": [
+        "SUPPORT",
+        "OCCLUSION",
+        "VEGETATION"
+      ]
+    },
+    {
+      "id": "CLIFF-140",
+      "mapId": 140,
+      "observation": "The stepped contour uses distinct turn, side and front-face tiles across the first two layers. Successive fronts remain connected around the turns.",
+      "proposedPluginRule": "Draw a plateau region, derive oriented exposed edges and concave/convex corners, then select compatible modules for the chosen material and visual height. Validate every junction.",
+      "limits": "Physical elevation is not stored in these tile IDs. Draw priorities must not be treated as terrain heights. This region is an observed assembly, not a universal cliff template.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Route 46",
+      "mapSourcePath": "Data/Map140.rxdata",
+      "mapSourceSha256": "4b6ef85eed0d8c3ee64c50ddcf915a25dae32fb94b4cbad6c8fbba19e23a429c",
+      "mapSizeCells": [62, 71],
+      "tilesetId": 23,
+      "contextRegionCells": [40, 10, 8, 7],
+      "focusRegionCells": [41, 11, 6, 5],
+      "sourceCell": {
+        "x": 42,
+        "y": 11,
+        "layer": 1,
+        "tileId": 406
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [441, 441, 441, 441, 441, 441],
+            [441, 441, 441, 441, 441, 441],
+            [441, 441, 441, 441, 441, 441],
+            [441, 441, 441, 441, 441, 441],
+            [441, 441, 441, 441, 441, 441]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [441, 406, 449, 449, 449, 449],
+            [441, 442, 0, 0, 406, 449],
+            [449, 450, 0, 0, 442, 406],
+            [449, 449, 449, 449, 450, 442],
+            [449, 449, 449, 449, 449, 450]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 406,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [192, 64, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 441,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 224, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 442,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [64, 224, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 449,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [32, 256, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 450,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [64, 256, 32, 32],
+          "sourceRef": "ASSET-2"
+        }
+      ],
+      "topicIds": [
+        "RELIEF",
+        "CORNER",
+        "MODULE"
+      ]
+    },
+    {
+      "id": "STAIR-140",
+      "mapId": 140,
+      "observation": "A two-cell stair graphic is inserted between the border cells, with clear terrain on both sides of the transition.",
+      "proposedPluginRule": "Reserve the opening in the terrain contour, align the stair width to it, and declare upper/lower landings that decoration must preserve.",
+      "limits": "Static assembly only; no player movement, collision direction, ledge behavior or transition elevation has been tested.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Route 46",
+      "mapSourcePath": "Data/Map140.rxdata",
+      "mapSourceSha256": "4b6ef85eed0d8c3ee64c50ddcf915a25dae32fb94b4cbad6c8fbba19e23a429c",
+      "mapSizeCells": [62, 71],
+      "tilesetId": 23,
+      "contextRegionCells": [27, 44, 7, 5],
+      "focusRegionCells": [29, 46, 2, 1],
+      "sourceCell": {
+        "x": 29,
+        "y": 46,
+        "layer": 2,
+        "tileId": 709
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [396, 396]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [0, 0]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [709, 710]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 396,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 32, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 709,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 1280, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 710,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [192, 1280, 32, 32],
+          "sourceRef": "ASSET-2"
+        }
+      ],
+      "topicIds": [
+        "RELIEF",
+        "STAIR",
+        "CLEARANCE"
+      ]
+    },
+    {
+      "id": "BRIDGE-97",
+      "mapId": 97,
+      "observation": "The vertical bridge has explicit cap rows, repeatable deck rows and side pieces. Its ends meet two land areas, while the middle overlays water cells.",
+      "proposedPluginRule": "Build a bridge from caps, deck and rail modules. Require two compatible landings and a declared route connection across the deck, with support and depth behavior stored separately.",
+      "limits": "Graphics imply a crossing but this pack has no events. Dynamic bridge state, collision and actual traversal remain unverified.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Whiteport Town",
+      "mapSourcePath": "Data/Map097.rxdata",
+      "mapSourceSha256": "8bfa946b64a8c72499ed0f480d327c4afb2cafc5517f55502b17d2dc4cccb796",
+      "mapSizeCells": [54, 40],
+      "tilesetId": 23,
+      "contextRegionCells": [20, 14, 7, 13],
+      "focusRegionCells": [21, 16, 5, 9],
+      "sourceCell": {
+        "x": 23,
+        "y": 20,
+        "layer": 1,
+        "tileId": 973
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [489, 489, 489, 489, 489],
+            [1810, 1810, 1810, 1810, 1810],
+            [1420, 192, 192, 192, 1420],
+            [1420, 192, 192, 192, 1420],
+            [1420, 192, 192, 192, 1420],
+            [1420, 192, 192, 192, 1420],
+            [1420, 192, 192, 192, 1815],
+            [1420, 220, 220, 220, 1855],
+            [230, 425, 425, 425, 425]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [963, 964, 965, 966, 967],
+            [971, 972, 973, 974, 975],
+            [971, 972, 973, 974, 975],
+            [979, 980, 981, 982, 983],
+            [971, 972, 973, 974, 975],
+            [979, 980, 981, 982, 983],
+            [971, 972, 973, 974, 975],
+            [979, 980, 981, 982, 983],
+            [987, 988, 989, 990, 991]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1759, 0, 0, 0, 0],
+            [1767, 0, 0, 0, 0]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 192,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 7,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 0,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 64, 16, 16],
+            [48, 64, 16, 16],
+            [32, 80, 16, 16],
+            [48, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 220,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 7,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 28,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 96, 16, 16],
+            [48, 96, 16, 16],
+            [32, 112, 16, 16],
+            [48, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 230,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 7,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 38,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 96, 16, 16],
+            [80, 96, 16, 16],
+            [64, 112, 16, 16],
+            [80, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 425,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 160, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 489,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 416, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 963,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 2304, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 964,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 2304, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 965,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 2304, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 966,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [192, 2304, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 967,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 2304, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 971,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 2336, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 972,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 2336, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 973,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 2336, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 974,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [192, 2336, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 975,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 2336, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 979,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 2368, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 980,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 2368, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 981,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 2368, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 982,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [192, 2368, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 983,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 2368, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 987,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 2400, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 988,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 2400, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 989,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [160, 2400, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 990,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [192, 2400, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 991,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 2400, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1420,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [128, 4128, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1759,
+          "sourcePriority": 2,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [224, 5472, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1767,
+          "sourcePriority": 1,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [224, 5504, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1810,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [64, 5696, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1815,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 5696, 32, 32],
+          "sourceRef": "ASSET-2"
+        },
+        {
+          "tileId": 1855,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [224, 5856, 32, 32],
+          "sourceRef": "ASSET-2"
+        }
+      ],
+      "topicIds": [
+        "BRIDGE",
+        "MODULE",
+        "CLEARANCE"
+      ]
+    },
+    {
+      "id": "DOCK-21",
+      "mapId": 21,
+      "observation": "The pontoon attaches to the island at its north end and terminates in water to the south. Water remains in the lower layer under its final row.",
+      "proposedPluginRule": "Classify a dock separately from a crossing bridge: require one land attachment and a deliberate water termination instead of a second bank.",
+      "limits": "The water is identified from the decoded NOANIMSEA asset, not terrain tags. No boat interaction or dock traversal is available in the map data.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Alyssum Island",
+      "mapSourcePath": "Data/Map021.rxdata",
+      "mapSourceSha256": "e678e4d8d44e33bba0539f11498728eedc258d8d40d24e880043c056880d82ae",
+      "mapSizeCells": [64, 48],
+      "tilesetId": 21,
+      "contextRegionCells": [21, 27, 7, 7],
+      "focusRegionCells": [22, 29, 5, 4],
+      "sourceCell": {
+        "x": 24,
+        "y": 30,
+        "layer": 2,
+        "tileId": 1594
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [132, 516, 516, 516, 112],
+            [120, 516, 516, 516, 112],
+            [120, 516, 516, 516, 112],
+            [98, 116, 116, 116, 97]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [0, 0, 0, 0, 0],
+            [0, 0, 912, 913, 0],
+            [0, 0, 920, 921, 0],
+            [0, 0, 0, 0, 0]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [1584, 1585, 1586, 1587, 1588],
+            [1592, 1593, 1594, 1595, 1596],
+            [1600, 1601, 1602, 1603, 1604],
+            [1608, 1609, 1610, 1611, 1612]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 97,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 1,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 0, 16, 16],
+            [48, 64, 16, 16],
+            [32, 80, 16, 16],
+            [48, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 98,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 2,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 64, 16, 16],
+            [80, 0, 16, 16],
+            [32, 80, 16, 16],
+            [48, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 112,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 16,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [0, 64, 16, 16],
+            [16, 64, 16, 16],
+            [0, 80, 16, 16],
+            [16, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 116,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 20,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 32, 16, 16],
+            [48, 32, 16, 16],
+            [32, 48, 16, 16],
+            [48, 48, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 120,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 24,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 64, 16, 16],
+            [80, 64, 16, 16],
+            [64, 80, 16, 16],
+            [80, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 132,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 36,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 32, 16, 16],
+            [80, 32, 16, 16],
+            [64, 48, 16, 16],
+            [80, 48, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 516,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 512, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 912,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [0, 2112, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 913,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 2112, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 920,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [0, 2144, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 921,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 2144, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1584,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 4800, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1585,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 4800, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1586,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4800, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1587,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4800, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1588,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [128, 4800, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1592,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 4832, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1593,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 4832, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1594,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4832, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1595,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4832, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1596,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [128, 4832, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1600,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 4864, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1601,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 4864, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1602,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4864, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1603,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4864, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1604,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [128, 4864, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1608,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [0, 4896, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1609,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [32, 4896, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1610,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4896, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1611,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4896, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1612,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [128, 4896, 32, 32],
+          "sourceRef": "ASSET-1"
+        }
+      ],
+      "topicIds": [
+        "DOCK",
+        "MODULE",
+        "CLEARANCE"
+      ]
+    },
+    {
+      "id": "CASCADE-100",
+      "mapId": 100,
+      "observation": "A dedicated Waterfall crest row joins the upper water to the TFJ_Waterfall surface. Five-column waterfall rows continue across the cliff face into the lower water region.",
+      "proposedPluginRule": "Create one assembly contract for upper water, crest, falling surface, cliff opening and lower receiving water; compare alignment and width at each contact.",
+      "limits": "Only frame zero is rendered. Flow animation, effects, Surf/Waterfall behavior and actual height difference are unverified.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Tohjo Falls",
+      "mapSourcePath": "Data/Map100.rxdata",
+      "mapSourceSha256": "db120720be9022e9a2ac92a50059799562b537ac74e028cc3b9ca4284e04793e",
+      "mapSizeCells": [70, 55],
+      "tilesetId": 22,
+      "contextRegionCells": [22, 20, 7, 12],
+      "focusRegionCells": [23, 22, 5, 7],
+      "sourceCell": {
+        "x": 25,
+        "y": 22,
+        "layer": 1,
+        "tileId": 273
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [184, 172, 172, 172, 182],
+            [0, 0, 0, 0, 0],
+            [516, 516, 516, 516, 516],
+            [532, 532, 532, 532, 532],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [283, 273, 273, 273, 285],
+            [212, 212, 212, 212, 212],
+            [192, 192, 192, 192, 192],
+            [232, 220, 220, 220, 230],
+            [232, 220, 220, 220, 230],
+            [232, 220, 220, 220, 230],
+            [232, 220, 220, 220, 230]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 172,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 5,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 2,
+          "shapeVariant": 28,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 96, 16, 16],
+            [48, 96, 16, 16],
+            [32, 112, 16, 16],
+            [48, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-4"
+        },
+        {
+          "tileId": 182,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 5,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 2,
+          "shapeVariant": 38,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 96, 16, 16],
+            [80, 96, 16, 16],
+            [64, 112, 16, 16],
+            [80, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-4"
+        },
+        {
+          "tileId": 184,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 5,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 2,
+          "shapeVariant": 40,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [0, 96, 16, 16],
+            [16, 96, 16, 16],
+            [0, 112, 16, 16],
+            [16, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-4"
+        },
+        {
+          "tileId": 192,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 8,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 0,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 64, 16, 16],
+            [48, 64, 16, 16],
+            [32, 80, 16, 16],
+            [48, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-5"
+        },
+        {
+          "tileId": 212,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 8,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 20,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 32, 16, 16],
+            [48, 32, 16, 16],
+            [32, 48, 16, 16],
+            [48, 48, 16, 16]
+          ],
+          "sourceRef": "ASSET-5"
+        },
+        {
+          "tileId": 220,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 8,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 28,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 96, 16, 16],
+            [48, 96, 16, 16],
+            [32, 112, 16, 16],
+            [48, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-5"
+        },
+        {
+          "tileId": 230,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 8,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 38,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [64, 96, 16, 16],
+            [80, 96, 16, 16],
+            [64, 112, 16, 16],
+            [80, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-5"
+        },
+        {
+          "tileId": 232,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 8,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 3,
+          "shapeVariant": 40,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [0, 96, 16, 16],
+            [16, 96, 16, 16],
+            [0, 112, 16, 16],
+            [16, 112, 16, 16]
+          ],
+          "sourceRef": "ASSET-5"
+        },
+        {
+          "tileId": 273,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 9,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 4,
+          "shapeVariant": 33,
+          "frame": 0,
+          "sourceQuarterRectsPixels": null,
+          "sourceRef": "ASSET-6"
+        },
+        {
+          "tileId": 283,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 9,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 4,
+          "shapeVariant": 43,
+          "frame": 0,
+          "sourceQuarterRectsPixels": null,
+          "sourceRef": "ASSET-6"
+        },
+        {
+          "tileId": 285,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 9,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 4,
+          "shapeVariant": 45,
+          "frame": 0,
+          "sourceQuarterRectsPixels": null,
+          "sourceRef": "ASSET-6"
+        },
+        {
+          "tileId": 516,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 512, 32, 32],
+          "sourceRef": "ASSET-7"
+        },
+        {
+          "tileId": 532,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 0,
+          "kind": "regular",
+          "sourceRectPixels": [128, 576, 32, 32],
+          "sourceRef": "ASSET-7"
+        }
+      ],
+      "topicIds": [
+        "CASCADE",
+        "RELIEF",
+        "WATER_OBJECT"
+      ]
+    },
+    {
+      "id": "WATER-ROCK-21",
+      "mapId": 21,
+      "observation": "The sea contains dedicated gray rock graphics whose lower edge includes a water contact treatment. These do not justify placing arbitrary terrestrial rock assets in water.",
+      "proposedPluginRule": "Catalog terrain-compatible variants and their contact pixels. Validate the selected asset variant rather than enforcing one terrain rule for every rock.",
+      "limits": "The exact focus is checked against the native cells and pixels before inclusion; collision and the artistic quality of the large repeated ring remain unassessed.",
+      "status": "observed_static_assembly_with_preliminary_semantic_annotations",
+      "mapName": "Alyssum Island",
+      "mapSourcePath": "Data/Map021.rxdata",
+      "mapSourceSha256": "e678e4d8d44e33bba0539f11498728eedc258d8d40d24e880043c056880d82ae",
+      "mapSizeCells": [64, 48],
+      "tilesetId": 21,
+      "contextRegionCells": [12, 5, 5, 5],
+      "focusRegionCells": [13, 6, 2, 2],
+      "sourceCell": {
+        "x": 13,
+        "y": 6,
+        "layer": 2,
+        "tileId": 1506
+      },
+      "focusLayers": [
+        {
+          "layer": 0,
+          "tileIds": [
+            [96, 96],
+            [96, 96]
+          ]
+        },
+        {
+          "layer": 1,
+          "tileIds": [
+            [0, 0],
+            [0, 0]
+          ]
+        },
+        {
+          "layer": 2,
+          "tileIds": [
+            [1506, 1507],
+            [1514, 1515]
+          ]
+        }
+      ],
+      "focusAssetTrace": [
+        {
+          "tileId": 96,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "autotile",
+          "autotileSlot": 1,
+          "shapeVariant": 0,
+          "frame": 0,
+          "sourceQuarterRectsPixels": [
+            [32, 64, 16, 16],
+            [48, 64, 16, 16],
+            [32, 80, 16, 16],
+            [48, 80, 16, 16]
+          ],
+          "sourceRef": "ASSET-3"
+        },
+        {
+          "tileId": 1506,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4480, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1507,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4480, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1514,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [64, 4512, 32, 32],
+          "sourceRef": "ASSET-1"
+        },
+        {
+          "tileId": 1515,
+          "sourcePriority": 0,
+          "sourceTerrainTag": 0,
+          "sourcePassageBits": 15,
+          "kind": "regular",
+          "sourceRectPixels": [96, 4512, 32, 32],
+          "sourceRef": "ASSET-1"
+        }
+      ],
+      "topicIds": [
+        "WATER_OBJECT",
+        "SUPPORT"
+      ]
+    }
+  ],
+  "crossMapObservations": [
+    "Viridian Forest uses dense repeated tree masses and shaped clearings. Random scattering is not an adequate model for this composition.",
+    "Route 3 retains a large rocky plateau, while Alyssum Island retains a large open sea. Empty area alone is not a placement error.",
+    "New Bark Town has substantial canopy/building overlap in the static study view; this is not accepted automatically as a best-practice example.",
+    "Several building graphics leave door locations visually incomplete. No events exist in these maps; do not infer doors or playable interiors.",
+    "Route 32 contains an elevated structure drawn across both land and water. Its screen-space bounds must not become an ordinary ground support mask.",
+    "All 152 source maps are decoded; only the twelve listed maps have been visually examined. No aesthetic verdict is generalized to all 152."
+  ],
+  "recommendedAuthoringSequence": [
+    "Définir les régions de terrain, les biomes et les niveaux de relief",
+    "Dessiner les limites et assembler les rebords, faces, angles et pieds",
+    "Raccorder eau, chutes, passages, ponts, pontons et escaliers selon leur rôle",
+    "Réserver les accès des bâtiments et les espaces de circulation",
+    "Former les masses végétales et leurs lisières",
+    "Placer les objets et détails selon leur support et leur fonction",
+    "Revoir les contacts en image et vérifier la jouabilité séparément"
+  ],
+  "researchProvenance": {
+    "artifactPathsAre": "Research workspace-relative evidence identifiers, not required installed plugin files.",
+    "artifacts": [
+      {
+        "path": "reports/map_corpus/pokemap_mapping_rules_v1.json",
+        "sha256": "83cdb60de609f74198981b6231b5048e90f9a9447fc5b9d87ec4511314c76905"
+      },
+      {
+        "path": "analysis/user_reference_asset_placement_review.json",
+        "sha256": "e19fd46f73eb518f544e9e7d94291f519bac6049089623c5d6f4ee38857d7f5e"
+      },
+      {
+        "path": "analysis/remastered_kanto_johto/pack_index.json",
+        "sha256": "f6ed296353ecdf9cb0ea1336129ede45f9f3ecae10be5bce87c4aaedfae8475b"
+      },
+      {
+        "path": "analysis/remastered_kanto_johto/assembly_review.json",
+        "sha256": "d296e248f68bfbb0c4629a887422399f6bc196314f050e33cdca6b4bd58e0f1a"
+      },
+      {
+        "path": "analysis/remastered_kanto_johto/assembly_cells.json",
+        "sha256": "5df6b899cb70bc3f0072d4cfd8f2b34b8c893945eff59f727d3872c7ab7c1082"
+      }
+    ],
+    "sources": [
+      {
+        "slug": "psdk-technical-demo",
+        "repository": "PokemonWorkshop/PSDKTechnicalDemo",
+        "repositoryUrl": "https://github.com/PokemonWorkshop/PSDKTechnicalDemo",
+        "commit": "272f65d5d851e6b3d50dba600d2d4cbfbdf5d5c4",
+        "commitUrl": "https://github.com/PokemonWorkshop/PSDKTechnicalDemo/commit/272f65d5d851e6b3d50dba600d2d4cbfbdf5d5c4"
+      },
+      {
+        "slug": "pokemon-rlm",
+        "repository": "L-Antre-des-Loutres/Pokemon-RLM",
+        "repositoryUrl": "https://github.com/L-Antre-des-Loutres/Pokemon-RLM",
+        "commit": "9fc6d18fc4f1e3b44f4d5405a59ee0b1634b7879",
+        "commitUrl": "https://github.com/L-Antre-des-Loutres/Pokemon-RLM/commit/9fc6d18fc4f1e3b44f4d5405a59ee0b1634b7879"
+      },
+      {
+        "slug": "pokemon-burning-scales",
+        "repository": "Benitex/Pokemon-Burning-Scales",
+        "repositoryUrl": "https://github.com/Benitex/Pokemon-Burning-Scales",
+        "commit": "08c5eecd24b50858b06ac18fe96bdadf4b9b8a1a",
+        "commitUrl": "https://github.com/Benitex/Pokemon-Burning-Scales/commit/08c5eecd24b50858b06ac18fe96bdadf4b9b8a1a"
+      },
+      {
+        "slug": "pokemon-essentials",
+        "repository": "Maruno17/pokemon-essentials",
+        "repositoryUrl": "https://github.com/Maruno17/pokemon-essentials",
+        "commit": "8c5911e4a4b07b07e832e4bb0d5d8859e88b4a9b",
+        "commitUrl": "https://github.com/Maruno17/pokemon-essentials/commit/8c5911e4a4b07b07e832e4bb0d5d8859e88b4a9b"
+      },
+      {
+        "slug": "hgss-pokemon-tileset",
+        "repository": "jls-dchrn/HGSS_pokemon_tileset",
+        "repositoryUrl": "https://github.com/jls-dchrn/HGSS_pokemon_tileset",
+        "commit": "905308eb7151f664da66bd96705ff3a45c0a7a21",
+        "commitUrl": "https://github.com/jls-dchrn/HGSS_pokemon_tileset/commit/905308eb7151f664da66bd96705ff3a45c0a7a21"
+      }
+    ],
+    "sourceDependency": "PSDK and RLM share 21 of the 22 PSDK TMX maps; do not count them as independent evidence.",
+    "sourceAssetsIncluded": false,
+    "completeSourceMapsIncluded": false,
+    "nativeExamplesScope": "Small tile-ID excerpts and asset coordinates only; source pixels and complete native maps are not bundled.",
+    "rights": "Asset rights and pack authorship are not established by this reference. Analytical examples do not authorize import or reuse.",
+    "corpusProvenanceScope": "corpusRules.provenanceExamples keeps at most three paths per rule; provenancePathCount records the full count. Complete path lists remain in the fingerprinted research rulebook."
+  },
+  "nativePack": {
+    "name": "Remastered Kanto Johto Map Pack",
+    "sourceKind": "user_provided_native_map_pack",
+    "sourceCommit": "unknown",
+    "sourceAuthor": "unknown",
+    "sourceLicense": "unknown",
+    "summary": {
+      "sourceFiles": 191,
+      "mapFiles": 152,
+      "mapsDecoded": 152,
+      "emptyTileTables": 19,
+      "events": 0,
+      "selectedRenders": 12,
+      "tilesetUse": {
+        "21": 62,
+        "22": 43,
+        "23": 45,
+        "24": 2
+      },
+      "mapsWithUnresolvedAssets": 0,
+      "unresolvedPlacements": 0
+    },
+    "mapsVisuallyExamined": [12, 16, 21, 55, 79, 86, 97, 100, 108, 127, 138, 140],
+    "renderMethod": {
+      "cellPixels": 32,
+      "layers": [0, 1, 2],
+      "animationFrame": 0,
+      "pixelPolicy": "provided asset pixels and alpha preserved",
+      "sortPolicy": "per-cell source priority Z then source layer; reflective terrain first",
+      "reflectiveTerrainTags": [6, 16],
+      "dynamicBridgeState": 0,
+      "regularTileGeometryEvidence": "Essentials TileDrawingHelper.rb:129-133",
+      "autotileGeometryEvidence": "PSDK Converter.rb:22-58; Essentials TileDrawingHelper.rb:105-125",
+      "drawOrderEvidence": "Essentials TilemapRenderer.rb:421-429; TerrainTag.rb:116-122,194-199"
+    },
+    "engineReferences": [
+      {
+        "source": "local_psdk_engine",
+        "path": "scripts/4 Systems/003 Map Engine/1 Graphics/351 Converter.rb",
+        "sha256": "dfd603270d2836510a83d67c45c13f81bb4da427350e7ac21e1584b9b6ee982f"
+      },
+      {
+        "source": "pokemon-essentials",
+        "path": "Data/Scripts/006_Map renderer/004_TileDrawingHelper.rb",
+        "sha256": "65742bd162bc0789ad8010f0905f3e3cfc898541428aa600dbbfccac7efea86d"
+      },
+      {
+        "source": "pokemon-essentials",
+        "path": "Data/Scripts/006_Map renderer/001_TilemapRenderer.rb",
+        "sha256": "5ccca09476a6843bcda02bfd384b6d7efa9e101877541a0161a408c8a5cada01"
+      },
+      {
+        "source": "pokemon-essentials",
+        "path": "Data/Scripts/010_Data/001_Hardcoded data/011_TerrainTag.rb",
+        "sha256": "09424e70704d6309cf0bc4851d288782e53c683ef05d78ed79bab292840797a2"
+      }
+    ],
+    "limits": [
+      "Static source tile overview, not a native Player or full runtime render.",
+      "Pack engine version and project scripts are absent; current local Essentials source conventions are analysis assumptions, not verified pack runtime parity.",
+      "No event sprites, scripts, animation timing, dynamic collisions or physical terrain heights inferred.",
+      "Source priorities describe draw order, not physical elevation; terrain tag zero does not identify dry ground.",
+      "Missing assets remain unresolved and are not replaced; partial images must not be treated as complete.",
+      "Names and counts do not establish artistic quality, independence or permission to republish source layouts.",
+      "Existing five-source corpus counters are unchanged; this pack is a separate research appendix."
+    ],
+    "assetSources": [
+      {
+        "id": "ASSET-1",
+        "path": "Graphics/Tilesets/KANTO50S_OUT.png",
+        "sha256": "2ad8c67e8bfbc42e5dec904a28eccb8c64ff27e05b2e9e36639a4b5d61c4be5e"
+      },
+      {
+        "id": "ASSET-2",
+        "path": "Graphics/Tilesets/JohtoCompactExterior.png",
+        "sha256": "4e44c1435579c9c6b15680d0fedb18f41d98651b6d1112d5b16ec089ba5454f2"
+      },
+      {
+        "id": "ASSET-3",
+        "path": "Graphics/Autotiles/NOANIMSEA.png",
+        "sha256": "130ce24e2fe38317edee8837f2037679e3dfe8632f252e3735c160eb80708db5"
+      },
+      {
+        "id": "ASSET-4",
+        "path": "Graphics/Autotiles/Cavewater.png",
+        "sha256": "14c5834f495f371cd7f7b5e9ee7968d00a4e07a678fa2021888c2880edb3b6e5"
+      },
+      {
+        "id": "ASSET-5",
+        "path": "Graphics/Autotiles/TFJ_Waterfall.png",
+        "sha256": "0e284eeeb7f50b7c9c5ac3f0bdfe835454ca0d188615ac1b1b3049238fb41dd2"
+      },
+      {
+        "id": "ASSET-6",
+        "path": "Graphics/Autotiles/Waterfall crest.png",
+        "sha256": "8711e1904d326f4a25d0a387359f1c7ddd8ac22c2fd019ea8c2503452c21614d"
+      },
+      {
+        "id": "ASSET-7",
+        "path": "Graphics/Tilesets/Caves.png",
+        "sha256": "2adc7757bffe8afdfd67aeb06c3c65dc49a8fc196268884368d43c0fa32ce814"
+      }
+    ]
+  },
+  "proposedSemanticAnnotations": {
+    "status": "review_notes_only_not_native_schema_fields",
+    "fields": [
+      "role",
+      "styleFamily",
+      "allowedGroundSupports",
+      "groundAnchor",
+      "groundFootprint",
+      "visualBounds",
+      "occlusionOrder",
+      "edgeOrientation",
+      "cornerRole",
+      "connectionPorts",
+      "terrainLevelRelation",
+      "waterlineRole",
+      "intentionalExceptions"
+    ],
+    "usage": "Use supported current contracts for mutations. Unknown support, anchor, physical height and collision remain unknown; these names do not create PokeMap fields."
+  },
+  "purpose": "Agent-readable research for support, contacts, modular assembly and review, not an executable validator, tileset or map importer.",
+  "implementation": {
+    "guidance": "integrated_into_reference_builder_skill",
+    "automaticSemanticEnforcement": "not_added",
+    "playerCertified": false,
+    "visualQualityCertified": false
+  },
+  "coordinateConvention": {
+    "nativeExamples": "Zero-based source map cells; 32 pixels per cell; source layers 0..2. Regions are [x,y,width,height]. Focus rows start at focusRegionCells x,y. Tile 0 is empty.",
+    "atlasTrace": "Source pixels: sourceRectPixels or ordered autotile sourceQuarterRectsPixels. Source IDs are evidence, never current PokeMap resource IDs.",
+    "photoAnnotations": "JPEG pixels; tile size and native layers unknown."
+  },
+  "currentToolLimits": {
+    "treeLint": "blueprint_quality.py rasterizes full geometry, including placement rectangles; no separate ground-support or canopy mask; allowsWater is not consumed. Valid overhangs may be flagged; root support is not certified.",
+    "networkComparison": "Component counts do not prove required endpoints, bridge/stair landings, dock termination or Player traversal.",
+    "renderAndAtlasChecks": "Hashes, alpha, dimensions and priorities do not prove physical height, collision, animation, visual acceptance or native integration.",
+    "machineCheckable": "corpusRules uses this label for research measurement candidates, not registered plugin/API/MCP checks.",
+    "bindings": "Resolve live resource IDs and inspect their artwork before adapting a source assembly."
+  }
+}

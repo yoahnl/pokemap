@@ -1,13 +1,25 @@
 /// Local desktop composition surface for PokeMap authoring clients.
 library;
 
+export 'src/references/resource_usage_projection.dart';
+
 export 'map_authoring_api.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
+export 'src/domains/maps/map_lifecycle_actions.dart' show MapLifecycleActions;
+export 'src/domains/maps/map_lifecycle_analysis.dart' show MapLifecycleAnalysis;
+export 'src/transactions/action_planner.dart' show AuthoringPlanningContext;
+export 'src/transactions/authoring_plan.dart' show AuthoringMutationDraft;
+export 'src/domains/assets/resource_management_actions.dart'
+    show ResourceManagementActions;
+export 'src/domains/assets/resource_source_actions.dart'
+    show ResourceSourceActions;
 export 'src/domains/assets/asset_store.dart' show assetBlobResourceIdentity;
 export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;
 export 'src/domains/gameplay/pokemon_catalog_coherence_loader.dart'
     show PokemonCatalogCoherenceLoader;
+export 'src/domains/gameplay/project_item_icon_provisioning_service.dart';
+export 'src/domains/gameplay/project_capture_sprite_provisioning_service.dart';
 export 'src/domains/narrative/presentation_cinematic_draft.dart'
     show PresentationCinematicDraft, PresentationCinematicDraftException;
 export 'src/ports/artifact_store.dart'

@@ -109,6 +109,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
+    await _chooseModel(tester);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     await tester.tap(find.text('Annuler le tracé'));
@@ -130,6 +131,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
+    await _chooseModel(tester);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final view = tester
@@ -213,6 +215,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
+    await _chooseModel(tester);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final draft = tester
@@ -235,6 +238,13 @@ void main() {
     );
     expect(feature.materialization, isNotNull);
   });
+}
+
+Future<void> _chooseModel(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('border-model-picker')));
+  await pumpIo(tester, frames: 2);
+  await tester.tap(find.text('Muret de test').last);
+  await pumpIo(tester, frames: 2);
 }
 
 Future<MapHostFixture> _openWithBorder(

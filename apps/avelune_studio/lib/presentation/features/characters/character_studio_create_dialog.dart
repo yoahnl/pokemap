@@ -7,53 +7,69 @@ Future<(String, String)?> showCharacterStudioCreateDialog(
 ) async {
   final tilesets = compatibleCharacterStudioTilesets(project);
   if (tilesets.isEmpty) return null;
-  final name = TextEditingController();
-  var tilesetId = tilesets.first.id;
-  final confirmed = await showDialog<bool>(
+  return showDialog<(String, String)>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, update) => AlertDialog(
-        title: const Text('Nouveau personnage'),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(labelText: 'Nom'),
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: tilesetId,
-                decoration: const InputDecoration(labelText: 'Planche source'),
-                items: [
-                  for (final entry in tilesets)
-                    DropdownMenuItem(value: entry.id, child: Text(entry.name)),
-                ],
-                onChanged: (value) =>
-                    update(() => tilesetId = value ?? tilesetId),
-              ),
+    builder: (context) => _CharacterStudioCreateDialog(tilesets: tilesets),
+  );
+}
+
+class _CharacterStudioCreateDialog extends StatefulWidget {
+  const _CharacterStudioCreateDialog({required this.tilesets});
+  final List<ProjectTilesetEntry> tilesets;
+  @override
+  State<_CharacterStudioCreateDialog> createState() =>
+      _CharacterStudioCreateDialogState();
+}
+
+class _CharacterStudioCreateDialogState
+    extends State<_CharacterStudioCreateDialog> {
+  final name = TextEditingController();
+  late String tilesetId = widget.tilesets.first.id;
+  @override
+  void dispose() {
+    name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Nouveau personnage'),
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(labelText: 'Nom'),
+          ),
+          DropdownButtonFormField<String>(
+            initialValue: tilesetId,
+            decoration: const InputDecoration(labelText: 'Planche source'),
+            items: [
+              for (final entry in widget.tilesets)
+                DropdownMenuItem(value: entry.id, child: Text(entry.name)),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Créer'),
+            onChanged: (value) =>
+                setState(() => tilesetId = value ?? tilesetId),
           ),
         ],
       ),
     ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Annuler'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(
+          context,
+          name.text.trim().isEmpty ? null : (name.text.trim(), tilesetId),
+        ),
+        child: const Text('Créer'),
+      ),
+    ],
   );
-  final result = confirmed == true && name.text.trim().isNotEmpty
-      ? (name.text.trim(), tilesetId)
-      : null;
-  name.dispose();
-  return result;
 }
 
 List<ProjectTilesetEntry> compatibleCharacterStudioTilesets(

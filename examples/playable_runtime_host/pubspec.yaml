@@ -31,8 +31,11 @@ dependencies:
     path: ../../packages/map_authoring
   map_distribution:
     path: ../../packages/map_distribution
+  pokemap_hub:
+    path: ../../apps/pokemap_hub
 
 dev_dependencies:
+  flutter_riverpod: 3.2.1
   marionette_flutter: ^0.6.0
   marionette_mcp: ^0.6.0
   flutter_test:
@@ -40,8 +43,6 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   map_editor:
     path: ../../packages/map_editor
-  pokemap_hub:
-    path: ../../apps/pokemap_hub
   pub_semver: ^2.2.0
 
 flutter:

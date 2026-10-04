@@ -1,0 +1,8 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+flutter_runtime/.android/
+flutter_runtime/.ios/
+flutter_runtime/.dart_tool/
+flutter_runtime/.flutter-plugins-dependencies

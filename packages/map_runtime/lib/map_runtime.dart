@@ -1,5 +1,7 @@
 library;
 
+export 'src/player/runtime_companion_presentation_codec.dart';
+
 export 'package:map_core/map_core.dart'
     show
         PlayerPronounSet,

@@ -1,5 +1,22 @@
 import 'package:map_core/map_core_domain.dart';
 
+Map<String, String> mapLibraryFolderLabels(List<ProjectMapGroup> groups) {
+  String label(ProjectMapGroup group, Set<String> visited) {
+    if (!visited.add(group.id)) return group.name;
+    final parent = groups
+        .where((value) => value.id == group.parentGroupId)
+        .firstOrNull;
+    return parent == null
+        ? group.name
+        : '${label(parent, visited)} / ${group.name}';
+  }
+
+  return {
+    '': 'Sans dossier',
+    for (final group in groups) group.id: label(group, {}),
+  };
+}
+
 class MapLibraryRow {
   const MapLibraryRow({
     required this.label,

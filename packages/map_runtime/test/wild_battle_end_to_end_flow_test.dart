@@ -2261,6 +2261,9 @@ void main() {
           sawSceneFinaleMessage = true;
         }
         sawExitCurtain = sawExitCurtain || game.debugBattleExitCurtainMounted;
+        if (game.debugBattleExitCurtainMounted) {
+          expect(game.battleExitTransitionVisible.value, isTrue);
+        }
         game.update(0.25);
         await Future<void>.delayed(Duration.zero);
       }
@@ -2288,6 +2291,7 @@ void main() {
         isFalse,
         reason: 'le fondu s’ouvre sur l’overworld puis se retire',
       );
+      expect(game.battleExitTransitionVisible.value, isFalse);
 
       // Recette 2026-08-24 : une publication TARDIVE de l'overlay démonté
       // (course post-frame sur device) laissait le panneau « Combat

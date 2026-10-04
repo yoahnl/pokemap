@@ -17,6 +17,7 @@ class EditableMapDocument {
   final _history = const MapHistoryCoordinator();
   List<MapHistoryEntry> _undo = [];
   List<MapHistoryEntry> _redo = [];
+  String? _catalogName;
 
   bool get dirty => current != saved;
   bool get canUndo => _undo.isNotEmpty;
@@ -51,8 +52,12 @@ class EditableMapDocument {
             redoStack: _redo,
           );
     if (result == null) return;
-    if (canRestore != null && !canRestore(result.restoredSnapshot.map)) return;
-    current = result.restoredSnapshot.map;
+    final catalogName = _catalogName;
+    final restored = catalogName == null
+        ? result.restoredSnapshot.map
+        : result.restoredSnapshot.map.copyWith(name: catalogName);
+    if (canRestore != null && !canRestore(restored)) return;
+    current = restored;
     _undo = result.undoStack;
     _redo = result.redoStack;
     error = null;
@@ -66,6 +71,57 @@ class EditableMapDocument {
       revision: revision,
       mapId: base.mapId,
     );
+  }
+
+  void acceptCatalogMetadata(MapWorkspaceDocument updated) {
+    if (updated.map.copyWith(name: saved.name) != saved) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'La carte publiée contient d’autres modifications. Votre historique reste conservé.',
+      );
+    }
+    _catalogName = updated.map.name;
+    current = current.copyWith(name: updated.map.name);
+    saved = updated.map;
+    base = updated;
+  }
+
+  void acceptCatalogContent(MapWorkspaceDocument updated) {
+    if (dirty || saving) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'La carte publiée ne peut pas remplacer une saisie en cours. Votre brouillon reste conservé.',
+      );
+    }
+    current = updated.map;
+    saved = updated.map;
+    base = updated;
+    _catalogName = updated.map.name;
+    _undo = [];
+    _redo = [];
+    stackPosition = null;
+    stackPixelPosition = null;
+    _repairSelection();
+  }
+
+  void acceptResourceContent(MapWorkspaceDocument updated) {
+    if (dirty || saving) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Enregistrez ou annulez cette carte avant de modifier ses références.',
+      );
+    }
+    if (updated.map.copyWith(entities: current.entities) != current) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'La publication contient d’autres changements que les références de personnages.',
+      );
+    }
+    current = current.copyWith(entities: updated.map.entities);
+    saved = current;
+    base = updated;
+    _catalogName = updated.map.name;
+    _repairSelection();
   }
 
   void _repairSelection() {

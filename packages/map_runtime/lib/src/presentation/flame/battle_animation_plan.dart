@@ -823,12 +823,12 @@ final class PlayBallSequenceStep extends BattleAnimationStep {
   const PlayBallSequenceStep({
     required this.side,
     required this.kind,
-    this.sheetName = 'ball_1',
+    this.ballItemId,
   });
 
   final BattleSideId side;
   final BattleBallSequenceKind kind;
-  final String sheetName;
+  final String? ballItemId;
 
   double get durationSeconds => switch (kind) {
         BattleBallSequenceKind.sendOutThrown => 0.6,
@@ -868,7 +868,7 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
   const PlayBallCaptureSequenceStep({
     required this.shakes,
     required this.caught,
-    this.sheetName = 'ball_1',
+    this.ballItemId,
   }) : assert(
           shakes >= 0 && shakes <= 3,
           'Capture shakes are the VISIBLE shakes, clamped to 0..3 upstream.',
@@ -876,13 +876,12 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
 
   final int shakes;
   final bool caught;
-  final String sheetName;
+  final String? ballItemId;
 
   /// Parité des timings de la référence : lancer 0,4 + ouverture 0,2 +
   /// absorption 0,2 + fermeture 0,5 + chute 1,0 + pause 0,5, puis 1,0 par
   /// secousse, puis verdict 0,5 — et 0,2 de réapparition sur un échec.
-  double get durationSeconds =>
-      2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
+  double get durationSeconds => 2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
 }
 
 /// Le cri d'un Pokémon — BETA-BAT-028.

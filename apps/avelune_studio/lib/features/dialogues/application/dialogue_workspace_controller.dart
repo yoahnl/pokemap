@@ -12,6 +12,7 @@ part 'dialogue_workspace_links.dart';
 part 'dialogue_workspace_publication.dart';
 part 'dialogue_workspace_validation.dart';
 part 'dialogue_workspace_structure.dart';
+part 'dialogue_workspace_character_reconciliation.dart';
 
 class DialogueWorkspaceController {
   DialogueWorkspaceController(

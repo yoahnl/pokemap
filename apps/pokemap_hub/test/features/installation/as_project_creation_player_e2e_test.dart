@@ -80,15 +80,20 @@ void main() {
         'Recette locale',
       );
       await tester.tap(find.text('Test local').first);
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      for (
-        var i = 0;
-        i < 200 && workspace.gameExport!.outputPath == null;
-        i++
-      ) {
+      final exporting = Stopwatch()..start();
+      await pumpIo(tester, frames: 2);
+      expect(
+        workspace.gameExport!.operationActive ||
+            workspace.gameExport!.outputPath != null ||
+            workspace.gameExport!.error != null,
+        true,
+      );
+      while (workspace.gameExport!.operationActive) {
         await pumpIo(tester, frames: 2);
-        if (workspace.gameExport!.error != null) break;
       }
+      print('CLAIRBOIS_EXPORT_COMPLETED_MS=${exporting.elapsedMilliseconds}');
       expect(
         workspace.gameExport!.outputPath,
         package.path,

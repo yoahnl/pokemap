@@ -1,0 +1,7 @@
+{
+  "path": "apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart",
+  "sha256": "8cd6098dea287426c703119be597eb994cabcbb0ffbb33194ff3acb7fd3b4494",
+  "lines": 297,
+  "initState": "\n    super.initState();\n    _recents = RecentProjectsController(widget.recentProjects)\n      ..addListener(_refresh);\n    unawaited(_recents.load());\n    _home.addListener(_refresh);\n    widget.session.addListener(_sessionChanged);\n  }\n\n",
+  "didUpdateWidget": "ProjectSessionScreen oldWidget) {\n    super.didUpdateWidget(oldWidget);\n    if (oldWidget.session != widget.session) {\n      oldWidget.session.removeListener(_sessionChanged);\n      widget.session.addListener(_sessionChanged);\n      _pickerGeneration++;\n      _picking = false;\n      _home.reset();\n    }\n  }\n\n"
+}

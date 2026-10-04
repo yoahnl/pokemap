@@ -48,6 +48,7 @@ import '../../application/player_service_runtime_controller.dart';
 import '../../application/rail_journey_runtime_coordinator.dart';
 import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
+import '../../player/runtime_capture_sprite_resolver.dart';
 import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
@@ -116,6 +117,7 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
+import 'battle_combatant_ball_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
@@ -582,6 +584,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// celui de [_onBattleFinished]) le tueraient avant son reveal — il doit
   /// justement survivre au démontage du combat pour fondre sur l'overworld.
   BattleTransitionOverlayComponent? _battleExitCurtain;
+  final _battleExitTransitionVisible = ValueNotifier<bool>(false);
   BattleOverlayComponent? _battleOverlay;
   Map<String, String> _battleSpeciesDisplayNames = const <String, String>{};
   Map<int, double> _battleXpProgressAtMount = const <int, double>{};
@@ -2136,6 +2139,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ValueListenable<BattleCommandOverlaySnapshot?>
       get battleCommandOverlayListenable => _battleCommandOverlayNotifier;
 
+  ValueListenable<bool> get battleExitTransitionVisible => _battleExitTransitionVisible;
+
   void _setBattleCommandOverlaySnapshot(
     BattleCommandOverlaySnapshot? snapshot,
   ) {
@@ -2261,6 +2266,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return _gameState;
   }
+
+  GameState get companionGameStateSnapshot => !isLoaded
+      ? _gameState
+      : _gameState.copyWith(
+          currentMapId: _activeMapId,
+          playerPosition: _world.player.pos,
+          playerFacing: _world.player.facing.asFacing,
+          playerMovementMode: _world.player.movementMode,
+        );
 
   /// Snapshot used by a Shop/PC route opened from an executing Scene.
   ///
@@ -3876,6 +3890,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _battleExitTransitionVisible.value = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled when the runtime closed.',
     );
@@ -8188,6 +8203,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
 
+      final ballResolver = BattleCombatantBallResolver.fromParty(
+        gameState: _battleRuntimeGameState,
+        lineupPartyIndices: playerLineup.lineupPartyIndices,
+      );
+      final captureSpriteResolver = RuntimeCaptureSpriteResolver(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: _bundle.manifest.pokemon,
+      );
+
       _battleMovesCatalog = await _battleMoveCatalogLoader.load(
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: _bundle.manifest.pokemon,
@@ -8270,6 +8294,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             _itemCatalogSnapshot,
           ),
           genderResolver: genderResolver,
+          resolveBallSpritePath: captureSpriteResolver.resolve,
+          resolveCombatantBallItemId: (side, lineupIndex) =>
+              ballResolver.resolve(
+            isPlayerSide: side == BattleSideId.player,
+            lineupIndex: lineupIndex,
+          ),
           resolveMoveDisplayName: _resolveBattleMoveDisplayName,
           resolveSpeciesDisplayName: (speciesId) =>
               battleSpeciesDisplayNames[speciesId] ?? speciesId,
@@ -9061,10 +9091,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       onDismissed: () {
         if (identical(_battleExitCurtain, curtain)) {
           _battleExitCurtain = null;
+          _battleExitTransitionVisible.value = false;
         }
       },
     );
     _battleExitCurtain = curtain;
+    _battleExitTransitionVisible.value = true;
     try {
       await camera.viewport.add(curtain);
       // Sous le fondu, le runner tient le verrou de commandes : un plan
@@ -9319,6 +9351,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _dismissBattleExitCurtainImmediately() {
     final curtain = _battleExitCurtain;
     _battleExitCurtain = null;
+    _battleExitTransitionVisible.value = false;
     curtain?.removeFromParent();
   }
 

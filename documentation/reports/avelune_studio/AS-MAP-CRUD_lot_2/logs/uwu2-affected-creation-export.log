@@ -1,0 +1,113 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_catalogue_row_actions_test.dart: inactive map exposes actions without activating its document
+00:04 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/home_creation_entry_test.dart: new project is an active action inside existing recents
+00:05 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+00:07 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:08 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:10 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:11 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:12 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+00:16 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creator does not save the mounted project draft
+00:19 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+00:20 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch retains A and created B can be reopened
+00:28 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy
+00:34 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy
+00:34 +17 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_controller_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_controller_test.dart": Does not exist.
+00:35 +17 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: true
+  Actual: <false>
+
+When the exception was thrown, this was the stack:
+#4      playCreatedClairbois.waitUntil (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/clairbois_player_recipe.dart:38:5)
+<asynchronous suspension>
+#5      playCreatedClairbois (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/clairbois_player_recipe.dart:42:3)
+<asynchronous suspension>
+#6      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart:130:7)
+<asynchronous suspension>
+#7      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#8      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/clairbois_player_recipe.dart line 38
+The test description was:
+  real home creator downloads Clairbois and opens an independent copy
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:35 +17 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy [E]
+  Test failed. See exception logs above.
+  The test description was: real home creator downloads Clairbois and opens an independent copy
+  
+00:35 +17 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: unreadable profile permits workspace and window exit without a draft
+00:38 +18 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+00:40 +19 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/as-exp-home-3cuXZu/home.avelunegame'
+  Actual: <null>
+   Which: not an <Instance of 'String'>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart:145:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart line 145
+The test description was:
+  home opens the export page on its mounted project and exports a package
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:44 +19 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
+00:44 +19 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package [E]
+  Test failed. See exception logs above.
+  The test description was: home opens the export page on its mounted project and exports a package
+  
+00:45 +19 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: true
+  Actual: <false>
+stage=StudioExportStage.preparing error=null reads=0
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart:181:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart line 181
+The test description was:
+  cancelled export keeps every exit guard until cleanup finishes
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:45 +19 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home switches a real workspace despite its unreadable profile
+00:45 +19 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes [E]
+  Test failed. See exception logs above.
+  The test description was: cancelled export keeps every exit guard until cleanup finishes
+  
+00:47 +20 -4: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_close_test.dart: cancelled export keeps every exit guard until cleanup finishes
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_controller_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_controller_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: home opens the export page on its mounted project and exports a package
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/clairbois_creation_host_test.dart: real home creator downloads Clairbois and opens an independent copy

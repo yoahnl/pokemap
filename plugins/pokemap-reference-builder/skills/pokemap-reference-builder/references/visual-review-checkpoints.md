@@ -8,21 +8,30 @@ Review the decoded blueprint over the reference:
 - central composition and viewport padding;
 - forest mass, path topology, water topology, and building footprints;
 - intended entrances and exits;
+- terrain contacts, level transitions, module junctions and reserved approach spaces;
 - unresolved or custom assets.
 
 For an assisted V2 analysis, require both semantic overlays, the analysis reports, the spatial lint, and a comparison report built from same-crop reference and candidate images. Correct seed profiles when the reference overlay itself is wrong. Never compensate for a bad reference mask by degrading the candidate mask, and never substitute semantic agreement for rendered fidelity.
 
 ## Surface checkpoint
 
-Require coherent base ground and forest masses. Reject exposed black edges, incomplete tree sides, repeated stamps that read as a grid, or a forest implemented as unrelated decoration.
+Require coherent base ground and forest masses. Reject exposed black edges, incomplete forest closures and a forest implemented as unrelated decoration. Compare spacing and repetition with the approved reference and vegetation role: regular background forests, gardens and crops may be intentional; an unintended stamp grid needs repair.
+
+Check ground support separately from the visible canopy. Review forest-body, edge and isolated-tree modules by their role; a lower closure cannot stand in for a complete tree. An overhang above water is not proof that the trunk stands in water. Hidden contact remains unknown.
+
+For relief, inspect the plateau contour, side/front faces, concave/convex corners and feet within the same material and visual height. Check that openings are deliberate and each stair meets clear upper/lower landings. Draw priority is not physical height.
 
 ## Network checkpoint
 
 Require continuous paths, correct turns and junctions, river water rather than ocean water, and complete banks. If a border system appears without an approved border layer, remove it before continuing.
 
+At a waterfall, compare upstream water, crest, falling surface and receiving water at each contact, including width and cliff opening. A static image does not verify flow animation or Waterfall/Surf behavior.
+
 ## Structure checkpoint
 
 Check native scale, entrances, orientation, occlusion, and anchor alignment for every building, gate, bridge, torii, stair, and monument.
+
+For a crossing bridge, check two landings, both cap rows, repeatable deck/side pieces and the intended route, while preserving water below. For a dock, check one land attachment and a closed water end. Review elevated supports and draw depth separately from screen-space bounds; use the [assembly contract](exterior-layer-model.md#placement-and-assembly-contract) and its source examples.
 
 Reject a structure asset that bakes terrain, water or network geometry together with its props across a large repeated footprint. Split it into native terrain or Smart Tile materials plus small reusable props before continuing.
 
@@ -30,14 +39,19 @@ Reject a structure asset that bakes terrain, water or network geometry together 
 
 Check density, negative space, variety, palette, and gameplay readability. Decorations may enrich the approved layout but must not move its main masses.
 
+Check the actual support and contact variant for each object, especially aquatic rocks/plants. Preserve entrances, landings and useful open spaces. Do not scatter extra props just to fill a lake, plateau or clearing. Explain any deliberate biome or support exception using the selected asset and project intent.
+
 ## Navigation checkpoint
 
 Check collision against visible obstacles, entrance activation cells, reciprocal connections, arrival clearance, and Player-scale traversal.
+Verify the required endpoint routes and both approaches to stairs/bridges, plus a dock's declared walkable end. Component counts, source passage bits and tile IDs alone do not establish those routes. Use the actual footprint and movement conditions; unknown cells are not guaranteed walkable.
 For every visible room entrance, identify its exact 32 px doorway cell and the approach cell on each side. Overlay the collision grid on the native render: the doorway must be open, the neighboring wall cells must remain blocked, and the opening must coincide with the artwork rather than an invisible gap elsewhere. Walk the actual player from the map entry through the opening into the room and back out; verify any door or curtain animation on both crossings. A grid flood-fill or a successful step from a freshly spawned adjacent cell does not prove that the real approach works. Treat any blocked doorway or route through a visible wall as a failed checkpoint, even after artistic approval.
 
 ## Final verdict
 
 Automated validation and a successful render prove structural health only. Do not publish a V2 score without comparable image evidence. A candidate is eligible for human review only when its combined score and each visual axis reach at least 80, with no hard spatial failure. Even then, mark the blueprint verified only after the user accepts the visual result and any required Player route has been exercised.
+
+State which placement/contact checks were inspected manually and which existing tools actually executed. `blueprint_quality.py` tests overlap using full geometry; it cannot distinguish ground support from canopy overhang and does not use `allowsWater`. Keep ambiguous conflicts unresolved rather than hiding them, bypassing hard gates or claiming automatic support certification. The bundled corpus rules' `machineCheckable` label describes a research candidate, not an implemented check. Qualitative annotations and source-native examples do not certify all maps or turn proposed metadata into supported native fields.
 
 ## Interior floor-and-wall HTML prototype
 

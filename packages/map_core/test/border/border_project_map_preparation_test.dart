@@ -24,8 +24,8 @@ void main() {
       expect(result.manifest.version, ProjectVersion.v8);
       expect(result.manifest.borderCatalog.records.single.id, 'coast');
       expect(result.map.version, ProjectVersion.v8);
-      expect(result.map.layers.last, isA<BorderLayer>());
-      expect(result.map.layers.last.id, 'borders');
+      expect(result.map.layers.first, isA<BorderLayer>());
+      expect(result.map.layers.first.id, 'borders');
       expect(() => ProjectValidator.validate(result.manifest), returnsNormally);
       expect(
         () => MapValidator.validate(
@@ -36,7 +36,7 @@ void main() {
       );
       expect(jsonEncode(manifest.toJson()), sourceManifestJson);
       expect(jsonEncode(map.toJson()), sourceMapJson);
-      expect(jsonEncode(result.map.layers.first.toJson()), sourceCollisionJson);
+      expect(jsonEncode(result.map.layers.last.toJson()), sourceCollisionJson);
       expect(result.map.placedElements, map.placedElements);
       expect(result.map.mapMetadata, map.mapMetadata);
       expect(result.map.properties, map.properties);

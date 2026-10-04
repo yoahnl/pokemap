@@ -47,8 +47,7 @@ void main() {
   // référence (annonce après l'entrée, envois chacun avec son message). Ce
   // fichier garde les invariants de CONTRAT (durées, distances, planches) ;
   // l'ordre lui-même est verrouillé par battle_intro_parity_test.dart.
-  test('sauvage : fondu, entrée de l’adversaire, apparition, envoi joueur',
-      () {
+  test('sauvage : fondu, entrée de l’adversaire, apparition, envoi joueur', () {
     final plan = buildBattleIntroAnimationPlan(
       session: _session(isTrainerBattle: false),
       slideDistancePx: 1080,
@@ -109,7 +108,7 @@ void main() {
     final plan = buildBattleIntroAnimationPlan(
       session: _session(isTrainerBattle: false),
       slideDistancePx: 1080,
-      playerBallSheetName: 'ball_1',
+      playerBallItemId: 'project_capture_item',
     );
     final steps = plan.steps;
 
@@ -128,7 +127,7 @@ void main() {
       isA<PlayBallSequenceStep>()
           .having((s) => s.side, 'camp', BattleSideId.player)
           .having((s) => s.kind, 'emploi', BattleBallSequenceKind.sendOutThrown)
-          .having((s) => s.sheetName, 'planche', 'ball_1')
+          .having((s) => s.ballItemId, 'planche', 'project_capture_item')
           .having((s) => s.durationSeconds, 'durée', 0.6),
       reason: 'vol en arc 0,5 s + ouverture 0,1 s — la parité de '
           'actor_ball_animation',

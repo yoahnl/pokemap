@@ -93,7 +93,10 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(
-      tester.widget<BorderPatternPanel>(find.byType(BorderPatternPanel)).chosen.keys,
+      tester
+          .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
+          .chosen
+          .keys,
       containsAll(['lineCap', 'lineStraight', 'lineCorner']),
     );
     await fixture.capture(tester, 'bordure-choix-des-pieces');
@@ -193,6 +196,10 @@ void main() {
     await pumpIo(tester);
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
+    await pumpIo(tester);
+    await tester.tap(find.byKey(const ValueKey('border-model-picker')));
+    await pumpIo(tester);
+    await tester.tap(find.text('Clôture du jardin ajustée').last);
     await pumpIo(tester);
     expect(find.text('Clôture du jardin ajustée'), findsWidgets);
     await fixture.capture(tester, 'bordure-modele-publie');

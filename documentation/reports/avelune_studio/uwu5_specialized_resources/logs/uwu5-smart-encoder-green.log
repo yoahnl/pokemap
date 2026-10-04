@@ -1,0 +1,11 @@
+✔ MCP upserts and paints a reusable Smart Tile pattern (12907.173709ms)
+✔ MCP changes, reopens, undoes, and reapplies a Smart Tile layer preset (12866.559333ms)
+✔ MCP normalizes and atomically merges the complete M01 Smart Tile fixture (11383.141292ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37677.602125

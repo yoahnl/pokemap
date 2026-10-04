@@ -12,6 +12,7 @@ import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
 import 'map_decor_geometry_panel.dart';
+import 'map_catalogue_properties.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -23,6 +24,7 @@ class MapWorkspaceInspector extends StatefulWidget {
     required this.onChanged,
     this.onOpenResource,
     this.onEditResource,
+    this.onRenameMap,
     this.width = 300,
     this.tool = StudioMapTool.select,
     this.showSelectionSummary = true,
@@ -32,8 +34,8 @@ class MapWorkspaceInspector extends StatefulWidget {
   final MapWorkspaceVisuals visuals;
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
-  final ValueChanged<ProjectElementEntry>? onOpenResource;
-  final ValueChanged<ProjectElementEntry>? onEditResource;
+  final ValueChanged<ProjectElementEntry>? onOpenResource, onEditResource;
+  final VoidCallback? onRenameMap;
   final double width;
   final StudioMapTool tool;
   final bool showSelectionSummary;
@@ -132,11 +134,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   ),
                 ],
                 if (selected == null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '${document.current.size.width} × ${document.current.size.height} cases',
+                  MapCatalogueProperties(
+                    map: document.current,
+                    onRename: widget.onRenameMap,
                   ),
-                  const SizedBox(height: 20),
                   Text(switch (widget.tool) {
                     StudioMapTool.select =>
                       'Sélectionnez un décor ou un personnage pour retrouver ses propriétés ici.',

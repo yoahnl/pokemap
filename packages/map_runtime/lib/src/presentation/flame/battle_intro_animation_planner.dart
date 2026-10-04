@@ -32,8 +32,8 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   BattleSpeciesDisplayNameResolver? resolveSpeciesDisplayName,
   double revealSeconds = 0.25,
   double slideSeconds = 0.8,
-  String? playerBallSheetName,
-  String? enemyBallSheetName,
+  String? playerBallItemId,
+  String? enemyBallItemId,
   bool hasEnemyTrainerSprite = false,
 }) {
   final openingLines = resolveSpeciesDisplayName == null
@@ -47,8 +47,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   // fragile ; on prend la première et la dernière, et l'intermédiaire quand
   // elle existe.
   final appearingMessage = openingLines.isEmpty ? null : openingLines.first;
-  final playerSendMessage =
-      openingLines.length < 2 ? null : openingLines.last;
+  final playerSendMessage = openingLines.length < 2 ? null : openingLines.last;
   final enemySendMessage =
       openingLines.length < 3 ? null : openingLines[openingLines.length - 2];
 
@@ -57,7 +56,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   ];
 
   // 1. L'entrée de l'adversaire.
-  final enemyEntersAsTrainer = enemyBallSheetName != null;
+  final enemyEntersAsTrainer = enemyBallItemId != null;
   if (enemyEntersAsTrainer && hasEnemyTrainerSprite) {
     steps.add(
       EnemyTrainerIntroStep(
@@ -111,7 +110,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
         PlayBallSequenceStep(
           side: BattleSideId.enemy,
           kind: BattleBallSequenceKind.sendOutHeld,
-          sheetName: enemyBallSheetName,
+          ballItemId: enemyBallItemId,
         ),
       );
       steps.add(
@@ -129,12 +128,12 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   }
 
   // 4. L'envoi du joueur.
-  if (playerBallSheetName != null) {
+  if (playerBallItemId != null) {
     steps.add(
       PlayBallSequenceStep(
         side: BattleSideId.player,
         kind: BattleBallSequenceKind.sendOutThrown,
-        sheetName: playerBallSheetName,
+        ballItemId: playerBallItemId,
       ),
     );
     steps.add(

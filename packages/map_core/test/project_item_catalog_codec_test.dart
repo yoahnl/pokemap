@@ -172,6 +172,98 @@ void main() {
       expect(namedLikeKnownItem.entries.single.uses, isEmpty);
       expect(namedLikeKnownItem.entries.single.capture, isNull);
     });
+
+    test('round-trips an optional project capture animation PNG path', () {
+      final json = _minimalCatalog();
+      final entry =
+          (json['entries']! as List<Object?>).single as Map<String, Object?>;
+      entry['capture'] = {
+        'rateNumerator': 1,
+        'rateDenominator': 1,
+        'allowedEncounterKinds': ['walk'],
+        'animationSpritePath': ' assets/capture/custom-ball.png ',
+      };
+
+      final decoded = decodeProjectItemCatalog(json);
+      final encoded = encodeProjectItemCatalog(decoded);
+      final encodedEntry = (encoded['entries']! as List).single as Map;
+
+      expect(
+        encodedEntry['capture']['animationSpritePath'],
+        'assets/capture/custom-ball.png',
+      );
+      expect(decodeProjectItemCatalog(encoded), decoded);
+      expect(encoded['schemaVersion'], 1);
+    });
+
+    test('omits capture animation paths when the object has no visual', () {
+      final json = _minimalCatalog();
+      final entry =
+          (json['entries']! as List<Object?>).single as Map<String, Object?>;
+      entry['capture'] = {
+        'rateNumerator': 1,
+        'rateDenominator': 1,
+        'allowedEncounterKinds': ['walk'],
+      };
+
+      final encoded = encodeProjectItemCatalog(decodeProjectItemCatalog(json));
+      final encodedEntry = (encoded['entries']! as List).single as Map;
+
+      expect(
+        (encodedEntry['capture'] as Map).containsKey('animationSpritePath'),
+        isFalse,
+      );
+    });
+
+    test('rejects unsafe or non-PNG capture paths at the exact field', () {
+      for (final path in <Object>[
+        'art/custom.png',
+        'custom.png',
+        'Assets/custom.png',
+        'database/custom.png',
+        '/tmp/ball.png',
+        '../ball.png',
+        'assets/../ball.png',
+        'C:/ball.png',
+        r'assets\ball.png',
+        'assets/\u0000ball.png',
+        'https://example.invalid/ball.png',
+        'assets/ball.jpg',
+        'assets//ball.png',
+        'assets/./ball.png',
+        '',
+        ' ',
+        42,
+      ]) {
+        final json = _minimalCatalog();
+        final entry =
+            (json['entries']! as List<Object?>).single as Map<String, Object?>;
+        entry['capture'] = {
+          'rateNumerator': 1,
+          'rateDenominator': 1,
+          'allowedEncounterKinds': ['walk'],
+          'animationSpritePath': path,
+        };
+
+        expect(
+          () => decodeProjectItemCatalog(json),
+          throwsA(
+            isA<ProjectItemCatalogCodecException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  ProjectItemCatalogCodecErrorCode.invalidValue,
+                )
+                .having(
+                  (error) => error.path,
+                  'path',
+                  r'$.entries[0].capture.animationSpritePath',
+                ),
+          ),
+          reason: 'path: $path',
+        );
+      }
+    });
   });
 }
 

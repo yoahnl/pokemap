@@ -110,6 +110,18 @@ class MapCreationTools extends StatelessWidget {
                 onPressed: () => activate(StudioMapTool.gameplayZone),
               ),
               StudioTool(
+                label: 'Dessiner les collisions',
+                icon: Icons.block_outlined,
+                selected: view.tool == StudioMapTool.collisionPaint,
+                onPressed: () => activate(StudioMapTool.collisionPaint),
+              ),
+              StudioTool(
+                label: 'Effacer les collisions',
+                icon: Icons.check_circle_outline,
+                selected: view.tool == StudioMapTool.collisionErase,
+                onPressed: () => activate(StudioMapTool.collisionErase),
+              ),
+              StudioTool(
                 label: 'Tracer une bordure',
                 icon: Icons.timeline,
                 selected: view.tool == StudioMapTool.border,

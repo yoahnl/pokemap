@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_creation_dialog_lifecycle_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_creation_dialog_lifecycle_test.dart: focused creation dialog closes safely through Créer
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_creation_dialog_lifecycle_test.dart: focused creation dialog closes safely through Annuler
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_creation_dialog_lifecycle_test.dart: focused creation dialog closes safely through Barrière
+00:01 +3: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart
+00:02 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart: focused portrait state dialog closes safely through Créer l’état
+00:03 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart: focused portrait state dialog closes safely through Annuler
+00:03 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart: focused portrait state dialog closes safely through Barrière
+00:03 +6: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_studio_portrait_workspace_test.dart
+00:03 +6 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_studio_portrait_workspace_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_studio_portrait_workspace_test.dart": Does not exist.
+00:03 +6 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart
+00:05 +6 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: successful replacement clears the previous incompatible candidate banner
+00:15 +7 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart: actual import decor placement closed map usages metadata organization and reopen
+00:31 +8 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart
+00:31 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: preparing and abandoning a duplicate writes no project file
+00:32 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: duplicate destination may change without replacing the captured revision
+00:32 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: a changed closed map invalidates a resize analysis before writing
+00:32 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: dirty source must be explicitly saved before duplicate preparation
+00:32 +12 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: dirty incoming passage blocks deletion without saving its owner
+00:32 +13 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: saved incoming passage identifies its map in the deletion refusal
+00:32 +14 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: same size is a no-op that preserves source bytes and geometry history
+00:32 +15 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: a stale no-op does not pretend to validate the previous snapshot
+00:32 +16 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_catalog_preparation_test.dart: missing required map does not produce an unreferenced deletion
+00:32 +17 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_compact_collision_test.dart
+00:33 +17 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_compact_collision_test.dart: compact palette paints and erases the exact collision cell
+00:35 +18 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_studio_portrait_workspace_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_studio_portrait_workspace_test.dart

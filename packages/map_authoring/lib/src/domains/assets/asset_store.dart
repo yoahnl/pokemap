@@ -51,6 +51,29 @@ List<String> deriveAssetUsages({
   return List.unmodifiable(usages.toList()..sort());
 }
 
+List<String> deriveAssetDocumentUsages({
+  required AssetRecord asset,
+  required Map<String, Object?> documents,
+}) {
+  final usages = <String>{};
+  for (final entry in documents.entries) {
+    _collectAssetUsages(
+      entry.value,
+      owner: entry.key,
+      path: r'$',
+      needles: {
+        asset.id,
+        asset.logicalPath,
+        asset.artifact.handle,
+        asset.artifact.digest,
+        asset.artifact.hexDigest,
+      },
+      output: usages,
+    );
+  }
+  return List.unmodifiable(usages.toList()..sort());
+}
+
 final class AssetRecord {
   AssetRecord({
     required String id,

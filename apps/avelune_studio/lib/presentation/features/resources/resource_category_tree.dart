@@ -67,11 +67,11 @@ class ResourceCategoryTree {
       }
     }
     final children = <String?, List<String>>{};
-    for (final id in counts.keys) {
+    for (final id in {..._parents.keys, ...counts.keys}) {
       final parent = _parents[id];
       children
           .putIfAbsent(
-            parent != null && counts.containsKey(parent) ? parent : null,
+            parent != null && _parents.containsKey(parent) ? parent : null,
             () => [],
           )
           .add(id);
@@ -93,7 +93,7 @@ class ResourceCategoryTree {
             name: names[id] ?? id,
             parentId: _parents[id],
             depth: depth,
-            count: counts[id]!,
+            count: counts[id] ?? 0,
           ),
         );
         visit(id, depth + 1);

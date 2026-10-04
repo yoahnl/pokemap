@@ -28,6 +28,7 @@ class CharacterStudioPage extends StatefulWidget {
     required this.port,
     required this.onImportPortrait,
     required this.onImportAnimation,
+    this.onRemove,
   });
 
   final ProjectManifest project;
@@ -37,6 +38,7 @@ class CharacterStudioPage extends StatefulWidget {
   final VoidCallback onImport;
   final ResourcePort port;
   final ValueChanged<String> onImportPortrait;
+  final ValueChanged<ProjectCharacterEntry>? onRemove;
   final void Function(CharacterAnimationState, EntityFacing) onImportAnimation;
 
   @override
@@ -119,6 +121,16 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
                     ? 'Créez et animez les personnages de votre jeu.'
                     : 'Ressources / Personnages / ${character.name}',
                 actions: [
+                  if (character != null && widget.onRemove != null)
+                    StudioButton(
+                      key: const ValueKey('character-studio-remove'),
+                      label: 'Supprimer le personnage',
+                      icon: Icons.person_remove_outlined,
+                      variant: StudioButtonVariant.destructive,
+                      onPressed: controller.saving
+                          ? null
+                          : () => widget.onRemove!(character),
+                    ),
                   StudioButton(
                     label: 'Retour aux ressources',
                     icon: Icons.arrow_back,
@@ -197,7 +209,7 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
         controller: widget.controller,
         visuals: widget.visuals,
         elapsedMs: _elapsedMs,
-        compact: compact,
+        compact: compact || MediaQuery.sizeOf(context).height < 900,
         onImportDedicated: widget.onImportAnimation,
       );
     }

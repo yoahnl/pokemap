@@ -1,0 +1,12 @@
+✔ first Border layer through live MCP stdio paints in front of ground (8286.346458ms)
+✔ MCP pixel geometry discovers, plans, applies, queries and undoes (7722.472ms)
+✔ MCP applies and rereads title motion and intro accessibility (7338.881125ms)
+✔ retry rebuilds and revalidates a fresh Pokemon projection (6935.010166ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31210.33725

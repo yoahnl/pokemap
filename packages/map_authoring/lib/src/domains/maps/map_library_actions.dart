@@ -66,6 +66,21 @@ final class MapLibraryActions {
             g.id.trim().isEmpty || g.name.trim().isEmpty || g.sortOrder < 0)) {
       _reject('groups_invalid');
     }
+    final siblingNames = <String, Set<String>>{};
+    for (final folder in folders) {
+      final names =
+          siblingNames.putIfAbsent(folder.parentGroupId ?? '', () => {});
+      if (!names.add(folder.name.trim().toLowerCase())) {
+        _reject('sibling_name_conflict');
+      }
+    }
+    for (final removed
+        in manifest.groups.where((g) => !folderIds.contains(g.id))) {
+      if (manifest.maps.any((m) => m.groupId == removed.id) ||
+          manifest.groups.any((g) => g.parentGroupId == removed.id)) {
+        _reject('group_not_empty');
+      }
+    }
     final entries = {for (final map in manifest.maps) map.id: map};
     final moved = <String>{};
     for (final assignment in assignments) {

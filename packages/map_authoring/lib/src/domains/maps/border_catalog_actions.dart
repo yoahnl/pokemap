@@ -6,11 +6,11 @@ import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/artifact_store.dart';
+import '../assets/resource_information_document.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'canonical_border_snapshot_compiler.dart';
-import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
 
 final class BorderCatalogActions {
@@ -675,7 +675,7 @@ AuthoringMutationDraft _publicationMutation(
       resource: projectRef,
       storageKey: 'project.json',
       beforeBytes: planning.snapshot.resourceBytes('project'),
-      afterBytes: encodeProjectAuthoringDocument(
+      afterBytes: encodeResourceInformationDocument(
         planning.snapshot,
         projected,
       ),
@@ -774,7 +774,7 @@ AuthoringMutationDraft _manifestMutation(
   Object? after,
 }) {
   final beforeBytes = planning.snapshot.resourceBytes('project');
-  final afterBytes = encodeProjectAuthoringDocument(
+  final afterBytes = encodeResourceInformationDocument(
     planning.snapshot,
     projected,
   );
@@ -845,11 +845,26 @@ AuthoringActionDescriptor _descriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'catalogFormatVersion':
             ProjectBorderCatalog.latestSupportedFormatVersion,
         'projectWidePreflight': true,
         'artifactSnapshots': true,
+        if (id == 'border.blueprint.delete' ||
+            id == 'border.blueprint.set_deprecated')
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'blueprintId': {'type': 'string', 'minLength': 1},
+              if (id == 'border.blueprint.set_deprecated')
+                'isDeprecated': {'type': 'boolean'}
+            },
+            'required': [
+              'blueprintId',
+              if (id == 'border.blueprint.set_deprecated') 'isDeprecated'
+            ]
+          },
       },
     );
 

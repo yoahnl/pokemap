@@ -6,8 +6,74 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import 'map_catalog_fixture.dart';
+
 void main() {
   group('LocalMapAuthoringMutationApi lifecycle', () {
+    test('resize plan refuses a new closed-map reference before application',
+        () async {
+      final target = catalogMap('target', width: 5, height: 4);
+      final owner = catalogMap('owner', width: 5, height: 4);
+      final setup = await _Setup.create(maps: [target, owner]);
+      addTearDown(setup.dispose);
+      final before =
+          await File('${setup.root.path}/maps/target.json').readAsBytes();
+      final request = await setup.requestAsync(
+          actionId: 'map.resize_apply',
+          parameters: {'mapId': 'target', 'width': 4, 'height': 4});
+      final plan = await setup.mutations.plan(setup.projectHandle, request);
+      final changedOwner = owner.copyWith(warps: const [
+        MapWarp(
+            id: 'new_entry',
+            pos: GridPos(x: 0, y: 0),
+            targetMapId: 'target',
+            targetPos: GridPos(x: 4, y: 0))
+      ]);
+      await File('${setup.root.path}/maps/owner.json')
+          .writeAsBytes(encodeMapAuthoringDocument(changedOwner), flush: true);
+      await expectLater(
+          setup.mutations.apply(setup.projectHandle,
+              planId: plan['planId']! as String, operationId: 'resize_stale'),
+          throwsA(isA<AuthoringPlanException>()));
+      expect(await File('${setup.root.path}/maps/target.json').readAsBytes(),
+          before);
+      expect(
+          (await setup.snapshots.load(setup.projectHandle))
+              .mapById('owner')!
+              .warps
+              .single
+              .id,
+          'new_entry');
+    });
+
+    test('duplicate is independently editable and never publishes its source',
+        () async {
+      final source = catalogMap('source', width: 5, height: 4);
+      final setup = await _Setup.create(maps: [source]);
+      addTearDown(setup.dispose);
+      final sourceFile = File('${setup.root.path}/maps/source.json');
+      final before = await sourceFile.readAsBytes();
+      final request = await setup.requestAsync(
+          actionId: 'map.duplicate', parameters: {'sourceMapId': 'source'});
+      final plan = await setup.mutations.plan(setup.projectHandle, request);
+      await setup.mutations.apply(setup.projectHandle,
+          planId: plan['planId']! as String, operationId: 'duplicate_source');
+      final independent = await setup.snapshots.load(setup.projectHandle);
+      final copy = independent.mapById('source_copy')!;
+      final save = await setup.requestAsync(
+          actionId: 'map.save',
+          parameters: {'map': copy.copyWith(name: 'Edited copy').toJson()});
+      final savePlan = await setup.mutations.plan(setup.projectHandle, save);
+      await setup.mutations.apply(setup.projectHandle,
+          planId: savePlan['planId']! as String, operationId: 'save_copy');
+      expect(await sourceFile.readAsBytes(), before);
+      expect(
+          (await setup.snapshots.load(setup.projectHandle))
+              .mapById('source_copy')!
+              .name,
+          'Edited copy');
+    });
+
     test('map save verifies only its touched payload without a full reload',
         () async {
       final original = _map('town');

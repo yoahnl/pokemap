@@ -69,7 +69,10 @@ class MapCanvasStroke {
       return stroke;
     }
     if (erase) {
-      final layer = map.layers.reversed
+      final layers = mapPaintsFirstLayerInFront(map)
+          ? map.layers
+          : map.layers.reversed;
+      final layer = layers
           .whereType<SmartTileLayer>()
           .where(
             (item) =>

@@ -25,13 +25,16 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
   }
 
   Future<bool> _allowCloseWithExport() async {
-    if (_connectionBusy) return false;
+    if (_connectionBusy || _controller.catalogBusy) return false;
     if (_gameExport?.operationActive == true) return false;
     if (!await _allowLeavePokemon()) return false;
     return _actions.allowClose();
   }
 
   Future<bool> _prepareGameExport() async {
+    if (_controller.catalogBusy || _controller.pendingCatalogReceipt != null) {
+      return false;
+    }
     if (_pokemon?.operationActive == true) return false;
     if (_pokemon?.hasPendingChanges == true) {
       final choice = await showDialog<bool>(

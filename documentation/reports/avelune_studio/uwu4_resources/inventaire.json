@@ -1,0 +1,605 @@
+[
+  {
+    "path": "apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart",
+    "lines": 269,
+    "sha256": "b7463f74ea2c1b08556090c4df97d67a475992678f2f9a5519a3907246056fd6",
+    "baselineSha256": "cc05e5debb104c3aaa39a91eaaa7fc504385ff1a5695d6ecb2517af5884eb4fd",
+    "zones": [
+      "@@ -1,6 +1,8 @@",
+      "@@ -8,51 +10,8 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/map_workspace/application/map_element_placement_commands.dart",
+    "lines": 58,
+    "sha256": "b0713adf567e2b30e120e8c28297d5b70714020b5e7b622f65ebe36830cc03e8",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,58 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart",
+    "lines": 294,
+    "sha256": "ee2ad54e1ad13e1277721d6d83d5163300269ee1616647fbda0021cd72dd7685",
+    "baselineSha256": "c7865582d3fa2463b0972a95add62616abb5a2e7a21eeb50dfe9d6aa6e793b29",
+    "zones": [
+      "@@ -211,6 +211,11 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart",
+    "lines": 49,
+    "sha256": "bef0e8b2a858949f9111b61029e4b26cb36b256242732c0e9f6e08e772469cb5",
+    "baselineSha256": "963911d25d3712c8f3812a7e7d467d1b8d6440321eb494e461139d9d3fcfd816",
+    "zones": [
+      "@@ -1,4 +1,37 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart",
+    "lines": 236,
+    "sha256": "0be120d0b9f06a136049a6b9fe6e8964df5894542f8232ac2fb9d9f58fc39662",
+    "baselineSha256": "4647092826fe6bc3df6231e3df6336be3b0ff5cc5917a521f6716ead97940d31",
+    "zones": [
+      "@@ -13,6 +13,7 @@",
+      "@@ -24,11 +25,14 @@",
+      "@@ -43,6 +47,8 @@",
+      "@@ -53,6 +59,9 @@",
+      "@@ -143,12 +152,37 @@",
+      "@@ -164,6 +198,14 @@",
+      "@@ -183,6 +225,9 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_apply.dart",
+    "lines": 112,
+    "sha256": "5d6c56db97c256a6df5e3f0b6194789392f83977abe7a0d3f0295d82823a6741",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,112 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart",
+    "lines": 215,
+    "sha256": "5ff69f74289f5af2c72716c0c01b0d52e04224754ad9377cd5cc39accb477cc9",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,215 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/resources/domain/resource_lifecycle_port.dart",
+    "lines": 41,
+    "sha256": "b7a2916da55eabb4dc6c164395042e9d7bfdda4cd7941072d4dcf2d1107b8eeb",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,41 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/features/resources/domain/resource_mutation_preparation.dart",
+    "lines": 56,
+    "sha256": "f34e9501107c0757fb509f5d6656faef0cb0a471de871e3fe83f40a0ffc9161f",
+    "baselineSha256": "88d276b766e4930512f9fcd95608c47ab0cdcd0da118db3f3c0e3f647c6dd7e1",
+    "zones": [
+      "@@ -9,7 +9,9 @@",
+      "@@ -19,6 +21,7 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/characters/character_studio_controller.dart",
+    "lines": 298,
+    "sha256": "5fed65bc4bdc41480f1530b8b8e43a3e6be29a48d0dfebb91108cd11ab87cc09",
+    "baselineSha256": "f3100f5e42e2e1c65d31c53b47603eea617f2814c458d7e02f692ae5dfe86508",
+    "zones": [
+      "@@ -3,6 +3,8 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/characters/character_studio_draft_dependencies.dart",
+    "lines": 7,
+    "sha256": "22096b36fd8660f138df910d1e8fe7a6fa4db43643e48fd7b361c7447892561a",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,7 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart",
+    "lines": 96,
+    "sha256": "c968066c7344b9f01d4df56f31812c3fe85f2aa0930e324bdac19a2b72b6af9f",
+    "baselineSha256": "6b81b2584c5ff78caca2bebea6ade311708a66a12f9db056557c4f8b42df02fc",
+    "zones": [
+      "@@ -1,6 +1,32 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart",
+    "lines": 60,
+    "sha256": "b5f69d5bd1015e39b1afcd534f5d9b60ab3694c497322368e7eb9014eecd19f7",
+    "baselineSha256": "64aa28fc5e3cbe8aee4560c1dd1de82f4225e88678b55341622b919f05c04fa1",
+    "zones": [
+      "@@ -17,6 +17,7 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_catalog_view.dart",
+    "lines": 155,
+    "sha256": "8cdc4691bf8eda84d1e6c7536aa7b43d3b8c458f0309450216d71d856cf82b9c",
+    "baselineSha256": "b77351bf5e865626fcde53e72a903ddf5afaea6790e8d7c3cb6906bac684b5c6",
+    "zones": [
+      "@@ -24,6 +24,9 @@",
+      "@@ -33,12 +36,16 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+    "lines": 273,
+    "sha256": "c8c081dc3bbdc8a9d368148c6abda22f61830ea968562665d166fde9bde3aa7e",
+    "baselineSha256": "ca663a740c7b5621aeae196f57b0498c23e63a16fe72ef9fbf228ad7348a58a7",
+    "zones": [
+      "@@ -27,6 +27,9 @@",
+      "@@ -39,6 +42,7 @@",
+      "@@ -81,6 +85,9 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_duplicate_dialog.dart",
+    "lines": 73,
+    "sha256": "7c715c1c20882b6af2ece444d05a122eee23499e091d49d31bbb5e3fd7619c6b",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,73 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_item_actions.dart",
+    "lines": 109,
+    "sha256": "3f6b36e74e32d55cf1885c2c9856a65bdb36f310bc3b82da191050633d564fb3",
+    "baselineSha256": "6bbe0e087eb6e849888d566f96854f7ace0b42587c272ed1a985db4cfdb721e0",
+    "zones": [
+      "@@ -10,10 +10,14 @@",
+      "@@ -29,6 +33,18 @@",
+      "@@ -41,6 +57,9 @@",
+      "@@ -68,7 +87,13 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+    "lines": 168,
+    "sha256": "d3c4e2eb5d94a2c5204c476a5d38fdb8d916a64bed2a923467505584c736971e",
+    "baselineSha256": "260de670b8f08fc8c98f9542ae2bdc7e9fba6de9829bdc227812e8888a9c7056",
+    "zones": [
+      "@@ -144,6 +144,9 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart",
+    "lines": 199,
+    "sha256": "10b61149a4b5a0ab667e610ff4d1cd4a318959bce1d37fdec8d8cd8aa73ae92e",
+    "baselineSha256": "c68378f7aa62d68acf064f972e0af1b1b18570c3bbf67b98550fe25a851ba914",
+    "zones": [
+      "@@ -40,6 +40,9 @@",
+      "@@ -60,6 +63,7 @@",
+      "@@ -140,6 +144,24 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_bindings.dart",
+    "lines": 284,
+    "sha256": "610a66692002a2d0101feab1ef715eec9fe22270244a82e7126d257ad1346233",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,284 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_owner_guard.dart",
+    "lines": 44,
+    "sha256": "4d2deb29d7b90265335fb425d3feb2988124750bb4d3858f3e312c2882c79013",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,44 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_management_dialog.dart",
+    "lines": 178,
+    "sha256": "39b1cb7463ee9c71874eb8b3adb6e46812a0248538e7247d2e5fbc77be3887bf",
+    "baselineSha256": "5620b611fc5bdf92b713d6b5d5fe7bbec10e8a6303fa76e806dd7a1d5e2d21d1",
+    "zones": [
+      "@@ -24,12 +24,14 @@",
+      "@@ -108,7 +110,7 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_navigation.dart",
+    "lines": 291,
+    "sha256": "8054c07c46c274c032b15c8e4bb8cff02694bdaa6f7437780d4c3ade34e3bbed",
+    "baselineSha256": "4178fc8802d1a39de693fa9a605d4e06ea59e32239760e8c05767f6add11a1fd",
+    "zones": [
+      "@@ -11,9 +11,11 @@",
+      "@@ -40,6 +42,7 @@",
+      "@@ -154,6 +157,7 @@",
+      "@@ -251,6 +255,7 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_navigation_lifecycle.dart",
+    "lines": 172,
+    "sha256": "096e4781ea1f176ef36e9391b2e84672a6095f845dbbd3ef7ae3c4fdb7a3b41c",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,172 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_navigation_management.dart",
+    "lines": 212,
+    "sha256": "81e5ffbf3044fe930d81f2a69fbbd47180fadcddc754ea8372a3aeaec6397e09",
+    "baselineSha256": "f132422d59e1840595fdfad3083a906f9df4393d333fab8651a3480b8a869ff7",
+    "zones": [
+      "@@ -56,6 +56,17 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart",
+    "lines": 205,
+    "sha256": "7a7bfefe264511ec4bfac6fa717c73d72f30b78d311d840c3f50a42c3fbb4461",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,205 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_replacement_dialog.dart",
+    "lines": 127,
+    "sha256": "9c91ed693ccd9521c23167ca9bd315eeca551c08506133264af6fc9b5db362ea",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,127 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+    "lines": 292,
+    "sha256": "a58d6b1ab138377ef74bb16b0302303d6a2fa5163e00a61b6e5d6030de560128",
+    "baselineSha256": "ddccf3c5d9c7918df22a4450aacde51d3ad131b26ed9c33588b88bc2276e4ed5",
+    "zones": [
+      "@@ -15,6 +15,7 @@",
+      "@@ -238,6 +239,11 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/map_workspace/resource_deleted_history_test.dart",
+    "lines": 68,
+    "sha256": "52a44a73859080dc5513318b0d081b002c3511e68968ab8671ab315854280ebf",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,68 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/presentation/m2_end_to_end_test.dart",
+    "lines": 250,
+    "sha256": "d3adaf3bfb22554c0acbd440b7fd6970e67cf145f4767b53582c7cb6084f4208",
+    "baselineSha256": "8915703f9ce12de3a9e3ff44423aba58685890f8bd1b13afc0fcc5e495fb2640",
+    "zones": [
+      "@@ -183,6 +183,10 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/resource_io/resource_decor_owner_concurrency_test.dart",
+    "lines": 137,
+    "sha256": "508b357478e50bf05f272671053b83ccda5310bb91c6318c833949a3d6e5cc16",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,137 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+    "lines": 160,
+    "sha256": "b053efaee290eaf4dff9b2bac1f583744f95a88e0fc9c4b269f6def8f1468075",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,160 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/resource_io/resource_lifecycle_preparation_test.dart",
+    "lines": 162,
+    "sha256": "6d14c2190d38b0c33f34725bd294ae76ae99c873e4ccf86b3689974a23c05c92",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,162 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart",
+    "lines": 109,
+    "sha256": "91d2b2c3ebd281d560691ca893a77f20e3adb6683f80ad1167f0476629b2509b",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,109 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/support/copy_uwu4_native_fixture.dart",
+    "lines": 33,
+    "sha256": "e488ed3af560c823d4a4ea9bea1898197758b908bb530d8486bcc428c02e6bcb",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,33 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/support/uwu4_resource_host.dart",
+    "lines": 97,
+    "sha256": "abff5bc667c79fdb094fcd29a4d21adb7ca57f09f6fad5b3903dfc5f5a1d6af2",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,97 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/support/uwu_resource_host.dart",
+    "lines": 145,
+    "sha256": "4f4889e12b7be771fcd68bbcbfd0c296942db6bb2f634d9b9febf1c886b88b30",
+    "baselineSha256": "9bd597d1aaf1d39cd6ba4ae7c71fd118ebb8c6d351eccf111e543be6f199a61c",
+    "zones": [
+      "@@ -7,6 +7,7 @@",
+      "@@ -27,6 +28,7 @@",
+      "@@ -52,6 +54,7 @@",
+      "@@ -129,13 +132,14 @@"
+    ]
+  },
+  {
+    "path": "apps/avelune_studio/test/support/widget_resource_management_port.dart",
+    "lines": 124,
+    "sha256": "22dcad9d12b2f08b9f18ba71a0faa4a391fb31ab5aab594787d1e2240d927e56",
+    "baselineSha256": "2f898be3c954d85ebfbfb9adb7e4de489c296896082162060f7d6189c3694525",
+    "zones": [
+      "@@ -1,11 +1,15 @@",
+      "@@ -25,6 +29,22 @@"
+    ]
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart",
+    "lines": 275,
+    "sha256": "35421b3747de34c36324e9ceae014e3f2afdd417feb5315225629e89c0fdfbba",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,275 @@"
+    ]
+  },
+  {
+    "path": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_support.dart",
+    "lines": 248,
+    "sha256": "851b47e5d88aa752fef53c538d1cfa5fb786d1bc34150f6fb71c9dd8e82f518f",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,248 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/map_authoring_local.dart",
+    "lines": 66,
+    "sha256": "0a4942f36c5279b6e335366be9657122947fb561e0b96dd93d7514b1770e99a1",
+    "baselineSha256": "19a9f9b8524b6ecb00fee537076bbf308a401b06065d729b09d20a9c601cfc41",
+    "zones": [
+      "@@ -11,6 +11,8 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/api/local_map_authoring_mutation_api.dart",
+    "lines": 880,
+    "sha256": "f08446714c2dd1602593e09ad91e6d30ff68e30b1c00136c99ca97c6eaf16831",
+    "baselineSha256": "2f431ea3d738e298752602c417cc903e982fe221ea56c02931136493e8dd2a86",
+    "zones": [
+      "@@ -61,18 +61,17 @@",
+      "@@ -161,10 +160,12 @@",
+      "@@ -215,25 +216,29 @@",
+      "@@ -259,32 +264,37 @@",
+      "@@ -299,11 +309,13 @@",
+      "@@ -380,18 +392,18 @@",
+      "@@ -529,9 +541,8 @@",
+      "@@ -562,9 +573,8 @@",
+      "@@ -573,7 +583,8 @@",
+      "@@ -666,7 +677,7 @@",
+      "@@ -733,6 +744,32 @@",
+      "@@ -750,11 +787,15 @@",
+      "@@ -769,7 +810,8 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart",
+    "lines": 551,
+    "sha256": "31575a356f355faf0b2a14407b4066ae217b37e7f3be672be37d2f98b7f54ce8",
+    "baselineSha256": "45f954ca0df98d470cfec5d2ef105821d72bad72ab6ecf0811a85ba012334a8b",
+    "zones": [
+      "@@ -48,6 +48,7 @@",
+      "@@ -124,6 +125,7 @@",
+      "@@ -256,6 +258,11 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/domains/assets/element_actions.dart",
+    "lines": 261,
+    "sha256": "4139bb19f7c6fc5864793fc6f6295fcf20590903a459dbef90751c492a409bde",
+    "baselineSha256": "9e2ddaa993f78bbb5a04cc30713d37807102796cd9ab830f77600c3f20259650",
+    "zones": [
+      "@@ -1,11 +1,22 @@",
+      "@@ -19,17 +30,41 @@",
+      "@@ -86,6 +121,7 @@",
+      "@@ -98,6 +134,8 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/domains/assets/element_definition_management.dart",
+    "lines": 159,
+    "sha256": "a8daa2cc10fc48a2cd89b39bee712466531a0f511d2ca8d86137f94587b1e86f",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,159 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+    "lines": 263,
+    "sha256": "64391592206338c9a9a133fc1f186e6189e7f3522da59fa4e0bb21c260e1700c",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,263 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/domains/assets/resource_source_guards.dart",
+    "lines": 198,
+    "sha256": "5e637e1203dfb35970b03afa78c135624e8f8532b9ce9489202d99ed768dc018",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,198 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/domains/assets/resource_source_references.dart",
+    "lines": 160,
+    "sha256": "3196644718e253a8fc95f0c23c098d2e005ef5311ad41b803f6359a35c8788f2",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,160 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/parity/full_authoring_parity.dart",
+    "lines": 1602,
+    "sha256": "819601cee1a5ff0d18ca098a26e96731735587082209de4d53a4f4146ee71015",
+    "baselineSha256": "af538444038d3eaceb4dfea6a3c041fb0bc10012167c97d68dc92329744216b0",
+    "zones": [
+      "@@ -509,6 +509,26 @@",
+      "@@ -1140,6 +1160,14 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/lib/src/workspace/project_snapshot_loader.dart",
+    "lines": 1220,
+    "sha256": "c9029cd3285d203eb16ecb5c5e16e4ac3acd79edd0150ec7e1342fa1b4859eea",
+    "baselineSha256": "0d508d26d79d4006344bd99b6aac68f862f6f6385f9d263f26069123ce20e1c9",
+    "zones": [
+      "@@ -642,7 +642,19 @@",
+      "@@ -656,7 +668,9 @@",
+      "@@ -756,7 +770,7 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/element_definition_actions_test.dart",
+    "lines": 175,
+    "sha256": "5eca8aa1a93ace09145677d187c8a9d77b7b387cac1a3c0c27d468d8b0f81a29",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,175 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/element_definition_fixture.dart",
+    "lines": 132,
+    "sha256": "cb206e980f941d8fa3f66822e532a57ae381e4269a70d891785e0804ce834ada",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,132 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/element_definition_transaction_test.dart",
+    "lines": 243,
+    "sha256": "72350309200830b34aad4c836444ac7534a68fadc400154f9699d3c714e1c516",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,243 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_mutation_locked_precondition_test.dart",
+    "lines": 99,
+    "sha256": "fbb2fe9156d24aaada97d051b2e78b91ea3de0c92ad38af2cc38a32019c9391a",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,99 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+    "lines": 282,
+    "sha256": "db62e0d6adff7bbde0dd9b9f8b7dc1a00a2852fdab239d3c869747eb1ae615ca",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,282 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_api_test.dart",
+    "lines": 115,
+    "sha256": "c8c318f5a591a0e33ac9dce9093b6885858d565a9434976bf414ae5944cc26b3",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,115 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_fixture.dart",
+    "lines": 115,
+    "sha256": "c24b3a8d598936248af7e471715ea870ac219f040a49db6890f44dfbaff48c3c",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,115 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_regression_test.dart",
+    "lines": 72,
+    "sha256": "44d18874e6ce541e8d145ad4beb062757da6e7c75ee576b6413b06e8b8814c9e",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,72 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_transaction_fixture.dart",
+    "lines": 109,
+    "sha256": "09dff90fe319d84375fde4e9a4c85cfd63560300ccadd5875a717f5672aeed8b",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,109 @@"
+    ]
+  },
+  {
+    "path": "packages/map_authoring/test/domains/assets/resource_source_transaction_test.dart",
+    "lines": 126,
+    "sha256": "a68d260dba46b18cef3f8992e306ffa9d2b2d61a011f68ea1c7e9c9a6a157e9c",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,126 @@"
+    ]
+  },
+  {
+    "path": "pokemap_authoring_api_mcp_action_catalog.md",
+    "lines": 2695,
+    "sha256": "03e2ae0d6c22bbe06dd659850e8e7dd8ee8b55ec6207a794676d582e61b8c8a5",
+    "baselineSha256": "795fceef19d5df8db7775709823c224aadacf1aecc97b25497c2942177b00762",
+    "zones": [
+      "@@ -1098,6 +1098,17 @@"
+    ]
+  },
+  {
+    "path": "tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts",
+    "lines": 140,
+    "sha256": "f8ff2b958f2a8eab2bd25cfe9f1d313a4f5d0673cf0f70378cc3f162fa7f504f",
+    "baselineSha256": null,
+    "zones": [
+      "@@ -0,0 +1,140 @@"
+    ]
+  }
+]

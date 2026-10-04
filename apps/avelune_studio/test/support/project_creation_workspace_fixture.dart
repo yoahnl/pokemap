@@ -5,6 +5,7 @@ import 'package:avelune_studio/features/game_export/domain/studio_game_export_po
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
@@ -21,10 +22,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:path/path.dart' as p;
 
-import 'm2_ui_fixture.dart' show WidgetResourcePort, pumpIo;
+import 'm2_ui_fixture.dart'
+    show WidgetResourcePort, WidgetMapController, pumpIo;
 import 'ui05_narrative_fixture.dart' show Ui05NarrativePort;
 import 'ui08_workspace_harness.dart' show Ui08MapPort;
 import 'clairbois_template_fixture.dart';
+import 'widget_map_catalog_port.dart';
 
 class ProjectCreationWorkspaceFixture {
   ProjectCreationWorkspaceFixture(this.tester, this.parent, this.packageFile);
@@ -229,7 +232,15 @@ class _CreatedWorkspaceState extends State<_CreatedWorkspace> {
   late final adapter = LocalMapWorkspaceAdapter();
   late final ioPort = Ui08MapPort(adapter, widget.tester)..interactive = true;
   late final port = widget.mapPort?.call(ioPort) ?? ioPort;
-  late final maps = MapWorkspaceController(widget.session, port);
+  late final maps = WidgetMapController(
+    widget.session,
+    port,
+    widget.tester,
+    catalogPort: WidgetMapCatalogPort(
+      LocalMapCatalogAdapter(adapter),
+      widget.tester,
+    ),
+  );
   late final export = StudioGameExportController(
     projectRoot: Directory(widget.session.directoryPath),
     projectName: widget.session.name,

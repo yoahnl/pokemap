@@ -1,0 +1,39 @@
+00:00 +0: loading test/domains/maps/border_deprecated_placement_test.dart
+00:00 +0: deprecated publication remains readable for existing features
+00:00 +1: new feature cannot select a deprecated publication
+00:00 +1 -1: new feature cannot select a deprecated publication [E]
+  Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
+    Actual: <Closure: () => AuthoringMutationDraft>
+     Which: returned <Instance of 'AuthoringMutationDraft'>
+  
+  package:matcher                                               expect
+  test/domains/maps/border_deprecated_placement_test.dart 17:5  main.<fn>
+  
+00:00 +1 -1: new stroke cannot extend a deprecated publication
+00:00 +1 -2: new stroke cannot extend a deprecated publication [E]
+  Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
+    Actual: <Closure: () => AuthoringMutationDraft>
+     Which: returned <Instance of 'AuthoringMutationDraft'>
+  
+  package:matcher                                               expect
+  test/domains/maps/border_deprecated_placement_test.dart 30:5  main.<fn>
+  
+00:00 +1 -2: existing geometry can still be updated after deprecation
+00:00 +2 -2: relink cannot select a deprecated target
+00:00 +2 -3: relink cannot select a deprecated target [E]
+  Expected: throws <Instance of 'MapAuthoringException'> with `code`: 'border.blueprint_deprecated'
+    Actual: <Closure: () => BorderFeatureRelinkPreview>
+     Which: returned <Instance of 'BorderFeatureRelinkPreview'>
+  
+  package:matcher                                               expect
+  test/domains/maps/border_deprecated_placement_test.dart 50:5  main.<fn>
+  
+00:00 +2 -3: Some tests failed.
+
+Failing tests:
+  test/domains/maps/border_deprecated_placement_test.dart: new feature cannot select a deprecated publication
+  test/domains/maps/border_deprecated_placement_test.dart: new stroke cannot extend a deprecated publication
+  test/domains/maps/border_deprecated_placement_test.dart: relink cannot select a deprecated target
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

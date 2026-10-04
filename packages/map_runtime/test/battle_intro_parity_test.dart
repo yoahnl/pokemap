@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:ui' show Color;
 
@@ -84,7 +85,7 @@ void main() {
       final plan = buildBattleIntroAnimationPlan(
         session: _session(isTrainerBattle: false),
         slideDistancePx: 1080,
-        playerBallSheetName: 'ball_1',
+        playerBallItemId: 'project_capture_item',
       );
       final steps = plan.steps;
 
@@ -126,8 +127,8 @@ void main() {
       final plan = buildBattleIntroAnimationPlan(
         session: _session(isTrainerBattle: true),
         slideDistancePx: 1080,
-        playerBallSheetName: 'ball_1',
-        enemyBallSheetName: 'ball_1',
+        playerBallItemId: 'project_capture_item',
+        enemyBallItemId: 'project_capture_item',
         hasEnemyTrainerSprite: true,
       );
       final steps = plan.steps;
@@ -194,7 +195,7 @@ void main() {
       final wild = buildBattleIntroAnimationPlan(
         session: _session(isTrainerBattle: false),
         slideDistancePx: 1080,
-        playerBallSheetName: 'ball_1',
+        playerBallItemId: 'project_capture_item',
       );
       final wildSteps = wild.steps;
       final slideIndex = wildSteps.indexWhere(
@@ -229,8 +230,8 @@ void main() {
       final trainer = buildBattleIntroAnimationPlan(
         session: _session(isTrainerBattle: true),
         slideDistancePx: 1080,
-        playerBallSheetName: 'ball_1',
-        enemyBallSheetName: 'ball_1',
+        playerBallItemId: 'project_capture_item',
+        enemyBallItemId: 'project_capture_item',
         hasEnemyTrainerSprite: true,
       );
       expect(
@@ -260,8 +261,8 @@ void main() {
       final plan = buildBattleIntroAnimationPlan(
         session: _session(isTrainerBattle: true),
         slideDistancePx: 1080,
-        playerBallSheetName: 'ball_1',
-        enemyBallSheetName: 'ball_1',
+        playerBallItemId: 'project_capture_item',
+        enemyBallItemId: 'project_capture_item',
       );
 
       expect(plan.steps.whereType<EnemyTrainerIntroStep>(), isEmpty);
@@ -278,12 +279,27 @@ void main() {
       required bool isTrainerBattle,
       ui.Image? trainerImage,
     }) async {
+      final directory = await Directory.systemTemp.createTemp('project-ball-');
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      canvas.drawColor(const Color(0xFFCC66AA), ui.BlendMode.src);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(64, 2048);
+      picture.dispose();
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      final sprite = File('${directory.path}/animation.png');
+      await sprite.writeAsBytes(bytes!.buffer.asUint8List());
+      addTearDown(() => directory.delete(recursive: true));
       final overlay = BattleOverlayComponent(
         session: _session(isTrainerBattle: isTrainerBattle),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
         introEnabled: true,
+        resolveBallSpritePath: (_) async => sprite.path,
+        resolveCombatantBallItemId: (_, __) => 'project_capture_item',
       );
+      addTearDown(overlay.onRemove);
       if (trainerImage != null) {
         overlay.prepareIntroTrainerVisual(trainerImage);
       }
@@ -380,8 +396,7 @@ void main() {
       );
     });
 
-    test(
-        'BETA-BAT-028 : les barres d’info n’entrent qu’APRÈS l’annonce',
+    test('BETA-BAT-028 : les barres d’info n’entrent qu’APRÈS l’annonce',
         () async {
       // Parité `show_team_info` : la référence les fait glisser dans le même
       // temps que le message d'apparition, pas au lever du rideau.

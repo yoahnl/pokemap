@@ -19,6 +19,7 @@ class PokemonCommercePage extends StatefulWidget {
     required this.controller,
     required this.commerce,
     this.pickJson,
+    this.pickPng,
     this.onOpenReference,
     required this.onViewRequested,
   });
@@ -26,6 +27,7 @@ class PokemonCommercePage extends StatefulWidget {
   final PokemonWorkspaceController controller;
   final PokemonCommerceController commerce;
   final Future<String?> Function()? pickJson;
+  final Future<String?> Function()? pickPng;
   final Future<void> Function(String kind, String id)? onOpenReference;
   final Future<bool> Function(PokemonWorkspaceView) onViewRequested;
 
@@ -129,6 +131,7 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
               child: compact && compactDetail && showDetail
                   ? PokemonCommerceDetail(
                       commerce: commerce,
+                      pickPng: widget.pickPng,
                       items: items,
                       onBack: () => setState(() => compactDetail = false),
                       onOpenShop: _selectShop,
@@ -147,6 +150,7 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
                           Expanded(
                             child: PokemonCommerceDetail(
                               commerce: commerce,
+                              pickPng: widget.pickPng,
                               items: items,
                               onOpenShop: _selectShop,
                               onOpenReference: widget.onOpenReference,

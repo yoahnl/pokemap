@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-10-03",
+  "application": "AveluneiOS, Designed for iPad on My Mac",
+  "process": 92169,
+  "supportRoot": "/Users/karim/Library/Containers/90DA71AE-498A-49B0-AABE-58D63E2C6AF0/Data/Library/Application Support/PokeMap",
+  "gameId": "games.avelune.les-clairieres",
+  "gameFiles": 81,
+  "gameTreeSha256": "283203be5be45cc35e9fa34a19fec35f9b080650f1d8a1cd06d955553e90e3c8",
+  "saveFiles": 5,
+  "saveTreeSha256": "a2553dc37f5d146f3ea99d4fc50150a666b7ab5ce831d8f771d75014735006f2",
+  "algorithm": "Sorted relative UTF-8 path, NUL, binary SHA256 of each file, concatenated then SHA256",
+  "state": "Import of UwU fixtures waiting for explicit authorization; existing game and saves observed read-only."
+}

@@ -103,7 +103,7 @@ void main() {
   });
 
   test(
-    'category options represent only occupied canonical catalog categories',
+    'category options preserve empty canonical containers for management',
     () {
       final manifest = workspaceProject.copyWith(
         elementCategories: [
@@ -123,6 +123,7 @@ void main() {
       );
       expect(resourceCategories(manifest, ResourceKind.decors), {
         '': 'Toutes',
+        'unused': 'Inoccupée',
         'nature': 'Nature',
         uncategorizedResourceCategory: 'Sans catégorie',
       });
@@ -130,6 +131,13 @@ void main() {
         '': 'Toutes',
         'source': 'Images importées',
       });
+      final tree = ResourceCategoryTree(
+        manifest,
+        ResourceKind.decors,
+        resourceCatalog(manifest),
+      );
+      expect(tree.nodes.singleWhere((node) => node.id == 'unused').count, 0);
+      expect(tree.idsFor('unused'), {'unused'});
       expect(
         resourceCategories(
           manifest,

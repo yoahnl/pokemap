@@ -1,0 +1,19 @@
+00:00 +0: loading test/border/border_layer_default_order_test.dart
+00:00 +0: new Border layer paints above existing ground (true)
+00:00 +0 -1: new Border layer paints above existing ground (true) [E]
+  Expected: a value greater than <1>
+    Actual: <0>
+     Which: is not a value greater than <1>
+  
+  package:matcher                                        expect
+  test/border/border_layer_default_order_test.dart 22:7  main.<fn>
+  
+00:00 +0 -1: new Border layer paints above existing ground (false)
+00:00 +1 -1: explicit insertion and existing authored order remain unchanged
+00:00 +2 -1: Some tests failed.
+
+Failing tests:
+  test/border/border_layer_default_order_test.dart: new Border layer paints above existing ground (true)
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

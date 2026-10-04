@@ -897,6 +897,12 @@ map.render
 map.render_region
 ```
 
+`map.update_metadata` v1 est opérationnelle : paramètres `mapId` et `name`,
+titre normalisé sur les deux documents dans une transaction récupérable.
+L'identité, le chemin et les références restent inchangés. Le nom identique
+dans le manifeste et la carte refuse un plan avec `map.no_change`, sans écriture.
+Ce contrat ne réutilise pas `map.rename`, qui change l'identité.
+
 ### 11.2 Graphe du monde
 
 ```text
@@ -1081,6 +1087,27 @@ d'un preset publié, puis propose une couche Smart Tile native masquée sans
 modifier la source. L'application est à risque élevé et requiert la
 confirmation liée au plan ; la couverture, les ambiguïtés et les cellules non
 résolues restent visibles avant confirmation.
+
+Les métadonnées et le rangement logique des ressources utilisent
+`tileset.metadata.update` (nom et dossier, identité/source/grille conservées),
+`tileset_folder.upsert`/`delete`, `element_category.upsert`/`delete`,
+`element.category.assign`, `smart_tile.category.upsert`/`delete` et
+`smart_tile.preset.category.assign`. Les dossiers de planches et les catégories
+de décors restent hiérarchiques ; les catégories Smart Tiles restent plates.
+Les suppressions de conteneurs occupés sont refusées. Le déplacement d'un
+preset ne publie pas son brouillon de préparation. Ces commandes traversent
+le dispatcher canonique et les transactions revisionnées communes.
+
+Le remplacement compatible d’une source utilise `tileset.source.replace`
+avec un artifact figé. Les dimensions et la grille restent identiques ; les
+références mutables sont réconciliées et les snapshots publiés conservés.
+`tileset.remove` retire une définition inutilisée ; `removeSource` est une
+option séparée, revalidée sur les usages. Aucun blob partagé n’est purgé.
+`element.duplicate` crée une nouvelle définition indépendante, partageant
+ses sources ; `element.delete` refuse les usages directs, indirects et de
+conservation technique. Les deux suppressions et le remplacement exigent
+la confirmation du plan à risque élevé. Le dispatcher, la CLI JSONL,
+le transport MCP stdio et les contrôleurs Studio utilisent ces contrats.
 
 ### 13.2 Environnements
 

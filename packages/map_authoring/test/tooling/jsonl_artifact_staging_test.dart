@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('JSONL stages an allowed file for asset.import', () async {
+  test('JSONL stages and imports project-owned item art', () async {
     final fixture = await _Fixture.create();
     addTearDown(fixture.dispose);
     final source = File('${fixture.root.path}/source.png');
@@ -20,7 +21,8 @@ void main() {
       },
     );
 
-    expect(staged.status, AuthoringResultStatus.success);
+    expect(staged.status, AuthoringResultStatus.success,
+        reason: jsonEncode(staged.toJson()));
     expect(staged.data['artifactHandle'], startsWith('artifact://sha256/'));
     expect(staged.data['mediaType'], 'image/png');
     expect(jsonEncode(staged.toJson()), isNot(contains(source.path)));
@@ -33,13 +35,17 @@ void main() {
         'projectHandle': opened.projectHandle.value,
         'request': AuthoringRequest(
           requestId: 'stage-import-request',
-          actionId: 'asset.import',
+          actionId: 'asset.import_batch',
           actionVersion: 1,
           workspaceHandle: opened.workspaceHandle.value,
           parameters: {
-            'artifactHandle': staged.data['artifactHandle'],
-            'assetId': 'staged-png',
-            'logicalPath': 'images/staged.png',
+            'entries': [
+              {
+                'artifactHandle': staged.data['artifactHandle'],
+                'assetId': 'item-icon-potion',
+                'logicalPath': 'data/pokemon/assets/items/potion.png',
+              }
+            ],
           },
           expectedRevision: snapshot.revision,
           idempotencyKey: 'stage-import-idempotency',
@@ -48,6 +54,16 @@ void main() {
     );
 
     expect(planned.status, AuthoringResultStatus.success);
+    final applied = await fixture.request('apply', args: {
+      'projectHandle': opened.projectHandle.value,
+      'planId': planned.data['planId'],
+      'operationId': 'project-item-import',
+    });
+    expect(applied.status, AuthoringResultStatus.success);
+    expect(
+        await File('${fixture.root.path}/data/pokemon/assets/items/potion.png')
+            .readAsBytes(),
+        _pngBytes);
   });
 
   test('JSONL refuses artifact sources outside allowed roots', () async {
@@ -69,6 +85,77 @@ void main() {
       staged.error!.details['domainCode'],
       'artifact.source_outside_allowed_roots',
     );
+  });
+
+  test('JSONL imports a custom capture PNG and updates its item reference',
+      () async {
+    final fixture = await _Fixture.create(capture: true);
+    addTearDown(fixture.dispose);
+    final bytes = image.encodePng(image.Image(width: 64, height: 2048));
+    final source = File('${fixture.root.path}/capture.png');
+    await source.writeAsBytes(bytes);
+    final staged = await fixture.request('stage_artifact', args: {
+      'sourcePath': source.path,
+      'declaredMediaType': 'image/png',
+    });
+    expect(staged.status, AuthoringResultStatus.success);
+    final opened = await fixture.open();
+    const path = 'data/pokemon/assets/items/capture/custom.png';
+    Future<void> apply(
+        String action, Map<String, Object?> parameters, String id) async {
+      final snapshot = await fixture.snapshots.load(opened.projectHandle);
+      final planned =
+          await fixture.request('plan', requestId: 'plan-$id', args: {
+        'projectHandle': opened.projectHandle.value,
+        'request': AuthoringRequest(
+          requestId: id,
+          actionId: action,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: id,
+        ).toJson(),
+      });
+      expect(planned.status, AuthoringResultStatus.success,
+          reason: jsonEncode(planned.toJson()));
+      final applied =
+          await fixture.request('apply', requestId: 'apply-$id', args: {
+        'projectHandle': opened.projectHandle.value,
+        'planId': planned.data['planId'],
+        'operationId': id,
+      });
+      expect(applied.status, AuthoringResultStatus.success,
+          reason: jsonEncode(applied.toJson()));
+    }
+
+    await apply(
+        'asset.import_batch',
+        {
+          'entries': [
+            {
+              'artifactHandle': staged.data['artifactHandle'],
+              'assetId': 'custom-capture-animation',
+              'logicalPath': path,
+              'usages': ['item:custom-ball'],
+            }
+          ],
+        },
+        'capture-import');
+    final updated = _captureItem.copyWith(
+        capture: _captureItem.capture!.copyWith(animationSpritePath: path));
+    await apply(
+        'item.update',
+        {'itemId': _captureItem.id, 'definition': updated.toJson()},
+        'capture-update');
+
+    final snapshot = await fixture.snapshots.load(opened.projectHandle);
+    expect(snapshot.itemCatalog!.entries.single, updated);
+    expect(await File('${fixture.root.path}/$path').readAsBytes(), bytes);
+    expect(
+        (snapshot.itemCatalog!.entries.single.capture!
+            .toJson())['animationSpritePath'],
+        path);
   });
 
   test('JSONL replaces a staged unmanaged asset through the canonical action',
@@ -177,17 +264,34 @@ final class _Fixture {
     required this.worker,
   });
 
-  static Future<_Fixture> create() async {
+  static Future<_Fixture> create({bool capture = false}) async {
     final root = await Directory.systemTemp.createTemp('jsonl-artifact-');
     final manifest = ProjectManifest(
       name: 'JSONL artifact fixture',
       version: ProjectVersion.v8,
       maps: const [],
       tilesets: const [],
+      pokemon: capture
+          ? const ProjectPokemonConfig(
+              enabled: true,
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+              catalogFiles: {'items': 'data/pokemon/catalogs/items.json'},
+            )
+          : const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1),
     );
     await File('${root.path}/project.json').writeAsString(
       '${const JsonEncoder.withIndent('  ').convert(manifest.toJson())}\n',
     );
+    if (capture) {
+      final catalog = File('${root.path}/data/pokemon/catalogs/items.json');
+      await catalog.parent.create(recursive: true);
+      await catalog
+          .writeAsString(jsonEncode(encodeProjectItemCatalog(ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: const [_captureItem],
+      ))));
+    }
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root.path],
@@ -205,7 +309,7 @@ final class _Fixture {
     );
     final artifacts = LocalArtifactStore(
       allowedSourceRoots: [root.path],
-      maximumArtifactBytes: 1024,
+      maximumArtifactBytes: capture ? 1024 * 1024 : 1024,
     );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
@@ -258,6 +362,17 @@ final class _Fixture {
 
   Future<void> dispose() => root.delete(recursive: true);
 }
+
+const _captureItem = ProjectItemDefinition(
+  id: 'custom-ball',
+  displayName: 'Custom Ball',
+  pocketId: 'balls',
+  capture: ProjectCaptureItemDefinition(
+    rateNumerator: 1,
+    rateDenominator: 1,
+    allowedEncounterKinds: {EncounterKind.walk},
+  ),
+);
 
 const _pngBytes = <int>[
   0x89,

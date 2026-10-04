@@ -10,7 +10,16 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import '../characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
+import 'resource_terrain_management.dart';
+import 'resource_border_management.dart';
+import 'resource_character_management.dart';
+import '../../../features/resources/domain/resource_mutation_preparation.dart';
+import '../../../features/resources/domain/resource_lifecycle_port.dart';
+import '../../../features/resources/domain/resource_usage_port.dart';
+import '../../../features/map_workspace/domain/map_workspace_port.dart';
 part 'resource_navigation_terrain.dart';
+part 'resource_navigation_management.dart';
+part 'resource_navigation_lifecycle.dart';
 
 enum ResourcePage { library, decor, terrain, characters }
 
@@ -20,14 +29,34 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     required this.port,
     required this.visuals,
     required this.onUse,
+    this.additionalDraftOwners,
+    this.openUsage,
+    this.canOpenUsage,
   }) {
     characters.addListener(notifyListeners);
+    workspace.addListener(changed);
   }
   @override
   final MapWorkspaceController workspace;
   final ResourcePort port;
   final MapWorkspaceVisuals visuals;
   final ValueChanged<ResourceItem> onUse;
+  final List<String> Function()? additionalDraftOwners;
+  final Future<bool> Function(ResourceUsageEntry)? openUsage;
+  final bool Function(ResourceUsageEntry)? canOpenUsage;
+  ResourceMutationReceipt? pendingReceipt;
+  bool _disposed = false;
+  bool get isDisposed => _disposed;
+  int _managementDialogs = 0;
+  void changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  String? Function(String blueprintId)? borderDrawingOwner;
+  List<String> Function(String characterId)? additionalCharacterOwners;
+  void Function(Set<String> dialogueIds)? characterSourcesChanged;
+  String? Function(Set<String> dialogueIds)? characterSourceProblem;
+  final Map<String, bool Function()> borderEditorOwners = {};
   final library = ResourceLibraryState();
   final Map<String, DecorDraft> decors = {};
   @override
@@ -73,22 +102,11 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       for (final draft in project.smartTileCatalog.drafts) draft.id: draft,
       for (final model in terrains.values) model.draft.id: model.draft,
     };
-    return drafts.values
-        .where(
-          (draft) => terrainDraftCompatibilityProblem(project, draft) == null,
-        )
-        .toList();
+    return drafts.values.toList();
   }
 
-  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts => terrainDrafts
-      .where(
-        (draft) =>
-            !workspace.project!.smartTileCatalog.presets.any(
-              (preset) => preset.id == draft.targetPresetId,
-            ) ||
-            terrains[draft.id]?.dirty == true,
-      )
-      .toList();
+  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts =>
+      terrainDrafts;
 
   bool canEditTerrain(ResourceItem item) =>
       item.terrain != null &&
@@ -137,6 +155,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     notifyListeners();
     try {
       for (final draft in decors.values.toList()) {
+        _validateDecorOwner(draft);
         final snapshot = draft.build();
         await accept(await port.saveElement(snapshot));
         if (draft.build() == snapshot) {
@@ -162,36 +181,13 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     }
   }
 
-  Future<ProjectManifest> accept(ResourceMutationReceipt receipt) async {
-    workspace.acceptResources(receipt.before, receipt.manifest);
-    characters.refreshClean();
-    for (final model in terrains.values) {
-      model.manifest = receipt.manifest;
-    }
-    if (visuals case final ResourceWorkspaceVisuals resources) {
-      await resources.updateCatalog(
-        receipt.manifest,
-        changedRelativePaths: receipt.changedPaths.toSet(),
-      );
-    }
-    notifyListeners();
-    return receipt.manifest;
-  }
+  Future<ProjectManifest> accept(ResourceMutationReceipt receipt) =>
+      _acceptResourceReceipt(this, receipt);
 
   Future<ProjectManifest> mutate(
     String action,
     Map<String, Object?> parameters,
-  ) async {
-    final wasBusy = busy;
-    busy = true;
-    notifyListeners();
-    try {
-      return await accept(await port.mutate(action, parameters));
-    } finally {
-      busy = wasBusy;
-      notifyListeners();
-    }
-  }
+  ) => _mutateResources(this, action, parameters);
 
   Future<void> import(ResourceImageImport request) async {
     busy = true;
@@ -212,10 +208,13 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
         ),
       );
     } catch (e) {
+      if (e is ResourceFailure && e.partialReceipt != null) {
+        pendingReceipt = e.partialReceipt;
+      }
       error = e.toString();
     } finally {
       busy = false;
-      notifyListeners();
+      changed();
     }
   }
 
@@ -230,7 +229,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       return;
     }
     decor = decors.putIfAbsent(
-      item.id,
+      item.identity,
       () => DecorDraft(tileset: tileset, original: item.element),
     );
     page = ResourcePage.decor;
@@ -254,6 +253,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   }
 
   Future<void> saveDecor(ProjectElementEntry element) async {
+    _validateDecorOwner(decor);
     busy = true;
     notifyListeners();
     try {
@@ -280,6 +280,8 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
 
   @override
   void dispose() {
+    _disposed = true;
+    workspace.removeListener(changed);
     characters.removeListener(notifyListeners);
     characters.dispose();
     super.dispose();

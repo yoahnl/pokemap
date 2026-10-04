@@ -27,7 +27,7 @@ class MapBorderToolPanel extends StatelessWidget {
     final models = MapBorderEditingCommands.publishedLines(project);
     final selected = models.any((item) => item.id == view.borderBlueprintId)
         ? view.borderBlueprintId
-        : models.firstOrNull?.id;
+        : null;
     final draft = view.borderDraft?.mapId == document.current.id
         ? view.borderDraft
         : null;
@@ -63,6 +63,7 @@ class MapBorderToolPanel extends StatelessWidget {
                         key: const ValueKey('border-model-picker'),
                         isExpanded: true,
                         value: selected,
+                        hint: const Text('Choisir une bordure'),
                         items: [
                           for (final model in models)
                             DropdownMenuItem(

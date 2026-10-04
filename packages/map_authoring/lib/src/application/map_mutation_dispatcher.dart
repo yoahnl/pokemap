@@ -21,6 +21,7 @@ import '../domains/assets/tiled_tileset_import_actions.dart';
 import '../domains/assets/tileset_image_import_actions.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../domains/assets/visual_organization_actions.dart';
+import '../domains/assets/resource_information_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
@@ -47,6 +48,7 @@ import '../ports/artifact_store.dart';
 import '../registry/mutation_registry.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
+import '../domains/assets/resource_source_actions.dart';
 import '../support/authoring_performance_observer.dart';
 import '../domains/maps/border_actions.dart';
 import '../domains/maps/border_catalog_actions.dart';
@@ -89,6 +91,7 @@ final class MapMutationDispatcher {
 
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
+    RetainedAssetBlobReader? retainedAssetBlobReader,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     PresentationMediaProbePort presentationMediaProbe =
         const PresentationMediaHeaderProbe(),
@@ -122,7 +125,14 @@ final class MapMutationDispatcher {
           maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
         );
     final borderCatalog = BorderCatalogActions(artifactStore: artifacts);
-    final assets = AssetActions(artifactStore: artifacts);
+    final assets = AssetActions(
+      artifactStore: artifacts,
+      retainedBlobReader: retainedAssetBlobReader,
+    );
+    final resourceSources = ResourceSourceActions(
+      artifactStore: artifacts,
+      retainedBlobReader: retainedAssetBlobReader,
+    );
     final presentationMedia = PresentationMediaImportActions(
       artifactStore: artifacts,
       probe: presentationMediaProbe,
@@ -255,6 +265,11 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: assets.build,
         ),
+      for (final descriptor in ResourceSourceActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: resourceSources.build,
+        ),
       for (final descriptor in PresentationMediaImportActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
@@ -305,6 +320,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: visualOrganization.build,
+        ),
+      for (final descriptor in ResourceInformationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const ResourceInformationActions().build,
         ),
       for (final descriptor in BattleTransitionDefaultActions.descriptors)
         MapMutationActionRegistration(
@@ -403,7 +423,8 @@ final class MapMutationDispatcher {
         ),
       MapMutationActionRegistration(
         descriptor: PresentationPublicationActions.descriptor,
-        build: PresentationPublicationActions(mediaImports: presentationMedia).build,
+        build: PresentationPublicationActions(mediaImports: presentationMedia)
+            .build,
       ),
       for (final descriptor in PresentationCinematicActions.descriptors)
         MapMutationActionRegistration(

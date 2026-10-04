@@ -52,8 +52,6 @@ flutter:
     - assets/audio/
     - assets/audio/battle/se/
     - assets/transitions/
-    - assets/battle/balls/
     - assets/battle/stats/
     - assets/battle_animations/
     - assets/cinematics/emotes/
-    - assets/menu/items/

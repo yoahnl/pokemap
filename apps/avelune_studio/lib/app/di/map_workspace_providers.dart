@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
@@ -12,6 +13,9 @@ final mapWorkspacePortProvider = Provider.autoDispose
       (ref, session) =>
           throw StateError('Map workspace port must be configured'),
     );
+
+final mapCatalogPortProvider = Provider.autoDispose
+    .family<MapCatalogPort?, ProjectSession>((ref, session) => null);
 
 final mapConnectionPortProvider = Provider.autoDispose
     .family<MapConnectionPort, ProjectSession>(
@@ -24,6 +28,7 @@ final mapWorkspaceControllerProvider = Provider.autoDispose
       final controller = MapWorkspaceController(
         session,
         ref.watch(mapWorkspacePortProvider(session)),
+        catalogPort: ref.watch(mapCatalogPortProvider(session)),
       );
       ref.onDispose(controller.dispose);
       return controller;

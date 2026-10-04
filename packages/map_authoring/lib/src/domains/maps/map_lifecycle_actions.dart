@@ -2,6 +2,8 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'map_lifecycle_adapter.dart';
+import 'map_lifecycle_analysis.dart';
+import 'map_metadata_actions.dart';
 
 /// Canonical lifecycle action family registered by the map mutation API.
 final class MapLifecycleActions {
@@ -10,6 +12,23 @@ final class MapLifecycleActions {
   }) : _adapter = adapter;
 
   final MapLifecycleAdapter _adapter;
+
+  MapLifecycleAnalysis analyze(AuthoringPlanningContext context) {
+    try {
+      final draft = build(context);
+      return MapLifecycleAnalysis(
+          canApply: true,
+          preview: draft.preview,
+          referenceImpact: draft.referenceImpact);
+    } on MapAuthoringException catch (error) {
+      return MapLifecycleAnalysis(
+          canApply: false,
+          noChange: error.code == 'map.no_change',
+          errorCode: error.code,
+          message: error.message,
+          details: error.details);
+    }
+  }
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
@@ -23,6 +42,8 @@ final class MapLifecycleActions {
         'map.duplicate', 'Duplicate a complete map', AuthoringRiskLevel.low),
     _descriptor(
         'map.rename', 'Rename an unreferenced map', AuthoringRiskLevel.medium),
+    _descriptor('map.update_metadata', 'Update a map title at stable identity',
+        AuthoringRiskLevel.medium),
     _descriptor('map.resize_apply', 'Resize a map without data loss',
         AuthoringRiskLevel.medium),
     _descriptor(
@@ -53,6 +74,7 @@ final class MapLifecycleActions {
       'map.delete_apply' => _adapter.delete(context),
       'map.duplicate' => _adapter.duplicate(context),
       'map.rename' => _adapter.rename(context),
+      'map.update_metadata' => updateMapMetadata(context),
       'map.resize_apply' => _adapter.resize(context),
       'map.save' => _adapter.save(context),
       _ => throw MapAuthoringException(
@@ -84,6 +106,34 @@ AuthoringActionDescriptor _descriptor(
       AuthoringGuarantee.revisionChecked,
       AuthoringGuarantee.undoable,
     ],
-    extensions: const {'multiFileGuarantee': 'recoverable'},
+    extensions: {
+      'multiFileGuarantee': 'recoverable',
+      if (id == 'map.duplicate')
+        'inputSchema': const {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['sourceMapId'],
+          'properties': {
+            'sourceMapId': {'type': 'string', 'minLength': 1},
+            'targetMapId': {'type': 'string', 'minLength': 1},
+            'name': {'type': 'string', 'minLength': 1},
+            'groupId': {
+              'type': ['string', 'null']
+            },
+          },
+          'selfReferences': 'sourceMap',
+        },
+      if (id == 'map.update_metadata')
+        'inputSchema': const {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['mapId', 'name'],
+          'properties': {
+            'mapId': {'type': 'string', 'minLength': 1},
+            'name': {'type': 'string', 'minLength': 1},
+          },
+          'normalizedTitleMaximumLength': 160,
+        },
+    },
   );
 }

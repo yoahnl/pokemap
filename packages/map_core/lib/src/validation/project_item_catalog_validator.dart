@@ -225,6 +225,20 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
 
     final capture = item.capture;
     if (capture != null) {
+      final animationSpritePath = capture.animationSpritePath;
+      if (animationSpritePath != null &&
+          !ProjectCaptureItemDefinition.isValidAnimationSpritePath(
+            animationSpritePath,
+          )) {
+        addDiagnostic(
+          ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'Capture animation sprite must be a safe PNG path under assets/ or data/',
+          '$itemPath.capture.animationSpritePath',
+          entryIndex: index,
+          itemId: itemId,
+        );
+      }
       if (capture.rateNumerator <= 0 || capture.rateDenominator <= 0) {
         addDiagnostic(
           ProjectItemCatalogDiagnosticCode.invalidRatio,

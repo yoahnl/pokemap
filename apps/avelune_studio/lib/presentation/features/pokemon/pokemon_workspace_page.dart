@@ -185,6 +185,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         controller: controller,
                         commerce: controller.commerce!,
                         pickJson: widget.pickJson,
+                        pickPng: widget.pickPng,
                         onOpenReference: widget.onOpenReference,
                         onViewRequested: _requestViewChange,
                       ),

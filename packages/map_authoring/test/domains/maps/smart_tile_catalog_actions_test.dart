@@ -32,7 +32,7 @@ void main() {
       expect(actual.parts, candidate.parts);
     });
 
-    test('advertises the ten canonical catalog mutations', () {
+    test('advertises the canonical catalog and lifecycle mutations', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),
         <String>[
@@ -45,7 +45,9 @@ void main() {
           'smart_tile.preset.delete',
           'smart_tile.preset.draft.delete',
           'smart_tile.preset.draft.upsert',
+          'smart_tile.preset.duplicate',
           'smart_tile.preset.publish',
+          'smart_tile.preset.rename',
         ],
       );
       for (final descriptor in SmartTileCatalogActions.descriptors) {

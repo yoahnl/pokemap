@@ -45,6 +45,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.detailActions,
     this.detailFooterBuilder,
     this.detailHeaderSecondary,
+    this.rootActionsOnly = false,
   });
 
   const RuntimePlayerPauseShell.root({
@@ -70,6 +71,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.detailActions,
     this.detailFooterBuilder,
     this.detailHeaderSecondary,
+    this.rootActionsOnly = false,
   })  : pauseSection = RuntimePlayerPauseSection.root,
         onBackToRoot = _noop;
 
@@ -97,6 +99,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final Widget Function(BuildContext context, Widget returnAction)?
       detailFooterBuilder;
   final Widget? detailHeaderSecondary;
+  final bool rootActionsOnly;
 
   static void _noop() {}
 
@@ -185,10 +188,11 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     final availableSelectionIds = [
       ...visible.where((action) =>
           !_isIllustrated ||
+          _isActionsOnlyRoot ||
           action != PlayerPauseAction.resume &&
               (action != PlayerPauseAction.returnToTitle ||
                   !_returnToTitleInOptions)),
-      if (_isIllustrated) PlayerPauseAction.resume,
+      if (_isIllustrated && !_isActionsOnlyRoot) PlayerPauseAction.resume,
     ]
         .where((action) => widget.actions[action]?.isEnabled == true)
         .map((action) => 'pause.${action.name}')
@@ -226,15 +230,21 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
         role: ProjectPresentationSurfaceRole.pauseMenu,
         child: Builder(
-          builder: (context) => _isIllustrated
-              ? PlayerMenuThemeScope(
-                  child: Builder(builder: _buildIllustratedFrame))
-              : PlayerPauseSurface.composed(child: _buildSurface(context)),
+          builder: (context) => _isActionsOnlyRoot
+              ? PlayerMenuThemeScope(child: Builder(builder: _buildSurface))
+              : _isIllustrated
+                  ? PlayerMenuThemeScope(
+                      child: Builder(builder: _buildIllustratedFrame))
+                  : PlayerPauseSurface.composed(child: _buildSurface(context)),
         ),
       );
 
   bool get _isIllustrated =>
       _presentation.style == ProjectPauseMenuStyle.nightIllustrated;
+
+  bool get _isActionsOnlyRoot =>
+      widget.rootActionsOnly &&
+      widget.pauseSection == RuntimePlayerPauseSection.root;
 
   bool get _returnToTitleInOptions =>
       _isIllustrated &&
@@ -485,6 +495,20 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  if (_isActionsOnlyRoot) {
+                    return Padding(
+                      padding: const EdgeInsets.all(PlayerSpacing.md),
+                      child: PlayerPauseNavigation(
+                        gameTitle: widget.gameTitle,
+                        actions: widget.actions,
+                        onSelected: widget.onSelected,
+                        focusController: _focusController,
+                        labels: widget.labels,
+                        presentation: _presentation,
+                        fillViewport: true,
+                      ),
+                    );
+                  }
                   final resolved = layoutOverride == null
                       ? context.playerLayoutTheme?.resolve(
                           ProjectPresentationSurfaceRole.pauseMenu, constraints)
@@ -646,14 +670,15 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     );
   }
 
-  Widget _surfaceActions({required Widget child}) => _isIllustrated
-      ? child
-      : RuntimePlayerActions(
-          onBack: widget.onBackToRoot,
-          onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
-          onInputSourceChanged: _focusController.noteInputSource,
-          child: child,
-        );
+  Widget _surfaceActions({required Widget child}) =>
+      _isIllustrated && !_isActionsOnlyRoot
+          ? child
+          : RuntimePlayerActions(
+              onBack: widget.onBackToRoot,
+              onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+              onInputSourceChanged: _focusController.noteInputSource,
+              child: child,
+            );
 
   Widget _compactPortrait(
     BuildContext context,
@@ -1089,8 +1114,26 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     };
   }
 
-  PlayerPausePresentation get _presentation =>
-      widget.presentation ?? PlayerPausePresentation.fromLabels(widget.labels);
+  PlayerPausePresentation get _presentation {
+    final presentation =
+        widget.presentation ?? PlayerPausePresentation.fromLabels(widget.labels);
+    if (!_isActionsOnlyRoot) return presentation;
+    return PlayerPausePresentation(
+      style: presentation.style,
+      background: presentation.background,
+      backgroundImage: presentation.backgroundImage,
+      title: presentation.title,
+      hint: presentation.hint,
+      actionOrder: presentation.actionOrder,
+      actionLabels: presentation.actionLabels,
+      actionIcons: presentation.actionIcons,
+      hiddenActions: {
+        ...presentation.hiddenActions,
+        PlayerPauseAction.resume,
+      },
+      composition: presentation.composition,
+    );
+  }
 
   ProjectPresentationSurfaceRole _surfaceRoleFor(
     RuntimePlayerPauseSection section,

@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart
+00:00 +0: home closes after export and reopens, preopened=false
+00:05 +1: home closes after export and reopens, preopened=true
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: FlutterError:<A StudioResourceNotifications was used after being disposed.
+          Once you have called dispose() on a StudioResourceNotifications, it can no longer be
+used.>
+
+When the exception was thrown, this was the stack:
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:237:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart:86:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart line 237
+The test description was:
+  home closes after export and reopens, preopened=true
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:08 +1 -1: home closes after export and reopens, preopened=true [E]
+  Test failed. See exception logs above.
+  The test description was: home closes after export and reopens, preopened=true
+  
+00:08 +1 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart: home closes after export and reopens, preopened=true

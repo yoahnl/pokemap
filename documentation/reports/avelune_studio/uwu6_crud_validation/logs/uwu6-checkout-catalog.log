@@ -1,0 +1,10 @@
+file:///Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/checkout_catalog_verifier.js:45
+            throw new Error("pokemap_describe failed for the checkout server.");
+                  ^
+
+Error: pokemap_describe failed for the checkout server.
+    at verifyCheckoutCatalog (file:///Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/checkout_catalog_verifier.js:45:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async main (file:///Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/checkout_catalog_verifier.js:160:21)
+
+Node.js v26.3.1

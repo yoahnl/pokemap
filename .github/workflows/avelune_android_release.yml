@@ -1,0 +1,147 @@
+name: Avelune Android Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: avelune-play-internal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: pokemap-release
+    env:
+      AVELUNE_VERSION_NAME: '1.0.1'
+      AVELUNE_UPLOAD_CERTIFICATE_SHA256: F626B11F98F9F438FB8419A6D6F772D5D19809BE425E9E1F4E1676241600FDE2
+      AVELUNE_REQUIRE_RELEASE_SIGNING: 'true'
+      AVELUNE_KEYSTORE_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_PASSWORD }}
+      AVELUNE_KEY_ALIAS: ${{ secrets.AVELUNE_ANDROID_KEY_ALIAS }}
+      AVELUNE_KEY_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Install the pinned Flutter SDK and Android toolchain
+        shell: bash
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "6a19cca56475dbfba1478ee68d7bd0c2ef891da1"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" --version
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          curl --fail --location --retry 3 https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o "$RUNNER_TEMP/bundletool.jar"
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  $RUNNER_TEMP/bundletool.jar" | sha256sum --check
+      - name: Restore the existing Play upload key
+        env:
+          AVELUNE_KEYSTORE_BASE64: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          test -n "$AVELUNE_KEYSTORE_BASE64"
+          printf '%s' "$AVELUNE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/avelune-release.jks"
+          chmod 600 "$RUNNER_TEMP/avelune-release.jks"
+          echo "AVELUNE_KEYSTORE_PATH=$RUNNER_TEMP/avelune-release.jks" >> "$GITHUB_ENV"
+      - name: Authenticate to the existing Play application
+        id: version-auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Select a version newer than all existing Play bundles
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.version-auth.outputs.access_token }}
+        shell: bash
+        run: |
+          version_code="$(python3 apps/avelune_android/tool/publish_play.py next-code)"
+          echo "AVELUNE_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+      - name: Verify release tooling and native host ownership
+        shell: bash
+        run: |
+          python3 -m unittest discover -s apps/avelune_android/tool -p 'test_*.py' -v
+          cd apps/pokemap_hub
+          flutter pub get
+          python3 - <<'PY'
+          import os, signal, subprocess, time
+          def processes():
+              records = {}
+              output = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,pgid=,lstart=,command='], text=True)
+              for line in output.splitlines():
+                  fields = line.split(None, 8)
+                  if len(fields) == 9:
+                      records[int(fields[0])] = (int(fields[2]), ' '.join(fields[3:8]), fields[8])
+              return records
+          owned = {}
+          runner = subprocess.Popen(['flutter', 'test', 'test/release/mobile_platform_release_gate_test.dart', '--reporter', 'expanded'], start_new_session=True)
+          while runner.poll() is None:
+              owned.update({pid: record for pid, record in processes().items() if record[0] == runner.pid})
+              time.sleep(0.2)
+          result = runner.wait()
+          reaped = []
+          for pid, record in owned.items():
+              if pid != runner.pid and processes().get(pid) == record and any(name in record[2] for name in ['flutter_tester', 'frontend_server', 'flutter_tools.snapshot test']):
+                  os.kill(pid, signal.SIGTERM)
+                  reaped.append(pid)
+          time.sleep(0.3)
+          for pid in reaped:
+              if processes().get(pid) == owned[pid]:
+                  os.kill(pid, signal.SIGKILL)
+          print('Owned test harnesses:', len(owned), 'Reaped:', reaped)
+          raise SystemExit(result)
+          PY
+      - name: Build the shared AOT runtime and Kotlin release
+        shell: bash
+        run: |
+          bash apps/avelune_android/tool/build_runtime.sh release
+          bash apps/avelune_android/tool/build_android.sh :host_core:test :app:testReleaseUnitTest :app:lintRelease :app:bundleRelease --no-daemon -PaveluneVersionCode="$AVELUNE_VERSION_CODE" -PaveluneVersionName="$AVELUNE_VERSION_NAME"
+      - name: Verify the signed Play bundle
+        shell: bash
+        run: |
+          python3 apps/avelune_android/tool/verify_release_bundle.py apps/avelune_android/app/build/outputs/bundle/release/app-release.aab --bundletool "$RUNNER_TEMP/bundletool.jar" --version-code "$AVELUNE_VERSION_CODE" --version-name "$AVELUNE_VERSION_NAME" --certificate-sha256 "$AVELUNE_UPLOAD_CERTIFICATE_SHA256" | tee "$RUNNER_TEMP/bundle-verification.json"
+      - name: Preserve the exact signed release and verification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: avelune-play-${{ env.AVELUNE_VERSION_CODE }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            apps/avelune_android/app/build/outputs/bundle/release/app-release.aab
+            apps/avelune_android/app/build/reports/lint-results-release.*
+            apps/avelune_android/app/build/test-results/testReleaseUnitTest/*.xml
+            apps/avelune_android/host_core/build/test-results/test/*.xml
+            ${{ runner.temp }}/bundle-verification.json
+      - name: Refresh Play authentication before uploading
+        id: publish-auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Replace the internal release on the existing Play listing
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.publish-auth.outputs.access_token }}
+        shell: bash
+        run: |
+          python3 apps/avelune_android/tool/publish_play.py publish apps/avelune_android/app/build/outputs/bundle/release/app-release.aab --version-code "$AVELUNE_VERSION_CODE" --version-name "$AVELUNE_VERSION_NAME" | tee "$RUNNER_TEMP/play-publication.json"
+          {
+            echo "Avelune Kotlin $AVELUNE_VERSION_NAME ($AVELUNE_VERSION_CODE) published to Google Play internal testing."
+            echo "Source: $GITHUB_SHA"
+            cat "$RUNNER_TEMP/bundle-verification.json" "$RUNNER_TEMP/play-publication.json"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/avelune-release.jks"

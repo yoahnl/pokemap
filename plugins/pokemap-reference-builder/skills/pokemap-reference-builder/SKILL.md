@@ -1,6 +1,6 @@
 ---
 name: pokemap-reference-builder
-description: Use when reconstructing an editable exterior PokeMap/Avelune map from a reference, prototyping an interior's floor and wall shell in HTML before authoring, creating missing assets, or measuring PSDK object templates. Native reconstruction supports exteriors; the interior mode is a review prototype.
+description: Use when reconstructing an editable exterior PokeMap/Avelune map from a reference, reviewing terrain support and modular outdoor asset placement, prototyping an interior's floor and wall shell in HTML before authoring, creating missing assets, or measuring PSDK object templates. Native reconstruction supports exteriors; the interior mode is a review prototype.
 ---
 
 # PokeMap Reference Builder
@@ -36,6 +36,26 @@ For buildings and trees, use the composed Tiled-rule entries before raw atlas fr
 Keep rule input anchors distinct from ground-contact anchors. Preserve raw passage information without assuming its collision meaning. When using a template for new artwork, choose and review the new asset's ground anchor, collision cells, entrance, and shadow policy separately; the defaults produced by `asset_contract.py init` are proposals, not measurements from the patron.
 
 The catalog preserves source pixel scale and converts only the exact pink/yellow sheet guides to transparency in previews. It does not restyle assets, certify their artistic fit, or export an animation just because one pose and TSX cadence were measured. Before new art, show the chosen source template and its pixel/cell dimensions; then use the missing-asset workshop below. Use the canonical MCP workflow only when importing or modifying the game project.
+
+## Terrain support and modular assembly
+
+For a placement question or assembly study, use this section without requiring a project, map ID, blueprint approval, or live MCP session. Before exterior authoring, read [the placement and assembly contract](references/exterior-layer-model.md#placement-and-assembly-contract), then retrieve the relevant entries from [the bundled mapping knowledge](references/map-assembly-patterns.json).
+
+Start with terrain regions, intended access and level transitions. Assemble contours, corners, faces and landings before buildings, forest edges and small decoration. Keep the asset's ground contact and support footprint separate from its visible canopy, roof, shadow and collision. A terrestrial tree's known ground footprint must stay on compatible land; its canopy can overhang water. Hidden or undeclared support remains unknown. Do not infer physical height from draw priority or dry ground from a zero terrain tag.
+
+The reference contains 30 corpus rules with evidence classes and denominators, 15 qualitative placement patterns from ten supplied images, and seven source-native assembly examples. The corpus has correlated sources; frequencies do not certify artistic quality. Qualitative patterns carry counterexamples and exceptions. The native examples cover a forest closure, cliff contour, stair opening, bridge, dock, waterfall and water-contact rock; they include small tile-ID excerpts, source layers, coordinates and asset hashes, not source artwork or complete maps.
+
+Retrieve only the topics needed for the current decision. From this skill directory, for example:
+
+```bash
+python3 -c 'import json; d=json.load(open("references/map-assembly-patterns.json")); topics={"SUPPORT","OCCLUSION","VEGETATION"}; print(json.dumps({"patterns":[x for x in d["placementPatterns"] if x["id"] in topics],"assemblies":[x for x in d["nativeAssemblies"] if topics.intersection(x["topicIds"])]},ensure_ascii=False,indent=2))'
+```
+
+Source tile IDs and atlas coordinates explain an observed assembly; they are not current PokeMap resource IDs, complete placeable objects or approved HGSS assets. Resolve the live binding and inspect its own compatible pieces before adapting the recipe. Use the pattern IDs and native example IDs when explaining a placement decision; state which support, landing, module or intent is still unknown.
+
+Regular background forests, gardens and crops may be deliberate. A bridge crossing needs two landings; a dock needs one land attachment and a deliberate water end. Waterfall crest, falling surface and receiving water must meet; aquatic rocks need the matching water-contact variant. These cases require distinct recipes, rather than a universal overlap or repetition ban.
+
+These instructions add agent guidance, not new native schema fields or automatic semantic validation. `proposedSemanticAnnotations` in the reference are review notes only. The current `blueprint_quality.py` tree lint uses the full geometry, including placement rectangles, and cannot distinguish a valid canopy overhang from roots in water; it does not consume `allowsWater`. Report an ambiguous overlap as unresolved and inspect the actual anchor/support and render. Do not falsify masks, suppress a hard gate or claim a passing support check. Component counts do not prove bridge/stair landings, dock access or required endpoint routes; render review and Player traversal remain separate evidence.
 
 ## Asset creation rules — proportions, alpha, and shadows
 
@@ -163,7 +183,7 @@ Read [the HGSS/DS quality gates](references/hgss-ds-quality-gates.md) before bin
 - Native cell size is exactly 32 px.
 - Accepted provenance is `hgss_ds` or `custom_hgss_compatible`.
 - Reject GBA assets and ambiguous mixed-generation sheets.
-- Forests use the canonical Environment capability as the natural-surface implementation. If the live product semantics do not satisfy the requested Surface Studio behavior, stop instead of substituting a repeated tree grid.
+- Forests use the canonical Environment capability as the natural-surface implementation. If the live product semantics do not satisfy the requested Surface Studio behavior, stop that family. Judge repetition against the approved reference and vegetation role: a regular background mass can be intentional, while an unintended scan-order grid needs repair. Do not replace Environment with unrelated repeated decoration.
 - Rivers use river water and river banks, never ocean water.
 - Do not create or apply Smart Borders unless the blueprint contains a separately approved `border` layer.
 - Use nearest-neighbor scaling only when an approved custom asset requires an integer scale. Never use fractional scaling or smoothing.

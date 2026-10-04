@@ -363,6 +363,7 @@ final class FakeRuntimeSessionAdapter
         GameSessionAdapter,
         RuntimePlayerPreferencesPort,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerCompanionMenuPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
   FakeRuntimeSessionAdapter(this.sessionId);
@@ -385,6 +386,7 @@ final class FakeRuntimeSessionAdapter
   PlayerPauseMenuState pauseMenuState = const PlayerPauseMenuState.empty();
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
       Function()? pauseDetailsLoader;
+  Future<RuntimePlayerCompanionMenuData> Function()? companionMenuLoader;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   final pauseCommands = <RuntimePlayerPauseCommand>[];
   RuntimePlayerPauseCommandResult pauseCommandResult =
@@ -422,6 +424,16 @@ final class FakeRuntimeSessionAdapter
   Future<PlayerPauseMenuState> loadPauseMenuState() async {
     calls.add('pause-menu-state');
     return pauseMenuState;
+  }
+
+  @override
+  Future<RuntimePlayerCompanionMenuData> readCompanionMenuData() async {
+    calls.add('companion-menu');
+    if (companionMenuLoader case final loader?) return loader();
+    return RuntimePlayerCompanionMenuData(
+      pauseMenuState: pauseMenuState,
+      pauseDetails: pauseDetails,
+    );
   }
 
   @override

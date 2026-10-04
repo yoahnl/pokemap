@@ -509,6 +509,46 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (const {
+    'tileset.source.replace',
+    'tileset.remove',
+    'element.duplicate',
+    'element.delete'
+  }.contains(actionId)) {
+    final source = actionId.startsWith('tileset.');
+    return {
+      AuthoringTransport.directApi: source
+          ? 'test/domains/assets/resource_source_api_test.dart'
+          : 'test/domains/assets/element_definition_transaction_test.dart',
+      AuthoringTransport.cli: source
+          ? 'test/domains/assets/resource_source_api_test.dart'
+          : 'test/domains/assets/element_definition_transaction_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts',
+    };
+  }
+  if (const {
+    'tileset.metadata.update',
+    'tileset_folder.upsert',
+    'tileset_folder.delete',
+    'element_category.upsert',
+    'element_category.delete',
+    'element.category.assign',
+    'smart_tile.category.upsert',
+    'smart_tile.category.delete',
+    'smart_tile.preset.category.assign',
+  }.contains(actionId)) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/resource_information_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/resource_information_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_management_stdio.test.ts',
+    };
+  }
   if (actionId == 'placed_element.set_geometry') {
     return const {
       AuthoringTransport.directApi:
@@ -523,10 +563,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   if (actionId == 'presentationCinematic.publish') {
     return const {
-      AuthoringTransport.directApi: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
-      AuthoringTransport.cli: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart',
-      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
 
@@ -769,8 +813,28 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'map.library.reorganize') {
+    return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
+    };
+  }
+  if (actionId == 'map.update_metadata') {
+    return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
+      AuthoringTransport.directApi:
+          'test/domains/maps/map_metadata_transaction_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/map_metadata_transaction_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/map_metadata_server.test.ts',
+    };
+  }
   if (actionId == 'map.create') {
     return const {
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
@@ -1097,11 +1161,28 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+    ['tileset.source.replace', 'tileset.remove'],
+    'test/domains/assets/resource_source_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['element.duplicate', 'element.delete'],
+    'test/domains/assets/element_definition_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    [
+      'tileset.metadata.',
+      'element.category.',
+      'smart_tile.category.',
+      'smart_tile.preset.category.'
+    ],
+    'test/domains/assets/resource_information_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['placed_element.set_geometry'],
     'test/domains/maps/placed_element_geometry_transport_test.dart',
   ),
   _ContractEvidenceRule(['presentationCinematic.publish'],
-    'test/domains/narrative/presentation_publication_ui11_test.dart'),
+      'test/domains/narrative/presentation_publication_ui11_test.dart'),
   _ContractEvidenceRule(
       ['regionalMap.'], 'test/domains/project/regional_map_actions_test.dart'),
   _ContractEvidenceRule(
@@ -1140,12 +1221,20 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/smart_tile_catalog_actions_test.dart',
   ),
   _ContractEvidenceRule(
-    ['smart_tile.preset.draft.'],
+    [
+      'smart_tile.preset.draft.',
+      'smart_tile.preset.rename',
+      'smart_tile.preset.duplicate'
+    ],
     'test/domains/maps/smart_tile_draft_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['map.tiled.import'],
     'test/domains/maps/tiled_map_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['map.update_metadata'],
+    'test/domains/maps/map_metadata_transaction_test.dart',
   ),
   _ContractEvidenceRule(
     ['map.library.'],

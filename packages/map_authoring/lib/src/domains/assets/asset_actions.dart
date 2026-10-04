@@ -31,6 +31,9 @@ final class AssetActionException implements Exception {
   String toString() => 'AssetActionException($code): $message';
 }
 
+typedef RetainedAssetBlobReader = Future<List<int>?> Function(
+    ProjectSnapshot snapshot, ContentArtifactRef artifact);
+
 final class AssetActionResult {
   AssetActionResult({
     required this.operation,
@@ -225,9 +228,10 @@ bool _hasMapGraphicsUsage(List<String> usages) => usages.any(
 /// Pure asset catalog operations. Durable filesystem application is left to
 /// the Phase-3 transaction boundary so these methods cannot bypass recovery.
 final class AssetActions {
-  const AssetActions({this.artifactStore});
+  const AssetActions({this.artifactStore, this.retainedBlobReader});
 
   final ArtifactStore? artifactStore;
+  final RetainedAssetBlobReader? retainedBlobReader;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor('asset.import', 'Import one inspected artifact',
@@ -289,6 +293,7 @@ final class AssetActions {
       final changes = <String, AuthoringResourceChange>{};
       final diffs = <String, AuthoringDiffEntry>{};
       final artifacts = <String, AuthoringArtifactRef>{};
+      final retainedBlobDigests = <String>{};
       for (final raw in entries) {
         if (raw is! Map) {
           throw const FormatException('Expected asset import parameters.');
@@ -312,9 +317,14 @@ final class AssetActions {
               usages: entry.strings('usages'),
             ));
         catalog = result.catalog;
-        final draft = _draft(context.snapshot, state, result,
+        final draft = await _draft(context.snapshot, state, result,
             addedArtifact: artifact,
-            addedBytes: await store.read(artifact.handle));
+            addedBytes: await store.read(artifact.handle),
+            retainedBlobReader: retainedBlobReader);
+        retainedBlobDigests.addAll(
+            (draft.referenceImpact['retainedBlobDigests'] as List?)
+                    ?.cast<String>() ??
+                const []);
         for (final change in draft.changeSet.changes) {
           changes[change.storageKey] = change;
         }
@@ -335,7 +345,9 @@ final class AssetActions {
         },
         referenceImpact: {
           'blobDeleted': false,
-          'importedCount': entries.length
+          'importedCount': entries.length,
+          if (retainedBlobDigests.isNotEmpty)
+            'retainedBlobDigests': retainedBlobDigests.toList()..sort(),
         },
         artifacts: artifacts.values,
       );
@@ -482,6 +494,7 @@ final class AssetActions {
       result,
       addedArtifact: addedArtifact,
       addedBytes: addedBytes,
+      retainedBlobReader: retainedBlobReader,
     );
   }
 
@@ -832,15 +845,17 @@ bool _sameBytes(List<int> left, List<int> right) {
   return true;
 }
 
-AuthoringMutationDraft _draft(
+Future<AuthoringMutationDraft> _draft(
   ProjectSnapshot snapshot,
   _AssetCatalogState state,
   AssetActionResult result, {
   ContentArtifactRef? addedArtifact,
   List<int>? addedBytes,
-}) {
+  RetainedAssetBlobReader? retainedBlobReader,
+}) async {
   final changes = <AuthoringResourceChange>[];
   final diff = <AuthoringDiffEntry>[];
+  final retainedBlobDigests = <String>[];
   final catalogRef = AuthoringResourceRef(
     kind: 'assetCatalog',
     id: 'project',
@@ -938,26 +953,37 @@ AuthoringMutationDraft _draft(
         (record) => record.artifact.digest == addedArtifact.digest,
       )) {
     final bytes = addedBytes!;
-    final blobRef = AuthoringResourceRef(
-      kind: 'assetBlob',
-      id: addedArtifact.digest,
-    );
-    changes.add(
-      AuthoringResourceChange(
-        resource: blobRef,
-        storageKey: assetBlobStorageKey(addedArtifact),
-        beforeBytes: null,
-        afterBytes: bytes,
-      ),
-    );
-    diff.add(
-      AuthoringDiffEntry(
-        operation: AuthoringDiffOperation.add,
-        resource: blobRef,
-        path: '/',
-        after: addedArtifact.toJson(),
-      ),
-    );
+    final existing = snapshot.findResourceBytes(
+            assetBlobResourceIdentity(addedArtifact.digest)) ??
+        await retainedBlobReader?.call(snapshot, addedArtifact);
+    if (existing != null && !_sameBytes(existing, bytes)) {
+      throw AssetActionException('asset.retained_blob_mismatch',
+          'The retained content-addressed blob does not match the inspected candidate.');
+    }
+    if (existing != null) {
+      retainedBlobDigests.add(addedArtifact.digest);
+    } else {
+      final blobRef = AuthoringResourceRef(
+        kind: 'assetBlob',
+        id: addedArtifact.digest,
+      );
+      changes.add(
+        AuthoringResourceChange(
+          resource: blobRef,
+          storageKey: assetBlobStorageKey(addedArtifact),
+          beforeBytes: null,
+          afterBytes: bytes,
+        ),
+      );
+      diff.add(
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: blobRef,
+          path: '/',
+          after: addedArtifact.toJson(),
+        ),
+      );
+    }
   }
   if (result.deletedBlob) {
     final artifact = result.before!.artifact;
@@ -995,6 +1021,8 @@ AuthoringMutationDraft _draft(
       'usages':
           result.before?.usages ?? result.after?.usages ?? const <String>[],
       'blobDeleted': result.deletedBlob,
+      if (retainedBlobDigests.isNotEmpty)
+        'retainedBlobDigests': retainedBlobDigests,
     },
     artifacts: addedArtifact == null
         ? const []

@@ -1,0 +1,12 @@
+{"transport":"real MCP stdio with Dart canonical worker","actions":["tileset.source.replace","tileset.remove","element.duplicate","element.delete"],"retainedCandidate":true,"sourceBytesMatched":true,"sharedBytesPreserved":true,"independentReopen":true,"strictSchemas":[{"id":"tileset.source.replace","schema":{"additionalProperties":false,"properties":{"artifactHandle":{"minLength":1,"type":"string"},"tilesetId":{"minLength":1,"type":"string"}},"required":["tilesetId","artifactHandle"],"type":"object"}},{"id":"tileset.remove","schema":{"additionalProperties":false,"properties":{"removeSource":{"default":false,"type":"boolean"},"tilesetId":{"minLength":1,"type":"string"}},"required":["tilesetId"],"type":"object"}},{"id":"element.duplicate","schema":{"additionalProperties":false,"properties":{"categoryId":{"minLength":1,"type":"string"},"name":{"maxLength":120,"minLength":1,"type":"string"},"newElementId":{"minLength":1,"type":"string"},"sourceElementId":{"minLength":1,"type":"string"}},"required":["sourceElementId","newElementId","name","categoryId"],"type":"object"}},{"id":"element.delete","schema":{"additionalProperties":false,"properties":{"elementId":{"minLength":1,"type":"string"}},"required":["elementId"],"type":"object"}}]}
+✔ resource lifecycle traverses actual stdio server, retained PNGs and recoverable transactions (8429.885167ms)
+{"transport":"packaged stdio","actions":["tileset_folder.upsert","tileset.metadata.update","tileset_folder.delete","element_category.upsert","element.category.assign","element_category.delete","smart_tile.category.upsert","smart_tile.preset.category.assign","smart_tile.category.delete"],"read":{"resourceKind":"resourceUsage","id":"images:sheet","complete":false,"coverageIssues":["resource.usages.asset_catalog_unavailable"],"revisionChanged":true}}
+✔ resource management traverses packaged stdio server and canonical transactions (8297.210583ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17409.668416

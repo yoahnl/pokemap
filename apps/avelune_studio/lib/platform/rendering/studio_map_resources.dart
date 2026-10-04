@@ -17,7 +17,6 @@ import 'studio_resource_notifications.dart';
 import 'studio_border_preview.dart';
 import '../../presentation/features/characters/character_workspace_visuals.dart';
 import '../../presentation/features/cinematics/cinematic_workspace_visuals.dart';
-
 import '../../presentation/features/presentations/presentation_workspace_visuals.dart';
 import '../../features/presentations/domain/presentation_port.dart';
 import 'presentation_workspace_visuals.dart';
@@ -28,6 +27,7 @@ final class StudioMapResources
     implements
         MapWorkspaceVisuals,
         ResourceWorkspaceVisuals,
+        ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
         CinematicWorkspaceVisuals,
         CinematicMediaWorkspaceVisuals,
@@ -86,6 +86,8 @@ final class StudioMapResources
   @override
   Set<String> activeResourceIds = {};
   Map<String, RuntimeTilesetImage> get images => store.images;
+  @override
+  Size? cachedImageDimensions(String id) => _cachedImageDimensions(id);
   int get decodedBytes => store.decodedBytes;
   Future<void> get settled => _resourcesSettled;
 
@@ -248,7 +250,6 @@ final class StudioMapResources
   @override
   Future<void> retryResources(Iterable<String> resourceIds) =>
       _retryResources(resourceIds);
-
   @override
   List<WorkspaceResourceDiagnostic> get diagnostics => _resourceDiagnostics;
   @override

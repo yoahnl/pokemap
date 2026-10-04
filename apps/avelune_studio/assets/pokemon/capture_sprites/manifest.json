@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 1,
+  "source": "PSDK runnable test project",
+  "sourceDirectory": "graphics/ball",
+  "mappingDirectory": "Data/Studio/items",
+  "importer": "tools/scripts/import_project_ball_sprites.py",
+  "licenseStatus": "No license or copyright declaration supplied by this source pack.",
+  "copyrightNotice": null,
+  "archiveSha256": "dda954a0ea71e9f4ab093ebf5bcefb3d41f155bc7f0fbde32c23163893000191",
+  "itemMappings": {
+    "beast_ball": "ball_17",
+    "cherish_ball": "ball_6",
+    "dive_ball": "ball_10",
+    "dream_ball": "ball_28",
+    "dusk_ball": "ball_15",
+    "fast_ball": "ball_19",
+    "friend_ball": "ball_24",
+    "great_ball": "ball_2",
+    "heal_ball": "ball_16",
+    "heavy_ball": "ball_22",
+    "level_ball": "ball_21",
+    "love_ball": "ball_23",
+    "lure_ball": "ball_20",
+    "luxury_ball": "ball_7",
+    "master_ball": "ball_4",
+    "moon_ball": "ball_25",
+    "nest_ball": "ball_8",
+    "net_ball": "ball_9",
+    "park_ball": "ball_26",
+    "poke_ball": "ball_1",
+    "premier_ball": "ball_5",
+    "quick_ball": "ball_14",
+    "repeat_ball": "ball_11",
+    "safari_ball": "ball_13",
+    "sport_ball": "ball_27",
+    "timer_ball": "ball_12",
+    "ultra_ball": "ball_3"
+  },
+  "mappingSources": {
+    "beast_ball": {
+      "sourcePath": "Data/Studio/items/beast_ball.json",
+      "sha256": "9a98ec3e56b60e8c9e24915896d755a296ed6278a3dfea319dd656aa9de06016",
+      "itemId": 851,
+      "spriteFilename": "ball_17"
+    },
+    "cherish_ball": {
+      "sourcePath": "Data/Studio/items/cherish_ball.json",
+      "sha256": "85f49fdfc60fde392c2540cebfda62480c616ef4666277001e79edef91f640a2",
+      "itemId": 16,
+      "spriteFilename": "ball_6"
+    },
+    "dive_ball": {
+      "sourcePath": "Data/Studio/items/dive_ball.json",
+      "sha256": "f2f47c795635e9c1a9bff6e976bd84f87f33e191117aaf42491be457ecc42bd3",
+      "itemId": 7,
+      "spriteFilename": "ball_10"
+    },
+    "dream_ball": {
+      "sourcePath": "Data/Studio/items/dream_ball.json",
+      "sha256": "18f6680e76a6e6e82d23a4742498a512cc9616dc48571629c461a112d88f6afb",
+      "itemId": 576,
+      "spriteFilename": "ball_28"
+    },
+    "dusk_ball": {
+      "sourcePath": "Data/Studio/items/dusk_ball.json",
+      "sha256": "aa881db28a5f231ee7310a22e8af5d30d8dcd9a8106809a8a57b5f4fcd93e7b8",
+      "itemId": 13,
+      "spriteFilename": "ball_15"
+    },
+    "fast_ball": {
+      "sourcePath": "Data/Studio/items/fast_ball.json",
+      "sha256": "ca7bb97d0f629d1f2b292d99421183c102eaa62167fe8a4a22212a472ed33459",
+      "itemId": 492,
+      "spriteFilename": "ball_19"
+    },
+    "friend_ball": {
+      "sourcePath": "Data/Studio/items/friend_ball.json",
+      "sha256": "50830d28cee25d2a1b8c97a42e71ba26151774f89ab58f6a8fc163e8c5e0d0da",
+      "itemId": 497,
+      "spriteFilename": "ball_24"
+    },
+    "great_ball": {
+      "sourcePath": "Data/Studio/items/great_ball.json",
+      "sha256": "9582f6879b7c67d99e568b9619a77d1c44fdc4faa3ec985d71b59e751d0108f5",
+      "itemId": 3,
+      "spriteFilename": "ball_2"
+    },
+    "heal_ball": {
+      "sourcePath": "Data/Studio/items/heal_ball.json",
+      "sha256": "5d53ea8cfdf2d7cc46f24a157ed7ef709300da9ff5d17cd9ee122e1ea5862f1f",
+      "itemId": 14,
+      "spriteFilename": "ball_16"
+    },
+    "heavy_ball": {
+      "sourcePath": "Data/Studio/items/heavy_ball.json",
+      "sha256": "29771c66d7a01b05d9d0a8a1fbfbe84b3f164cf54920e91bb79eefacbb57f184",
+      "itemId": 495,
+      "spriteFilename": "ball_22"
+    },
+    "level_ball": {
+      "sourcePath": "Data/Studio/items/level_ball.json",
+      "sha256": "d30455a348e1ee083f88ce6e2805ddb96df670330fa057d847bc4554899bb258",
+      "itemId": 493,
+      "spriteFilename": "ball_21"
+    },
+    "love_ball": {
+      "sourcePath": "Data/Studio/items/love_ball.json",
+      "sha256": "e3ada7c08b85ef5244c4a1cc04822a0e04895c25da525cd8fbe21d22bb83d0d1",
+      "itemId": 496,
+      "spriteFilename": "ball_23"
+    },
+    "lure_ball": {
+      "sourcePath": "Data/Studio/items/lure_ball.json",
+      "sha256": "f2086403e79ab5c680f3b8395f02e806e990550e1a7d5b0227d6b3feab92fd41",
+      "itemId": 494,
+      "spriteFilename": "ball_20"
+    },
+    "luxury_ball": {
+      "sourcePath": "Data/Studio/items/luxury_ball.json",
+      "sha256": "0498151632c3877d3c24a99e0575613db27e0448de55c86a638744b37bca6850",
+      "itemId": 11,
+      "spriteFilename": "ball_7"
+    },
+    "master_ball": {
+      "sourcePath": "Data/Studio/items/master_ball.json",
+      "sha256": "443d644953b9e2564baa485687fc86862c182379412af417b85bb16a4d2ed404",
+      "itemId": 1,
+      "spriteFilename": "ball_4"
+    },
+    "moon_ball": {
+      "sourcePath": "Data/Studio/items/moon_ball.json",
+      "sha256": "7048edddbf0575cce04374880c619886057ef07d6582af9059488b1819d7eed3",
+      "itemId": 498,
+      "spriteFilename": "ball_25"
+    },
+    "nest_ball": {
+      "sourcePath": "Data/Studio/items/nest_ball.json",
+      "sha256": "e516b2031a61372d6a55a8a947aceb60a6bcf5f085437d46373f4ffea10b1cb5",
+      "itemId": 8,
+      "spriteFilename": "ball_8"
+    },
+    "net_ball": {
+      "sourcePath": "Data/Studio/items/net_ball.json",
+      "sha256": "d824ced79fe70b70d2b213d288fcc4be76f1eff69fba3abb43005bfe8e659e75",
+      "itemId": 6,
+      "spriteFilename": "ball_9"
+    },
+    "park_ball": {
+      "sourcePath": "Data/Studio/items/park_ball.json",
+      "sha256": "1a1c57a4e3f4d245149bc606fe0cf7117d760da5c2b3587c085039a3d744d8f0",
+      "itemId": 500,
+      "spriteFilename": "ball_26"
+    },
+    "poke_ball": {
+      "sourcePath": "Data/Studio/items/poke_ball.json",
+      "sha256": "cb4bc3f2c8b69045a86d50ccf674bf92660c6fc4d42ab3ce243183afd6f9e937",
+      "itemId": 4,
+      "spriteFilename": "ball_1"
+    },
+    "premier_ball": {
+      "sourcePath": "Data/Studio/items/premier_ball.json",
+      "sha256": "0bf5f8612f07545d90ba626e059ff00914ce3ffd349da4f49f3b1ea697a1b0d4",
+      "itemId": 12,
+      "spriteFilename": "ball_5"
+    },
+    "quick_ball": {
+      "sourcePath": "Data/Studio/items/quick_ball.json",
+      "sha256": "46fffe7e4cc35bdd7127aba18997476b28881815093e05bd6471335f0bc42394",
+      "itemId": 15,
+      "spriteFilename": "ball_14"
+    },
+    "repeat_ball": {
+      "sourcePath": "Data/Studio/items/repeat_ball.json",
+      "sha256": "db339cfe6a22a0936f6dfeb885d8e01cc123b94dd53f500401ec69d8f80be4fb",
+      "itemId": 9,
+      "spriteFilename": "ball_11"
+    },
+    "safari_ball": {
+      "sourcePath": "Data/Studio/items/safari_ball.json",
+      "sha256": "bbf7be995fb4032172e1e5b19288e1c978ec08578f23e46164cf1dfda614b54c",
+      "itemId": 5,
+      "spriteFilename": "ball_13"
+    },
+    "sport_ball": {
+      "sourcePath": "Data/Studio/items/sport_ball.json",
+      "sha256": "db4aa21797618525494b1abd019607cd14c26df4f00f6202f4228443202dacdf",
+      "itemId": 499,
+      "spriteFilename": "ball_27"
+    },
+    "timer_ball": {
+      "sourcePath": "Data/Studio/items/timer_ball.json",
+      "sha256": "c71f353f77fb64825ba28fe2d0f72cffd59a48d08f93542c5a4e91ff2530169e",
+      "itemId": 10,
+      "spriteFilename": "ball_12"
+    },
+    "ultra_ball": {
+      "sourcePath": "Data/Studio/items/ultra_ball.json",
+      "sha256": "e3fcf2b0e66cc72506c7683e652e277bfc3965e69a8ad1aec4726838f75ac20b",
+      "itemId": 2,
+      "spriteFilename": "ball_3"
+    }
+  },
+  "unusedSheets": [
+    "ball_18"
+  ],
+  "auxiliaryFiles": [
+    "ball-retreat",
+    "ball_catch",
+    "ball_s1",
+    "ball_s2",
+    "ball_stars"
+  ],
+  "files": {
+    "ball-retreat": {
+      "sourcePath": "graphics/ball/ball-retreat.png",
+      "sha256": "935dba18bbd320fb3b18d43d0f828176768920d447e98138f672b5a1f33bfd82",
+      "bytes": 414387,
+      "width": 1200,
+      "height": 1050
+    },
+    "ball_1": {
+      "sourcePath": "graphics/ball/ball_1.png",
+      "sha256": "46e0e533566d2422ee502e42eb2aad8ede0eeb79d0079f76ca1cc746cd0d618e",
+      "bytes": 88630,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_10": {
+      "sourcePath": "graphics/ball/ball_10.png",
+      "sha256": "06c302d839ee5150d3308604bc756884eda70e31fd35bab378bb3345ac903d87",
+      "bytes": 56206,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_11": {
+      "sourcePath": "graphics/ball/ball_11.png",
+      "sha256": "c6c47baf6d55c947b00c73dd49b242b2edb8651c7cce0c58f46fe4ad9832453d",
+      "bytes": 82763,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_12": {
+      "sourcePath": "graphics/ball/ball_12.png",
+      "sha256": "7e3080cb361b1e3c2c0c7fd3d736745ccd72e14fb5ddfbbd1bfb7a24728896ef",
+      "bytes": 81546,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_13": {
+      "sourcePath": "graphics/ball/ball_13.png",
+      "sha256": "8b2725391c6a386e33a9f4287cbc8a4d056ce174163b56292100759b18826cfb",
+      "bytes": 79256,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_14": {
+      "sourcePath": "graphics/ball/ball_14.png",
+      "sha256": "c4e6da589b14eb48aaec60fb2a8ae6257f188b93117acd4495cf4bfcb9d2fb0f",
+      "bytes": 76501,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_15": {
+      "sourcePath": "graphics/ball/ball_15.png",
+      "sha256": "2e60a03f92bdafd5ca4b786ffa229ef4432172b38c71bba0130b898b34ad5ee7",
+      "bytes": 80204,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_16": {
+      "sourcePath": "graphics/ball/ball_16.png",
+      "sha256": "ce51d7f25ec1fd5adcd3825710362b5182be4320c292ae18036d6bd3173f0e7f",
+      "bytes": 83339,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_17": {
+      "sourcePath": "graphics/ball/ball_17.png",
+      "sha256": "2219af1435ffebb2bbbdf625f774b022ce0207d1814de2f76cc45223340876d7",
+      "bytes": 58787,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_18": {
+      "sourcePath": "graphics/ball/ball_18.png",
+      "sha256": "5280b582928c95084b439adb96c5806459295a46532e4d5786e8c90a159c5865",
+      "bytes": 76693,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_19": {
+      "sourcePath": "graphics/ball/ball_19.png",
+      "sha256": "2996470a88a6ae8b91b6ed713e73da16ca28bc2a0f4b1f77e6a5e90676d7e2bb",
+      "bytes": 78774,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_2": {
+      "sourcePath": "graphics/ball/ball_2.png",
+      "sha256": "32525ca7075b38aaa7b51626284ccd8eecdc307cc855d1bbdef114df72416386",
+      "bytes": 89357,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_20": {
+      "sourcePath": "graphics/ball/ball_20.png",
+      "sha256": "51e7ac0f9cc84c0cbfa1ed6ee4d86f110492b86a5235e3a3203644fa2f50004d",
+      "bytes": 57546,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_21": {
+      "sourcePath": "graphics/ball/ball_21.png",
+      "sha256": "d909c262eea676c77917e19509819fc65f365d8ce79056ac0af59b7dbc6c3cb4",
+      "bytes": 78352,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_22": {
+      "sourcePath": "graphics/ball/ball_22.png",
+      "sha256": "b900f88c77d57fd6734fa40f85956efb6d4bbc48255111a500939ba7cdb1802a",
+      "bytes": 59060,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_23": {
+      "sourcePath": "graphics/ball/ball_23.png",
+      "sha256": "f652dc3c4567f2b32454bcbace4f739773eb5ac63352fa53770ec35c2f4f4da3",
+      "bytes": 56429,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_24": {
+      "sourcePath": "graphics/ball/ball_24.png",
+      "sha256": "db433135becded307a161a7224df260db2ff18bb7a94af354e4e1d7f47035ef9",
+      "bytes": 80852,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_25": {
+      "sourcePath": "graphics/ball/ball_25.png",
+      "sha256": "c305df13cbcab000519e759eaff9d030c85cad3c51c3f6fbcbbc038ec57be8de",
+      "bytes": 84470,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_26": {
+      "sourcePath": "graphics/ball/ball_26.png",
+      "sha256": "b314d1de8c885ca179a7929d83945e059464bbf6a3959e41f3664e003d1b608b",
+      "bytes": 78642,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_27": {
+      "sourcePath": "graphics/ball/ball_27.png",
+      "sha256": "d7ed58dad770d9060434d683f17b5505db5fb3cb71b9c60ebedf746b9a099617",
+      "bytes": 78455,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_28": {
+      "sourcePath": "graphics/ball/ball_28.png",
+      "sha256": "b458a304b7d2ef74ac53295e30c9e1b6d91727627adb9963031ad769f17fb1c6",
+      "bytes": 56975,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_3": {
+      "sourcePath": "graphics/ball/ball_3.png",
+      "sha256": "aa08aa048eb09b438df3cd881a6f2725798460b289a665d9232711403623c835",
+      "bytes": 80072,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_4": {
+      "sourcePath": "graphics/ball/ball_4.png",
+      "sha256": "87c261c58fc811ad7e8d92f300128d5da0a0d9e27ab4755edbf881abc5c0b7db",
+      "bytes": 73899,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_5": {
+      "sourcePath": "graphics/ball/ball_5.png",
+      "sha256": "15ca54f0cdf1d54f203ff1722686c596a2aea31cb5212e50d4ffa20c05c5a5cd",
+      "bytes": 77067,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_6": {
+      "sourcePath": "graphics/ball/ball_6.png",
+      "sha256": "3530f62543202479b950265aa4167b98b9348ae1489b449bf9da2ec29856736b",
+      "bytes": 79537,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_7": {
+      "sourcePath": "graphics/ball/ball_7.png",
+      "sha256": "221722c89cfaf7edb19ea5bb3a9fbb136a664e38b14a8799f18632ee067a11f3",
+      "bytes": 78068,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_8": {
+      "sourcePath": "graphics/ball/ball_8.png",
+      "sha256": "6f42ba3f5fcecaa9b81abf34828dae3ce91d1a8f7322d26ba34e6cfcd75701af",
+      "bytes": 85470,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_9": {
+      "sourcePath": "graphics/ball/ball_9.png",
+      "sha256": "c11e13bc2c215669165cd5648b3b2d5dc63bfac21ca1bb53d1cc217cc027dd3f",
+      "bytes": 56196,
+      "width": 64,
+      "height": 2048
+    },
+    "ball_catch": {
+      "sourcePath": "graphics/ball/ball_catch.png",
+      "sha256": "4a44c034b2e07595dcac54ae921c090b499c6c00d706951e73e19bed46b31991",
+      "bytes": 458824,
+      "width": 3200,
+      "height": 2160
+    },
+    "ball_s1": {
+      "sourcePath": "graphics/ball/ball_s1.png",
+      "sha256": "5f7c8b2d5621b70d8a9d69d452f985412b01b43c4b10096cf273c2c85c0217e6",
+      "bytes": 397,
+      "width": 16,
+      "height": 112
+    },
+    "ball_s2": {
+      "sourcePath": "graphics/ball/ball_s2.png",
+      "sha256": "362200e910297c22a652f6486a08bc011f8371cb57858df2f4ff723235743a70",
+      "bytes": 435,
+      "width": 16,
+      "height": 112
+    },
+    "ball_stars": {
+      "sourcePath": "graphics/ball/ball_stars.png",
+      "sha256": "898020b76a5f5a42266619a0bbb05d2e591dfef4aa7201ed4d7d401e1a271324",
+      "bytes": 6140,
+      "width": 585,
+      "height": 245
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "configuredSession": true,
+  "ok": true,
+  "commands": 17,
+  "actions": 370,
+  "missing": [
+    "smart_tile.preset.rename",
+    "smart_tile.preset.duplicate"
+  ],
+  "freshStdioEvidence": "logs/uwu5-mcp-quiet-pinned-final.log",
+  "verdict": "PARTIAL pour le catalogue de la session configuree; transports nouveaux verifies"
+}

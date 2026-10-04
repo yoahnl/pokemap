@@ -22,6 +22,54 @@ ProjectManifest fixture() =>
     ]);
 
 void main() {
+  test('rejects sibling names but permits homonyms in separate parents', () {
+    final left = groups.first;
+    final duplicate = left.copyWith(id: 'copy', name: ' Region ');
+    expect(
+        () => const MapLibraryActions()
+            .reorganize(fixture(), groups: [left, duplicate], assignments: []),
+        throwsA(isA<Exception>()));
+    final nested = duplicate.copyWith(parentGroupId: 'region');
+    expect(
+        const MapLibraryActions().reorganize(fixture(),
+            groups: [left, nested], assignments: []).groups,
+        [left, nested]);
+  });
+
+  test('refuses deletion of nonempty folders even with simultaneous moves', () {
+    final before = fixture().copyWith(
+        groups: groups,
+        maps: [fixture().maps.first.copyWith(groupId: 'region')]);
+    for (final candidate in [
+      [groups.last.copyWith(parentGroupId: null)],
+      <ProjectMapGroup>[],
+    ]) {
+      expect(
+          () => const MapLibraryActions()
+                  .reorganize(before, groups: candidate, assignments: [
+                {'mapId': 'town', 'groupId': null}
+              ]),
+          throwsA(isA<Exception>()));
+    }
+  });
+
+  test('folder editing preserves classification, tags and properties', () {
+    final decorated = groups.first.copyWith(tags: [
+      'route'
+    ], properties: {
+      'music': 'forest',
+      'custom': {'a': 1}
+    });
+    final before = fixture().copyWith(groups: [decorated, groups.last]);
+    final updated = decorated.copyWith(name: 'Région verte', sortOrder: 3);
+    final after = const MapLibraryActions()
+        .reorganize(before, groups: [updated, groups.last], assignments: []);
+    expect(
+        after.groups.first
+            .copyWith(name: decorated.name, sortOrder: decorated.sortOrder),
+        decorated);
+    expect(after.maps, before.maps);
+  });
   test('groups nested maps without changing identity, role, path or catalogs',
       () {
     final before = fixture();

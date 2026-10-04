@@ -4,8 +4,250 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../assets/resource_source_fixture.dart' show sourcePng;
+
 void main() {
   group('Character Studio character actions', () {
+    test('deletion contracts expose disjoint strict schemas', () {
+      final descriptors = CharacterStudioCharacterActions.descriptors;
+      for (final id in ['deletePlan', 'delete']) {
+        final descriptor =
+            descriptors.singleWhere((value) => value.id.endsWith('.$id'));
+        final schema = descriptor.extensions['inputSchema'] as Map?;
+        expect(schema, isNotNull);
+        expect(schema!['additionalProperties'], false);
+        expect((schema['properties'] as Map).containsKey('resolution'),
+            id == 'delete');
+      }
+    });
+
+    test('inspection refuses missing maps instead of claiming no dependencies',
+        () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(missingMap: true),
+                actionId: 'characterStudio.character.deletePlan',
+                parameters: {'characterId': 'elia'},
+                dryRun: true,
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.map_resource_unavailable')));
+    });
+
+    test('inspection refuses a missing required Yarn source', () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    dialogueSource: 'title: Start\n---\n===',
+                    missingDialogue: true),
+                actionId: 'characterStudio.character.deletePlan',
+                parameters: {'characterId': 'elia'},
+                dryRun: true,
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.dialogue_resource_unavailable')));
+    });
+
+    test('replacement refuses missing portrait used by a Yarn directive', () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    dialogueSource:
+                        'title: Start\n---\n<<portrait elia neutral>>\nBonjour.\n===',
+                    incompatibleReplacement: true),
+                actionId: 'characterStudio.character.delete',
+                parameters: {
+                  'characterId': 'elia',
+                  'resolution': 'replace',
+                  'replacementId': 'nox'
+                },
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.character.replacement_incompatible')));
+    });
+
+    test('clear refuses removal of configured playable default and last avatar',
+        () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    withReferences: true, configuredPlayer: true),
+                actionId: 'characterStudio.character.delete',
+                parameters: {'characterId': 'elia', 'resolution': 'clear'},
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.character.player_required')));
+    });
+
+    test('inspection refuses invalid UTF-8 sources without loss', () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    dialogueSource: 'invalid', invalidDialogue: true),
+                actionId: 'characterStudio.character.deletePlan',
+                parameters: {'characterId': 'elia'},
+                dryRun: true,
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.dialogue_source_not_utf8')));
+    });
+
+    test('replacement qualifies all configured player base directions', () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    withReferences: true, configuredPlayer: true),
+                actionId: 'characterStudio.character.delete',
+                parameters: {
+                  'characterId': 'elia',
+                  'resolution': 'replace',
+                  'replacementId': 'nox'
+                },
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.character.replacement_incompatible')));
+      final draft = const CharacterStudioCharacterActions().build(_context(
+        snapshot: characterActionSnapshot(
+            withReferences: true,
+            configuredPlayer: true,
+            compatiblePlayer: true),
+        actionId: 'characterStudio.character.delete',
+        parameters: {
+          'characterId': 'elia',
+          'resolution': 'replace',
+          'replacementId': 'nox'
+        },
+      ));
+      expect(
+          _projectedManifest(draft).settings.defaultPlayerCharacterId, 'nox');
+      expect(
+          _projectedManifest(draft).newGame.playerAvatarCharacterIds, ['nox']);
+    });
+
+    test('deletion preserves unknown nested project and map metadata', () {
+      final snapshot =
+          characterActionSnapshot(withReferences: true, rawMetadata: true);
+      final draft = const CharacterStudioCharacterActions().build(_context(
+        snapshot: snapshot,
+        actionId: 'characterStudio.character.delete',
+        parameters: {
+          'characterId': 'elia',
+          'resolution': 'replace',
+          'replacementId': 'nox'
+        },
+      ));
+      final project = jsonDecode(utf8.decode(draft.changeSet.changes
+          .singleWhere((c) => c.resource.kind == 'project')
+          .afterBytes!)) as Map;
+      expect((project['characters'] as List).single['foreign'], {
+        'keep': [1, 'été']
+      });
+      expect((project['tilesets'] as List).first['extensionData'],
+          {'nested': true});
+      final map = jsonDecode(utf8.decode(draft.changeSet.changes
+          .singleWhere((c) => c.resource.kind == 'map')
+          .afterBytes!)) as Map;
+      expect(map['foreign'], {'root': true});
+      expect((map['entities'] as List).first['foreign'], {'keep': 'unchanged'});
+      expect((map['entities'] as List).first['npc']['foreign'],
+          {'also': 'unchanged'});
+    });
+
+    test('replacement qualifies the custom clip used by a cinematic appearance',
+        () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    withReferences: true, cinematicCommand: true),
+                actionId: 'characterStudio.character.delete',
+                parameters: {
+                  'characterId': 'elia',
+                  'resolution': 'replace',
+                  'replacementId': 'nox'
+                },
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.character.replacement_incompatible')));
+      final draft = const CharacterStudioCharacterActions().build(_context(
+        snapshot: characterActionSnapshot(
+            withReferences: true, cinematicCommand: true, compatibleClip: true),
+        actionId: 'characterStudio.character.delete',
+        parameters: {
+          'characterId': 'elia',
+          'resolution': 'replace',
+          'replacementId': 'nox'
+        },
+      ));
+      expect(
+          _projectedManifest(draft)
+              .cinematics
+              .single
+              .stageContext!
+              .actorAppearanceBindings
+              .single
+              .characterId,
+          'nox');
+    });
+
+    test('clear refuses orphaning a required cinematic character animation',
+        () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    withReferences: true, cinematicCommand: true),
+                actionId: 'characterStudio.character.delete',
+                parameters: {'characterId': 'elia', 'resolution': 'clear'},
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.character.clear_incompatible')));
+    });
+
+    test(
+        'inspection refuses malformed portrait Yarn instead of claiming no usages',
+        () {
+      expect(
+          () => const CharacterStudioCharacterActions().build(_context(
+                snapshot: characterActionSnapshot(
+                    dialogueSource:
+                        'title: Start\n---\n<<portrait elia>>\nBonjour.\n==='),
+                actionId: 'characterStudio.character.deletePlan',
+                parameters: {'characterId': 'elia'},
+                dryRun: true,
+              )),
+          throwsA(isA<CharacterStudioActionException>().having((e) => e.code,
+              'code', 'character_studio.dialogue_compile_failed')));
+    });
+
+    test(
+        'speaker directives are real character references and are resolved without changing text',
+        () {
+      final snapshot = characterActionSnapshot(
+          dialogueSource:
+              'title: Start\n---\n<<speaker elia>>\nelia reste du texte.\n===\n');
+      final inspected = const CharacterStudioCharacterActions().build(_context(
+          snapshot: snapshot,
+          actionId: 'characterStudio.character.deletePlan',
+          parameters: {'characterId': 'elia'},
+          dryRun: true));
+      expect(inspected.preview['dependencies'], hasLength(1));
+      final replaced = const CharacterStudioCharacterActions().build(_context(
+          snapshot: snapshot,
+          actionId: 'characterStudio.character.delete',
+          parameters: {
+            'characterId': 'elia',
+            'resolution': 'replace',
+            'replacementId': 'nox'
+          }));
+      expect(_dialogueAfter(replaced), contains('<<speaker nox>>'));
+      expect(_dialogueAfter(replaced), contains('elia reste du texte.'));
+      final cleared = const CharacterStudioCharacterActions().build(_context(
+          snapshot: snapshot,
+          actionId: 'characterStudio.character.delete',
+          parameters: {'characterId': 'elia', 'resolution': 'clear'}));
+      expect(_dialogueAfter(cleared), isNot(contains('<<speaker')));
+      expect(_dialogueAfter(cleared), contains('elia reste du texte.'));
+    });
+
     test('registers every specialized character and portrait action', () {
       final ids = AuthoringMutationDispatcher.canonical()
           .descriptors
@@ -29,7 +271,7 @@ void main() {
     test('creates a unique identity with bounded dimensions and role tags', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(),
+          snapshot: characterActionSnapshot(),
           actionId: 'characterStudio.character.create',
           parameters: const <String, Object?>{
             'name': 'Élia',
@@ -51,7 +293,7 @@ void main() {
     });
 
     test('updates identity fields without rebuilding authored media slots', () {
-      final before = _snapshot();
+      final before = characterActionSnapshot();
       final draft = const CharacterStudioCharacterActions().build(
         _context(
           snapshot: before,
@@ -80,7 +322,7 @@ void main() {
     test('sets and clears the default player through a semantic slot', () {
       final setDraft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(),
+          snapshot: characterActionSnapshot(),
           actionId: 'characterStudio.character.setDefault',
           parameters: const <String, Object?>{'characterId': 'elia'},
         ),
@@ -92,7 +334,7 @@ void main() {
 
       final clearDraft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(defaultPlayerCharacterId: 'elia'),
+          snapshot: characterActionSnapshot(defaultPlayerCharacterId: 'elia'),
           actionId: 'characterStudio.character.setDefault',
           parameters: const <String, Object?>{'characterId': null},
         ),
@@ -106,7 +348,7 @@ void main() {
     test('assigns, replaces, and clears one portrait slot only', () {
       final assignDraft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(),
+          snapshot: characterActionSnapshot(),
           actionId: 'characterStudio.character.portrait.assign',
           parameters: const <String, Object?>{
             'characterId': 'elia',
@@ -125,7 +367,7 @@ void main() {
 
       final replaceDraft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(),
+          snapshot: characterActionSnapshot(),
           actionId: 'characterStudio.character.portrait.assign',
           parameters: const <String, Object?>{
             'characterId': 'elia',
@@ -146,7 +388,7 @@ void main() {
 
       final clearDraft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(),
+          snapshot: characterActionSnapshot(),
           actionId: 'characterStudio.character.portrait.clear',
           parameters: const <String, Object?>{
             'characterId': 'elia',
@@ -166,7 +408,7 @@ void main() {
     test('delete plan reports project and map dependencies in dry-run', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(withReferences: true),
+          snapshot: characterActionSnapshot(withReferences: true),
           actionId: 'characterStudio.character.deletePlan',
           parameters: const <String, Object?>{'characterId': 'elia'},
           dryRun: true,
@@ -196,7 +438,7 @@ void main() {
     test('delete plan reports dialogue portrait dependencies', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(
+          snapshot: characterActionSnapshot(
             dialogueSource: '''title: Start
 ---
 <<portrait elia neutral>>
@@ -221,7 +463,7 @@ void main() {
       expect(
         () => const CharacterStudioCharacterActions().build(
           _context(
-            snapshot: _snapshot(withReferences: true),
+            snapshot: characterActionSnapshot(withReferences: true),
             actionId: 'characterStudio.character.delete',
             parameters: const <String, Object?>{'characterId': 'elia'},
           ),
@@ -238,7 +480,7 @@ void main() {
 
     test('clear deletion resolves every project and map reference atomically',
         () {
-      final snapshot = _snapshot(withReferences: true);
+      final snapshot = characterActionSnapshot(withReferences: true);
       final draft = const CharacterStudioCharacterActions().build(
         _context(
           snapshot: snapshot,
@@ -273,7 +515,7 @@ void main() {
     test('replace deletion rewrites every dependency to another character', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(withReferences: true),
+          snapshot: characterActionSnapshot(withReferences: true),
           actionId: 'characterStudio.character.delete',
           parameters: const <String, Object?>{
             'characterId': 'elia',
@@ -299,7 +541,7 @@ void main() {
     test('clear deletion removes dialogue portrait directives', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(
+          snapshot: characterActionSnapshot(
             dialogueSource: '''title: Start
 ---
 <<portrait elia neutral>>
@@ -328,7 +570,7 @@ void main() {
     test('replace deletion rewrites dialogue portrait character IDs', () {
       final draft = const CharacterStudioCharacterActions().build(
         _context(
-          snapshot: _snapshot(
+          snapshot: characterActionSnapshot(
             dialogueSource: '''title: Start
 ---
 <<portrait elia neutral>>
@@ -374,10 +616,19 @@ AuthoringPlanningContext _context({
   );
 }
 
-ProjectSnapshot _snapshot({
+ProjectSnapshot characterActionSnapshot({
   bool withReferences = false,
   String? defaultPlayerCharacterId,
   String? dialogueSource,
+  bool missingMap = false,
+  bool missingDialogue = false,
+  bool configuredPlayer = false,
+  bool incompatibleReplacement = false,
+  bool invalidDialogue = false,
+  bool compatiblePlayer = false,
+  bool rawMetadata = false,
+  bool cinematicCommand = false,
+  bool compatibleClip = false,
 }) {
   final manifest = ProjectManifest(
     name: 'Character action fixture',
@@ -395,7 +646,14 @@ ProjectSnapshot _snapshot({
         relativePath: 'assets/characters.png',
       ),
     ],
-    characterStudioCatalog: const ProjectCharacterStudioCatalog(
+    characterStudioCatalog: ProjectCharacterStudioCatalog(
+      customAnimationDefinitions: [
+        if (cinematicCommand)
+          const CharacterCustomAnimationDefinition(
+              id: 'wave',
+              displayName: 'Saluer',
+              mode: CharacterCustomAnimationMode.single)
+      ],
       portraitStates: <CharacterPortraitStateDefinition>[
         CharacterPortraitStateDefinition(
           id: 'neutral',
@@ -408,7 +666,7 @@ ProjectSnapshot _snapshot({
         ),
       ],
     ),
-    characters: const <ProjectCharacterEntry>[
+    characters: <ProjectCharacterEntry>[
       ProjectCharacterEntry(
         id: 'elia',
         name: 'Élia',
@@ -431,6 +689,36 @@ ProjectSnapshot _snapshot({
         name: 'Nox',
         tilesetId: 'characters',
         sortOrder: 1,
+        customAnimations: [
+          if (compatibleClip)
+            const CharacterCustomAnimationClip(
+                definitionId: 'wave',
+                sourceAssetId: 'elia-neutral',
+                frames: [
+                  CharacterAnimationFrame(
+                      source:
+                          TilesetSourceRect(x: 0, y: 0, width: 32, height: 64))
+                ])
+        ],
+        animations: [
+          if (compatiblePlayer)
+            for (final facing in EntityFacing.values)
+              CharacterAnimation(
+                  state: CharacterAnimationState.idle,
+                  direction: facing,
+                  sourceAssetId: 'elia-neutral',
+                  frames: const [
+                    CharacterAnimationFrame(
+                        source: TilesetSourceRect(
+                            x: 0, y: 0, width: 32, height: 64))
+                  ])
+        ],
+        portraits: incompatibleReplacement
+            ? const []
+            : const [
+                CharacterPortraitVariant(
+                    portraitStateId: 'neutral', assetId: 'elia-neutral')
+              ],
       ),
     ],
     settings: ProjectSettings(
@@ -438,6 +726,7 @@ ProjectSnapshot _snapshot({
           withReferences ? 'elia' : defaultPlayerCharacterId,
     ),
     newGame: ProjectNewGameConfig(
+      startMapId: configuredPlayer ? 'village' : '',
       playerAvatarCharacterIds:
           withReferences ? const <String>['elia'] : const <String>[],
     ),
@@ -464,7 +753,13 @@ ProjectSnapshot _snapshot({
                   ),
                 ],
               ),
-              timeline: CinematicTimeline(),
+              timeline: CinematicTimeline(steps: [
+                if (cinematicCommand)
+                  buildCinematicCharacterCustomAnimationStep(
+                      id: 'greeting',
+                      command: CharacterCustomAnimationRuntimeCommand(
+                          actorId: 'hero', definitionId: 'wave'))
+              ]),
             ),
           ]
         : const <CinematicAsset>[],
@@ -492,17 +787,49 @@ ProjectSnapshot _snapshot({
       ),
     ],
   );
-  final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
-  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
-  final dialogueBytes =
-      dialogueSource == null ? null : utf8.encode(dialogueSource);
+  final projectRaw = manifest.toJson();
+  final mapRaw = map.toJson();
+  if (rawMetadata) {
+    (projectRaw['characters'] as List).last['foreign'] = {
+      'keep': [1, 'été']
+    };
+    (projectRaw['tilesets'] as List).first['extensionData'] = {'nested': true};
+    (mapRaw['entities'] as List).first['foreign'] = {'keep': 'unchanged'};
+    ((mapRaw['entities'] as List).first['npc'] as Map)['foreign'] = {
+      'also': 'unchanged'
+    };
+    mapRaw['foreign'] = {'root': true};
+  }
+  final projectBytes = utf8.encode(jsonEncode(projectRaw));
+  final mapBytes = utf8.encode(jsonEncode(mapRaw));
+  final dialogueBytes = dialogueSource == null
+      ? null
+      : invalidDialogue
+          ? <int>[0xff]
+          : utf8.encode(dialogueSource);
+  final portraitBytes = sourcePng(width: 64, height: 128);
+  final artifact =
+      ContentArtifactRef.fromBytes(portraitBytes, mediaType: 'image/png');
+  final assets = AssetCatalog(records: [
+    AssetRecord(
+        id: 'elia-neutral',
+        logicalPath: 'assets/portrait.png',
+        artifact: artifact)
+  ]);
+  final catalogBytes = utf8.encode(jsonEncode(assets.toJson()));
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('character_action_project'),
     revision:
         'sha256:abababababababababababababababababababababababababababababababab',
     manifest: manifest,
-    maps: <MapData>[map],
+    maps: <MapData>[if (!missingMap) map],
     resourceFingerprints: <String, String>{
+      assetCatalogResourceIdentity: computeAuthoringBytesFingerprint(
+          catalogBytes,
+          logicalName: assetCatalogStorageKey),
+      assetBlobResourceIdentity(artifact.digest):
+          computeAuthoringBytesFingerprint(portraitBytes,
+              logicalName: assetBlobStorageKey(artifact)),
       'project': computeAuthoringBytesFingerprint(
         projectBytes,
         logicalName: 'project.json',
@@ -511,21 +838,26 @@ ProjectSnapshot _snapshot({
         mapBytes,
         logicalName: 'maps/village.json',
       ),
-      if (dialogueBytes != null)
+      if (dialogueBytes != null && !missingDialogue)
         'dialogueSource:intro': computeAuthoringBytesFingerprint(
           dialogueBytes,
           logicalName: 'dialogues/intro.yarn',
         ),
     },
     resourceBytes: <String, List<int>>{
+      assetCatalogResourceIdentity: catalogBytes,
+      assetBlobResourceIdentity(artifact.digest): portraitBytes,
       'project': projectBytes,
       'map:village': mapBytes,
-      if (dialogueBytes != null) 'dialogueSource:intro': dialogueBytes,
+      if (dialogueBytes != null && !missingDialogue)
+        'dialogueSource:intro': dialogueBytes,
     },
     resourceStorageKeys: <String, String>{
+      assetCatalogResourceIdentity: assetCatalogStorageKey,
+      assetBlobResourceIdentity(artifact.digest): assetBlobStorageKey(artifact),
       'project': 'project.json',
       'map:village': 'maps/village.json',
-      if (dialogueSource != null)
+      if (dialogueSource != null && !missingDialogue)
         'dialogueSource:intro': 'dialogues/intro.yarn',
     },
   );
