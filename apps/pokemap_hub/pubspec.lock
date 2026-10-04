@@ -103,7 +103,7 @@ packages:
       path: "../avelune_studio"
       relative: true
     source: path
-    version: "0.3.19+319"
+    version: "0.3.20+320"
   boolean_selector:
     dependency: transitive
     description:
