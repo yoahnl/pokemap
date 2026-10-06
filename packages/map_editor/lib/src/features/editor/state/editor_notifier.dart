@@ -21,7 +21,6 @@ import '../../../application/authoring_api/authoring_mutation_adapter.dart';
 import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/services/map_viewport_navigation.dart';
-import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/character_use_cases.dart';
 import '../../character_studio/application/character_animation_definition_use_cases.dart';
 import '../../character_studio/application/character_animation_matrix_model.dart';
@@ -2589,57 +2588,6 @@ class EditorNotifier extends _$EditorNotifier
       errorMessage: null,
     );
     return true;
-  }
-
-  ProjectManifest? ensureDefaultShadowProfiles() {
-    final project = state.project;
-    if (project == null) return null;
-    final updated = ensureDefaultGroundStaticShadowProfilesForProject(project);
-    if (updated == project) {
-      return project;
-    }
-    applyInMemoryProjectManifest(
-      updated,
-      statusMessage: 'Profils Shadow par défaut ajoutés',
-    );
-    return updated;
-  }
-
-  Future<void> applyElementAutoShadowSuggestions() async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) {
-      state = state.copyWith(
-        errorMessage: 'No project open to update element shadows.',
-      );
-      return;
-    }
-    try {
-      final useCase = ApplyElementAutoShadowSuggestionsUseCase(
-        ref.read(projectRepositoryProvider),
-      );
-      final result = await useCase.execute(fs, project);
-      if (!result.hasChanges) {
-        state = state.copyWith(
-          statusMessage: 'Aucune ombre automatique à appliquer.',
-          errorMessage: null,
-        );
-        return;
-      }
-      final appliedCount = result.appliedCount;
-      final clearedCount = result.clearedCount;
-      state = state.copyWith(
-        project: result.project,
-        statusMessage:
-            'Ombres automatiques mises à jour : $appliedCount appliquée(s), $clearedCount retirée(s).',
-        errorMessage: null,
-      );
-      _resyncPlacedElementsForActiveMapFromProject();
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to apply automatic element shadows: $e',
-      );
-    }
   }
 
   @override
@@ -5607,8 +5555,6 @@ class EditorNotifier extends _$EditorNotifier
     bool clearGroupId = false,
     String? recommendedLayerId,
     bool clearRecommendedLayerId = false,
-    ProjectElementShadowConfig? shadow,
-    bool clearShadow = false,
     TilesetSourceRect? source,
     List<TilesetVisualFrame>? frames,
     List<String>? tags,
@@ -5633,8 +5579,6 @@ class EditorNotifier extends _$EditorNotifier
         clearGroupId: clearGroupId,
         recommendedLayerId: recommendedLayerId,
         clearRecommendedLayerId: clearRecommendedLayerId,
-        shadow: shadow,
-        clearShadow: clearShadow,
         source: source,
         frames: frames,
         tags: tags,
@@ -13745,46 +13689,6 @@ class EditorNotifier extends _$EditorNotifier
       preferredActiveLayerId: state.activeLayerId,
       partOfStroke: partOfStroke,
       statusMessage: 'Opacité mise à jour pour ${previous.elementId}',
-    );
-  }
-
-  void setPlacedElementInstanceShadowOverride({
-    required String instanceId,
-    required MapPlacedElementShadowOverride? shadowOverride,
-  }) {
-    final map = state.activeMap;
-    if (map == null) {
-      return;
-    }
-    final trimmedId = instanceId.trim();
-    if (trimmedId.isEmpty) {
-      return;
-    }
-    final index = map.placedElements.indexWhere(
-      (entry) => entry.id == trimmedId,
-    );
-    if (index < 0) {
-      state = state.copyWith(
-        errorMessage: 'Placed element instance not found: $trimmedId',
-      );
-      return;
-    }
-    final previous = map.placedElements[index];
-    if (previous.shadowOverride == shadowOverride) {
-      return;
-    }
-    final updatedMap = setMapPlacedElementShadowOverride(
-      map,
-      instanceId: trimmedId,
-      shadowOverride: shadowOverride,
-    );
-    _applyMapMutation(
-      previousMap: map,
-      updatedMap: updatedMap,
-      preferredActiveLayerId: state.activeLayerId,
-      statusMessage: shadowOverride == null
-          ? 'Override d’ombre réinitialisé pour ${previous.elementId}'
-          : 'Override d’ombre mis à jour pour ${previous.elementId}',
     );
   }
 

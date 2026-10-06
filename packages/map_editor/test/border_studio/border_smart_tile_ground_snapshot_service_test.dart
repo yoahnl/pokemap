@@ -301,7 +301,7 @@ void main() {
           ),
           SmartTileVisualPart(
             source: SmartTileVisualSource.animation(animationId: 'b'),
-            channel: SmartTileRenderChannel.shadow,
+            channel: SmartTileRenderChannel.understory,
           ),
         ],
         animations: <ProjectSmartTileAnimation>[

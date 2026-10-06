@@ -111,8 +111,6 @@ enum SmartTileRenderChannel {
   foreground,
   @JsonValue('actor_occlusion')
   actorOcclusion,
-  @JsonValue('shadow')
-  shadow,
 }
 
 enum SmartTileAnimationSync {

@@ -237,7 +237,6 @@ void main() {
       expect(
         plan.compositionPlan.steps.map((step) => step.kind),
         const <MapVisualCompositionStepKind>[
-          MapVisualCompositionStepKind.shadows,
           MapVisualCompositionStepKind.backgroundEntities,
           MapVisualCompositionStepKind.collisionOverlay,
           MapVisualCompositionStepKind.foregroundTilesAndPlacedElements,

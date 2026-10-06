@@ -388,8 +388,6 @@ void main() {
 
     await runtime.load(progress.add);
     expect(mounted, isNotNull);
-    expect(mounted!.enableActorContactShadows, isFalse);
-    expect(mounted!.enableStaticPlacedElementShadows, isFalse);
     expect(mounted!.reducedMotion, isTrue);
     expect(mounted!.textScale, 1.5);
     expect(progress.last.stage, 'ready');

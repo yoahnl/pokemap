@@ -256,7 +256,7 @@ List<String> _replacementImpacts(
     if (after['logicalPath'] case final String path)
       'Source après publication : $path',
   if (impact['transparencyPolicy'] is String)
-    'Les collisions manuelles et ombres restent inchangées. Vérifiez les '
+    'Les collisions manuelles restent inchangées. Vérifiez les '
         'masques dérivés depuis leur préparateur.',
   if (impact['oldBlobPreserved'] == true)
     'Les anciens pixels encore référencés sont conservés.',

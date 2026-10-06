@@ -6,9 +6,6 @@ import '../../border/border_runtime_asset_cache.dart';
 import '../../presentation/flame/map_layers_component.dart';
 import '../../presentation/flame/placed_element_occlusion_patch_component.dart';
 import '../../presentation/flame/static_placed_element_occlusion_patch_resolution.dart';
-import '../../shadow/runtime_static_placed_element_shadow_sources.dart';
-import '../../shadow/runtime_projected_building_shadow_collection.dart';
-import '../../shadow/shadow_runtime_instruction_collection.dart';
 import '../runtime_map_bundle.dart';
 import 'runtime_authoring_character_renderer.dart';
 
@@ -34,8 +31,6 @@ final class RuntimeAuthoringMapRenderer {
           tileImagesByTilesetId: images,
           renderPass: MapLayerRenderPass.foreground,
         ) {
-    _shadows = _buildShadows(bundle.map.placedElements);
-    _background.shadowCollectionProvider = () => _shadows;
     _refreshPatches(bundle.map.placedElements);
     _previousImages = Map.of(images);
   }
@@ -48,24 +43,9 @@ final class RuntimeAuthoringMapRenderer {
   final Map<String, RuntimeAuthoringCharacterRenderer> _characters = {};
   Map<String, RuntimeTilesetImage> _previousImages = {};
   MapPlacedElement? _preview;
-  late ShadowRuntimeInstructionCollection _shadows;
-  ShadowRuntimeInstructionCollection? _previewBaseShadows;
   final Map<String, PlacedElementOcclusionPatchComponent> _patches = {};
   final _maskValidity = <ElementCollisionPixelMask, bool>{};
   Rect? _viewport;
-
-  ShadowRuntimeInstructionCollection _buildShadows(
-          Iterable<MapPlacedElement> instances) =>
-      ShadowRuntimeInstructionCollection(instructions: [
-        ...buildRuntimeStaticPlacedElementShadowCollectionForBundle(
-                bundle: _bundle, instances: instances)
-            .instructions,
-        ...buildRuntimeProjectedBuildingShadowCollection(
-                manifest: _bundle.manifest,
-                mapData: _bundle.map,
-                instances: instances)
-            .instructions,
-      ]);
 
   void _refreshPatches(Iterable<MapPlacedElement> instances) {
     if (!_includeCharacters) return;
@@ -227,14 +207,8 @@ final class RuntimeAuthoringMapRenderer {
         _refreshPatches(
             _bundle.map.placedElements.where((e) => e.id == _preview!.id));
       }
-      _previewBaseShadows = _buildShadows(
-          _bundle.map.placedElements.where((e) => e.id != instance.id));
     }
     _preview = instance;
-    _shadows = ShadowRuntimeInstructionCollection(instructions: [
-      ..._previewBaseShadows!.instructions,
-      ..._buildShadows([instance]).instructions
-    ]);
     _refreshPatches([instance]);
   }
 
@@ -246,8 +220,6 @@ final class RuntimeAuthoringMapRenderer {
           _bundle.map.placedElements.where((e) => e.id == _preview!.id));
     }
     _preview = null;
-    _previewBaseShadows = null;
-    _shadows = _buildShadows(_bundle.map.placedElements);
   }
 
   void setCollisionOverlay({required bool visible, required Color color}) {

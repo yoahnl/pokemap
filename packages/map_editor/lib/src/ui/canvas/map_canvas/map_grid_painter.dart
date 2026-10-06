@@ -323,8 +323,6 @@ final class MapGridCullingDebugSnapshot {
     required this.objectVisualDefinitionCacheSize,
     required this.objectSpatialBucketCount,
     required this.gridLineVisits,
-    required this.staticShadowInstructionVisits,
-    required this.projectedBuildingShadowInstructionVisits,
     required Set<String> placedElementIds,
     required this.placedElementPassVisits,
   }) : placedElementIds = Set<String>.unmodifiable(placedElementIds);
@@ -342,8 +340,6 @@ final class MapGridCullingDebugSnapshot {
   final int objectVisualDefinitionCacheSize;
   final int objectSpatialBucketCount;
   final int gridLineVisits;
-  final int staticShadowInstructionVisits;
-  final int projectedBuildingShadowInstructionVisits;
   final Set<String> placedElementIds;
   final int placedElementPassVisits;
 }
@@ -361,8 +357,6 @@ final class _MapGridCullingDebugCounter {
   int gridLineVisits = 0;
   final Set<SmartTilePatternOwnerIndex> patternIndices = {};
   final Set<MapPlacedTileVisualIndex> objectIndices = {};
-  int staticShadowInstructionVisits = 0;
-  int projectedBuildingShadowInstructionVisits = 0;
   int placedElementPassVisits = 0;
 }
 
@@ -407,7 +401,6 @@ class MapGridPainter extends CustomPainter {
     for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
       tileset.id: tileset.source,
   };
-  final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
   final EditorCanvasPictureCacheOwner? pictureCacheOwner;
   final MapCellStrokeBuffer? cellStrokePreview;
@@ -444,7 +437,7 @@ class MapGridPainter extends CustomPainter {
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
-  final EditorShadowPreviewProjectionOwner _shadowProjectionOwner;
+  final EditorPlacedElementViewportIndexOwner _placedElementViewportIndexOwner;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
@@ -456,7 +449,7 @@ class MapGridPainter extends CustomPainter {
 
   MapGridPainter({
     required this.map,
-    EditorShadowPreviewProjectionOwner? shadowProjectionOwner,
+    EditorPlacedElementViewportIndexOwner? placedElementViewportIndexOwner,
     required this.zoom,
     required this.offset,
     this.hoveredTile,
@@ -485,7 +478,6 @@ class MapGridPainter extends CustomPainter {
     this.rotationPreviewRejectedColor,
     required this.connectionLabelsByDirection,
     this.project,
-    this.shadowLightPreviewPreset,
     EditorCanvasRepaintClock? animationClock,
     this.pictureCacheOwner,
     this.cellStrokePreview,
@@ -503,8 +495,9 @@ class MapGridPainter extends CustomPainter {
     this.environmentGeneratedDeletePreviewId,
     this.borderPreview,
     this.borderDiagnosticOverlayPalette,
-  }) : _shadowProjectionOwner =
-           shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
+  }) : _placedElementViewportIndexOwner =
+           placedElementViewportIndexOwner ??
+           EditorPlacedElementViewportIndexOwner(),
        _animationClock = animationClock,
        _staticAnimationMs = editorEntityAnimationMs,
        super(
@@ -595,18 +588,15 @@ class MapGridPainter extends CustomPainter {
         ? null
         : _MapGridCullingDebugCounter();
     final projectContext = project;
-    final shadowProjection = projectContext == null
+    final placedElementIndex = projectContext == null
         ? null
-        : _shadowProjectionOwner.projectionFor(
+        : _placedElementViewportIndexOwner.indexFor(
             manifest: projectContext,
             map: map,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-            lightPreviewPreset: shadowLightPreviewPreset,
           );
     final visiblePlacedElements = sortMapPlacedElementsForPainting(
-      shadowProjection?.placedElementsIn(
-            EditorShadowPreviewCellViewport(
+      placedElementIndex?.elementsIn(
+            EditorPlacedElementCellViewport(
               left: visibleBounds.left,
               top: visibleBounds.top,
               right: visibleBounds.right,
@@ -615,10 +605,6 @@ class MapGridPainter extends CustomPainter {
           ) ??
           const <MapPlacedElement>[],
     );
-
-    // Cell-backed layers and placed-element footprints use cell bounds. Shadow
-    // projections use their cached exact world-pixel geometry because their
-    // visual extents can escape the placed element anchor.
 
     final layerPaintOrderResult = buildEditorMapLayerPaintOrderResult(map);
     final layerPaintOrder = layerPaintOrderResult.order;
@@ -635,25 +621,6 @@ class MapGridPainter extends CustomPainter {
           project: project,
           placedElements: visiblePlacedElements,
         );
-    final shadowViewport = EditorShadowPreviewViewport(
-      left: visibleBounds.left * tileWidth,
-      top: visibleBounds.top * tileHeight,
-      right: visibleBounds.right * tileWidth,
-      bottom: visibleBounds.bottom * tileHeight,
-    );
-    final projectedBuildingShadowPreviewInstructions =
-        shadowProjection?.projectedBuildingInstructionsIn(shadowViewport) ??
-        const <EditorStaticShadowPreviewInstruction>[];
-    final staticShadowPreviewInstructions =
-        shadowProjection?.staticInstructionsIn(shadowViewport) ??
-        const <EditorStaticShadowPreviewInstruction>[];
-    if (cullingCounter != null) {
-      cullingCounter.projectedBuildingShadowInstructionVisits +=
-          projectedBuildingShadowPreviewInstructions.length;
-      cullingCounter.staticShadowInstructionVisits +=
-          staticShadowPreviewInstructions.length;
-    }
-
     final borderCatalog = project?.borderCatalog;
     for (final step in compositionPlan.steps) {
       switch (step.kind) {
@@ -745,29 +712,6 @@ class MapGridPainter extends CustomPainter {
               ),
             );
           }
-        case MapVisualCompositionStepKind.shadows:
-          _paintCachedPicture(
-            canvas,
-            cacheId: 'shadows',
-            visibleBounds: visibleBounds,
-            revisions: revisions,
-            revisionToken: (
-              revisions?.mapRevision ?? 0,
-              revisions?.projectRevision ?? 0,
-              shadowLightPreviewPreset,
-            ),
-            animated: false,
-            paint: (target) {
-              paintEditorStaticShadowPreviewInstructions(
-                target,
-                projectedBuildingShadowPreviewInstructions,
-              );
-              paintEditorStaticShadowPreviewInstructions(
-                target,
-                staticShadowPreviewInstructions,
-              );
-            },
-          );
         case MapVisualCompositionStepKind.placedElements:
           final placedBackgroundLayer = step.layer! as TileLayer;
           _paintCachedPicture(
@@ -1090,10 +1034,6 @@ class MapGridPainter extends CustomPainter {
             (total, index) => total + index.spatialBucketCount,
           ),
           gridLineVisits: cullingCounter.gridLineVisits,
-          staticShadowInstructionVisits:
-              cullingCounter.staticShadowInstructionVisits,
-          projectedBuildingShadowInstructionVisits:
-              cullingCounter.projectedBuildingShadowInstructionVisits,
           placedElementIds: {
             for (final instance in visiblePlacedElements) instance.id,
           },
@@ -3394,7 +3334,6 @@ class MapGridPainter extends CustomPainter {
           connectionLabelsByDirection,
         ) ||
         oldDelegate.project != project ||
-        oldDelegate.shadowLightPreviewPreset != shadowLightPreviewPreset ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||

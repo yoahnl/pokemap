@@ -28,7 +28,7 @@ void main() {
       sendBackward.onPressed,
       isNotNull,
       reason:
-          'Deux décors visibles sur le même calque et à la même position '
+          'Deux décors réordonnables visibles à la même position '
           'doivent pouvoir échanger leur ordre depuis l’inspecteur.',
     );
 

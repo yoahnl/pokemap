@@ -226,7 +226,7 @@ void main() {
   }
 
   testWidgets(
-    'light preview label lets a valid canvas cell receive the pointer at '
+    'a canvas cell stays reachable without a light preview overlay at '
     '1280×800',
     (tester) async {
       final harness = await _pumpJourney(tester, const Size(1280, 800));
@@ -239,32 +239,22 @@ void main() {
         const ValueKey<String>('map-canvas-gesture-detector'),
       );
       final canvasRect = tester.getRect(canvasGesture);
-      final labelRect = tester.getRect(find.text('Aperçu lumière'));
+      expect(find.text('Aperçu lumière'), findsNothing);
       final cellRect = Rect.fromLTWH(
         canvasRect.left + editor.state.panOffset.dx,
         canvasRect.top + editor.state.panOffset.dy,
         32 * editor.state.zoom,
         32 * editor.state.zoom,
       );
-      final overlap = labelRect.intersect(cellRect);
-      expect(
-        overlap.isEmpty,
-        isFalse,
-        reason: 'the regression requires the light label to cover cell 0,0',
-      );
-      final target = overlap.center;
+      final target = cellRect.center;
       final canvasRenderObject = tester.renderObject(canvasGesture);
       final hitResult = tester.hitTestOnBinding(target);
-      printOnFailure(
-        'label target: label=$labelRect cell00=$cellRect overlap=$overlap '
-        'global=$target hits=${hitResult.path.take(4).map((entry) => entry.target.runtimeType).join(' > ')}',
-      );
       expect(
         hitResult.path.any(
           (entry) => identical(entry.target, canvasRenderObject),
         ),
         isTrue,
-        reason: 'the exact point inside the label must hit the map canvas',
+        reason: 'the first cell must hit the map canvas',
       );
 
       expect(_collisionAt(editor.state, 0, 0), isFalse);

@@ -7,6 +7,22 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('publishes no map-shadow actions or resources', () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+      expect(
+        catalog.resources.where(
+          (resource) => resource.resourceKind.toLowerCase().contains('shadow'),
+        ),
+        isEmpty,
+      );
+      expect(
+        catalog.mutationActions.where(
+          (action) => action.actionId.toLowerCase().contains('shadow'),
+        ),
+        isEmpty,
+      );
+    });
+
     test('exposes no legacy terrain, path, or surface action', () {
       final legacyActionIds = AuthoringMutationDispatcher.canonical()
           .descriptors
@@ -774,8 +790,6 @@ final Set<String> _approvedResourceKinds = {
   'borderBlueprint',
   'borderSnapshot',
   'borderFeature',
-  'shadowPreset',
-  'projectedBuildingShadowPreset',
   'encounterTable',
   'encounterEntry',
   'dialogueFolder',

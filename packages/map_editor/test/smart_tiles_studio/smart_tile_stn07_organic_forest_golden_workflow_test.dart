@@ -61,7 +61,7 @@ void main() {
             collision: SmartTilePatternCollision.blocked,
           ),
           const GridPos(x: 1, y: 1): const SmartTilePatternCellProfile(
-            channel: SmartTileRenderChannel.shadow,
+            channel: SmartTileRenderChannel.understory,
             collision: SmartTilePatternCollision.passable,
           ),
         },
@@ -135,7 +135,6 @@ void main() {
         containsAll(<SmartTileRenderChannel>[
           SmartTileRenderChannel.ground,
           SmartTileRenderChannel.understory,
-          SmartTileRenderChannel.shadow,
         ]),
       );
       expect(

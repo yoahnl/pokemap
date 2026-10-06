@@ -54,7 +54,7 @@ void main() {
       expect(find.text('Lamp (lamp)'), findsOneWidget);
       expect(find.text('Collision'), findsOneWidget);
       expect(find.text('Opacité'), findsOneWidget);
-      expect(find.text('Ombre de cette instance'), findsOneWidget);
+      expect(find.text('Ombre de cette instance'), findsNothing);
       expect(find.text('Animation'), findsOneWidget);
       expect(
           find.text('Aperçu indisponible pour le tileset actuellement chargé.'),

@@ -57,9 +57,6 @@ void main() {
     });
 
     test('moves an authored placed element without normalizing its data', () {
-      final shadow = MapPlacedElementShadowOverride(
-        mode: ShadowOverrideMode.disabled,
-      );
       final placed = MapPlacedElement(
         id: 'placed',
         layerId: 'decor',
@@ -73,7 +70,6 @@ void main() {
           speed: 1.5,
           randomStart: true,
         ),
-        shadowOverride: shadow,
         behaviors: const <MapPlacedElementBehavior>[
           MapPlacedElementBehavior(
             id: '  behavior id  ',
@@ -109,7 +105,6 @@ void main() {
       final moved = plan.candidateMap!.placedElements.single;
       expect(moved.pos, const GridPos(x: 4, y: 3));
       expect(moved.copyWith(pos: placed.pos), placed);
-      expect(moved.shadowOverride, same(shadow));
     });
 
     test('uses the canonical primary footprint over transient frame bounds',

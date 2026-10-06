@@ -34,8 +34,6 @@ ProjectManifest elementDefinitionFixture({bool animated = false}) {
           cells: [GridPos(x: 0, y: 0)],
           manualAddedCells: [GridPos(x: 0, y: 0)],
         ),
-        shadow: ProjectElementShadowConfig(
-            castsShadow: true, shadowProfileId: 'shadow', offsetX: 2),
         recommendedLayerId: 'objects',
         sortOrder: 7,
       )

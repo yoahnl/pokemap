@@ -185,16 +185,6 @@ _ProjectManifest _$ProjectManifestFromJson(
       : _projectBorderCatalogFromJson(
           _readProjectBorderCatalog(json, 'borderCatalog'),
         ),
-  shadowCatalog: json['shadowCatalog'] == null
-      ? const ProjectShadowCatalog.empty()
-      : const ProjectShadowCatalogJsonConverter().fromJson(
-          json['shadowCatalog'],
-        ),
-  projectedBuildingShadowCatalog: json['projectedBuildingShadowCatalog'] == null
-      ? const ProjectBuildingShadowPresetCatalog.empty()
-      : _projectedBuildingShadowCatalogFromJson(
-          json['projectedBuildingShadowCatalog'],
-        ),
 );
 
 Map<String, dynamic> _$ProjectManifestToJson(
@@ -257,12 +247,6 @@ Map<String, dynamic> _$ProjectManifestToJson(
     instance.smartTileCatalog,
   ),
   'borderCatalog': ?_projectBorderCatalogToJson(instance.borderCatalog),
-  'shadowCatalog': const ProjectShadowCatalogJsonConverter().toJson(
-    instance.shadowCatalog,
-  ),
-  'projectedBuildingShadowCatalog': ?_projectedBuildingShadowCatalogToJson(
-    instance.projectedBuildingShadowCatalog,
-  ),
 };
 
 const _$ProjectVersionEnumMap = {
@@ -660,12 +644,6 @@ _ProjectElementEntry _$ProjectElementEntryFromJson(Map<String, dynamic> json) =>
           : ElementCollisionProfile.fromJson(
               json['collisionProfile'] as Map<String, dynamic>,
             ),
-      shadow: const ProjectElementShadowConfigJsonConverter().fromJson(
-        json['shadow'],
-      ),
-      projectedBuildingShadow: _projectedBuildingShadowConfigFromJson(
-        json['projectedBuildingShadow'],
-      ),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
@@ -685,12 +663,6 @@ Map<String, dynamic> _$ProjectElementEntryToJson(
   'frames': instance.frames.map((e) => e.toJson()).toList(),
   'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
   'collisionProfile': instance.collisionProfile?.toJson(),
-  'shadow': const ProjectElementShadowConfigJsonConverter().toJson(
-    instance.shadow,
-  ),
-  'projectedBuildingShadow': ?_projectedBuildingShadowConfigToJson(
-    instance.projectedBuildingShadow,
-  ),
   'groupId': instance.groupId,
   'recommendedLayerId': instance.recommendedLayerId,
   'tags': instance.tags,

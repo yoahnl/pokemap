@@ -11,11 +11,9 @@ import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
 import 'map_visual_stack_config.dart';
-import 'shadow.dart';
 import 'smart_tile_gameplay_zone_provenance.dart';
 
 import '../compatibility/environment_single_area_migration.dart';
-import '../operations/map_placed_element_shadow_override_json_codec.dart';
 
 part 'map_data.freezed.dart';
 part 'map_data.g.dart';
@@ -237,8 +235,6 @@ abstract class MapPlacedElement with _$MapPlacedElement {
     @Default(true) bool applyCollision,
     @Default(1.0) double opacity,
     MapPlacedElementAnimation? animation,
-    @MapPlacedElementShadowOverrideJsonConverter()
-    MapPlacedElementShadowOverride? shadowOverride,
     @Default([]) List<MapPlacedElementBehavior> behaviors,
     @Default({}) Map<String, String> properties,
   }) = _MapPlacedElement;

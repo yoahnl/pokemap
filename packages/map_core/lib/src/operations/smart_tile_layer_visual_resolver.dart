@@ -863,8 +863,7 @@ bool _channelBelongsToPass(
   return switch (pass) {
     SmartTileVisualPass.background =>
       channel == SmartTileRenderChannel.ground ||
-          channel == SmartTileRenderChannel.understory ||
-          channel == SmartTileRenderChannel.shadow,
+          channel == SmartTileRenderChannel.understory,
     SmartTileVisualPass.foreground =>
       channel == SmartTileRenderChannel.canopy ||
           channel == SmartTileRenderChannel.foreground,

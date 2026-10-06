@@ -598,19 +598,6 @@ class BattleSceneCombatantComponent extends PositionComponent {
         ),
     );
 
-    final shadowRect = Rect.fromCenter(
-      center: Offset(
-        _platformRect.center.dx,
-        _platformRect.center.dy - (_platformRect.height * 0.75),
-      ),
-      width: _platformRect.width * (isPlayerSide ? 0.6 : 0.48),
-      height: _platformRect.height * 1.25,
-    );
-    canvas.drawOval(
-      shadowRect,
-      Paint()..color = _applyOpacity(const Color(0x33000000)),
-    );
-
     final auraRect = Rect.fromCenter(
       center: Offset(
         _spriteRect.center.dx,

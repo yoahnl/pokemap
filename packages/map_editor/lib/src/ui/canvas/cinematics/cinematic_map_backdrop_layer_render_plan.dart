@@ -646,8 +646,7 @@ int _appendSmartTileInstructions({
         SmartTileRenderChannel.foreground ||
         SmartTileRenderChannel.actorOcclusion => true,
         SmartTileRenderChannel.ground ||
-        SmartTileRenderChannel.understory ||
-        SmartTileRenderChannel.shadow => false,
+        SmartTileRenderChannel.understory => false,
       };
       instructions.add(
         CinematicMapBackdropLayerBitmapInstruction(

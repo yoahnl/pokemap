@@ -33,8 +33,6 @@ final class PlacedElementActions {
       ),
       ('placed_element.set_collision', 'Set instance collision participation'),
       ('placed_element.set_opacity', 'Set instance opacity'),
-      ('placed_element.set_shadow_override', 'Set a shadow override'),
-      ('placed_element.clear_shadow_override', 'Clear a shadow override'),
       ('placed_element.set_animation', 'Set instance animation'),
       ('placed_element.reset_animation', 'Reset instance animation'),
       ('placed_element.behavior_add', 'Add an instance behavior'),
@@ -74,7 +72,6 @@ final class PlacedElementActions {
       'placed_element.send_backward' =>
         const {'instanceId', 'x', 'y'},
       'placed_element.delete' ||
-      'placed_element.clear_shadow_override' ||
       'placed_element.reset_animation' ||
       'placed_element.detach_from_tile_projection' =>
         const {'instanceId'},
@@ -83,10 +80,6 @@ final class PlacedElementActions {
           'applyCollision',
         },
       'placed_element.set_opacity' => const {'instanceId', 'opacity'},
-      'placed_element.set_shadow_override' => const {
-          'instanceId',
-          'shadowOverride',
-        },
       'placed_element.set_animation' => const {'instanceId', 'animation'},
       'placed_element.behavior_add' => const {'instanceId', 'behavior'},
       'placed_element.behavior_update' => const {
@@ -300,18 +293,6 @@ final class PlacedElementActions {
             instanceId: parameters.string('instanceId'),
             opacity: opacity.toDouble(),
           );
-        case 'placed_element.set_shadow_override':
-          updated = _replaceFromJsonPatch(
-            context.map,
-            parameters.string('instanceId'),
-            {'shadowOverride': parameters.object('shadowOverride')},
-          );
-        case 'placed_element.clear_shadow_override':
-          updated = setMapPlacedElementShadowOverride(
-            context.map,
-            instanceId: parameters.string('instanceId'),
-            shadowOverride: null,
-          );
         case 'placed_element.set_animation':
           updated = setMapPlacedElementAnimation(
             context.map,
@@ -483,19 +464,6 @@ void _validateFootprint(
       },
     );
   }
-}
-
-MapData _replaceFromJsonPatch(
-  MapData map,
-  String instanceId,
-  Map<String, Object?> patch,
-) {
-  final instance = _instanceById(map, instanceId);
-  final json = instance.toJson()..addAll(patch);
-  return upsertMapPlacedElement(
-    map,
-    instance: MapPlacedElement.fromJson(json),
-  );
 }
 
 Map<String, String> _patchProperties(

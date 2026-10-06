@@ -54,7 +54,7 @@ List<MapContextAction> _cellActions(MapContextActionContext context) {
       'Effacer la tuile de cette case',
       unavailable: erasable
           ? null
-          : 'Cette carte n’a aucun calque de tuiles à effacer ici.',
+          : 'Cette carte n’a aucune tuile à effacer ici.',
     ),
   ];
 }

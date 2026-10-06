@@ -221,18 +221,13 @@ void main() {
     await tester.scrollUntilVisible(find.text('Informations du terrain'), 200);
     await tester.tap(find.text('Informations du terrain'));
     await tester.pumpAndSettle();
-    final layer = map.layers.whereType<SmartTileLayer>().single;
+    expect(find.text('Calque édité'), findsNothing);
+    expect(find.text('Raccords'), findsOneWidget);
     expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text('Calque édité'),
-          matching: find.byType(ListTile),
-        ),
-        matching: find.text(layer.name),
-      ),
+      find.text('${preset.rules.length} règles définies dans Ressources.'),
       findsOneWidget,
     );
-    expect(find.text('Un calque sera créé au premier trait.'), findsNothing);
+    expect(document.current, same(map));
     expect(document.dirty, isFalse);
     expect(document.undoCount, 0);
   });

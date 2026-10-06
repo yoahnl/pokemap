@@ -18,7 +18,6 @@ class MapConnectionContextLayer extends StatelessWidget {
     required this.tilesetImagesById,
     required this.tilesPerRowById,
     required this.project,
-    this.shadowLightPreviewPreset,
     this.animationClock,
     this.pictureCacheOwner,
   });
@@ -37,7 +36,6 @@ class MapConnectionContextLayer extends StatelessWidget {
   final Map<String, ui.Image?> tilesetImagesById;
   final Map<String, int> tilesPerRowById;
   final ProjectManifest? project;
-  final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? animationClock;
   final EditorCanvasPictureCacheOwner? pictureCacheOwner;
 
@@ -91,7 +89,6 @@ class MapConnectionContextLayer extends StatelessWidget {
                               project,
                             ),
                             project: project,
-                            shadowLightPreviewPreset: shadowLightPreviewPreset,
                             animationClock: animationClock,
                             pictureCacheOwner: pictureCacheOwner,
                             showGrid: false,

@@ -39,9 +39,6 @@ class MapDecorOrderPanel extends StatelessWidget {
         .where((element) => element.layerId != selected.layerId)
         .toList();
     final definitions = {for (final entry in project.elements) entry.id: entry};
-    final layers = {
-      for (final layer in document.current.layers) layer.id: layer.name,
-    };
     final forwardReason = commands.reorderProblemAt(
       instanceId: selected.id,
       at: position,
@@ -58,8 +55,8 @@ class MapDecorOrderPanel extends StatelessWidget {
       return StudioChoice(
         label: definition?.name ?? 'Ressource manquante',
         subtitle: different
-            ? 'Autre calque · ${layers[element.layerId] ?? element.layerId}'
-            : 'Position ${rank + 1} · ${layers[element.layerId] ?? element.layerId}',
+            ? 'Ordre fixe à cet emplacement'
+            : 'Position ${rank + 1}',
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -90,7 +87,7 @@ class MapDecorOrderPanel extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Devant en haut · les décors de ce calque peuvent échanger leur ordre à cet emplacement.',
+          'Devant en haut · ces décors peuvent échanger leur ordre à cet emplacement.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
@@ -108,7 +105,7 @@ class MapDecorOrderPanel extends StatelessWidget {
         if (other.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text(
-            'Autres décors visibles · autres calques',
+            'Autres décors visibles',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           for (final (index, element) in other.indexed)
@@ -161,7 +158,7 @@ class MapDecorOrderPanel extends StatelessWidget {
         ],
         const SizedBox(height: 10),
         Text(
-          'Le sol et les calques de terrain ne se réorganisent pas ici.',
+          'Le sol et les terrains ne se réorganisent pas ici.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],

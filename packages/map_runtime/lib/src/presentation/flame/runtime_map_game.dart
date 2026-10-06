@@ -5,17 +5,12 @@ import '../../application/runtime_map_bundle.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/tile_image_loader.dart';
-import '../../shadow/shadow_runtime_collection_provider.dart';
 import 'map_layers_component.dart';
 
 class RuntimeMapGame extends FlameGame {
-  RuntimeMapGame({
-    required this.bundle,
-    this.shadowCollectionProvider,
-  });
+  RuntimeMapGame({required this.bundle});
 
   RuntimeMapBundle bundle;
-  final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final BorderRuntimeAssetCache _borderAssetCache = BorderRuntimeAssetCache();
 
   @override
@@ -36,7 +31,6 @@ class RuntimeMapGame extends FlameGame {
       MapLayersComponent(
         bundle: bundle,
         tileImagesByTilesetId: images,
-        shadowCollectionProvider: shadowCollectionProvider,
         borderAssets: borderAssets,
       ),
     );

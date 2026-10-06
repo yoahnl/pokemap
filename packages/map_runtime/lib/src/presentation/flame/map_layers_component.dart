@@ -11,9 +11,6 @@ import '../../border/border_runtime_draw_instruction.dart';
 import '../../border/border_runtime_renderer.dart';
 import '../../infrastructure/project_tileset_visual_resolution.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
-import '../../shadow/shadow_runtime_collection_provider.dart';
-import '../../shadow/shadow_runtime_instruction_collection.dart';
-import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'runtime_map_layer_paint_order.dart';
 import 'smart_tile_animation_activation_controller.dart';
@@ -116,8 +113,6 @@ class MapLayersComponent extends PositionComponent {
     this.separatePlacedElementOcclusion = false,
     this.npcMapPresencePredicate,
     this.mapEntityPresencePredicate,
-    this.shadowCollectionProvider,
-    this.shadowRenderer = const ShadowRuntimeRenderer(),
     this.borderAssets,
     this.renderBorders = true,
     this.borderRenderer = const BorderRuntimeRenderer(),
@@ -342,8 +337,6 @@ class MapLayersComponent extends PositionComponent {
   /// Si non null, les entités projet rejetées ne sont pas peintes. Ce filtre
   /// couvre aussi les objets et props pilotés par les World Rules.
   MapEntityPresencePredicate? mapEntityPresencePredicate;
-  ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
-  final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
   final bool renderBorders;
   final BorderRuntimeRenderer borderRenderer;
@@ -638,10 +631,6 @@ class MapLayersComponent extends PositionComponent {
         }
       case MapVisualCompositionStepKind.environmentNoop:
         break;
-      case MapVisualCompositionStepKind.shadows:
-        if (renderPass == MapLayerRenderPass.background) {
-          _paintShadows(canvas);
-        }
       case MapVisualCompositionStepKind.placedElements:
         if (renderPass == MapLayerRenderPass.background) {
           final layer = step.layer! as TileLayer;
@@ -726,37 +715,6 @@ class MapLayersComponent extends PositionComponent {
       _paintCollisionLayer(canvas, layer.collisions, layer.opacity);
     }
     _paintPlacedElementsCollisionOverlay(canvas);
-  }
-
-  void _paintShadows(Canvas canvas) {
-    final collection = shadowCollectionProvider?.call();
-    if (collection == null || collection.isEmpty) {
-      return;
-    }
-    // Static building/element shadows cover the whole map; without culling
-    // every off-screen polygon still costs its draw calls.
-    final visibleRect = _visibleLocalRect;
-    final cullingBounds =
-        visibleRect == null || visibleRect.width <= 0 || visibleRect.height <= 0
-            ? null
-            : ShadowRuntimeCullingBounds(
-                worldLeft: visibleRect.left,
-                worldTop: visibleRect.top,
-                width: visibleRect.width,
-                height: visibleRect.height,
-              );
-    shadowRenderer.renderCollectionPass(
-      canvas,
-      collection,
-      ShadowRenderPass.groundStatic,
-      cullingBounds: cullingBounds,
-    );
-    shadowRenderer.renderCollectionPass(
-      canvas,
-      collection,
-      ShadowRenderPass.actorContact,
-      cullingBounds: cullingBounds,
-    );
   }
 
   void _paintSmartTileLayer(Canvas canvas, SmartTileLayer layer) {

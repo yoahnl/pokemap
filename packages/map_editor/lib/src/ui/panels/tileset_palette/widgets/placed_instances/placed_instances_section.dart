@@ -43,7 +43,6 @@ class _PlacedElementInstanceVm {
   double get opacity => instance.opacity;
   MapPlacedElementAnimation? get animation => instance.animation;
   List<MapPlacedElementBehavior> get behaviors => instance.behaviors;
-  MapPlacedElementShadowOverride? get shadowOverride => instance.shadowOverride;
   int get frameCount => element?.frames.length ?? 1;
   TilesetSourceRect get source =>
       element?.frames.primarySource ??
@@ -328,19 +327,6 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 onChangeEnd: notifier.endMapStroke,
               ),
               const SizedBox(height: 8),
-              PlacedElementShadowOverrideSection(
-                manifest: snapshot.project!,
-                element: selected.element,
-                instance: selected.instance,
-                shadowOverride: selected.shadowOverride,
-                onChanged: (next) =>
-                    notifier.setPlacedElementInstanceShadowOverride(
-                      instanceId: selected.instanceId,
-                      shadowOverride: next,
-                    ),
-                onEnsureDefaultShadowProfiles:
-                    notifier.ensureDefaultShadowProfiles,
-              ),
               const SizedBox(height: 8),
               _PlacedElementAnimationSection(
                 value: selected.animation,

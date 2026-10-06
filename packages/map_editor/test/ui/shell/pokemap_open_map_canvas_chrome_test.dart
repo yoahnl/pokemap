@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_badge.dart';
 
 import '../../shell_chrome_test_harness.dart';
@@ -10,7 +11,7 @@ import '../../shell_chrome_test_harness.dart';
 void main() {
   group('PokeMap Open Map Canvas Chrome Tests', () {
     testWidgets(
-        'Renders map header details, favorite star, options pulldown and light chips',
+        'Renders map header details, favorite star, options pulldown and viewport controls',
         (tester) async {
       final map = buildShellChromeMap(
         id: 'starter_town',
@@ -26,7 +27,7 @@ void main() {
         ],
       );
 
-      await pumpEditorShellPage(
+      final container = await pumpEditorShellPage(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/open_map_canvas_chrome_test',
@@ -65,23 +66,15 @@ void main() {
       // 3. Verify Options Ellipsis button exists
       expect(find.byType(MacosPulldownButton), findsWidgets);
 
-      // 4. Verify Light Preview Chips
-      expect(find.text('Aperçu lumière'), findsOneWidget);
-      expect(find.text('Preview lumiere'), findsNothing);
-
-      // Verify presets are present
-      expect(find.text('Neutre'), findsOneWidget);
-      expect(find.text('Midi'), findsOneWidget);
-      expect(find.text('Matin'), findsOneWidget);
-      expect(find.text('Soir'), findsOneWidget);
-      expect(find.text('Nuit douce'), findsOneWidget);
-
-      // Tap on 'Soir' preset button to verify active state switching
-      final soirButton =
-          find.byKey(const ValueKey('shadow-light-preview-evening-button'));
-      expect(soirButton, findsOneWidget);
-      await tester.tap(soirButton);
+      expect(find.text('Aperçu lumière'), findsNothing);
+      expect(find.byKey(const ValueKey('shadow-light-preview-evening-button')),
+          findsNothing);
+      final zoomIn = find.byKey(const ValueKey('map-navigation-zoom-in'));
+      expect(zoomIn.hitTestable(), findsOneWidget);
+      final previousZoom = container.read(editorNotifierProvider).zoom;
+      await tester.tap(zoomIn);
       await tester.pumpAndSettle();
+      expect(container.read(editorNotifierProvider).zoom, greaterThan(previousZoom));
     });
   });
 }

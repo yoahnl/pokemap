@@ -243,7 +243,6 @@ Map<String, Object?> _elementJson(_OrganicStoneSpec spec, int index) =>
       ],
       'presetKind': 'cliff',
       'collisionProfile': null,
-      'shadow': null,
       'groupId': null,
       'recommendedLayerId': null,
       'tags': <String>[

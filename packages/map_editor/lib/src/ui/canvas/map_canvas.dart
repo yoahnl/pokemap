@@ -29,9 +29,7 @@ import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/narrative_event_map_bridge_models.dart';
 import '../../application/models/narrative_event_spatial_source_creation_models.dart';
-import '../../application/shadow/editor_shadow_light_preview.dart';
-import '../../application/shadow/editor_shadow_preview_projection_index.dart';
-import '../../application/shadow/editor_static_shadow_preview.dart';
+import '../../application/services/editor_placed_element_viewport_index.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
@@ -78,9 +76,7 @@ import 'map_canvas/editor_canvas_repaint_clock.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
 import 'map_canvas/smart_tile_visual_painter.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
-import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../design_system/pokemap_badge.dart';
-import '../design_system/pokemap_button.dart';
 import '../design_system/pokemap_diagnostic_callout.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
@@ -550,8 +546,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   );
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
-  final EditorShadowPreviewProjectionOwner _shadowPreviewProjectionOwner =
-      EditorShadowPreviewProjectionOwner();
+  final EditorPlacedElementViewportIndexOwner _placedElementViewportIndexOwner =
+      EditorPlacedElementViewportIndexOwner();
   final EditorCanvasPictureCacheOwner _pictureCacheOwner =
       EditorCanvasPictureCacheOwner();
   final Set<int> _pressedMapPointers = <int>{};
@@ -602,7 +598,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Timer? _entityEditorAnimationTimer;
   EditorCanvasRepaintClock? _ownedRepaintClock;
   bool _entityEditorAnimationRunning = false;
-  String _shadowLightPreviewPresetId = 'neutral';
 
   EditorCanvasRepaintClock get _repaintClock =>
       widget.repaintClockOverride ?? _ownedRepaintClock!;
@@ -714,7 +709,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   @override
   void dispose() {
     _disposeOwnedRepaintResources();
-    _shadowPreviewProjectionOwner.clear();
+    _placedElementViewportIndexOwner.clear();
     _pictureCacheOwner.dispose();
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
@@ -1145,9 +1140,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         final eraserPreview = state.activeTool == EditorToolType.eraser
             ? toolPreview
             : null;
-        final shadowLightPreviewPreset =
-            editorShadowLightPreviewPresetById(_shadowLightPreviewPresetId) ??
-            neutralEditorShadowLightPreviewPreset;
         final environmentGeneratedAddPreview =
             hoveredTile != null && state.project != null
             ? switch (state.environmentMaskEditMode) {
@@ -2051,7 +2043,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           tilesetImagesById: tilesetImagesById,
                           tilesPerRowById: tilesPerRowById,
                           project: state.project,
-                          shadowLightPreviewPreset: shadowLightPreviewPreset,
                           animationClock: _repaintClock,
                           pictureCacheOwner: _pictureCacheOwner,
                         ),
@@ -2074,8 +2065,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                             size: Size.infinite,
                             painter: MapGridPainter(
                               map: activeMap,
-                              shadowProjectionOwner:
-                                  _shadowPreviewProjectionOwner,
+                              placedElementViewportIndexOwner:
+                                  _placedElementViewportIndexOwner,
                               zoom: state.zoom,
                               offset: state.panOffset,
                               hoveredTile:
@@ -2118,8 +2109,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                               connectionLabelsByDirection:
                                   connectionLabelsByDirection,
                               project: state.project,
-                              shadowLightPreviewPreset:
-                                  shadowLightPreviewPreset,
                               animationClock: _repaintClock,
                               pictureCacheOwner: _pictureCacheOwner,
                               cellStrokePreview:
@@ -2414,17 +2403,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   ),
                 ),
               ),
-              if (state.project != null &&
-                  widget.onEventBuilderPositionChosen == null)
-                Positioned(
-                  right: 12,
-                  top: 12,
-                  child: _shadowLightPreviewSelector(
-                    context,
-                    colors,
-                    shadowLightPreviewPreset,
-                  ),
-                ),
             ],
           ),
         );
@@ -2498,90 +2476,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           .read(narrativeEventMapBridgeControllerProvider.notifier)
           .markFocusCameraApplied(request.requestId);
     });
-  }
-
-  Widget _shadowLightPreviewSelector(
-    BuildContext context,
-    PokeMapColorTokens colors,
-    EditorShadowLightPreviewPreset selectedPreset,
-  ) {
-    final presets = createEditorShadowLightPreviewPresets();
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surfaceRaised.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: colors.borderSubtle, width: 1),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1A000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(6),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              IgnorePointer(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Text(
-                    'Aperçu lumière',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ),
-              ),
-              for (final preset in presets)
-                _shadowLightPreviewPresetButton(
-                  preset: preset,
-                  selected: preset.id == selectedPreset.id,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _shadowLightPreviewPresetButton({
-    required EditorShadowLightPreviewPreset preset,
-    required bool selected,
-  }) {
-    return PokeMapButton(
-      key: ValueKey('shadow-light-preview-${preset.id}-button'),
-      size: PokeMapButtonSize.small,
-      variant: PokeMapButtonVariant.secondary,
-      isSelected: selected,
-      semanticLabel: 'Aperçu lumière : ${preset.label}',
-      onPressed: () {
-        if (_shadowLightPreviewPresetId == preset.id) {
-          return;
-        }
-        setState(() {
-          _shadowLightPreviewPresetId = preset.id;
-        });
-      },
-      child: Text(
-        preset.label,
-        style: const TextStyle(fontSize: 10, decoration: TextDecoration.none),
-      ),
-    );
   }
 
   MapCanvasInteractionSession? _activeGestureInteraction() {

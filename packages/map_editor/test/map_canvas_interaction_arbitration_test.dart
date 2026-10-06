@@ -534,9 +534,14 @@ void main() {
         );
 
         await _pumpCanvas(tester, container);
+        expect(find.text('Aperçu lumière'), findsNothing);
+        expect(
+          find.byKey(const ValueKey<String>('shadow-light-preview-evening-button')),
+          findsNothing,
+        );
         await tester.tap(
           find.byKey(
-            const ValueKey<String>('shadow-light-preview-evening-button'),
+            const ValueKey<String>('map-navigation-actual-size'),
           ),
         );
         await tester.pump();

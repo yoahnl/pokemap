@@ -109,12 +109,6 @@ import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
-import '../../shadow/runtime_actor_contact_shadow_collection.dart';
-import '../../shadow/runtime_projected_building_shadow_collection.dart';
-import '../../shadow/runtime_shadow_collection_merge.dart';
-import '../../shadow/runtime_static_placed_element_shadow_sources.dart';
-import '../../shadow/shadow_runtime_collection_provider.dart';
-import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_combatant_ball_resolver.dart';
@@ -276,9 +270,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     String? initialPlayerName,
     String? initialPlayerAvatarCharacterId,
     PlayerPronounSet? initialPlayerPronounSet,
-    this.shadowCollectionProvider,
-    this.enableActorContactShadows = true,
-    this.enableStaticPlacedElementShadows = true,
     RuntimeAudioMixer? audioMixer,
     this.presentationCinematicPlayer,
     @visibleForTesting RuntimeMusicService? musicService,
@@ -510,16 +501,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RailJourneyDoorAnimation? railJourneyDoorAnimation;
   @visibleForTesting
   final RailJourneySpatialTransition? railJourneySpatialTransition;
-  final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
-  final bool enableActorContactShadows;
-  final bool enableStaticPlacedElementShadows;
   RuntimeMapBundle _bundle;
   GameState _gameState;
   late final bool _isProjectNewGameBoot;
   late GameplayWorldState _world;
   late PlayerComponent _player;
   bool _playerSupportsRunning = false;
-  bool _actorContactShadowRuntimeReady = false;
   String _activeMapId = '';
   String? _previousMapId;
   _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
@@ -605,18 +592,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _preferFlutterNotifications = false;
   int _runtimeNotificationRevision = 0;
   final List<OverworldActorComponent> _npcActors = [];
-  final ShadowRuntimeCollectionController _actorShadowCollectionController =
-      ShadowRuntimeCollectionController();
-  List<RuntimeActorContactShadowSource>? _lastActorShadowSources;
-  final Map<String, ShadowRuntimeInstructionCollection>
-      _projectedBuildingShadowCollectionByMapId =
-      <String, ShadowRuntimeInstructionCollection>{};
-  final Map<String, ShadowRuntimeInstructionCollection>
-      _staticShadowCollectionByMapId =
-      <String, ShadowRuntimeInstructionCollection>{};
-  final Map<String, _MergedShadowCollectionCache>
-      _mergedShadowCollectionCacheByMapId =
-      <String, _MergedShadowCollectionCache>{};
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
@@ -2878,13 +2853,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @visibleForTesting
-  ShadowRuntimeInstructionCollectionProvider?
-      debugShadowCollectionProviderForMap(
-    String mapId,
-  ) =>
-          _shadowCollectionProviderForMap(mapId);
-
-  @visibleForTesting
   Vector2 get debugMapOriginWorldTopLeft => _player.mapOrigin;
 
   @visibleForTesting
@@ -4066,8 +4034,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       await world.add(_player);
       if (_isRemoved) return;
       onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.player);
-      _actorContactShadowRuntimeReady = true;
-      _refreshActorContactShadowCollection();
       _syncGameStateFromWorld();
       _configureCameraViewport();
       _syncCameraToPlayer();
@@ -4345,7 +4311,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeClockMs += dt * 1000;
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
-    _refreshActorContactShadowCollection();
     final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
     if (pendingConnectionEntryAnimation != null &&
         pendingConnectionEntryAnimation.holdInitialCameraFrame) {
@@ -4572,158 +4537,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final actor in _npcActors) {
       actor.priority = overworldActorRenderPriority(actor.depthSortY);
     }
-  }
-
-  ShadowRuntimeInstructionCollectionProvider? _shadowCollectionProviderForMap(
-    String mapId,
-  ) {
-    final externalProvider = shadowCollectionProvider;
-    if (externalProvider != null) {
-      return externalProvider;
-    }
-    if (!enableActorContactShadows && !enableStaticPlacedElementShadows) {
-      return null;
-    }
-    return () => _provideShadowCollectionForMap(mapId);
-  }
-
-  ShadowRuntimeInstructionCollection? _provideShadowCollectionForMap(
-    String mapId,
-  ) {
-    // Appelé depuis render() à chaque frame : la fusion (plusieurs copies de
-    // listes) ne doit se refaire que quand une des collections sources change.
-    // Les trois sources sont immuables et remplacées par identité, donc un
-    // simple test d'identité suffit à valider le cache — y compris après un
-    // changement de carte active (l'entrée actor devient null/non-null).
-    ShadowRuntimeInstructionCollection? projected;
-    ShadowRuntimeInstructionCollection? staticCollection;
-    if (enableStaticPlacedElementShadows) {
-      projected = _projectedBuildingShadowCollectionByMapId[mapId];
-      staticCollection = _staticShadowCollectionByMapId[mapId];
-    }
-    ShadowRuntimeInstructionCollection? actorCollection;
-    if (enableActorContactShadows && mapId == _activeMapId) {
-      actorCollection = _actorShadowCollectionController.provide();
-    }
-    final cached = _mergedShadowCollectionCacheByMapId[mapId];
-    if (cached != null &&
-        identical(cached.projected, projected) &&
-        identical(cached.staticCollection, staticCollection) &&
-        identical(cached.actorCollection, actorCollection)) {
-      return cached.merged;
-    }
-    final collections = <ShadowRuntimeInstructionCollection>[
-      if (projected != null && projected.isNotEmpty) projected,
-      if (staticCollection != null && staticCollection.isNotEmpty)
-        staticCollection,
-      if (actorCollection != null && actorCollection.isNotEmpty)
-        actorCollection,
-    ];
-    final merged = switch (collections.length) {
-      0 => null,
-      1 => collections.first,
-      _ => mergeShadowRuntimeInstructionCollections(collections),
-    };
-    _mergedShadowCollectionCacheByMapId[mapId] = _MergedShadowCollectionCache(
-      projected: projected,
-      staticCollection: staticCollection,
-      actorCollection: actorCollection,
-      merged: merged,
-    );
-    return merged;
-  }
-
-  void _refreshActorContactShadowCollection() {
-    if (shadowCollectionProvider != null ||
-        !enableActorContactShadows ||
-        !_actorContactShadowRuntimeReady) {
-      _actorShadowCollectionController.clear();
-      _lastActorShadowSources = null;
-      return;
-    }
-    final sources = _actorContactShadowSources();
-    // Skip rebuild si les sources n'ont pas changé.
-    final prev = _lastActorShadowSources;
-    if (prev != null && _shadowSourcesEqual(prev, sources)) {
-      return;
-    }
-    _lastActorShadowSources = sources;
-    _actorShadowCollectionController.replace(
-      buildRuntimeActorContactShadowCollection(sources: sources),
-    );
-  }
-
-  static bool _shadowSourcesEqual(
-    List<RuntimeActorContactShadowSource> a,
-    List<RuntimeActorContactShadowSource> b,
-  ) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
-
-  void _refreshProjectedBuildingShadowCollection(RuntimeMapBundle bundle) {
-    if (shadowCollectionProvider != null || !enableStaticPlacedElementShadows) {
-      _projectedBuildingShadowCollectionByMapId.remove(bundle.map.id);
-      return;
-    }
-    final collection = buildRuntimeProjectedBuildingShadowCollection(
-      manifest: bundle.manifest,
-      mapData: bundle.map,
-    );
-    if (collection.isEmpty) {
-      _projectedBuildingShadowCollectionByMapId.remove(bundle.map.id);
-      return;
-    }
-    _projectedBuildingShadowCollectionByMapId[bundle.map.id] = collection;
-  }
-
-  void _refreshStaticPlacedElementShadowCollection(RuntimeMapBundle bundle) {
-    if (shadowCollectionProvider != null || !enableStaticPlacedElementShadows) {
-      _staticShadowCollectionByMapId.remove(bundle.map.id);
-      return;
-    }
-    final collection = buildRuntimeStaticPlacedElementShadowCollectionForBundle(
-      bundle: bundle,
-    );
-    if (collection.isEmpty) {
-      _staticShadowCollectionByMapId.remove(bundle.map.id);
-      return;
-    }
-    _staticShadowCollectionByMapId[bundle.map.id] = collection;
-  }
-
-  List<RuntimeActorContactShadowSource> _actorContactShadowSources() {
-    final activeMap = _loadedMapsById[_activeMapId];
-    final activeMapOrigin =
-        activeMap == null ? Vector2.zero() : _originPixelsOf(activeMap);
-    final sources = <RuntimeActorContactShadowSource>[
-      RuntimeActorContactShadowSource(
-        id: 'player',
-        footWorldX: _player.footPoint.x - activeMapOrigin.x,
-        footWorldY: _player.footPoint.y - activeMapOrigin.y,
-        visualWidth: _player.visualSize.x,
-        visualHeight: _player.visualSize.y,
-        isVisible: _player.parent != null,
-      ),
-    ];
-    if (activeMap != null) {
-      for (final actor in activeMap.npcActors) {
-        sources.add(
-          RuntimeActorContactShadowSource(
-            id: actor.character.id,
-            footWorldX: actor.position.x + actor.size.x / 2 - activeMapOrigin.x,
-            footWorldY: actor.depthSortY - activeMapOrigin.y,
-            visualWidth: actor.size.x,
-            visualHeight: actor.size.y,
-            isVisible: actor.parent != null && actor.isGameplayPresent,
-          ),
-        );
-      }
-    }
-    return sources;
   }
 
   bool _isMovementControl(RuntimeInputControl control) {
@@ -11747,8 +11560,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
           tileImagesById: activeLoaded.tileImagesById,
         );
-        _refreshProjectedBuildingShadowCollection(_bundle);
-        _refreshStaticPlacedElementShadowCollection(_bundle);
       }
       debugPrint(
         '[placed_behavior] setAnimationEnabled applied instance=$instanceId enabled=$enabled',
@@ -13722,9 +13533,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       actor.removeFromParent();
       _npcActors.remove(actor);
     }
-    _projectedBuildingShadowCollectionByMapId.remove(mapId);
-    _staticShadowCollectionByMapId.remove(mapId);
-    _mergedShadowCollectionCacheByMapId.remove(mapId);
     _worldRuleProjectionCacheByMapId.remove(mapId);
   }
 
@@ -13751,8 +13559,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(preparedBundle.manifest),
-      shadowCollectionProvider:
-          _shadowCollectionProviderForMap(preparedBundle.map.id),
       borderAssets: resolvedBorderAssets,
       smartTileAnimationController: smartTileAnimationController,
     );
@@ -13927,8 +13733,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _loadedMapsById[preparedBundle.map.id] = loaded;
     _runtimeBundleByMapId[preparedBundle.map.id] = preparedBundle;
-    _refreshProjectedBuildingShadowCollection(preparedBundle);
-    _refreshStaticPlacedElementShadowCollection(preparedBundle);
     _applyNpcVisibilityToLoadedMap(loaded);
     return loaded;
   }

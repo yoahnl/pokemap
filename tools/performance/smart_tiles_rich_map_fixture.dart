@@ -568,19 +568,6 @@ ProjectSmartTileCatalog _richCatalog() => ProjectSmartTileCatalog(
                   drawOrder: 10,
                 ),
                 SmartTileVisualPart(
-                  source: SmartTileVisualSource.frame(
-                    frame: SmartTileFrameRef(
-                      atlasId: 'rich-atlas',
-                      column: 4,
-                      row: 0,
-                    ),
-                  ),
-                  channel: SmartTileRenderChannel.shadow,
-                  offsetX: 6,
-                  offsetY: 4,
-                  drawOrder: 15,
-                ),
-                SmartTileVisualPart(
                   source: SmartTileVisualSource.animation(
                     animationId: 'cell-leaves',
                   ),

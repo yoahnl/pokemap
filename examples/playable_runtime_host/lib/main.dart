@@ -753,8 +753,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           initialGameState: initialGameState,
           initialMapActivationReason: launchPlan.initialMapActivationReason,
           initialTilesetImageCache: initialTilesetImageCache,
-          enableActorContactShadows: false,
-          enableStaticPlacedElementShadows: false,
           audioMixer: _startupHost?.audioMixer,
           presentationCinematicPlayer:
               _startupHost?.presentationSession?.controller,

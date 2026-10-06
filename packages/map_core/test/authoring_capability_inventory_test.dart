@@ -156,7 +156,6 @@ void main() {
           'model.project_manifest.name',
           'model.project_manifest.maps',
           'model.project_manifest.smartTileCatalog',
-          'model.project_manifest.projectedBuildingShadowCatalog',
         }),
       );
       expect(

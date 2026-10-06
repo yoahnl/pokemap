@@ -471,8 +471,6 @@ smartTileLayer
 environmentPreset
 borderBlueprint
 borderFeature
-shadowPreset
-projectedBuildingShadowPreset
 encounterTable
 encounterEntry
 dialogueFolder
@@ -774,8 +772,6 @@ element.set_frames
 element.set_tags
 element.set_recommended_layer
 element.set_collision_profile
-element.set_shadow
-element.set_projected_shadow
 element.set_animation
 element.render_preview
 element.validate
@@ -817,8 +813,6 @@ surface_preset
 surface_atlas
 environment_preset
 border_blueprint
-shadow_preset
-projected_building_shadow_preset
 ```
 
 Actions spécialisées :
@@ -1193,8 +1187,6 @@ placed_element.delete
 placed_element.replace_for_layer
 placed_element.set_collision
 placed_element.set_opacity
-placed_element.set_shadow_override
-placed_element.clear_shadow_override
 placed_element.set_animation
 placed_element.reset_animation
 placed_element.behavior_add

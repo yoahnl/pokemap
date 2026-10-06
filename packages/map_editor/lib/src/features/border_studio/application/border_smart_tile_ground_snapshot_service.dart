@@ -318,8 +318,7 @@ ProjectSmartTilePreset? _presetById(
 bool _belongsToGroundSnapshot(SmartTileRenderChannel channel) =>
     switch (channel) {
       SmartTileRenderChannel.ground ||
-      SmartTileRenderChannel.understory ||
-      SmartTileRenderChannel.shadow =>
+      SmartTileRenderChannel.understory =>
         true,
       SmartTileRenderChannel.canopy ||
       SmartTileRenderChannel.foreground ||

@@ -73,6 +73,34 @@ void main() {
     final opened = await _call(worker, 'open', {'projectRoot': root.path});
     expect(opened.status, AuthoringResultStatus.success);
     final handle = opened.data['projectHandle']! as String;
+    final manifestFile = File('${root.path}/project.json');
+    final initialManifestBytes = await manifestFile.readAsBytes();
+    final initialMapBytes = await mapFile.readAsBytes();
+    for (final actionId in [
+      'placed_element.set_shadow_override',
+      'placed_element.clear_shadow_override',
+      'element.set_shadow',
+      'element.set_projected_shadow',
+    ]) {
+      expect(actions.any((action) => action['id'] == actionId), isFalse);
+      final snapshot = await snapshots.load(ProjectHandle(handle));
+      final request = AuthoringRequest(
+          requestId: actionId,
+          actionId: actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.data['workspaceHandle']! as String,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: actionId,
+          dryRun: true,
+          parameters: const {'mapId': 'map', 'instanceId': 'a'});
+      final refused = await _call(worker, 'plan',
+          {'projectHandle': handle, 'request': request.toJson()});
+      expect(refused.status, AuthoringResultStatus.failure);
+      expect(refused.error!.details['domainCode'], 'map.action_unsupported');
+      expect(refused.data, isNot(contains('planId')));
+      expect(await manifestFile.readAsBytes(), initialManifestBytes);
+      expect(await mapFile.readAsBytes(), initialMapBytes);
+    }
     for (final forward in [true, false]) {
       final snapshot = await snapshots.load(ProjectHandle(handle));
       final request = AuthoringRequest(

@@ -18,9 +18,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_shadow_override_section.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_warp_destination_editor.dart';
-import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
@@ -450,16 +448,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       : () => _refreshProjectImages(projectRoot!),
                 ),
                 const SizedBox(height: 12),
-                PokeMapButton(
-                  key: const ValueKey('element-auto-shadow-backfill-button'),
-                  onPressed: () => _showApplyElementAutoShadowsDialog(
-                    context,
-                    notifier: notifier,
-                  ),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  child: const Text('Ombres auto'),
-                ),
               ],
             ),
           );
@@ -949,16 +937,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
-            PokeMapButton(
-              key: const ValueKey('element-auto-shadow-backfill-button'),
-              onPressed: () => _showApplyElementAutoShadowsDialog(
-                context,
-                notifier: notifier,
-              ),
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              child: const Text('Ombres auto'),
             ),
           ],
         ),
@@ -2137,8 +2115,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     }
     var selectedPresetKind = element.presetKind;
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
-    ProjectElementShadowConfig? shadowConfig = element.shadow;
-    var shadowManifest = project;
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
     var frames = List<TilesetVisualFrame>.from(element.frames);
@@ -2334,23 +2310,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ElementShadowSection(
-                    manifest: shadowManifest,
-                    element: element,
-                    shadow: shadowConfig,
-                    onChanged: (next) {
-                      setStateDialog(() {
-                        shadowConfig = next;
-                      });
-                    },
-                    onEnsureDefaultShadowProfiles: () {
-                      final updated = notifier.ensureDefaultShadowProfiles();
-                      if (updated == null) return;
-                      setStateDialog(() {
-                        shadowManifest = updated;
-                      });
-                    },
-                  ),
                   const SizedBox(height: 8),
                   _ElementCollisionProfileSummaryCard(
                     source: frames.primarySource,
@@ -2436,8 +2395,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       clearGroupId: selectedGroupId == null,
       recommendedLayerId: selectedLayerId,
       clearRecommendedLayerId: selectedLayerId == null,
-      shadow: shadowConfig,
-      clearShadow: shadowConfig == null,
       frames: frames,
       tags: _parseTags(tagsController.text),
     );
@@ -2457,21 +2414,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
     if (!shouldDelete) return;
     await notifier.deleteProjectElement(element.id);
-  }
-
-  Future<void> _showApplyElementAutoShadowsDialog(
-    BuildContext context, {
-    required EditorNotifier notifier,
-  }) async {
-    final shouldApply = await showMacosEditorTwoChoiceAlert(
-      context,
-      title: 'Appliquer les ombres automatiques aux éléments ?',
-      message:
-          'Les éléments sans ombre ou avec une ancienne ombre générique recevront une empreinte automatique. Les ombres manuelles et désactivées seront conservées.',
-      primaryLabel: 'Appliquer',
-    );
-    if (!shouldApply) return;
-    await notifier.applyElementAutoShadowSuggestions();
   }
 
   List<String> _parseTags(String value) {

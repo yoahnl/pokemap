@@ -57,7 +57,7 @@ extension _PresentationAnimationFields on PresentationInspector {
       ],
       const SizedBox(height: 12),
       const StudioNotice(
-        'Ombres, particules et courbes libres ne font pas partie du modèle actuel.',
+        'Particules et courbes libres ne font pas partie du modèle actuel.',
       ),
     ];
   }

@@ -475,7 +475,7 @@ void _validateCanvasProjection(Map<String, dynamic> data) {
   }
   final results = data['results'];
   const extents = <int>{128, 256, 512, 1024};
-  const modes = <String>{'standard', 'smart', 'shadows', 'combined'};
+  const modes = <String>{'standard', 'smart', 'decor', 'combined'};
   if (results is! List || results.length != extents.length * modes.length) {
     throw const FormatException(
       'Canvas projection response must cover every mode and extent.',

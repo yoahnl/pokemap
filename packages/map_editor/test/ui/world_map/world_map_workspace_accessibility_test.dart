@@ -522,7 +522,7 @@ void main() {
   );
 
   testWidgets(
-    'light preview presets are semantic buttons activatable with the keyboard',
+    'canvas navigation remains activatable with the keyboard without light presets',
     (tester) async {
       final semantics = tester.ensureSemantics();
       final harness = await _pumpWorkspace(
@@ -530,14 +530,14 @@ void main() {
         size: const Size(1280, 800),
       );
       addTearDown(() => harness.dispose(tester));
-      final evening = find.byKey(
-        const ValueKey<String>('shadow-light-preview-evening-button'),
+      final actualSize = find.byKey(
+        const ValueKey<String>('map-navigation-actual-size'),
       );
 
-      expect(evening, findsOneWidget);
+      expect(actualSize, findsOneWidget);
       expect(
         find.descendant(
-          of: evening,
+          of: actualSize,
           matching: find.byWidgetPredicate(
             (widget) => widget is Semantics && widget.properties.button == true,
           ),
@@ -545,6 +545,8 @@ void main() {
         findsWidgets,
       );
 
+      harness.notifier.zoom(0.2);
+      expect(find.text('Aperçu lumière'), findsNothing);
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
       for (var index = 0; index < 80; index += 1) {
@@ -554,7 +556,7 @@ void main() {
         if (focus != null &&
             _hasAncestorKey(
               focus,
-              'shadow-light-preview-evening-button',
+              'map-navigation-actual-size',
             )) {
           break;
         }
@@ -562,20 +564,15 @@ void main() {
       expect(
         _hasAncestorKey(
           FocusManager.instance.primaryFocus!,
-          'shadow-light-preview-evening-button',
+          'map-navigation-actual-size',
         ),
         isTrue,
       );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pump();
-      final selectedSemantics = find.descendant(
-        of: evening,
-        matching: find.byWidgetPredicate(
-          (widget) => widget is Semantics && widget.properties.selected == true,
-        ),
-      );
-      expect(selectedSemantics, findsWidgets);
+      expect(harness.notifier.state.zoom, 1);
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
       semantics.dispose();
     },
   );

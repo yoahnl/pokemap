@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/shadow/editor_shadow_preview_projection_index.dart';
+import 'package:map_editor/src/application/services/editor_placed_element_viewport_index.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
 
@@ -21,7 +21,7 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'profiles visible standard smart shadow and combined canvas projections',
+    'profiles visible standard smart decor and combined canvas projections',
     (tester) async {
       final tileImage = await _solidTileImage();
       addTearDown(tileImage.dispose);
@@ -46,7 +46,7 @@ void main() {
         }
         for (final placedElementCount in const <int>[100, 1000, 10000]) {
           final fixture = _CanvasProfileFixture.create(
-            mode: _CanvasProfileMode.shadows,
+            mode: _CanvasProfileMode.decor,
             extent: 1024,
             placedElementCount: placedElementCount,
           );
@@ -113,7 +113,7 @@ void main() {
           'includesLayoutAndComposition': false,
           'uiThreadCanvasRecord': true,
           'pictureRasterization': false,
-          'shadowProjectionWarmupExcluded': true,
+          'placedElementIndexWarmupExcluded': true,
           'constantViewport': true,
           'cachedRepaintMetric': 'animation_tick.static_picture_reuse',
           'animationClockStepMs': 110,
@@ -160,7 +160,7 @@ Map<String, Object?> _measurePainter({
   required _CanvasProfileFixture fixture,
   required ui.Image tileImage,
 }) {
-  final projectionOwner = EditorShadowPreviewProjectionOwner();
+  final projectionOwner = EditorPlacedElementViewportIndexOwner();
   final painter = _painter(
     fixture: fixture,
     tileImage: tileImage,
@@ -205,9 +205,6 @@ Map<String, Object?> _measurePainter({
     'visibleCellCount': snapshot.visibleBounds.cellCount,
     'tileCellVisits': snapshot.tileCellVisits,
     'smartTileVisualVisits': snapshot.smartTileVisualVisits,
-    'staticShadowInstructionVisits': snapshot.staticShadowInstructionVisits,
-    'projectedBuildingShadowInstructionVisits':
-        snapshot.projectedBuildingShadowInstructionVisits,
     'visiblePlacedElementCount': snapshot.placedElementIds.length,
     'rssBytesAfterFixture': ProcessInfo.currentRss,
   };
@@ -217,7 +214,7 @@ Map<String, Object?> _measureCachedRepaint({
   required _CanvasProfileFixture fixture,
   required ui.Image tileImage,
 }) {
-  final projectionOwner = EditorShadowPreviewProjectionOwner();
+  final projectionOwner = EditorPlacedElementViewportIndexOwner();
   final pictureCacheOwner = EditorCanvasPictureCacheOwner();
   final clock = EditorCanvasRepaintClock();
   try {
@@ -290,14 +287,14 @@ Map<String, Object?> _measureCachedRepaint({
 MapGridPainter _painter({
   required _CanvasProfileFixture fixture,
   required ui.Image tileImage,
-  required EditorShadowPreviewProjectionOwner projectionOwner,
+  required EditorPlacedElementViewportIndexOwner projectionOwner,
   MapGridCullingDebugObserver? debugOnCulling,
   EditorCanvasPictureCacheOwner? pictureCacheOwner,
   EditorCanvasRepaintClock? animationClock,
 }) {
   return MapGridPainter(
     map: fixture.map,
-    shadowProjectionOwner: projectionOwner,
+    placedElementViewportIndexOwner: projectionOwner,
     zoom: 1,
     offset: ui.Offset.zero,
     activeLayerId: 'base',
@@ -349,7 +346,7 @@ Future<ui.Image> _solidTileImage() async {
 enum _CanvasProfileMode {
   standard,
   smart,
-  shadows,
+  decor,
   combined;
 
   bool get includesStandard =>
@@ -359,8 +356,8 @@ enum _CanvasProfileMode {
   bool get includesSmart =>
       this == _CanvasProfileMode.smart || this == _CanvasProfileMode.combined;
 
-  bool get includesShadows =>
-      this == _CanvasProfileMode.shadows || this == _CanvasProfileMode.combined;
+  bool get includesDecor =>
+      this == _CanvasProfileMode.decor || this == _CanvasProfileMode.combined;
 }
 
 final class _CanvasProfileFixture {
@@ -381,7 +378,7 @@ final class _CanvasProfileFixture {
   }) {
     final cellCount = extent * extent;
     final layers = <MapLayer>[];
-    if (mode.includesStandard || mode.includesShadows) {
+    if (mode.includesStandard || mode.includesDecor) {
       layers.add(
         TileLayer(
           id: 'base',
@@ -413,14 +410,14 @@ final class _CanvasProfileFixture {
     }
 
     final placedElements = <MapPlacedElement>[];
-    if (mode.includesShadows) {
+    if (mode.includesDecor) {
       if (placedElementCount != null) {
         for (var index = 0; index < placedElementCount; index += 1) {
           placedElements.add(
             MapPlacedElement(
               id: 'placed-$index',
               layerId: 'base',
-              elementId: index.isEven ? 'static-caster' : 'building-caster',
+              elementId: index.isEven ? 'small-decor' : 'large-decor',
               pos: GridPos(x: (index * 37) % extent, y: (index * 101) % extent),
               quarterTurns: index % 4,
             ),
@@ -429,9 +426,9 @@ final class _CanvasProfileFixture {
       } else {
         placedElements.add(
           const MapPlacedElement(
-            id: 'visible-projected-building',
+            id: 'visible-large-decor',
             layerId: 'base',
-            elementId: 'building-caster',
+            elementId: 'large-decor',
             pos: GridPos(x: 8, y: 8),
             quarterTurns: 1,
           ),
@@ -443,7 +440,7 @@ final class _CanvasProfileFixture {
               MapPlacedElement(
                 id: 'placed-$index',
                 layerId: 'base',
-                elementId: index.isEven ? 'static-caster' : 'building-caster',
+                elementId: index.isEven ? 'small-decor' : 'large-decor',
                 pos: GridPos(x: x, y: y),
                 quarterTurns: index % 4,
               ),
@@ -541,39 +538,10 @@ final _profileProject = ProjectManifest(
       ),
     ],
   ),
-  shadowCatalog: ProjectShadowCatalog(
-    profiles: <ProjectShadowProfile>[
-      ProjectShadowProfile(
-        id: 'static-shadow',
-        name: 'Static shadow',
-        mode: ShadowCasterMode.ellipse,
-        renderPass: ShadowRenderPass.groundStatic,
-      ),
-    ],
-  ),
-  projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
-    presets: <ProjectBuildingShadowPreset>[
-      ProjectBuildingShadowPreset(
-        id: 'building-shadow',
-        name: 'Building shadow',
-        direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
-        shape: ProjectedShadowShapeTuning(
-          lengthRatio: 0.32,
-          nearWidthRatio: 0.9,
-          farWidthRatio: 0.72,
-        ),
-        appearance: ProjectedShadowAppearance(
-          opacity: 0.3,
-          colorHexRgb: '606060',
-        ),
-        timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
-      ),
-    ],
-  ),
   elements: <ProjectElementEntry>[
     ProjectElementEntry(
-      id: 'static-caster',
-      name: 'Static caster',
+      id: 'small-decor',
+      name: 'Small decor',
       tilesetId: 'tiles',
       categoryId: 'profile',
       frames: <TilesetVisualFrame>[
@@ -581,14 +549,10 @@ final _profileProject = ProjectManifest(
           source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 3),
         ),
       ],
-      shadow: ProjectElementShadowConfig(
-        castsShadow: true,
-        shadowProfileId: 'static-shadow',
-      ),
     ),
     ProjectElementEntry(
-      id: 'building-caster',
-      name: 'Building caster',
+      id: 'large-decor',
+      name: 'Large decor',
       tilesetId: 'tiles',
       categoryId: 'profile',
       frames: <TilesetVisualFrame>[
@@ -596,12 +560,6 @@ final _profileProject = ProjectManifest(
           source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 4),
         ),
       ],
-      projectedBuildingShadow: ProjectElementProjectedBuildingShadowConfig(
-        enabled: true,
-        presetId: 'building-shadow',
-        anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 0.96),
-        localOffset: ProjectedShadowOffset(x: 0, y: 0),
-      ),
     ),
   ],
 );

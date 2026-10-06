@@ -145,7 +145,7 @@ void main() {
         '${brightness.name} workspace remains usable at DPR 2 and '
         '${size.width.toInt()}×${size.height.toInt()}',
         (tester) async {
-          await _pumpWorkspace(
+          final container = await _pumpWorkspace(
             tester,
             size: size,
             brightness: brightness,
@@ -166,21 +166,6 @@ void main() {
             Offset.zero & size,
             reason: 'DPR 2 canvas at $size',
           );
-          const lightPresetIds = <String>[
-            'neutral',
-            'noon',
-            'morning',
-            'evening',
-            'soft-night',
-          ];
-          for (final presetId in lightPresetIds) {
-            expect(
-              find.byKey(
-                ValueKey<String>('shadow-light-preview-$presetId-button'),
-              ),
-              findsOneWidget,
-            );
-          }
           final inspectorOverlay = find.byKey(
             const ValueKey<String>('world-map-inspector-overlay'),
           );
@@ -199,35 +184,22 @@ void main() {
               await tester.pump();
             }
           }
-          for (final presetId in lightPresetIds) {
-            _expectLightPreviewAction(
+          expect(find.text('Aperçu lumière'), findsNothing);
+          for (final action in const <String>[
+            'zoom-out', 'zoom-in', 'fit', 'actual-size', 'center',
+          ]) {
+            _expectNavigationAction(
               tester,
-              presetId: presetId,
+              action: action,
               viewport: Offset.zero & size,
             );
           }
           await tester.tap(
-            find.byKey(
-              const ValueKey<String>(
-                'shadow-light-preview-evening-button',
-              ),
-            ),
+            find.byKey(const ValueKey<String>('map-navigation-actual-size')),
           );
           await tester.pump();
-          expect(
-            find.descendant(
-              of: find.byKey(
-                const ValueKey<String>(
-                  'shadow-light-preview-evening-button',
-                ),
-              ),
-              matching: find.byWidgetPredicate(
-                (widget) =>
-                    widget is Semantics && widget.properties.selected == true,
-              ),
-            ),
-            findsWidgets,
-          );
+          expect(container.read(editorNotifierProvider).zoom, 1);
+          expect(tester.takeException(), isNull);
         },
       );
     }
@@ -349,19 +321,19 @@ void main() {
   );
 }
 
-void _expectLightPreviewAction(
+void _expectNavigationAction(
   WidgetTester tester, {
-  required String presetId,
+  required String action,
   required Rect viewport,
 }) {
   final finder = find.byKey(
-    ValueKey<String>('shadow-light-preview-$presetId-button'),
+    ValueKey<String>('map-navigation-$action'),
   );
   _expectFullyOnScreen(
     tester,
     finder,
     viewport,
-    reason: 'light preview $presetId at DPR 2',
+    reason: 'navigation action $action at DPR 2',
   );
   expect(finder.hitTestable(), findsOneWidget);
   final semantics = find.descendant(

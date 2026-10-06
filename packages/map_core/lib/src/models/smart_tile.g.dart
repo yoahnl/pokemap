@@ -282,7 +282,6 @@ const _$SmartTileRenderChannelEnumMap = {
   SmartTileRenderChannel.canopy: 'canopy',
   SmartTileRenderChannel.foreground: 'foreground',
   SmartTileRenderChannel.actorOcclusion: 'actor_occlusion',
-  SmartTileRenderChannel.shadow: 'shadow',
 };
 
 const _$SmartTileFrameSamplingEnumMap = {

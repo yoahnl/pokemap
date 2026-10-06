@@ -25,13 +25,10 @@ import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
 import 'narrative_fact.dart';
-import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
 import 'scene_asset.dart';
 import 'script_asset.dart';
 import 'script_conditions.dart';
-import 'shadow.dart';
-import 'shadow_catalog.dart';
 import 'smart_tile.dart';
 import 'storyline_asset.dart';
 import 'tileset_transparent_color.dart';
@@ -41,10 +38,6 @@ import 'world_rule.dart';
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
 import '../operations/project_border_catalog_json_codec.dart';
-import '../operations/project_element_shadow_config_json_codec.dart';
-import '../operations/project_building_shadow_preset_catalog_json_codec.dart';
-import '../operations/project_element_projected_building_shadow_config_json_codec.dart';
-import '../operations/project_shadow_catalog_json_codec.dart';
 import '../serialization/presentation_cinematic_codec.dart';
 
 part 'project_manifest.freezed.dart';
@@ -314,50 +307,6 @@ Map<String, dynamic> _worldRuleJsonObject(Object? json) {
   });
 }
 
-/// JSON -> ShadowV2 projected building shadow catalog.
-///
-/// Missing or `null` root data remains an empty in-memory catalog. When the
-/// object is present, it must use the explicit catalog codec shape.
-ProjectBuildingShadowPresetCatalog _projectedBuildingShadowCatalogFromJson(
-  Object? json,
-) {
-  if (json == null) {
-    return const ProjectBuildingShadowPresetCatalog.empty();
-  }
-  if (json is! Map) {
-    throw const ValidationException(
-      'projectedBuildingShadowCatalog must be a JSON object',
-    );
-  }
-  return decodeProjectBuildingShadowPresetCatalog(json);
-}
-
-Map<String, Object?>? _projectedBuildingShadowCatalogToJson(
-  ProjectBuildingShadowPresetCatalog catalog,
-) {
-  if (catalog.isEmpty) {
-    return null;
-  }
-  return encodeProjectBuildingShadowPresetCatalog(catalog);
-}
-
-ProjectElementProjectedBuildingShadowConfig?
-_projectedBuildingShadowConfigFromJson(Object? json) {
-  if (json == null) {
-    return null;
-  }
-  return decodeProjectElementProjectedBuildingShadowConfig(json);
-}
-
-Map<String, Object?>? _projectedBuildingShadowConfigToJson(
-  ProjectElementProjectedBuildingShadowConfig? config,
-) {
-  if (config == null) {
-    return null;
-  }
-  return encodeProjectElementProjectedBuildingShadowConfig(config);
-}
-
 Object? _readDefaultPlayerCharacterId(Map json, String _) {
   return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
 }
@@ -536,17 +485,6 @@ abstract class ProjectManifest with _$ProjectManifest {
       includeIfNull: false,
     )
     ProjectBorderCatalog borderCatalog,
-    @Default(ProjectShadowCatalog.empty())
-    @ProjectShadowCatalogJsonConverter()
-    ProjectShadowCatalog shadowCatalog,
-    @Default(ProjectBuildingShadowPresetCatalog.empty())
-    @JsonKey(
-      name: 'projectedBuildingShadowCatalog',
-      fromJson: _projectedBuildingShadowCatalogFromJson,
-      toJson: _projectedBuildingShadowCatalogToJson,
-      includeIfNull: false,
-    )
-    ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog,
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
@@ -1021,15 +959,6 @@ abstract class ProjectElementEntry with _$ProjectElementEntry {
     required List<TilesetVisualFrame> frames,
     @Default(ElementPresetKind.generic) ElementPresetKind presetKind,
     ElementCollisionProfile? collisionProfile,
-    @ProjectElementShadowConfigJsonConverter()
-    ProjectElementShadowConfig? shadow,
-    @JsonKey(
-      name: 'projectedBuildingShadow',
-      fromJson: _projectedBuildingShadowConfigFromJson,
-      toJson: _projectedBuildingShadowConfigToJson,
-      includeIfNull: false,
-    )
-    ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
     String? groupId,
     String? recommendedLayerId,
     @Default([]) List<String> tags,

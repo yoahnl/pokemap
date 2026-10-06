@@ -110,7 +110,6 @@
     "borderLayer:border",
     "environmentNoop:environment-top",
     "objectLayer:objects-top",
-    "shadows",
     "placedElements:ground",
     "backgroundEntities",
     "collisionOverlay",

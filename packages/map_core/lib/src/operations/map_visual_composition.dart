@@ -69,7 +69,6 @@ enum MapVisualCompositionStepKind {
   borderLayer,
   objectLayer,
   environmentNoop,
-  shadows,
   placedElements,
   backgroundEntities,
   foregroundTilesAndPlacedElements,
@@ -235,7 +234,6 @@ MapVisualCompositionPlan _buildAuthoredPlan(
   final steps = <MapVisualCompositionStep>[
     for (final layer in ordered)
       if (layer is! CollisionLayer) _authoredLayerStep(layer),
-    const MapVisualCompositionStep(MapVisualCompositionStepKind.shadows),
     for (final layer in tileLayers)
       MapVisualCompositionStep(
         MapVisualCompositionStepKind.placedElements,
@@ -275,9 +273,6 @@ MapVisualCompositionPlan _buildLegacyPhasedPlan(
         _authoredLayerStep(layer),
   ];
 
-  steps.add(
-    const MapVisualCompositionStep(MapVisualCompositionStepKind.shadows),
-  );
   for (final layer in tileLayers) {
     steps
       ..add(_authoredLayerStep(layer))

@@ -138,14 +138,14 @@ class MapEditingCommands {
       return 'Ce décor n’occupe plus cet emplacement.';
     }
     if (peers.length == 1) {
-      return 'Aucun autre décor sur ce calque à cet emplacement.';
+      return 'Aucun autre décor réordonnable à cet emplacement.';
     }
     if (!canReorderAt(instanceId: instanceId, at: at, forward: !forward)) {
       return 'Aucun autre décor réordonnable à cet emplacement.';
     }
     return forward
-        ? 'Ce décor est déjà devant les autres décors de ce calque.'
-        : 'Ce décor est déjà derrière les autres décors de ce calque.';
+        ? 'Ce décor est déjà devant les autres décors réordonnables ici.'
+        : 'Ce décor est déjà derrière les autres décors réordonnables ici.';
   }
 
   void reorderAt({

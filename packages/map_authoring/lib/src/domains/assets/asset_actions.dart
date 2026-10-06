@@ -164,9 +164,6 @@ final class MapGraphicsResetProjector {
       environmentPresets: const [],
       smartTileCatalog: const ProjectSmartTileCatalog.empty(),
       borderCatalog: const ProjectBorderCatalog.empty(),
-      shadowCatalog: const ProjectShadowCatalog.empty(),
-      projectedBuildingShadowCatalog:
-          const ProjectBuildingShadowPresetCatalog.empty(),
     );
     final projectedMaps = [
       for (final map in maps)
@@ -821,9 +818,6 @@ Map<String, Object?> _mapGraphicsManifestSummary(ProjectManifest manifest) => {
       'environmentPresetCount': manifest.environmentPresets.length,
       'smartTileAtlasCount': manifest.smartTileCatalog.atlases.length,
       'borderBlueprintCount': manifest.borderCatalog.recordCount,
-      'shadowProfileCount': manifest.shadowCatalog.profileCount,
-      'buildingShadowPresetCount':
-          manifest.projectedBuildingShadowCatalog.length,
     };
 
 Map<String, Object?> _mapGraphicsMapSummary(MapData map) => {

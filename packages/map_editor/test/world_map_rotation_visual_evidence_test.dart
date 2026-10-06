@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
-const _fixtureFingerprint = 'ROT-01/FP-52A7/2x1/q0-q3/light-east';
+const _fixtureFingerprint = 'ROT-01/FP-52A7/2x1/q0-q3';
 const _tile = 16;
 const _canvasSize = ui.Size(320, 248);
 const _fingerprintPixels = <int>[0xD5, 0x52, 0xA7, 0x01];
@@ -115,7 +115,6 @@ void main() {
         collisionProfile: const ElementCollisionProfile(
           cells: <GridPos>[GridPos(x: 0, y: 0)],
         ),
-        projectedBuildingShadow: _shadowConfig(),
       ),
       const ProjectElementEntry(
         id: 'test-actor',
@@ -129,9 +128,6 @@ void main() {
         ],
       ),
     ],
-    projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
-      presets: <ProjectBuildingShadowPreset>[_shadowPreset()],
-    ),
   );
   return (map: map, manifest: manifest);
 }
@@ -183,14 +179,6 @@ void _expectFixtureContract(({MapData map, ProjectManifest manifest}) fixture) {
   expect(fixture.map.placedElements.map((e) => e.quarterTurns),
       orderedEquals(<int>[0, 1, 2, 3]));
   expect(fixture.map.entities, hasLength(4));
-  expect(
-      fixture
-          .manifest.projectedBuildingShadowCatalog.presets.single.direction.x,
-      0.8);
-  expect(
-      fixture
-          .manifest.projectedBuildingShadowCatalog.presets.single.direction.y,
-      0.35);
 }
 
 Future<void> _expectFingerprint(ui.Image image) async {
@@ -217,28 +205,6 @@ Future<ui.Image> _atlas() async {
   canvas.drawRect(const ui.Rect.fromLTWH(20, 5, 10, 4), paint);
   return recorder.endRecording().toImage(48, 16);
 }
-
-ProjectElementProjectedBuildingShadowConfig _shadowConfig() =>
-    ProjectElementProjectedBuildingShadowConfig(
-      enabled: true,
-      presetId: 'rot-01-world-light',
-      anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
-      localOffset: ProjectedShadowOffset(x: 0, y: 0),
-    );
-
-ProjectBuildingShadowPreset _shadowPreset() => ProjectBuildingShadowPreset(
-      id: 'rot-01-world-light',
-      name: 'World light unchanged',
-      direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
-      shape: ProjectedShadowShapeTuning(
-        lengthRatio: 0.8,
-        nearWidthRatio: 0.9,
-        farWidthRatio: 0.45,
-      ),
-      appearance:
-          ProjectedShadowAppearance(opacity: 0.55, colorHexRgb: '263238'),
-      timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
-    );
 
 ui.Rect _panelRect(int q) => ui.Rect.fromLTWH(
       q.isEven ? 8 : 164,
@@ -281,7 +247,7 @@ void _paintPanelFrame(ui.Canvas canvas, ui.Rect panel, String label) {
 void _paintLegend(ui.Canvas canvas) {
   _text(
       canvas,
-      'pink/yellow = asymmetric source pixels  •  cyan = actor  •  slate polygon = same world-light shadow',
+      'pink/yellow = asymmetric source pixels  •  cyan = actor',
       const ui.Offset(8, 226),
       9,
       const ui.Color(0xFFCBD5E1));

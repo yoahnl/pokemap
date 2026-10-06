@@ -711,17 +711,12 @@ Map<String, Object?> _spanMetrics(int count, int sampleUs) => <String, Object?>{
 
 Map<String, dynamic> _validCanvasReceipt({int sampleUs = 100}) {
   final results = <Map<String, Object?>>[
-    for (final mode in const <String>[
-      'standard',
-      'smart',
-      'shadows',
-      'combined',
-    ])
+    for (final mode in const <String>['standard', 'smart', 'decor', 'combined'])
       for (final extent in const <int>[128, 256, 512, 1024])
         _canvasRow(
           mode: mode,
           extent: extent,
-          placedElementCount: mode == 'shadows' || mode == 'combined' ? 2 : 0,
+          placedElementCount: mode == 'decor' || mode == 'combined' ? 2 : 0,
           sampleUs: sampleUs,
         ),
   ];
@@ -749,7 +744,7 @@ Map<String, dynamic> _validCanvasReceipt({int sampleUs = 100}) {
     'placementResults': <Map<String, Object?>>[
       for (final count in const <int>[100, 1000, 10000])
         _canvasRow(
-          mode: 'shadows',
+          mode: 'decor',
           extent: 1024,
           placedElementCount: count,
           sampleUs: sampleUs,

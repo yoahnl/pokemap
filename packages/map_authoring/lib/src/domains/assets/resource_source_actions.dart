@@ -147,8 +147,7 @@ final class ResourceSourceActions {
         'immutableVersionsPreserved': true,
         'oldBlobPreserved': true,
         'mutableOwners': references.preview['mutableOwners'],
-        'transparencyPolicy':
-            'manual collision and shadow definitions unchanged'
+        'transparencyPolicy': 'manual collision definitions unchanged'
       },
       referenceImpact: {
         ...assetDraft.referenceImpact,

@@ -140,7 +140,7 @@ void main() {
           collision: SmartTilePatternCollision.blocked,
         ),
         const GridPos(x: 1, y: 1): const SmartTilePatternCellProfile(
-          channel: SmartTileRenderChannel.shadow,
+          channel: SmartTileRenderChannel.understory,
           collision: SmartTilePatternCollision.passable,
           eraseMaterial: true,
         ),
@@ -155,7 +155,7 @@ void main() {
         SmartTileRenderChannel.understory);
     expect(pattern.cells[2].collision, SmartTilePatternCollision.blocked);
     expect(
-        pattern.cells[3].parts.single.channel, SmartTileRenderChannel.shadow);
+        pattern.cells[3].parts.single.channel, SmartTileRenderChannel.understory);
     expect(pattern.cells[3].collision, SmartTilePatternCollision.passable);
     expect(pattern.cells[3].eraseMaterial, isTrue);
   });

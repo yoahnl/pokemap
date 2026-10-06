@@ -33,10 +33,6 @@ class MapTerrainInspector extends StatelessWidget {
           (item) => item.kind == ResourceKind.terrains && item.id == preset?.id,
         )
         .firstOrNull;
-    final layer = document.current.layers
-        .whereType<SmartTileLayer>()
-        .where((layer) => layer.isVisible && layer.presetId == preset?.id)
-        .firstOrNull;
     return StudioSidebar(
       width: width,
       child: ListView(
@@ -95,13 +91,6 @@ class MapTerrainInspector extends StatelessWidget {
               tilePadding: EdgeInsets.zero,
               title: const Text('Informations du terrain'),
               children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Calque édité'),
-                  subtitle: Text(
-                    layer?.name ?? 'Un calque sera créé au premier trait.',
-                  ),
-                ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Raccords'),

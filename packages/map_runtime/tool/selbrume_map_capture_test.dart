@@ -11,7 +11,6 @@ import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
-import 'package:map_runtime/src/shadow/runtime_static_placed_element_shadow_sources.dart';
 import 'package:path/path.dart' as p;
 
 const _manifestFileName = 'capture_manifest.json';
@@ -726,10 +725,6 @@ final class _MapCaptureScene {
   })  : background = MapLayersComponent(
           bundle: bundle,
           tileImagesByTilesetId: tileImagesByTilesetId,
-          shadowCollectionProvider: () =>
-              buildRuntimeStaticPlacedElementShadowCollectionForBundle(
-            bundle: bundle,
-          ),
         ),
         foreground = MapLayersComponent(
           bundle: bundle,

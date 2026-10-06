@@ -939,19 +939,3 @@ class _PreparedNpcRoutePlanningProbe {
   final PreparedScriptedNpcAnchorProbe? probe;
   final ScriptedNpcDynamicCellBlocked isDynamicallyBlocked;
 }
-
-/// Fusion d'ombres mémoïsée avec les collections sources ayant servi à la
-/// construire ; la validité se vérifie par identité des sources.
-class _MergedShadowCollectionCache {
-  const _MergedShadowCollectionCache({
-    required this.projected,
-    required this.staticCollection,
-    required this.actorCollection,
-    required this.merged,
-  });
-
-  final ShadowRuntimeInstructionCollection? projected;
-  final ShadowRuntimeInstructionCollection? staticCollection;
-  final ShadowRuntimeInstructionCollection? actorCollection;
-  final ShadowRuntimeInstructionCollection? merged;
-}

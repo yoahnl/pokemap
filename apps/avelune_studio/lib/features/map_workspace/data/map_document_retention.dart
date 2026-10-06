@@ -11,7 +11,10 @@ void requireMapDocumentRetention(List<int> bytes, MapData map) {
 void _requireRetained(Object? source, Object? encoded) {
   if (source is Map && encoded is Map) {
     for (final key in source.keys) {
-      if (!encoded.containsKey(key)) throw const FormatException();
+      if (!encoded.containsKey(key)) {
+        if (source[key] != null) throw const FormatException();
+        continue;
+      }
       _requireRetained(source[key], encoded[key]);
     }
   } else if (source is List && encoded is List) {

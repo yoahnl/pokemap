@@ -829,7 +829,6 @@ String _renderChannelLabel(SmartTileRenderChannel channel) => switch (channel) {
       SmartTileRenderChannel.canopy => 'Canopée',
       SmartTileRenderChannel.foreground => 'Premier plan',
       SmartTileRenderChannel.actorOcclusion => 'Devant les personnages',
-      SmartTileRenderChannel.shadow => 'Ombre',
     };
 
 String _renderChannelShortLabel(SmartTileRenderChannel channel) =>
@@ -839,7 +838,6 @@ String _renderChannelShortLabel(SmartTileRenderChannel channel) =>
       SmartTileRenderChannel.canopy => 'Canopée',
       SmartTileRenderChannel.foreground => 'Avant',
       SmartTileRenderChannel.actorOcclusion => 'Acteur',
-      SmartTileRenderChannel.shadow => 'Ombre',
     };
 
 String _collisionLabel(SmartTilePatternCollision collision) =>

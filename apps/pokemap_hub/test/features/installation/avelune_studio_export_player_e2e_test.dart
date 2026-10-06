@@ -35,7 +35,11 @@ void main() {
       expect(bundle.map.placedElements, expectedMap.placedElements);
       expect(bundle.manifest.tilesets, expectedProject.tilesets);
       expect(bundle.manifest.elements, expectedProject.elements);
-      expect(bundle.manifest.shadowCatalog, expectedProject.shadowCatalog);
+      expect(bundle.manifest.toJson(), isNot(contains('shadowCatalog')));
+      expect(
+        bundle.manifest.toJson(),
+        isNot(contains('projectedBuildingShadowCatalog')),
+      );
       final placed = bundle.map.placedElements.first;
       final geometry = resolveMapPlacedElementGeometry(
         instance: placed,
@@ -101,25 +105,6 @@ void main() {
               ),
             ),
           ],
-          elements: [
-            project.elements.first.copyWith(
-              shadow: ProjectElementShadowConfig(
-                castsShadow: true,
-                shadowProfileId: 'transform-shadow',
-              ),
-            ),
-            ...project.elements.skip(1),
-          ],
-          shadowCatalog: ProjectShadowCatalog(
-            profiles: [
-              ProjectShadowProfile(
-                id: 'transform-shadow',
-                name: 'Transform shadow',
-                mode: ShadowCasterMode.ellipse,
-                renderPass: ShadowRenderPass.groundStatic,
-              ),
-            ],
-          ),
         );
         await mapFile.writeAsString(
           jsonEncode(expectedMap.toJson()),

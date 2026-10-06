@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
-import 'package:map_runtime/src/shadow/runtime_static_placed_element_shadow_sources.dart';
 import 'package:map_runtime/src/presentation/flame/static_placed_element_occlusion_patch_resolution.dart';
 
 void main() {
@@ -408,7 +407,7 @@ void main() {
     pixels = await _render(renderer.paint);
     expect(pixels[(4 * 16) * 4 + 1], 255);
   });
-  test('shadow metrics and occlusion patch follow pixel geometry', () {
+  test('occlusion patch follows pixel geometry', () {
     final instance = _instance.copyWith(
         pixelOffset: const PixelOffset(x: 3, y: 1),
         pixelSize: const PixelSize(width: 7, height: 5));
@@ -427,20 +426,6 @@ void main() {
         map: original.map,
         projectRootDirectory: '.',
         tilesetAbsolutePathsById: const {});
-    final shadow = buildRuntimeStaticPlacedElementShadowSources(bundle: bundle)
-        .single
-        .metrics;
-    expect([
-      shadow.worldLeft,
-      shadow.worldTop,
-      shadow.visualWidth,
-      shadow.visualHeight
-    ], [
-      3,
-      1,
-      7,
-      5
-    ]);
     final patch = resolveStaticPlacedElementOcclusionPatchInstructions(
             bundle: bundle, originCellX: 0, originCellY: 0)
         .single;

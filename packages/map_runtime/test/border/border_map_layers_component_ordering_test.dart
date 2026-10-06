@@ -8,8 +8,6 @@ import 'package:map_runtime/src/border/border_runtime_asset_cache.dart';
 import 'package:map_runtime/src/border/border_runtime_asset_collection.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
-import 'package:map_runtime/src/shadow/shadow_runtime_instruction_collection.dart';
-import 'package:map_runtime/src/shadow/shadow_runtime_render_instruction.dart';
 
 import '../surface/surface_runtime_test_support.dart';
 
@@ -362,8 +360,7 @@ void main() {
       expect(await _pixelAt(image, 48, 48), rgba(255, 255, 0, 255));
     });
 
-    test('keeps shadows and placed elements above authored backgrounds',
-        () async {
+    test('keeps placed elements above authored backgrounds', () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
           elements: <ProjectElementEntry>[
@@ -402,20 +399,6 @@ void main() {
           ),
         },
         borderAssets: await _borderAssets(),
-        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(
-          instructions: <ShadowRuntimeRenderInstruction>[
-            ShadowRuntimeRenderInstruction(
-              shape: ShadowRuntimeShapeKind.ellipse,
-              renderPass: ShadowRenderPass.groundStatic,
-              worldLeft: 0,
-              worldTop: 0,
-              width: 32,
-              height: 32,
-              opacity: 1,
-              colorHexRgb: '000000',
-            ),
-          ],
-        ),
       );
 
       final image = await renderSurfaceTestComponent(component);

@@ -305,8 +305,6 @@ final class PlayableMapGameSessionRuntime
             total: 7,
           ));
         },
-        enableActorContactShadows: false,
-        enableStaticPlacedElementShadows: false,
         audioMixer: audioMixer,
         presentationCinematicPlayer: presentationCinematicPlayer,
       );
