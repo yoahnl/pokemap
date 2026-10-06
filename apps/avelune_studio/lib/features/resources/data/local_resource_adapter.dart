@@ -66,6 +66,8 @@ final class LocalResourceAdapter
     ...ResourceManagementActions.actionIds,
     'tileset.import_image',
     'element.upsert',
+    'environment.preset.upsert',
+    'environment.preset.delete',
     'smart_tile.preset.draft.upsert',
     'smart_tile.preset.publish',
     'smart_tile.preset.rename',

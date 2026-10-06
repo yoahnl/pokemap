@@ -55,6 +55,21 @@ String? _historyResourceProblem(
   )) {
     return 'Cette annulation restaurerait un terrain supprimé.';
   }
+  Set<String> environments(MapData map) => {
+    for (final layer in map.layers.whereType<EnvironmentLayer>())
+      for (final area in layer.content.areas) area.presetId,
+  };
+  final retainedEnvironments = environments(before);
+  final availableEnvironments = manifest.environmentPresets
+      .map((preset) => preset.id)
+      .toSet();
+  if (environments(next).any(
+    (id) =>
+        !retainedEnvironments.contains(id) &&
+        !availableEnvironments.contains(id),
+  )) {
+    return 'Cette annulation restaurerait un environnement supprimé.';
+  }
   return null;
 }
 

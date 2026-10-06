@@ -42,6 +42,43 @@ void main() {
     workspace.dispose();
   });
 
+  test(
+    'saving a decor returns to its library without selecting a brush',
+    () async {
+      var uses = 0;
+      navigation.dispose();
+      navigation = ResourceNavigation(
+        workspace: workspace,
+        port: port,
+        visuals: WorkspaceTestVisuals(),
+        onUse: (_) => uses++,
+      );
+      navigation.openElement(workspaceElement, edit: true);
+      navigation.decor!.name = 'Arbre enregistré';
+      final element = navigation.decor!.build();
+      final saving = navigation.saveDecor(element);
+      port.finish();
+      await saving;
+      expect(uses, 0);
+      expect(navigation.page, ResourcePage.library);
+      expect(navigation.library.selectedIdentity, 'decors:tree');
+      expect(workspace.project!.elements.single.name, 'Arbre enregistré');
+      expect(navigation.dirty, isFalse);
+    },
+  );
+
+  test('saving a decor keeps edits made during the operation', () async {
+    final draft = navigation.decor!..name = 'Version enregistrée';
+    final saving = navigation.saveDecor(draft.build());
+    draft.name = 'Frappe pendant écriture';
+    port.finish();
+    await saving;
+    expect(navigation.decor, same(draft));
+    expect(navigation.dirty, isTrue);
+    expect(navigation.page, ResourcePage.decor);
+    expect(draft.name, 'Frappe pendant écriture');
+  });
+
   test('image and decor sharing an ID retain separate draft owners', () {
     final original = navigation.decor!..name = 'Décor à conserver';
     final image = ProjectTilesetEntry(
@@ -127,6 +164,12 @@ void main() {
       expect(workspace.project!.elements.single.name, 'Version demandée');
       expect(draft.name, 'Version modifiée pendant la sauvegarde');
       expect(navigation.busy, isFalse);
+      final retry = navigation.saveDrafts();
+      expect(await retry, isTrue);
+      expect(
+        workspace.project!.elements.single.name,
+        'Version modifiée pendant la sauvegarde',
+      );
     },
   );
 
@@ -178,6 +221,7 @@ void main() {
 
 final class _ControlledResources implements ResourcePort {
   final gate = Completer<void>();
+  ProjectManifest manifest = workspaceProject;
   ProjectElementEntry? saved;
 
   void finish() => gate.complete();
@@ -188,9 +232,11 @@ final class _ControlledResources implements ResourcePort {
   ) async {
     saved = element;
     await gate.future;
+    final before = manifest;
+    manifest = before.copyWith(elements: [element]);
     return ResourceMutationReceipt(
-      before: workspaceProject,
-      manifest: workspaceProject.copyWith(elements: [element]),
+      before: before,
+      manifest: manifest,
       beforeRevision: 'before',
       revision: 'after',
       changedPaths: ['project.json'],

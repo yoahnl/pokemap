@@ -4,11 +4,22 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
   Widget libraryHeader(BuildContext context, BoxConstraints bounds) {
     final compact = bounds.maxHeight < 650;
     return StudioPageHeader(
-      title: 'Ressources',
+      title: state.family.label,
       alignActionsToEnd: true,
       description: compact
           ? null
-          : 'Vos décors, terrains et images, prêts à donner vie à la carte.',
+          : switch (state.family) {
+              ResourceLibraryFamily.decors =>
+                'Préparez les objets à placer, leur apparence et leurs collisions.',
+              ResourceLibraryFamily.terrains =>
+                'Définissez les raccords qui assemblent automatiquement le sol.',
+              ResourceLibraryFamily.borders =>
+                'Préparez les contours, puis tracez-les sur la carte.',
+              ResourceLibraryFamily.environments =>
+                'Composez une palette de décors à répartir dans une zone.',
+              ResourceLibraryFamily.images =>
+                'Importez et organisez les planches sources de vos ressources.',
+            },
       actions: compact
           ? [
               StudioButton(
@@ -41,7 +52,9 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
     }
 
     return [
-      if (widget.onManageContainers != null)
+      if (widget.onManageContainers != null &&
+          state.family != ResourceLibraryFamily.borders &&
+          state.family != ResourceLibraryFamily.environments)
         StudioButton(
           key: const ValueKey('resource-manage-containers'),
           label: state.kind == ResourceKind.images
@@ -51,17 +64,6 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
           secondary: true,
           onPressed: () => run(() => widget.onManageContainers!(state.kind)),
         ),
-      ...resourceCreationButtons(
-        context: context,
-        project: widget.project,
-        visuals: widget.visuals,
-        onCreateBorder: () => run(widget.onCreateBorder),
-        onCreatePath: (item) => run(() => widget.onTerrain(item)),
-        onImport: () => run(widget.onImport),
-        onCharacters: widget.onCharacters == null
-            ? null
-            : () => run(widget.onCharacters!),
-      ),
       StudioButton(
         label: widget.targetMapName == null
             ? 'Retour à la carte'
@@ -71,9 +73,44 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
         onPressed: () => run(widget.onBack),
       ),
       StudioButton(
-        label: 'Importer une image',
-        icon: Icons.add_photo_alternate_outlined,
-        onPressed: () => run(widget.onImport),
+        key: const ValueKey('resource-create'),
+        label: switch (state.family) {
+          ResourceLibraryFamily.decors => 'Créer un décor',
+          ResourceLibraryFamily.terrains => 'Créer un chemin',
+          ResourceLibraryFamily.borders => 'Créer une bordure',
+          ResourceLibraryFamily.environments => 'Créer un environnement',
+          ResourceLibraryFamily.images => 'Importer une image',
+        },
+        icon: Icons.add,
+        onPressed: switch (state.family) {
+          ResourceLibraryFamily.decors => () {
+            close?.call();
+            chooseResourceSource(
+              context: context,
+              project: widget.project,
+              visuals: widget.visuals,
+              onChosen: widget.onEdit,
+              onImport: widget.onImport,
+              decor: true,
+            );
+          },
+          ResourceLibraryFamily.terrains => () {
+            close?.call();
+            chooseResourceSource(
+              context: context,
+              project: widget.project,
+              visuals: widget.visuals,
+              onChosen: widget.onTerrain,
+              onImport: widget.onImport,
+            );
+          },
+          ResourceLibraryFamily.borders => () => run(widget.onCreateBorder),
+          ResourceLibraryFamily.environments =>
+            widget.onCreateEnvironment == null
+                ? null
+                : () => run(widget.onCreateEnvironment!),
+          ResourceLibraryFamily.images => () => run(widget.onImport),
+        },
       ),
     ];
   }

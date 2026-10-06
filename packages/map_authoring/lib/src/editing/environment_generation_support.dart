@@ -1,4 +1,4 @@
-part of 'environment_actions.dart';
+part of 'environment_editing.dart';
 
 typedef _EnvironmentTarget = ({
   EnvironmentLayer layer,
@@ -131,10 +131,15 @@ List<EnvironmentGeneratedPlacement> _generate({
       );
       final element = target.elements[item.elementId]!;
       if (!_footprintInBounds(
-        pos: GridPos(x: x, y: y),
-        element: element,
-        size: map.size,
-      )) {
+            pos: GridPos(x: x, y: y),
+            element: element,
+            size: map.size,
+          ) ||
+          !_footprintInMask(
+            pos: GridPos(x: x, y: y),
+            element: element,
+            mask: target.area.mask,
+          )) {
         continue;
       }
       final pos = GridPos(x: x, y: y);
@@ -194,6 +199,22 @@ bool _footprintInBounds({
       pos.y >= 0 &&
       pos.x + width <= size.width &&
       pos.y + height <= size.height;
+}
+
+bool _footprintInMask({
+  required GridPos pos,
+  required ProjectElementEntry element,
+  required EnvironmentAreaMask mask,
+}) {
+  final source = element.frames.primarySource;
+  final width = source.width <= 0 ? 1 : source.width;
+  final height = source.height <= 0 ? 1 : source.height;
+  for (var dy = 0; dy < height; dy++) {
+    for (var dx = 0; dx < width; dx++) {
+      if (!mask.isActiveAt(pos.x + dx, pos.y + dy)) return false;
+    }
+  }
+  return true;
 }
 
 double _random01({

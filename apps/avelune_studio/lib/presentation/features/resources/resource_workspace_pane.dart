@@ -8,6 +8,9 @@ import 'resource_navigation.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
+import 'environment_editor_screen.dart';
+import 'environment_library.dart';
+import 'resource_catalog.dart';
 import 'resource_border_lifecycle.dart';
 import 'resource_character_lifecycle.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -19,6 +22,7 @@ import 'resource_reconciliation_notice.dart';
 import 'resource_lifecycle_bindings.dart';
 import 'resource_terrain_lifecycle.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
+part 'resource_workspace_actions.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
   const ResourceWorkspacePane({
@@ -30,129 +34,6 @@ class ResourceWorkspacePane extends StatelessWidget {
   final ResourceNavigation navigation;
   final PickResourceImage picker;
   final VoidCallback onBack;
-  Future<void> import(BuildContext context) async {
-    try {
-      final image = await picker();
-      if (image == null || !context.mounted) return;
-      final settings = navigation.workspace.project!.settings;
-      final request = await confirmImageImport(
-        context,
-        image,
-        settings.tileWidth,
-        settings.tileHeight,
-      );
-      if (request != null) await navigation.import(request);
-    } catch (e) {
-      navigation.error = e.toString();
-      navigation.showLibrary();
-    }
-  }
-
-  Future<void> importCharacterSheet(BuildContext context) async {
-    final image = await picker();
-    if (image == null || !context.mounted) return;
-    final n = navigation;
-    if (image.width % 3 != 0 || image.height % 4 != 0) {
-      n.setImportError(
-        'La planche doit contenir 3 colonnes et 4 rangées de même taille.',
-      );
-      return;
-    }
-    final settings = n.workspace.project!.settings;
-    final poseWidth = image.width ~/ 3;
-    final poseHeight = image.height ~/ 4;
-    if (poseWidth % settings.tileWidth != 0 ||
-        poseHeight % settings.tileHeight != 0 ||
-        poseWidth < settings.tileWidth * 2 ||
-        poseHeight < settings.tileHeight * 2) {
-      n.setImportError(
-        'Chaque pose doit occuper au moins deux cases par axe et un nombre entier de cases '
-        '(${settings.tileWidth} × ${settings.tileHeight} px).',
-      );
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Importer une planche de personnage'),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 200,
-                child: Image.memory(
-                  image.bytes,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.none,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${image.width} × ${image.height} px · '
-                '3 poses × 4 directions · '
-                '${image.width ~/ 3} × ${image.height ~/ 4} px par pose',
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Un nouveau personnage sera créé. '
-                'Les personnages et brouillons existants restent intacts.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Importer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    n.error = null;
-    n.setImportBusy(true);
-    try {
-      final receipt = await n.port.importImage(
-        ResourceImageImport(
-          sourcePath: image.path,
-          name: image.name,
-          tileWidth: image.width ~/ 3,
-          tileHeight: image.height ~/ 4,
-        ),
-      );
-      await n.accept(receipt);
-      final tilesetId = receipt.createdTilesetId!;
-      if (!await n.characters.create(
-        image.name,
-        tilesetId,
-        frameWidth: poseWidth ~/ settings.tileWidth,
-        frameHeight: poseHeight ~/ settings.tileHeight,
-      )) {
-        n.error =
-            'La planche est dans Images, mais le personnage n’a pas été '
-            'créé : ${n.characters.error}';
-      } else {
-        final source = n.workspace.project!.tilesets
-            .firstWhere((entry) => entry.id == tilesetId)
-            .source;
-        if (source is ProjectRegularAtlasTilesetSource) {
-          n.characters.assignClassicSheet(source);
-        }
-        n.openCharacters();
-      }
-    } catch (failure) {
-      n.error = '$failure';
-    } finally {
-      n.setImportBusy(false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final n = navigation;
@@ -167,6 +48,21 @@ class ResourceWorkspacePane extends StatelessWidget {
         visuals: visuals,
         onSave: n.saveDecor,
         onClose: n.showLibrary,
+      );
+    } else if (n.page == ResourcePage.environment && n.environment != null) {
+      content = EnvironmentEditorScreen(
+        key: ValueKey(n.environment),
+        draft: n.environment!,
+        project: project,
+        visuals: visuals,
+        onSave: n.saveEnvironment,
+        onChanged: n.changed,
+        onDiscard: n.discardEnvironment,
+        onEditDecor: (element) => n.openElement(element, edit: true),
+        onClose: () {
+          n.library.selectFamily(ResourceLibraryFamily.environments);
+          n.showLibrary();
+        },
       );
     } else if (n.page == ResourcePage.characters) {
       content = CharacterStudioPage(
@@ -209,7 +105,7 @@ class ResourceWorkspacePane extends StatelessWidget {
     } else {
       content = Column(
         children: [
-          if (n.decor != null)
+          if (n.decor != null || n.environment != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Wrap(
@@ -223,6 +119,12 @@ class ResourceWorkspacePane extends StatelessWidget {
                       onPressed: () {
                         n.openPage(ResourcePage.decor);
                       },
+                    ),
+                  if (n.environment != null)
+                    StudioButton(
+                      label: 'Reprendre l’environnement',
+                      secondary: true,
+                      onPressed: () => n.openPage(ResourcePage.environment),
                     ),
                 ],
               ),
@@ -267,6 +169,16 @@ class ResourceWorkspacePane extends StatelessWidget {
               onImport: () => import(context),
               onCharacters: n.openCharacters,
               onBack: onBack,
+              onCreateEnvironment: n.openEnvironment,
+              environmentLibrary: EnvironmentLibrary(
+                project: project,
+                visuals: visuals,
+                onEdit: n.openEnvironment,
+                onDuplicate: n.duplicateEnvironment,
+                onRemove: (preset) => removeEnvironment(context, preset),
+                onDraw: (preset) => n.drawEnvironment?.call(preset),
+                canDraw: project.maps.isNotEmpty && n.drawEnvironment != null,
+              ),
             ),
           ),
         ],

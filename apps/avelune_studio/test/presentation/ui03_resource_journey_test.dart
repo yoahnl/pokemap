@@ -15,6 +15,7 @@ import '../support/m2_ui_fixture.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/ui03_resource_fixture.dart';
 import '../support/map_tool_menu.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets('UI03 real previews selection search return and compact detail', (
@@ -36,6 +37,16 @@ void main() {
     await pumpIo(tester);
     final document = f.controller.active!;
     final beforeMap = document.current;
+    Future<void> chooseCategory(String id) async {
+      final target = find.byKey(ValueKey('resource-category-$id'));
+      if (target.evaluate().isEmpty) {
+        await tester.tap(find.text('Filtres'));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+    }
+
     Future<void> paintAndUndo() async {
       final canvas = find.byKey(const ValueKey('map-canvas'));
       final scale = tester
@@ -80,14 +91,15 @@ void main() {
     expect(document.current, same(beforeMap));
     expect(document.dirty, isFalse);
     await f.capture(tester, '01-decors-detail');
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await tester.tap(find.text('Importer une image'));
     await pumpIo(tester);
     await tester.tap(find.text('Annuler'));
     await pumpIo(tester);
     expect(File('${f.directory.path}/project.json').readAsStringSync(), before);
+    await selectResourceFamily(tester, ResourceLibraryFamily.decors);
 
-    await tester.tap(find.byKey(const ValueKey('resource-category-objets')));
-    await tester.pump();
+    await chooseCategory('objets');
     final query = find.widgetWithText(
       TextField,
       'Rechercher dans les ressources',
@@ -104,8 +116,7 @@ void main() {
     expect(n.library.selectedId, isNull);
     expect(find.byKey(const ValueKey('resource-use')), findsNothing);
     await tester.enterText(query, '');
-    await tester.tap(find.byKey(const ValueKey('resource-category-')));
-    await tester.pump();
+    await chooseCategory('');
 
     await tester.drag(find.byType(ResourceCatalogView), const Offset(0, -350));
     await tester.pumpAndSettle();
@@ -130,8 +141,7 @@ void main() {
 
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
-    await tester.tap(find.text('Images et tuiles'));
-    await pumpIo(tester);
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await f.capture(tester, '02-image-atlas');
     await tester.tap(find.byKey(const ValueKey('resource-use')));
     await pumpIo(tester);
@@ -152,8 +162,7 @@ void main() {
 
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
-    await tester.tap(find.text('Terrains'));
-    await pumpIo(tester);
+    await selectResourceFamily(tester, ResourceLibraryFamily.terrains);
     expect(find.text('Exemple de raccord'), findsNWidgets(2));
     await f.capture(tester, '03-terrain-raccord');
     await tester.tap(find.byKey(const ValueKey('resource-use')));
@@ -168,8 +177,7 @@ void main() {
 
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
-    await tester.tap(find.text('Décors'));
-    await tester.pump();
+    await selectResourceFamily(tester, ResourceLibraryFamily.decors);
     for (final width in [1440.0, 1280.0, 1024.0]) {
       tester.view.physicalSize = Size(width, width == 1024 ? 640 : 900);
       await tester.pumpWidget(app(scale: width == 1024 ? 1.5 : 1));

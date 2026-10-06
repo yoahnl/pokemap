@@ -23,10 +23,15 @@ Future<({String sheetId, String decorId, String placedId})> editUwu6Images(
     find.widgetWithText(TextField, 'Nom du décor'),
     'Décor rouge témoin',
   );
-  await host.text('Enregistrer et utiliser');
+  final beforeSave = host.fixture.controller.active!.current;
+  await host.text('Enregistrer le décor');
   final original = host.fixture.controller.project!.elements.singleWhere(
     (item) => item.name == 'Décor rouge témoin',
   );
+  expect(host.fixture.controller.active!.current, beforeSave);
+  expect(host.navigation.library.selectedIdentity, 'decors:${original.id}');
+  await host.tap('resource-card-decors:${original.id}');
+  await host.tap('resource-use');
   await host.cell(4, 6);
   final placed = host.fixture.controller.active!.current.placedElements
       .singleWhere((item) => item.elementId == original.id);
@@ -43,8 +48,11 @@ Future<({String sheetId, String decorId, String placedId})> editUwu6Images(
     find.widgetWithText(TextField, 'Nom du décor'),
     'Copie indépendante éditée',
   );
-  await host.text('Traversable');
-  await host.text('Enregistrer et utiliser');
+  await host.text('Collisions');
+  await host.text('Effacer toutes les collisions');
+  final beforeCopySave = host.fixture.controller.active!.current;
+  await host.text('Enregistrer le décor');
+  expect(host.fixture.controller.active!.current, beforeCopySave);
   final afterCopy = await host.reopen();
   expect(
     afterCopy.elements.singleWhere((item) => item.id == original.id),

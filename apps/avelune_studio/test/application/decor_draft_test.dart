@@ -31,6 +31,166 @@ ProjectTilesetEntry atlas({
 );
 
 void main() {
+  test('one coarse cell preserves fine pixels outside its rectangle', () {
+    final source = atlas();
+    final pixels = List<bool>.filled(32 * 24, false)..[4 * 32 + 20] = true;
+    final mask = ElementCollisionPixelMask(
+      widthPx: 32,
+      heightPx: 24,
+      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+        widthPx: 32,
+        heightPx: 24,
+        solidPixels: pixels,
+      ),
+    );
+    final original = ProjectElementEntry(
+      id: 'tree',
+      name: 'Arbre',
+      tilesetId: source.id,
+      categoryId: 'forest',
+      frames: const [
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0, width: 2)),
+      ],
+      collisionProfile: ElementCollisionProfile(
+        collisionMask: mask,
+        visualMask: mask,
+        occlusionMask: mask,
+        cells: const [GridPos(x: 1, y: 0)],
+      ),
+    );
+    final draft = DecorDraft(tileset: source, original: original);
+    draft.beginCollisionStroke();
+    draft.paintCollisionCell(const GridPos(x: 0, y: 0), solid: true);
+    draft.endCollisionStroke();
+    final result = draft.build();
+    final changed = result.collisionProfile!.collisionMask!;
+    final actual = ElementCollisionMaskCodec.decodePackedBits(
+      widthPx: 32,
+      heightPx: 24,
+      dataBase64: changed.dataBase64,
+    );
+    for (var y = 0; y < 24; y++) {
+      for (var x = 0; x < 32; x++) {
+        expect(actual[y * 32 + x], x < 16 || (x == 20 && y == 4));
+      }
+    }
+    expect(result.collisionProfile!.visualMask, mask);
+    expect(result.collisionProfile!.occlusionMask, mask);
+    draft.undoCollision();
+    expect(draft.build().collisionProfile, original.collisionProfile);
+    draft.redoCollision();
+    expect(draft.build(), result);
+    draft.beginCollisionStroke();
+    draft.paintCollisionCell(const GridPos(x: 0, y: 0), solid: false);
+    draft.endCollisionStroke();
+    expect(draft.build().collisionProfile!.collisionMask, mask);
+  });
+
+  test('fine erasing projects cells and groups a stroke for undo', () {
+    final draft = DecorDraft(tileset: atlas())
+      ..selection = const TilesetSourceRect(x: 0, y: 0, width: 2)
+      ..setBlocked(true);
+    final before = draft.build();
+    draft.beginCollisionStroke();
+    for (var x = 0; x < 16; x++) {
+      for (var y = 0; y < 24; y++) {
+        draft.paintCollisionPixel(GridPos(x: x, y: y), solid: false);
+      }
+    }
+    draft.endCollisionStroke();
+    final result = draft.build();
+    expect(result.collisionProfile!.cells, [const GridPos(x: 1, y: 0)]);
+    final restored = ProjectElementEntry.fromJson(result.toJson());
+    expect(restored, result);
+    draft.undoCollision();
+    expect(draft.build(), before);
+    draft.redoCollision();
+    expect(draft.build(), result);
+    draft.beginCollisionStroke();
+    draft.paintCollisionPixel(
+      const GridPos(x: 22, y: 4),
+      solid: false,
+      size: 4,
+    );
+    draft.cancelCollisionStroke();
+    expect(draft.build(), result);
+  });
+
+  test(
+    'rebase preserves concurrent draft changes and the published identity',
+    () {
+      final draft = DecorDraft(tileset: atlas())
+        ..name = 'Avant publication'
+        ..selection = const TilesetSourceRect(x: 0, y: 0, width: 2)
+        ..variant = true;
+      final saved = draft.build().copyWith(id: 'identity-published');
+      draft.name = 'Saisie pendant la sauvegarde';
+      draft.beginCollisionStroke();
+      draft.paintCollisionCell(const GridPos(x: 1, y: 0), solid: true);
+      draft.endCollisionStroke();
+      draft.rebase(saved);
+      final result = draft.build();
+      expect(result.id, saved.id);
+      expect(result.name, 'Saisie pendant la sauvegarde');
+      expect(result.collisionProfile!.cells, [const GridPos(x: 1, y: 0)]);
+      expect(draft.variant, isFalse);
+      expect(draft.canUndoCollision, isTrue);
+    },
+  );
+
+  test(
+    'out of bounds painting leaves the definition and history unchanged',
+    () {
+      final draft = DecorDraft(tileset: atlas());
+      final before = draft.build();
+      draft.beginCollisionStroke();
+      draft.paintCollisionCell(const GridPos(x: -1, y: 0), solid: true);
+      draft.paintCollisionPixel(const GridPos(x: 16, y: 24), solid: true);
+      draft.endCollisionStroke();
+      expect(draft.build(), before);
+      expect(draft.canUndoCollision, isFalse);
+    },
+  );
+
+  test('coarse painting retains a canonical fine collision mask', () {
+    final pixels = List<bool>.filled(32 * 24, false)..[4 * 32 + 20] = true;
+    final original = ProjectElementEntry(
+      id: 'fine-tree',
+      name: 'Arbre fin',
+      tilesetId: 'atlas',
+      categoryId: 'forest',
+      frames: const [
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0, width: 2)),
+      ],
+      collisionProfile: ElementCollisionProfile(
+        collisionMask: ElementCollisionPixelMask(
+          widthPx: 32,
+          heightPx: 24,
+          dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+            widthPx: 32,
+            heightPx: 24,
+            solidPixels: pixels,
+          ),
+        ),
+        cells: const [GridPos(x: 1, y: 0)],
+      ),
+    );
+    final draft = DecorDraft(tileset: atlas(), original: original);
+    draft.setBlocked(true);
+    final mask = draft.build().collisionProfile!.collisionMask;
+    expect(mask, isNotNull);
+    expect(mask!.widthPx, 32);
+    expect(mask.heightPx, 24);
+    expect(
+      ElementCollisionMaskCodec.decodePackedBits(
+        widthPx: mask.widthPx,
+        heightPx: mask.heightPx,
+        dataBase64: mask.dataBase64,
+      ),
+      everyElement(isTrue),
+    );
+  });
+
   test(
     'decor conversion permits matching non-square grid and precisely rejects unsupported geometry',
     () {

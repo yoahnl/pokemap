@@ -9,6 +9,10 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _armed = false;
     _stroke = null;
     _encounterStroke = null;
+    _environmentStroke = null;
+    _environmentOwner = null;
+    _environmentTool = null;
+    _environmentProject = null;
     _gestureSource = null;
     _characterGesture = null;
     _panPointer = null;
@@ -75,6 +79,18 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     final start = _start;
     if (start == null) return;
     final cell = _cell(event.localPosition);
+    if (widget.view.tool == StudioMapTool.environment) {
+      if (!_ownsEnvironmentGesture) {
+        _mutateGesture(_cancel);
+        return;
+      }
+      if (_environmentStroke != null) {
+        _mutateGesture(() => _environmentStroke!.paint(cell));
+      } else {
+        _mutateGesture(() => _preview = cell);
+      }
+      return;
+    }
     if (_encounterStroke != null) {
       _mutateGesture(() => _encounterStroke!.paint(cell));
       return;
@@ -161,6 +177,27 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _start = cell;
     _gestureSource = widget.document.current;
     final tool = widget.view.tool;
+    if (tool == StudioMapTool.environment) {
+      final session = widget.view.environment;
+      if (session == null) {
+        _cancel();
+        return;
+      }
+      _gestureTool = tool;
+      _environmentOwner = session;
+      _environmentTool = session.tool;
+      _environmentProject = widget.project;
+      _preview = cell;
+      if (session.tool != EnvironmentPaintTool.rectangle) {
+        _environmentStroke = MapEncounterCellStroke(
+          widget.document.current.size,
+          session.tool == EnvironmentPaintTool.erase,
+          cell,
+        );
+      }
+      _refreshGesture();
+      return;
+    }
     if (tool == StudioMapTool.eraseDecor) {
       final top = _commands
           .stackAtPixel(_pixel(event.localPosition))

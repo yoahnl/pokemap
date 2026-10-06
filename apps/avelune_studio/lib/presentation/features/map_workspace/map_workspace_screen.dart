@@ -72,11 +72,13 @@ import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'studio_home_map_preview.dart';
+import '../../../features/map_workspace/application/environment_editing_commands.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
 part 'workspace_home_binding.dart';
+part 'workspace_environment_binding.dart';
 part 'workspace_story_binding.dart';
 part 'workspace_progression_binding.dart';
 part 'workspace_screen_body.dart';
@@ -239,40 +241,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     widget.home?.allowSwitch = _allowCloseWithExport;
     _initializePokemon();
     unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    try {
-      final loaded = await loadWorkspaceSession(
-        widget,
-        mounted: () => mounted,
-        changed: _changed,
-        onUse: _useResource,
-        openUsage: _openResourceUsage,
-        canOpenUsage: _canOpenResourceUsage,
-        additionalDraftOwners: _resourceUsageDraftOwners,
-      );
-      if (loaded == null) return;
-      _visuals = loaded.visuals;
-      _bindResourceManagement(loaded.resources);
-      _narrative = loaded.narrative;
-      _initializeScenes();
-      _initializeStories();
-      _initializeEvents();
-      _initializeDialogues();
-      _initializeCinematics();
-      _initializePresentations();
-      _initializeWorld();
-      _initializeVerification();
-      _changed();
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _resourceError =
-              'Impossible de charger les ressources de ce projet.',
-        );
-      }
-    }
   }
 
   void _changed() {

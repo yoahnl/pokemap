@@ -129,6 +129,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               : _actions.test,
                           onClose: _close,
                           onResources: _openResources,
+                          onEnvironments: _openEnvironments,
                           onMap: _openMap,
                           onExport: _openGameExport,
                           onPokemon: () {

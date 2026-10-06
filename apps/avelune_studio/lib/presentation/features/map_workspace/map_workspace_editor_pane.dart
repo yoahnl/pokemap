@@ -10,6 +10,7 @@ import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_border_tool_panel.dart';
+import 'map_environment_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'map_lifecycle_workspace_actions.dart';
@@ -34,6 +35,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
     required this.onChanged,
     required this.onMoreTools,
     required this.onResources,
+    this.onEnvironments,
     required this.onZoneDrawn,
     required this.onContextMenu,
   });
@@ -50,6 +52,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
   final ValueChanged<ProjectMapEntry> onActivate;
   final OrganizeMapLibrary? onOrganizeMaps;
   final VoidCallback onToolChanged, onChanged, onMoreTools, onResources;
+  final VoidCallback? onEnvironments;
   final ValueChanged<MapRect>? onZoneDrawn;
   final void Function(GridPos, Offset)? onContextMenu;
 
@@ -112,6 +115,30 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                             view: widget.view,
                             onChanged: widget.onChanged,
                             onCreateModel: widget.onResources,
+                          ),
+                        ),
+                      if (widget.view.tool == StudioMapTool.environment)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: widget.showNavigator && !_navigatorCollapsed
+                                ? 252
+                                : 0,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  MediaQuery.sizeOf(context).height * .35,
+                            ),
+                            child: SingleChildScrollView(
+                              child: MapEnvironmentToolPanel(
+                                document: widget.document,
+                                project: widget.project,
+                                view: widget.view,
+                                onChanged: widget.onChanged,
+                                onResources:
+                                    widget.onEnvironments ?? widget.onResources,
+                              ),
+                            ),
                           ),
                         ),
                       Expanded(

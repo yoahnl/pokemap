@@ -8,12 +8,14 @@ import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:image/image.dart' as image;
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/characters/character_studio_page.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:avelune_studio/platform/rendering/studio_character_thumbnail.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/map_tool_menu.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets(
@@ -31,14 +33,14 @@ void main() {
       await pumpIo(tester);
       await chooseMapExtraTool(tester, 'Gérer les ressources');
       await pumpIo(tester);
+      await selectResourceFamily(tester, ResourceLibraryFamily.images);
       await tester.tap(find.text('Importer une image'));
       await pumpIo(tester);
       await tester.tap(find.text('Importer').last);
       await pumpIo(tester);
       await tester.tap(find.text('Retour aux ressources'));
       await pumpIo(tester);
-      await tester.tap(find.text('Personnages'));
-      await pumpIo(tester);
+      await openResourceCharacters(tester);
       expect(find.byType(CharacterStudioPage), findsOneWidget);
       final pane = tester.widget<ResourceWorkspacePane>(
         find.byType(ResourceWorkspacePane),

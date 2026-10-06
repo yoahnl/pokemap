@@ -6,12 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/characters/character_studio_dedicated_only_panel.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/map_tool_menu.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets('a dedicated three-pose strip imports and its timing reopens', (
@@ -58,14 +60,14 @@ void main() {
     await pumpIo(tester);
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await tester.tap(find.text('Importer une image'));
     await pumpIo(tester);
     await tester.tap(find.text('Importer').last);
     await pumpIo(tester);
     await tester.tap(find.text('Retour aux ressources'));
     await pumpIo(tester);
-    await tester.tap(find.text('Personnages'));
-    await pumpIo(tester);
+    await openResourceCharacters(tester);
     await tester.tap(find.text('Nouveau personnage'));
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextField, 'Nom'), 'Agent');

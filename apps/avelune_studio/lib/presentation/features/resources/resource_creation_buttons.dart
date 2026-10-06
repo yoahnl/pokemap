@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/terrains/domain/terrain_draft_compatibility.dart';
+import '../../../features/decors/application/decor_source_support.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
@@ -47,10 +48,15 @@ List<Widget> resourceCreationButtons({
 ];
 
 class _PathSourceDialog extends StatelessWidget {
-  const _PathSourceDialog({required this.project, required this.visuals});
+  const _PathSourceDialog({
+    required this.project,
+    required this.visuals,
+    this.decor = false,
+  });
 
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
+  final bool decor;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +64,9 @@ class _PathSourceDialog extends StatelessWidget {
         .where(
           (item) =>
               item.tileset != null &&
-              terrainSourceCompatibilityProblem(item.tileset!) == null,
+              (decor
+                  ? canCreateDecor(item.tileset!, project)
+                  : terrainSourceCompatibilityProblem(item.tileset!) == null),
         )
         .toList();
     final size = MediaQuery.sizeOf(context);
@@ -74,7 +82,9 @@ class _PathSourceDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Choisir l’image du chemin',
+                decor
+                    ? 'Choisir l’image du décor'
+                    : 'Choisir l’image du chemin',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 6),
@@ -84,7 +94,7 @@ class _PathSourceDialog extends StatelessWidget {
                 child: sources.isEmpty
                     ? const Center(
                         child: Text(
-                          'Aucune image compatible. Importez une planche à grille régulière pour créer un chemin.',
+                          'Aucune image compatible. Importez une planche à grille régulière.',
                         ),
                       )
                     : ListView.separated(
@@ -144,4 +154,22 @@ class _PathSourceDialog extends StatelessWidget {
 
 final class _ImportPathImage {
   const _ImportPathImage();
+}
+
+Future<void> chooseResourceSource({
+  required BuildContext context,
+  required ProjectManifest project,
+  required MapWorkspaceVisuals visuals,
+  required ValueChanged<ResourceItem> onChosen,
+  required VoidCallback onImport,
+  bool decor = false,
+}) async {
+  final choice = await showDialog<Object>(
+    context: context,
+    builder: (context) =>
+        _PathSourceDialog(project: project, visuals: visuals, decor: decor),
+  );
+  if (!context.mounted) return;
+  if (choice is ResourceItem) onChosen(choice);
+  if (choice is _ImportPathImage) onImport();
 }

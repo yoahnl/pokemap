@@ -760,6 +760,7 @@ final class _LocalMapAuthoringSession {
       'smart_tile.preset.duplicate',
       'smart_tile.preset.delete',
       'smart_tile.preset.draft.delete',
+      'environment.preset.delete',
       'border.blueprint.delete',
       'border.blueprint.set_deprecated',
       'border_layer.feature_create',

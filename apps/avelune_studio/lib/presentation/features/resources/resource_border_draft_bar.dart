@@ -4,6 +4,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../map_workspace/workspace_compact_panel.dart';
+import '../../shared/widgets/inputs/studio_search_field.dart';
 
 enum BorderResourceAction { usages, deleteDraft, deprecate, reactivate }
 
@@ -16,11 +17,13 @@ class ResourceBorderDraftBar extends StatefulWidget {
     required this.onResume,
     this.onManage,
     this.compact = false,
+    this.library = false,
   });
   final List<BorderBlueprintRecord> records;
   final ValueChanged<BorderBlueprintRecord> onResume;
   final void Function(BorderBlueprintRecord, BorderResourceAction)? onManage;
   final bool compact;
+  final bool library;
 
   @override
   State<ResourceBorderDraftBar> createState() => _ResourceBorderDraftBarState();
@@ -28,8 +31,15 @@ class ResourceBorderDraftBar extends StatefulWidget {
 
 class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
   _BorderView _view = _BorderView.drafts;
+  final _search = TextEditingController();
+  String _query = '';
 
   List<BorderBlueprintRecord> get _visible => widget.records.where((record) {
+    if (!record.draft.definition.name.toLowerCase().contains(
+      _query.toLowerCase(),
+    )) {
+      return false;
+    }
     return switch (_view) {
       _BorderView.drafts => true,
       _BorderView.published =>
@@ -54,13 +64,13 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
       return const Center(child: Text('Aucune bordure dans cette vue.'));
     }
     return ListView.separated(
-      scrollDirection: Axis.horizontal,
+      scrollDirection: widget.library ? Axis.vertical : Axis.horizontal,
       itemCount: records.length,
       separatorBuilder: (_, _) => const SizedBox(width: 10),
       itemBuilder: (context, index) {
         final record = records[index];
         return SizedBox(
-          width: 320,
+          width: widget.library ? null : 320,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -123,22 +133,38 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
       items: [
         const PopupMenuItem(
           value: BorderResourceAction.usages,
-          child: Text('Voir les usages dans le projet'),
+          child: ListTile(
+            leading: Icon(Icons.account_tree_outlined),
+            title: Text('Voir les usages dans le projet'),
+            dense: true,
+          ),
         ),
         if (record.latestPublished == null)
           const PopupMenuItem(
             value: BorderResourceAction.deleteDraft,
-            child: Text('Retirer la préparation…'),
+            child: ListTile(
+              leading: Icon(Icons.delete_outline),
+              title: Text('Retirer la préparation…'),
+              dense: true,
+            ),
           )
         else if (record.isDeprecated)
           const PopupMenuItem(
             value: BorderResourceAction.reactivate,
-            child: Text('Réactiver…'),
+            child: ListTile(
+              leading: Icon(Icons.restore_outlined),
+              title: Text('Réactiver…'),
+              dense: true,
+            ),
           )
         else
           const PopupMenuItem(
             value: BorderResourceAction.deprecate,
-            child: Text('Déprécier…'),
+            child: ListTile(
+              leading: Icon(Icons.visibility_off_outlined),
+              title: Text('Déprécier…'),
+              dense: true,
+            ),
           ),
       ],
     );
@@ -149,9 +175,34 @@ class _ResourceBorderDraftBarState extends State<ResourceBorderDraftBar> {
   }
 
   @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-    child: widget.compact
+    child: widget.library
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StudioSearchField(
+                controller: _search,
+                hint: 'Rechercher une bordure',
+                onChanged: (value) => setState(() => _query = value),
+              ),
+              const SizedBox(height: 12),
+              _tabs((view) => setState(() => _view = view)),
+              const SizedBox(height: 12),
+              const Text(
+                'Une publication reste conservée sur les cartes. Déprécier retire seulement les nouveaux choix.',
+              ),
+              const SizedBox(height: 12),
+              Expanded(child: _entries()),
+            ],
+          )
+        : widget.compact
         ? StudioButton(
             key: const ValueKey('resource-border-library'),
             label: 'Bordures (${widget.records.length})',

@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/ui04_terrain_atlas.dart';
 import '../support/map_tool_menu.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets(
@@ -55,6 +57,7 @@ void main() {
       });
       n.showLibrary();
       await pumpIo(tester);
+      await selectResourceFamily(tester, ResourceLibraryFamily.terrains);
       await tester.tap(find.text('Créer un chemin'));
       await pumpIo(tester);
       expect(find.text('Choisir l’image du chemin'), findsOneWidget);

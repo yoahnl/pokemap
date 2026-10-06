@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 
 enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
 
@@ -34,6 +35,7 @@ enum StudioMapTool {
   collisionPaint,
   collisionErase,
   border,
+  environment,
   erase,
   eraseDecor,
   pan,
@@ -50,6 +52,7 @@ class MapWorkspaceViewState {
   ProjectMapEntry? warpDestination;
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
+  MapEnvironmentSession? environment;
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
 

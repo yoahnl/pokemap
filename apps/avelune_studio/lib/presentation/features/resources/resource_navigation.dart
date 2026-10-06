@@ -17,11 +17,14 @@ import '../../../features/resources/domain/resource_mutation_preparation.dart';
 import '../../../features/resources/domain/resource_lifecycle_port.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../../../features/map_workspace/domain/map_workspace_port.dart';
+import '../../../features/resources/application/environment_draft.dart';
 part 'resource_navigation_terrain.dart';
 part 'resource_navigation_management.dart';
 part 'resource_navigation_lifecycle.dart';
+part 'resource_navigation_environment.dart';
+part 'resource_navigation_saving.dart';
 
-enum ResourcePage { library, decor, terrain, characters }
+enum ResourcePage { library, decor, terrain, characters, environment }
 
 class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   ResourceNavigation({
@@ -70,14 +73,19 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   DecorDraft? decor;
   @override
   TerrainDraftController? terrain;
+  EnvironmentDraft? environment;
+  final environments = <String, EnvironmentDraft>{};
+  Future<void> Function(EnvironmentPreset)? drawEnvironment;
   bool busy = false;
   @override
   String? error;
   @override
   var _terrainSequence = 0;
   bool get dirty =>
+      pendingReceipt != null ||
       decors.isNotEmpty ||
       terrains.values.any((t) => t.dirty) ||
+      environments.values.any((draft) => draft.dirty) ||
       characters.dirty;
 
   void setImportError(String message) {
@@ -149,38 +157,6 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     }
   }
 
-  Future<bool> saveDrafts() async {
-    if (busy) return false;
-    busy = true;
-    notifyListeners();
-    try {
-      for (final draft in decors.values.toList()) {
-        _validateDecorOwner(draft);
-        final snapshot = draft.build();
-        await accept(await port.saveElement(snapshot));
-        if (draft.build() == snapshot) {
-          decors.removeWhere((key, value) => identical(value, draft));
-          if (identical(decor, draft)) decor = null;
-        }
-      }
-      for (final draft in terrains.values.where((t) => t.dirty)) {
-        if (!await draft.save(mutate, publish: false)) return false;
-      }
-      if (!await characters.saveAll()) {
-        error = characters.error;
-        return false;
-      }
-      return !dirty;
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
-      return false;
-    } finally {
-      busy = false;
-      notifyListeners();
-    }
-  }
-
   Future<ProjectManifest> accept(ResourceMutationReceipt receipt) =>
       _acceptResourceReceipt(this, receipt);
 
@@ -249,32 +225,6 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       showLibrary(item);
     } else {
       onUse(item);
-    }
-  }
-
-  Future<void> saveDecor(ProjectElementEntry element) async {
-    _validateDecorOwner(decor);
-    busy = true;
-    notifyListeners();
-    try {
-      final receipt = await port.saveElement(element);
-      await accept(receipt);
-      decors.removeWhere((k, v) => identical(v, decor));
-      decor = null;
-      final saved = receipt.manifest.elements.firstWhere(
-        (e) => e.id == element.id,
-      );
-      onUse(
-        ResourceItem(
-          id: saved.id,
-          name: saved.name,
-          kind: ResourceKind.decors,
-          element: saved,
-        ),
-      );
-    } finally {
-      busy = false;
-      notifyListeners();
     }
   }
 

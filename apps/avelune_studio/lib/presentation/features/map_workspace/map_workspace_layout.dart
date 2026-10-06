@@ -37,6 +37,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onTest,
     required this.onClose,
     required this.onResources,
+    this.onEnvironments,
     required this.onMap,
     required this.onExport,
     required this.onPokemon,
@@ -61,8 +62,8 @@ class MapWorkspaceLayout extends StatelessWidget {
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
   final MapWorkspaceVisuals? visuals;
-  final TextEditingController search;
-  final String? error;
+  final TextEditingController search, homeSearch;
+  final String? error, movingHint;
   final bool palette;
   final bool? inspector;
   final int generation;
@@ -72,15 +73,13 @@ class MapWorkspaceLayout extends StatelessWidget {
   final VoidCallback? onSave, onTest;
   final bool exportActive;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
-  final TextEditingController homeSearch;
   final ValueChanged<String>? onSearch;
   final Widget? resourceContent;
-  final VoidCallback? onStory, onHome;
+  final VoidCallback? onStory, onHome, onEnvironments;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<MapRect>? onZoneDrawn;
   final MapReferenceGuard? referenceGuard;
   final void Function(GridPos, Offset)? onContextMenu;
-  final String? movingHint;
   final String activeSpace;
   final OrganizeMapLibrary? onOrganizeMaps;
   final Future<void> Function(MapConnectionDirection, String, int)? onLinkMaps;
@@ -281,6 +280,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           onChanged: onChanged,
                           onMoreTools: openPalette,
                           onResources: onResources,
+                          onEnvironments: onEnvironments,
                           onZoneDrawn: onZoneDrawn,
                           onContextMenu: onContextMenu,
                         )),

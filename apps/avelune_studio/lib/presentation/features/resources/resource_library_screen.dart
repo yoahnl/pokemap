@@ -3,7 +3,6 @@ import 'package:map_core/map_core_domain.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import 'resource_catalog.dart';
 import 'resource_catalog_toolbar.dart';
@@ -16,6 +15,7 @@ import 'resource_terrain_draft_list.dart';
 import 'resource_terrain_actions.dart';
 import 'resource_border_draft_bar.dart';
 import 'resource_creation_buttons.dart';
+import 'resource_family_navigation.dart';
 part 'resource_library_layout.dart';
 part 'resource_library_header.dart';
 
@@ -50,6 +50,8 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onRemove,
     this.onDuplicate,
     this.onManageContainers,
+    this.environmentLibrary,
+    this.onCreateEnvironment,
   });
   final ProjectManifest project;
   final List<MapData> openMaps;
@@ -77,6 +79,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final ValueChanged<ResourceKind>? onManageContainers;
+  final Widget? environmentLibrary;
+  final VoidCallback? onCreateEnvironment;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
 }
@@ -111,6 +115,23 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
     state.offset = 0;
     if (scroll.hasClients) scroll.jumpTo(0);
   }
+
+  void changeFamily(ResourceLibraryFamily family) =>
+      change(() => state.selectFamily(family));
+
+  Widget families({VoidCallback? close}) => ResourceFamilyNavigation(
+    selected: state.family,
+    onChanged: (family) {
+      changeFamily(family);
+      close?.call();
+    },
+    onCharacters: widget.onCharacters == null
+        ? null
+        : () {
+            close?.call();
+            widget.onCharacters!();
+          },
+  );
 
   @override
   void dispose() {

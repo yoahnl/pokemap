@@ -15,9 +15,13 @@ import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
 import 'map_decor_transform_draft.dart';
 import 'map_decor_transform_overlay.dart';
+import '../../../features/map_workspace/application/environment_editing_commands.dart';
+import 'map_environment_overlay.dart';
 
 part 'map_workspace_canvas_gestures.dart';
 part 'map_workspace_canvas_border.dart';
+part 'map_workspace_canvas_decor.dart';
+part 'map_workspace_canvas_render.dart';
 
 class MapWorkspaceCanvas extends StatefulWidget {
   const MapWorkspaceCanvas({
@@ -58,6 +62,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   int? _panPointer;
   Offset? _panPosition;
   MapEncounterCellStroke? _encounterStroke;
+  MapEncounterCellStroke? _environmentStroke;
+  MapEnvironmentSession? _environmentOwner;
+  EnvironmentPaintTool? _environmentTool;
+  ProjectManifest? _environmentProject;
   MapData? _gestureSource;
   MapCharacterGesture? _characterGesture;
   MapDecorTransformDraft? _decorDraft;
@@ -67,116 +75,17 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   StudioMapTool? _gestureTool;
   MapData? _ownershipMap;
   Set<String> _environmentOwnedIds = {};
+  bool get _ownsEnvironmentGesture =>
+      identical(_environmentOwner, widget.view.environment) &&
+      _environmentTool == _environmentOwner?.tool &&
+      identical(_environmentProject, widget.project) &&
+      widget.view.tool == StudioMapTool.environment;
   double get _displayScale => widget.project.settings.displayScale.toDouble();
   Offset _pixelOffset(Offset local) => local / _displayScale;
   PixelPosition _pixel(Offset local) => PixelPosition(
     leftPx: (local.dx / _displayScale).floor(),
     topPx: (local.dy / _displayScale).floor(),
   );
-  bool _canTransform(MapPlacedElement instance) {
-    if (!identical(_ownershipMap, widget.document.current)) {
-      _ownershipMap = widget.document.current;
-      _environmentOwnedIds = environmentOwnedMapPlacedElementIds(
-        widget.document.current,
-      );
-    }
-    return isAuthoredMapPlacedElement(instance) &&
-        !_environmentOwnedIds.contains(instance.id) &&
-        widget.project.elements.any(
-          (element) => element.id == instance.elementId,
-        );
-  }
-
-  void _beginDecor(
-    MapPlacedElement instance,
-    Offset pointer, {
-    DecorResizeHandle? handle,
-  }) {
-    _decorDraft = MapDecorTransformDraft(
-      source: widget.document.current,
-      project: widget.project,
-      original: instance,
-      pointer: _pixelOffset(pointer),
-      precise: HardwareKeyboard.instance.isShiftPressed,
-      handle: handle,
-      lockRatio: widget.view.lockDecorProportions,
-    );
-    _gestureTool = widget.view.tool;
-    _gestureSource = widget.document.current;
-  }
-
-  void _refreshDecor() {
-    if (_previewScheduled) return;
-    _previewScheduled = true;
-    WidgetsBinding.instance.scheduleFrameCallback((_) {
-      _previewScheduled = false;
-      if (mounted) setState(() {});
-    });
-  }
-
-  void _commitDecor() {
-    final draft = _decorDraft;
-    if (draft != null &&
-        identical(draft.source, widget.document.current) &&
-        identical(draft.project, widget.project) &&
-        draft.original.id == widget.document.selectedId) {
-      if (draft.error != null) {
-        widget.document.error = draft.error;
-      } else if (draft.candidate != draft.original) {
-        final rect = draft.geometry.logicalRect;
-        _commands.setGeometry(
-          draft.original.id,
-          x: rect.leftPx,
-          y: rect.topPx,
-          size: draft.candidate.pixelSize,
-        );
-      }
-    }
-    if (_armed) widget.view.pendingMove = null;
-    setState(_cancel);
-    widget.onChanged();
-  }
-
-  KeyEventResult _decorKey(KeyEvent event) {
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.escape && _decorDraft != null) {
-      setState(_cancel);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.shiftLeft ||
-        key == LogicalKeyboardKey.shiftRight) {
-      _decorDraft?.rebasePrecision(HardwareKeyboard.instance.isShiftPressed);
-    }
-    if (event is KeyUpEvent && _nudgeKeys.remove(key)) {
-      if (_nudgeKeys.isEmpty) _commitDecor();
-      return KeyEventResult.handled;
-    }
-    if (event is KeyUpEvent ||
-        HardwareKeyboard.instance.isControlPressed ||
-        HardwareKeyboard.instance.isMetaPressed ||
-        !HardwareKeyboard.instance.isShiftPressed ||
-        widget.view.tool != StudioMapTool.select ||
-        _decorPointer != null) {
-      return KeyEventResult.ignored;
-    }
-    final delta = switch (key) {
-      LogicalKeyboardKey.arrowLeft => const Offset(-1, 0),
-      LogicalKeyboardKey.arrowRight => const Offset(1, 0),
-      LogicalKeyboardKey.arrowUp => const Offset(0, -1),
-      LogicalKeyboardKey.arrowDown => const Offset(0, 1),
-      _ => null,
-    };
-    final selected = widget.document.selected;
-    if (delta == null || selected == null || !_canTransform(selected)) {
-      return KeyEventResult.ignored;
-    }
-    if (_decorDraft == null) _beginDecor(selected, Offset.zero);
-    _nudgeKeys.add(key);
-    _decorDraft!.nudge(delta.dx.toInt(), delta.dy.toInt());
-    _refreshDecor();
-    return KeyEventResult.handled;
-  }
-
   double get _width =>
       widget.project.settings.tileWidth *
       widget.project.settings.displayScale.toDouble();
@@ -205,6 +114,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.document != widget.document ||
         oldWidget.gestureGeneration != widget.gestureGeneration ||
+        (_environmentOwner != null && !_ownsEnvironmentGesture) ||
         (_decorDraft != null &&
             (!identical(_decorDraft!.source, widget.document.current) ||
                 !identical(_decorDraft!.project, widget.project) ||
@@ -248,11 +158,42 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
       _cancel();
       return;
     }
+    if (_environmentOwner != null && !_ownsEnvironmentGesture) {
+      setState(_cancel);
+      return;
+    }
     final moving = _moving;
     final preview = _preview;
     if (moving != null && preview != null) _commands.move(moving.id, preview);
     if (_armed) widget.view.pendingMove = null;
     final encounterStroke = _encounterStroke;
+    final environment = _environmentOwner;
+    if (widget.view.tool == StudioMapTool.environment &&
+        environment != null &&
+        _start != null) {
+      try {
+        final commands = EnvironmentEditingCommands(
+          widget.document,
+          widget.project,
+        );
+        if (environment.tool == EnvironmentPaintTool.rectangle) {
+          commands.paintRectangle(
+            environment,
+            _start!,
+            _cell(event.localPosition),
+          );
+        } else if (_environmentStroke != null) {
+          _environmentStroke!.paint(_cell(event.localPosition));
+          commands.paint(
+            environment,
+            _environmentStroke!.cells,
+            erase: environment.tool == EnvironmentPaintTool.erase,
+          );
+        }
+      } on Object catch (failure) {
+        widget.document.error = environmentEditingMessage(failure);
+      }
+    }
     if (encounterStroke != null) {
       try {
         final zone =
@@ -302,173 +243,5 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final map = widget.document.current;
-    final selected =
-        _decorDraft?.candidate ??
-        (_preview == null
-            ? widget.document.selected
-            : widget.document.selected?.copyWith(pos: _preview!));
-    final selectedElement = widget.project.elements
-        .where((e) => e.id == selected?.elementId)
-        .firstOrNull;
-    final brush = widget.view.tool == StudioMapTool.place
-        ? widget.view.brush
-        : null;
-    final hover = brush == null ? null : _hoverCell;
-    final footprint = brush == null
-        ? null
-        : resolveMapPlacedElementFootprint(
-            instance: MapPlacedElement(
-              id: 'preview',
-              layerId: '',
-              elementId: brush.id,
-              pos: hover ?? const GridPos(x: 0, y: 0),
-            ),
-            element: brush,
-          ).destinationSize;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        widget.view.attachViewport(
-          constraints.biggest,
-          Size(map.size.width * _width, map.size.height * _height),
-          Size(_width, _height),
-          mounted: () => mounted,
-          surface: _surface,
-        );
-        return ClipRect(
-          child: InteractiveViewer(
-            key: const ValueKey('map-viewport'),
-            transformationController: widget.view.transform,
-            constrained: false,
-            alignment: Alignment.topLeft,
-            boundaryMargin: const EdgeInsets.all(400),
-            minScale: .15,
-            maxScale: 8,
-            panEnabled: widget.view.tool == StudioMapTool.pan,
-            child: Focus(
-              focusNode: _focus,
-              onFocusChange: (focused) {
-                if (!focused && _gestureSource != null) setState(_cancel);
-              },
-              onKeyEvent: (node, event) {
-                final result = _decorKey(event);
-                if (result == KeyEventResult.handled) return result;
-                if (widget.view.tool == StudioMapTool.border &&
-                    event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.enter) {
-                  _finishBorder();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              child: MouseRegion(
-                onExit: (_) {
-                  final draft = widget.view.borderDraft;
-                  if (_hoverCell != null || draft?.hover != null) {
-                    setState(() {
-                      _hoverCell = null;
-                      if (draft != null) {
-                        widget.view.borderDraft = draft.pointAt(null);
-                      }
-                    });
-                  }
-                },
-                child: Listener(
-                  behavior: HitTestBehavior.opaque,
-                  key: const ValueKey('map-canvas'),
-                  onPointerDown: _down,
-                  onPointerHover: _hover,
-                  onPointerMove: _move,
-                  onPointerSignal: _pointerSignal,
-                  onPointerUp: _up,
-                  onPointerCancel: (_) => setState(_cancel),
-                  child: SizedBox(
-                    key: _surface,
-                    width: map.size.width * _width,
-                    height: map.size.height * _height,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: widget.visuals.canvas(
-                            _characterGesture?.preview ??
-                                _stroke?.preview ??
-                                map,
-                            placedElementPreview: _decorDraft?.candidate,
-                            collisionColor:
-                                widget.view.tool == StudioMapTool.select &&
-                                    widget.view.showDecorCollision
-                                ? Theme.of(context).colorScheme.error
-                                : null,
-                          ),
-                        ),
-                        if (hover != null && footprint != null)
-                          Positioned(
-                            left: hover.x * _width,
-                            top: hover.y * _height,
-                            child: IgnorePointer(
-                              child: Opacity(
-                                key: const ValueKey('decor-placement-preview'),
-                                opacity: .72,
-                                child: widget.visuals.placementPreview(
-                                  brush!,
-                                  Size(
-                                    footprint.width * _width,
-                                    footprint.height * _height,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: CustomPaint(
-                              painter: buildEditingOverlay(
-                                context: context,
-                                map: map,
-                                project: widget.project,
-                                document: widget.document,
-                                view: widget.view,
-                                gesture: _characterGesture,
-                                stroke: _stroke,
-                                encounterStroke: _encounterStroke,
-                                borderDraft:
-                                    widget.view.tool == StudioMapTool.border
-                                    ? widget.view.borderDraft
-                                    : null,
-                                borderCursor:
-                                    widget.view.tool == StudioMapTool.border
-                                    ? _hoverCell
-                                    : null,
-                                preview: _preview,
-                                cellWidth: _width,
-                                cellHeight: _height,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (selected != null &&
-                            selectedElement != null &&
-                            widget.view.tool == StudioMapTool.select)
-                          Positioned.fill(
-                            child: MapDecorTransformOverlay(
-                              instance: selected,
-                              element: selectedElement,
-                              project: widget.project,
-                              transform: widget.view.transform,
-                              resizable: _canTransform(selected),
-                              invalid: _decorDraft?.error != null,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => _buildCanvas(context);
 }

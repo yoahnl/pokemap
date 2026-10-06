@@ -1,11 +1,212 @@
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('EnvironmentActions', () {
+    test('generation keeps the complete decor footprint inside the mask', () {
+      final fixture = _fixture();
+      const actions = EnvironmentEditing();
+      final manifest = fixture.manifest.copyWith(elements: const [
+        ProjectElementEntry(
+          id: 'tree',
+          name: 'Large tree',
+          tilesetId: 'nature',
+          categoryId: 'decor',
+          frames: [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+            )
+          ],
+        ),
+      ]);
+      final originalPreview = actions.previewGeneration(
+          manifest: manifest,
+          map: fixture.map,
+          layerId: 'env',
+          areaId: 'forest-area',
+          projectRevision: 'before-hole');
+      final generated = actions.applyGeneration(
+          manifest: manifest,
+          map: fixture.map,
+          preview: originalPreview,
+          currentRevision: 'before-hole');
+      expect(generated.placedElements.map((value) => value.pos),
+          contains(const GridPos(x: 2, y: 2)));
+      final map = actions.paintCells(generated,
+          layerId: 'env',
+          areaId: 'forest-area',
+          cells: const [GridPos(x: 3, y: 2)],
+          value: false);
+      final preview = actions.previewGeneration(
+          manifest: manifest,
+          map: map,
+          layerId: 'env',
+          areaId: 'forest-area',
+          projectRevision: 'footprint');
+      expect(preview.placements.map((value) => value.pos),
+          isNot(contains(const GridPos(x: 2, y: 2))));
+      for (final placement in preview.placements) {
+        for (var dy = 0; dy < 2; dy++) {
+          for (var dx = 0; dx < 2; dx++) {
+            expect(placement.pos.x + dx == 3 && placement.pos.y + dy == 2,
+                isFalse);
+          }
+        }
+      }
+      expect(preview.placements, isNotEmpty);
+      expect(map.placedElements, generated.placedElements);
+      final applied = actions.applyGeneration(
+          manifest: manifest,
+          map: map,
+          preview: preview,
+          currentRevision: 'footprint');
+      expect(applied.placedElements.map((value) => value.pos),
+          isNot(contains(const GridPos(x: 2, y: 2))));
+      expect(generated.placedElements.map((value) => value.pos),
+          contains(const GridPos(x: 2, y: 2)));
+    });
+
+    test('editable mask retains exact holes and erases generated placements',
+        () {
+      final fixture = _fixture();
+      const actions = EnvironmentEditing();
+      var map = actions.deleteArea(fixture.map,
+          layerId: 'env', areaId: 'forest-area');
+      map = actions.createArea(map,
+          manifest: fixture.manifest,
+          layerId: 'env',
+          areaId: 'painted',
+          name: 'Forêt dessinée',
+          presetId: 'forest',
+          seed: 73);
+      map = actions.paintRegion(map,
+          layerId: 'env',
+          areaId: 'painted',
+          region: const EnvironmentGenerationRegion(
+              x: 1, y: 1, width: 3, height: 2),
+          value: true);
+      map = actions.paintCells(map,
+          layerId: 'env',
+          areaId: 'painted',
+          cells: const [GridPos(x: 2, y: 1)],
+          value: false);
+      final preview = actions.previewGeneration(
+          manifest: fixture.manifest,
+          map: map,
+          layerId: 'env',
+          areaId: 'painted',
+          projectRevision: 'painted-1');
+      expect(preview.placements, hasLength(5));
+      expect(preview.placements.map((entry) => entry.pos),
+          isNot(contains(const GridPos(x: 2, y: 1))));
+      map = actions.applyGeneration(
+          manifest: fixture.manifest,
+          map: map,
+          preview: preview,
+          currentRevision: 'painted-1');
+      map = actions.paintRegion(map,
+          layerId: 'env',
+          areaId: 'painted',
+          region: const EnvironmentGenerationRegion(
+              x: 1, y: 1, width: 3, height: 2),
+          value: false);
+      final cleared = actions.previewGeneration(
+          manifest: fixture.manifest,
+          map: map,
+          layerId: 'env',
+          areaId: 'painted',
+          projectRevision: 'painted-2',
+          region: const EnvironmentGenerationRegion(
+              x: 1, y: 1, width: 3, height: 2));
+      expect(cleared.placements, isEmpty);
+      map = actions.applyGeneration(
+          manifest: fixture.manifest,
+          map: map,
+          preview: cleared,
+          currentRevision: 'painted-2');
+      expect(map.placedElements, isEmpty);
+      expect(
+          map.layers
+              .whereType<EnvironmentLayer>()
+              .single
+              .content
+              .areas
+              .single
+              .generatedPlacementIds,
+          isEmpty);
+      expect(
+          fixture.map.layers
+              .whereType<EnvironmentLayer>()
+              .single
+              .content
+              .areas
+              .single
+              .mask
+              .cells
+              .every((value) => value),
+          isTrue);
+    });
+
+    test('editable mask rejects invalid selection and stale seeds', () {
+      final fixture = _fixture();
+      const actions = EnvironmentEditing();
+      for (final cells in [
+        const <GridPos>[],
+        const [GridPos(x: -1, y: 0)],
+        const [GridPos(x: 6, y: 0)],
+        const [GridPos(x: 0, y: 0), GridPos(x: 0, y: 0)],
+        List<GridPos>.filled(4097, const GridPos(x: 0, y: 0)),
+      ]) {
+        expect(
+            () => actions.paintCells(fixture.map,
+                layerId: 'env',
+                areaId: 'forest-area',
+                cells: cells,
+                value: true),
+            throwsA(isA<MapAuthoringException>()));
+      }
+      expect(
+          () => actions.paintRegion(fixture.map,
+              layerId: 'env',
+              areaId: 'forest-area',
+              region: const EnvironmentGenerationRegion(
+                  x: 5, y: 3, width: 2, height: 1),
+              value: true),
+          throwsA(isA<MapAuthoringException>()));
+      expect(
+          () => actions.createArea(fixture.map,
+              manifest: fixture.manifest,
+              layerId: 'env',
+              areaId: 'missing-preset',
+              name: 'Missing',
+              presetId: 'absent',
+              seed: 1),
+          throwsA(isA<MapAuthoringException>()));
+      final preview = actions.previewGeneration(
+          manifest: fixture.manifest,
+          map: fixture.map,
+          layerId: 'env',
+          areaId: 'forest-area',
+          projectRevision: 'seed-1');
+      final changed = actions.setSeed(fixture.map,
+          layerId: 'env', areaId: 'forest-area', seed: 99);
+      expect(
+          () => actions.applyGeneration(
+              manifest: fixture.manifest,
+              map: changed,
+              preview: preview,
+              currentRevision: 'seed-1'),
+          throwsA(isA<MapAuthoringException>()));
+      expect(
+          () => actions.attachToTileLayer(fixture.map,
+              layerId: 'env', targetTileLayerId: 'env'),
+          throwsA(isA<MapAuthoringException>()));
+    });
+
     test('generation preview is deterministic and revision/seed bound', () {
       final fixture = _fixture();
       const actions = EnvironmentActions();

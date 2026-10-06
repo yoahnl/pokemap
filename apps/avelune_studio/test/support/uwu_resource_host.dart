@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'm2_ui_fixture.dart';
+import 'resource_family_gestures.dart';
 import 'widget_resource_management_port.dart';
 
 class UwUResourceHost {
@@ -69,14 +70,11 @@ class UwUResourceHost {
   }
 
   Future<void> family(ResourceKind kind) async {
-    await tester.tap(
-      find.text(switch (kind) {
-        ResourceKind.images => 'Images et tuiles',
-        ResourceKind.decors => 'Décors',
-        ResourceKind.terrains => 'Terrains',
-      }).first,
-    );
-    await pumpIo(tester, frames: 8);
+    await selectResourceFamily(tester, switch (kind) {
+      ResourceKind.images => ResourceLibraryFamily.images,
+      ResourceKind.decors => ResourceLibraryFamily.decors,
+      ResourceKind.terrains => ResourceLibraryFamily.terrains,
+    });
   }
 
   Future<void> tap(String key) async {

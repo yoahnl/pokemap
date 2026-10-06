@@ -3,6 +3,7 @@ part of 'map_workspace_screen.dart';
 extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   void _bindResourceManagement(ResourceNavigation? resources) {
     _resources = resources;
+    resources?.drawEnvironment = _drawEnvironment;
     resources?.additionalCharacterOwners = _characterDraftOwners;
     resources?.characterSourceProblem = (ids) =>
         _dialogues?.characterSourceProblem(ids) ??
@@ -192,6 +193,38 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _homeSearch.dispose();
     for (final view in _views.values) {
       view.dispose();
+    }
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final loaded = await loadWorkspaceSession(
+        widget,
+        mounted: () => mounted,
+        changed: _changed,
+        onUse: _useResource,
+        openUsage: _openResourceUsage,
+        canOpenUsage: _canOpenResourceUsage,
+        additionalDraftOwners: _resourceUsageDraftOwners,
+      );
+      if (loaded == null) return;
+      _visuals = loaded.visuals;
+      _bindResourceManagement(loaded.resources);
+      _narrative = loaded.narrative;
+      _initializeScenes();
+      _initializeStories();
+      _initializeEvents();
+      _initializeDialogues();
+      _initializeCinematics();
+      _initializePresentations();
+      _initializeWorld();
+      _initializeVerification();
+      _changed();
+    } catch (_) {
+      if (mounted) {
+        _resourceError = 'Impossible de charger les ressources de ce projet.';
+        _changed();
+      }
     }
   }
 }

@@ -59,12 +59,13 @@ extension ResourceNavigationLifecycle on ResourceNavigation {
             : null,
       );
       await accept(receipt);
+      draft.rebase(snapshot);
       if (draft.build() == snapshot) discardDecorOwner(id);
       error = null;
       return decorDraftFor(id) == null;
     } on Object catch (failure) {
       if (failure is ResourceFailure && failure.partialReceipt != null) {
-        pendingReceipt = failure.partialReceipt;
+        _retainDecorPublication(draft, id, failure);
       }
       error = '$failure';
       return false;
@@ -142,6 +143,10 @@ extension ResourceNavigationLifecycle on ResourceNavigation {
             tilesetId != null &&
             draft.draft.atlases.any((atlas) => atlas.tilesetId == tilesetId))
           'Terrain · ${draft.draft.name}',
+      for (final draft in environments.values)
+        if (draft.dirty &&
+            draft.palette.any((item) => elements.contains(item.elementId)))
+          'Environnement · ${draft.name}',
       for (final character in characters.dirtyCharacters)
         if (tilesetId != null &&
             (character.tilesetId == tilesetId ||

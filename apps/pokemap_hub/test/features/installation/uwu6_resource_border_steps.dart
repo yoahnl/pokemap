@@ -1,8 +1,10 @@
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
+import '../../../../avelune_studio/test/support/resource_family_gestures.dart';
 import 'uwu6_resource_host.dart';
 
 Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
@@ -57,6 +59,7 @@ Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
 
 Future<void> deprecateUwu6Border(Uwu6ResourceHost host) async {
   await host.go('Ressources');
+  await selectResourceFamily(host.tester, ResourceLibraryFamily.borders);
   await host.text('Publiées');
   final before = (await host.reopen()).borderCatalog.records.single;
   await host.tap('border-resource-actions-${before.id}');

@@ -6,10 +6,12 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog_view.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/map_tool_menu.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets('real import decor terrain save reload and runtime journey', (
@@ -59,6 +61,7 @@ void main() {
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
     await f.capture(tester, '01-bibliotheque');
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await tester.tap(find.text('Importer une image'));
     await pumpIo(tester);
     expect(find.text('Importer'), findsOneWidget);
@@ -92,14 +95,43 @@ void main() {
       const TilesetSourceRect(x: 2, y: 0, width: 2, height: 3),
     );
     await tester.enterText(
-      find.widgetWithText(TextField, 'Nouveau décor'),
+      find.widgetWithText(TextField, 'Nom du décor'),
       'Bosquet M2',
     );
+    await tester.tap(find.text('Collisions'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Bloquer'));
     await tester.pump();
+    final collision = tester.renderObject<RenderBox>(
+      find.byKey(const ValueKey('decor-collision-canvas')),
+    );
+    for (var y = 0; y < 3; y++) {
+      for (var x = 0; x < 2; x++) {
+        await tester.tapAt(
+          collision.localToGlobal(Offset((x + .5) * width, (y + .5) * height)),
+        );
+        await tester.pump();
+      }
+    }
+    expect(editor.draft.blocked, hasLength(6));
     await f.capture(tester, '02-preparation-decor');
-    await tester.tap(find.text('Enregistrer et utiliser'));
+    final beforeSave = original.current;
+    await tester.tap(find.text('Enregistrer le décor'));
     await pumpIo(tester, frames: 60);
+    final navigation = tester
+        .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
+        .navigation;
+    final savedDecor = f.controller.project!.elements.singleWhere(
+      (element) => element.name == 'Bosquet M2',
+    );
+    expect(navigation.library.selectedIdentity, 'decors:${savedDecor.id}');
+    expect(original.current, beforeSave);
+    await tester.tap(
+      find.byKey(ValueKey('resource-card-decors:${savedDecor.id}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('resource-use')));
+    await pumpIo(tester);
     expect(f.controller.active, same(original));
     expect(original.dirty, isTrue);
     expect(
@@ -125,8 +157,7 @@ void main() {
     await f.capture(tester, '04-empilement');
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
-    await tester.tap(find.text('Images et tuiles'));
-    await tester.pump();
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await tester.tap(find.text('Planche M2').first);
     await pumpIo(tester);
     await tester.ensureVisible(
@@ -227,8 +258,7 @@ void main() {
     await pumpIo(tester);
     await tester.tap(find.byTooltip('Ressources'));
     await pumpIo(tester);
-    await tester.tap(find.text('Images et tuiles'));
-    await tester.pump();
+    await selectResourceFamily(tester, ResourceLibraryFamily.images);
     await tester.drag(find.byType(GridView), const Offset(0, -900));
     await pumpIo(tester);
     await f.capture(tester, '06-catalogue-volumineux');

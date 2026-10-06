@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'uwu4_resource_host.dart';
 import 'uwu_resource_host.dart';
 import 'm2_ui_fixture.dart';
+import 'resource_family_gestures.dart';
 
 Future<UwUResourceHost> openUwU5CharacterHost(
   WidgetTester tester, {
@@ -41,12 +42,7 @@ Future<UwUResourceHost> openUwU5CharacterHost(
       }
     },
   );
-  if (find.text('Personnages').evaluate().isEmpty) {
-    await tester.tap(find.text('Actions'));
-    await pumpIo(tester);
-  }
-  await tester.tap(find.text('Personnages').last);
-  await pumpIo(tester);
+  await openResourceCharacters(tester);
   await tester.tap(find.byKey(const ValueKey('character-studio-libre')));
   await pumpIo(tester);
   return host;

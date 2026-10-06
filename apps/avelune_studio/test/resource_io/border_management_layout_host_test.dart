@@ -23,14 +23,9 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('resource-card-decors:tree')),
-        findsOneWidget,
+        findsNothing,
       );
-      if (find
-          .byKey(const ValueKey('resource-border-library'))
-          .evaluate()
-          .isNotEmpty) {
-        await host.tap('resource-border-library');
-      }
+      expect(find.text('Rechercher une bordure'), findsOneWidget);
       expect(find.text('Brouillons'), findsOneWidget);
       expect(find.text('Publiées'), findsOneWidget);
       expect(find.text('Dépréciées'), findsOneWidget);

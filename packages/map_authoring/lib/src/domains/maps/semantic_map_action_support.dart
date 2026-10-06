@@ -1,6 +1,9 @@
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/semantic_map_failure.dart';
+
+export '../../contracts/semantic_map_failure.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../transactions/action_planner.dart';
@@ -368,26 +371,6 @@ Map<String, Object?> semanticMapSummary(MapData map) => {
       'triggerCount': map.triggers.length,
       'gameplayZoneCount': map.gameplayZones.length,
     };
-
-MapAuthoringException invalidSemanticField(String field, String expected) =>
-    semanticFailure(
-      'map.request_invalid',
-      'Parameter "$field" must be $expected.',
-      details: {'parameter': field, 'expected': expected},
-    );
-
-MapAuthoringException semanticFailure(
-  String code,
-  String message, {
-  Map<String, Object?> details = const {},
-  Iterable<String> remediation = const [],
-}) =>
-    MapAuthoringException(
-      code: code,
-      message: message,
-      details: details,
-      remediation: remediation,
-    );
 
 bool _sameBytes(List<int> left, List<int> right) {
   if (left.length != right.length) return false;

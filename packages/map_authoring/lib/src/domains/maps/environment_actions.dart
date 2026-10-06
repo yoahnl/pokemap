@@ -1,138 +1,22 @@
-import 'dart:convert';
-
 import 'package:map_core/map_core.dart';
 
+import '../../editing/environment_editing.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
 
-part 'environment_generation_support.dart';
+export '../../editing/environment_editing.dart'
+    show
+        EnvironmentGeneratedPlacement,
+        EnvironmentGenerationPreview,
+        EnvironmentGenerationRegion;
 
-/// Bounded map-space region used by deterministic Environment generation.
-final class EnvironmentGenerationRegion {
-  const EnvironmentGenerationRegion({
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
-  });
-
-  final int x;
-  final int y;
-  final int width;
-  final int height;
-
-  int get right => x + width;
-  int get bottom => y + height;
-
-  bool contains(GridPos pos) =>
-      pos.x >= x && pos.x < right && pos.y >= y && pos.y < bottom;
-
-  Map<String, Object?> toJson() => {
-        'x': x,
-        'y': y,
-        'width': width,
-        'height': height,
-      };
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is EnvironmentGenerationRegion &&
-          x == other.x &&
-          y == other.y &&
-          width == other.width &&
-          height == other.height;
-
-  @override
-  int get hashCode => Object.hash(x, y, width, height);
-}
-
-/// Renderer-neutral generated placement included in an optimistic preview.
-final class EnvironmentGeneratedPlacement {
-  EnvironmentGeneratedPlacement({
-    required this.id,
-    required this.layerId,
-    required this.elementId,
-    required this.pos,
-    required this.applyCollision,
-  });
-
-  final String id;
-  final String layerId;
-  final String elementId;
-  final GridPos pos;
-  final bool applyCollision;
-
-  Map<String, Object?> toJson() => {
-        'id': id,
-        'layerId': layerId,
-        'elementId': elementId,
-        'x': pos.x,
-        'y': pos.y,
-        'applyCollision': applyCollision,
-      };
-}
-
-/// Immutable Environment preview bound to the exact map revision and area seed.
-final class EnvironmentGenerationPreview {
-  EnvironmentGenerationPreview._({
-    required this.mapId,
-    required this.layerId,
-    required this.areaId,
-    required this.projectRevision,
-    required this.seed,
-    required this.requestedRegion,
-    required this.resolutionRegion,
-    required this.haloCells,
-    required Iterable<EnvironmentGeneratedPlacement> placements,
-  }) : placements = List.unmodifiable(placements) {
-    fingerprint = computeNarrativeProjectFingerprint([
-      NarrativeProjectFingerprintEntry(
-        relativePath: 'environment-generation-preview.json',
-        bytes: utf8.encode(jsonEncode(_fingerprintPayload())),
-      ),
-    ]);
-  }
-
-  final String mapId;
-  final String layerId;
-  final String areaId;
-  final String projectRevision;
-  final int seed;
-  final EnvironmentGenerationRegion requestedRegion;
-  final EnvironmentGenerationRegion resolutionRegion;
-  final int haloCells;
-  final List<EnvironmentGeneratedPlacement> placements;
-  late final String fingerprint;
-
-  Map<String, Object?> _fingerprintPayload() => {
-        'schema': 'pokemap.environment-generation-preview.v1',
-        'mapId': mapId,
-        'layerId': layerId,
-        'areaId': areaId,
-        'projectRevision': projectRevision,
-        'seed': seed,
-        'requestedRegion': requestedRegion.toJson(),
-        'resolutionRegion': resolutionRegion.toJson(),
-        'haloCells': haloCells,
-        'placements': placements.map((value) => value.toJson()).toList(),
-      };
-
-  Map<String, Object?> toJson() => {
-        ..._fingerprintPayload(),
-        'placementCount': placements.length,
-        'fingerprint': fingerprint,
-      };
-}
-
-/// Canonical Environment mutation and deterministic generation adapter.
-final class EnvironmentActions {
+final class EnvironmentActions extends EnvironmentEditing {
   const EnvironmentActions();
 
-  static const int generationHaloCells = 1;
-  static const int maxGenerationCells = 4096;
+  static const generationHaloCells = EnvironmentEditing.generationHaloCells;
+  static const maxGenerationCells = EnvironmentEditing.maxGenerationCells;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     semanticActionDescriptor(
@@ -204,173 +88,6 @@ final class EnvironmentActions {
       'Clear every tracked placement for an Environment area',
     ),
   ]);
-
-  EnvironmentGenerationPreview previewGeneration({
-    required ProjectManifest manifest,
-    required MapData map,
-    required String layerId,
-    required String areaId,
-    required String projectRevision,
-    EnvironmentGenerationRegion? region,
-  }) {
-    _requireStableText(projectRevision, 'projectRevision');
-    final target = _target(
-      manifest: manifest,
-      map: map,
-      layerId: layerId,
-      areaId: areaId,
-    );
-    final requested = region ??
-        EnvironmentGenerationRegion(
-          x: 0,
-          y: 0,
-          width: map.size.width,
-          height: map.size.height,
-        );
-    _requireRegion(requested, map.size);
-    final params = target.area.paramsOverride ?? target.preset.defaultParams;
-    final haloCells = params.minSpacingCells > generationHaloCells
-        ? params.minSpacingCells
-        : generationHaloCells;
-    final resolution = _expandRegion(requested, map.size, haloCells);
-    final cellCount = resolution.width * resolution.height;
-    if (cellCount > maxGenerationCells) {
-      throw semanticFailure(
-        'environment.region_too_large',
-        'The Environment generation region exceeds the bounded limit.',
-        details: {
-          'cellCount': cellCount,
-          'maxGenerationCells': maxGenerationCells,
-        },
-        remediation: const ['Regenerate the area in smaller regions.'],
-      );
-    }
-
-    final placements = _generate(
-      map: map,
-      target: target,
-      resolutionRegion: resolution,
-    );
-    return EnvironmentGenerationPreview._(
-      mapId: map.id,
-      layerId: target.layer.id,
-      areaId: target.area.id,
-      projectRevision: projectRevision,
-      seed: target.area.seed,
-      requestedRegion: requested,
-      resolutionRegion: resolution,
-      haloCells: haloCells,
-      placements: placements,
-    );
-  }
-
-  MapData applyGeneration({
-    required ProjectManifest manifest,
-    required MapData map,
-    required EnvironmentGenerationPreview preview,
-    required String currentRevision,
-  }) {
-    if (preview.mapId != map.id || preview.projectRevision != currentRevision) {
-      throw semanticFailure(
-        'environment.preview_stale',
-        'The Environment preview is not bound to the current map revision.',
-        details: {
-          'previewMapId': preview.mapId,
-          'currentMapId': map.id,
-          'previewRevision': preview.projectRevision,
-          'currentRevision': currentRevision,
-        },
-        remediation: const ['Regenerate the preview from the current map.'],
-      );
-    }
-    final target = _target(
-      manifest: manifest,
-      map: map,
-      layerId: preview.layerId,
-      areaId: preview.areaId,
-    );
-    if (target.area.seed != preview.seed) {
-      throw semanticFailure(
-        'environment.preview_seed_stale',
-        'The Environment area seed changed after preview generation.',
-        details: {
-          'previewSeed': preview.seed,
-          'currentSeed': target.area.seed,
-        },
-      );
-    }
-    final canonicalPreview = previewGeneration(
-      manifest: manifest,
-      map: map,
-      layerId: preview.layerId,
-      areaId: preview.areaId,
-      projectRevision: currentRevision,
-      region: preview.requestedRegion,
-    );
-    if (canonicalPreview.fingerprint != preview.fingerprint) {
-      throw semanticFailure(
-        'environment.preview_invalid',
-        'The Environment preview does not match canonical generation.',
-        remediation: const ['Regenerate the preview from the current map.'],
-      );
-    }
-
-    final placedById = <String, MapPlacedElement>{
-      for (final placement in map.placedElements) placement.id: placement,
-    };
-    final removedIds = <String>{};
-    for (final id in target.area.generatedPlacementIds) {
-      final placement = placedById[id];
-      if (placement != null &&
-          preview.resolutionRegion.contains(placement.pos)) {
-        removedIds.add(id);
-      }
-    }
-    final retained = <MapPlacedElement>[
-      for (final placement in map.placedElements)
-        if (!removedIds.contains(placement.id)) placement,
-    ];
-    final occupiedIds = <String>{for (final value in retained) value.id};
-    final generated = <MapPlacedElement>[];
-    for (final candidate in preview.placements) {
-      if (!occupiedIds.add(candidate.id)) {
-        throw semanticFailure(
-          'environment.placement_id_conflict',
-          'A generated Environment placement ID is already in use.',
-          details: {'placementId': candidate.id},
-        );
-      }
-      generated.add(
-        MapPlacedElement(
-          id: candidate.id,
-          layerId: candidate.layerId,
-          elementId: candidate.elementId,
-          pos: candidate.pos,
-          applyCollision: candidate.applyCollision,
-          properties: const {
-            'pokemapPlacementOrigin': 'environment',
-          },
-        ),
-      );
-    }
-
-    final preservedAreaIds = <String>[
-      for (final id in target.area.generatedPlacementIds)
-        if (!removedIds.contains(id)) id,
-    ];
-    final replacementIds = generated.map((value) => value.id).toList();
-    final updated = _replaceArea(
-      map,
-      layerId: target.layer.id,
-      areaId: target.area.id,
-      update: (area) => _copyArea(
-        area,
-        generatedPlacementIds: [...preservedAreaIds, ...replacementIds],
-      ),
-    ).copyWith(placedElements: [...retained, ...generated]);
-    MapValidator.validate(updated, projectDialogueContext: manifest);
-    return updated;
-  }
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
@@ -469,21 +186,20 @@ final class EnvironmentActions {
 
     switch (actionId) {
       case 'environment.attach_to_tile_layer':
-        updated = _attach(
+        updated = attachToTileLayer(
           context.map,
           layerId: layerId,
           targetTileLayerId: parameters.string('targetTileLayerId'),
         );
       case 'environment.detach_from_tile_layer':
-        updated = _attach(
+        updated = detachFromTileLayer(
           context.map,
           layerId: layerId,
-          targetTileLayerId: null,
         );
       case 'environment.area_create':
-        _preset(context.manifest, parameters.string('presetId'));
-        updated = _createArea(
+        updated = createArea(
           context.map,
+          manifest: context.manifest,
           layerId: layerId,
           areaId: parameters.string('areaId'),
           name: parameters.string('name'),
@@ -499,48 +215,36 @@ final class EnvironmentActions {
             'absent when clearParamsOverride is true',
           );
         }
-        final presetId = parameters.optionalString('presetId');
-        if (presetId != null) _preset(context.manifest, presetId);
-        updated = _replaceArea(
+        updated = updateArea(
           context.map,
+          manifest: context.manifest,
           layerId: layerId,
           areaId: parameters.string('areaId'),
-          update: (area) => _copyArea(
-            area,
-            name: parameters.optionalString('name'),
-            presetId: presetId,
-            seed: parameters.optionalInteger('seed'),
-            paramsOverride: parameters.contains('paramsOverride')
-                ? _params(parameters.object('paramsOverride'))
-                : area.paramsOverride,
-            clearParamsOverride: clear,
-          ),
+          name: parameters.optionalString('name'),
+          presetId: parameters.optionalString('presetId'),
+          seed: parameters.optionalInteger('seed'),
+          paramsOverride: parameters.contains('paramsOverride')
+              ? _params(parameters.object('paramsOverride'))
+              : null,
+          clearParamsOverride: clear,
         );
       case 'environment.area_delete':
-        updated = _deleteArea(
+        updated = deleteArea(
           context.map,
           layerId: layerId,
           areaId: parameters.string('areaId'),
         );
       case 'environment.area_set_preset':
-        final presetId = parameters.string('presetId');
-        _preset(context.manifest, presetId);
-        updated = _replaceArea(
-          context.map,
-          layerId: layerId,
-          areaId: parameters.string('areaId'),
-          update: (area) => _copyArea(area, presetId: presetId),
-        );
+        updated = updateArea(context.map,
+            manifest: context.manifest,
+            layerId: layerId,
+            areaId: parameters.string('areaId'),
+            presetId: parameters.string('presetId'));
       case 'environment.area_set_seed':
-        updated = _replaceArea(
-          context.map,
-          layerId: layerId,
-          areaId: parameters.string('areaId'),
-          update: (area) => _copyArea(
-            area,
-            seed: parameters.integer('seed'),
-          ),
-        );
+        updated = setSeed(context.map,
+            layerId: layerId,
+            areaId: parameters.string('areaId'),
+            seed: parameters.integer('seed'));
       case 'environment.mask_paint':
       case 'environment.mask_erase':
         final region = _parameterRegion(parameters, context.map.size);
@@ -552,21 +256,21 @@ final class EnvironmentActions {
           );
         }
         if (hasCells) {
-          final cells = _parameterCells(
+          final cells = EnvironmentEditing.parseMaskCells(
             parameters.list('cells'),
             context.map.size,
           );
-          updated = _editMaskCells(
+          updated = paintCells(
             context.map,
             layerId: layerId,
             areaId: parameters.string('areaId'),
-            cells: cells,
+            cells: [for (final cell in cells) GridPos(x: cell.x, y: cell.y)],
             value: actionId == 'environment.mask_paint',
           );
           changedItems = cells.length;
           extraPreview['editedCellCount'] = cells.length;
         } else {
-          updated = _editMask(
+          updated = paintRegion(
             context.map,
             layerId: layerId,
             areaId: parameters.string('areaId'),
@@ -578,7 +282,7 @@ final class EnvironmentActions {
         }
         extraPreview['regenerationHaloCells'] = generationHaloCells;
       case 'environment.mask_clear':
-        updated = _clearMask(
+        updated = clearMask(
           context.map,
           layerId: layerId,
           areaId: parameters.string('areaId'),
@@ -603,20 +307,11 @@ final class EnvironmentActions {
         extraPreview['generation'] = preview.toJson();
       case 'environment.shuffle_apply':
         final areaId = parameters.string('areaId');
-        final target = _target(
-          manifest: context.manifest,
-          map: context.map,
-          layerId: layerId,
-          areaId: areaId,
-        );
+        final area = areaOf(context.map, layerId: layerId, areaId: areaId);
         final nextSeed = parameters.optionalInteger('newSeed') ??
-            _nextSeed(target.area.seed);
-        final seeded = _replaceArea(
-          context.map,
-          layerId: layerId,
-          areaId: areaId,
-          update: (area) => _copyArea(area, seed: nextSeed),
-        );
+            EnvironmentEditing.nextSeed(area.seed);
+        final seeded = setSeed(context.map,
+            layerId: layerId, areaId: areaId, seed: nextSeed);
         final preview = previewGeneration(
           manifest: context.manifest,
           map: seeded,
@@ -633,7 +328,7 @@ final class EnvironmentActions {
         changedItems = preview.placements.length;
         extraPreview['generation'] = preview.toJson();
       case 'environment.generated_placement_add':
-        updated = _addManualPlacement(
+        updated = addGeneratedPlacement(
           context.manifest,
           context.map,
           layerId: layerId,
@@ -646,7 +341,7 @@ final class EnvironmentActions {
           ),
         );
       case 'environment.generated_placement_move':
-        updated = _moveManualPlacement(
+        updated = moveGeneratedPlacement(
           context.map,
           layerId: layerId,
           areaId: parameters.string('areaId'),
@@ -657,24 +352,17 @@ final class EnvironmentActions {
           ),
         );
       case 'environment.generated_placement_delete':
-        updated = _deletePlacement(
+        updated = deleteGeneratedPlacement(
           context.map,
           layerId: layerId,
           areaId: parameters.string('areaId'),
           placementId: parameters.string('placementId'),
         );
       case 'environment.generated_placements_clear':
-        final area = _environmentLayer(context.map, layerId)
-            .content
-            .areaById(parameters.string('areaId'));
-        if (area == null) {
-          throw semanticFailure(
-            'environment.area_missing',
-            'The requested Environment area does not exist.',
-          );
-        }
+        final area = areaOf(context.map,
+            layerId: layerId, areaId: parameters.string('areaId'));
         changedItems = area.generatedPlacementIds.length;
-        updated = _clearPlacements(
+        updated = clearGeneratedPlacements(
           context.map,
           layerId: layerId,
           areaId: area.id,
@@ -689,42 +377,6 @@ final class EnvironmentActions {
       changedItems: changedItems,
       layerId: layerId,
       preview: extraPreview,
-    );
-  }
-}
-
-EnvironmentGenerationRegion _expandRegion(
-  EnvironmentGenerationRegion region,
-  GridSize size,
-  int haloCells,
-) {
-  final x = region.x > haloCells ? region.x - haloCells : 0;
-  final y = region.y > haloCells ? region.y - haloCells : 0;
-  final right = region.right + haloCells < size.width
-      ? region.right + haloCells
-      : size.width;
-  final bottom = region.bottom + haloCells < size.height
-      ? region.bottom + haloCells
-      : size.height;
-  return EnvironmentGenerationRegion(
-    x: x,
-    y: y,
-    width: right - x,
-    height: bottom - y,
-  );
-}
-
-void _requireRegion(EnvironmentGenerationRegion region, GridSize size) {
-  if (region.x < 0 ||
-      region.y < 0 ||
-      region.width <= 0 ||
-      region.height <= 0 ||
-      region.right > size.width ||
-      region.bottom > size.height) {
-    throw semanticFailure(
-      'environment.region_out_of_bounds',
-      'The Environment region must be positive and inside the map.',
-      details: region.toJson(),
     );
   }
 }
@@ -748,238 +400,9 @@ EnvironmentGenerationRegion? _parameterRegion(
     width: parameters.integer('width'),
     height: parameters.integer('height'),
   );
-  _requireRegion(region, size);
+  EnvironmentEditing.validateRegion(region, size);
   return region;
 }
-
-List<({int x, int y})> _parameterCells(List<Object?> raw, GridSize size) {
-  if (raw.isEmpty || raw.length > EnvironmentActions.maxGenerationCells) {
-    throw invalidSemanticField(
-      'cells',
-      'between 1 and ${EnvironmentActions.maxGenerationCells} coordinates',
-    );
-  }
-  final cells = <({int x, int y})>[];
-  final seen = <(int, int)>{};
-  for (var index = 0; index < raw.length; index++) {
-    final value = raw[index];
-    if (value is! Map || value.keys.any((key) => key is! String)) {
-      throw invalidSemanticField('cells[$index]', 'an {x, y} object');
-    }
-    final cell = Map<String, Object?>.from(value);
-    if (cell.length != 2 || !cell.containsKey('x') || !cell.containsKey('y')) {
-      throw invalidSemanticField('cells[$index]', 'exactly {x, y}');
-    }
-    final x = cell['x'];
-    final y = cell['y'];
-    if (x is! int || y is! int) {
-      throw invalidSemanticField('cells[$index]', 'integer x and y values');
-    }
-    if (x < 0 || y < 0 || x >= size.width || y >= size.height) {
-      throw semanticFailure(
-        'environment.cell_out_of_bounds',
-        'An Environment mask coordinate is outside the map.',
-        details: {'index': index, 'x': x, 'y': y},
-      );
-    }
-    if (!seen.add((x, y))) {
-      throw semanticFailure(
-        'environment.cell_duplicate',
-        'An Environment mask selection contains a duplicate coordinate.',
-        details: {'x': x, 'y': y},
-      );
-    }
-    cells.add((x: x, y: y));
-  }
-  return List.unmodifiable(cells);
-}
-
-EnvironmentLayer _environmentLayer(MapData map, String layerId) {
-  final layer =
-      map.layers.where((candidate) => candidate.id == layerId).firstOrNull;
-  if (layer is! EnvironmentLayer) {
-    throw semanticFailure(
-      'environment.layer_missing',
-      'The requested layer is missing or is not an Environment layer.',
-      details: {'layerId': layerId},
-    );
-  }
-  return layer;
-}
-
-EnvironmentPreset _preset(ProjectManifest manifest, String presetId) {
-  final preset = manifest.environmentPresets
-      .where((candidate) => candidate.id == presetId)
-      .firstOrNull;
-  if (preset == null) {
-    throw semanticFailure(
-      'environment.preset_missing',
-      'The requested Environment preset does not exist.',
-      details: {'presetId': presetId},
-    );
-  }
-  return preset;
-}
-
-MapData _attach(
-  MapData map, {
-  required String layerId,
-  required String? targetTileLayerId,
-}) {
-  if (targetTileLayerId != null) {
-    final target = map.layers
-        .where((candidate) => candidate.id == targetTileLayerId)
-        .firstOrNull;
-    if (target is! TileLayer) {
-      throw semanticFailure(
-        'environment.target_layer_invalid',
-        'The Environment target must be an existing Tile layer.',
-        details: {'targetTileLayerId': targetTileLayerId},
-      );
-    }
-  }
-  return _replaceEnvironmentLayer(
-    map,
-    layerId,
-    (layer) => layer.copyWith(
-      content: EnvironmentLayerContent(
-        targetTileLayerId: targetTileLayerId,
-        areas: layer.content.areas,
-      ),
-    ),
-  );
-}
-
-MapData _createArea(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required String name,
-  required String presetId,
-  required int seed,
-}) =>
-    _replaceEnvironmentLayer(
-      map,
-      layerId,
-      (layer) {
-        if (layer.content.areaById(areaId) != null) {
-          throw semanticFailure(
-            'environment.area_exists',
-            'An Environment area already uses this ID.',
-            details: {'areaId': areaId},
-          );
-        }
-        return layer.copyWith(
-          content: EnvironmentLayerContent(
-            targetTileLayerId: layer.content.targetTileLayerId,
-            areas: [
-              ...layer.content.areas,
-              EnvironmentArea(
-                id: areaId,
-                name: name,
-                presetId: presetId,
-                mask: EnvironmentAreaMask(
-                  width: map.size.width,
-                  height: map.size.height,
-                  cells: List<bool>.filled(
-                    map.size.width * map.size.height,
-                    false,
-                  ),
-                ),
-                seed: seed,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-MapData _deleteArea(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-}) {
-  final layer = _environmentLayer(map, layerId);
-  final area = layer.content.areaById(areaId);
-  if (area == null) {
-    throw semanticFailure(
-      'environment.area_missing',
-      'The requested Environment area does not exist.',
-      details: {'areaId': areaId},
-    );
-  }
-  final tracked = area.generatedPlacementIds.toSet();
-  final withoutPlacements = map.copyWith(
-    placedElements: [
-      for (final placement in map.placedElements)
-        if (!tracked.contains(placement.id)) placement,
-    ],
-  );
-  return _replaceEnvironmentLayer(
-    withoutPlacements,
-    layerId,
-    (current) => current.copyWith(
-      content: EnvironmentLayerContent(
-        targetTileLayerId: current.content.targetTileLayerId,
-        areas: [
-          for (final candidate in current.content.areas)
-            if (candidate.id != areaId) candidate,
-        ],
-      ),
-    ),
-  );
-}
-
-MapData _replaceArea(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required EnvironmentArea Function(EnvironmentArea area) update,
-}) =>
-    _replaceEnvironmentLayer(
-      map,
-      layerId,
-      (layer) {
-        final existing = layer.content.areaById(areaId);
-        if (existing == null) {
-          throw semanticFailure(
-            'environment.area_missing',
-            'The requested Environment area does not exist.',
-            details: {'areaId': areaId},
-          );
-        }
-        return layer.copyWith(
-          content: EnvironmentLayerContent(
-            targetTileLayerId: layer.content.targetTileLayerId,
-            areas: [
-              for (final area in layer.content.areas)
-                if (area.id == areaId) update(area) else area,
-            ],
-          ),
-        );
-      },
-    );
-
-EnvironmentArea _copyArea(
-  EnvironmentArea area, {
-  String? name,
-  String? presetId,
-  int? seed,
-  EnvironmentGenerationParams? paramsOverride,
-  bool clearParamsOverride = false,
-  List<String>? generatedPlacementIds,
-}) =>
-    EnvironmentArea(
-      id: area.id,
-      name: name ?? area.name,
-      presetId: presetId ?? area.presetId,
-      mask: area.mask,
-      seed: seed ?? area.seed,
-      paramsOverride:
-          clearParamsOverride ? null : paramsOverride ?? area.paramsOverride,
-      generatedPlacementIds:
-          generatedPlacementIds ?? area.generatedPlacementIds,
-    );
 
 EnvironmentGenerationParams _params(Map<String, Object?> value) {
   const keys = {
@@ -1013,292 +436,4 @@ EnvironmentGenerationParams _params(Map<String, Object?> value) {
     edgeDensity: number('edgeDensity'),
     minSpacingCells: spacing,
   );
-}
-
-MapData _editMask(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required EnvironmentGenerationRegion region,
-  required bool value,
-}) =>
-    _replaceArea(
-      map,
-      layerId: layerId,
-      areaId: areaId,
-      update: (area) {
-        final cells = List<bool>.from(area.mask.cells);
-        for (var y = region.y; y < region.bottom; y++) {
-          for (var x = region.x; x < region.right; x++) {
-            cells[y * area.mask.width + x] = value;
-          }
-        }
-        return EnvironmentArea(
-          id: area.id,
-          name: area.name,
-          presetId: area.presetId,
-          mask: EnvironmentAreaMask(
-            width: area.mask.width,
-            height: area.mask.height,
-            cells: cells,
-          ),
-          seed: area.seed,
-          paramsOverride: area.paramsOverride,
-          generatedPlacementIds: area.generatedPlacementIds,
-        );
-      },
-    );
-
-MapData _editMaskCells(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required List<({int x, int y})> cells,
-  required bool value,
-}) =>
-    _replaceArea(
-      map,
-      layerId: layerId,
-      areaId: areaId,
-      update: (area) {
-        final updatedCells = List<bool>.from(area.mask.cells);
-        for (final cell in cells) {
-          updatedCells[cell.y * area.mask.width + cell.x] = value;
-        }
-        return EnvironmentArea(
-          id: area.id,
-          name: area.name,
-          presetId: area.presetId,
-          mask: EnvironmentAreaMask(
-            width: area.mask.width,
-            height: area.mask.height,
-            cells: updatedCells,
-          ),
-          seed: area.seed,
-          paramsOverride: area.paramsOverride,
-          generatedPlacementIds: area.generatedPlacementIds,
-        );
-      },
-    );
-
-MapData _clearMask(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-}) =>
-    _replaceArea(
-      map,
-      layerId: layerId,
-      areaId: areaId,
-      update: (area) => EnvironmentArea(
-        id: area.id,
-        name: area.name,
-        presetId: area.presetId,
-        mask: EnvironmentAreaMask(
-          width: area.mask.width,
-          height: area.mask.height,
-          cells: List<bool>.filled(area.mask.width * area.mask.height, false),
-        ),
-        seed: area.seed,
-        paramsOverride: area.paramsOverride,
-        generatedPlacementIds: area.generatedPlacementIds,
-      ),
-    );
-
-MapData _addManualPlacement(
-  ProjectManifest manifest,
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required String placementId,
-  required String elementId,
-  required GridPos pos,
-}) {
-  final target = _target(
-    manifest: manifest,
-    map: map,
-    layerId: layerId,
-    areaId: areaId,
-  );
-  if (map.placedElements.any((value) => value.id == placementId)) {
-    throw semanticFailure(
-      'environment.placement_id_conflict',
-      'A map placement already uses this ID.',
-      details: {'placementId': placementId},
-    );
-  }
-  final paletteItem = target.preset.palette
-      .where((candidate) => candidate.elementId == elementId)
-      .firstOrNull;
-  if (paletteItem == null) {
-    throw semanticFailure(
-      'environment.element_not_in_palette',
-      'The manual placement element is not in the area preset palette.',
-      details: {'elementId': elementId, 'presetId': target.preset.id},
-    );
-  }
-  final element = target.elements[elementId]!;
-  if (!_footprintInBounds(pos: pos, element: element, size: map.size)) {
-    throw semanticFailure(
-      'environment.placement_out_of_bounds',
-      'The manual Environment placement is outside map bounds.',
-      details: {'x': pos.x, 'y': pos.y},
-    );
-  }
-  final placed = MapPlacedElement(
-    id: placementId,
-    layerId: target.tileLayer.id,
-    elementId: elementId,
-    pos: pos,
-    applyCollision:
-        paletteItem.collisionMode != EnvironmentCollisionMode.forceDisabled,
-    properties: const {
-      'pokemapPlacementOrigin': 'environment',
-      'pokemapEnvironmentManualOverride': 'true',
-    },
-  );
-  return _replaceArea(
-    map,
-    layerId: layerId,
-    areaId: areaId,
-    update: (area) => _copyArea(
-      area,
-      generatedPlacementIds: [...area.generatedPlacementIds, placementId],
-    ),
-  ).copyWith(placedElements: [...map.placedElements, placed]);
-}
-
-MapData _moveManualPlacement(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required String placementId,
-  required GridPos pos,
-}) {
-  if (pos.x < 0 ||
-      pos.y < 0 ||
-      pos.x >= map.size.width ||
-      pos.y >= map.size.height) {
-    throw semanticFailure(
-      'environment.placement_out_of_bounds',
-      'The manual Environment placement is outside map bounds.',
-      details: {'x': pos.x, 'y': pos.y},
-    );
-  }
-  final layer = _environmentLayer(map, layerId);
-  final area = layer.content.areaById(areaId);
-  if (area == null || !area.generatedPlacementIds.contains(placementId)) {
-    throw semanticFailure(
-      'environment.placement_missing',
-      'The tracked Environment placement does not exist.',
-      details: {'placementId': placementId},
-    );
-  }
-  if (!map.placedElements.any((value) => value.id == placementId)) {
-    throw semanticFailure(
-      'environment.placement_missing',
-      'The tracked Environment placement is missing from the map.',
-      details: {'placementId': placementId},
-    );
-  }
-  return map.copyWith(
-    placedElements: [
-      for (final placement in map.placedElements)
-        if (placement.id == placementId)
-          placement.copyWith(
-            pos: pos,
-            properties: {
-              ...placement.properties,
-              'pokemapEnvironmentManualOverride': 'true',
-            },
-          )
-        else
-          placement,
-    ],
-  );
-}
-
-MapData _deletePlacement(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-  required String placementId,
-}) {
-  final layer = _environmentLayer(map, layerId);
-  final area = layer.content.areaById(areaId);
-  if (area == null || !area.generatedPlacementIds.contains(placementId)) {
-    throw semanticFailure(
-      'environment.placement_missing',
-      'The tracked Environment placement does not exist.',
-      details: {'placementId': placementId},
-    );
-  }
-  return _replaceArea(
-    map,
-    layerId: layerId,
-    areaId: areaId,
-    update: (value) => _copyArea(
-      value,
-      generatedPlacementIds: [
-        for (final id in value.generatedPlacementIds)
-          if (id != placementId) id,
-      ],
-    ),
-  ).copyWith(
-    placedElements: [
-      for (final placement in map.placedElements)
-        if (placement.id != placementId) placement,
-    ],
-  );
-}
-
-MapData _clearPlacements(
-  MapData map, {
-  required String layerId,
-  required String areaId,
-}) {
-  final layer = _environmentLayer(map, layerId);
-  final area = layer.content.areaById(areaId);
-  if (area == null) {
-    throw semanticFailure(
-      'environment.area_missing',
-      'The requested Environment area does not exist.',
-    );
-  }
-  final ids = area.generatedPlacementIds.toSet();
-  return _replaceArea(
-    map,
-    layerId: layerId,
-    areaId: areaId,
-    update: (value) => _copyArea(value, generatedPlacementIds: const []),
-  ).copyWith(
-    placedElements: [
-      for (final placement in map.placedElements)
-        if (!ids.contains(placement.id)) placement,
-    ],
-  );
-}
-
-MapData _replaceEnvironmentLayer(
-  MapData map,
-  String layerId,
-  EnvironmentLayer Function(EnvironmentLayer layer) update,
-) {
-  final existing = _environmentLayer(map, layerId);
-  return map.copyWith(
-    layers: [
-      for (final layer in map.layers)
-        if (identical(layer, existing)) update(existing) else layer,
-    ],
-  );
-}
-
-void _requireStableText(String value, String field) {
-  if (value.isEmpty || value.trim() != value) {
-    throw semanticFailure(
-      'environment.request_invalid',
-      '$field must be a nonblank trimmed string.',
-      details: {'field': field},
-    );
-  }
 }

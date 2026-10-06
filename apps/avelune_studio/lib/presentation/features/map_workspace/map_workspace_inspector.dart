@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
+import 'map_workspace_tool_strip_selection.dart';
 import 'map_decor_geometry_panel.dart';
 import 'map_catalogue_properties.dart';
 
@@ -138,44 +139,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     map: document.current,
                     onRename: widget.onRenameMap,
                   ),
-                  Text(switch (widget.tool) {
-                    StudioMapTool.select =>
-                      'Sélectionnez un décor ou un personnage pour retrouver ses propriétés ici.',
-                    StudioMapTool.pan =>
-                      'Faites glisser la carte pour explorer. Le zoom reste conservé.',
-                    StudioMapTool.place =>
-                      'Choisissez un décor dans la palette, puis cliquez sur la carte pour le placer.',
-                    StudioMapTool.paint =>
-                      'Choisissez une tuile, puis peignez sur la carte.',
-                    StudioMapTool.terrain =>
-                      'Peignez le terrain choisi : les raccords se calculent automatiquement.',
-                    StudioMapTool.character =>
-                      'Choisissez un personnage, puis cliquez sur sa case de départ.',
-                    StudioMapTool.warp =>
-                      'Choisissez la carte de destination, puis cliquez sur la case du passage.',
-                    StudioMapTool.spawn =>
-                      'Cliquez la case où le joueur apparaît au début du jeu.',
-                    StudioMapTool.sign =>
-                      'Cliquez la case du panneau, puis écrivez son texte.',
-                    StudioMapTool.zone =>
-                      'Tracez une zone sur la carte pour lui associer une interaction.',
-                    StudioMapTool.gameplayZone =>
-                      'Tracez une zone de jeu : rencontres, déplacement, effet ou danger.',
-                    StudioMapTool.encounterPaint =>
-                      'Cliquez ou glissez pour peindre les cases de rencontre.',
-                    StudioMapTool.encounterErase =>
-                      'Retirez les cases peintes de la zone de rencontres sélectionnée.',
-                    StudioMapTool.border =>
-                      'Cliquez pour poser des points et faire des angles. Terminez le tracé dans la barre au-dessus de la carte.',
-                    StudioMapTool.erase =>
-                      'Effacez les tuiles et terrains sous le curseur. La gomme de décors se choisit dans les outils supplémentaires.',
-                    StudioMapTool.eraseDecor =>
-                      'Cliquez sur un décor pour effacer celui qui apparaît au premier plan.',
-                    StudioMapTool.collisionPaint =>
-                      'Cliquez ou glissez pour bloquer les cases. Le trait est annulable en une fois.',
-                    StudioMapTool.collisionErase =>
-                      'Cliquez ou glissez pour libérer les cases bloquées.',
-                  }),
+                  Text(mapToolHelp(widget.tool)),
                 ],
                 if (selected != null) ...[
                   const SizedBox(height: 6),

@@ -20,6 +20,8 @@ extension ResourceNavigationManagement on ResourceNavigation {
     for (final draft in decors.values) 'Décor · ${draft.name}',
     for (final draft in terrains.values)
       if (draft.dirty) 'Terrain · ${draft.draft.name}',
+    for (final draft in environments.values)
+      if (draft.dirty) 'Environnement · ${draft.name}',
     if (characters.dirty) 'Personnages',
     ...?additionalDraftOwners?.call(),
   ];
@@ -56,6 +58,22 @@ extension ResourceNavigationManagement on ResourceNavigation {
     if (_disposed || workspace.isDisposed) return 'Le projet a été fermé.';
     if (pendingReceipt != null) {
       return 'Relisez la publication précédente avant une nouvelle modification.';
+    }
+    if (actionId == 'environment.preset.delete') {
+      final id = parameters['presetId'];
+      final owners = [
+        if (environments[id]?.dirty == true) 'Environnement',
+        for (final document in workspace.documents.values)
+          if (document.dirty &&
+              document.current.layers.whereType<EnvironmentLayer>().any(
+                (layer) =>
+                    layer.content.areas.any((area) => area.presetId == id),
+              ))
+            'Carte · ${document.current.name}',
+      ];
+      if (owners.isNotEmpty) {
+        return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
+      }
     }
     if (const {
       'characterStudio.character.deletePlan',

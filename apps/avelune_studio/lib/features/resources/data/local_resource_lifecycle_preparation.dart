@@ -6,6 +6,8 @@ const _lifecycleActions = {
   'element.duplicate',
   'element.delete',
   'element.upsert',
+  'environment.preset.upsert',
+  'environment.preset.delete',
   'smart_tile.preset.rename',
   'smart_tile.preset.duplicate',
   'smart_tile.preset.delete',

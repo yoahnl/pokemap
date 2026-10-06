@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/ui04_terrain_atlas.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets('Studio publishes a border and offers it to the map tool', (
@@ -61,6 +63,7 @@ void main() {
       }
     });
     await pumpIo(tester);
+    await selectResourceFamily(tester, ResourceLibraryFamily.borders);
     await tester.tap(find.text('Créer une bordure'));
     await tester.pumpAndSettle();
     await tester.enterText(

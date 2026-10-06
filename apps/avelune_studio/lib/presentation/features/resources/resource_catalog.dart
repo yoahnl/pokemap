@@ -2,6 +2,8 @@ import 'package:map_core/map_core_domain.dart';
 
 enum ResourceKind { decors, terrains, images }
 
+enum ResourceLibraryFamily { decors, terrains, borders, environments, images }
+
 enum ResourceSort { nameAscending, nameDescending }
 
 const uncategorizedResourceCategory = '__uncategorized__';
@@ -29,7 +31,30 @@ class ResourceItem {
 }
 
 class ResourceLibraryState {
-  ResourceKind kind = ResourceKind.decors;
+  ResourceLibraryFamily family = ResourceLibraryFamily.decors;
+  ResourceKind _kind = ResourceKind.decors;
+  ResourceKind get kind => _kind;
+  set kind(ResourceKind value) {
+    _kind = value;
+    family = switch (value) {
+      ResourceKind.decors => ResourceLibraryFamily.decors,
+      ResourceKind.terrains => ResourceLibraryFamily.terrains,
+      ResourceKind.images => ResourceLibraryFamily.images,
+    };
+  }
+
+  void selectFamily(ResourceLibraryFamily value) {
+    family = value;
+    final resourceKind = switch (value) {
+      ResourceLibraryFamily.decors => ResourceKind.decors,
+      ResourceLibraryFamily.terrains => ResourceKind.terrains,
+      ResourceLibraryFamily.images => ResourceKind.images,
+      _ => null,
+    };
+    if (resourceKind != null) _kind = resourceKind;
+    category = '';
+  }
+
   String query = '';
   String category = '';
   String? _selectedId;
