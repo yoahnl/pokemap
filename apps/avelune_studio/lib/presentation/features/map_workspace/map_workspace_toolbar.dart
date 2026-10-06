@@ -33,6 +33,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     final document = controller.active;
     void zoom(double factor) {
       final transform = view?.transform;
@@ -112,10 +113,14 @@ class MapWorkspaceToolbar extends StatelessWidget {
           ValueListenableBuilder<Matrix4>(
             valueListenable: view!.transform,
             builder: (context, value, _) => SizedBox(
-              width: MediaQuery.textScalerOf(context).scale(52),
+              width: MediaQuery.textScalerOf(
+                context,
+              ).scale(largeText ? 70 : 52),
               child: Text(
                 '${(value.entry(0, 0).abs() * 100).round()} %',
                 textAlign: TextAlign.center,
+                maxLines: largeText ? 1 : null,
+                overflow: largeText ? TextOverflow.ellipsis : null,
               ),
             ),
           ),
@@ -188,14 +193,43 @@ class MapWorkspaceToolbar extends StatelessWidget {
                 ),
               ),
             );
-            final status = Text(
-              document?.saving == true
-                  ? 'Enregistrement…'
-                  : document?.dirty == true
-                  ? 'Non enregistré'
-                  : 'Enregistré',
-              style: Theme.of(context).textTheme.bodySmall,
+            final statusLabel = document?.saving == true
+                ? 'Enregistrement…'
+                : document?.dirty == true
+                ? 'Non enregistré'
+                : 'Enregistré';
+            final status = Tooltip(
+              message: statusLabel,
+              child: Text(
+                statusLabel,
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: largeText ? 1 : null,
+                overflow: largeText ? TextOverflow.ellipsis : null,
+              ),
             );
+            if (largeText) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: bounds.maxWidth < 500 ? 170 : 210,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [map, status],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [actions, const SizedBox(height: 6), controls],
+                    ),
+                  ),
+                ],
+              );
+            }
             return Wrap(
               spacing: 16,
               runSpacing: 8,

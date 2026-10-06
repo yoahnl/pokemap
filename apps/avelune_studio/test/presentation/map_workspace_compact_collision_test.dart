@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets('compact palette paints and erases the exact collision cell', (
@@ -34,20 +35,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Masquer les cartes'));
-    await tester.pumpAndSettle();
+    if (find.byTooltip('Masquer les cartes').evaluate().isNotEmpty) {
+      await tester.tap(find.byTooltip('Masquer les cartes'));
+      await tester.pumpAndSettle();
+    }
     final ground = controller.active!.current.layers.single;
 
     Future<void> choose(String label) async {
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pumpAndSettle();
-      final tool = find.byTooltip(label);
-      expect(tool, findsOneWidget);
-      await tester.ensureVisible(tool);
-      await tester.tap(tool);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Retour à la carte'));
-      await tester.pumpAndSettle();
+      await chooseMapExtraTool(tester, label);
     }
 
     Future<void> paint() async {
@@ -68,7 +63,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await choose('Dessiner les collisions');
+    await choose('Peindre les collisions');
     expect(
       tester
           .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))

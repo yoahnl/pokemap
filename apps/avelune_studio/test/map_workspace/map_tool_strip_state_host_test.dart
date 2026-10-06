@@ -13,6 +13,8 @@ void main() {
   for (final label in ['Terrains', 'Passages']) {
     testWidgets('$label tool reveals its hidden asset picker', (tester) async {
       await MapHostFixture.open(tester, size: const Size(1536, 960));
+      await tester.tap(find.byTooltip('Palette'));
+      await pumpIo(tester);
       final button = find.widgetWithText(StudioButton, label);
       await tester.ensureVisible(button);
       await tester.tap(button);
@@ -35,6 +37,8 @@ void main() {
     tester,
   ) async {
     await MapHostFixture.open(tester, size: const Size(1536, 960));
+    await tester.tap(find.byTooltip('Palette'));
+    await pumpIo(tester);
     await chooseMapExtraTool(tester, 'Placer un personnage');
     expect(find.byType(MapWorkspacePaletteColumn), findsOneWidget);
     expect(
@@ -67,6 +71,8 @@ void main() {
       tester,
       size: const Size(1536, 960),
     );
+    await tester.tap(find.byTooltip('Palette'));
+    await pumpIo(tester);
     expect(find.byType(MapWorkspacePaletteColumn), findsNothing);
     await tester.tap(find.widgetWithText(StudioButton, 'Décors'));
     await pumpIo(tester);

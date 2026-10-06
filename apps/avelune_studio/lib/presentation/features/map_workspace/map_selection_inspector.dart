@@ -19,6 +19,7 @@ import 'map_decor_inspector_tabs.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_connection_panel.dart';
+import 'map_terrain_inspector.dart';
 
 class MapSelectionInspector extends StatelessWidget {
   const MapSelectionInspector({
@@ -54,6 +55,17 @@ class MapSelectionInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (view.tool == StudioMapTool.terrain ||
+        (view.tool == StudioMapTool.erase && view.terrain != null)) {
+      return MapTerrainInspector(
+        document: document,
+        project: project,
+        view: view,
+        visuals: visuals,
+        onChanged: onChanged,
+        width: width,
+      );
+    }
     final commands = CharacterEditingCommands(document, project);
     final mapId = document.current.id;
     final selected = commands.selected(

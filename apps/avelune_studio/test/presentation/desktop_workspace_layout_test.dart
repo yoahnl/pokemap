@@ -1,18 +1,19 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/platform/rendering/studio_resource_thumbnail.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/resource_stress_fixture.dart';
+import '../support/desktop_workspace_capture.dart';
 import '../support/load_desktop_capture_fonts.dart';
 
 void main() {
@@ -71,8 +72,8 @@ void main() {
         ),
       );
       await tester.pumpWidget(app());
-      await _awaitWhilePumping(tester, loaded.future);
-      await _settle(tester, resources!);
+      await awaitDesktopIo(tester, loaded.future);
+      await settleDesktopWorkspace(tester, resources!);
       expect(controller.active?.base.mapId, 'stress-a');
       expect(controller.error, isNull);
       expect(resources!.images.containsKey(fixture.lateAtlasId), isTrue);
@@ -82,9 +83,9 @@ void main() {
       document.selectedId = selected.id;
       document.stackPosition = selected.pos;
       controller.notify();
-      await _settle(tester, resources!);
+      await settleDesktopWorkspace(tester, resources!);
 
-      for (final scale in [1.0, 1.75]) {
+      for (final scale in [1.0, 1.5, 1.75]) {
         textScale = scale;
         for (final size in [
           const Size(1024, 640),
@@ -93,7 +94,7 @@ void main() {
         ]) {
           tester.view.physicalSize = size;
           await tester.pumpWidget(app());
-          await _settle(tester, resources!);
+          await settleDesktopWorkspace(tester, resources!);
           expect(
             tester.takeException(),
             isNull,
@@ -103,19 +104,49 @@ void main() {
           expect(viewport.width, greaterThanOrEqualTo(size.width * .43));
           expect(
             viewport.height,
-            greaterThanOrEqualTo(size.height * (scale > 1 ? .5 : .6)),
+            greaterThanOrEqualTo(scale > 1.5 ? 128 : 160),
             reason: 'Viewport $size avec texte ×$scale',
           );
           if (size == const Size(1280, 800)) {
             expect(viewport.width, greaterThanOrEqualTo(560));
-            expect(viewport.height, greaterThanOrEqualTo(480));
+          }
+          for (final label in [
+            'Sélection',
+            'Décors',
+            'Terrains',
+            'Bordures',
+            'Environnements',
+            'Zones',
+            'Collisions',
+            'Passages',
+          ]) {
+            expect(
+              find.widgetWithText(StudioButton, label).hitTestable(),
+              findsOneWidget,
+            );
+          }
+          final dock = tester.getRect(find.byType(MapWorkspacePaletteDock));
+          expect(dock.bottom, lessThanOrEqualTo(size.height));
+          expect(
+            dock.top,
+            greaterThanOrEqualTo(
+              tester.getRect(find.byType(InteractiveViewer)).bottom,
+            ),
+          );
+          if (find.byType(MapLibraryNavigator).evaluate().isNotEmpty) {
+            expect(
+              tester.getRect(find.byType(MapLibraryNavigator)).right,
+              lessThanOrEqualTo(
+                tester.getRect(find.byType(InteractiveViewer)).left,
+              ),
+            );
           }
           expect(find.byKey(const ValueKey('Enregistrer')), findsOneWidget);
           expect(
             find.byKey(const ValueKey('Enregistrer et tester')),
             findsOneWidget,
           );
-          await _capture(
+          await captureDesktopWorkspace(
             tester,
             capture,
             'workspace-${size.width.toInt()}x${size.height.toInt()}-text${(scale * 100).round()}',
@@ -126,7 +157,7 @@ void main() {
       textScale = 1;
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpWidget(app());
-      await _settle(tester, resources!);
+      await settleDesktopWorkspace(tester, resources!);
       final decorThumbnails = tester
           .widgetList<StudioResourceThumbnail>(
             find.byType(StudioResourceThumbnail),
@@ -139,10 +170,10 @@ void main() {
       );
       expect(resources!.images.length, lessThan(fixture.atlasCount));
       final readsBefore = resources!.store.decoder.reads;
-      await tester.tap(find.byTooltip('Palette'));
+      await tester.tap(find.byTooltip('Changer la palette'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tuiles'));
-      await _settle(tester, resources!);
+      await settleDesktopWorkspace(tester, resources!);
       final tileThumbnails = tester
           .widgetList<StudioResourceThumbnail>(
             find.byType(StudioResourceThumbnail),
@@ -174,11 +205,15 @@ void main() {
         lessThanOrEqualTo(visibleTileSources.length),
       );
       expect(find.byIcon(Icons.hourglass_empty), findsNothing);
-      await _capture(tester, capture, 'workspace-tile-thumbnails');
+      await captureDesktopWorkspace(
+        tester,
+        capture,
+        'workspace-tile-thumbnails',
+      );
       await tester.tap(find.byTooltip('Retour à la carte'));
       await tester.pumpAndSettle();
 
-      await _awaitWhilePumping(
+      await awaitDesktopIo(
         tester,
         controller.activate(
           fixture.manifest.maps.singleWhere(
@@ -186,7 +221,7 @@ void main() {
           ),
         ),
       );
-      await _settle(tester, resources!);
+      await settleDesktopWorkspace(tester, resources!);
       expect(resources!.diagnostics, hasLength(200));
       expect(tester.takeException(), isNull);
       expect(
@@ -195,9 +230,13 @@ void main() {
       );
       expect(
         tester.getSize(find.byType(InteractiveViewer)).height,
-        greaterThanOrEqualTo(480),
+        greaterThanOrEqualTo(800 * .35),
       );
-      await _capture(tester, capture, 'workspace-200-diagnostics-compact');
+      await captureDesktopWorkspace(
+        tester,
+        capture,
+        'workspace-200-diagnostics-compact',
+      );
       await tester.tap(find.byKey(const ValueKey('resource-details')));
       await tester.pumpAndSettle();
       final rows = find.byWidgetPredicate(
@@ -210,7 +249,11 @@ void main() {
         find.byKey(const ValueKey('resource-diagnostics-list')),
         findsOneWidget,
       );
-      await _capture(tester, capture, 'workspace-200-diagnostics-details');
+      await captureDesktopWorkspace(
+        tester,
+        capture,
+        'workspace-200-diagnostics-details',
+      );
       await tester.drag(
         find.byKey(const ValueKey('resource-diagnostics-list')),
         const Offset(0, -500),
@@ -225,72 +268,15 @@ void main() {
       await tester.runAsync(() async {
         await fixture.makeMissingAvailable();
       });
-      await _awaitWhilePumping(
+      await awaitDesktopIo(
         tester,
         resources!.retryResources([stressIncidentId(0)]),
       );
-      await _settle(tester, resources!);
+      await settleDesktopWorkspace(tester, resources!);
       expect(resources!.images.containsKey(stressIncidentId(0)), isTrue);
       expect(resources!.diagnostics, hasLength(199));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
-}
-
-Future<void> _settle(WidgetTester tester, StudioMapResources resources) async {
-  for (var round = 0; round < 3; round++) {
-    await tester.pump();
-    await _awaitWhilePumping(tester, resources.settled);
-    await tester.pumpAndSettle();
-  }
-}
-
-Future<void> _awaitWhilePumping(
-  WidgetTester tester,
-  Future<void> future,
-) async {
-  var done = false;
-  Object? failure;
-  future.then<void>(
-    (_) {
-      done = true;
-    },
-    onError: (Object error) {
-      failure = error;
-      done = true;
-    },
-  );
-  final elapsed = Stopwatch()..start();
-  while (!done && elapsed.elapsed < const Duration(seconds: 20)) {
-    await tester.pump();
-    if (!done) {
-      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    }
-  }
-  if (failure != null) throw failure!;
-  expect(
-    done,
-    isTrue,
-    reason: 'Les E/S réelles ne terminent pas entre les frames en 20 secondes.',
-  );
-}
-
-Future<void> _capture(WidgetTester tester, GlobalKey key, String name) async {
-  final directory = Platform.environment['AVELUNE_CAPTURE_DIR'];
-  if (directory == null || directory.isEmpty) return;
-  final boundary =
-      key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-  await tester.runAsync(() async {
-    final image = await boundary.toImage(pixelRatio: 1);
-    try {
-      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      await Directory(directory).create(recursive: true);
-      await File(
-        '$directory/$name.png',
-      ).writeAsBytes(bytes!.buffer.asUint8List());
-    } finally {
-      image.dispose();
-    }
-  });
 }

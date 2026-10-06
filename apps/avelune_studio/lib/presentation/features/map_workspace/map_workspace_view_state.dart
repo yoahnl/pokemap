@@ -89,6 +89,9 @@ class MapWorkspaceViewState {
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = false;
+  bool navigatorCollapsed = false;
+  bool highlightTerrain = true;
+  bool dimOtherTerrains = false;
   bool lockDecorProportions = false;
   bool showDecorCollision = false;
   bool paletteTiles = false;
@@ -102,6 +105,10 @@ class MapWorkspaceViewState {
   final paletteAtlasTransforms = <String, TransformationController>{};
   final fittedPaletteAtlases = <String>{};
   bool positioned = false;
+  Size? _viewport;
+  Size? _content;
+  Matrix4? _fittedTransform;
+  int _fitGeneration = 0;
   VoidCallback? recenter;
   void Function(GridPos)? centerOn;
   Offset? Function(GridPos)? globalOfCell;
@@ -109,14 +116,7 @@ class MapWorkspaceViewState {
   void fitViewport(Size viewport, Size content) {
     final widthScale = viewport.width / content.width;
     final heightScale = viewport.height / content.height;
-    final fillWidth =
-        viewport.width >= 900 &&
-        widthScale > heightScale &&
-        widthScale <= heightScale * 1.2;
-    final scale = math.min(
-      1.0,
-      fillWidth ? widthScale : math.min(widthScale, heightScale),
-    );
+    final scale = math.min(1.0, math.min(widthScale, heightScale));
     transform.value = Matrix4.identity()
       ..translateByDouble(
         (viewport.width - content.width * scale) / 2,
@@ -125,6 +125,7 @@ class MapWorkspaceViewState {
         1,
       )
       ..scaleByDouble(scale, scale, 1, 1);
+    _fittedTransform = transform.value.clone();
   }
 
   void attachViewport(
@@ -145,10 +146,20 @@ class MapWorkspaceViewState {
             )
           : null;
     };
-    if (positioned) return;
+    final changed = _viewport != viewport || _content != content;
+    _viewport = viewport;
+    _content = content;
+    if (!changed) return;
+    final fitted = _fittedTransform;
+    if (positioned && fitted != null && transform.value != fitted) return;
     positioned = true;
+    final generation = ++_fitGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted()) fit();
+      if (mounted() &&
+          generation == _fitGeneration &&
+          (fitted == null || transform.value == fitted)) {
+        fit();
+      }
     });
   }
 
@@ -238,6 +249,7 @@ class MapWorkspaceViewState {
   }
 
   void dispose() {
+    _fitGeneration++;
     transform.dispose();
     for (final controller in paletteAtlasTransforms.values) {
       controller.dispose();

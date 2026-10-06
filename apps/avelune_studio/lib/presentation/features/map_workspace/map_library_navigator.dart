@@ -216,63 +216,70 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
             ),
           const SizedBox(height: 8),
           Expanded(
-            child: ListView.builder(
-              key: const ValueKey('map-library-list'),
-              itemCount: rows.length,
-              itemBuilder: (context, index) {
-                final row = rows[index];
-                final map = row.map;
-                final folderId = row.group?.id ?? '__root__';
-                return MapLibraryRowTile(
-                  row: row,
-                  collapsed: _collapsed.contains(folderId),
-                  selected: map == null
-                      ? false
-                      : _selecting
-                      ? _selected.contains(map.id)
-                      : widget.activeMapId == map.id,
-                  selecting: _selecting,
-                  dirty: map != null && widget.dirtyMapIds.contains(map.id),
-                  actions: map != null
-                      ? const [
-                          MapLibraryAction.rename,
-                          MapLibraryAction.move,
-                          MapLibraryAction.duplicate,
-                          MapLibraryAction.resize,
-                          MapLibraryAction.deleteMap,
-                        ]
-                      : row.group == null
-                      ? const []
-                      : const [
-                          MapLibraryAction.createMap,
-                          MapLibraryAction.rename,
-                          MapLibraryAction.move,
-                          MapLibraryAction.up,
-                          MapLibraryAction.down,
-                          MapLibraryAction.deleteFolder,
-                        ],
-                  disabledReasons: row.group == null
-                      ? _mapDisabled()
-                      : _groupDisabled(row.group!),
-                  onAction: _busy ? null : (action) => _rowAction(row, action),
-                  onToggleFolder: () => setState(() {
-                    _folderSelection = row.group?.id;
-                    if (!_collapsed.add(folderId)) _collapsed.remove(folderId);
-                  }),
-                  onMap: (entry) {
-                    if (_selecting) {
-                      setState(() {
-                        if (!_selected.add(entry.id)) {
-                          _selected.remove(entry.id);
-                        }
-                      });
-                    } else {
-                      widget.onActivate(entry);
-                    }
-                  },
-                );
-              },
-            ),
+            child: rows.isEmpty && _search.text.trim().isNotEmpty
+                ? MapLibrarySearchEmpty(onClear: () => setState(_search.clear))
+                : ListView.builder(
+                    key: const ValueKey('map-library-list'),
+                    itemCount: rows.length,
+                    itemBuilder: (context, index) {
+                      final row = rows[index];
+                      final map = row.map;
+                      final folderId = row.group?.id ?? '__root__';
+                      return MapLibraryRowTile(
+                        row: row,
+                        collapsed: _collapsed.contains(folderId),
+                        selected: map == null
+                            ? false
+                            : _selecting
+                            ? _selected.contains(map.id)
+                            : widget.activeMapId == map.id,
+                        selecting: _selecting,
+                        dirty:
+                            map != null && widget.dirtyMapIds.contains(map.id),
+                        actions: map != null
+                            ? const [
+                                MapLibraryAction.rename,
+                                MapLibraryAction.move,
+                                MapLibraryAction.duplicate,
+                                MapLibraryAction.resize,
+                                MapLibraryAction.deleteMap,
+                              ]
+                            : row.group == null
+                            ? const []
+                            : const [
+                                MapLibraryAction.createMap,
+                                MapLibraryAction.rename,
+                                MapLibraryAction.move,
+                                MapLibraryAction.up,
+                                MapLibraryAction.down,
+                                MapLibraryAction.deleteFolder,
+                              ],
+                        disabledReasons: row.group == null
+                            ? _mapDisabled()
+                            : _groupDisabled(row.group!),
+                        onAction: _busy
+                            ? null
+                            : (action) => _rowAction(row, action),
+                        onToggleFolder: () => setState(() {
+                          _folderSelection = row.group?.id;
+                          if (!_collapsed.add(folderId)) {
+                            _collapsed.remove(folderId);
+                          }
+                        }),
+                        onMap: (entry) {
+                          if (_selecting) {
+                            setState(() {
+                              if (!_selected.add(entry.id)) {
+                                _selected.remove(entry.id);
+                              }
+                            });
+                          } else {
+                            widget.onActivate(entry);
+                          }
+                        },
+                      );
+                    },
+                  ),
           ),
           if (_selecting && _selected.isNotEmpty) ...[
             const SizedBox(height: 8),

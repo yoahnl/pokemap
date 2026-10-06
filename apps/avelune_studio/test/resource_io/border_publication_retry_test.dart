@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import 'resource_fixture.dart';
@@ -95,4 +96,64 @@ void main() {
       'Clôture du jardin révisée',
     );
   });
+
+  test(
+    'disconnected pattern reports the canonical sample and repair',
+    () async {
+      final fixture = await ResourceFixture.create();
+      addTearDown(fixture.dispose);
+      final pixels = image.Image(width: 48, height: 24, numChannels: 4);
+      for (var piece = 0; piece < 3; piece++) {
+        image.fillRect(
+          pixels,
+          x1: piece * 16 + 6,
+          y1: 6,
+          x2: piece * 16 + 9,
+          y2: 9,
+          color: image.ColorRgba8(80, 150, 200, 255),
+        );
+      }
+      await fixture.source.writeAsBytes(image.encodePng(pixels));
+      final imported = await fixture.import();
+      for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
+        await fixture.resources.saveElement(
+          fixture
+              .element(imported.createdTilesetId!, id: id)
+              .copyWith(
+                frames: [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
+                ],
+              ),
+        );
+      }
+      ResourceFailure? failure;
+      try {
+        await fixture.resources.createBorder(
+          const BorderCreationRequest(
+            name: 'Clôture sans raccords',
+            capElementId: 'cap',
+            straightElementId: 'straight',
+            cornerElementId: 'corner',
+          ),
+        );
+      } on ResourceFailure catch (error) {
+        failure = error;
+      }
+      expect(failure, isNotNull);
+      expect(failure!.message, contains('Courbe en S'));
+      expect(
+        failure.message,
+        contains('Un vide de 12 px dépasse les 1 px tolérés.'),
+      );
+      expect(failure.message, contains('Réassociez'));
+      expect(failure.message, isNot(contains('MapAuthoringException')));
+      expect(failure.message, isNot(contains('does not satisfy')));
+      expect(failure.partialReceipt, isNotNull);
+      final reopened = await LocalMapWorkspaceAdapter().loadProject(
+        fixture.session,
+      );
+      expect(reopened.borderCatalog.records, hasLength(1));
+      expect(reopened.borderCatalog.records.single.latestPublished, isNull);
+    },
+  );
 }

@@ -3,6 +3,11 @@ part of 'map_workspace_canvas.dart';
 extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
   Widget _buildCanvas(BuildContext context) {
     final map = widget.document.current;
+    final terrainHighlight = MapTerrainHighlight.resolve(
+      map,
+      widget.view,
+      stroke: _stroke,
+    );
     final environment = widget.view.tool == StudioMapTool.environment
         ? widget.view.environment
         : null;
@@ -12,6 +17,11 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
             identical(environment.previewProject, widget.project)
         ? environment.previewResult
         : null;
+    final renderedMap =
+        _characterGesture?.preview ??
+        _stroke?.preview ??
+        environmentPreview ??
+        map;
     final selected =
         _decorDraft?.candidate ??
         (_preview == null
@@ -99,10 +109,7 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                       children: [
                         Positioned.fill(
                           child: widget.visuals.canvas(
-                            _characterGesture?.preview ??
-                                _stroke?.preview ??
-                                environmentPreview ??
-                                map,
+                            renderedMap,
                             placedElementPreview: _decorDraft?.candidate,
                             collisionColor:
                                 widget.view.tool == StudioMapTool.select &&
@@ -111,6 +118,31 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                                 : null,
                           ),
                         ),
+                        Positioned.fill(
+                          child: MapCanvasSurfaceBounds(map: renderedMap),
+                        ),
+                        if (terrainHighlight != null)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                key: const ValueKey('terrain-highlight'),
+                                painter: MapTerrainHighlightPainter(
+                                  highlight: terrainHighlight,
+                                  tile: Size(_width, _height),
+                                  color: StudioColors.of(
+                                    context,
+                                  ).canvasSelection,
+                                  addition: StudioColors.of(context).success,
+                                  removal: Theme.of(context).colorScheme.error,
+                                  background: Theme.of(
+                                    context,
+                                  ).colorScheme.surface,
+                                  dimOthers: widget.view.dimOtherTerrains,
+                                  transform: widget.view.transform,
+                                ),
+                              ),
+                            ),
+                          ),
                         if (widget.view.tool == StudioMapTool.environment &&
                             widget.view.environment != null)
                           Positioned.fill(

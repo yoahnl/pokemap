@@ -72,6 +72,7 @@ void main() {
         commands.place(workspaceElement, const GridPos(x: 3, y: 3));
       }
       final frontId = document.selectedId;
+      final backId = commands.stack(const GridPos(x: 3, y: 3)).last.id;
       final initialPositions = {
         for (final item in document.current.placedElements) item.id: item.pos,
       };
@@ -80,10 +81,22 @@ void main() {
         find.byKey(const ValueKey('Passer devant')),
       );
       expect(forward().onPressed, isNull);
+      await tester.scrollUntilVisible(
+        find.text('Position 3 / 3'),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(MapWorkspaceInspector),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.tap(find.text('Position 3 / 3'));
       await tester.pump();
+      expect(document.selectedId, backId);
       expect(document.selectedId, isNot(frontId));
       expect(forward().onPressed, isNotNull);
+      await tester.ensureVisible(find.byKey(const ValueKey('Passer devant')));
       await tester.tap(find.byKey(const ValueKey('Passer devant')));
       await tester.pump();
       expect(

@@ -104,6 +104,11 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     notifyListeners();
   }
 
+  void openBorders() {
+    library.selectFamily(ResourceLibraryFamily.borders);
+    showLibrary();
+  }
+
   List<ProjectSmartTileAuthoringDraft> get terrainDrafts {
     final project = workspace.project!;
     final drafts = {

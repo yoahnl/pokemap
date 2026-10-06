@@ -4,6 +4,26 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 
+class MapLibrarySearchEmpty extends StatelessWidget {
+  const MapLibrarySearchEmpty({super.key, required this.onClear});
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Column(
+      children: [
+        const Text('Aucune carte ne correspond à votre recherche.'),
+        const SizedBox(height: 8),
+        StudioButton(
+          label: 'Effacer la recherche',
+          secondary: true,
+          onPressed: onClear,
+        ),
+      ],
+    ),
+  );
+}
+
 class MapFolderCreationForm extends StatelessWidget {
   const MapFolderCreationForm({
     super.key,

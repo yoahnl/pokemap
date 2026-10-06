@@ -46,13 +46,20 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Palette'));
+      final document = controller.active!;
+      final before = document.current;
+      expect(document.dirty, isFalse);
+      await tester.tap(find.byTooltip('Changer la palette'));
       await tester.pumpAndSettle();
-      expect(find.byType(Dialog), findsOneWidget);
       await tester.tap(find.text('Personnages'));
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('character-guide')));
+      final picker = find.byKey(const ValueKey('character-guide'));
+      expect(picker.hitTestable(), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      await tester.tap(picker);
       await tester.pumpAndSettle();
+      expect(document.current, same(before));
+      expect(document.dirty, isFalse);
       expect(find.byType(Dialog), findsNothing);
       final canvas = tester.renderObject<RenderBox>(
         find.byKey(const ValueKey('map-canvas')),
@@ -65,6 +72,8 @@ void main() {
         controller.active!.current.entities.single.npc!.characterId,
         guide.id,
       );
+      expect(document.dirty, isTrue);
+      expect(document.canUndo, isTrue);
       await tester.tap(find.byTooltip('Inspecteur'));
       await tester.pumpAndSettle();
       expect(find.byType(CharacterInspector), findsOneWidget);
@@ -79,6 +88,7 @@ void main() {
         controller.active!.current.entities.single.npc!.displayName,
         'Chef compact',
       );
+      expect(document.dirty, isTrue);
       await tester.ensureVisible(find.text('Écrire son interaction'));
       expect(find.text('Écrire son interaction').hitTestable(), findsOneWidget);
       await tester.tap(find.byTooltip('Retour à la carte'));

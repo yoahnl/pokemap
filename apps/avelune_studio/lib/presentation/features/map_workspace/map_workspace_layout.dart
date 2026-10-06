@@ -38,6 +38,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onClose,
     required this.onResources,
     this.onEnvironments,
+    this.onBorders,
     required this.onMap,
     required this.onExport,
     required this.onPokemon,
@@ -75,7 +76,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<String>? onSearch;
   final Widget? resourceContent;
-  final VoidCallback? onStory, onHome, onEnvironments;
+  final VoidCallback? onStory, onHome, onEnvironments, onBorders;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<MapRect>? onZoneDrawn;
   final MapReferenceGuard? referenceGuard;
@@ -93,12 +94,11 @@ class MapWorkspaceLayout extends StatelessWidget {
           doc != null && project != null && visuals != null && view != null;
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
-      final compactInspector = availableWidth < 1000 || largeText;
-      final compactPalette = availableWidth < 650 || largeText;
+      final compactInspector = availableWidth < 1200 || largeText;
+      final compactPalette = availableWidth < 650;
       final showInspector = inspector ?? (!compactInspector);
-      final showNavigator =
-          !largeText && availableWidth >= (showInspector ? 1150 : 880);
-      final showPaletteDock = palette && !compactPalette && c.maxHeight >= 1020;
+      final showNavigator = activeSpace == 'map';
+      final showPaletteDock = palette;
       final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
       final inspectorWidth = c.maxWidth >= 1400 ? 340.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
@@ -185,7 +185,8 @@ class MapWorkspaceLayout extends StatelessWidget {
           });
         }
       }
-      final headerBar = showNavigator && activeSpace == 'map';
+      final headerBar =
+          c.maxWidth >= 1400 && !largeText && activeSpace == 'map';
       final toolbar = resourceContent == null
           ? MapWorkspaceToolbar(
               controller: controller,
@@ -194,12 +195,9 @@ class MapWorkspaceLayout extends StatelessWidget {
               paletteVisible: showPaletteDock,
               inspectorVisible: showInspector && !compactInspector,
               navigatorVisible: showNavigator,
-              showUndoRedo:
-                  c.maxHeight < 900 || largeText || activeSpace != 'map',
+              showUndoRedo: activeSpace != 'map',
               onNavigator: openNavigator,
-              onPalette: (compactPalette || c.maxHeight < 1020) && ready
-                  ? openPalette
-                  : onPalette,
+              onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: compactInspector && ready
                   ? () => showWorkspaceCompactPanel(
                       context,
@@ -269,7 +267,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           search: search,
                           generation: generation,
                           showNavigator: showNavigator,
-                          showToolStrip: c.maxHeight >= 900 && !largeText,
+                          showToolStrip: true,
                           showPaletteDock: showPaletteDock,
                           inspector: showInspector && !compactInspector
                               ? inspectorContent(() {})
@@ -281,6 +279,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           onMoreTools: openPalette,
                           onResources: onResources,
                           onEnvironments: onEnvironments,
+                          onBorders: onBorders,
                           onZoneDrawn: onZoneDrawn,
                           onContextMenu: onContextMenu,
                         )),

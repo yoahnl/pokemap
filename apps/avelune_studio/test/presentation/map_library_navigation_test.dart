@@ -105,7 +105,7 @@ void main() {
     await pumpIo(tester);
     expect(find.byType(MapLibraryNavigator), findsNothing);
     await fixture.capture(tester, 'map-library-compact-1024');
-    await tester.tap(find.byKey(const ValueKey('Dossiers de cartes')));
+    await tester.tap(find.byKey(const ValueKey('Afficher les cartes')));
     await tester.pumpAndSettle();
     expect(find.byType(MapLibraryNavigator), findsOneWidget);
     expect(find.byKey(const ValueKey('map-library-jardin')), findsOneWidget);

@@ -24,6 +24,8 @@ class MapWorkspacePaletteDock extends StatefulWidget {
     required this.onChanged,
     required this.onResources,
     required this.onOpenFullPalette,
+    this.maxHeight = 330,
+    this.compact = false,
   });
 
   final ProjectManifest project;
@@ -34,6 +36,8 @@ class MapWorkspacePaletteDock extends StatefulWidget {
   final VoidCallback onChanged;
   final VoidCallback onResources;
   final VoidCallback onOpenFullPalette;
+  final double maxHeight;
+  final bool compact;
 
   @override
   State<MapWorkspacePaletteDock> createState() =>
@@ -41,7 +45,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
 }
 
 class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
-  double _height = 218;
+  double? _height;
   bool _collapsed = false;
 
   @override
@@ -69,9 +73,12 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
         query,
       );
     }).toList();
+    final preferredHeight = _height ?? (widget.compact ? 184.0 : 270.0);
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
     return Container(
-      height: _collapsed ? 72 : _height,
+      height: _collapsed
+          ? 72
+          : preferredHeight.clamp(160, widget.maxHeight.clamp(160, 330)),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
@@ -84,6 +91,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
         children: [
           MapWorkspacePaletteDockHeader(
             kind: kind,
+            compact: widget.compact,
             collapsed: _collapsed,
             onKindChanged: (value) {
               widget.view.paletteTab = value;
@@ -95,9 +103,9 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             onToggle: () => setState(() => _collapsed = !_collapsed),
             onResize: (delta) => setState(() {
               _collapsed = false;
-              _height = (_height - delta).clamp(178, 330);
+              _height = (preferredHeight - delta).clamp(160, 330);
             }),
-            onOpenFullPalette: widget.onOpenFullPalette,
+            onOpenFullPalette: widget.onResources,
           ),
           if (!_collapsed) const SizedBox(height: 6),
           if (!_collapsed && detailed && kind != 'Tuiles')
@@ -163,9 +171,9 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                           )
                         : LayoutBuilder(
                             builder: (context, constraints) {
-                              final rows = (constraints.maxHeight / 100)
+                              final rows = (constraints.maxHeight / 78)
                                   .floor()
-                                  .clamp(1, 3);
+                                  .clamp(1, 2);
                               return GridView.builder(
                                 key: ValueKey(
                                   'dock-$kind-$selectedCategory-$rows',
@@ -174,7 +182,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                 gridDelegate:
                                     SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: rows,
-                                      mainAxisExtent: 122,
+                                      mainAxisExtent: widget.compact ? 92 : 108,
                                       crossAxisSpacing: 8,
                                       mainAxisSpacing: 8,
                                     ),
@@ -188,17 +196,18 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                           : 'terrain-${item.id}',
                                     ),
                                     name: item.name,
-                                    maxNameLines: 2,
+                                    showName: !widget.compact,
+                                    maxNameLines: 1,
                                     preview: item.element != null
                                         ? widget.visuals.thumbnail(
                                             item.element!,
-                                            size: 74,
+                                            size: widget.compact ? 48 : 64,
                                           )
                                         : resourcePreview(
                                             item,
                                             widget.project,
                                             widget.visuals,
-                                            size: 74,
+                                            size: widget.compact ? 48 : 64,
                                           ),
                                     selected: item.element != null
                                         ? widget.view.brush?.id == item.id

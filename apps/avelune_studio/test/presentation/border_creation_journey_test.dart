@@ -33,6 +33,8 @@ void main() {
     final navigation = tester
         .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
         .navigation;
+    expect(navigation.library.family, ResourceLibraryFamily.borders);
+    expect(find.text('Créer une bordure'), findsOneWidget);
     await tester.runAsync(() async {
       final source = File('${fixture.directory.path}/border-source.png');
       await source.writeAsBytes(ui04TerrainAtlas());
@@ -101,6 +103,12 @@ void main() {
           .chosen
           .keys,
       containsAll(['lineCap', 'lineStraight', 'lineCorner']),
+    );
+    expect(
+      find.text(
+        'Associations complètes. Les raccords restent à valider avant publication.',
+      ),
+      findsOneWidget,
     );
     await fixture.capture(tester, 'bordure-choix-des-pieces');
     tester.view.physicalSize = const Size(1024, 640);

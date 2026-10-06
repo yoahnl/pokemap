@@ -100,6 +100,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
       return CharacterPalette(
         project: widget.project,
         visuals: widget.visuals,
+        compact: widget.compactContent,
         selectedId: view.character?.id,
         query: view.characterQuery,
         scrollOffset: view.characterScrollOffset,

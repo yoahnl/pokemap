@@ -15,6 +15,7 @@ import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/capture_m3_widget.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets('UI02 real map, overlap, shared home and responsive viewport', (
@@ -137,6 +138,14 @@ void main() {
       find.byType(MapWorkspaceLayout),
     );
     final view = layout.view!;
+    await chooseMapExtraTool(tester, 'Déplacer la vue');
+    final fitted = view.transform.value.clone();
+    await tester.drag(
+      find.byKey(const ValueKey('map-viewport')),
+      const Offset(-60, -40),
+    );
+    await tester.pumpAndSettle();
+    expect(view.transform.value, isNot(fitted));
     final matrix = view.transform.value.clone();
     final mountedState = tester.state(find.byType(MapWorkspaceScreen));
     await tester.tap(find.byTooltip('Accueil'));
@@ -199,15 +208,11 @@ void main() {
         );
         await tester.pump();
         expect(document.selected!.pos, const GridPos(x: 4, y: 4));
+        final beforeZoom = view.scale;
         await tester.tap(find.byKey(const ValueKey('Zoom avant')));
         await tester.pump();
-        expect(view.transform.value.getMaxScaleOnAxis(), closeTo(1.25, .001));
-        await tester.tap(find.byKey(const ValueKey('Palette')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('Déplacer la vue')));
-        await tester.pump();
-        await tester.tap(find.byKey(const ValueKey('Retour à la carte')));
-        await tester.pumpAndSettle();
+        expect(view.scale, closeTo(beforeZoom * 1.25, .001));
+        await chooseMapExtraTool(tester, 'Déplacer la vue');
         final beforePan = view.transform.value.clone();
         await tester.drag(
           find.byKey(const ValueKey('map-viewport')),

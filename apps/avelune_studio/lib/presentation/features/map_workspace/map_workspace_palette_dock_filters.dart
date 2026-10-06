@@ -75,32 +75,40 @@ class _MapWorkspacePaletteDockFiltersState
       child: Row(
         children: [
           Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: StudioButton(
-                    label: 'Toutes',
-                    secondary: widget.selected.isNotEmpty,
-                    onPressed: () => widget.onCategoryChanged(''),
-                  ),
-                ),
-                for (final node in choices)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Tooltip(
-                      message: node.name,
-                      child: StudioButton(
-                        key: ValueKey('resource-quick-${node.id}'),
-                        label: node.name,
-                        secondary: widget.selected != node.id,
-                        onPressed: () => widget.onCategoryChanged(node.id),
+            child: _searchOpen
+                ? StudioSearchField(
+                    controller: widget.search,
+                    focusNode: _searchFocus,
+                    label: 'Rechercher une ressource',
+                    onChanged: (_) => widget.onSearchChanged(),
+                  )
+                : ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: StudioButton(
+                          label: 'Toutes',
+                          secondary: widget.selected.isNotEmpty,
+                          onPressed: () => widget.onCategoryChanged(''),
+                        ),
                       ),
-                    ),
+                      for (final node in choices)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Tooltip(
+                            message: node.name,
+                            child: StudioButton(
+                              key: ValueKey('resource-quick-${node.id}'),
+                              label: node.name,
+                              secondary: widget.selected != node.id,
+                              onPressed: () =>
+                                  widget.onCategoryChanged(node.id),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
           const SizedBox(width: 8),
           MenuAnchor(
@@ -138,18 +146,6 @@ class _MapWorkspacePaletteDockFiltersState
             selected: _searchOpen,
             onPressed: _toggleSearch,
           ),
-          if (_searchOpen) ...[
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 260,
-              child: StudioSearchField(
-                controller: widget.search,
-                focusNode: _searchFocus,
-                label: 'Rechercher une ressource',
-                onChanged: (_) => widget.onSearchChanged(),
-              ),
-            ),
-          ],
         ],
       ),
     );

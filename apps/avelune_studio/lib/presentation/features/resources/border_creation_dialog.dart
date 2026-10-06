@@ -196,7 +196,13 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                   onChanged: (_) => setState(() => _warningCodes = const []),
                 ),
               ),
-              if (_error != null) StudioNotice(_error!, isError: true),
+              if (_error != null)
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: size.height * .2),
+                  child: SingleChildScrollView(
+                    child: StudioNotice(_error!, isError: true),
+                  ),
+                ),
               if (_warningCodes.isNotEmpty)
                 Text(
                   'Raccords à vérifier : ${_warningCodes.map(_warningLabel).join(', ')}.',

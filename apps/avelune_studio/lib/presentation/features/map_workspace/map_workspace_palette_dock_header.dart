@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
 
 class MapWorkspacePaletteDockHeader extends StatelessWidget {
   const MapWorkspacePaletteDockHeader({
@@ -12,10 +12,12 @@ class MapWorkspacePaletteDockHeader extends StatelessWidget {
     required this.onToggle,
     required this.onResize,
     required this.onOpenFullPalette,
+    this.compact = false,
   });
 
   final String kind;
   final bool collapsed;
+  final bool compact;
   final ValueChanged<String> onKindChanged;
   final VoidCallback onToggle;
   final ValueChanged<double> onResize;
@@ -72,16 +74,23 @@ class MapWorkspacePaletteDockHeader extends StatelessWidget {
             ),
           ),
         ),
-        StudioTool(
-          label: 'Palette complète',
-          icon: Icons.open_in_full,
-          onPressed: onOpenFullPalette,
-        ),
+        if (compact)
+          StudioTool(
+            label: 'Bibliothèque',
+            icon: Icons.folder_outlined,
+            onPressed: onOpenFullPalette,
+          )
+        else
+          StudioButton(
+            label: 'Bibliothèque',
+            icon: Icons.folder_outlined,
+            secondary: true,
+            onPressed: onOpenFullPalette,
+          ),
         const SizedBox(width: 8),
-        StudioButton(
+        StudioTool(
           label: collapsed ? 'Déployer' : 'Réduire',
           icon: collapsed ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-          secondary: true,
           onPressed: onToggle,
         ),
       ],

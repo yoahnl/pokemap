@@ -17,6 +17,9 @@ import 'map_decor_transform_draft.dart';
 import 'map_decor_transform_overlay.dart';
 import '../../../features/map_workspace/application/environment_editing_commands.dart';
 import 'map_environment_overlay.dart';
+import 'map_terrain_highlight.dart';
+import 'map_canvas_surface_bounds.dart';
+import '../../theme/studio_tokens.dart';
 
 part 'map_workspace_canvas_gestures.dart';
 part 'map_workspace_canvas_border.dart';

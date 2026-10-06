@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_surface_bounds.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ void main() {
       assignAll(draft);
       final manifest = publishFixture(draft);
       final preset = manifest.smartTileCatalog.presets.single;
-      final source = workspaceMap('a');
+      final source = workspaceMap('a').copyWith(layers: []);
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: source, revision: 'saved', mapId: 'a'),
       );
@@ -74,6 +75,19 @@ void main() {
       await gesture.moveTo(cell(6, 2));
       await tester.pump();
       expect(document.current, source);
+      expect(
+        find.text(
+          'Carte vide · choisissez un terrain ou un décor dans la palette.',
+        ),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<MapCanvasSurfaceBounds>(find.byType(MapCanvasSurfaceBounds))
+            .map
+            .layers,
+        isNotEmpty,
+      );
       final preview = visuals.painted!.layers
           .whereType<SmartTileLayer>()
           .single;

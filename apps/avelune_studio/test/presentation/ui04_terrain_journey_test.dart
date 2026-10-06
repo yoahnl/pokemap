@@ -31,11 +31,21 @@ void main() {
       );
       final dirtyMap = document.current;
       final undoCount = document.undoCount;
-      final transform = tester
-          .widget<InteractiveViewer>(find.byKey(const ValueKey('map-viewport')))
+      await chooseMapExtraTool(tester, 'Déplacer la vue');
+      final viewport = find.byKey(const ValueKey('map-viewport'));
+      final fitted = tester
+          .widget<InteractiveViewer>(viewport)
           .transformationController!
           .value
           .clone();
+      await tester.drag(viewport, const Offset(-60, -40));
+      await tester.pumpAndSettle();
+      final transform = tester
+          .widget<InteractiveViewer>(viewport)
+          .transformationController!
+          .value
+          .clone();
+      expect(transform, isNot(fitted));
       await chooseMapExtraTool(tester, 'Gérer les ressources');
       await pumpIo(tester);
       final n = tester
@@ -176,7 +186,7 @@ void main() {
       final size =
           f.controller.project!.settings.tileWidth *
           f.controller.project!.settings.displayScale *
-          transform.getMaxScaleOnAxis();
+          transform.entry(0, 0).abs();
       await tester.tapAt(canvas + Offset(size * 4.5, size * 4.5));
       await tester.pump();
       expect(document.current, isNot(same(dirtyMap)));

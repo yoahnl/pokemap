@@ -28,7 +28,7 @@ void main() {
             .byKey(const ValueKey('map-library-actions-first-map'))
             .evaluate()
             .isEmpty) {
-          await f.tapKey('Dossiers de cartes');
+          await f.tapKey('Afficher les cartes');
         }
         final before = await f.reopen();
         await f.mapAction('first-map', 'Dupliquer…');

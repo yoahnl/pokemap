@@ -90,6 +90,18 @@ Future<ResourceMutationReceipt> _createBorder(
 
 ResourceFailure _resourceFailure(Object error) {
   if (error is MapAuthoringException &&
+      error.code == 'border.blueprint.publication_invalid') {
+    final diagnostics = error.details['diagnostics'];
+    final messages = diagnostics is List
+        ? diagnostics.whereType<Map>().map(_borderPublicationDiagnostic).toSet()
+        : <String>{};
+    return ResourceFailure(
+      messages.isEmpty
+          ? 'La bordure ne peut pas être publiée. Corrigez les décors sources, puis réassociez-les au patron.'
+          : 'Publication bloquée :\n${messages.join('\n')}',
+    );
+  }
+  if (error is MapAuthoringException &&
       error.code == 'border.blueprint.publication_warnings_unacknowledged') {
     final codes = error.details['unacknowledgedWarningCodes'];
     return ResourceFailure(
@@ -100,6 +112,30 @@ ResourceFailure _resourceFailure(Object error) {
     );
   }
   return ResourceFailure('La ressource n’a pas été publiée : $error');
+}
+
+String _borderPublicationDiagnostic(Map diagnostic) {
+  final parameters = diagnostic['parameters'] is Map
+      ? diagnostic['parameters'] as Map
+      : const <String, Object?>{};
+  final sample = switch (parameters['sampleId']) {
+    'longEdge' => 'Longue portion',
+    'sharpCorner' => 'Angle prononcé',
+    'endpoint' => 'Extrémité',
+    'opening' => 'Ouverture',
+    'sBend' => 'Courbe en S',
+    'closedLoop' => 'Boucle fermée',
+    _ => 'Aperçu de la bordure',
+  };
+  if (diagnostic['code'] == 'border.publication.connected_line_disconnected') {
+    final gap = parameters['longestContiguousGapPx'];
+    final tolerance = parameters['gapTolerancePx'];
+    final measurement = gap is int && tolerance is int
+        ? 'Un vide de $gap px dépasse les $tolerance px tolérés.'
+        : 'Les pièces ne se raccordent pas.';
+    return '$sample : $measurement Réassociez au patron des décors dont les segments et les angles se rejoignent au centre et aux bords de leur cadre.';
+  }
+  return '$sample : corrigez les décors sources, puis réassociez-les au patron et réessayez. Diagnostic : ${diagnostic['code']}.';
 }
 
 Future<String> _stageBorderFrame(

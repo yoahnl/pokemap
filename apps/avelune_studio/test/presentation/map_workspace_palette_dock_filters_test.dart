@@ -184,7 +184,7 @@ void main() {
       2,
       reason: 'Palette utile : ${tester.getSize(find.byType(GridView).first)}',
     );
-    await tester.tap(find.text('Réduire'));
+    await tester.tap(find.byTooltip('Réduire'));
     await tester.pumpAndSettle();
     expect(find.byType(GridView), findsNothing);
     expect(tester.takeException(), isNull);

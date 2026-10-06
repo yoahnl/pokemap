@@ -90,10 +90,6 @@ void main() {
           find.byKey(const ValueKey('character-guide')).hitTestable(),
           findsOneWidget,
         );
-        if (compact) {
-          await tester.tap(find.byTooltip('Retour à la carte'));
-          await tester.pumpAndSettle();
-        }
         MapWorkspaceLayout layout() =>
             tester.widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout));
         final document = controller.active!;
@@ -125,10 +121,6 @@ void main() {
         expect(document.current, same(before));
         expect(view.transform.value, transform);
         expect(document.canUndo, isTrue);
-        if (compact) {
-          await tester.tap(find.byTooltip('Retour à la carte'));
-          await tester.pumpAndSettle();
-        }
         Future<void> clickMap() async {
           final scale = view.transform.value.getMaxScaleOnAxis();
           final settings = controller.project!.settings;
@@ -144,10 +136,10 @@ void main() {
 
         await clickMap();
         expect(document.current, same(before));
-        if (compact) {
-          await tester.tap(find.byTooltip('Palette'));
-          await tester.pumpAndSettle();
-        }
+        expect(
+          find.byKey(const ValueKey('character-guide')).hitTestable(),
+          findsOneWidget,
+        );
         await tester.tap(find.byKey(const ValueKey('character-guide')));
         await tester.pumpAndSettle();
         expect(view.tool, StudioMapTool.character);

@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/resource_stress_fixture.dart';
+import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets(
@@ -109,24 +111,39 @@ void main() {
       }
 
       Future<void> openPalette() async {
-        await tester.tap(find.byTooltip('Palette'));
-        await tester.pumpAndSettle();
+        if (find.byType(MapWorkspacePaletteDock).evaluate().isEmpty) {
+          await tester.tap(find.byTooltip('Palette'));
+          await tester.pumpAndSettle();
+        }
       }
 
       Future<void> closePalette() async {
-        await tester.tap(find.byTooltip('Retour à la carte'));
-        await tester.pumpAndSettle();
+        if (find.byType(MapWorkspacePaletteDock).evaluate().isNotEmpty) {
+          await tester.tap(find.byTooltip('Palette'));
+          await tester.pumpAndSettle();
+        }
+        expect(find.byType(MapWorkspacePaletteDock), findsNothing);
       }
 
       Future<void> chooseTool(String label) async {
         await openPalette();
-        await tester.tap(find.byTooltip(label));
+        await chooseMapExtraTool(tester, label);
         await closePalette();
+      }
+
+      Future<void> choosePalette(String label) async {
+        await openPalette();
+        await tester.tap(find.byTooltip('Changer la palette'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(PopupMenuItem<String>, label));
+        await tester.pump();
       }
 
       await settle();
       await openPalette();
-      await tester.tap(find.text('Décor du pinceau').first);
+      final decorPicker = find.byKey(ValueKey('decor-${decor.id}'));
+      expect(decorPicker.hitTestable(), findsOneWidget);
+      await tester.tap(decorPicker);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
       await chooseTool('Déplacer la vue');
@@ -138,8 +155,8 @@ void main() {
       await chooseTool('Peindre');
       expect(resources.store.priority, contains(stressAtlasId(1)));
       await openPalette();
-      final palette = tester.widget<MapWorkspacePalette>(
-        find.byType(MapWorkspacePalette),
+      final palette = tester.widget<MapWorkspacePaletteDock>(
+        find.byType(MapWorkspacePaletteDock),
       );
       palette.view
         ..brush = null
@@ -153,20 +170,18 @@ void main() {
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(2)));
       expect(resources.store.priority, isNot(contains(stressAtlasId(1))));
-      await openPalette();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(MapWorkspacePalette),
-          matching: find.text('Terrains'),
-        ),
+      await choosePalette('Terrains');
+      final terrainPicker = find.byKey(
+        ValueKey('terrain-${terrain.previewPreset.id}'),
       );
-      await tester.pump();
-      await tester.tap(find.text(terrain.previewPreset.name).first);
+      expect(terrainPicker.hitTestable(), findsOneWidget);
+      await tester.tap(terrainPicker);
       await settle();
       await chooseTool('Déplacer la vue');
       await openPalette();
       await closePalette();
       expect(find.byType(MapWorkspacePalette), findsNothing);
+      expect(find.byType(MapWorkspacePaletteDock), findsNothing);
       expect(resources.store.priority, contains(stressAtlasId(2)));
       await openPalette();
       await closePalette();
@@ -177,10 +192,10 @@ void main() {
         resources.decodedBytes,
         lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
       );
-      await openPalette();
-      await tester.tap(find.text('Personnages').last);
-      await tester.pump();
-      await tester.tap(find.text(character.name).first);
+      await choosePalette('Personnages');
+      final characterPicker = find.byKey(ValueKey('character-${character.id}'));
+      expect(characterPicker.hitTestable(), findsOneWidget);
+      await tester.tap(characterPicker);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
       expect(resources.store.priority, isNot(contains(stressAtlasId(2))));

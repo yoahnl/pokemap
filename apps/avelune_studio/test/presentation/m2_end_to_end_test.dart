@@ -27,9 +27,13 @@ void main() {
     await tester.pumpWidget(f.app(tester));
     await pumpIo(tester);
     final original = f.controller.active!;
-    await tester.tap(find.byTooltip('Palette'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Arbre du jardin').first);
+    await chooseMapExtraTool(tester, 'Décors');
+    final tree = f.controller.project!.elements.singleWhere(
+      (element) => element.name == 'Arbre du jardin',
+    );
+    final treeCard = find.byKey(ValueKey('decor-${tree.id}'));
+    expect(treeCard.hitTestable(), findsOneWidget);
+    await tester.tap(treeCard);
     await tester.pumpAndSettle();
     if (find.byType(Dialog).evaluate().isNotEmpty) {
       await tester.tap(find.byTooltip('Retour à la carte'));
@@ -53,6 +57,8 @@ void main() {
     await tester.tapAt(cell(4, 4));
     await tester.pump();
     expect(original.dirty, isTrue);
+    await tester.tap(find.byKey(const ValueKey('Zoom avant')));
+    await tester.pumpAndSettle();
     final transform = tester
         .widget<InteractiveViewer>(find.byKey(const ValueKey('map-viewport')))
         .transformationController!

@@ -21,6 +21,12 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.resources);
   }
 
+  void _openBorders() {
+    if (_resources == null) return;
+    _resources!.openBorders();
+    _show(WorkspaceSpace.resources);
+  }
+
   void _goHome({bool search = false}) {
     if (_gameExport?.operationActive == true) return;
     if (_presentations?.flushEdits?.call() == false) return;

@@ -84,71 +84,67 @@ void main() {
     timeout: const Timeout(Duration(minutes: 3)),
   );
 
-  testWidgets(
-    'a decor chosen under another one is the one that moves',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final crate = decorAt(f, 'jardin-caisse');
+  testWidgets('a decor chosen under another one is the one that moves', (
+    tester,
+  ) async {
+    final f = await MapHostFixture.open(tester);
+    final crate = decorAt(f, 'jardin-caisse');
 
-      await f.rightClick(12, 6);
-      await tester.tap(f.inMenu('Rocher bleu · Décor'));
-      await pumpFrames(tester);
-      await f.choose('Déplacer');
-      await f.drag(12, 6, 12, 9);
+    await f.rightClick(12, 6);
+    await tester.tap(f.inMenu('Rocher bleu · Décor'));
+    await pumpFrames(tester);
+    await f.choose('Déplacer');
+    await f.drag(12, 6, 12, 9);
 
-      expect(decorAt(f, 'jardin-rocher'), const GridPos(x: 11, y: 8));
-      expect(decorAt(f, 'jardin-caisse'), crate);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(decorAt(f, 'jardin-rocher'), const GridPos(x: 11, y: 8));
+    expect(decorAt(f, 'jardin-caisse'), crate);
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
-  testWidgets(
-    'the move still lands on the right cell after a zoom',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final start = f.transform;
-      await f.zoomAt(6, 5, -80);
-      expect(f.transform, isNot(start), reason: 'the view really zoomed');
+  testWidgets('the move still lands on the right cell after a zoom', (
+    tester,
+  ) async {
+    final f = await MapHostFixture.open(tester);
+    final start = f.transform;
+    await f.zoomAt(6, 5, -80);
+    expect(f.transform, isNot(start), reason: 'the view really zoomed');
 
-      await f.rightClick(5, 4);
-      await f.choose('Déplacer');
-      await f.drag(6, 4, 7, 5);
+    await f.rightClick(5, 4);
+    await f.choose('Déplacer');
+    await f.drag(6, 4, 7, 5);
 
-      expect(decorAt(f, 'jardin-arbre'), const GridPos(x: 6, y: 5));
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(decorAt(f, 'jardin-arbre'), const GridPos(x: 6, y: 5));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
-  testWidgets(
-    'zoom controls and centering preserve the scale below 100 %',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      await tester.tap(find.byKey(const ValueKey('Zoom arrière')));
-      await pumpFrames(tester);
+  testWidgets('zoom controls and centering preserve the scale below 100 %', (
+    tester,
+  ) async {
+    final f = await MapHostFixture.open(tester);
+    final initialScale = f.transform.entry(0, 0);
+    await tester.tap(find.byKey(const ValueKey('Zoom arrière')));
+    await pumpFrames(tester);
 
-      expect(f.transform.entry(0, 0), closeTo(.8, .001));
-      expect(find.text('80 %'), findsOneWidget);
+    final zoomedScale = initialScale * .8;
+    expect(f.transform.entry(0, 0), closeTo(zoomedScale, .001));
+    expect(find.text('${(zoomedScale * 100).round()} %'), findsOneWidget);
 
-      final view = tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
-          .view;
-      view.centerCell(
-        const GridPos(x: 6, y: 5),
-        const Size(900, 600),
-        const Size(32, 32),
-      );
-      await pumpFrames(tester);
-      expect(f.transform.entry(0, 0), closeTo(.8, .001));
-      expect(find.text('80 %'), findsOneWidget);
+    final view = tester
+        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .view;
+    view.centerCell(
+      const GridPos(x: 6, y: 5),
+      const Size(900, 600),
+      const Size(32, 32),
+    );
+    await pumpFrames(tester);
+    expect(f.transform.entry(0, 0), closeTo(zoomedScale, .001));
+    expect(find.text('${(zoomedScale * 100).round()} %'), findsOneWidget);
 
-      view.transform.value = Matrix4.identity()..scaleByDouble(.1, .1, 1, 1);
-      await pumpFrames(tester);
-      await tester.tap(find.byKey(const ValueKey('Zoom avant')));
-      await pumpFrames(tester);
-      expect(f.transform.entry(0, 0), closeTo(.125, .001));
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    view.transform.value = Matrix4.identity()..scaleByDouble(.1, .1, 1, 1);
+    await pumpFrames(tester);
+    await tester.tap(find.byKey(const ValueKey('Zoom avant')));
+    await pumpFrames(tester);
+    expect(f.transform.entry(0, 0), closeTo(.125, .001));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets(
     'placing and moving outside the map explain the refusal without losing history',
@@ -193,29 +189,27 @@ void main() {
     timeout: const Timeout(Duration(minutes: 3)),
   );
 
-  testWidgets(
-    'Escape during the preview cancels the move without a mutation',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final before = f.document.current;
-      final steps = f.document.undoCount;
+  testWidgets('Escape during the preview cancels the move without a mutation', (
+    tester,
+  ) async {
+    final f = await MapHostFixture.open(tester);
+    final before = f.document.current;
+    final steps = f.document.undoCount;
 
-      await f.rightClick(5, 4);
-      await f.choose('Déplacer');
-      final gesture = await f.press(5, 5);
-      await gesture.moveTo(f.cellAt(8, 7));
-      await tester.pump();
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await pumpFrames(tester);
-      await gesture.up();
-      await pumpFrames(tester);
+    await f.rightClick(5, 4);
+    await f.choose('Déplacer');
+    final gesture = await f.press(5, 5);
+    await gesture.moveTo(f.cellAt(8, 7));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await pumpFrames(tester);
+    await gesture.up();
+    await pumpFrames(tester);
 
-      expect(f.document.current, before);
-      expect(f.document.undoCount, steps);
-      expect(hint, findsNothing);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(f.document.current, before);
+    expect(f.document.undoCount, steps);
+    expect(hint, findsNothing);
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets(
     'Escape during an armed story zone preview leaves the zone in place',

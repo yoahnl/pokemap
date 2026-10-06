@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -59,16 +60,11 @@ void main() {
   Offset cell(WidgetTester tester, int x, int y) =>
       tester.getTopLeft(find.byKey(const ValueKey('map-canvas'))) +
       Offset(x * 32 + 8, y * 32 + 8);
-
   Future<void> place(WidgetTester tester, int x, int y) async {
-    await tester.tap(find.byTooltip('Palette'));
+    final brush = find.byKey(const ValueKey('decor-tree'));
+    expect(brush.hitTestable(), findsOneWidget);
+    await tester.tap(brush);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Arbre').first);
-    await tester.pumpAndSettle();
-    if (find.byType(Dialog).evaluate().isNotEmpty) {
-      await tester.tap(find.byTooltip('Retour à la carte'));
-      await tester.pumpAndSettle();
-    }
     await tester.tapAt(cell(tester, x, y));
     await tester.pumpAndSettle();
   }
@@ -116,10 +112,14 @@ void main() {
       await tester.tapAt(cell(tester, 3, 3));
       await tester.pumpAndSettle();
       expect(document.selectedId, second);
-      final stackChoices = find.text('Arbre');
+      await tester.tap(find.text('Ordre'));
+      await tester.pumpAndSettle();
+      final stackChoices = find.widgetWithText(StudioChoice, 'Arbre');
       await tester.tap(stackChoices.last);
       await tester.pumpAndSettle();
       expect(document.selectedId, first);
+      await tester.tap(find.text('Propriétés'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('Passer devant')));
       await tester.pumpAndSettle();
       expect(
@@ -192,7 +192,7 @@ void main() {
       await open(tester);
       await place(tester, 2, 2);
       final document = controller.active!;
-      await tester.tap(find.byTooltip('Palette'));
+      await tester.tap(find.byTooltip('Changer la palette'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tuiles'));
       await tester.pumpAndSettle();

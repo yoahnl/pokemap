@@ -203,7 +203,7 @@ class BorderPatternPanel extends StatelessWidget {
       const SizedBox(height: 8),
       Text(
         chosen.length == 3
-            ? 'Les trois pièces sont prêtes pour la validation canonique.'
+            ? 'Associations complètes. Les raccords restent à valider avant publication.'
             : 'Les pièces manquantes restent visibles avant publication.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
