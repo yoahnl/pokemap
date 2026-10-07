@@ -10,6 +10,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
     final selected = state.reconcileSelection(filtered);
     final regular =
         state.family != ResourceLibraryFamily.borders &&
+        state.family != ResourceLibraryFamily.models3d &&
         state.family != ResourceLibraryFamily.environments;
     final hasCategories =
         regular && (tree.nodes.isNotEmpty || tree.uncategorized > 0);
@@ -63,6 +64,12 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                 child:
                     widget.environmentLibrary ??
                     const Center(child: Text('Aucun environnement préparé.')),
+              ),
+            if (state.family == ResourceLibraryFamily.models3d)
+              Expanded(
+                child:
+                    widget.modelLibrary ??
+                    const Center(child: Text('Bibliothèque 3D indisponible.')),
               ),
             if (regular)
               Padding(

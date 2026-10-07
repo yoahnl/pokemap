@@ -608,7 +608,13 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Tileset',
         summary: 'Project tileset referenced by canonical mutations',
       ),
+      AuthoringResourceKindDescriptor(
+          id: 'model3d',
+          version: 1,
+          displayName: '3D model',
+          summary: 'Inspected project-owned GLB model and authoring transform'),
     ], queryableResourceKindIds: const {
+      'model3d',
       'asset',
       'resourceUsage',
       'borderBlueprint',

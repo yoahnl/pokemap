@@ -1,3 +1,4 @@
+import '../domains/maps/spatial_map_actions.dart';
 import 'dart:async';
 
 import 'package:map_distribution/map_distribution.dart';
@@ -7,6 +8,7 @@ import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/project/runtime_audio_actions.dart';
 import '../domains/assets/asset_actions.dart';
+import '../domains/assets/model3d_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
@@ -182,6 +184,8 @@ final class MapMutationDispatcher {
     const storylines = StorylineActions();
     const railJourneys = RailJourneyActions();
     return MapMutationDispatcher([
+      for (final descriptor in SpatialMapActions.descriptors)
+        MapMutationActionRegistration(descriptor: descriptor, build: const SpatialMapActions().build),
       for (final descriptor in RegionalMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const RegionalMapActions().build),
@@ -260,6 +264,13 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: warpConnection.build,
         ),
+      for (final descriptor in Model3dActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor,
+            build: Model3dActions(
+                    artifactStore: artifacts,
+                    retainedBlobReader: retainedAssetBlobReader)
+                .build),
       for (final descriptor in AssetActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

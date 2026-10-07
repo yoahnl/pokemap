@@ -773,6 +773,7 @@ final Set<String> _approvedResourceKinds = {
   'mapPlacedElement',
   'mapEntity',
   'mapEvent',
+  'model3d',
   'tilesetFolder',
   'tileset',
   'tilesetElementGroup',

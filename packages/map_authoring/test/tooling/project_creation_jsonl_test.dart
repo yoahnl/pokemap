@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -41,6 +42,84 @@ void main() {
         'mapWidth': 24,
         'mapHeight': 18
       };
+
+  test(
+      'JSONL creates an exclusive empty 3D project and binds camera to confirmation',
+      () async {
+    final host = worker();
+    final args = {
+      ...request(),
+      'dimension': 'threeD',
+      'template': 'empty',
+      'spatialCamera': SpatialCameraProfile(distance: 55).toJson()
+    };
+    final described = await _request(host, 'describe', {});
+    expect(jsonEncode(described.toJson()).contains('threeD'), isTrue);
+    final preview =
+        await _request(host, 'project_create_preview', {'request': args});
+    expect(preview.status, AuthoringResultStatus.success,
+        reason: preview.toJson().toString());
+    expect(preview.data['writes'], ['project.json', 'maps/first-map.json']);
+    expect(await root.list().toList(), isEmpty);
+    final mismatch = await _request(host, 'project_create', {
+      'request': {
+        ...args,
+        'spatialCamera': SpatialCameraProfile(distance: 60).toJson()
+      },
+      'confirmation': preview.data['confirmation']
+    });
+    expect(mismatch.status, AuthoringResultStatus.failure);
+    final result = await _request(host, 'project_create',
+        {'request': args, 'confirmation': preview.data['confirmation']});
+    expect(result.status, AuthoringResultStatus.success,
+        reason: result.toJson().toString());
+    final projectRoot = result.data['projectPath'] as String;
+    final manifest = ProjectManifest.fromJson(jsonDecode(
+            await File(p.join(projectRoot, 'project.json')).readAsString())
+        as Map<String, dynamic>);
+    final map = MapData.fromJson(jsonDecode(
+        await File(p.join(projectRoot, 'maps/first-map.json'))
+            .readAsString()) as Map<String, dynamic>);
+    expect(manifest.version, ProjectVersion.v9);
+    expect(manifest.settings.dimension, ProjectDimension.threeD);
+    expect(manifest.tilesets, isEmpty);
+    expect(manifest.characters, isEmpty);
+    expect(map.spatialScene!.camera.distance, 55);
+    expect(map.spatialScene!.heightLevels.every((level) => level == 0), isTrue);
+    expect(map.layers, isEmpty);
+    expect(await Directory(p.join(projectRoot, 'assets')).exists(), isFalse);
+    final opened = await _request(host, 'open', {'projectRoot': projectRoot});
+    expect(opened.status, AuthoringResultStatus.success);
+    for (final mode in GamePackageExportMode.values) {
+      await expectLater(
+          const CanonicalGamePackageExportService().build(
+              projectRoot: Directory(projectRoot),
+              profile: GamePackageExportProfile(
+                  gameId: 'games.test.spatial',
+                  gameVersion: '1.0.0',
+                  title: '3D',
+                  authorName: 'Test',
+                  defaultLocale: 'fr',
+                  supportedLocales: ['fr']),
+              mode: mode),
+          throwsA(isA<GamePackageExportException>()
+              .having((e) => e.code, 'code', 'runtime3d.unsupported')));
+    }
+  });
+
+  test('3D creation rejects 2D kits and 2D creation rejects a spatial camera',
+      () async {
+    final host = worker();
+    for (final args in [
+      {...request(), 'dimension': 'threeD'},
+      {...request(), 'spatialCamera': SpatialCameraProfile().toJson()}
+    ]) {
+      final result =
+          await _request(host, 'project_create_preview', {'request': args});
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(await root.list().toList(), isEmpty);
+    }
+  });
 
   test(
       'JSONL preview is read-only and exact confirmation creates reopenable grid',

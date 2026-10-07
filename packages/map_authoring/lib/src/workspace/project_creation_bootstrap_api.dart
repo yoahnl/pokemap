@@ -1,3 +1,4 @@
+import 'package:map_core/map_core_domain.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/json_contract_support.dart';
@@ -40,24 +41,26 @@ final class ProjectCreationBootstrapApi
       'confirmation': token.wireValue,
       'undoable': false,
       'replacesExisting': false,
-      'writes': prepared.request.template == ProjectCreationTemplate.empty
-          ? ['project.json']
-          : prepared.request.template == ProjectCreationTemplate.clairbois
-              ? [
-                  'project.json',
-                  'maps/first-map.json',
-                  'maps/maison.json',
-                  'dialogues/bienvenue.yarn',
-                  'assets/**',
-                  'asset-provenance.json'
-                ]
-              : [
-                  'project.json',
-                  'maps/first-map.json',
-                  'assets/starter.png',
-                  'assets/.pokemap-assets.json',
-                  'assets/.pokemap-store/<sha256>.blob'
-                ],
+      'writes': prepared.request.dimension == ProjectDimension.threeD
+          ? ['project.json', 'maps/first-map.json']
+          : prepared.request.template == ProjectCreationTemplate.empty
+              ? ['project.json']
+              : prepared.request.template == ProjectCreationTemplate.clairbois
+                  ? [
+                      'project.json',
+                      'maps/first-map.json',
+                      'maps/maison.json',
+                      'dialogues/bienvenue.yarn',
+                      'assets/**',
+                      'asset-provenance.json'
+                    ]
+                  : [
+                      'project.json',
+                      'maps/first-map.json',
+                      'assets/starter.png',
+                      'assets/.pokemap-assets.json',
+                      'assets/.pokemap-store/<sha256>.blob'
+                    ],
       'guarantee':
           'Exclusive new directory; journaled file promotion, not atomic multi-file visibility. Creation is not undoable.',
     };
@@ -93,7 +96,9 @@ final class ProjectCreationBootstrapApi
       'template',
       'tileSize',
       'mapWidth',
-      'mapHeight'
+      'mapHeight',
+      'dimension',
+      'spatialCamera'
     });
     final request = ProjectCreationRequest(
       name: _string(wire['name']),
@@ -105,6 +110,15 @@ final class ProjectCreationBootstrapApi
         'clairbois' => ProjectCreationTemplate.clairbois,
         _ => throw const FormatException('Invalid project template.')
       },
+      dimension: switch (wire['dimension']) {
+        null || 'twoD' => ProjectDimension.twoD,
+        'threeD' => ProjectDimension.threeD,
+        _ => throw const FormatException('Invalid project dimension.')
+      },
+      spatialCamera: wire['spatialCamera'] == null
+          ? null
+          : SpatialCameraProfile.fromJson(
+              Map<String, dynamic>.from(wire['spatialCamera'] as Map)),
       tileSize:
           _integer(wire['tileSize'], wire['template'] == 'clairbois' ? 32 : 16),
       mapWidth:
@@ -120,6 +134,8 @@ final class ProjectCreationBootstrapApi
         folderName: request.folderName,
         parentPath: canonicalParent,
         template: request.template,
+        dimension: request.dimension,
+        spatialCamera: request.spatialCamera,
         tileSize: request.tileSize,
         mapWidth: request.mapWidth,
         mapHeight: request.mapHeight);
@@ -133,6 +149,9 @@ final class ProjectCreationBootstrapApi
       'folderName': request.folderName,
       'parentPath': request.parentPath,
       'template': request.template.name,
+      'dimension': request.dimension.name,
+      if (request.spatialCamera != null)
+        'spatialCamera': request.spatialCamera!.toJson(),
       'tileSize': request.tileSize,
       'mapWidth': request.mapWidth,
       'mapHeight': request.mapHeight,

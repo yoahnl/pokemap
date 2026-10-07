@@ -509,6 +509,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('map3d.')) {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
+    };
+  }
+  if (actionId.startsWith('model3d.')) {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/assets/model3d_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/assets/model3d_actions_test.dart',
+    };
+  }
   if (const {
     'tileset.source.replace',
     'tileset.remove',
@@ -1317,6 +1329,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/character_studio_asset_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['map3d.'],
+    'test/domains/maps/spatial_map_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['model3d.'],
+    'test/domains/assets/model3d_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['asset.'],
     'test/domains/assets/asset_security_test.dart',
   ),
@@ -1434,6 +1454,7 @@ const _semanticOwners = <String, String>{
   'mapPlacedElement': 'map',
   'mapEntity': 'map',
   'mapEvent': 'map',
+  'model3d': 'project',
   'tilesetFolder': 'project',
   'tileset': 'project',
   'tilesetElementGroup': 'project',

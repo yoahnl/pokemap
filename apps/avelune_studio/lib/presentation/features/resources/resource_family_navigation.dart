@@ -10,6 +10,7 @@ extension ResourceLibraryFamilyLabels on ResourceLibraryFamily {
     ResourceLibraryFamily.borders => 'Bordures',
     ResourceLibraryFamily.environments => 'Environnements',
     ResourceLibraryFamily.images => 'Images et tuiles',
+    ResourceLibraryFamily.models3d => 'Modèles 3D',
   };
 
   String get purpose => switch (this) {
@@ -18,6 +19,7 @@ extension ResourceLibraryFamilyLabels on ResourceLibraryFamily {
     ResourceLibraryFamily.borders => 'Tracer un contour',
     ResourceLibraryFamily.environments => 'Répartir des décors',
     ResourceLibraryFamily.images => 'Découper une planche',
+    ResourceLibraryFamily.models3d => 'Préparer un objet en volume',
   };
 
   IconData get icon => switch (this) {
@@ -26,6 +28,7 @@ extension ResourceLibraryFamilyLabels on ResourceLibraryFamily {
     ResourceLibraryFamily.borders => Icons.timeline,
     ResourceLibraryFamily.environments => Icons.forest_outlined,
     ResourceLibraryFamily.images => Icons.image_outlined,
+    ResourceLibraryFamily.models3d => Icons.view_in_ar_outlined,
   };
 }
 

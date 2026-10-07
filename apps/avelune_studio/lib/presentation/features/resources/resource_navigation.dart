@@ -77,6 +77,19 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   final environments = <String, EnvironmentDraft>{};
   Future<void> Function(EnvironmentPreset)? drawEnvironment;
   bool busy = false;
+  String? modelRemovalProblem(String modelId) {
+    final owners = workspace.documents.values.where(
+      (document) =>
+          document.current.spatialScene?.instances.any(
+            (instance) => instance.modelId == modelId,
+          ) ??
+          false,
+    );
+    return owners.isEmpty
+        ? null
+        : 'Ce modèle est encore utilisé dans une carte ouverte : ${owners.map((document) => document.current.name).join(', ')}.';
+  }
+
   @override
   String? error;
   @override

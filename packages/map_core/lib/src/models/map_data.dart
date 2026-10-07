@@ -11,6 +11,7 @@ import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
 import 'map_visual_stack_config.dart';
+import 'map_spatial_scene.dart';
 import 'smart_tile_gameplay_zone_provenance.dart';
 
 import '../compatibility/environment_single_area_migration.dart';
@@ -26,6 +27,7 @@ abstract class MapData with _$MapData {
     required String name,
     required GridSize size,
     @Default(ProjectVersion.v8) ProjectVersion version,
+    @JsonKey(includeIfNull: false) MapSpatialScene? spatialScene,
     @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
@@ -44,6 +46,14 @@ abstract class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
+    if (json['version'] == 'v9') {
+      final map = _$MapDataFromJson(json);
+      validateSpatialMapStructure(map);
+      return map;
+    }
+    if (json.containsKey('spatialScene')) {
+      throw const FormatException('Spatial scenes require map version v9.');
+    }
     _preflightSmartTileMapJson(json);
     final canonical = migrateEnvironmentSingleAreaMapJson(
       _migrateLegacyTileLayers(json),
@@ -73,6 +83,16 @@ abstract class MapData with _$MapData {
       }
     }
     return map;
+  }
+}
+
+void validateSpatialMapStructure(MapData map) {
+  final scene = map.spatialScene;
+  if (map.version != ProjectVersion.v9 || scene == null ||
+      scene.width != map.size.width || scene.depth != map.size.height ||
+      map.layers.isNotEmpty || map.placedElements.isNotEmpty ||
+      map.tilesetId.isNotEmpty || map.visualStack != null) {
+    throw const FormatException('A v9 map requires a 3D scene and cannot contain 2D terrain or placements.');
   }
 }
 

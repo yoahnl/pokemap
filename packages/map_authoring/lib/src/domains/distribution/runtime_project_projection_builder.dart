@@ -163,6 +163,13 @@ final class RuntimeProjectProjectionBuilder {
     final authorProject = ProjectManifest.fromJson(
       (projectScrub.value as Map).cast<String, dynamic>(),
     );
+    if (authorProject.settings.dimension == ProjectDimension.threeD) {
+      throw const GamePackageExportException(
+        code: 'runtime3d.unsupported',
+        path: 'project.json',
+        message: '3D projects are supported by the editor only; the 3D runtime is not supported yet.',
+      );
+    }
     final regionalMapTargets = {
       for (final point in authorProject.regionalMap?.pointsOfInterest ??
           const <ProjectRegionPointOfInterest>[])

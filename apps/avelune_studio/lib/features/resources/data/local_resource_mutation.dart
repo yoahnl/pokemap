@@ -5,6 +5,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     String actionId,
     Map<String, Object?> Function(ProjectManifest manifest) parameters, {
     String? sourcePath,
+    String sourceMediaType = 'image/png',
     String? createdTilesetId,
     List<BorderResourcePrimitive>? borderSources,
     String? expectedBeforeRevision,
@@ -68,7 +69,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           await artifacts.authorizeSourceFile(sourcePath);
           final staged = await api.stageArtifactFile(
             sourcePath: sourcePath,
-            declaredMediaType: 'image/png',
+            declaredMediaType: sourceMediaType,
           );
           artifactHandle = staged.reference.handle;
           stagedHandles.add(artifactHandle);

@@ -47,6 +47,11 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 
   Future<PlayableMapGame> _load() async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
+    if (document.map.spatialScene != null) {
+      throw StateError(
+        'Les cartes 3D sont éditables et enregistrables. Le test jouable 3D sera disponible avec la prochaine intégration du runtime.',
+      );
+    }
     if (document.revision != widget.expectedRevision) {
       throw StateError(
         'La carte a changé sur disque. Revenez et rechargez-la.',

@@ -19,6 +19,8 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
                 'Composez une palette de décors à répartir dans une zone.',
               ResourceLibraryFamily.images =>
                 'Importez et organisez les planches sources de vos ressources.',
+              ResourceLibraryFamily.models3d =>
+                'Importez vos modèles, vérifiez leur taille et explorez leurs animations.',
             },
       actions: compact
           ? [
@@ -54,6 +56,7 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
     return [
       if (widget.onManageContainers != null &&
           state.family != ResourceLibraryFamily.borders &&
+          state.family != ResourceLibraryFamily.models3d &&
           state.family != ResourceLibraryFamily.environments)
         StudioButton(
           key: const ValueKey('resource-manage-containers'),
@@ -80,6 +83,7 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
           ResourceLibraryFamily.borders => 'Créer une bordure',
           ResourceLibraryFamily.environments => 'Créer un environnement',
           ResourceLibraryFamily.images => 'Importer une image',
+          ResourceLibraryFamily.models3d => 'Importer un modèle GLB',
         },
         icon: Icons.add,
         onPressed: switch (state.family) {
@@ -110,6 +114,10 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
                 ? null
                 : () => run(widget.onCreateEnvironment!),
           ResourceLibraryFamily.images => () => run(widget.onImport),
+          ResourceLibraryFamily.models3d =>
+            widget.onImportModel == null
+                ? null
+                : () => run(widget.onImportModel!),
         },
       ),
     ];

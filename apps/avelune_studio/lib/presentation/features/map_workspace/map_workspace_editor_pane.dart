@@ -10,6 +10,7 @@ import 'map_workspace_palette_dock.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'spatial_map_editor.dart';
 import 'map_border_tool_panel.dart';
 import 'map_environment_tool_panel.dart';
 import 'map_terrain_tool_panel.dart';
@@ -70,6 +71,26 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
       final collapsed = widget.view.navigatorCollapsed || compact;
+      if (widget.document.current.spatialScene != null) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.showNavigator)
+              collapsed ? _navigatorRail(context) : _navigator(context),
+            Expanded(
+              child: SpatialMapEditor(
+                key: ValueKey(widget.document.base.mapId),
+                document: widget.document,
+                controller: widget.controller,
+                project: widget.project,
+                visuals: widget.visuals,
+                onChanged: widget.onChanged,
+                onResources: widget.onResources,
+              ),
+            ),
+          ],
+        );
+      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

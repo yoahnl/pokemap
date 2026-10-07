@@ -13,6 +13,9 @@ _MapData _$MapDataFromJson(Map<String, dynamic> json) => _MapData(
   version:
       $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
       ProjectVersion.v8,
+  spatialScene: json['spatialScene'] == null
+      ? null
+      : MapSpatialScene.fromJson(json['spatialScene'] as Map<String, dynamic>),
   visualStack: json['visualStack'] == null
       ? null
       : MapVisualStackConfig.fromJson(
@@ -70,6 +73,7 @@ Map<String, dynamic> _$MapDataToJson(_MapData instance) => <String, dynamic>{
   'name': instance.name,
   'size': instance.size.toJson(),
   'version': _$ProjectVersionEnumMap[instance.version]!,
+  'spatialScene': ?instance.spatialScene?.toJson(),
   'visualStack': ?instance.visualStack?.toJson(),
   'tilesetId': instance.tilesetId,
   'layers': instance.layers.map((e) => e.toJson()).toList(),
@@ -93,6 +97,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v6: 'v6',
   ProjectVersion.v7: 'v7',
   ProjectVersion.v8: 'v8',
+  ProjectVersion.v9: 'v9',
 };
 
 _MapGameplayZone _$MapGameplayZoneFromJson(

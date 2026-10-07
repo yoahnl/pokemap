@@ -29,6 +29,11 @@ _ProjectManifest _$ProjectManifestFromJson(
   tilesets: (json['tilesets'] as List<dynamic>)
       .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
       .toList(),
+  models3d:
+      (json['models3d'] as List<dynamic>?)
+          ?.map((e) => ProjectModel3dEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
   elementCategories:
       (json['elementCategories'] as List<dynamic>?)
           ?.map(
@@ -196,6 +201,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'groups': instance.groups.map((e) => e.toJson()).toList(),
   'tilesetFolders': instance.tilesetFolders.map((e) => e.toJson()).toList(),
   'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
+  'models3d': instance.models3d.map((e) => e.toJson()).toList(),
   'elementCategories': instance.elementCategories
       .map((e) => e.toJson())
       .toList(),
@@ -258,6 +264,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v6: 'v6',
   ProjectVersion.v7: 'v7',
   ProjectVersion.v8: 'v8',
+  ProjectVersion.v9: 'v9',
 };
 
 _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
@@ -294,6 +301,14 @@ Map<String, dynamic> _$ProjectPokemonConfigToJson(
 
 _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
     _ProjectSettings(
+      dimension:
+          $enumDecodeNullable(_$ProjectDimensionEnumMap, json['dimension']) ??
+          ProjectDimension.twoD,
+      spatialCamera: json['spatialCamera'] == null
+          ? null
+          : SpatialCameraProfile.fromJson(
+              json['spatialCamera'] as Map<String, dynamic>,
+            ),
       tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
       tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
@@ -307,6 +322,8 @@ _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ProjectSettingsToJson(_ProjectSettings instance) =>
     <String, dynamic>{
+      'dimension': _$ProjectDimensionEnumMap[instance.dimension]!,
+      'spatialCamera': ?instance.spatialCamera?.toJson(),
       'tileWidth': instance.tileWidth,
       'tileHeight': instance.tileHeight,
       'displayScale': instance.displayScale,
@@ -315,6 +332,11 @@ Map<String, dynamic> _$ProjectSettingsToJson(_ProjectSettings instance) =>
       'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
       'mistralApiKey': ?instance.mistralApiKey,
     };
+
+const _$ProjectDimensionEnumMap = {
+  ProjectDimension.twoD: 'twoD',
+  ProjectDimension.threeD: 'threeD',
+};
 
 _ProjectMapGroup _$ProjectMapGroupFromJson(Map<String, dynamic> json) =>
     _ProjectMapGroup(

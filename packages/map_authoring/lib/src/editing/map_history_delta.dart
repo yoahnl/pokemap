@@ -17,6 +17,7 @@ final class MapHistoryDelta {
     required _ValueDelta<GridSize>? size,
     required _ValueDelta<ProjectVersion>? version,
     required _ValueDelta<MapVisualStackConfig?>? visualStack,
+    required _ValueDelta<MapSpatialScene?>? spatialScene,
     required _ValueDelta<String>? tilesetId,
     required _MapLayersDelta? layers,
     required _ReversibleListDelta<MapPlacedElement>? placedElements,
@@ -33,6 +34,7 @@ final class MapHistoryDelta {
        _size = size,
        _version = version,
        _visualStack = visualStack,
+       _spatialScene = spatialScene,
        _tilesetId = tilesetId,
        _layers = layers,
        _placedElements = placedElements,
@@ -52,6 +54,7 @@ final class MapHistoryDelta {
       size: _valueDelta(before.size, after.size),
       version: _valueDelta(before.version, after.version),
       visualStack: _valueDelta(before.visualStack, after.visualStack),
+      spatialScene: _valueDelta(before.spatialScene, after.spatialScene),
       tilesetId: _valueDelta(before.tilesetId, after.tilesetId),
       layers: _MapLayersDelta.between(before.layers, after.layers),
       placedElements: _listDelta(before.placedElements, after.placedElements),
@@ -71,6 +74,7 @@ final class MapHistoryDelta {
   final _ValueDelta<GridSize>? _size;
   final _ValueDelta<ProjectVersion>? _version;
   final _ValueDelta<MapVisualStackConfig?>? _visualStack;
+  final _ValueDelta<MapSpatialScene?>? _spatialScene;
   final _ValueDelta<String>? _tilesetId;
   final _MapLayersDelta? _layers;
   final _ReversibleListDelta<MapPlacedElement>? _placedElements;
@@ -91,6 +95,7 @@ final class MapHistoryDelta {
       _changed(_size) +
       _changed(_version) +
       _changed(_visualStack) +
+      _changed(_spatialScene) +
       _changed(_tilesetId) +
       (_layers?.changedValueCount ?? 0) +
       (_placedElements?.changedValueCount ?? 0) +
@@ -109,6 +114,7 @@ final class MapHistoryDelta {
       _retained(_size) +
       _retained(_version) +
       _retained(_visualStack) +
+      _retained(_spatialScene) +
       _retained(_tilesetId) +
       (_layers?.retainedBytes ?? 0) +
       (_placedElements?.retainedBytes ?? 0) +
@@ -147,6 +153,11 @@ final class MapHistoryDelta {
     if (_visualStack case final delta?) {
       result = result.copyWith(
         visualStack: delta.apply(result.visualStack, direction),
+      );
+    }
+    if (_spatialScene case final delta?) {
+      result = result.copyWith(
+        spatialScene: delta.apply(result.spatialScene, direction),
       );
     }
     if (_tilesetId case final delta?) {

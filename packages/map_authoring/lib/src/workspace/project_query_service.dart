@@ -657,6 +657,13 @@ List<_QueryRecord> _records(
   AuthoringQueryRequest request,
 ) {
   switch (request.resourceKind) {
+    case 'model3d':
+      return [
+        for (final model in snapshot.manifest.models3d)
+          _QueryRecord(
+              summary: {...model.toJson(), 'resourceKind': 'model3d'},
+              detail: {...model.toJson(), 'resourceKind': 'model3d'})
+      ];
     case 'resourceUsage':
       return [
         for (final identity in request.ids)

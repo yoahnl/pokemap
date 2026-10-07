@@ -11,6 +11,14 @@ const requestSchema = z.object({
   folderName: z.string().min(1),
   parentPath: z.string().min(1).refine(isAbsolute, "parentPath must be absolute"),
   template: z.enum(["empty", "playable", "clairbois"]).optional(),
+  dimension: z.enum(["twoD", "threeD"]).optional(),
+  spatialCamera: z.object({
+    mode: z.literal("fixed"),
+    pitchDegrees: z.number().finite().gt(0).lt(90),
+    yawDegrees: z.number().finite(),
+    fieldOfViewDegrees: z.number().finite().gt(1).lt(120),
+    distance: z.number().finite().gt(0).max(10000),
+  }).strict().optional(),
   tileSize: z.union([z.literal(16), z.literal(32), z.literal(48)]).optional(),
   mapWidth: z.number().int().min(3).max(256).optional(),
   mapHeight: z.number().int().min(3).max(256).optional(),
@@ -22,7 +30,7 @@ export function registerProjectCreationTools(
 ): void {
   server.registerTool("pokemap_project_create_preview", {
     title: "Preview a new Avelune project",
-    description: "Preview a new empty, built-in playable, or GitHub Clairbois 32x32 project under a configured parent root. Writes nothing; returns an opaque confirmation bound to this exact request and destination.",
+    description: "Preview a new exclusively 2D or 3D project under a configured parent root. 3D uses the empty template with an initial spatial map and fixed camera; 2D also supports playable or Clairbois templates. Writes nothing; returns confirmation bound to the exact request and destination.",
     inputSchema: z.object({ request: requestSchema }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: {

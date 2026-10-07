@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -24,6 +26,10 @@ abstract interface class MapWorkspaceVisuals implements Listenable {
 
 abstract interface class MapWorkspacePreviewVisuals {
   Widget previewCanvas(MapData map);
+}
+
+abstract interface class SpatialWorkspaceVisuals {
+  Future<Uint8List> readModel(String modelId);
 }
 
 typedef LoadWorkspaceVisuals =

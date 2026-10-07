@@ -12,6 +12,7 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/resource_port.dart';
+import '../domain/model_resource_port.dart';
 import '../domain/resource_mutation_preparation.dart';
 import '../domain/resource_lifecycle_port.dart';
 import '../domain/resource_usage_port.dart';
@@ -32,6 +33,7 @@ part 'local_character_removal_adapter.dart';
 final class LocalResourceAdapter
     implements
         ResourcePort,
+        ModelResourcePort,
         ResourceMutationPreparationPort,
         ResourceLifecyclePreparationPort,
         ResourceUsageProvider {
@@ -56,6 +58,9 @@ final class LocalResourceAdapter
   );
 
   static final _actions = {
+    'model3d.import',
+    'model3d.configure',
+    'model3d.delete',
     'asset.move',
     'asset.delete',
     'asset.replace',
@@ -113,6 +118,38 @@ final class LocalResourceAdapter
   @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>
       _importResourceImage(this, request);
+
+  @override
+  Future<ResourceMutationReceipt> importModel({
+    required String sourcePath,
+    required String name,
+  }) => _run(
+    'model3d.import',
+    (_) => {'modelId': _identity('model'), 'name': name.trim()},
+    sourcePath: sourcePath,
+    sourceMediaType: 'model/gltf-binary',
+  );
+
+  @override
+  Future<ResourceMutationReceipt> deleteModel(String modelId) => _run(
+    'model3d.delete',
+    (_) => {'modelId': modelId},
+    confirmDestructive: true,
+  );
+
+  @override
+  Future<Uint8List> readModel(String modelId) =>
+      _readResourceSnapshot(this, (snapshot, _) async {
+        final model = snapshot.manifest.models3d
+            .where((entry) => entry.id == modelId)
+            .firstOrNull;
+        if (model == null) throw const ResourceFailure('Modèle introuvable.');
+        final bytes = await const LocalProjectFileReader().readBytes(
+          projectRoot: session.directoryPath,
+          relativePath: model.relativePath,
+        );
+        return Uint8List.fromList(bytes);
+      });
 
   @override
   Future<ResourceMutationReceipt> mutate(

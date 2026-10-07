@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 import '../../../features/project_creation/application/project_creation_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -19,7 +20,14 @@ class ProjectCreationPreview extends StatelessWidget {
         child: controller.previewLoading
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
             : controller.previewBytes == null
-            ? const Center(child: Icon(Icons.grid_on_outlined, size: 54))
+            ? Center(
+                child: Icon(
+                  controller.dimension == ProjectDimension.threeD
+                      ? Icons.view_in_ar
+                      : Icons.grid_on_outlined,
+                  size: 54,
+                ),
+              )
             : Image.memory(
                 Uint8List.fromList(controller.previewBytes!),
                 fit: BoxFit.contain,
@@ -31,7 +39,9 @@ class ProjectCreationPreview extends StatelessWidget {
       Text(
         controller.previewError ??
             (controller.previewBytes == null
-                ? 'Une base propre, sans carte initiale.'
+                ? controller.dimension == ProjectDimension.threeD
+                      ? 'Une carte 3D de ${controller.width} × ${controller.height} cases, avec un terrain plat et une caméra fixe.'
+                      : 'Une base propre, sans carte initiale.'
                 : controller.template == ProjectCreationTemplate.clairbois
                 ? 'Clairbois · 2 cartes, un dialogue et les ressources du projet. Copie indépendante en 32 × 32.'
                 : 'La carte et le personnage réellement inclus dans ce modèle.'),

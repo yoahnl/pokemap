@@ -692,6 +692,10 @@ final class JsonlWorker {
               'Preview a new project inside a configured parent root without writing.',
           'templates': ['empty', 'playable'],
           'tileSizes': [16, 32, 48],
+          'dimensions': ['twoD', 'threeD'],
+          'defaultDimension': 'twoD',
+          'threeDTemplates': ['empty'],
+          'spatialCamera': {'mode': 'fixed', 'fields': ['pitchDegrees', 'yawDegrees', 'fieldOfViewDegrees', 'distance']},
         },
       if (creation != null)
         const {

@@ -370,6 +370,23 @@ final class ProjectSnapshotLoader {
           'A map document identity differs from its manifest entry.',
         );
       }
+      if ((map.spatialScene != null) !=
+          (manifest.settings.dimension == ProjectDimension.threeD)) {
+        throw const ProjectSnapshotException(
+          'project.map_dimension_mismatch',
+          'The map dimension differs from its project.',
+        );
+      }
+      if (map.spatialScene != null) {
+        try {
+          MapValidator.validate(map, projectDialogueContext: manifest);
+        } on Object {
+          throw const ProjectSnapshotException(
+            'project.spatial_map_invalid',
+            'The spatial map or its model and animation references are invalid.',
+          );
+        }
+      }
       maps.add(map);
       resources.add(
         _LoadedProjectResource(
@@ -648,6 +665,10 @@ final class ProjectSnapshotLoader {
       assetCatalogStorageKey,
     );
     profiler?.recordInitialRead(assetCatalogReadTimer!);
+    if (assetCatalogBytes == null && manifest.models3d.isNotEmpty) {
+      throw const ProjectSnapshotException('project.model3d_catalog_missing',
+          'Model sources require the project asset catalog.');
+    }
     if (assetCatalogBytes != null) {
       final assetCatalogDecodeTimer = profiler?.startStage();
       final catalog = await _decodeExecutor.decodeAssetCatalog(
@@ -660,6 +681,15 @@ final class ProjectSnapshotLoader {
           bytes: assetCatalogBytes,
         ),
       );
+      for (final model in manifest.models3d) {
+        final source = catalog.find(model.sourceAssetId);
+        if (source == null ||
+            source.logicalPath != model.relativePath ||
+            source.artifact.mediaType != 'model/gltf-binary') {
+          throw const ProjectSnapshotException('project.model3d_source_invalid',
+              'A model must reference its inspected project-owned GLB asset.');
+        }
+      }
       for (final record in catalog.records) {
         if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
           continue;
@@ -673,7 +703,11 @@ final class ProjectSnapshotLoader {
             record.logicalPath == assetBlobStorageKey(record.artifact)) {
           continue;
         }
+        final managedModelSource = manifest.models3d.any((model) =>
+            model.sourceAssetId == record.id &&
+            model.relativePath == record.logicalPath);
         if (!managedTilesetSource &&
+            !managedModelSource &&
             !record.logicalPath.startsWith('assets/pokemon/menu/')) {
           continue;
         }
@@ -686,11 +720,26 @@ final class ProjectSnapshotLoader {
         }
         final bytes = await _readOptional(access, path);
         if (bytes == null) {
+          if (managedModelSource) {
+            throw const ProjectSnapshotException(
+                'project.model3d_source_missing',
+                'A model source is missing from the project.');
+          }
           absentMenuAssetPaths.add(path);
         } else {
+          if (managedModelSource) {
+            final actual = ContentArtifactRef.fromBytes(bytes.bytes,
+                mediaType: record.artifact.mediaType);
+            if (actual.digest != record.artifact.digest ||
+                actual.byteLength != record.artifact.byteLength) {
+              throw const ProjectSnapshotException(
+                  'project.model3d_source_mismatch',
+                  'A model source no longer matches its inspected asset.');
+            }
+          }
           resources.add(_LoadedProjectResource(
             relativePath: path,
-            identity: managedTilesetSource
+            identity: managedTilesetSource || managedModelSource
                 ? 'assetLogical:${record.id}'
                 : 'asset:${record.id}',
             bytes: bytes,

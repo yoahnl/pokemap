@@ -7,6 +7,7 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/items/project_item_catalog.dart';
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/map_placed_element_origin.dart';
@@ -97,13 +98,30 @@ class ProjectValidator {
     Iterable<MapData>? maps,
     ProjectItemCatalog? itemCatalog,
   }) {
-    if (manifest.version != ProjectVersion.v8) {
+    final spatial = manifest.settings.dimension == ProjectDimension.threeD;
+    if (manifest.version != (spatial ? ProjectVersion.v9 : ProjectVersion.v8)) {
       throw const ValidationException(
-        'Projects require ProjectVersion.v8',
+        '2D projects require v8; 3D projects require v9.',
         code: 'project_version_unsupported',
       );
     }
+    if (spatial && manifest.settings.spatialCamera == null) {
+      throw const ValidationException('A 3D project requires its camera profile.');
+    }
+    if (!spatial && manifest.settings.spatialCamera != null) {
+      throw const ValidationException('A 2D project cannot define a 3D camera.');
+    }
+    if (maps != null) {
+      for (final map in maps) {
+        if ((map.spatialScene != null) != spatial) {
+          throw const ValidationException('A project cannot mix 2D and 3D maps.');
+        }
+      }
+    }
     _validateCinematicLibrary(manifest);
+    if (manifest.models3d.map((model) => model.id).toSet().length != manifest.models3d.length) {
+      throw const ValidationException('3D model identities must be unique.');
+    }
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
       catalog: manifest.smartTileCatalog,
       projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
@@ -2542,13 +2560,36 @@ class MapValidator {
   /// [projectDialogueContext] : si fourni, les [DialogueRef] sans chemin legacy doivent pointer vers [ProjectManifest.dialogues].
   static void validate(MapData map, {ProjectManifest? projectDialogueContext}) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
+    if (projectDialogueContext != null &&
+        (map.spatialScene != null) !=
+            (projectDialogueContext.settings.dimension == ProjectDimension.threeD)) {
+      throw const ValidationException(
+        'The map dimension must match its project.',
+      );
+    }
     _requireNonBlank(map.name, 'Map name cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
       throw ValidationException(
         'Map $mapId has invalid size: ${map.size.width}x${map.size.height}',
       );
     }
-    if (map.version != ProjectVersion.v8) {
+    if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+      validateSpatialMapStructure(map);
+      final project = projectDialogueContext;
+      if (project != null) {
+        if (project.settings.dimension != ProjectDimension.threeD) {
+          throw const ValidationException('A 3D map requires a 3D project.');
+        }
+        final models = {for (final model in project.models3d) model.id: model};
+        for (final instance in map.spatialScene!.instances) {
+          final model = models[instance.modelId];
+          if (model == null || (instance.animationIndex != null &&
+              !model.inspection.animations.any((clip) => clip.index == instance.animationIndex))) {
+            throw const ValidationException('A 3D placement references a missing model or animation.');
+          }
+        }
+      }
+    } else if (map.version != ProjectVersion.v8) {
       throw const ValidationException(
         'Smart Tiles-only maps require ProjectVersion.v8',
         code: 'map_version_unsupported',

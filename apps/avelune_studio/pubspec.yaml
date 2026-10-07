@@ -28,6 +28,9 @@ dependencies:
   map_player_ui:
     path: ../../packages/map_player_ui
   flame: ^1.38.0
+  flame_3d: 0.3.2
+  map_render_3d:
+    path: ../../packages/map_render_3d
   path: ^1.9.1
 
 dev_dependencies:

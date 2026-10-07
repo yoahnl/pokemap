@@ -57,16 +57,33 @@ final class MapLifecycleAdapter {
       );
     }
     final role = _mapRole(parameters.optionalString('role') ?? 'exterior');
+    final spatial =
+        snapshot.manifest.settings.dimension == ProjectDimension.threeD;
     final explicitTilesetId = parameters.optionalString('tilesetId');
-    final tilesetId = explicitTilesetId == null
-        ? _pickDefaultTilesetId(snapshot.manifest, groupId)
-        : _requireTileset(snapshot.manifest, explicitTilesetId);
+    if (spatial && explicitTilesetId != null) {
+      throw _failure(
+        'map3d.tileset_unsupported',
+        '3D maps do not use a 2D tileset.',
+      );
+    }
+    final tilesetId = spatial
+        ? null
+        : explicitTilesetId == null
+            ? _pickDefaultTilesetId(snapshot.manifest, groupId)
+            : _requireTileset(snapshot.manifest, explicitTilesetId);
     final map = MapData(
       id: mapId,
       name: name,
       size: GridSize(width: width, height: height),
-      version: ProjectVersion.v8,
-      visualStack: MapVisualStackConfig.canonicalV1,
+      version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+      spatialScene: spatial
+          ? MapSpatialScene(
+              width: width,
+              depth: height,
+              camera: snapshot.manifest.settings.spatialCamera,
+            )
+          : null,
+      visualStack: spatial ? null : MapVisualStackConfig.canonicalV1,
       tilesetId: tilesetId ?? '',
       layers: const [],
     );
@@ -457,6 +474,12 @@ final class MapLifecycleAdapter {
     final mapId = parameters.string('mapId');
     final entry = _requireMapEntry(snapshot.manifest, mapId);
     final map = _requireMap(snapshot, mapId);
+    if (map.spatialScene != null) {
+      throw _failure(
+        'map3d.resize_unsupported',
+        'Resizing a 3D map is not supported yet.',
+      );
+    }
     final width = parameters.positiveInt('width');
     final height = parameters.positiveInt('height');
     final plan = planMapResize(

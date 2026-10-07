@@ -200,3 +200,6 @@ export 'src/domains/gameplay/pokemon_sprite_source_catalog.dart';
 
 export 'src/domains/narrative/presentation_publication_actions.dart';
 export 'src/domains/narrative/presentation_publication_snapshot.dart';
+
+export 'src/domains/assets/model3d_actions.dart';
+export 'src/domains/assets/glb_model3d_inspector.dart';

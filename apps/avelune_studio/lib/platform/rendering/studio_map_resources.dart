@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+import 'dart:isolate';
+
 import 'package:flutter/widgets.dart';
+import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring_resources.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -26,6 +31,7 @@ part 'studio_map_resources_helpers.dart';
 final class StudioMapResources
     implements
         MapWorkspaceVisuals,
+        SpatialWorkspaceVisuals,
         ResourceWorkspaceVisuals,
         ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
@@ -49,6 +55,22 @@ final class StudioMapResources
     imports: imports,
   );
   final String projectRoot;
+  @override
+  Future<Uint8List> readModel(String modelId) async {
+    final model = manifest.models3d
+        .where((item) => item.id == modelId)
+        .firstOrNull;
+    if (model == null) throw StateError('Modèle introuvable : $modelId');
+    final bytes = Uint8List.fromList(
+      await const LocalProjectFileReader().readBytes(
+        projectRoot: projectRoot,
+        relativePath: model.relativePath,
+      ),
+    );
+    await Isolate.run(() => const GlbModel3dInspector().inspect(bytes));
+    return bytes;
+  }
+
   @override
   CinematicMediaPlaybackPort createCinematicMedia(ProjectManifest project) =>
       StudioCinematicMedia(

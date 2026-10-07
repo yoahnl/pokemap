@@ -2,6 +2,8 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'border_catalog.dart';
+import 'project_model3d.dart';
+import 'map_spatial_scene.dart';
 import 'badge_definition.dart';
 import 'element_collision_profile.dart';
 import 'environment.dart';
@@ -378,6 +380,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectMapGroup> groups,
     @Default([]) List<ProjectTilesetFolder> tilesetFolders,
     required List<ProjectTilesetEntry> tilesets,
+    @Default([]) List<ProjectModel3dEntry> models3d,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
     @Default([])
@@ -499,6 +502,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     final badges = decoded.badges
         .map((badge) => badge.normalized())
         .toList(growable: false);
+    _assertUniqueDefinitionIds(kind: '3D model', ids: decoded.models3d.map((model) => model.id));
     _assertUniqueDefinitionIds(kind: 'shop', ids: shops.map((shop) => shop.id));
     _assertUniqueDefinitionIds(
       kind: 'badge',
@@ -552,10 +556,12 @@ void _preflightPokemonRulesetManifestJson(Map<String, dynamic> json) {
 
 void _preflightProjectManifestJson(Map<String, dynamic> json) {
   final version = json['version'];
-  if (version != 'v8') {
+  final settings = json['settings'];
+  final spatial = settings is Map && settings['dimension'] == 'threeD';
+  if (version != (spatial ? 'v9' : 'v8')) {
     throw FormatException(
       r'$.version: project_version_unsupported '
-      '(expected=v8, actual=$version)',
+      '(expected=${spatial ? 'v9' : 'v8'}, actual=$version)',
     );
   }
   final newGame = json['newGame'];
@@ -727,6 +733,8 @@ abstract class ProjectPokemonConfig with _$ProjectPokemonConfig {
 abstract class ProjectSettings with _$ProjectSettings {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSettings({
+    @Default(ProjectDimension.twoD) ProjectDimension dimension,
+    @JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,
     @Default(16) int tileWidth,
     @Default(16) int tileHeight,
     @Default(2.0) double displayScale,

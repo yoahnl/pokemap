@@ -5,6 +5,7 @@ import 'package:avelune_studio/presentation/features/terrains/terrain_editor_scr
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'resource_navigation.dart';
+import 'model_resource_library.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
@@ -131,6 +132,8 @@ class ResourceWorkspacePane extends StatelessWidget {
             ),
           Expanded(
             child: ResourceLibraryScreen(
+              modelLibrary: ModelResourceLibrary(navigation: n),
+              onImportModel: n.busy ? null : () => importStudioModel(n),
               project: project,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)

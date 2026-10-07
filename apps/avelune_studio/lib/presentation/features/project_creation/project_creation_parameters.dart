@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_project_creation.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/project_creation/application/project_creation_controller.dart';
 import '../../shared/widgets/buttons/studio_choice_card.dart';
@@ -13,6 +14,9 @@ class ProjectCreationParameters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = controller;
+    if (state.dimension == ProjectDimension.threeD) {
+      return _spatialParameters(context);
+    }
     final clairbois = state.template == ProjectCreationTemplate.clairbois;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,6 +135,66 @@ class ProjectCreationParameters extends StatelessWidget {
             ],
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _spatialParameters(BuildContext context) {
+    final state = controller;
+    Widget field(String label, String value, ValueChanged<String> change) =>
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: StudioDraftField(
+            key: ValueKey(label),
+            label: label,
+            value: value,
+            onChanged: (value) => state.changePreview(() => change(value)),
+          ),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Votre première carte 3D',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'La taille se mesure en cases. Le relief se construit ensuite par paliers de hauteur fixe.',
+        ),
+        const SizedBox(height: 20),
+        field('Largeur en cases · X', state.width, (v) => state.width = v),
+        field('Profondeur en cases · Z', state.height, (v) => state.height = v),
+        const SizedBox(height: 12),
+        StudioPanel(
+          title: 'Caméra du jeu · angle fixe',
+          children: [
+            const Text(
+              'Le cadrage initial rappelle les jeux DS. Vous pourrez ajuster la caméra sur chaque carte. La vue libre de l’éditeur reste indépendante.',
+            ),
+            const SizedBox(height: 12),
+            field(
+              'Inclinaison en degrés',
+              state.cameraPitch,
+              (v) => state.cameraPitch = v,
+            ),
+            field(
+              'Orientation en degrés',
+              state.cameraYaw,
+              (v) => state.cameraYaw = v,
+            ),
+            field(
+              'Champ de vision en degrés',
+              state.cameraFov,
+              (v) => state.cameraFov = v,
+            ),
+            field(
+              'Distance en cases',
+              state.cameraDistance,
+              (v) => state.cameraDistance = v,
+            ),
+          ],
+        ),
       ],
     );
   }

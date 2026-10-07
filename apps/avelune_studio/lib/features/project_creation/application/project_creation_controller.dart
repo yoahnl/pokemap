@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:map_authoring/map_authoring_project_creation.dart';
+import 'package:map_core/map_core_domain.dart';
 
 class ProjectCreationController {
   ProjectCreationController(this.port);
@@ -9,6 +10,11 @@ class ProjectCreationController {
   String width = '32', height = '26';
   int step = 0, tileSize = 32;
   ProjectCreationTemplate template = ProjectCreationTemplate.clairbois;
+  ProjectDimension dimension = ProjectDimension.twoD;
+  String cameraPitch = '48.7',
+      cameraYaw = '0',
+      cameraFov = '16.2',
+      cameraDistance = '42';
   (int, String, String) _emptyGeometry = (16, '20', '15');
   String? _previewKey;
   ProjectCreationPhase? phase;
@@ -25,7 +31,7 @@ class ProjectCreationController {
   bool previewLoading = false;
 
   Future<void> loadPreview() async {
-    final key = '${template.name}:$tileSize:$width:$height';
+    final key = '${dimension.name}:${template.name}:$tileSize:$width:$height';
     if (_previewKey == key && previewBytes != null) return;
     final generation = ++_previewGeneration;
     previewLoading = true;
@@ -56,6 +62,10 @@ class ProjectCreationController {
   }
 
   void setTemplate(ProjectCreationTemplate value) => changePreview(() {
+    if (dimension == ProjectDimension.threeD &&
+        value != ProjectCreationTemplate.empty) {
+      return;
+    }
     if (template == ProjectCreationTemplate.empty) {
       _emptyGeometry = (tileSize, width, height);
     }
@@ -71,6 +81,15 @@ class ProjectCreationController {
     }
   });
 
+  void setDimension(ProjectDimension value) => changePreview(() {
+    dimension = value;
+    if (value == ProjectDimension.threeD) {
+      template = ProjectCreationTemplate.empty;
+      width = '20';
+      height = '15';
+    }
+  });
+
   bool get canCancel =>
       running &&
       phase != ProjectCreationPhase.writing &&
@@ -83,6 +102,20 @@ class ProjectCreationController {
     folderName: folderName,
     parentPath: parentPath,
     template: template,
+    dimension: dimension,
+    spatialCamera: dimension == ProjectDimension.threeD
+        ? SpatialCameraProfile(
+            pitchDegrees:
+                double.tryParse(cameraPitch.replaceAll(',', '.')) ?? double.nan,
+            yawDegrees:
+                double.tryParse(cameraYaw.replaceAll(',', '.')) ?? double.nan,
+            fieldOfViewDegrees:
+                double.tryParse(cameraFov.replaceAll(',', '.')) ?? double.nan,
+            distance:
+                double.tryParse(cameraDistance.replaceAll(',', '.')) ??
+                double.nan,
+          )
+        : null,
     tileSize: tileSize,
     mapWidth: int.tryParse(width) ?? 0,
     mapHeight: int.tryParse(height) ?? 0,

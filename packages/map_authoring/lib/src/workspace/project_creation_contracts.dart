@@ -23,6 +23,8 @@ final class ProjectCreationRequest {
     required this.folderName,
     required this.parentPath,
     this.template = ProjectCreationTemplate.playable,
+    this.dimension = ProjectDimension.twoD,
+    this.spatialCamera,
     this.tileSize = 16,
     this.mapWidth = 20,
     this.mapHeight = 15,
@@ -32,6 +34,8 @@ final class ProjectCreationRequest {
   final String folderName;
   final String parentPath;
   final ProjectCreationTemplate template;
+  final ProjectDimension dimension;
+  final SpatialCameraProfile? spatialCamera;
   final int tileSize;
   final int mapWidth;
   final int mapHeight;
@@ -60,6 +64,13 @@ final class ProjectCreationRequest {
   }
 
   void validateGeometry() {
+    if (dimension == ProjectDimension.threeD &&
+        template != ProjectCreationTemplate.empty) {
+      throw const FormatException("Les projets 3D utilisent le modèle vide.");
+    }
+    if (dimension == ProjectDimension.twoD && spatialCamera != null) {
+      throw const FormatException("Une caméra 3D exige un projet 3D.");
+    }
     if (template == ProjectCreationTemplate.clairbois &&
         (tileSize != 32 || mapWidth != 32 || mapHeight != 26)) {
       throw const FormatException(

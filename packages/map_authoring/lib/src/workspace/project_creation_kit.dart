@@ -19,9 +19,27 @@ final class ProjectCreationKit {
 ProjectCreationKit buildProjectCreationKit(ProjectCreationRequest request) {
   request.validate();
   final playable = request.template == ProjectCreationTemplate.playable;
-  final map = playable ? _map(request) : null;
+  final spatial = request.dimension == ProjectDimension.threeD;
+  final camera =
+      spatial ? request.spatialCamera ?? SpatialCameraProfile() : null;
+  final map = spatial
+      ? MapData(
+          id: "first-map",
+          name: "Première carte",
+          size: GridSize(width: request.mapWidth, height: request.mapHeight),
+          version: ProjectVersion.v9,
+          layers: const [],
+          tilesetId: "",
+          spatialScene: MapSpatialScene(
+              width: request.mapWidth,
+              depth: request.mapHeight,
+              camera: camera))
+      : playable
+          ? _map(request)
+          : null;
   final manifest = ProjectManifest(
     name: request.name.trim(),
+    version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
     maps: [
       if (map != null)
         ProjectMapEntry(
@@ -42,6 +60,8 @@ ProjectCreationKit buildProjectCreationKit(ProjectCreationRequest request) {
             ))
     ],
     settings: ProjectSettings(
+        dimension: request.dimension,
+        spatialCamera: camera,
         tileWidth: request.tileSize,
         tileHeight: request.tileSize,
         defaultMapWidth: request.mapWidth,

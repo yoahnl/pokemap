@@ -2,7 +2,14 @@ import 'package:map_core/map_core_domain.dart';
 
 enum ResourceKind { decors, terrains, images }
 
-enum ResourceLibraryFamily { decors, terrains, borders, environments, images }
+enum ResourceLibraryFamily {
+  decors,
+  terrains,
+  borders,
+  environments,
+  images,
+  models3d,
+}
 
 enum ResourceSort { nameAscending, nameDescending }
 

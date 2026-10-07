@@ -5,6 +5,13 @@ String? _historyResourceProblem(
   MapData next,
   ProjectManifest manifest,
 ) {
+  final availableModels = manifest.models3d.map((model) => model.id).toSet();
+  if (next.spatialScene?.instances.any(
+        (instance) => !availableModels.contains(instance.modelId),
+      ) ??
+      false) {
+    return 'Cette annulation restaurerait un modèle 3D supprimé.';
+  }
   final retainedElements = before.placedElements
       .map((e) => e.elementId)
       .toSet();

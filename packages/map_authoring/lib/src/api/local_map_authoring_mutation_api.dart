@@ -352,7 +352,10 @@ final class LocalMapAuthoringMutationApi
   Future<void> _releasePresentationMediaStaging(
     AuthoringMutationResult result,
   ) async {
-    if (result.receipt.actionId != 'presentationMedia.import') return;
+    if (!{'presentationMedia.import', 'model3d.import'}
+        .contains(result.receipt.actionId)) {
+      return;
+    }
     for (final artifact in result.receipt.artifacts) {
       await artifacts.release(artifact.uri);
     }
@@ -752,6 +755,7 @@ final class _LocalMapAuthoringSession {
     AuthoringTransactionPrecondition? supplied,
   ) {
     const guarded = {
+      'model3d.delete',
       'tileset.source.replace',
       'tileset.remove',
       'element.duplicate',

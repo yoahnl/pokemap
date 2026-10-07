@@ -35,6 +35,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     final document = controller.active;
+    final spatial = document?.current.spatialScene != null;
     void zoom(double factor) {
       final transform = view?.transform;
       if (transform == null) return;
@@ -88,75 +89,78 @@ class MapWorkspaceToolbar extends StatelessWidget {
           secondary: true,
           onPressed: onSave,
         ),
-        Tooltip(
-          message: 'Enregistrer et tester',
-          child: StudioButton(
-            key: const ValueKey('Enregistrer et tester'),
-            label: 'Tester la carte',
-            icon: Icons.play_arrow,
-            onPressed: onTest,
-          ),
-        ),
-      ],
-    );
-    final controls = Wrap(
-      spacing: 4,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        StudioTool(
-          label: 'Zoom arrière',
-          icon: Icons.remove,
-          onPressed: () => zoom(.8),
-        ),
-        if (view != null)
-          ValueListenableBuilder<Matrix4>(
-            valueListenable: view!.transform,
-            builder: (context, value, _) => SizedBox(
-              width: MediaQuery.textScalerOf(
-                context,
-              ).scale(largeText ? 70 : 52),
-              child: Text(
-                '${(value.entry(0, 0).abs() * 100).round()} %',
-                textAlign: TextAlign.center,
-                maxLines: largeText ? 1 : null,
-                overflow: largeText ? TextOverflow.ellipsis : null,
-              ),
+        if (!spatial)
+          Tooltip(
+            message: 'Enregistrer et tester',
+            child: StudioButton(
+              key: const ValueKey('Enregistrer et tester'),
+              label: 'Tester la carte',
+              icon: Icons.play_arrow,
+              onPressed: onTest,
             ),
           ),
-        StudioTool(
-          label: 'Zoom avant',
-          icon: Icons.add,
-          onPressed: () => zoom(1.25),
-        ),
-        StudioTool(
-          label: 'Recentrer',
-          icon: Icons.center_focus_strong,
-          onPressed: () => view?.recenter?.call(),
-        ),
-        StudioTool(
-          label: 'Afficher la grille',
-          icon: Icons.grid_on,
-          selected: view?.grid ?? false,
-          onPressed: () {
-            if (view != null) view!.grid = !view!.grid;
-            onChanged();
-          },
-        ),
-        StudioTool(
-          label: 'Palette',
-          icon: Icons.view_sidebar_outlined,
-          selected: paletteVisible,
-          onPressed: onPalette,
-        ),
-        StudioTool(
-          label: 'Inspecteur',
-          icon: Icons.tune,
-          selected: inspectorVisible,
-          onPressed: onInspector,
-        ),
       ],
     );
+    final controls = spatial
+        ? const Text('Édition 3D')
+        : Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StudioTool(
+                label: 'Zoom arrière',
+                icon: Icons.remove,
+                onPressed: () => zoom(.8),
+              ),
+              if (view != null)
+                ValueListenableBuilder<Matrix4>(
+                  valueListenable: view!.transform,
+                  builder: (context, value, _) => SizedBox(
+                    width: MediaQuery.textScalerOf(
+                      context,
+                    ).scale(largeText ? 70 : 52),
+                    child: Text(
+                      '${(value.entry(0, 0).abs() * 100).round()} %',
+                      textAlign: TextAlign.center,
+                      maxLines: largeText ? 1 : null,
+                      overflow: largeText ? TextOverflow.ellipsis : null,
+                    ),
+                  ),
+                ),
+              StudioTool(
+                label: 'Zoom avant',
+                icon: Icons.add,
+                onPressed: () => zoom(1.25),
+              ),
+              StudioTool(
+                label: 'Recentrer',
+                icon: Icons.center_focus_strong,
+                onPressed: () => view?.recenter?.call(),
+              ),
+              StudioTool(
+                label: 'Afficher la grille',
+                icon: Icons.grid_on,
+                selected: view?.grid ?? false,
+                onPressed: () {
+                  if (view != null) view!.grid = !view!.grid;
+                  onChanged();
+                },
+              ),
+              StudioTool(
+                label: 'Palette',
+                icon: Icons.view_sidebar_outlined,
+                selected: paletteVisible,
+                onPressed: onPalette,
+              ),
+              StudioTool(
+                label: 'Inspecteur',
+                icon: Icons.tune,
+                selected: inspectorVisible,
+                onPressed: onInspector,
+              ),
+            ],
+          );
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Padding(

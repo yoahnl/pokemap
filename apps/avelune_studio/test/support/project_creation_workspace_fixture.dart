@@ -49,6 +49,7 @@ class ProjectCreationWorkspaceFixture {
     Size size = const Size(1536, 960),
     double textScale = 1,
     GlobalKey? captureKey,
+    Widget Function(ProjectSession, VoidCallback)? createdWorkspaceBuilder,
   }) async {
     if (sessionController != null) session = sessionController;
     tester.view.physicalSize = size;
@@ -77,14 +78,16 @@ class ProjectCreationWorkspaceFixture {
             bridgeCreate,
           ),
           chooseCreationParent: () async => parent.path,
-          workspaceBuilder: (project, close) => _CreatedWorkspace(
-            tester: tester,
-            session: project,
-            onClose: close,
-            packageFile: packageFile,
-            mapPort: mapPort,
-            withNarrative: withNarrative,
-          ),
+          workspaceBuilder:
+              createdWorkspaceBuilder ??
+              (project, close) => _CreatedWorkspace(
+                tester: tester,
+                session: project,
+                onClose: close,
+                packageFile: packageFile,
+                mapPort: mapPort,
+                withNarrative: withNarrative,
+              ),
         ),
       ),
     );

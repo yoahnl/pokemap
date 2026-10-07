@@ -51,6 +51,8 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onDuplicate,
     this.onManageContainers,
     this.environmentLibrary,
+    this.modelLibrary,
+    this.onImportModel,
     this.onCreateEnvironment,
   });
   final ProjectManifest project;
@@ -80,6 +82,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final ValueChanged<ResourceKind>? onManageContainers;
   final Widget? environmentLibrary;
+  final Widget? modelLibrary;
+  final VoidCallback? onImportModel;
   final VoidCallback? onCreateEnvironment;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();

@@ -9,3 +9,6 @@ export 'src/editing/environment_editing.dart'
         EnvironmentGeneratedPlacement,
         EnvironmentGenerationPreview,
         EnvironmentGenerationRegion;
+
+export 'package:map_core/map_core_domain.dart'
+    show SpatialMapOperations, SpatialCellLevel;

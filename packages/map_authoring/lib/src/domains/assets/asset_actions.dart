@@ -279,6 +279,15 @@ final class AssetActions {
     }
     final state = _catalogState(context.snapshot);
     final parameters = _AssetParameters(context.request.parameters);
+    if (const {'asset.replace', 'asset.move', 'asset.raw.replace'}
+            .contains(context.request.actionId) &&
+        context.snapshot.manifest.models3d.any((model) =>
+            model.sourceAssetId == context.request.parameters['assetId'] ||
+            model.relativePath == context.request.parameters['logicalPath'])) {
+      throw AssetActionException('asset.model3d_inspection_required',
+          'Model sources must retain their inspected content; import a new model instead.');
+    }
+
     if (context.request.actionId == 'asset.import_batch') {
       parameters.allow(const {'entries'});
       final entries = context.request.parameters['entries'];

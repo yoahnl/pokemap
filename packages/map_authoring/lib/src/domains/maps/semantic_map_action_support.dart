@@ -364,6 +364,7 @@ Map<String, Object?> semanticMapSummary(MapData map) => {
       'width': map.size.width,
       'height': map.size.height,
       'layerCount': map.layers.length,
+      if (map.spatialScene != null) 'spatialScene': map.spatialScene!.toJson(),
       'placedElementCount': map.placedElements.length,
       'entityCount': map.entities.length,
       'warpCount': map.warps.length,

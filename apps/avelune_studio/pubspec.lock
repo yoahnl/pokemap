@@ -241,6 +241,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.38.2"
+  flame_3d:
+    dependency: "direct main"
+    description:
+      name: flame_3d
+      sha256: "85dbda518b7a17628a898e39b2cc2f37f6e3bb69106b88e96de506c2b3696354"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.2"
   flame_audio:
     dependency: transitive
     description:
@@ -255,6 +263,11 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_driver:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_gpu:
     dependency: transitive
     description: flutter
     source: sdk
@@ -587,6 +600,13 @@ packages:
     dependency: "direct main"
     description:
       path: "../../packages/map_player_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
+  map_render_3d:
+    dependency: "direct main"
+    description:
+      path: "../../packages/map_render_3d"
       relative: true
     source: path
     version: "0.1.0"

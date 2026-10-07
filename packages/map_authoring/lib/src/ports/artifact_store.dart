@@ -404,6 +404,9 @@ bool _sameByteRange(List<int> expected, int offset, List<int> actual) {
 }
 
 String sniffArtifactMediaType(List<int> bytes) {
+  if (_startsWith(bytes, const [0x67, 0x6c, 0x54, 0x46])) {
+    return 'model/gltf-binary';
+  }
   if (_startsWith(
       bytes, const [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
     return 'image/png';

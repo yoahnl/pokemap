@@ -19,6 +19,7 @@ export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
+export 'src/models/map_spatial_scene.dart';
 export 'src/models/map_placed_element_origin.dart';
 export 'src/models/element_collision_profile.dart';
 export 'src/models/environment.dart';
@@ -373,3 +374,5 @@ export 'src/tooling/authoring_capability_inventory.dart';
 export 'src/authoring/scene_command_payload_builder.dart';
 export 'src/runtime/cinematic_actor_geometry.dart';
 export 'src/runtime/cinematic_route_sampling.dart';
+
+export 'src/operations/spatial_map_operations.dart';
