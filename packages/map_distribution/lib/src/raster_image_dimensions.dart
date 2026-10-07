@@ -1,8 +1,3 @@
-/// Pixel dimensions decoded from the structural header of a raster asset.
-///
-/// Authoring only needs the trusted canvas bounds. Reading them from the
-/// content-addressed bytes keeps `map_authoring` pure Dart and avoids trusting
-/// user-entered atlas metadata or importing a platform image stack.
 final class RasterImageDimensions {
   const RasterImageDimensions({required this.width, required this.height});
 
@@ -10,11 +5,6 @@ final class RasterImageDimensions {
   final int height;
 }
 
-/// Decodes dimensions from the canonical bytes of supported raster formats.
-///
-/// A declared media type never suffices by itself: every branch verifies the
-/// matching file signature and the bounds of the dimension-bearing header.
-/// Returning `null` means the bytes cannot prove usable positive dimensions.
 RasterImageDimensions? decodeRasterImageDimensions(
   List<int> bytes, {
   required String mediaType,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -317,12 +318,61 @@ final class GamePackageInstaller
         gameId: gameId,
         gameVersion: gameVersion,
       );
+      final stagedInventory = {
+        for (final entry in manifest.content.files) entry.path: entry,
+      };
+      List<int>? readStagedPayload(String path) {
+        PackagePathPolicy.validate(path, errorPath: path);
+        final entry = stagedInventory[path];
+        if (entry == null) return null;
+        var current = stagedVersion.path;
+        final segments = p.posix.split(path);
+        for (var index = 0; index < segments.length; index++) {
+          current = p.join(current, segments[index]);
+          final type = FileSystemEntity.typeSync(current, followLinks: false);
+          final expected =
+              index == segments.length - 1
+                  ? FileSystemEntityType.file
+                  : FileSystemEntityType.directory;
+          if (type != expected) {
+            throw GamePackageFormatException(
+              code: 'unsafeEntry',
+              path: path,
+              message: 'Staged payload must use regular files and directories.',
+            );
+          }
+        }
+        final file = File(current);
+        if (entry.size > inspector.policy.maxFileBytes ||
+            file.lengthSync() != entry.size) {
+          throw GamePackageFormatException(
+            code: 'sizeMismatch',
+            path: path,
+            message: 'Staged payload size differs from its inventory.',
+          );
+        }
+        final handle = file.openSync();
+        try {
+          final bytes = handle.readSync(entry.size);
+          if (bytes.length != entry.size || handle.lengthSync() != entry.size ||
+              sha256.convert(bytes).toString() != entry.sha256) {
+            throw GamePackageFormatException(
+              code: 'hashMismatch',
+              path: path,
+              message: 'Staged payload changed during project validation.',
+            );
+          }
+          return bytes;
+        } finally {
+          handle.closeSync();
+        }
+      }
+
       GamePackageProjectValidator(inspector.policy).validate(
         manifest,
-        await File(
-          p.join(stagedVersion.path, 'project', 'project.json'),
-        ).readAsBytes(),
-        payloadPaths: manifest.content.files.map((entry) => entry.path).toSet(),
+        Uint8List.fromList(readStagedPayload('project/project.json')!),
+        payloadPaths: stagedInventory.keys.toSet(),
+        readPayload: readStagedPayload,
       );
 
       stage = GameInstallStage.smokeLoading;

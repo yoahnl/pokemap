@@ -103,7 +103,7 @@ packages:
       path: "../avelune_studio"
       relative: true
     source: path
-    version: "0.3.20+320"
+    version: "0.3.23+323"
   boolean_selector:
     dependency: transitive
     description:
@@ -284,10 +284,18 @@ packages:
     dependency: "direct main"
     description:
       name: flame
-      sha256: c918f8d0e340cbc5e3b20603bd5dc0bac6d939133fed4044366180081a63561d
+      sha256: b4d7e59b81f35a426f8b39dcec10175180b9c2984b2b2e619021660d8951307c
       url: "https://pub.dev"
     source: hosted
-    version: "1.38.0"
+    version: "1.38.2"
+  flame_3d:
+    dependency: transitive
+    description:
+      name: flame_3d
+      sha256: "85dbda518b7a17628a898e39b2cc2f37f6e3bb69106b88e96de506c2b3696354"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.2"
   flame_audio:
     dependency: transitive
     description:
@@ -302,6 +310,11 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_driver:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_gpu:
     dependency: transitive
     description: flutter
     source: sdk
@@ -370,18 +383,18 @@ packages:
     dependency: transitive
     description:
       name: gamepads
-      sha256: bc2b4368f7f01e0390187f63c063f1fa26f420224e159fed1aaa2c449f5a1125
+      sha256: "8134c967c29496cbc20e73c88b31c6d11765e846b8e465c52b436fe6e88339ce"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.10+5"
+    version: "0.1.11"
   gamepads_android:
     dependency: transitive
     description:
       name: gamepads_android
-      sha256: "8d8430deab5c35bafee3124bec0db19d3df605bb8f42da9ba188e826fda551e2"
+      sha256: f3a600e1212374771bdd47206088940a36fb75791b3c4223eccfa487dfd1ed0f
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.8+2"
+    version: "0.1.9"
   gamepads_darwin:
     dependency: "direct overridden"
     description:
@@ -416,18 +429,18 @@ packages:
     dependency: transitive
     description:
       name: gamepads_web
-      sha256: "860eb4f11fdb6dfcf18f793a491282747007909075d161373df7f067dfddb9a4"
+      sha256: "4f044a6003b34a8d5c5854924fbbfd64b6653bcb49169cf2aca26938f812672e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.1+1"
+    version: "0.1.2"
   gamepads_windows:
     dependency: transitive
     description:
       name: gamepads_windows
-      sha256: "650b68a4bc5d729abf12f0d2d3a53c05e4070a288c7e5575edfd485774550d8c"
+      sha256: ecd1dc845a0ad6260a3016cd74f3e365c4006a458ae2c5c5eed7a72d33dd5738
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.0+1"
+    version: "0.3.1"
   glob:
     dependency: transitive
     description:
@@ -688,6 +701,13 @@ packages:
     dependency: "direct main"
     description:
       path: "../../packages/map_player_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
+  map_render_3d:
+    dependency: transitive
+    description:
+      path: "../../packages/map_render_3d"
       relative: true
     source: path
     version: "0.1.0"

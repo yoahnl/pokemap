@@ -8,7 +8,11 @@ import 'package:image/image.dart' as img;
 import 'raster_image_dimensions.dart';
 
 final class GlbModel3dInspector {
-  const GlbModel3dInspector();
+  const GlbModel3dInspector(
+      {this.maxTextureDimension = 4096, this.maxTexturePixels = 16777216});
+
+  final int maxTextureDimension;
+  final int maxTexturePixels;
 
   Model3dInspection inspect(List<int> bytes) {
     if (bytes.length < 28 || bytes.length > 128 * 1024 * 1024) {
@@ -50,12 +54,16 @@ final class GlbModel3dInspector {
       throw const FormatException(
           'A standalone GLB requires JSON and BIN chunks.');
     }
-    return _Inspection(document, ByteData.sublistView(binary)).inspect();
+    return _Inspection(document, ByteData.sublistView(binary),
+            maxTextureDimension, maxTexturePixels)
+        .inspect();
   }
 }
 
 final class _Inspection {
-  _Inspection(this.json, this.binary);
+  _Inspection(
+      this.json, this.binary, this.maxTextureDimension, this.maxTexturePixels);
+  final int maxTextureDimension, maxTexturePixels;
   final Map<String, dynamic> json;
   final ByteData binary;
   late final List<Map<String, dynamic>> views;
@@ -143,13 +151,13 @@ final class _Inspection {
       final dimensions = decodeRasterImageDimensions(bytes,
           mediaType: image['mimeType'] as String);
       if (dimensions == null ||
-          dimensions.width > 4096 ||
-          dimensions.height > 4096) {
+          dimensions.width > maxTextureDimension ||
+          dimensions.height > maxTextureDimension) {
         throw const FormatException(
             'Embedded textures must have valid dimensions of at most 4096 pixels per axis.');
       }
       texturePixels += dimensions.width * dimensions.height;
-      if (texturePixels > 16777216) {
+      if (texturePixels > maxTexturePixels) {
         throw const FormatException('Model texture pixel budget exceeded.');
       }
       try {

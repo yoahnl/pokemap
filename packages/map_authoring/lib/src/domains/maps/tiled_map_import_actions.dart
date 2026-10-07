@@ -14,7 +14,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import '../assets/asset_actions.dart';
 import '../assets/asset_store.dart';
-import '../assets/raster_image_dimensions.dart';
+import 'package:map_distribution/map_distribution.dart';
 import '../assets/tiled_image_collection_packer.dart';
 import '../assets/tileset_actions.dart';
 import 'map_lifecycle_adapter.dart';

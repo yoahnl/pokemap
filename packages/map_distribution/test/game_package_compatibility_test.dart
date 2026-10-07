@@ -23,6 +23,47 @@ void main() {
   group('GamePackageCompatibilityEvaluator', () {
     const evaluator = GamePackageCompatibilityEvaluator();
 
+    test('accepts concurrent native 2D and 3D formats without migration', () {
+      final spatialHost = GamePackageHostCompatibility(
+        hubVersion: host.hubVersion,
+        runtimeApiVersion: host.runtimeApiVersion,
+        capabilities: {...host.capabilities, 'map3d@1'},
+        supportedProjectFormats: {'v8', 'v9'},
+        currentProjectFormat: 'v8',
+        currentProjectFormats: {'v8', 'v9'},
+        supportedSaveFormats: host.supportedSaveFormats,
+      );
+      expect(
+        evaluator.evaluate(_manifest(projectFormat: 'v8'), spatialHost),
+        const GamePackageCompatibilityResult.accept(),
+      );
+      final spatialPackage = _manifest(
+        projectFormat: 'v9',
+        capabilities: const ['map3d@1'],
+      );
+      expect(
+        evaluator.evaluate(spatialPackage, spatialHost),
+        const GamePackageCompatibilityResult.accept(),
+      );
+      expect(evaluator.evaluate(spatialPackage, host).decision,
+          GamePackageCompatibilityDecision.reject);
+    });
+
+    test('rejects unsupported native current formats', () {
+      expect(
+        () => GamePackageHostCompatibility(
+          hubVersion: host.hubVersion,
+          runtimeApiVersion: host.runtimeApiVersion,
+          capabilities: host.capabilities,
+          supportedProjectFormats: {'v8'},
+          currentProjectFormat: 'v8',
+          currentProjectFormats: {'v8', 'v9'},
+          supportedSaveFormats: host.supportedSaveFormats,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('v8 packages fail closed on old hosts and accept on v8 hosts', () {
       final package = _manifest(projectFormat: 'v8');
       for (final version in ['v7', 'v8']) {
@@ -35,10 +76,13 @@ void main() {
           supportedSaveFormats: host.supportedSaveFormats,
         );
         final result = evaluator.evaluate(package, formatHost);
-        expect(result.decision, version == 'v8'
-            ? GamePackageCompatibilityDecision.accept
-            : GamePackageCompatibilityDecision.reject);
-        expect(result.code, version == 'v8' ? isNull : 'projectFormatUnsupported');
+        expect(
+            result.decision,
+            version == 'v8'
+                ? GamePackageCompatibilityDecision.accept
+                : GamePackageCompatibilityDecision.reject);
+        expect(
+            result.code, version == 'v8' ? isNull : 'projectFormatUnsupported');
       }
     });
 

@@ -34,12 +34,15 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.yoahnl.avelune.player"
+        applicationId = providers.gradleProperty("aveluneApplicationId")
+            .orElse("com.yoahnl.avelune.player").get()
         minSdk = 24
         targetSdk = 36
         versionCode = providers.gradleProperty("aveluneVersionCode").orElse("3").get().toInt()
         versionName = providers.gradleProperty("aveluneVersionName").orElse("1.0.1").get()
         manifestPlaceholders["surfaceProbeEnabled"] = "false"
+        manifestPlaceholders["aveluneAppLabel"] = providers.gradleProperty("aveluneAppLabel")
+            .orElse("@string/app_name").get()
     }
 
     compileOptions {

@@ -15,7 +15,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import '../assets/asset_actions.dart';
 import '../assets/asset_store.dart';
-import '../assets/raster_image_dimensions.dart';
+import 'package:map_distribution/map_distribution.dart';
 
 enum PokemonMediaImportRole { icon, party, portrait }
 

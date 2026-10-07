@@ -5,6 +5,27 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimePlayerGamepadBridge', () {
+    for (final key in ['AXIS_Y', 'AXIS_HAT_Y']) {
+      for (final (value, control) in [
+        (1.0, RuntimeInputControl.up),
+        (-1.0, RuntimeInputControl.down),
+      ]) {
+        test('Android plugin $key keeps ${control.name} after normalization', () {
+          final normalizer = GamepadNormalizer.forPlatform(GamepadPlatform.android);
+          final bridge = RuntimePlayerGamepadBridge();
+          final inputs = normalizer.normalize(GamepadEvent(
+            gamepadId: 'android-controller', timestamp: 0,
+            type: KeyType.analog, key: key, value: value,
+          )).expand(bridge.handle).toList();
+          expect(inputs, [RuntimeInputEvent.press(control)]);
+          final release = normalizer.normalize(GamepadEvent(
+            gamepadId: 'android-controller', timestamp: 1,
+            type: KeyType.analog, key: key, value: 0,
+          )).expand(bridge.handle).toList();
+          expect(release, [RuntimeInputEvent.release(control)]);
+        });
+      }
+    }
     test('a newly mapped held button must be released before activation', () {
       final first = RuntimePlayerGamepadBridge();
       expect(first.handleButton(gamepadId: 'pad', button: GamepadButton.x, value: 1), isEmpty);

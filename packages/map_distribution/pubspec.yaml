@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   archive: 4.0.9
+  image: ^4.2.0
   crypto: ^3.0.7
   map_core:
     path: ../map_core

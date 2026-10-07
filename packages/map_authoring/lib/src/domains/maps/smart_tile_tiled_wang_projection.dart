@@ -2,7 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../contracts/artifact_ref.dart';
 import '../assets/asset_store.dart';
-import '../assets/raster_image_dimensions.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'semantic_map_action_support.dart';
 
 /// Pure Wang importer projection.

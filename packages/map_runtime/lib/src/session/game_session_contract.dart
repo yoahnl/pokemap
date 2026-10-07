@@ -157,7 +157,8 @@ final class GameSessionDescriptor {
       );
     }
     if (launchMode == GameSessionLaunchMode.newGame &&
-        initialGameState == null) {
+        initialGameState == null &&
+        !grantedCapabilities.contains('map3d@1')) {
       throw const GameSessionException(
         GameSessionErrorCode.invalidDescriptor,
         'A new game descriptor requires its committed initial GameState.',

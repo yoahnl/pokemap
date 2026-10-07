@@ -146,14 +146,28 @@ final class GamePackageInspector {
         streamed.validationBytes,
         streamedTextValidated: _isStreamValidatedText(raw.name),
       );
-      if (raw.name == 'project/project.json') {
-        final project = GamePackageProjectValidator(policy).validate(
-          manifest,
-          streamed.validationBytes,
-          payloadPaths: rawByPath.keys.toSet(),
-        );
-        pokemonRuleset = project.pokemon.ruleset.reference;
+    }
+    final projectEntry = rawByPath['project/project.json'];
+    if (projectEntry != null) {
+      List<int>? readVerifiedPayload(String path) {
+        final raw = rawByPath[path];
+        if (raw == null) return null;
+        final bytes = _readAt(source, raw.dataOffset, raw.size);
+        if (getCrc32(bytes) != raw.crc32 ||
+            sha256.convert(bytes).toString() != inventoryByPath[path]!.sha256) {
+          _fail('hashMismatch', path,
+              'Payload changed during spatial validation.');
+        }
+        return bytes;
       }
+
+      final project = GamePackageProjectValidator(policy).validate(
+        manifest,
+        Uint8List.fromList(readVerifiedPayload('project/project.json')!),
+        payloadPaths: rawByPath.keys.toSet(),
+        readPayload: readVerifiedPayload,
+      );
+      pokemonRuleset = project.pokemon.ruleset.reference;
     }
     if (pokemonRuleset == null) {
       _fail(
@@ -280,14 +294,16 @@ final class GamePackageInspector {
         );
       }
       contentValidator.validate(inventoryEntry, raw.data);
-      if (raw.name == 'project/project.json') {
-        final project = GamePackageProjectValidator(policy).validate(
-          manifest,
-          raw.data,
-          payloadPaths: rawByPath.keys.toSet(),
-        );
-        pokemonRuleset = project.pokemon.ruleset.reference;
-      }
+    }
+    final projectEntry = rawByPath['project/project.json'];
+    if (projectEntry != null) {
+      final project = GamePackageProjectValidator(policy).validate(
+        manifest,
+        projectEntry.data,
+        payloadPaths: rawByPath.keys.toSet(),
+        readPayload: (path) => rawByPath[path]?.data,
+      );
+      pokemonRuleset = project.pokemon.ruleset.reference;
     }
     if (pokemonRuleset == null) {
       _fail(
@@ -439,6 +455,15 @@ final class GamePackageInspector {
     while (remaining > 0) {
       final length = remaining < chunkSize ? remaining : chunkSize;
       final chunk = _readAt(source, offset, length);
+      if (buffered == 0 &&
+          p.extension(entry.name).toLowerCase() == '.blob' &&
+          chunk.length >= 4 &&
+          chunk[0] == 0x67 &&
+          chunk[1] == 0x6c &&
+          chunk[2] == 0x54 &&
+          chunk[3] == 0x46) {
+        bufferWholeEntry = true;
+      }
       secretScanner.add(chunk);
       if (textInput != null) {
         try {
@@ -493,7 +518,7 @@ final class GamePackageInspector {
 
   bool _requiresWholeContent(String path) {
     final extension = p.extension(path).toLowerCase();
-    return extension == '.json';
+    return extension == '.json' || extension == '.glb';
   }
 
   bool _isStreamValidatedText(String path) {

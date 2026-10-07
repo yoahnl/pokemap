@@ -27,6 +27,7 @@ final class RuntimePlayerCoordinator {
     required RuntimeExternalExit externalExit,
     RuntimePlayerLoadSlot? defaultSaveSlot,
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
+    this.explorationOnly = false,
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
@@ -59,6 +60,7 @@ final class RuntimePlayerCoordinator {
   final GameSessionController _sessions;
   final RuntimeExternalExit _externalExit;
   final RuntimePlayerLoadSlot? _defaultSaveSlot;
+  final bool explorationOnly;
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   late final StreamSubscription<GameSessionSnapshot> _sessionSubscription;
   late final StreamSubscription<RuntimeWorldServiceSnapshot?>
@@ -1103,7 +1105,7 @@ final class RuntimePlayerCoordinator {
     var keepPreload = false;
     var preparationStage = 'save_lookup';
     try {
-      final existing = await _saveGateway.readSummary(
+      final existing = explorationOnly ? null : await _saveGateway.readSummary(
         SaveSlotAddress(
           gameId: _gameSource.identity.gameId,
           profileId: request.profileId,
@@ -1139,6 +1141,21 @@ final class RuntimePlayerCoordinator {
       preparationStage = 'project_preload';
       final preparation = await _newGameFlow.prepare();
       if (generation != _launchGeneration) return _finishCancelledLaunch();
+      if (explorationOnly) {
+        if (preparation.project.settings.dimension != ProjectDimension.threeD ||
+            preparation.startMap.spatialScene == null) {
+          throw StateError('Exploration requires a spatial map.');
+        }
+        final revision = await _newGameFlow.readCurrentProjectRevision();
+        if (generation != _launchGeneration) return _finishCancelledLaunch();
+        if (revision != preparation.projectRevision) {
+          throw const RuntimeNewGameException(code: 'exploration.project_changed',
+            safeMessage: 'La carte a changé pendant le chargement. Relancez l’exploration.');
+        }
+        final launch = await _launch(request, launchGeneration: generation);
+        keepPreload = launch.status == RuntimePlayerCommandStatus.accepted;
+        return launch;
+      }
       var draft = NewGameDraft.start(
         draftId: '$runId:draft',
         projectRevision: preparation.projectRevision,
@@ -1534,7 +1551,7 @@ final class RuntimePlayerCoordinator {
       final titleData = await Future.wait<Object?>(
         <Future<Object?>>[
           _preferencesGateway.load(),
-          _saveGateway.readLatestSummary(),
+          explorationOnly ? Future<PlayerSaveSummary?>.value() : _saveGateway.readLatestSummary(),
           _loadInventoryPreferences(),
         ],
         eagerError: false,
@@ -1897,7 +1914,9 @@ final class RuntimePlayerCoordinator {
   List<RuntimePlayerActionAvailability> get _titleActions {
     final save = _latestSave;
     final continueEnabled = save != null && save.canContinue;
-    final unavailableReason = save?.unavailableReason == null
+    final unavailableReason = explorationOnly
+        ? 'L’exploration 3D ne propose pas encore de sauvegarde.'
+        : save?.unavailableReason == null
         ? 'Aucune sauvegarde compatible n\u2019est disponible pour ce jeu.'
         : playerSaveUnavailableReasonText(save!.unavailableReason!);
     return <RuntimePlayerActionAvailability>[
@@ -1966,6 +1985,18 @@ final class RuntimePlayerCoordinator {
         pauseDetails,
     required PlayerPauseMenuState pauseMenuState,
   }) {
+    if (explorationOnly) {
+      return [
+        const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+        const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openOptions),
+        const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.updatePreferences),
+        const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
+        RuntimePlayerActionAvailability.disabled(RuntimePlayerAction.save,
+          reason: 'L’exploration 3D ne propose pas encore de sauvegarde.'),
+        if (includeReturnToRoot)
+          const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToPauseRoot),
+      ];
+    }
     return <RuntimePlayerActionAvailability>[
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.resume,

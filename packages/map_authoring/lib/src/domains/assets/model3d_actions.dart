@@ -13,7 +13,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
-import 'glb_model3d_inspector.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'tileset_actions.dart';
 
 final class Model3dActions {

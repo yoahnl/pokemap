@@ -9,10 +9,18 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
       capabilities: const <String>{
         'dialogue.choices@1',
         'map@1',
+        'map3d@1',
         'overworld.menu@1',
         'world.shop@1',
       },
-      supportedProjectFormats: <String>{ProjectVersion.v8.name},
+      supportedProjectFormats: <String>{
+        ProjectVersion.v8.name,
+        ProjectVersion.v9.name,
+      },
       currentProjectFormat: ProjectVersion.v8.name,
+      currentProjectFormats: <String>{
+        ProjectVersion.v8.name,
+        ProjectVersion.v9.name,
+      },
       supportedSaveFormats: const <int>{1},
     );

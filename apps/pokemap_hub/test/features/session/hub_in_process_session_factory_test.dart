@@ -7,8 +7,11 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart' show TestWidgetsFlutterBinding;
+import 'package:image/image.dart' as img;
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory root;
   late InstalledGameLaunchContext launch;
   late HubSaveStore saves;
@@ -127,6 +130,56 @@ void main() {
     expect(mountCount, 1);
     await adapter.dispose();
   });
+
+  test('routes map3d to one spatial session and companion exploration menus', () async {
+    launch = await _context(root, spatial: true);
+    saves = HubSaveStore(supportRoot: root, identity: launch.identity);
+    final imagePath = '${root.path}/hero.png';
+    await File(imagePath).writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+    final character = ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'unused',
+      animations: [for (final direction in EntityFacing.values)
+        CharacterAnimation(state: CharacterAnimationState.walk, direction: direction,
+          sourceAssetId: 'hero', frames: const [CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)])]);
+    final bundle = RuntimeMapBundle(manifest: ProjectManifest(version: ProjectVersion.v9, name: 'Spatial',
+      settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile(), defaultPlayerCharacterId: 'hero'),
+      maps: const [ProjectMapEntry(id: 'field', name: 'Field', relativePath: 'field.json')],
+      tilesets: const [], characters: [character]),
+      map: MapData(version: ProjectVersion.v9, id: 'field', name: 'Field', layers: const [],
+        size: const GridSize(width: 8, height: 8), spatialScene: MapSpatialScene(width: 8, depth: 8,
+          navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4)))),
+      projectRootDirectory: root.path, tilesetAbsolutePathsById: const {},
+      characterAnimationAbsolutePathsByAssetId: {'hero': imagePath});
+    SpatialExplorationGameSessionRuntime? mounted;
+    var unmounts = 0;
+    final factory = HubInProcessSessionFactory(launch: launch, saves: saves,
+      dimension: ProjectDimension.threeD,
+      mountGame: (_) async => fail('A spatial project must not mount 2D'),
+      unmountGame: (_) async => fail('A spatial project must not unmount 2D'),
+      mountSpatialSession: (runtime) async => mounted = runtime,
+      unmountSpatialSession: (runtime) async { expect(runtime, same(mounted)); unmounts++; },
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle));
+    final descriptor = _descriptor(launch);
+    final adapter = factory.call(descriptor);
+    await adapter.prepare(descriptor);
+    await adapter.start();
+    expect(mounted!.session!.bundle, same(bundle));
+    adapter.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    mounted!.session!.frame(.05);
+    expect(mounted!.session!.movement.z, lessThan(4));
+    final menu = await (adapter as RuntimePlayerCompanionMenuPort).readCompanionMenuData();
+    expect(menu.pauseMenuState.visibilityOverrides[ProjectPauseActionId.save], isFalse);
+    expect(await adapter.captureCheckpoint(), isNull);
+    await adapter.dispose();
+    expect(unmounts, 1);
+  });
+
+  test('rejects dimension and capability mismatch before constructing a graph', () {
+    final factory = HubInProcessSessionFactory(launch: launch, saves: saves,
+      dimension: ProjectDimension.threeD, mountGame: (_) async {}, unmountGame: (_) async {},
+      mountSpatialSession: (_) async {}, unmountSpatialSession: (_) async {});
+    expect(() => factory.call(_descriptor(launch)), throwsStateError);
+  });
 }
 
 GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch) =>
@@ -142,13 +195,13 @@ GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch) =>
       grantedCapabilities: launch.grantedCapabilities,
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
-      initialGameState: const GameState(
+      initialGameState: launch.grantedCapabilities.contains('map3d@1') ? null : const GameState(
         saveId: 'slot-1',
         currentMapId: 'map-start',
       ),
     );
 
-Future<InstalledGameLaunchContext> _context(Directory root) async {
+Future<InstalledGameLaunchContext> _context(Directory root, {bool spatial = false}) async {
   final version = Directory(p.join(root.path, 'version'));
   await Directory(p.join(version.path, 'project')).create(recursive: true);
   await File(
@@ -163,10 +216,10 @@ Future<InstalledGameLaunchContext> _context(Directory root) async {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse('1.0.0'),
       runtimeApiExpression: '^1.0.0',
-      projectFormat: 'v2',
+      projectFormat: spatial ? 'v9' : 'v2',
       saveFormat: 1,
       compatibilityId: 'story-v1',
-      requiredCapabilities: const <String>[],
+      requiredCapabilities: spatial ? const ['map3d@1'] : const <String>[],
     ),
     locales: GamePackageLocales(
       defaultLocale: 'fr-FR',
@@ -192,7 +245,7 @@ Future<InstalledGameLaunchContext> _context(Directory root) async {
   final identity = GameIdentity(
     gameId: manifest.gameId,
     gameVersion: manifest.gameVersion.toString(),
-    projectFormat: ProjectFormat.v2,
+    projectFormat: ProjectFormat.parse(manifest.compatibility.projectFormat),
     saveFormat: 1,
     compatibilityId: 'story-v1',
   );
@@ -225,6 +278,6 @@ Future<InstalledGameLaunchContext> _context(Directory root) async {
     project: assets.reference('project/project.json'),
     installedVersionHandle: 'verified-install',
     runtimeApiVersion: '1.0.0',
-    grantedCapabilities: const <String>{},
+    grantedCapabilities: spatial ? const {'map3d@1'} : const <String>{},
   );
 }

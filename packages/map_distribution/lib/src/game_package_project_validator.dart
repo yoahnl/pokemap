@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
+import 'game_package_spatial_project_validator.dart';
 
 /// Performs the pure project preflight available before staging/smoke.
 final class GamePackageProjectValidator {
@@ -17,6 +18,7 @@ final class GamePackageProjectValidator {
     GamePackageManifest packageManifest,
     Uint8List projectBytes, {
     required Set<String> payloadPaths,
+    GamePackagePayloadReader? readPayload,
   }) {
     try {
       final decoded = jsonDecode(
@@ -37,6 +39,7 @@ final class GamePackageProjectValidator {
       }
       final referencedPaths = <String>[
         ...project.maps.map((entry) => entry.relativePath),
+        ...project.models3d.map((entry) => entry.relativePath),
         ...project.tilesets.map((entry) => entry.relativePath),
         ...project.dialogues.map((entry) => entry.relativePath),
         ...project.cinematicMediaAssets.map((entry) => entry.relativePath),
@@ -51,6 +54,22 @@ final class GamePackageProjectValidator {
           );
         }
       }
+      final spatial = project.settings.dimension == ProjectDimension.threeD;
+      if (spatial !=
+              packageManifest.compatibility.requiredCapabilities
+                  .contains('map3d@1') ||
+          spatial &&
+              packageManifest.compatibility.requiredCapabilities
+                  .contains('map@1')) {
+        _fail('Project dimension and map capability do not match.');
+      }
+      if (spatial) {
+        if (readPayload == null) {
+          _fail('Spatial project payload validation is required.');
+        }
+        GamePackageSpatialProjectValidator(policy: policy)
+            .validate(project, readPayload);
+      }
       return project;
     } on GamePackageFormatException {
       rethrow;
@@ -62,6 +81,7 @@ final class GamePackageProjectValidator {
   void _validateComplexity(Map<String, dynamic> json) {
     const collectionFields = <String>{
       'maps',
+      'models3d',
       'groups',
       'tilesetFolders',
       'tilesets',

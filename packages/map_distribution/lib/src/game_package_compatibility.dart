@@ -12,16 +12,32 @@ final class GamePackageHostCompatibility {
     required Set<String> capabilities,
     required Set<String> supportedProjectFormats,
     required this.currentProjectFormat,
+    Set<String>? currentProjectFormats,
     required Set<int> supportedSaveFormats,
   })  : capabilities = Set.unmodifiable(capabilities),
         supportedProjectFormats = Set.unmodifiable(supportedProjectFormats),
-        supportedSaveFormats = Set.unmodifiable(supportedSaveFormats);
+        currentProjectFormats = Set.unmodifiable(
+          currentProjectFormats ?? <String>{currentProjectFormat},
+        ),
+        supportedSaveFormats = Set.unmodifiable(supportedSaveFormats) {
+    if (currentProjectFormats != null &&
+        (currentProjectFormats.isEmpty ||
+            !currentProjectFormats.contains(currentProjectFormat) ||
+            !supportedProjectFormats.containsAll(currentProjectFormats))) {
+      throw ArgumentError.value(
+        currentProjectFormats,
+        'currentProjectFormats',
+        'Current formats must be supported and contain the default format.',
+      );
+    }
+  }
 
   final Version hubVersion;
   final Version runtimeApiVersion;
   final Set<String> capabilities;
   final Set<String> supportedProjectFormats;
   final String currentProjectFormat;
+  final Set<String> currentProjectFormats;
   final Set<int> supportedSaveFormats;
 }
 
@@ -120,7 +136,7 @@ final class GamePackageCompatibilityEvaluator {
         missingCapabilities: missing,
       );
     }
-    if (compatibility.projectFormat != host.currentProjectFormat) {
+    if (!host.currentProjectFormats.contains(compatibility.projectFormat)) {
       return const GamePackageCompatibilityResult.migrate(
         code: 'projectMigrationRequired',
       );

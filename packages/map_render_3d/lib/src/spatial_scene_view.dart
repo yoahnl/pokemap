@@ -43,8 +43,10 @@ class SpatialSceneView extends StatefulWidget {
     required this.errorBuilder,
     this.selectedCell,
     this.actorFrame,
+    this.onReady,
   });
   final SpatialActorVisual Function(double dt)? actorFrame;
+  final VoidCallback? onReady;
   final MapSpatialScene scene;
   final List<ProjectModel3dEntry> models;
   final Future<Uint8List> Function(String id) loadModel;
@@ -58,11 +60,28 @@ class SpatialSceneView extends StatefulWidget {
 }
 
 class _SpatialSceneViewState extends State<SpatialSceneView> {
-  late final game = _SpatialGame(widget);
+  _SpatialGame? game;
   Object? failure;
+  @override
+  void initState() {
+    super.initState();
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    try {
+      await GpuBackend.initialize();
+      if (!mounted) return;
+      final initialized = _SpatialGame(widget);
+      setState(() => game = initialized);
+    } on Object catch (error) {
+      if (mounted) setState(() => failure = error);
+    }
+  }
+
   Future<void> refresh() async {
     try {
-      await game.refresh();
+      await game?.refresh();
       if (mounted) setState(() => failure = null);
     } on Object catch (error) {
       if (mounted) setState(() => failure = error);
@@ -72,6 +91,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   @override
   void didUpdateWidget(SpatialSceneView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final game = this.game;
+    if (game == null) return;
     if (oldWidget.controller != widget.controller && game.sceneReady) {
       oldWidget.controller.removeListener(game.syncCamera);
       widget.controller.addListener(game.syncCamera);
@@ -85,42 +106,50 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    onPointerSignal: (event) {
-      if (event is PointerScrollEvent &&
-          widget.controller.view != SpatialEditorView.game) {
-        GestureBinding.instance.pointerSignalResolver.register(
-          event,
-          (_) => widget.controller.dolly(event.scrollDelta.dy),
-        );
-      }
-    },
-    child: GestureDetector(
-      onPanUpdate: (event) {
-        if (widget.controller.view == SpatialEditorView.orbit) {
-          widget.controller.orbit(event.delta.dx, event.delta.dy);
+  Widget build(BuildContext context) {
+    final game = this.game;
+    if (game == null) {
+      return failure == null
+          ? const Center(child: Text('Chargement de la scène…'))
+          : widget.errorBuilder(context, failure!);
+    }
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent &&
+            widget.controller.view != SpatialEditorView.game) {
+          GestureBinding.instance.pointerSignalResolver.register(
+            event,
+            (_) => widget.controller.dolly(event.scrollDelta.dy),
+          );
         }
       },
-      onTapUp: (event) {
-        final cell = game.pickCell(event.localPosition);
-        if (cell != null) widget.onCell(cell.$1, cell.$2);
-      },
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: SpatialGameSurface<_SpatialGame>(
-              game: game,
-              loadingBuilder: (_) =>
-                  const Center(child: Text('Chargement de la scène…')),
-              errorBuilder: widget.errorBuilder,
+      child: GestureDetector(
+        onPanUpdate: (event) {
+          if (widget.controller.view == SpatialEditorView.orbit) {
+            widget.controller.orbit(event.delta.dx, event.delta.dy);
+          }
+        },
+        onTapUp: (event) {
+          final cell = game.pickCell(event.localPosition);
+          if (cell != null) widget.onCell(cell.$1, cell.$2);
+        },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: SpatialGameSurface<_SpatialGame>(
+                game: game,
+                loadingBuilder: (_) =>
+                    const Center(child: Text('Chargement de la scène…')),
+                errorBuilder: widget.errorBuilder,
+              ),
             ),
-          ),
-          if (failure != null)
-            Positioned.fill(child: widget.errorBuilder(context, failure!)),
-        ],
+            if (failure != null)
+              Positioned.fill(child: widget.errorBuilder(context, failure!)),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
@@ -137,12 +166,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   Color backgroundColor() => configuration.background;
   @override
   Future<void> onLoad() async {
-    await GpuBackend.initialize();
     await super.onLoad();
     if (closed) return;
     sceneReady = true;
     configuration.controller.addListener(syncCamera);
     await refresh();
+    if (!closed) configuration.onReady?.call();
   }
 
   Future<void> refresh() async {

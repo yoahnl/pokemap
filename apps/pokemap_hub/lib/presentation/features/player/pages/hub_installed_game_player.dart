@@ -41,51 +41,126 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
   bool? _presentationReducedMotion;
   String? _presentationLocale;
 
-  bool get _current => owner.mounted && !owner._closing && identical(owner._viewController?.coordinator, coordinator);
+  bool get _current =>
+      owner.mounted &&
+      !owner._closing &&
+      identical(owner._viewController?.coordinator, coordinator);
 
   @override
-  bool get isPaused => _current && coordinator.snapshot.phase == RuntimePlayerPhase.paused && coordinator.snapshot.worldService == null && owner._mountedGame?.battleExitTransitionVisible.value != true;
+  bool get isPaused =>
+      _current &&
+      coordinator.snapshot.phase == RuntimePlayerPhase.paused &&
+      coordinator.snapshot.worldService == null &&
+      owner._mountedGame?.battleExitTransitionVisible.value != true;
 
   @override
   Future<AveluneGameplayCompanionData> read() async {
-    if (!_current) return const AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.waiting);
+    if (!_current)
+      return const AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.waiting,
+      );
     final snapshot = coordinator.snapshot;
     final game = owner._mountedGame;
     final presentation = _presentation();
     if (snapshot.worldService != null) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked, presentation: presentation);
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.blocked,
+        presentation: presentation,
+      );
     }
     if (game?.battleExitTransitionVisible.value == true) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked, presentation: presentation);
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.blocked,
+        presentation: presentation,
+      );
     }
-    if (snapshot.phase == RuntimePlayerPhase.paused || snapshot.phase == RuntimePlayerPhase.saving) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.menu, player: snapshot, presentation: presentation);
+    if (snapshot.phase == RuntimePlayerPhase.paused ||
+        snapshot.phase == RuntimePlayerPhase.saving) {
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.menu,
+        player: snapshot,
+        presentation: presentation,
+      );
+    }
+    final spatial = owner._mountedSpatial;
+    if (snapshot.phase == RuntimePlayerPhase.playing && spatial != null) {
+      if (!spatial.inputAuthority.value.acceptsOverworldInput) {
+        return AveluneGameplayCompanionData(
+          mode: AveluneGameplayCompanionMode.blocked,
+          presentation: presentation,
+        );
+      }
+      final menu = await coordinator.readCompanionMenu();
+      if (!_current ||
+          !identical(snapshot, coordinator.snapshot) ||
+          !identical(spatial, owner._mountedSpatial) ||
+          menu == null ||
+          !spatial.inputAuthority.value.acceptsOverworldInput) {
+        return AveluneGameplayCompanionData(
+          mode: AveluneGameplayCompanionMode.blocked,
+          presentation: presentation,
+        );
+      }
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.menu,
+        player: menu,
+        presentation: presentation,
+      );
     }
     if (snapshot.phase != RuntimePlayerPhase.playing || game == null) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.waiting, presentation: presentation);
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.waiting,
+        presentation: presentation,
+      );
     }
     final authority = game.inputAuthorityListenable.value;
     final battle = game.battleCommandOverlayListenable.value;
     if (battle != null || authority.context == RuntimeInputContext.battle) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.battle, battle: battle, presentation: presentation);
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.battle,
+        battle: battle,
+        presentation: presentation,
+      );
     }
-    if (authority.context == RuntimeInputContext.transition || authority.context == RuntimeInputContext.cinematic || authority.context == RuntimeInputContext.blocked) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked, presentation: presentation);
+    if (authority.context == RuntimeInputContext.transition ||
+        authority.context == RuntimeInputContext.cinematic ||
+        authority.context == RuntimeInputContext.blocked) {
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.blocked,
+        presentation: presentation,
+      );
     }
     final menu = await coordinator.readCompanionMenu();
-    if (!_current || !identical(snapshot, coordinator.snapshot) || !identical(game, owner._mountedGame) || menu == null ||
-        game.battleCommandOverlayListenable.value != null || game.inputAuthorityListenable.value.context != authority.context) {
-      return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked, presentation: presentation);
+    if (!_current ||
+        !identical(snapshot, coordinator.snapshot) ||
+        !identical(game, owner._mountedGame) ||
+        menu == null ||
+        game.battleCommandOverlayListenable.value != null ||
+        game.inputAuthorityListenable.value.context != authority.context) {
+      return AveluneGameplayCompanionData(
+        mode: AveluneGameplayCompanionMode.blocked,
+        presentation: presentation,
+      );
     }
-    return AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.menu, player: menu, presentation: presentation);
+    return AveluneGameplayCompanionData(
+      mode: AveluneGameplayCompanionMode.menu,
+      player: menu,
+      presentation: presentation,
+    );
   }
 
   Map<String, Object?> _presentation() {
     final resolved = owner._startupSnapshot?.presentation;
     if (resolved == null) return const {};
     final dark = Theme.of(owner.context).brightness == Brightness.dark;
-    final locale = coordinator.snapshot.preferences?.locale ?? coordinator.snapshot.defaultPreferences.locale;
-    if (identical(resolved, _presentationSource) && dark == _presentationDark && owner._reducedMotion == _presentationReducedMotion && locale == _presentationLocale && _presentationCache != null) {
+    final locale =
+        coordinator.snapshot.preferences?.locale ??
+        coordinator.snapshot.defaultPreferences.locale;
+    if (identical(resolved, _presentationSource) &&
+        dark == _presentationDark &&
+        owner._reducedMotion == _presentationReducedMotion &&
+        locale == _presentationLocale &&
+        _presentationCache != null) {
       return _presentationCache!;
     }
     _presentationSource = resolved;
@@ -95,21 +170,30 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     final adapter = owner._startupAdapter;
     final profile = resolved.profile;
     final typography = profile?.typography;
-    final fontProfiles = typography == null ? <ProjectTypographyRole, ProjectTypographyRoleProfile>{} : {
-      ProjectTypographyRole.display: typography.display,
-      ProjectTypographyRole.body: typography.body,
-      ProjectTypographyRole.dialogue: typography.dialogue,
-      if (typography.combat != null) ProjectTypographyRole.combat: typography.combat!,
-      ProjectTypographyRole.numbers: typography.numbers,
-    };
+    final fontProfiles =
+        typography == null
+            ? <ProjectTypographyRole, ProjectTypographyRoleProfile>{}
+            : {
+              ProjectTypographyRole.display: typography.display,
+              ProjectTypographyRole.body: typography.body,
+              ProjectTypographyRole.dialogue: typography.dialogue,
+              if (typography.combat != null)
+                ProjectTypographyRole.combat: typography.combat!,
+              ProjectTypographyRole.numbers: typography.numbers,
+            };
     final images = <String, String>{};
-    for (final asset in [resolved.titleHero, resolved.titleLogo, resolved.menuBackground]) {
+    for (final asset in [
+      resolved.titleHero,
+      resolved.titleLogo,
+      resolved.menuBackground,
+    ]) {
       if (asset == null) continue;
       final uri = adapter?.resolvedAsset(asset.assetId)?.resolvedUri;
       if (uri?.scheme == 'file') images[asset.assetId] = uri!.toString();
     }
     return _presentationCache = {
-      'profile': profile == null ? null : jsonDecode(jsonEncode(profile.toJson())),
+      'profile':
+          profile == null ? null : jsonDecode(jsonEncode(profile.toJson())),
       'author': resolved.metadata.author,
       'description': resolved.metadata.description,
       'orientation': resolved.orientation.name,
@@ -121,60 +205,104 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       'dark': dark,
       'locale': locale,
       'fonts': {
-        for (final entry in resolved.typography?.roles.entries ?? <MapEntry<ProjectTypographyRole, RuntimeLoadedFontRole>>[])
+        for (final entry
+            in resolved.typography?.roles.entries ??
+                <MapEntry<ProjectTypographyRole, RuntimeLoadedFontRole>>[])
           entry.key.name: {
             'family': entry.value.registeredFamily,
             'fallback': entry.value.fallbackFamilies,
-            'uri': fontProfiles[entry.key]?.fontPath == null ? null : adapter?.resolvedAsset(fontProfiles[entry.key]!.fontPath!)?.resolvedUri.toString(),
+            'uri':
+                fontProfiles[entry.key]?.fontPath == null
+                    ? null
+                    : adapter
+                        ?.resolvedAsset(fontProfiles[entry.key]!.fontPath!)
+                        ?.resolvedUri
+                        .toString(),
           },
       },
     };
   }
 
   @override
-  Future<void> execute(String kind, Map<String, Object?> payload, AveluneGameplayCompanionSnapshot expected) async {
+  Future<void> execute(
+    String kind,
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  ) async {
     if (!_current) throw PlatformException(code: 'staleSession');
     if (kind == 'battle') {
       _executeBattle(payload, expected);
       return;
     }
     final projected = expected.player;
-    if (expected.mode != AveluneGameplayCompanionMode.menu || projected == null || projected.revision != coordinator.snapshot.revision || coordinator.snapshot.worldService != null || owner._mountedGame?.battleExitTransitionVisible.value == true) {
+    if (expected.mode != AveluneGameplayCompanionMode.menu ||
+        projected == null ||
+        projected.revision != coordinator.snapshot.revision ||
+        coordinator.snapshot.worldService != null ||
+        owner._mountedGame?.battleExitTransitionVisible.value == true) {
       throw PlatformException(code: 'staleRevision');
     }
     switch (kind) {
       case 'pause':
         await _ensurePause();
       case 'back':
-        if (payload['snapshotRevision'] != projected.revision) throw PlatformException(code: 'staleRevision');
+        if (payload['snapshotRevision'] != projected.revision)
+          throw PlatformException(code: 'staleRevision');
         if (coordinator.snapshot.phase == RuntimePlayerPhase.playing) return;
-        _requireAccepted(await coordinator.requestBack(snapshotRevision: projected.revision));
+        _requireAccepted(
+          await coordinator.requestBack(snapshotRevision: projected.revision),
+        );
       case 'player':
-        final command = RuntimeCompanionPresentationCodec.decodePlayerCommand(Map<String, dynamic>.from(payload));
-        if (command.snapshotRevision != projected.revision || !projected.isActionEnabled(command.action)) {
-          throw PlatformException(code: 'unavailable', message: projected.unavailableReasonFor(command.action));
+        final command = RuntimeCompanionPresentationCodec.decodePlayerCommand(
+          Map<String, dynamic>.from(payload),
+        );
+        if (command.snapshotRevision != projected.revision ||
+            !projected.isActionEnabled(command.action)) {
+          throw PlatformException(
+            code: 'unavailable',
+            message: projected.unavailableReasonFor(command.action),
+          );
         }
-        if (coordinator.snapshot.phase == RuntimePlayerPhase.playing && command.action == RuntimePlayerAction.resume) return;
+        if (coordinator.snapshot.phase == RuntimePlayerPhase.playing &&
+            command.action == RuntimePlayerAction.resume)
+          return;
         await _ensurePause();
         _checkPaused();
-        _requireAccepted(await owner._companionCommandController.dispatch(RuntimePlayerCommand(
-          action: command.action, snapshotRevision: coordinator.snapshot.revision, payload: command.payload,
-        )));
+        _requireAccepted(
+          await owner._companionCommandController.dispatch(
+            RuntimePlayerCommand(
+              action: command.action,
+              snapshotRevision: coordinator.snapshot.revision,
+              payload: command.payload,
+            ),
+          ),
+        );
       case 'favorite':
-        if (payload['snapshotRevision'] != projected.revision || payload['itemId'] is! String || payload['favorite'] is! bool) {
+        if (payload['snapshotRevision'] != projected.revision ||
+            payload['itemId'] is! String ||
+            payload['favorite'] is! bool) {
           throw PlatformException(code: 'invalidIntent');
         }
         await _ensurePause();
         _checkPaused();
-        _requireAccepted(await coordinator.setBagItemFavorite(
-          itemId: payload['itemId'] as String, favorite: payload['favorite'] as bool, snapshotRevision: coordinator.snapshot.revision,
-        ));
+        _requireAccepted(
+          await coordinator.setBagItemFavorite(
+            itemId: payload['itemId'] as String,
+            favorite: payload['favorite'] as bool,
+            snapshotRevision: coordinator.snapshot.revision,
+          ),
+        );
       case 'worldService':
-        throw PlatformException(code: 'unavailable', message: 'Ce service se contrôle sur l’écran principal.');
+        throw PlatformException(
+          code: 'unavailable',
+          message: 'Ce service se contrôle sur l’écran principal.',
+        );
       case 'controlProfile':
         await _ensurePause();
         _checkPaused();
-        await owner._updateControlProfile(player_ui.PlayerControlProfile.fromJson(payload));
+        await owner._updateControlProfile(
+          player_ui.PlayerControlProfile.fromJson(payload),
+        );
       default:
         throw PlatformException(code: 'invalidIntent');
     }
@@ -182,44 +310,77 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
 
   Future<void> _ensurePause() async {
     if (!_current) throw PlatformException(code: 'staleSession');
-    if (owner._mountedGame?.battleExitTransitionVisible.value == true) throw PlatformException(code: 'unavailable');
+    if (owner._mountedGame?.battleExitTransitionVisible.value == true)
+      throw PlatformException(code: 'unavailable');
     if (coordinator.snapshot.phase == RuntimePlayerPhase.paused) return;
-    if (coordinator.snapshot.phase != RuntimePlayerPhase.playing) throw PlatformException(code: 'unavailable');
-    _requireAccepted(await owner._companionCommandController.dispatch(RuntimePlayerCommand(
-      action: RuntimePlayerAction.openMenu, snapshotRevision: coordinator.snapshot.revision,
-    )));
+    if (coordinator.snapshot.phase != RuntimePlayerPhase.playing)
+      throw PlatformException(code: 'unavailable');
+    _requireAccepted(
+      await owner._companionCommandController.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.openMenu,
+          snapshotRevision: coordinator.snapshot.revision,
+        ),
+      ),
+    );
     _checkPaused();
   }
 
   void _checkPaused() {
     if (!_current) throw PlatformException(code: 'staleSession');
-    if (coordinator.snapshot.phase != RuntimePlayerPhase.paused) throw PlatformException(code: 'unavailable');
+    if (coordinator.snapshot.phase != RuntimePlayerPhase.paused)
+      throw PlatformException(code: 'unavailable');
     final game = owner._mountedGame;
-    if (game == null || game.battleExitTransitionVisible.value || game.battleCommandOverlayListenable.value != null || game.inputAuthorityListenable.value.context == RuntimeInputContext.battle ||
-        game.inputAuthorityListenable.value.context == RuntimeInputContext.transition) {
+    if (game == null && owner._mountedSpatial != null) return;
+    if (game == null ||
+        game.battleExitTransitionVisible.value ||
+        game.battleCommandOverlayListenable.value != null ||
+        game.inputAuthorityListenable.value.context ==
+            RuntimeInputContext.battle ||
+        game.inputAuthorityListenable.value.context ==
+            RuntimeInputContext.transition) {
       throw PlatformException(code: 'unavailable');
     }
   }
 
-  void _executeBattle(Map<String, Object?> payload, AveluneGameplayCompanionSnapshot expected) {
+  void _executeBattle(
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  ) {
     final game = owner._mountedGame;
     final snapshot = game?.battleCommandOverlayListenable.value;
-    if (expected.mode != AveluneGameplayCompanionMode.battle || snapshot == null || expected.battle == null ||
-        snapshot.revision != expected.battle!.revision || payload['snapshotRevision'] != snapshot.revision || payload['expectedMode'] != snapshot.mode.name) {
+    if (expected.mode != AveluneGameplayCompanionMode.battle ||
+        snapshot == null ||
+        expected.battle == null ||
+        snapshot.revision != expected.battle!.revision ||
+        payload['snapshotRevision'] != snapshot.revision ||
+        payload['expectedMode'] != snapshot.mode.name) {
       throw PlatformException(code: 'staleMode');
     }
     final command = switch (payload['action']) {
-      'back' => BattleBackCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode),
-      'select' => BattleSelectEntryCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: payload['entryIndex'] as int),
+      'back' => BattleBackCommand(
+        snapshotRevision: snapshot.revision,
+        expectedMode: snapshot.mode,
+      ),
+      'select' => BattleSelectEntryCommand(
+        snapshotRevision: snapshot.revision,
+        expectedMode: snapshot.mode,
+        entryIndex: payload['entryIndex'] as int,
+      ),
       _ => throw PlatformException(code: 'invalidIntent'),
     };
-    if (!validateBattlePresentationCommand(snapshot, command).accepted || !game!.dispatchBattlePresentationCommand(command)) {
+    if (!validateBattlePresentationCommand(snapshot, command).accepted ||
+        !game!.dispatchBattlePresentationCommand(command)) {
       throw PlatformException(code: 'unavailable');
     }
   }
 
   void _requireAccepted(RuntimePlayerCommandResult result) {
-    if (result.status != RuntimePlayerCommandStatus.accepted) throw PlatformException(code: result.status.name, message: result.safeMessage);
+    if (result.status != RuntimePlayerCommandStatus.accepted)
+      throw PlatformException(
+        code: result.status.name,
+        message: result.safeMessage,
+      );
   }
 }
 
@@ -289,6 +450,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.RuntimePlayerCoordinatorViewController? _viewController;
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
+  SpatialExplorationGameSessionRuntime? _mountedSpatial;
+  Completer<void>? _spatialReady;
   final Completer<void> _mountWait = Completer<void>();
   Locale? _playerLocale;
   RuntimeAudioMixer? _audioMixer;
@@ -310,7 +473,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   Future<void>? _shutdown;
   bool _closing = false;
   final _bootstrapLifetime = HubRuntimeStartupLifetime();
-  final _companionCommandController = player_ui.RuntimePlayerSessionCommandController();
+  final _companionCommandController =
+      player_ui.RuntimePlayerSessionCommandController();
   _HubGameplayCompanionPort? _companionPort;
   StreamSubscription<RuntimePlayerSnapshot>? _companionSubscription;
 
@@ -460,6 +624,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             onHubRequested: widget.onHubRequested,
             mountGame: _mountGame,
             unmountGame: _unmountGame,
+            mountSpatialSession: _mountSpatialSession,
+            unmountSpatialSession: _unmountSpatialSession,
             stopIntroPlayback: _startupShellController.stopIntroPlayback,
             defaultProfileDisplayNameForLocale:
                 (locale) =>
@@ -498,7 +664,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       final port = _HubGameplayCompanionPort(this, prepared.coordinator);
       _companionPort = port;
       companion.bind(port);
-      _companionSubscription = prepared.coordinator.snapshots.listen((_) => companion.invalidate());
+      _companionSubscription = prepared.coordinator.snapshots.listen(
+        (_) => companion.invalidate(),
+      );
     }
   }
 
@@ -531,6 +699,40 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (!_mountWait.isCompleted) {
       _mountWait.complete();
     }
+  }
+
+  Future<void> _mountSpatialSession(
+    SpatialExplorationGameSessionRuntime runtime,
+  ) async {
+    if (!mounted ||
+        _closing ||
+        _mountedGame != null ||
+        _mountedSpatial != null) {
+      throw StateError('The spatial surface cannot mount in this player.');
+    }
+    final ready = Completer<void>();
+    _spatialReady = ready;
+    runtime.inputAuthority.addListener(_invalidateCompanion);
+    setState(() => _mountedSpatial = runtime);
+    _invalidateCompanion();
+    await Future.any([ready.future, _mountWait.future]);
+    if (!mounted || _closing || !identical(_mountedSpatial, runtime)) {
+      throw StateError('The spatial surface closed while loading.');
+    }
+  }
+
+  Future<void> _unmountSpatialSession(
+    SpatialExplorationGameSessionRuntime runtime,
+  ) async {
+    runtime.inputAuthority.removeListener(_invalidateCompanion);
+    if (!mounted || !identical(_mountedSpatial, runtime)) return;
+    final ready = _spatialReady;
+    if (ready != null && !ready.isCompleted) ready.complete();
+    setState(() {
+      _mountedSpatial = null;
+      _spatialReady = null;
+    });
+    _invalidateCompanion();
   }
 
   Future<void> _unmountGame(PlayableMapGame game) async {
@@ -784,10 +986,18 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final companion = widget.companionOwner?.value;
     final snapshot = viewController.snapshot;
     final battle = _mountedGame?.battleCommandOverlayListenable.value;
-    final delegatesCompanion = companion != null && companion.companionAttached && snapshot.worldService == null && _mountedGame?.battleExitTransitionVisible.value != true && (
-      companion.mode == AveluneGameplayCompanionMode.menu && companion.player != null && companion.player!.revision == snapshot.revision ||
-      companion.mode == AveluneGameplayCompanionMode.battle && companion.battle != null && battle != null && companion.battle!.revision == battle.revision
-    );
+    final delegatesCompanion =
+        companion != null &&
+        companion.companionAttached &&
+        snapshot.worldService == null &&
+        _mountedGame?.battleExitTransitionVisible.value != true &&
+        (companion.mode == AveluneGameplayCompanionMode.menu &&
+                companion.player != null &&
+                companion.player!.revision == snapshot.revision ||
+            companion.mode == AveluneGameplayCompanionMode.battle &&
+                companion.battle != null &&
+                battle != null &&
+                companion.battle!.revision == battle.revision);
     final presentationRuntime = _presentationRuntime;
     if (presentationRuntime != null) {
       final size = MediaQuery.sizeOf(context);
@@ -816,7 +1026,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       pausePresentation: presentation.pausePresentation,
       gameplayInputRoute: _sessions?.handleInput,
       gameplayViewportKey: _gameplayViewportKey,
-      gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
+      gameplayInputAuthority:
+          _mountedGame?.inputAuthorityListenable ??
+          _mountedSpatial?.inputAuthority,
       menuInteractionBlocked: _mountedGame?.battleExitTransitionVisible,
       overworldInteractions: _mountedGame?.overworldInteractions,
       hitTestOverworldInteraction: _mountedGame?.hitTestOverworldInteraction,
@@ -836,6 +1048,31 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 await presentationRuntime.controller.skipActive();
               },
       gameSceneBuilder: (context) {
+        final spatial = _mountedSpatial;
+        if (spatial != null && spatial.session != null) {
+          return SizedBox.expand(
+            key: _gameplayViewportKey,
+            child: SpatialExplorationView(
+              key: ObjectKey(spatial),
+              session: spatial.session!,
+              keyboardInputEnabled: false,
+              onReady: () {
+                final ready = _spatialReady;
+                if (identical(spatial, _mountedSpatial) &&
+                    ready != null &&
+                    !ready.isCompleted)
+                  ready.complete();
+              },
+              onError: (error) {
+                final ready = _spatialReady;
+                if (identical(spatial, _mountedSpatial) &&
+                    ready != null &&
+                    !ready.isCompleted)
+                  ready.completeError(error);
+              },
+            ),
+          );
+        }
         final game = _mountedGame;
         if (game == null) {
           return const SizedBox.expand(
@@ -888,8 +1125,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final companionSubscription = _companionSubscription;
     _companionSubscription = null;
     _mountedGame?.inputAuthorityListenable.removeListener(_invalidateCompanion);
-    _mountedGame?.battleCommandOverlayListenable.removeListener(_invalidateCompanion);
-    _mountedGame?.battleExitTransitionVisible.removeListener(_invalidateCompanion);
+    _mountedSpatial?.inputAuthority.removeListener(_invalidateCompanion);
+    _mountedGame?.battleCommandOverlayListenable.removeListener(
+      _invalidateCompanion,
+    );
+    _mountedGame?.battleExitTransitionVisible.removeListener(
+      _invalidateCompanion,
+    );
     final splashResume = _splashResume;
     if (splashResume != null && !splashResume.isCompleted) {
       splashResume.complete();

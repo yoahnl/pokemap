@@ -14,7 +14,7 @@ import '../maps/smart_tile_native_transition_guard.dart';
 import '../maps/smart_tile_tiled_wang_projection.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
-import 'raster_image_dimensions.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'tileset_actions.dart';
 
 /// Builds the complete immutable projection for a regular Tiled tileset.

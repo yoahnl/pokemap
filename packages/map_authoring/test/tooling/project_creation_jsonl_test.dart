@@ -103,7 +103,7 @@ void main() {
                   supportedLocales: ['fr']),
               mode: mode),
           throwsA(isA<GamePackageExportException>()
-              .having((e) => e.code, 'code', 'runtime3d.unsupported')));
+              .having((e) => e.code, 'code', 'missingFile')));
     }
   });
 

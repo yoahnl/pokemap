@@ -21,6 +21,27 @@ final class GamePackageGameplayReadinessGate {
   }) {
     final project = projection.project;
     final diagnostics = <NarrativeProjectDiagnostic>[];
+    if (project.settings.dimension == ProjectDimension.threeD) {
+      try {
+        if (mode != GamePackageExportMode.localTest) {
+          throw GamePackageFormatException(
+              code: 'runtime3d.publication_unsupported',
+              path: 'project.json',
+              message: '3D exploration is available only through localTest.');
+        }
+        GamePackageSpatialProjectValidator()
+            .validate(project, (path) => projection.payloadFiles[path]);
+      } on Object catch (error) {
+        diagnostics.add(_diagnostic(
+            code: error is GamePackageFormatException
+                ? error.code
+                : 'runtime3d.invalid_project',
+            message: '$error',
+            path: 'project.json'));
+      }
+      return NarrativeProjectValidationReport(
+          diagnostics: diagnostics, mapEventViews: const []);
+    }
 
     try {
       ProjectValidator.validate(project);

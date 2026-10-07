@@ -1,4 +1,4 @@
-import 'package:map_authoring/src/domains/assets/raster_image_dimensions.dart';
+import 'package:map_authoring/map_authoring_resources.dart';
 import 'package:test/test.dart';
 
 void main() {

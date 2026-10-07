@@ -163,13 +163,6 @@ final class RuntimeProjectProjectionBuilder {
     final authorProject = ProjectManifest.fromJson(
       (projectScrub.value as Map).cast<String, dynamic>(),
     );
-    if (authorProject.settings.dimension == ProjectDimension.threeD) {
-      throw const GamePackageExportException(
-        code: 'runtime3d.unsupported',
-        path: 'project.json',
-        message: '3D projects are supported by the editor only; the 3D runtime is not supported yet.',
-      );
-    }
     final regionalMapTargets = {
       for (final point in authorProject.regionalMap?.pointsOfInterest ??
           const <ProjectRegionPointOfInterest>[])
@@ -378,11 +371,9 @@ final class RuntimeProjectProjectionBuilder {
       )) {
         continue;
       }
-      final bytes = await budget.readFile(
-        File(entity.path),
-        logicalPath: relative,
-        jsonLike: extension == '.json',
-      );
+      if (payload.containsKey('project/$relative')) continue;
+      final bytes = await authorFiles.read(relative, budget,
+          jsonLike: extension == '.json');
       final packagePath = _normalizePackagePath('project/$relative');
       if (extension == '.json') {
         final decoded = _decodeJson(bytes, relative);
@@ -535,6 +526,10 @@ final class RuntimeProjectProjectionBuilder {
       }
     }
 
+    if (projectedProject.settings.dimension == ProjectDimension.threeD) {
+      GamePackageSpatialProjectValidator()
+          .validate(projectedProject, (path) => payload[path]);
+    }
     return RuntimeProjectProjection(
       project: projectedProject,
       presentation: presentation,
@@ -568,12 +563,19 @@ final class RuntimeProjectProjectionBuilder {
     );
     final packagedArtifacts = <String>{};
     for (final record in records) {
+      final extension = p.extension(record.logicalPath).toLowerCase();
+      final bytes = await authorFiles.read(record.logicalPath, budget);
+      if (_isRuntimeProjectFile(record.logicalPath, extension,
+          hasCanonicalAssetCatalog: true)) {
+        budget.addPayload(payload,
+            _normalizePackagePath('project/${record.logicalPath}'), bytes);
+      }
       final storagePath = assetBlobStorageKey(record.artifact);
       if (!packagedArtifacts.add(storagePath)) continue;
       budget.addPayload(
         payload,
         _normalizePackagePath('project/$storagePath'),
-        await authorFiles.read(record.logicalPath, budget),
+        bytes,
       );
     }
   }
@@ -1174,6 +1176,7 @@ final class RuntimeProjectProjectionBuilder {
     '.ttf',
     '.otf',
     '.woff2',
+    '.glb',
   };
   static const Set<String> _audioExtensions = <String>{
     '.ogg',

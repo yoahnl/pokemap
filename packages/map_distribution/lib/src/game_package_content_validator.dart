@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'audio_media_format.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
+import 'glb_model3d_inspector.dart';
 import 'game_package_security_policy.dart';
 import 'strict_json_structure_validator.dart';
 
@@ -58,6 +59,21 @@ final class GamePackageContentValidator {
       );
     }
 
+    if (validationExtension == '.glb') {
+      try {
+        GlbModel3dInspector(
+          maxTextureDimension:
+              policy.maxImageDimension < 4096 ? policy.maxImageDimension : 4096,
+          maxTexturePixels: policy.maxImagePixels < 16777216
+              ? policy.maxImagePixels
+              : 16777216,
+        ).inspect(bytes);
+      } on Object {
+        _fail('invalidModel3d', path,
+            'GLB data is invalid or exceeds decoded asset quotas.');
+      }
+      return;
+    }
     if (validationExtension == '.json') {
       _validateJson(path, bytes);
       return;
@@ -227,7 +243,8 @@ final class GamePackageContentValidator {
     }
     if (path.startsWith('project/assets/') ||
         path.startsWith('project/data/')) {
-      final isMedia = _imageExtensions.contains(extension) ||
+      final isMedia = extension == '.glb' ||
+          _imageExtensions.contains(extension) ||
           _audioExtensions.contains(extension) ||
           _fontExtensions.contains(extension);
       if (isMedia) return true;
@@ -293,6 +310,7 @@ final class GamePackageContentValidator {
   }
 
   String? _embeddedMediaExtension(Uint8List bytes) {
+    if (_asciiAt(bytes, 0, 'glTF')) return '.glb';
     for (final extension in _imageExtensions) {
       if (_imageDimensions(extension, bytes) != null) return extension;
     }
@@ -562,6 +580,7 @@ final class GamePackageContentValidator {
     'seeds',
   };
   static const Map<String, String> _expectedMediaTypes = <String, String>{
+    '.glb': 'model/gltf-binary',
     '.json': 'application/json',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',

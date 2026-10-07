@@ -19,6 +19,9 @@ final class HubInProcessSessionFactory {
     this.audioMixer,
     this.presentationCinematicPlayer,
     this.now,
+    this.dimension = ProjectDimension.twoD,
+    this.mountSpatialSession,
+    this.unmountSpatialSession,
   });
 
   final InstalledGameLaunchContext launch;
@@ -29,6 +32,8 @@ final class HubInProcessSessionFactory {
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function()? now;
+  final ProjectDimension dimension;
+  final SpatialExplorationSessionMount? mountSpatialSession, unmountSpatialSession;
 
   GameSessionAdapter call(GameSessionDescriptor descriptor) {
     if (descriptor.identity != launch.identity ||
@@ -39,6 +44,22 @@ final class HubInProcessSessionFactory {
     }
     if (saves.identity != launch.identity) {
       throw StateError('The save store does not match the launch identity.');
+    }
+    if ((dimension == ProjectDimension.threeD) !=
+        descriptor.grantedCapabilities.contains('map3d@1')) {
+      throw StateError('The project dimension does not match its runtime capability.');
+    }
+    if (dimension == ProjectDimension.threeD) {
+      final mount = mountSpatialSession;
+      final unmount = unmountSpatialSession;
+      if (mount == null || unmount == null) {
+        throw StateError('The host does not provide a spatial surface.');
+      }
+      return InProcessGameSessionAdapter(runtimeFactory: (prepared) =>
+        SpatialExplorationGameSessionRuntime(descriptor: prepared,
+          projectFilePath: () async => (await launch.assets.resolveReference(launch.project)).path,
+          mountSession: mount, unmountSession: unmount,
+          preloadedInitialMap: preloadedInitialMap));
     }
     return InProcessGameSessionAdapter(
       runtimeFactory:

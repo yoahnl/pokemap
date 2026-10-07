@@ -13,8 +13,14 @@ void main() {
 
     expect(compatibility.supportedProjectFormats, <String>{
       ProjectVersion.v8.name,
+      ProjectVersion.v9.name,
     });
     expect(compatibility.currentProjectFormat, ProjectVersion.v8.name);
+    expect(compatibility.currentProjectFormats, {
+      ProjectVersion.v8.name,
+      ProjectVersion.v9.name,
+    });
+    expect(compatibility.capabilities, contains('map3d@1'));
   });
 
   test('accepts a package using the current v8 project format', () async {

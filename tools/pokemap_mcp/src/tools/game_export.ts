@@ -19,7 +19,7 @@ export function registerGameExportTool(
     {
       title: "Export an Avelune game package",
       description:
-        "Builds and writes one .avelunegame file into a configured export root. Publication requires a certified complete story; localTest retains story warnings and validates runtime data.",
+        "Builds and writes one .avelunegame file into a configured export root. Publication requires a certified complete story; localTest retains story warnings and validates runtime data, including 3D exploration projects. 3D publication and gameplay are unsupported.",
       inputSchema: z
         .object({
           projectHandle: z.string().min(1),

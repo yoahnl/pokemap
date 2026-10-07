@@ -10,7 +10,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
-import 'raster_image_dimensions.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'tileset_actions.dart';
 
 final class TilesetImageImportActions {

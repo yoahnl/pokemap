@@ -136,6 +136,14 @@ final class CanonicalGamePackageExportService {
         projectRoot: projectRoot,
         profile: profile,
       );
+      if (projection.project.settings.dimension == ProjectDimension.threeD &&
+          mode != GamePackageExportMode.localTest) {
+        throw const GamePackageExportException(
+            code: 'runtime3d.publication_unsupported',
+            path: 'project.json',
+            message:
+                '3D exploration packages can only be exported for local testing.');
+      }
       PokemonCatalogCoherenceReport? pokemonValidationReport;
       Object? pokemonValidationFailure;
       if (projection.project.pokemon.enabled) {
@@ -179,7 +187,10 @@ final class CanonicalGamePackageExportService {
       }
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
-        if (projection.project.maps.isNotEmpty) 'map@1',
+        if (projection.project.maps.isNotEmpty)
+          projection.project.settings.dimension == ProjectDimension.threeD
+              ? 'map3d@1'
+              : 'map@1',
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(
@@ -364,6 +375,7 @@ final class CanonicalGamePackageExportService {
           capabilities: const <String>{
             'dialogue.choices@1',
             'map@1',
+            'map3d@1',
             'overworld.menu@1',
             'world.shop@1',
           },

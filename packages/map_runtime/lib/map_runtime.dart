@@ -623,6 +623,7 @@ export 'src/session/game_session_contract.dart';
 export 'src/session/game_session_controller.dart' show GameSessionController;
 export 'src/session/in_process_game_session_adapter.dart';
 export 'src/session/playable_map_game_session_runtime.dart';
+export 'src/session/spatial_exploration_game_session_runtime.dart';
 export 'src/session/player_input.dart';
 export 'src/player/runtime_player_host.dart';
 export 'src/player/player_inventory_preferences_gateway.dart';
@@ -642,4 +643,5 @@ export 'src/player/runtime_player_pause_data_builder.dart'
 export 'src/player/runtime_world_service_models.dart';
 
 export 'src/spatial/spatial_exploration_session.dart';
+export 'src/spatial/spatial_exploration_bootstrap.dart';
 export 'src/spatial/spatial_exploration_view.dart';

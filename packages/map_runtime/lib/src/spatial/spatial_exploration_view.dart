@@ -5,8 +5,12 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'spatial_exploration_session.dart';
 
 class SpatialExplorationView extends StatefulWidget {
-  const SpatialExplorationView({super.key, required this.session});
+  const SpatialExplorationView({super.key, required this.session,
+    this.keyboardInputEnabled = true, this.onReady, this.onError});
   final SpatialExplorationSession session;
+  final bool keyboardInputEnabled;
+  final VoidCallback? onReady;
+  final void Function(Object)? onError;
   @override
   State<SpatialExplorationView> createState() => _SpatialExplorationViewState();
 }
@@ -19,7 +23,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   int inputEpoch = -1;
   void release() {
     keys.clear();
-    widget.session.movement.releaseInput();
+    if (widget.keyboardInputEnabled) widget.session.movement.releaseInput();
   }
 
   @override
@@ -34,6 +38,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   }
 
   KeyEventResult onKey(FocusNode node, KeyEvent event) {
+    if (!widget.keyboardInputEnabled) return KeyEventResult.ignored;
     final key = event.logicalKey;
     if (inputEpoch != widget.session.movement.inputEpoch) {
       keys.clear();
@@ -93,26 +98,29 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Focus(
-        autofocus: true,
+        autofocus: widget.keyboardInputEnabled,
         focusNode: focus,
         onFocusChange: (value) {
           if (!value) release();
         },
         onKeyEvent: onKey,
         child: Listener(
-            onPointerDown: (_) => focus.requestFocus(),
+            onPointerDown: (_) { if (widget.keyboardInputEnabled) focus.requestFocus(); },
             child: SpatialSceneView(
                 scene: widget.session.bundle.map.spatialScene!,
                 models: widget.session.bundle.manifest.models3d,
                 loadModel: (id) async =>
                     Uint8List.fromList(await widget.session.modelBytes(id)),
                 controller: camera,
-                onCell: (_, __) => focus.requestFocus(),
+                onCell: (_, __) { if (widget.keyboardInputEnabled) focus.requestFocus(); },
+                onReady: widget.onReady,
                 actorFrame: widget.session.frame,
                 background: colors.surfaceContainerLowest,
                 ground: colors.primaryContainer,
                 edge: colors.outlineVariant,
-                errorBuilder: (_, error) =>
-                    Center(child: Text('Erreur d’exploration 3D : $error')))));
+                errorBuilder: (_, error) {
+                  widget.onError?.call(error);
+                  return Center(child: Text('Erreur d’exploration 3D : $error'));
+                })));
   }
 }
