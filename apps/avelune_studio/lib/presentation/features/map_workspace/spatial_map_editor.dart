@@ -87,7 +87,11 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     final entity = gesture?.entity;
     final destination = gesture?.destination;
-    if (entity == null || destination == null) return null;
+    if (entity == null ||
+        entity.kind != MapEntityKind.npc ||
+        destination == null) {
+      return null;
+    }
     final x = destination.x + .5, z = destination.y + .5;
     return SpatialSceneContentPreview(
       kind: SpatialSceneContentKind.actor,
@@ -182,10 +186,16 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     final commands = SpatialModelEditingCommands(document, widget.project);
     try {
       if (widget.view.tool == StudioMapTool.terrain ||
-          widget.view.tool == StudioMapTool.erase) {
+          widget.view.tool == StudioMapTool.erase ||
+          widget.view.tool == StudioMapTool.collisionPaint ||
+          widget.view.tool == StudioMapTool.collisionErase) {
         final scene = document.current.spatialScene!;
-        if (scene.heightLevels.any((level) => level != 0) ||
-            scene.navigation.ramps.isNotEmpty) {
+        final collision =
+            widget.view.tool == StudioMapTool.collisionPaint ||
+            widget.view.tool == StudioMapTool.collisionErase;
+        if (!collision &&
+            (scene.heightLevels.any((level) => level != 0) ||
+                scene.navigation.ramps.isNotEmpty)) {
           document.error =
               'La peinture du sol est disponible sur les cartes plates pour le moment.';
           widget.onChanged();
@@ -217,7 +227,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                 : null)
           : hit?.kind == SpatialSceneContentKind.model
           ? commands.selected(hit!.id)
-          : hit?.kind == SpatialSceneContentKind.actor
+          : hit != null
           ? null
           : document.current.spatialScene!.instances
                 .where(
@@ -250,6 +260,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       if (!{
         StudioMapTool.select,
         StudioMapTool.character,
+        StudioMapTool.spawn,
+        StudioMapTool.warp,
         StudioMapTool.eraseDecor,
       }.contains(widget.view.tool)) {
         document.error =
@@ -274,13 +286,29 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       }
       widget.view.select(document, MapSelectionFamily.character, entity.id);
     }
+    if (widget.view.pendingMove == null &&
+        hit != null &&
+        widget.view.tool == StudioMapTool.select &&
+        (hit.kind == SpatialSceneContentKind.marker ||
+            hit.kind == SpatialSceneContentKind.warp)) {
+      final family = hit.kind == SpatialSceneContentKind.marker
+          ? MapSelectionFamily.marker
+          : MapSelectionFamily.warp;
+      widget.view.select(document, family, hit.id);
+      widget.view.pendingMove = MapSelectionTarget(
+        mapId: document.current.id,
+        family: family,
+        id: hit.id,
+      );
+    }
     gesture = MapCharacterGesture.start(
       document: widget.document,
       project: widget.project,
       view: widget.view,
       origin: GridPos(x: x, y: z),
     );
-    if (gesture?.entity != null && widget.view.tool == StudioMapTool.select) {
+    if ((gesture?.entity != null || gesture?.warp != null) &&
+        widget.view.tool == StudioMapTool.select) {
       contentSource = document.current;
       contentProject = widget.project;
     }
@@ -377,12 +405,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     gesture?.end = GridPos(x: cell.$1, y: cell.$2);
     final moving = gesture;
-    final entity = moving?.entity;
+    final sourcePosition = moving?.entity?.pos ?? moving?.warp?.pos;
     final destination = moving?.destination;
-    if (moving != null && entity != null && destination != null) {
+    if (moving != null && sourcePosition != null && destination != null) {
       moving.end = GridPos(
-        x: moving.origin.x + destination.x - entity.pos.x,
-        y: moving.origin.y + destination.y - entity.pos.y,
+        x: moving.origin.x + destination.x - sourcePosition.x,
+        y: moving.origin.y + destination.y - sourcePosition.y,
       );
     }
     if (modelGesture != null) {
@@ -451,7 +479,33 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                 widget.view.selectedFor(map.id, MapSelectionFamily.character),
           )
           .firstOrNull;
-      final hit = model != null
+      final marker = map.entities
+          .where(
+            (entity) =>
+                entity.id ==
+                widget.view.selectedFor(map.id, MapSelectionFamily.marker),
+          )
+          .firstOrNull;
+      final warp = map.warps
+          .where(
+            (warp) =>
+                warp.id ==
+                widget.view.selectedFor(map.id, MapSelectionFamily.warp),
+          )
+          .firstOrNull;
+      final hit = marker != null
+          ? SpatialSceneContentHit(
+              kind: SpatialSceneContentKind.marker,
+              id: marker.id,
+              cell: (marker.pos.x, marker.pos.y),
+            )
+          : warp != null
+          ? SpatialSceneContentHit(
+              kind: SpatialSceneContentKind.warp,
+              id: warp.id,
+              cell: (warp.pos.x, warp.pos.y),
+            )
+          : model != null
           ? SpatialSceneContentHit(
               kind: SpatialSceneContentKind.model,
               id: model.id,
@@ -524,6 +578,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         if (!focused && nudgeKeys.isNotEmpty) cancel();
       },
       child: SpatialSceneView(
+        cellOverlays: cellOverlays(colors),
         contentPreview: contentPreview,
         selectedContent: selectedModel != null
             ? SpatialSceneContentHit(
@@ -580,5 +635,62 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         ),
       ),
     );
+  }
+
+  List<SpatialCellOverlay> cellOverlays(ColorScheme colors) {
+    final map = terrainStroke?.preview ?? widget.document.current;
+    final destination = contentGestureValid ? gesture?.destination : null;
+    final cells = <SpatialCellOverlay>[];
+    for (final layer in map.layers.whereType<CollisionLayer>()) {
+      for (var index = 0; index < layer.collisions.length; index++) {
+        if (layer.collisions[index]) {
+          cells.add(
+            SpatialCellOverlay(
+              id: '${layer.id}:$index',
+              cell: (index % map.size.width, index ~/ map.size.width),
+              kind: SpatialCellOverlayKind.collision,
+              color: colors.error,
+            ),
+          );
+        }
+      }
+    }
+    for (final entity in map.entities.where(
+      (entity) => entity.kind == MapEntityKind.spawn,
+    )) {
+      final position = gesture?.entity?.id == entity.id
+          ? destination ?? entity.pos
+          : entity.pos;
+      cells.add(
+        SpatialCellOverlay(
+          id: entity.id,
+          cell: (position.x, position.y),
+          kind: SpatialCellOverlayKind.spawn,
+          color:
+              widget.view.selectedFor(map.id, MapSelectionFamily.marker) ==
+                  entity.id
+              ? colors.primary
+              : colors.secondary,
+        ),
+      );
+    }
+    for (final warp in map.warps) {
+      final origin = gesture?.warp?.id == warp.id
+          ? destination ?? warp.pos
+          : warp.pos;
+      cells.add(
+        SpatialCellOverlay(
+          id: warp.id,
+          cell: (origin.x, origin.y),
+          kind: SpatialCellOverlayKind.warp,
+          color:
+              widget.view.selectedFor(map.id, MapSelectionFamily.warp) ==
+                  warp.id
+              ? colors.primary
+              : colors.tertiary,
+        ),
+      );
+    }
+    return cells;
   }
 }

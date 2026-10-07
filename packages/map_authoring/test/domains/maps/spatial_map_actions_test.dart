@@ -77,8 +77,62 @@ void main() {
                   direction: SpatialRampDirection.north)
             ]).toJson()
       });
+      await execute('map.create', {'mapId': 'second', 'width': 4, 'height': 4});
+      await execute('entity.create', {
+        'entity': const MapEntity(
+                id: 'start',
+                kind: MapEntityKind.spawn,
+                pos: GridPos(x: 2, y: 3),
+                blocksMovement: false,
+                spawn: MapEntitySpawnData(role: EntitySpawnRole.playerStart))
+            .toJson()
+      });
+      await execute('map.apply_operations', {
+        'operations': [
+          {
+            'kind': 'layer.add',
+            'layerKind': 'collision',
+            'layerId': 'solid',
+            'name': 'Collisions'
+          }
+        ]
+      });
+      await execute('collision_layer.paint',
+          {'layerId': 'solid', 'x': 0, 'y': 0, 'width': 2, 'height': 1});
+      await execute('warp.create_reciprocal_apply', {
+        'warp': const MapWarp(
+                id: 'out',
+                pos: GridPos(x: 3, y: 3),
+                targetMapId: 'second',
+                targetPos: GridPos(x: 1, y: 1))
+            .toJson(),
+        'reciprocalWarpId': 'back'
+      });
+      await execute('connection.create_bidirectional_apply', {
+        'direction': 'east',
+        'targetMapId': 'second',
+        'offset': 1,
+      });
       final snapshot = await f.snapshots.load(f.project);
       final map = snapshot.mapById('first-map')!;
+      expect(map.version, ProjectVersion.v9);
+      expect(map.entities.single.id, 'start');
+      expect(map.layers.whereType<CollisionLayer>().single.collisions.take(2),
+          [true, true]);
+      expect(map.warps.single.targetMapId, 'second');
+      expect(snapshot.mapById('second')!.warps.single.targetMapId, 'first-map');
+      expect(
+          map.connections.single,
+          const MapConnection(
+              direction: MapConnectionDirection.east,
+              targetMapId: 'second',
+              offset: 1));
+      expect(
+          snapshot.mapById('second')!.connections.single,
+          const MapConnection(
+              direction: MapConnectionDirection.west,
+              targetMapId: 'first-map',
+              offset: -1));
       expect(map.spatialScene!.heightAt(1, 2), 3);
       expect(map.spatialScene!.instances.single.id, 'placed');
       expect(map.spatialScene!.camera.distance, 60);
@@ -96,6 +150,13 @@ void main() {
       expect(queried.status, AuthoringResultStatus.success);
       expect((queried.data['items'] as List).single['spatialScene'],
           map.spatialScene!.toJson());
+      expect((queried.data['items'] as List).single['connections'],
+          map.connections.map((connection) => connection.toJson()).toList());
+      await execute(
+          'connection.delete_bidirectional_apply', {'direction': 'east'});
+      final disconnected = await f.snapshots.load(f.project);
+      expect(disconnected.mapById('first-map')!.connections, isEmpty);
+      expect(disconnected.mapById('second')!.connections, isEmpty);
       await execute('map3d.instance.delete', {'instanceId': 'placed'});
       expect(
           (await f.snapshots.load(f.project))

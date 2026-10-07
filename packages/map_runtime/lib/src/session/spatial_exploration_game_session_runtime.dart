@@ -71,7 +71,8 @@ final class SpatialExplorationGameSessionRuntime
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
   }
 
-  String get _mapActivationId => '${descriptor.sessionId}:spatial:1';
+  String get _mapActivationId =>
+      '${descriptor.sessionId}:spatial:${(_session?.mapRevision.value ?? 0) + 1}';
   void _publishInteractions() {
     if (_disposed) return;
     final session = _session;
@@ -182,6 +183,7 @@ final class SpatialExplorationGameSessionRuntime
       }
       _session = loaded;
       loaded.interactionActive.addListener(_syncMovement);
+      loaded.transitioning.addListener(_syncMovement);
       loaded.onFrame = _publishInteractions;
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
@@ -255,6 +257,9 @@ final class SpatialExplorationGameSessionRuntime
     _ensureOpen();
     if (locked) {
       _locks.add(owner);
+      if (_session?.transitioning.value ?? false) {
+        _session!.cancelPendingTransition();
+      }
     } else {
       _locks.remove(owner);
     }
@@ -263,7 +268,11 @@ final class SpatialExplorationGameSessionRuntime
 
   void _syncMovement() {
     _pressed.clear();
-    final paused = _paused || _stopped || _locks.isNotEmpty || _session == null;
+    final paused = _paused ||
+        _stopped ||
+        _locks.isNotEmpty ||
+        _session == null ||
+        (_session?.transitioning.value ?? false);
     final talking = _session?.interactionActive.value ?? false;
     _session?.dialoguePaused = paused;
     _session?.movement.setPaused(paused || talking);
@@ -282,6 +291,9 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> pause() async {
     _ensureOpen();
     _paused = true;
+    if (_session?.transitioning.value ?? false) {
+      _session!.cancelPendingTransition();
+    }
     _syncMovement();
   }
 
@@ -306,6 +318,7 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> stop(GameSessionExitReason reason) async {
     if (_disposed) return;
     _stopped = true;
+    _session?.cancelPendingTransition();
     _session?.closeDialogue();
     _syncMovement();
   }
@@ -342,6 +355,7 @@ final class SpatialExplorationGameSessionRuntime
     } finally {
       _mounted = false;
       _session?.interactionActive.removeListener(_syncMovement);
+      _session?.transitioning.removeListener(_syncMovement);
       _session?.dispose();
       _session = null;
       overworldInteractions.dispose();

@@ -55,7 +55,7 @@ Future<void> main() async {
       );
     }
     final movement = current.movement;
-    if (params['reset'] == 'true') movement.reset();
+    if (params['reset'] == 'true') current.resetPosition();
     if (params['key'] case final name?) {
       final (logical, physical) = switch (name) {
         'north' => (LogicalKeyboardKey.arrowUp, PhysicalKeyboardKey.arrowUp),
@@ -76,29 +76,41 @@ Future<void> main() async {
       }
       final dispatch = ui.PlatformDispatcher.instance.onKeyData;
       if (dispatch == null) throw StateError('Clavier non initialisé.');
-      dispatch(
-        ui.KeyData(
-          type: ui.KeyEventType.down,
-          physical: physical.usbHidUsage,
-          logical: logical.keyId,
-          character: null,
-          timeStamp: Duration.zero,
-          synthesized: true,
-        ),
-      );
+      final binding = WidgetsBinding.instance;
+      final lifecycle = binding.lifecycleState;
+      final captureInput = params['captureInput'] == 'true';
+      if (captureInput) {
+        binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      }
       try {
-        await Future<void>.delayed(Duration(milliseconds: milliseconds));
-      } finally {
         dispatch(
           ui.KeyData(
-            type: ui.KeyEventType.up,
+            type: ui.KeyEventType.down,
             physical: physical.usbHidUsage,
             logical: logical.keyId,
             character: null,
-            timeStamp: Duration(milliseconds: milliseconds),
+            timeStamp: Duration.zero,
             synthesized: true,
           ),
         );
+        try {
+          await Future<void>.delayed(Duration(milliseconds: milliseconds));
+        } finally {
+          dispatch(
+            ui.KeyData(
+              type: ui.KeyEventType.up,
+              physical: physical.usbHidUsage,
+              logical: logical.keyId,
+              character: null,
+              timeStamp: Duration(milliseconds: milliseconds),
+              synthesized: true,
+            ),
+          );
+        }
+      } finally {
+        if (captureInput && lifecycle != null) {
+          binding.handleAppLifecycleStateChanged(lifecycle);
+        }
       }
     }
     if (params['steps'] case final steps?) {
@@ -121,12 +133,15 @@ Future<void> main() async {
       jsonEncode({
         'path': session.state.project?.directoryPath,
         'mapId': current.bundle.map.id,
-        'x': movement.x,
-        'z': movement.z,
-        'y': movement.y,
-        'facing': movement.facing.name,
-        'moving': movement.moving,
-        'paused': movement.paused,
+        'x': current.movement.x,
+        'z': current.movement.z,
+        'y': current.movement.y,
+        'facing': current.movement.facing.name,
+        'moving': current.movement.moving,
+        'paused': current.movement.paused,
+        'mapRevision': current.mapRevision.value,
+        'transitioning': current.transitioning.value,
+        'error': current.interactionError.value?.toString(),
         'diagonals': movement.allowDiagonalMovement,
         'focus': FocusManager.instance.primaryFocus?.toString(),
       }),

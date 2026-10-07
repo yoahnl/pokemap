@@ -55,6 +55,22 @@ class MapSelectionInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (view.tool == StudioMapTool.connection &&
+        onLinkMaps != null &&
+        onUnlinkMaps != null) {
+      return StudioSidebar(
+        width: width,
+        child: SingleChildScrollView(
+          child: MapConnectionPanel(
+            key: ValueKey('map-connection-${document.base.mapId}'),
+            map: document.current,
+            project: project,
+            onLink: onLinkMaps!,
+            onUnlink: onUnlinkMaps!,
+          ),
+        ),
+      );
+    }
     if (view.tool == StudioMapTool.terrain ||
         (view.tool == StudioMapTool.erase && view.terrain != null)) {
       return MapTerrainInspector(

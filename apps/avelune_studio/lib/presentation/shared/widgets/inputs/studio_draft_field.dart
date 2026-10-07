@@ -9,12 +9,16 @@ class StudioDraftField extends StatefulWidget {
     this.lines = 1,
     this.enabled = true,
     this.errorText,
+    this.helperText,
+    this.keyboardType,
   });
   final String value, label;
   final ValueChanged<String> onChanged;
   final int lines;
   final bool enabled;
   final String? errorText;
+  final String? helperText;
+  final TextInputType? keyboardType;
   @override
   State<StudioDraftField> createState() => _StudioDraftFieldState();
 }
@@ -46,11 +50,13 @@ class _StudioDraftFieldState extends State<StudioDraftField> {
     controller: controller,
     onChanged: widget.onChanged,
     enabled: widget.enabled,
+    keyboardType: widget.keyboardType,
     minLines: widget.lines,
     maxLines: widget.lines == 1 ? 1 : null,
     decoration: InputDecoration(
       labelText: widget.label,
       errorText: widget.errorText,
+      helperText: widget.helperText,
     ),
   );
 }

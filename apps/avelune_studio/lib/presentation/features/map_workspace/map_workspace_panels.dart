@@ -271,7 +271,9 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
             kind == 'Personnages' && view.character == null
                 ? 'Choisissez un personnage à placer.'
                 : kind == 'Passages'
-                ? view.warpDestination == null
+                ? view.tool == StudioMapTool.connection
+                      ? 'Choisissez le bord et la carte voisine dans le panneau de droite.'
+                      : view.warpDestination == null
                       ? 'Choisissez la carte vers laquelle mène le passage.'
                       : 'Passage vers ${view.warpDestination!.name}'
                 : view.terrain != null

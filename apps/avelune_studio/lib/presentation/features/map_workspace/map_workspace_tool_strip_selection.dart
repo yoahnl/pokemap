@@ -27,6 +27,8 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
     'Choisissez un personnage, puis cliquez sur sa case de départ.',
   StudioMapTool.warp =>
     'Choisissez la carte de destination, puis cliquez sur la case du passage.',
+  StudioMapTool.connection =>
+    'Choisissez un bord, sa carte voisine et le décalage pour les relier.',
   StudioMapTool.spawn =>
     'Cliquez la case où le joueur apparaît au début du jeu.',
   StudioMapTool.sign => 'Cliquez la case du panneau, puis écrivez son texte.',

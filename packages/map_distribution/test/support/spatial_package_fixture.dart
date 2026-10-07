@@ -148,3 +148,63 @@ GamePackageManifest spatialManifest(
         ]
       },
     });
+
+Map<String, List<int>> spatialPassagePayload() {
+  final files = spatialPayload();
+  final project = ProjectManifest.fromJson(
+      jsonDecode(utf8.decode(files['project/project.json']!)));
+  final map = MapData.fromJson(
+      jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+  final start = const MapEntity(
+    id: 'player-start',
+    kind: MapEntityKind.spawn,
+    pos: GridPos(x: 6, y: 6),
+    spawn: MapEntitySpawnData(facing: EntityFacing.north),
+  );
+  final outside = map.copyWith(
+    entities: [start],
+    mapMetadata: const MapMetadata(defaultSpawnId: 'player-start'),
+    layers: [
+      MapLayer.collision(
+        id: 'solid',
+        name: 'Solid',
+        collisions: [for (var i = 0; i < 64; i++) i == 27],
+      )
+    ],
+    warps: [
+      const MapWarp(
+        id: 'enter',
+        pos: GridPos(x: 5, y: 5),
+        targetMapId: 'room',
+        targetPos: GridPos(x: 2, y: 2),
+        allowedApproachFacings: [EntityFacing.south],
+        triggerPadding: WarpTriggerPadding(left: 1),
+      )
+    ],
+  );
+  final room = map.copyWith(
+    id: 'room',
+    name: 'Room',
+    spatialScene: map.spatialScene!.copyWith(instances: []),
+    entities: [start.copyWith(pos: const GridPos(x: 2, y: 2))],
+    mapMetadata: const MapMetadata(defaultSpawnId: 'player-start'),
+    warps: [
+      const MapWarp(
+        id: 'leave',
+        pos: GridPos(x: 2, y: 2),
+        targetMapId: 'map',
+        targetPos: GridPos(x: 5, y: 5),
+        triggerMode: MapWarpTriggerMode.onBump,
+      )
+    ],
+  );
+  files['project/project.json'] =
+      utf8.encode(jsonEncode(project.copyWith(maps: [
+    ...project.maps,
+    const ProjectMapEntry(
+        id: 'room', name: 'Room', relativePath: 'maps/room.json'),
+  ]).toJson()));
+  files['project/maps/map.json'] = utf8.encode(jsonEncode(outside.toJson()));
+  files['project/maps/room.json'] = utf8.encode(jsonEncode(room.toJson()));
+  return files;
+}

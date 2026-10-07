@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/components.dart';
@@ -21,12 +21,15 @@ import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_ground.dart';
 import 'spatial_selection.dart';
+import 'spatial_cell_overlay.dart';
+import 'spatial_scene_neighbor.dart';
+import 'spatial_scene_components.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
 enum SpatialEditorView { orbit, top, game }
 
-enum SpatialSceneContentKind { actor, model }
+enum SpatialSceneContentKind { actor, model, marker, warp }
 
 final class SpatialSceneContentHit {
   const SpatialSceneContentHit({
@@ -91,6 +94,7 @@ class SpatialSceneView extends StatefulWidget {
     this.selectedCell,
     this.selectedContent,
     this.contentPreview,
+    this.cellOverlays = const [],
     this.selectionColor,
     this.actorFrames,
     this.onReady,
@@ -105,6 +109,8 @@ class SpatialSceneView extends StatefulWidget {
     this.groundMap,
     this.groundProject,
     this.loadGroundImage,
+    this.neighbors = const [],
+    this.sceneOffset = Offset.zero,
   });
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
@@ -119,6 +125,8 @@ class SpatialSceneView extends StatefulWidget {
   final MapData? groundMap;
   final ProjectManifest? groundProject;
   final Future<Uint8List> Function(String id)? loadGroundImage;
+  final List<SpatialSceneNeighbor> neighbors;
+  final Offset sceneOffset;
   final MapSpatialScene scene;
   final List<ProjectModel3dEntry> models;
   final Future<Uint8List> Function(String id) loadModel;
@@ -128,6 +136,7 @@ class SpatialSceneView extends StatefulWidget {
   final (int, int)? selectedCell;
   final SpatialSceneContentHit? selectedContent;
   final SpatialSceneContentPreview? contentPreview;
+  final List<SpatialCellOverlay> cellOverlays;
   final Color? selectionColor;
   final Widget Function(BuildContext, Object) errorBuilder;
   @override
@@ -175,8 +184,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 
   Future<void> refresh() async {
     try {
-      await game?.refresh();
-      if (mounted) setState(() => failure = null);
+      final refreshed = await game?.refresh();
+      if (mounted && refreshed == true) setState(() => failure = null);
     } on Object catch (error) {
       if (mounted) setState(() => failure = error);
     }
@@ -192,19 +201,29 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       widget.controller.addListener(game.syncCamera);
     }
     game.configuration = widget;
-    game.syncContentPreview();
     if (!identical(oldWidget.groundProject, widget.groundProject)) {
       game.groundTextureCache.clear();
+    }
+    if (!identical(oldWidget.models, widget.models)) {
+      game.cache.clear();
     }
     if (!identical(oldWidget.scene, widget.scene) ||
         !identical(oldWidget.groundMap, widget.groundMap) ||
         !identical(oldWidget.groundProject, widget.groundProject) ||
         !identical(oldWidget.models, widget.models) ||
+        !_sameNeighbors(oldWidget.neighbors, widget.neighbors) ||
+        oldWidget.sceneOffset != widget.sceneOffset ||
         oldWidget.selectedCell != widget.selectedCell ||
         oldWidget.selectedContent?.id != widget.selectedContent?.id ||
         oldWidget.selectedContent?.kind != widget.selectedContent?.kind ||
         oldWidget.selectionColor != widget.selectionColor) {
       refresh();
+    } else if (!game.refreshing) {
+      game.renderedConfiguration = widget;
+      game.syncContentPreview();
+      if (!listEquals(oldWidget.cellOverlays, widget.cellOverlays)) {
+        game.syncCellOverlays();
+      }
     }
   }
 
@@ -236,13 +255,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                       ..remove(PointerDeviceKind.trackpad))
                   : null,
               onSecondaryTapUp: (event) {
-                final actorId = game.pickActor(event.localPosition);
-                final actor = actorId == null
-                    ? null
-                    : game.actors[actorId]?.mesh;
-                final cell = actor == null
-                    ? game.pickContentCell(event.localPosition)
-                    : (actor.position.x.floor(), actor.position.z.floor());
+                final cell = game.pickContentCell(event.localPosition);
                 if (cell != null)
                   widget.onContextMenu?.call(
                     GridPos(x: cell.$1, y: cell.$2),
@@ -353,6 +366,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   _SpatialGame(this.configuration)
     : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40));
   SpatialSceneView configuration;
+  SpatialSceneView? renderedConfiguration;
+  SpatialSceneView get visibleConfiguration =>
+      renderedConfiguration ?? configuration;
+  bool refreshing = false;
   final Map<String, Future<Model>> cache = {};
   Map<
     String,
@@ -366,32 +383,34 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
   SpatialActorVisual? actorVisual;
   double billboardPitch = 0, billboardYaw = 0;
-  final groundTextureCache = <String, Future<Texture>>{};
-  Map<String, Texture> groundTextures = {};
-  SpatialGroundPlan? groundPlan;
-  List<SpatialGroundVisual> groundVisuals = [];
-  List<MeshComponent> groundComponents = [];
+  final groundTextureCache = <(String, String), Future<Texture>>{};
+  List<_SceneGround> grounds = [];
+  late final sceneComponents = SpatialSceneComponents(world);
+  List<MeshComponent> cellOverlayComponents = [];
   double groundElapsed = 0;
   @override
-  Color backgroundColor() => configuration.background;
+  Color backgroundColor() => visibleConfiguration.background;
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     if (closed) return;
     sceneReady = true;
     configuration.controller.addListener(syncCamera);
+    world.add(LightComponent.ambient(intensity: 0.85));
     await refresh();
     if (!closed) configuration.onReady?.call();
   }
 
-  Future<void> refresh() async {
-    if (!sceneReady || closed) return;
+  Future<bool> refresh() async {
+    if (!sceneReady || closed) return false;
     final ticket = ++generation;
-    final scene = configuration.scene;
-    final definitions = {
-      for (final model in configuration.models) model.id: model,
-    };
+    refreshing = true;
+    sceneComponents.cancelPending();
+    final snapshot = configuration;
+    final neighbors = List<SpatialSceneNeighbor>.of(snapshot.neighbors);
+    final definitions = {for (final model in snapshot.models) model.id: model};
     final components = <Object3D>[];
+    final nextGrounds = <_SceneGround>[];
     final nextModelComponents =
         <
           String,
@@ -401,128 +420,180 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             Model3dVector3 anchor,
           })
         >{};
-    final map = configuration.groundMap;
-    final project = configuration.groundProject;
-    final loader = configuration.loadGroundImage;
-    SpatialGroundPlan? nextGroundPlan;
-    final nextTextures = <String, Texture>{};
-    if (map != null && map.layers.isNotEmpty) {
-      if (project == null || loader == null) {
-        throw StateError('Les ressources du sol 3D sont indisponibles.');
-      }
-      nextGroundPlan = SpatialGroundPlan(map, project);
-      for (final id in nextGroundPlan.imageIds) {
-        try {
-          nextTextures[id] = await groundTextureCache.putIfAbsent(
-            id,
-            () async => loadSpatialGroundTexture(
-              await loader(id),
-              transparentColor: project.tilesets
-                  .where((tileset) => tileset.id == id)
-                  .firstOrNull
-                  ?.transparentColor,
+    final placements = [
+      (
+        scene: snapshot.scene,
+        map: snapshot.groundMap,
+        offset: snapshot.sceneOffset,
+        loader: snapshot.loadGroundImage,
+        active: true,
+      ),
+      for (final neighbor in neighbors)
+        if (neighbor.map.spatialScene case final scene?)
+          (
+            scene: scene,
+            map: neighbor.map,
+            offset: snapshot.sceneOffset + neighbor.offset,
+            loader: neighbor.loadGroundImage,
+            active: false,
+          ),
+    ];
+    try {
+      for (final placement in placements) {
+        final map = placement.map;
+        final project = snapshot.groundProject;
+        final loader = placement.loader;
+        if (map != null && map.layers.isNotEmpty) {
+          if (project == null || loader == null) {
+            throw StateError('Les ressources du sol 3D sont indisponibles.');
+          }
+          final plan = SpatialGroundPlan(map, project);
+          final textures = <String, Texture>{};
+          for (final id in plan.imageIds) {
+            final key = (map.id, id);
+            final pending = groundTextureCache.putIfAbsent(
+              key,
+              () async => loadSpatialGroundTexture(
+                await loader(id),
+                transparentColor: project.tilesets
+                    .where((tileset) => tileset.id == id)
+                    .firstOrNull
+                    ?.transparentColor,
+              ),
+            );
+            try {
+              textures[id] = await pending;
+            } on Object {
+              if (identical(groundTextureCache[key], pending)) {
+                groundTextureCache.remove(key);
+              }
+              rethrow;
+            }
+            if (ticket != generation || closed) return false;
+          }
+          final ground = _SceneGround(plan, textures, placement.offset);
+          ground.resolve((groundElapsed * 1000).round());
+          nextGrounds.add(ground);
+          components.addAll(ground.components);
+        }
+        for (final mesh in terrainMeshes(
+          placement.scene,
+          snapshot.ground,
+          snapshot.edge,
+          selectedCell: placement.active ? snapshot.selectedCell : null,
+        )) {
+          components.add(
+            MeshComponent(
+              mesh: mesh,
+              position: Vector3(placement.offset.dx, 0, placement.offset.dy),
             ),
           );
-        } on Object {
-          groundTextureCache.remove(id);
-          rethrow;
         }
-        if (ticket != generation || closed) return;
-      }
-    }
-    for (final mesh in terrainMeshes(
-      scene,
-      configuration.ground,
-      configuration.edge,
-      selectedCell: configuration.selectedCell,
-    )) {
-      components.add(MeshComponent(mesh: mesh));
-    }
-    for (final instance in scene.instances) {
-      final definition = definitions[instance.modelId];
-      if (definition == null) {
-        throw StateError('Modèle absent : ${instance.modelId}');
-      }
-      final model = await cache.putIfAbsent(
-        definition.sourceAssetId,
-        () async =>
-            ModelByteLoader.load(await configuration.loadModel(definition.id)),
-      );
-      if (ticket != generation || closed) return;
-      final scale = definition.scale * instance.scale;
-      final rotation = Quaternion.axisAngle(
-        Vector3(0, 1, 0),
-        instance.rotationDegrees * math.pi / 180,
-      );
-      final pivot =
-          Vector3(definition.pivot.x, definition.pivot.y, definition.pivot.z) *
-          scale;
-      rotation.rotate(pivot);
-      final component = _SceneModelComponent(
-        model: model,
-        position:
-            Vector3(
-              instance.position.x,
-              instance.position.y,
-              instance.position.z,
-            ) -
-            pivot,
-        rotation: rotation,
-        scale: Vector3.all(scale),
-        children:
-            configuration.selectedContent?.kind ==
-                    SpatialSceneContentKind.model &&
-                configuration.selectedContent?.id == instance.id
-            ? spatialSelectionFrame(
+        for (final instance in placement.scene.instances) {
+          final definition = definitions[instance.modelId];
+          if (definition == null) {
+            throw StateError('Modèle absent : ${instance.modelId}');
+          }
+          final model = await cache.putIfAbsent(
+            definition.sourceAssetId,
+            () async =>
+                ModelByteLoader.load(await snapshot.loadModel(definition.id)),
+          );
+          if (ticket != generation || closed) return false;
+          final scale = definition.scale * instance.scale;
+          final rotation = Quaternion.axisAngle(
+            Vector3(0, 1, 0),
+            instance.rotationDegrees * math.pi / 180,
+          );
+          final pivot =
+              Vector3(
+                definition.pivot.x,
+                definition.pivot.y,
+                definition.pivot.z,
+              ) *
+              scale;
+          rotation.rotate(pivot);
+          final component = _SceneModelComponent(
+            model: model,
+            position:
                 Vector3(
-                  definition.inspection.bounds.min.x,
-                  definition.inspection.bounds.min.y,
-                  definition.inspection.bounds.min.z,
-                ),
-                Vector3(
-                  definition.inspection.bounds.max.x,
-                  definition.inspection.bounds.max.y,
-                  definition.inspection.bounds.max.z,
-                ),
-                .04 / scale,
-                configuration.selectionColor ?? configuration.edge,
-              )
-            : const [],
-      );
-      if (instance.animationIndex case final index?) {
-        component.playAnimationByIndex(index);
+                  instance.position.x + placement.offset.dx,
+                  instance.position.y,
+                  instance.position.z + placement.offset.dy,
+                ) -
+                pivot,
+            rotation: rotation,
+            scale: Vector3.all(scale),
+            children:
+                placement.active &&
+                    snapshot.selectedContent?.kind ==
+                        SpatialSceneContentKind.model &&
+                    snapshot.selectedContent?.id == instance.id
+                ? spatialSelectionFrame(
+                    Vector3(
+                      definition.inspection.bounds.min.x,
+                      definition.inspection.bounds.min.y,
+                      definition.inspection.bounds.min.z,
+                    ),
+                    Vector3(
+                      definition.inspection.bounds.max.x,
+                      definition.inspection.bounds.max.y,
+                      definition.inspection.bounds.max.z,
+                    ),
+                    .04 / scale,
+                    snapshot.selectionColor ?? snapshot.edge,
+                  )
+                : const [],
+          );
+          if (instance.animationIndex case final index?) {
+            component.playAnimationByIndex(index);
+          }
+          components.add(component);
+          if (placement.active) {
+            nextModelComponents[instance.id] = (
+              component: component,
+              position: component.position.clone(),
+              anchor: instance.position,
+            );
+          }
+        }
       }
-      components.add(component);
-      nextModelComponents[instance.id] = (
-        component: component,
-        position: component.position.clone(),
-        anchor: instance.position,
+      if (ticket != generation || closed) return false;
+      final nextCellOverlays = buildCellOverlays(snapshot);
+      components.addAll(nextCellOverlays);
+      return await sceneComponents.replace(
+        components,
+        isCurrent: () => ticket == generation && !closed,
+        onCommit: () {
+          for (final entry in actorSelections.entries) {
+            actors[entry.key]?.mesh.removeAll(entry.value);
+          }
+          actorSelections.clear();
+          grounds = nextGrounds;
+          modelComponents = nextModelComponents;
+          renderedConfiguration = configuration;
+          actorVisual = null;
+          cellOverlayComponents = nextCellOverlays;
+          refreshing = false;
+          syncContentPreview();
+          syncCamera();
+          syncActors(0);
+          if (!listEquals(snapshot.cellOverlays, configuration.cellOverlays)) {
+            syncCellOverlays();
+          }
+        },
       );
+    } on Object {
+      if (ticket != generation || closed) return false;
+      rethrow;
+    } finally {
+      if (ticket == generation) refreshing = false;
     }
-    if (ticket != generation || closed) return;
-    groundPlan = nextGroundPlan;
-    groundTextures = nextTextures;
-    groundVisuals = groundPlan?.resolve((groundElapsed * 1000).round()) ?? [];
-    groundComponents = [
-      for (final mesh in spatialGroundMeshes(groundVisuals, groundTextures))
-        MeshComponent(mesh: mesh),
-    ];
-    components.addAll(groundComponents);
-    for (final entry in actorSelections.entries) {
-      actors[entry.key]?.mesh.removeAll(entry.value);
-    }
-    actorSelections.clear();
-    world.removeAll(world.children.toList());
-    await world.add(LightComponent.ambient(intensity: 0.85));
-    await world.addAll(components);
-    await world.addAll(actors.values.map((actor) => actor.mesh));
-    modelComponents = nextModelComponents;
-    syncContentPreview();
-    syncCamera();
   }
 
   void syncContentPreview() {
-    final preview = configuration.contentPreview;
+    if (refreshing) return;
+    final preview = visibleConfiguration.contentPreview;
     for (final entry in modelComponents.entries) {
       final model = entry.value;
       final position =
@@ -538,7 +609,31 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
   }
 
+  List<MeshComponent> buildCellOverlays(SpatialSceneView configuration) => [
+    for (final mesh in spatialCellOverlayMeshes(
+      configuration.scene,
+      configuration.cellOverlays,
+    ))
+      MeshComponent(
+        mesh: mesh,
+        position: Vector3(
+          configuration.sceneOffset.dx,
+          0,
+          configuration.sceneOffset.dy,
+        ),
+      ),
+  ];
+
+  void syncCellOverlays() {
+    if (!sceneReady || closed || refreshing) return;
+    final next = buildCellOverlays(visibleConfiguration);
+    sceneComponents.replaceSubset(cellOverlayComponents, next);
+    cellOverlayComponents = next;
+  }
+
   void syncCamera() {
+    if (refreshing) return;
+    final configuration = visibleConfiguration;
     final scene = configuration.scene;
     final control = configuration.controller;
     final visual = actorVisual;
@@ -555,6 +650,18 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       math.max(scene.width, scene.depth).toDouble(),
       32 * scene.levelHeight,
     );
+    for (final neighbor in configuration.neighbors) {
+      final neighborScene = neighbor.map.spatialScene;
+      if (neighborScene == null) continue;
+      final radius = math.max(
+        neighbor.offset.dx.abs() + neighborScene.width,
+        neighbor.offset.dy.abs() + neighborScene.depth,
+      );
+      (camera as AdaptiveCamera3D).sceneRadius = math.max(
+        (camera as AdaptiveCamera3D).sceneRadius,
+        radius,
+      );
+    }
     var pitch = control.pitch;
     var yaw = control.yaw;
     camera.fovY = 40;
@@ -573,8 +680,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       distance = scene.camera.distance * control.zoom;
       camera.fovY = scene.camera.fieldOfViewDegrees;
     }
-    center.x += control.pan.dx;
-    center.z += control.pan.dy;
+    center.x += control.pan.dx + configuration.sceneOffset.dx;
+    center.z += control.pan.dy + configuration.sceneOffset.dy;
     billboardPitch = pitch;
     billboardYaw = yaw;
     (camera as AdaptiveCamera3D).frame(
@@ -588,29 +695,21 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   void update(double dt) {
     super.update(dt);
-    if (!sceneReady || closed) return;
-    if (groundPlan?.animated ?? false) {
+    if (!sceneReady || closed || refreshing) return;
+    if (grounds.any((ground) => ground.plan.animated)) {
       if (dt.isFinite && dt > 0) groundElapsed += dt;
-      final next = groundPlan!.resolve((groundElapsed * 1000).round());
-      var changed = next.length != groundVisuals.length;
-      for (var index = 0; !changed && index < next.length; index++) {
-        final before = groundVisuals[index].visual, after = next[index].visual;
-        changed =
-            before.sourceRect != after.sourceRect ||
-            before.tilesetId != after.tilesetId ||
-            before.transform != after.transform ||
-            before.geometry.visualBounds != after.geometry.visualBounds;
-      }
-      if (changed) {
-        world.removeAll(groundComponents);
-        groundVisuals = next;
-        groundComponents = [
-          for (final mesh in spatialGroundMeshes(next, groundTextures))
-            MeshComponent(mesh: mesh),
-        ];
-        world.addAll(groundComponents);
+      for (final ground in grounds.where((ground) => ground.plan.animated)) {
+        final previous = ground.components;
+        if (ground.resolve((groundElapsed * 1000).round())) {
+          sceneComponents.replaceSubset(previous, ground.components);
+        }
       }
     }
+    syncActors(dt);
+  }
+
+  void syncActors(double dt) {
+    final configuration = visibleConfiguration;
     final frames =
         configuration.actorFrames?.call(dt) ??
         const <String, SpatialActorVisual>{};
@@ -662,9 +761,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           ? preview!.position
           : null;
       actor.mesh.position.setValues(
-        position?.x ?? frame.x,
+        (position?.x ?? frame.x) + configuration.sceneOffset.dx,
         (position?.y ?? frame.y) + .02,
-        position?.z ?? frame.z,
+        (position?.z ?? frame.z) + configuration.sceneOffset.dy,
       );
       final transform = spatialActorTransform(
         SpatialCameraProfile(
@@ -711,6 +810,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   String? pickActor(Offset offset) {
+    if (refreshing) return null;
     String? result;
     var nearest = double.infinity;
     for (final entry in actors.entries) {
@@ -760,13 +860,31 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   SpatialSceneContentHit? pickContent(Offset offset) {
+    if (refreshing) return null;
+    final configuration = visibleConfiguration;
+    final cell = pickCell(offset);
+    for (final overlay in configuration.cellOverlays.reversed) {
+      if (overlay.cell == cell &&
+          overlay.kind != SpatialCellOverlayKind.collision) {
+        return SpatialSceneContentHit(
+          kind: overlay.kind == SpatialCellOverlayKind.spawn
+              ? SpatialSceneContentKind.marker
+              : SpatialSceneContentKind.warp,
+          id: overlay.id,
+          cell: overlay.cell,
+        );
+      }
+    }
     final actorId = pickActor(offset);
     if (actorId != null) {
       final actor = actors[actorId]!.mesh;
       return SpatialSceneContentHit(
         kind: SpatialSceneContentKind.actor,
         id: actorId,
-        cell: (actor.position.x.floor(), actor.position.z.floor()),
+        cell: (
+          (actor.position.x - configuration.sceneOffset.dx).floor(),
+          (actor.position.z - configuration.sceneOffset.dy).floor(),
+        ),
       );
     }
     final model = pickModel(offset);
@@ -782,6 +900,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   (int, int)? pickContentCell(Offset offset) =>
       pickContent(offset)?.cell ?? pickCell(offset);
   SpatialModelInstance? pickModel(Offset offset) {
+    if (refreshing) return null;
+    final configuration = visibleConfiguration;
     SpatialModelInstance? selected;
     var nearest = double.infinity;
     for (final instance in configuration.scene.instances) {
@@ -801,10 +921,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             final dz = (z - definition.pivot.z) * scale;
             final worldX =
                 instance.position.x +
+                configuration.sceneOffset.dx +
                 dx * math.cos(angle) +
                 dz * math.sin(angle);
             final worldZ =
-                instance.position.z -
+                instance.position.z +
+                configuration.sceneOffset.dy -
                 dx * math.sin(angle) +
                 dz * math.cos(angle);
             final clip = camera.viewProjectionMatrix.transform(
@@ -857,11 +979,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final ray = pointerRay(offset);
     return ray == null
         ? null
-        : pickSpatialCell(configuration.scene, ray.$1, ray.$2);
+        : pickSpatialCell(visibleConfiguration.scene, ray.$1, ray.$2);
   }
 
   (Vector3, Vector3)? pointerRay(Offset offset) {
-    if (!sceneReady || size.x <= 0 || size.y <= 0) return null;
+    if (!sceneReady || refreshing || size.x <= 0 || size.y <= 0) return null;
     final inverse = Matrix4.copy(camera.viewProjectionMatrix);
     if (inverse.invert() == 0) return null;
     final x = offset.dx / size.x * 2 - 1;
@@ -873,6 +995,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
 
     final start = unproject(-1);
     final direction = unproject(1) - start;
+    final sceneOffset = visibleConfiguration.sceneOffset;
+    start.x -= sceneOffset.dx;
+    start.z -= sceneOffset.dy;
     return (start, direction);
   }
 
@@ -886,16 +1011,58 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   void onRemove() {
     closed = true;
     generation++;
+    sceneComponents.dispose();
     configuration.controller.removeListener(syncCamera);
     cache.clear();
     modelComponents.clear();
     groundTextureCache.clear();
-    groundTextures.clear();
-    groundComponents.clear();
-    groundVisuals = [];
-    groundPlan = null;
+    grounds.clear();
     actorSelections.clear();
     super.onRemove();
+  }
+}
+
+bool _sameNeighbors(
+  List<SpatialSceneNeighbor> before,
+  List<SpatialSceneNeighbor> after,
+) {
+  if (before.length != after.length) return false;
+  for (var index = 0; index < before.length; index++) {
+    if (!identical(before[index].map, after[index].map) ||
+        before[index].offset != after[index].offset) {
+      return false;
+    }
+  }
+  return true;
+}
+
+final class _SceneGround {
+  _SceneGround(this.plan, this.textures, this.offset);
+
+  final SpatialGroundPlan plan;
+  final Map<String, Texture> textures;
+  final Offset offset;
+  List<SpatialGroundVisual> visuals = [];
+  List<MeshComponent> components = [];
+
+  bool resolve(int elapsedMs) {
+    final next = plan.resolve(elapsedMs);
+    var changed = components.isEmpty || next.length != visuals.length;
+    for (var index = 0; !changed && index < next.length; index++) {
+      final before = visuals[index].visual, after = next[index].visual;
+      changed =
+          before.sourceRect != after.sourceRect ||
+          before.tilesetId != after.tilesetId ||
+          before.transform != after.transform ||
+          before.geometry.visualBounds != after.geometry.visualBounds;
+    }
+    if (!changed) return false;
+    visuals = next;
+    components = [
+      for (final mesh in spatialGroundMeshes(visuals, textures))
+        MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
+    ];
+    return true;
   }
 }
 

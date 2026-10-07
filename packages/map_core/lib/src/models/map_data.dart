@@ -95,19 +95,23 @@ void validateSpatialMapStructure(MapData map) {
       scene.width != map.size.width ||
       scene.depth != map.size.height ||
       map.layers.any(
-        (layer) =>
-            layer is! SmartTileLayer ||
-            (layer.usage != SmartTileUsage.terrain &&
-                layer.usage != SmartTileUsage.path),
+        (layer) => switch (layer) {
+          CollisionLayer() =>
+            layer.collisions.length != map.size.width * map.size.height,
+          SmartTileLayer() =>
+            layer.usage != SmartTileUsage.terrain &&
+                layer.usage != SmartTileUsage.path,
+          _ => true,
+        },
       ) ||
       map.placedElements.isNotEmpty ||
       map.tilesetId.isNotEmpty ||
       map.visualStack != null) {
     throw const FormatException(
-      'A v9 map requires a 3D scene and only Smart Tile ground/path surfaces.',
+      'A v9 map requires a 3D scene, Smart Tile ground/path surfaces and collision layers.',
     );
   }
-  if (map.layers.isNotEmpty &&
+  if (map.layers.any((layer) => layer is SmartTileLayer) &&
       (scene.heightLevels.any((level) => level != 0) ||
           scene.navigation.ramps.isNotEmpty)) {
     throw const FormatException(

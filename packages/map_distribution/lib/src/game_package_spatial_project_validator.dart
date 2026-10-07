@@ -74,14 +74,80 @@ final class GamePackageSpatialProjectValidator {
           'events',
           'triggers',
           'gameplayZones',
-          'connections',
-          'warps',
         ]) {
           final value = mapJson[field];
           if (value is List && value.isNotEmpty) _unsupported('$path.$field');
         }
         MapValidator.validate(map, projectDialogueContext: project);
         maps.add(map);
+      }
+      final mapsById = {for (final map in maps) map.id: map};
+      for (final map in maps) {
+        for (final connection in map.connections) {
+          final path =
+              'maps.${map.id}.connections.${connection.direction.name}';
+          final target = mapsById[connection.targetMapId];
+          if (target == null) {
+            _fail('runtime3d.connection_target_missing', path,
+                'The connected map is missing.');
+          }
+          if (!hasMapConnectionOverlap(
+              sourceSize: map.size,
+              targetSize: target.size,
+              direction: connection.direction,
+              offset: connection.offset)) {
+            _fail('runtime3d.connection_no_overlap', path,
+                'The connected map edges do not overlap.');
+          }
+          final horizontal = connection.direction.usesHorizontalOffset;
+          final length = horizontal ? map.size.width : map.size.height;
+          final targetLength =
+              horizontal ? target.size.width : target.size.height;
+          for (var index = 0; index < length; index++) {
+            final targetIndex = index - connection.offset;
+            if (targetIndex < 0 || targetIndex >= targetLength) continue;
+            final sourcePos = switch (connection.direction) {
+              MapConnectionDirection.north => GridPos(x: index, y: 0),
+              MapConnectionDirection.south =>
+                GridPos(x: index, y: map.size.height - 1),
+              MapConnectionDirection.east =>
+                GridPos(x: map.size.width - 1, y: index),
+              MapConnectionDirection.west => GridPos(x: 0, y: index),
+            };
+            final targetPos = switch (connection.direction) {
+              MapConnectionDirection.north =>
+                GridPos(x: targetIndex, y: target.size.height - 1),
+              MapConnectionDirection.south => GridPos(x: targetIndex, y: 0),
+              MapConnectionDirection.east => GridPos(x: 0, y: targetIndex),
+              MapConnectionDirection.west =>
+                GridPos(x: target.size.width - 1, y: targetIndex),
+            };
+            final sourceHeight = map.spatialScene!
+                .worldHeightAt(sourcePos.x + .5, sourcePos.y + .5);
+            final targetHeight = target.spatialScene!
+                .worldHeightAt(targetPos.x + .5, targetPos.y + .5);
+            if ((sourceHeight - targetHeight).abs() > .25) {
+              _fail('runtime3d.connection_height_mismatch', path,
+                  'Connected edges require matching terrain heights.');
+            }
+          }
+        }
+        for (final warp in map.warps) {
+          final target = mapsById[warp.targetMapId];
+          if (target == null) {
+            _fail(
+                'runtime3d.warp_target_missing',
+                'maps.${map.id}.warps.${warp.id}',
+                'The passage destination map is missing.');
+          }
+          if (warp.targetPos.x >= target.size.width ||
+              warp.targetPos.y >= target.size.height) {
+            _fail(
+                'runtime3d.warp_arrival_outside',
+                'maps.${map.id}.warps.${warp.id}',
+                'The passage arrival is outside its destination map.');
+          }
+        }
       }
       final dialogues = <String, RuntimeDialogueDocument>{};
       for (final entry in project.dialogues) {
@@ -111,7 +177,31 @@ final class GamePackageSpatialProjectValidator {
         dialogues[entry.id] = document;
       }
       for (final map in maps) {
+        final defaultSpawnId = map.mapMetadata.defaultSpawnId?.trim();
+        if (defaultSpawnId != null &&
+            defaultSpawnId.isNotEmpty &&
+            !map.entities.any((entity) =>
+                entity.kind == MapEntityKind.spawn &&
+                entity.id == defaultSpawnId)) {
+          _fail('runtime3d.spawn_missing', 'maps.${map.id}.defaultSpawnId',
+              'The default player start entity is missing.');
+        }
         for (final entity in map.entities) {
+          if (entity.kind == MapEntityKind.spawn) {
+            final spawn = entity.spawn;
+            if (spawn == null ||
+                spawn.role != EntitySpawnRole.playerStart ||
+                spawn.categoryTag.isNotEmpty ||
+                entity.size != const GridSize(width: 1, height: 1) ||
+                entity.properties.isNotEmpty ||
+                entity.editorVisual != null ||
+                entity.npc != null ||
+                entity.sign != null ||
+                entity.item != null) {
+              _unsupported('maps.${map.id}.entities.${entity.id}');
+            }
+            continue;
+          }
           final npc = entity.npc;
           if (entity.kind != MapEntityKind.npc ||
               npc == null ||

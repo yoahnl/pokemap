@@ -58,7 +58,10 @@ MapData addMapLayer(
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
   updatedLayers.insert(targetIndex, newLayer);
-  return map.copyWith(version: ProjectVersion.v8, layers: updatedLayers);
+  return map.copyWith(
+    version: map.spatialScene == null ? ProjectVersion.v8 : ProjectVersion.v9,
+    layers: updatedLayers,
+  );
 }
 
 int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) =>

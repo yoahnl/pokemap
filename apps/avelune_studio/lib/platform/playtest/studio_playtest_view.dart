@@ -308,8 +308,20 @@ class StudioSpatialExplorationControls extends StatefulWidget {
 
 class _StudioSpatialExplorationControlsState
     extends State<StudioSpatialExplorationControls> {
+  SpatialMovementController get movement =>
+      widget.session?.movement ?? widget.movement;
   @override
-  Widget build(BuildContext context) => Wrap(
+  Widget build(BuildContext context) => widget.session == null
+      ? controls(context)
+      : ListenableBuilder(
+          listenable: Listenable.merge([
+            widget.session!.mapRevision,
+            widget.session!.transitioning,
+          ]),
+          builder: (context, child) => controls(context),
+        );
+
+  Widget controls(BuildContext context) => Wrap(
     spacing: 8,
     runSpacing: 4,
     children: [
@@ -317,36 +329,40 @@ class _StudioSpatialExplorationControlsState
         label: 'Réinitialiser la position',
         icon: Icons.restart_alt,
         secondary: true,
-        onPressed: () => setState(() {
-          widget.session?.closeDialogue();
-          widget.session?.dialoguePaused = false;
-          widget.movement.reset();
-        }),
+        onPressed: (widget.session?.transitioning.value ?? false)
+            ? null
+            : () => setState(() {
+                widget.session?.closeDialogue();
+                widget.session?.dialoguePaused = false;
+                if (widget.session case final session?) {
+                  session.resetPosition();
+                } else {
+                  movement.reset();
+                }
+              }),
       ),
       StudioButton(
-        label: (widget.session?.dialoguePaused ?? widget.movement.paused)
+        label: (widget.session?.dialoguePaused ?? movement.paused)
             ? 'Reprendre'
             : 'Pause',
         secondary: true,
         onPressed: () => setState(() {
-          final paused =
-              !(widget.session?.dialoguePaused ?? widget.movement.paused);
+          final paused = !(widget.session?.dialoguePaused ?? movement.paused);
           widget.session?.dialoguePaused = paused;
-          widget.movement.setPaused(
+          movement.setPaused(
             (widget.session?.presentationPaused ?? paused) ||
-                (widget.session?.interactionActive.value ?? false),
+                (widget.session?.interactionActive.value ?? false) ||
+                (widget.session?.transitioning.value ?? false),
           );
         }),
       ),
       StudioButton(
-        label: widget.movement.allowDiagonalMovement
+        label: movement.allowDiagonalMovement
             ? 'Diagonales activées'
             : 'Diagonales désactivées',
         secondary: true,
         onPressed: () => setState(
-          () => widget.movement.setDiagonalMovement(
-            !widget.movement.allowDiagonalMovement,
-          ),
+          () => movement.setDiagonalMovement(!movement.allowDiagonalMovement),
         ),
       ),
     ],

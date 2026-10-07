@@ -39,13 +39,13 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
   const root = await mkdtemp(join(tmpdir(), "pokemap-spatial-mcp-"));
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [resolve("dist/src/index.js"), "--root", root],
+    args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"],
     cwd: process.cwd(), stderr: "pipe",
   });
   const client = new Client({ name: "spatial-native-transport-proof", version: "1.0.0" });
   async function call(name: string, args: JsonRecord = {}, failure = false): Promise<JsonRecord> {
     const result = await client.callTool({ name, arguments: args });
-    assert.equal(result.isError, failure ? true : undefined, JSON.stringify(result.structuredContent));
+    assert.equal(result.isError, failure ? true : undefined, JSON.stringify(result.structuredContent ?? result.content));
     const envelope = record(result.structuredContent);
     return record(failure ? envelope.error : envelope.data);
   }
@@ -53,13 +53,13 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await client.connect(transport);
     const catalog = await call("pokemap_describe");
     const ids = (catalog.mutationActions as JsonRecord[]).map((item) => item.id);
-    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure"]) assert.ok(ids.includes(id), id);
+    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure", "connection.create_bidirectional_apply", "connection.delete_bidirectional_apply"]) assert.ok(ids.includes(id), id);
     const request = { name: "Spatial MCP", folderName: "spatial", parentPath: root, template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
     const preview = await call("pokemap_project_create_preview", { request });
     const created = await call("pokemap_project_create", { request, confirmation: preview.confirmation });
     const projectRoot = String(created.projectPath);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot });
-    const projectHandle = String(opened.projectHandle), workspaceHandle = String(opened.workspaceHandle);
+    let projectHandle = String(opened.projectHandle), workspaceHandle = String(opened.workspaceHandle);
     let sequence = 0;
     async function mutate(actionId: string, parameters: JsonRecord, destructive = false): Promise<void> {
       const validation = await call("pokemap_validate", { projectHandle });
@@ -95,10 +95,34 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.deepEqual(scene.navigation, navigation);
     assert.equal((scene.instances as unknown[]).length, 1);
     assert.deepEqual(map.layers, []);
+    await mutate("map.create", { mapId: "second", name: "Second", width: 8, height: 6 });
+    await mutate("entity.create", { mapId, entity: { id: "start", kind: "spawn", pos: { x: 4, y: 4 }, size: { width: 1, height: 1 }, blocksMovement: false, spawn: { role: "player_start", facing: "south" } } });
+    await mutate("map.apply_operations", { mapId, operations: [{ kind: "layer.add", layerKind: "collision", layerId: "solid", name: "Collisions" }] });
+    await mutate("collision_layer.paint", { mapId, layerId: "solid", x: 1, y: 0, width: 2, height: 1 });
+    await mutate("warp.create_reciprocal_apply", { mapId, warp: { id: "out", pos: { x: 6, y: 4 }, targetMapId: "second", targetPos: { x: 2, y: 2 } }, reciprocalWarpId: "back" });
+    await mutate("connection.create_bidirectional_apply", { mapId, direction: "east", targetMapId: "second", offset: 2 });
+    const authored = JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")) as JsonRecord;
+    assert.equal(authored.version, "v9");
+    assert.equal(record((authored.entities as unknown[])[0]).id, "start");
+    assert.deepEqual((record((authored.layers as unknown[])[0]).collisions as boolean[]).slice(1, 3), [true, true]);
+    assert.equal(record((authored.warps as unknown[])[0]).targetMapId, "second");
+    const finalManifest = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")) as JsonRecord;
+    const secondEntry = (finalManifest.maps as JsonRecord[]).find((entry) => entry.id === "second")!;
+    const second = JSON.parse(await readFile(join(projectRoot, String(secondEntry.relativePath)), "utf8")) as JsonRecord;
+    assert.equal(record((second.warps as unknown[])[0]).targetMapId, mapId);
+    assert.deepEqual(authored.connections, [{ direction: "east", targetMapId: "second", offset: 2 }]);
+    assert.deepEqual(second.connections, [{ direction: "west", targetMapId: mapId, offset: -2 }]);
     await mutate("map3d.instance.delete", { mapId, instanceId: "rock-1" }, true);
     await mutate("model3d.delete", { modelId: "rock" }, true);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
+    const queried = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "map", operation: "list", view: "detail" });
+    for (const item of queried.items as JsonRecord[]) assert.equal((item.connections as unknown[]).length, 1);
+    projectHandle = String(reopened.projectHandle);
+    workspaceHandle = String(reopened.workspaceHandle);
+    await mutate("connection.delete_bidirectional_apply", { mapId, direction: "east" });
+    const disconnected = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "map", operation: "list", view: "detail" });
+    for (const item of disconnected.items as JsonRecord[]) assert.deepEqual(item.connections, []);
     await call("pokemap_validate", { projectHandle: reopened.projectHandle });
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {

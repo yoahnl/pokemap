@@ -8,8 +8,52 @@ import 'package:map_render_3d/src/spatial_picking.dart';
 import 'package:map_render_3d/src/adaptive_camera.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
+import 'package:map_render_3d/src/spatial_cell_overlay.dart';
 
 void main() {
+  test(
+    'collision and marker overlays follow relief and partition large meshes',
+    () {
+      final scene = MapSpatialScene(
+        width: 80,
+        depth: 80,
+        heightLevels: List.filled(6400, 2),
+      );
+      final meshes = spatialCellOverlayMeshes(scene, [
+        for (var i = 0; i < 6400; i++)
+          SpatialCellOverlay(
+            id: '$i',
+            cell: (i % 80, i ~/ 80),
+            kind: SpatialCellOverlayKind.collision,
+            color: const Color(0xffff0000),
+          ),
+      ]).toList();
+      expect(meshes.length, greaterThan(1));
+      var vertices = 0;
+      for (final mesh in meshes) {
+        for (final surface in mesh.surfaces) {
+          vertices += surface.vertexCount;
+          expect(
+            surface.indices.every(
+              (index) => index < surface.vertexCount && index < 65536,
+            ),
+            isTrue,
+          );
+          expect(
+            [
+              for (var i = 1; i < surface.positions.length; i += 3)
+                surface.positions[i],
+            ].every(
+              (height) =>
+                  (height - (scene.heightAt(0, 0) + .035)).abs() < .00001,
+            ),
+            isTrue,
+          );
+        }
+      }
+      expect(vertices, 6400 * 16);
+    },
+  );
   test('elevated plateau preserves the camera distance and inclination', () {
     final camera = AdaptiveCamera3D();
     final center = Vector3(6, 512, 5);

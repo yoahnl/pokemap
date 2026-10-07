@@ -26,6 +26,7 @@ enum StudioMapTool {
   terrain,
   character,
   warp,
+  connection,
   spawn,
   sign,
   zone,
@@ -230,6 +231,13 @@ class MapWorkspaceViewState {
     terrain = null;
     character = null;
     tool = warpDestination == null ? StudioMapTool.select : StudioMapTool.warp;
+  }
+
+  void prepareConnections() {
+    paletteTab = 'Passages';
+    pendingMove = null;
+    revealInspector = true;
+    tool = StudioMapTool.connection;
   }
 
   String? selectedFor(String mapId, MapSelectionFamily family) {

@@ -146,11 +146,48 @@ void main() {
   test('spatial Smart Tiles reject obsolete semantic payloads', () {
     final json = map().toJson();
     json['layers'] = [
-      const MapLayer.smartTile(id: 'ground', name: 'Ground', presetId: 'grass',
-        usage: SmartTileUsage.terrain, materialPalette: ['', 'grass'],
-        field: SmartTileField.cell(semanticCells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])).toJson()
-        ..['materialCells'] = [1],
+      const MapLayer.smartTile(
+        id: 'ground',
+        name: 'Ground',
+        presetId: 'grass',
+        usage: SmartTileUsage.terrain,
+        materialPalette: ['', 'grass'],
+        field: SmartTileField.cell(
+          semanticCells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
+      ).toJson()..['materialCells'] = [1],
     ];
     expect(() => MapData.fromJson(json), throwsFormatException);
+  });
+  test('3D collision layers persist on relief without adding 2D geometry', () {
+    final original = map().copyWith(
+      spatialScene: map().spatialScene!.copyWith(
+        heightLevels: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      layers: [
+        const MapLayer.collision(
+          id: 'blocked',
+          name: 'Collisions',
+          collisions: [
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+          ],
+        ),
+      ],
+    );
+    final reopened = MapData.fromJson(original.toJson());
+    expect(reopened, original);
+    MapValidator.validate(reopened);
+    expect((reopened.layers.single as CollisionLayer).collisions[5], isTrue);
   });
 }

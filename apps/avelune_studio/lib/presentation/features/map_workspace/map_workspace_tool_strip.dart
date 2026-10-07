@@ -45,6 +45,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
             StudioMapTool.collisionPaint ||
             StudioMapTool.collisionErase => 'Collisions',
             StudioMapTool.warp => 'Passages',
+            StudioMapTool.connection => 'Connexions',
             StudioMapTool.select => 'Sélection',
             _ => '',
           };
@@ -58,6 +59,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
       ('Zones', Icons.grid_on_outlined),
       ('Collisions', Icons.block_outlined),
       ('Passages', Icons.meeting_room_outlined),
+      ('Connexions', Icons.compare_arrows),
     ];
     bool supported(String label) =>
         !spatial ||
@@ -70,6 +72,12 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           'Déplacer la vue',
           'Gomme de décors',
           'Placer un personnage',
+          'Placer le départ du joueur',
+          'Collisions',
+          'Peindre les collisions',
+          'Effacer les collisions',
+          'Passages',
+          'Connexions',
           'Palette complète',
           'Gérer les ressources',
         }.contains(label);
@@ -101,6 +109,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Placer le départ du joueur', Icons.flag_outlined),
           ('Placer un panneau', Icons.signpost_outlined),
           ('Passages', Icons.meeting_room_outlined),
+          ('Connexions', Icons.compare_arrows),
           ('Dessiner une zone de jeu', Icons.grass_outlined),
           ('Palette complète', Icons.open_in_full),
           ('Gérer les ressources', Icons.grid_view_outlined),

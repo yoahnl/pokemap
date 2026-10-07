@@ -4,17 +4,95 @@ import 'package:map_core/map_core.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'spatial_terrain_navigation.dart';
+import 'direction.dart';
+import 'player_spawn_resolver.dart';
 
 final class SpatialMovementController {
-  SpatialMovementController(
-      {required this.scene,
-      required Iterable<ProjectModel3dEntry> models,
-      Iterable<MapEntity> entities = const []})
-      : entities = List.unmodifiable(entities),
+  SpatialMovementController({
+    required MapSpatialScene scene,
+    required Iterable<ProjectModel3dEntry> models,
+    Iterable<MapEntity> entities = const [],
+  }) : this._(
+          scene: scene,
+          models: models,
+          entities: entities,
+          spawn: scene.navigation.spawn,
+          spawnFacing: EntityFacing.south,
+          blockedCells: const {},
+        );
+
+  factory SpatialMovementController.fromMap({
+    required MapData map,
+    required Iterable<ProjectModel3dEntry> models,
+    GridPos? arrival,
+    EntityFacing? facing,
+  }) {
+    final scene = map.spatialScene;
+    if (scene == null ||
+        scene.width != map.size.width ||
+        scene.depth != map.size.height) {
+      throw StateError('La carte ne possède pas de scène 3D cohérente.');
+    }
+    var spawn = scene.navigation.spawn;
+    var spawnFacing = EntityFacing.south;
+    if (arrival != null) {
+      if (arrival.x < 0 ||
+          arrival.y < 0 ||
+          arrival.x >= scene.width ||
+          arrival.y >= scene.depth) {
+        throw StateError('Le point d’arrivée 3D est hors de la carte.');
+      }
+      spawn = SpatialSpawn(x: arrival.x + .5, z: arrival.y + .5);
+    } else if ((map.mapMetadata.defaultSpawnId?.trim().isNotEmpty ?? false) ||
+        map.entities.any((entity) =>
+            entity.kind == MapEntityKind.spawn &&
+            entity.spawn?.role == EntitySpawnRole.playerStart)) {
+      final resolved = resolveInitialPlayerSpawn(map);
+      final x = (resolved.playerPositionPx.leftPx + 16) / pixelsPerCell;
+      final z = (resolved.playerPositionPx.topPx + 32) / pixelsPerCell - .5;
+      if (x < 0 || z < 0 || x >= scene.width || z >= scene.depth) {
+        throw StateError('Le point de départ 3D est hors de la carte.');
+      }
+      spawn = SpatialSpawn(x: x, z: z);
+      spawnFacing = resolved.facing.asFacing;
+    }
+    return SpatialMovementController._(
+      scene: scene,
+      models: models,
+      entities:
+          map.entities.where((entity) => entity.kind != MapEntityKind.spawn),
+      spawn: spawn,
+      spawnFacing: facing ?? spawnFacing,
+      blockedCells: {
+        for (final layer in map.layers.whereType<CollisionLayer>())
+          for (var i = 0;
+              i < layer.collisions.length && i < scene.width * scene.depth;
+              i++)
+            if (layer.collisions[i]) i,
+      },
+    );
+  }
+
+  SpatialMovementController._({
+    required this.scene,
+    required Iterable<ProjectModel3dEntry> models,
+    required Iterable<MapEntity> entities,
+    required SpatialSpawn spawn,
+    required EntityFacing spawnFacing,
+    required Set<int> blockedCells,
+  })  : entities = List.unmodifiable(entities),
         models = {for (final model in models) model.id: model},
+        _spawn = spawn,
+        _spawnFacing = spawnFacing,
+        _blockedCells = Set.unmodifiable(blockedCells),
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
     reset();
   }
+  final SpatialSpawn _spawn;
+  final EntityFacing _spawnFacing;
+  final Set<int> _blockedCells;
+  GridPos? bumpedCell;
+  MapConnectionDirection? edgeExitDirection;
   final MapSpatialScene scene;
   final List<MapEntity> entities;
   final Map<String, ProjectModel3dEntry> models;
@@ -41,6 +119,8 @@ final class SpatialMovementController {
   }
 
   void releaseInput() {
+    bumpedCell = null;
+    edgeExitDirection = null;
     inputEpoch++;
     _inputX = _inputZ = 0;
     _run = false;
@@ -60,21 +140,25 @@ final class SpatialMovementController {
   }
 
   void reset() {
-    _position = PixelPosition(
-        leftPx: (scene.navigation.spawn.x * pixelsPerCell).round() - 16,
-        topPx: (scene.navigation.spawn.z * pixelsPerCell).round() - 31);
-    paused = false;
-    facing = EntityFacing.south;
-    releaseInput();
-    if (_collides(_hitbox(_position))) {
+    final candidate = PixelPosition(
+      leftPx: (_spawn.x * pixelsPerCell).round() - 16,
+      topPx: (_spawn.z * pixelsPerCell).round() - 31,
+    );
+    if (_collides(_hitbox(candidate))) {
       throw StateError('Le point de départ 3D est bloqué.');
     }
+    _position = candidate;
+    paused = false;
+    facing = _spawnFacing;
+    releaseInput();
   }
 
   PixelRect _hitbox(PixelPosition position) =>
       PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
           spriteTopLeftPx: position, spriteWidthPx: 32, spriteHeightPx: 32);
   void update(double dt) {
+    bumpedCell = null;
+    edgeExitDirection = null;
     if (!dt.isFinite || dt <= 0 || paused) return;
     final elapsed = dt.clamp(0.0, .05);
     var dx = _inputX, dz = _inputZ;
@@ -104,6 +188,7 @@ final class SpatialMovementController {
     _remainderZ -= stepZ;
     final before = _position;
     final originX = x, originZ = z;
+    var collided = false;
     _position = PixelMovementResolverV1.resolveSeparateAxis(
         spriteTopLeftPx: before,
         deltaXPx: stepX,
@@ -111,14 +196,53 @@ final class SpatialMovementController {
         spriteWidthPx: 32,
         spriteHeightPx: 32,
         worldStaticObstaclesCollidePixelRect: (rect) {
-          if (_collides(rect)) return true;
+          if (_collides(rect)) {
+            collided = true;
+            if ((dx == 0 || dz == 0) &&
+                !_collides(rect, ignoreBounds: true)) {
+              edgeExitDirection = switch (facing) {
+                EntityFacing.north when rect.topPx < 0 =>
+                  MapConnectionDirection.north,
+                EntityFacing.south
+                    when rect.topPx + rect.heightPx >
+                        scene.depth * pixelsPerCell =>
+                  MapConnectionDirection.south,
+                EntityFacing.west when rect.leftPx < 0 =>
+                  MapConnectionDirection.west,
+                EntityFacing.east
+                    when rect.leftPx + rect.widthPx >
+                        scene.width * pixelsPerCell =>
+                  MapConnectionDirection.east,
+                _ => null,
+              };
+            }
+            return true;
+          }
           final px = rect.bottomCenterPx.xPx / pixelsPerCell,
               pz = rect.bottomCenterPx.yPx / pixelsPerCell;
           final previousX = px + (originX - px).sign / pixelsPerCell;
           final previousZ = pz + (originZ - pz).sign / pixelsPerCell;
-          return !canTraverseSpatialTerrainStep(
+          final blocked = !canTraverseSpatialTerrainStep(
               scene, previousX, previousZ, px, pz);
+          if (blocked) {
+            collided = true;
+          }
+          return blocked;
         });
+    final facingBlocked = switch (facing) {
+      EntityFacing.north ||
+      EntityFacing.south =>
+        stepZ != 0 && _position.topPx == before.topPx,
+      EntityFacing.east ||
+      EntityFacing.west =>
+        stepX != 0 && _position.leftPx == before.leftPx,
+    };
+    if (collided && facingBlocked) {
+      bumpedCell = GridPos(
+        x: originX.floor() + facing.asDirection.dx,
+        y: originZ.floor() + facing.asDirection.dy,
+      );
+    }
     if (stepX != 0 || stepZ != 0) {
       moving =
           _position.leftPx != before.leftPx || _position.topPx != before.topPx;
@@ -130,13 +254,29 @@ final class SpatialMovementController {
     }
   }
 
-  bool _collides(PixelRect rect) {
+  bool _collides(PixelRect rect, {bool ignoreBounds = false}) {
     final left = rect.leftPx / pixelsPerCell,
         top = rect.topPx / pixelsPerCell,
         right = (rect.leftPx + rect.widthPx) / pixelsPerCell,
         bottom = (rect.topPx + rect.heightPx) / pixelsPerCell;
-    if (left < 0 || top < 0 || right > scene.width || bottom > scene.depth) {
+    if (!ignoreBounds &&
+        (left < 0 || top < 0 || right > scene.width || bottom > scene.depth)) {
       return true;
+    }
+    for (var z = rect.topPx ~/ pixelsPerCell;
+        z <= (rect.topPx + rect.heightPx - 1) ~/ pixelsPerCell;
+        z++) {
+      for (var x = rect.leftPx ~/ pixelsPerCell;
+          x <= (rect.leftPx + rect.widthPx - 1) ~/ pixelsPerCell;
+          x++) {
+        if (x >= 0 &&
+            x < scene.width &&
+            z >= 0 &&
+            z < scene.depth &&
+            _blockedCells.contains(z * scene.width + x)) {
+          return true;
+        }
+      }
     }
     for (final area in scene.navigation.blockedAreas) {
       if (left < area.x + area.width &&

@@ -29,6 +29,9 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
   }
 
   void _toolChanged() {
+    if (_view?.tool == StudioMapTool.connection && _controller.active != null) {
+      _view?.clearSelection(_controller.active!);
+    }
     _gestureGeneration++;
     retainWorkspaceBrush(_visuals, _view);
     _changed();

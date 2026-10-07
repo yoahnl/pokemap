@@ -25,6 +25,8 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
         view.tool = StudioMapTool.collisionPaint;
       case 'Passages':
         view.prepareWarpPlacement();
+      case 'Connexions':
+        view.prepareConnections();
     }
     onChanged();
     if (!paletteVisible &&
@@ -59,6 +61,8 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
         view.tool = StudioMapTool.sign;
       case 'Passages':
         view.prepareWarpPlacement();
+      case 'Connexions':
+        view.prepareConnections();
       case 'Dessiner une zone de jeu':
         view.tool = StudioMapTool.gameplayZone;
       case 'Dessiner une zone d’histoire':

@@ -144,6 +144,138 @@ void main() {
   });
 
   test(
+      'warps load a centered arrival, preserve the session and clear held input',
+      () async {
+    const warp = MapWarp(
+        id: 'out',
+        pos: GridPos(x: 5, y: 4),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 2, y: 3));
+    const back = MapWarp(
+        id: 'back',
+        pos: GridPos(x: 2, y: 3),
+        targetMapId: 'field',
+        targetPos: GridPos(x: 5, y: 4));
+    final source = bundle.copyWith(map: bundle.map.copyWith(warps: [warp]));
+    final destination = bundle.copyWith(
+        map: bundle.map.copyWith(id: 'other', warps: [back], entities: []));
+    var loads = 0;
+    final session =
+        await SpatialExplorationSession.load(source, loadMap: (id) async {
+      loads++;
+      return destination;
+    });
+    addTearDown(session.dispose);
+    final dialogue = session.dialoguePresentation;
+    session.movement.setInput(x: 1, z: 0, run: true);
+    for (var i = 0; i < 10 && !session.transitioning.value; i++) {
+      session.frame(.05);
+    }
+    await waitForValue(session.mapRevision, (value) => value == 1);
+    expect(session.bundle.map.id, 'other');
+    expect(session.dialoguePresentation, same(dialogue));
+    expect(session.movement.x, 2.5);
+    expect(session.movement.z, 3.5);
+    expect(session.movement.facing, EntityFacing.east);
+    for (var i = 0; i < 20; i++) {
+      session.frame(.05);
+    }
+    expect(session.movement.x, 2.5);
+    expect(loads, 1);
+    expect(session.frames(0).keys, ['hero']);
+  });
+
+  test('blocked arrival preserves the source map and restores controls',
+      () async {
+    const warp = MapWarp(
+        id: 'out',
+        pos: GridPos(x: 5, y: 4),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 2, y: 3));
+    final cells = List<bool>.filled(64, false)..[26] = true;
+    final source = bundle.copyWith(map: bundle.map.copyWith(warps: [warp]));
+    final destination = bundle.copyWith(
+        map: bundle.map.copyWith(id: 'other', entities: [], layers: [
+      CollisionLayer(id: 'solid', name: 'Solid', collisions: cells)
+    ]));
+    final session = await SpatialExplorationSession.load(source,
+        loadMap: (_) async => destination);
+    addTearDown(session.dispose);
+    final movement = session.movement;
+    await session.enterWarp(warp);
+    expect(session.bundle.map.id, 'field');
+    expect(session.movement, same(movement));
+    expect(session.interactionError.value, isNotNull);
+    expect(session.transitioning.value, isFalse);
+    expect(movement.paused, isFalse);
+    expect(session.mapRevision.value, 0);
+  });
+
+  test('disposal discards a late destination load', () async {
+    const warp = MapWarp(
+        id: 'out',
+        pos: GridPos(x: 5, y: 4),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 2, y: 3));
+    final pending = Completer<RuntimeMapBundle>();
+    final source = bundle.copyWith(map: bundle.map.copyWith(warps: [warp]));
+    final session = await SpatialExplorationSession.load(source,
+        loadMap: (_) => pending.future);
+    final transfer = session.enterWarp(warp);
+    session.dispose();
+    pending.complete(
+        bundle.copyWith(map: bundle.map.copyWith(id: 'other', entities: [])));
+    await transfer;
+    expect(session.bundle.map.id, 'field');
+  });
+
+  test('reset cannot supersede a pending passage and stop cancels its arrival',
+      () async {
+    const warp = MapWarp(
+        id: 'out',
+        pos: GridPos(x: 5, y: 4),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 2, y: 3));
+    final pending = Completer<RuntimeMapBundle>();
+    final session = await SpatialExplorationSession.load(
+        bundle.copyWith(map: bundle.map.copyWith(warps: [warp])),
+        loadMap: (_) => pending.future);
+    addTearDown(session.dispose);
+    session.movement.setInput(x: 1, z: 0);
+    session.frame(.05);
+    final before = session.movement.x;
+    final transfer = session.enterWarp(warp);
+    session.resetPosition();
+    expect(session.movement.x, before);
+    expect(session.movement.paused, isTrue);
+    session.cancelPendingTransition();
+    pending.complete(
+        bundle.copyWith(map: bundle.map.copyWith(id: 'other', entities: [])));
+    await transfer;
+    expect(session.bundle.map.id, 'field');
+    expect(session.mapRevision.value, 0);
+    expect(session.movement.paused, isTrue);
+  });
+
+  test('unreadable destination preserves the source session', () async {
+    const warp = MapWarp(
+        id: 'out',
+        pos: GridPos(x: 5, y: 4),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 2, y: 3));
+    final session = await SpatialExplorationSession.load(
+        bundle.copyWith(map: bundle.map.copyWith(warps: [warp])),
+        loadMap: (_) async =>
+            throw const FileSystemException('destination missing'));
+    addTearDown(session.dispose);
+    await session.enterWarp(warp);
+    expect(session.bundle.map.id, 'field');
+    expect(session.interactionError.value, isA<FileSystemException>());
+    expect(session.movement.paused, isFalse);
+    expect(session.mapRevision.value, 0);
+  });
+
+  test(
       'shared text reveal freezes under pause and confirm reveals before advancing',
       () async {
     await runtime.load((_) {});

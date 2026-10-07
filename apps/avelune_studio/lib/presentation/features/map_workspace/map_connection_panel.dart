@@ -3,6 +3,8 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_draft_field.dart';
 
 class MapConnectionPanel extends StatefulWidget {
   const MapConnectionPanel({
@@ -25,13 +27,7 @@ class MapConnectionPanel extends StatefulWidget {
 class _MapConnectionPanelState extends State<MapConnectionPanel> {
   MapConnectionDirection direction = MapConnectionDirection.east;
   String? targetMapId;
-  final offset = TextEditingController(text: '0');
-
-  @override
-  void dispose() {
-    offset.dispose();
-    super.dispose();
-  }
+  String offset = '0';
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +43,7 @@ class _MapConnectionPanelState extends State<MapConnectionPanel> {
     final destination = destinations
         .where((entry) => entry.id == connection?.targetMapId)
         .firstOrNull;
-    final shift = int.tryParse(offset.text.trim());
+    final shift = int.tryParse(offset.trim());
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -95,26 +91,22 @@ class _MapConnectionPanelState extends State<MapConnectionPanel> {
           ] else if (destinations.isEmpty)
             const Text('Ajoutez une autre carte pour créer une liaison.')
           else ...[
-            DropdownButtonFormField<String>(
+            StudioSelect(
               key: const ValueKey('connection-target'),
-              initialValue: target,
-              decoration: const InputDecoration(labelText: 'Carte voisine'),
-              items: [
-                for (final entry in destinations)
-                  DropdownMenuItem(value: entry.id, child: Text(entry.name)),
-              ],
+              value: target,
+              label: 'Carte voisine',
+              options: {for (final entry in destinations) entry.id: entry.name},
               onChanged: (value) => setState(() => targetMapId = value),
             ),
             const SizedBox(height: 10),
-            TextField(
+            StudioDraftField(
               key: const ValueKey('connection-offset'),
-              controller: offset,
+              value: offset,
               keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: const InputDecoration(
-                labelText: 'Décalage en cases',
-                helperText: '0 aligne les deux bords au même niveau.',
-              ),
-              onChanged: (_) => setState(() {}),
+              label: 'Décalage en cases',
+              helperText: '0 aligne les deux bords au même niveau.',
+              errorText: shift == null ? 'Saisissez un nombre entier.' : null,
+              onChanged: (value) => setState(() => offset = value),
             ),
             const SizedBox(height: 12),
             StudioButton(

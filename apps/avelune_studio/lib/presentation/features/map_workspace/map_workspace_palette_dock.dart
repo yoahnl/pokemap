@@ -128,8 +128,10 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                   if (kind == 'Personnages' && widget.view.character == null)
                     const Text('Choisissez un personnage à placer.'),
                   if (kind == 'Passages' && widget.view.warpDestination == null)
-                    const Text(
-                      'Choisissez la carte vers laquelle mène le passage.',
+                    Text(
+                      widget.view.tool == StudioMapTool.connection
+                          ? 'Choisissez le bord et la carte voisine dans le panneau de droite.'
+                          : 'Choisissez la carte vers laquelle mène le passage.',
                     ),
                 ],
               ),
