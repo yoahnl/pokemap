@@ -42,6 +42,20 @@ void main() {
         }
       }
 
+      await execute('map3d.terrain.configure_appearance', {
+        'cliffFrame': {
+          'atlasId': 'cliff',
+          'column': 0,
+          'row': 0,
+        }
+      });
+      expect(
+          (await f.snapshots.load(f.project))
+              .mapById('first-map')!
+              .spatialScene!
+              .cliffFrame,
+          const SmartTileFrameRef(atlasId: 'cliff', column: 0, row: 0));
+      await execute('map3d.terrain.configure_appearance', {'cliffFrame': null});
       await execute('map3d.terrain.set_levels', {
         'cells': [
           {'x': 1, 'z': 2, 'level': 3}
@@ -51,7 +65,7 @@ void main() {
         'instance': SpatialModelInstance(
                 id: 'placed',
                 modelId: 'house',
-                position: Model3dVector3(x: 1, y: 3, z: 2))
+                position: Model3dVector3(x: 1.2, y: 3, z: 2.7))
             .toJson()
       });
       await execute('map3d.camera.configure',
@@ -135,6 +149,8 @@ void main() {
               offset: -1));
       expect(map.spatialScene!.heightAt(1, 2), 3);
       expect(map.spatialScene!.instances.single.id, 'placed');
+      expect(map.spatialScene!.instances.single.position,
+          Model3dVector3(x: 1.2, y: 3, z: 2.7));
       expect(map.spatialScene!.camera.distance, 60);
       expect(map.spatialScene!.navigation.spawn, SpatialSpawn(x: 2, z: 3));
       expect(map.spatialScene!.navigation.allowDiagonalMovement, isTrue);
@@ -175,6 +191,38 @@ void main() {
     final file = File('${f.root.path}/maps/first-map.json');
     final before = await file.readAsBytes();
     final cases = <(String, Map<String, Object?>)>[
+      ('map3d.terrain.configure_appearance', {'mapId': 'first-map'}),
+      (
+        'map3d.terrain.configure_appearance',
+        {
+          'mapId': 'first-map',
+          'cliffFrame': {'atlasId': 'missing', 'column': 0, 'row': 0}
+        }
+      ),
+      (
+        'map3d.terrain.configure_appearance',
+        {
+          'mapId': 'first-map',
+          'cliffFrame': {
+            'atlasId': 'cliff',
+            'column': 0,
+            'row': 0,
+            'columnSpan': 3
+          }
+        }
+      ),
+      (
+        'map3d.terrain.configure_appearance',
+        {
+          'mapId': 'first-map',
+          'cliffFrame': {
+            'atlasId': 'cliff',
+            'column': 0,
+            'row': 0,
+            'extra': true
+          }
+        }
+      ),
       (
         'map3d.terrain.set_levels',
         {
@@ -242,6 +290,34 @@ void main() {
           .toJson()
     });
     expect(invalidAnimation.status, AuthoringResultStatus.failure);
+  });
+
+  test('cliff references block shrinking their atlas before publication',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    final configured =
+        await f.apply(await f.planAction('map3d.terrain.configure_appearance', {
+      'mapId': 'first-map',
+      'cliffFrame': {'atlasId': 'cliff', 'column': 1, 'row': 0}
+    }));
+    expect(configured.status, AuthoringResultStatus.success);
+    final before = await f.projectFile.readAsBytes();
+    final rejected = await f.planAction('smart_tile.atlas.upsert', {
+      'atlas': const ProjectSmartTileAtlas(
+              id: 'cliff',
+              name: 'Cliff',
+              tilesetId: 'rock',
+              cellWidth: 1,
+              cellHeight: 1,
+              columns: 1,
+              rows: 1)
+          .toJson()
+    });
+    expect(rejected.status, AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), before);
+    final map = (await f.snapshots.load(f.project)).mapById('first-map')!;
+    expect(map.spatialScene!.cliffFrame!.column, 1);
   });
 
   test(
@@ -361,6 +437,28 @@ final class _Fixture {
             mapHeight: 4));
     final root = Directory(receipt.projectPath);
     await File('${root.path}/input.glb').writeAsBytes(triangleGlb());
+    final projectFile = File('${root.path}/project.json');
+    final manifest = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);
+    await Directory('${root.path}/assets').create(recursive: true);
+    await File('${root.path}/assets/cliff.png').writeAsBytes(base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAC0lEQVR4nGP4DwUAI+UH+Yo0eLMAAAAASUVORK5CYII='));
+    await projectFile.writeAsString(jsonEncode(manifest.copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+            id: 'rock', name: 'Rock', relativePath: 'assets/cliff.png')
+      ],
+      smartTileCatalog: ProjectSmartTileCatalog(atlases: const [
+        ProjectSmartTileAtlas(
+            id: 'cliff',
+            name: 'Cliff',
+            tilesetId: 'rock',
+            cellWidth: 1,
+            cellHeight: 1,
+            columns: 2,
+            rows: 1)
+      ]),
+    ).toJson()));
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);

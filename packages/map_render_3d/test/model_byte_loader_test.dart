@@ -1,14 +1,68 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
+import 'package:flame_3d/model.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'shared model cache retries a rejected asset once it becomes available',
+    () async {
+      final cache = <String, Future<Model>>{};
+      var attempts = 0;
+      Future<Uint8List> read() async {
+        attempts++;
+        if (attempts == 1) throw StateError('asset not available');
+        return _triangle('Recovered');
+      }
+
+      await expectLater(
+        ModelByteLoader.loadCached(cache, 'asset', read),
+        throwsStateError,
+      );
+      expect(cache, isEmpty);
+      final recovered = await ModelByteLoader.loadCached(cache, 'asset', read);
+      expect(recovered.nodes.values.single.name, 'Recovered');
+      expect(attempts, 2);
+      expect(
+        await ModelByteLoader.loadCached(cache, 'asset', read),
+        same(recovered),
+      );
+      expect(attempts, 2);
+    },
+  );
+
+  test(
+    'stale failed model request preserves its replacement cache entry',
+    () async {
+      final cache = <String, Future<Model>>{};
+      final missing = Completer<Uint8List>();
+      final stale = ModelByteLoader.loadCached(
+        cache,
+        'asset',
+        () => missing.future,
+      );
+      final rejected = expectLater(stale, throwsStateError);
+      cache.clear();
+      final latest = ModelByteLoader.loadCached(
+        cache,
+        'asset',
+        () async => _triangle('Latest'),
+      );
+      final replacement = cache['asset'];
+      missing.completeError(StateError('stale read failed'));
+      await rejected;
+      expect(cache['asset'], same(replacement));
+      expect((await latest).nodes.values.single.name, 'Latest');
+    },
+  );
 
   test(
     'concurrent project models preserve ordinary Flame asset reads',

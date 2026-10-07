@@ -7,6 +7,7 @@ import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'spatial_terrain_controls.dart';
 
 class MapTerrainInspector extends StatelessWidget {
   const MapTerrainInspector({
@@ -37,6 +38,14 @@ class MapTerrainInspector extends StatelessWidget {
       width: width,
       child: ListView(
         children: [
+          if (document.current.spatialScene != null)
+            SpatialTerrainControls(
+              document: document,
+              project: project,
+              view: view,
+              visuals: visuals,
+              onChanged: onChanged,
+            ),
           Text(
             preset?.name ?? 'Édition du terrain',
             style: Theme.of(context).textTheme.titleMedium,

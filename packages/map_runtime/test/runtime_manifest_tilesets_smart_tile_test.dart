@@ -4,6 +4,19 @@ import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
   group('runtime manifest tileset collection', () {
+    test('spatial cliffs close their texture without any painted layer', () {
+      final project = ProjectManifest(name: 'Cliff', maps: [], tilesets: [],
+        smartTileCatalog: ProjectSmartTileCatalog(atlases: const [
+          ProjectSmartTileAtlas(id: 'cliff', name: 'Cliff', tilesetId: 'rock',
+            columns: 1, rows: 1)]));
+      final scene = MapSpatialScene(width: 1, depth: 1,
+        cliffFrame: const SmartTileFrameRef(atlasId: 'cliff', column: 0, row: 0));
+      final map = MapData(id: 'cliff', name: 'Cliff', version: ProjectVersion.v9,
+        size: const GridSize(width: 1, height: 1), spatialScene: scene);
+      expect(collectAllRuntimeTilesetIds(map, project), {'rock'});
+      expect(collectAllRuntimeTilesetIds(map.copyWith(
+        spatialScene: scene.copyWith(cliffFrame: null)), project), isEmpty);
+    });
     test('spatial maps close only referenced pattern frame and animation assets', () {
       final manifest = ProjectManifest(name: 'Spatial patterns', maps: [], tilesets: [],
         smartTileCatalog: ProjectSmartTileCatalog(

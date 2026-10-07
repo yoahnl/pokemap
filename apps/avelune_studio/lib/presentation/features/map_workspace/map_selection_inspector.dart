@@ -72,7 +72,8 @@ class MapSelectionInspector extends StatelessWidget {
       );
     }
     if (view.tool == StudioMapTool.terrain ||
-        (view.tool == StudioMapTool.erase && view.terrain != null)) {
+        (view.tool == StudioMapTool.erase &&
+            (view.terrain != null || document.current.spatialScene != null))) {
       return MapTerrainInspector(
         document: document,
         project: project,

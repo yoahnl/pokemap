@@ -12,7 +12,7 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
             : StudioMapTool.place;
       case 'Terrains':
         view.paletteTab = 'Terrains';
-        view.tool = view.terrain == null
+        view.tool = view.terrain == null && !spatial
             ? StudioMapTool.select
             : StudioMapTool.terrain;
       case 'Zones':
@@ -40,7 +40,8 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
       case 'Déplacer la vue':
         view.tool = StudioMapTool.pan;
       case 'Peindre':
-        view.tool = view.terrain != null
+        view.tool =
+            view.terrain != null || (spatial && view.paletteTab == 'Terrains')
             ? StudioMapTool.terrain
             : view.brush != null
             ? StudioMapTool.place

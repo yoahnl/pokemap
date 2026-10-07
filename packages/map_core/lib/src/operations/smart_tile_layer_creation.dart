@@ -127,14 +127,6 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
   final target = map;
   final scene = target.spatialScene;
   if (scene != null) {
-    if (scene.heightLevels.any((level) => level != 0) ||
-        scene.navigation.ramps.isNotEmpty) {
-      return const SmartTileLayerCreationFailure(
-        code: 'smart_tile.spatial_flat_required',
-        message:
-            'Smart Tile spatial surfaces require flat terrain without ramps.',
-      );
-    }
     if (preset.usage != SmartTileUsage.terrain &&
         preset.usage != SmartTileUsage.path) {
       return const SmartTileLayerCreationFailure(

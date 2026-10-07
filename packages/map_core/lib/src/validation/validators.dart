@@ -2580,6 +2580,22 @@ class MapValidator {
         if (project.settings.dimension != ProjectDimension.threeD) {
           throw const ValidationException('A 3D map requires a 3D project.');
         }
+        final frame = map.spatialScene!.cliffFrame;
+        if (frame != null) {
+          final atlas = project.smartTileCatalog.atlases
+              .where((atlas) => atlas.id == frame.atlasId).firstOrNull;
+          if (atlas == null || frame.column < 0 || frame.row < 0 ||
+              frame.columnSpan <= 0 || frame.rowSpan <= 0 ||
+              frame.column + frame.columnSpan > atlas.columns ||
+              frame.row + frame.rowSpan > atlas.rows) {
+            throw ValidationException(
+              'Map $mapId has an invalid spatial cliff atlas frame.',
+              code: 'map3d.cliff_frame_invalid',
+              details: {'mapId': mapId, 'path': 'spatialScene.cliffFrame',
+                'atlasId': frame.atlasId, 'frame': frame.toJson()},
+            );
+          }
+        }
         final models = {for (final model in project.models3d) model.id: model};
         for (final instance in map.spatialScene!.instances) {
           final model = models[instance.modelId];

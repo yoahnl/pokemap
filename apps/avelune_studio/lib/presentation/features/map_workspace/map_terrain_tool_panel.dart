@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
@@ -39,27 +41,68 @@ class MapTerrainToolPanel extends StatelessWidget {
         runSpacing: 6,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          if (item != null)
+          if (document.current.spatialScene != null)
+            for (final mode in SpatialTerrainMode.values)
+              StudioButton(
+                label: switch (mode) {
+                  SpatialTerrainMode.ground => 'Sol',
+                  SpatialTerrainMode.relief => 'Relief',
+                  SpatialTerrainMode.ramp => 'Pente',
+                },
+                secondary: view.spatialTerrainMode != mode,
+                onPressed: () {
+                  view.spatialTerrainMode = mode;
+                  view.tool = StudioMapTool.terrain;
+                  onChanged();
+                },
+              ),
+          if (document.current.spatialScene != null &&
+              view.spatialTerrainMode == SpatialTerrainMode.relief)
+            SizedBox(
+              width: 160,
+              child: StudioSelect(
+                label: 'Hauteur',
+                value: '${view.spatialTerrainLevel}',
+                options: {
+                  for (var level = 0; level <= 32; level++)
+                    '$level': '$level ${level == 1 ? "bloc" : "blocs"}',
+                },
+                onChanged: document.saving
+                    ? null
+                    : (value) {
+                        view.spatialTerrainLevel = int.parse(value);
+                        onChanged();
+                      },
+              ),
+            ),
+          if (item != null &&
+              (document.current.spatialScene == null ||
+                  view.spatialTerrainMode == SpatialTerrainMode.ground))
             SizedBox(
               width: 36,
               height: 36,
               child: resourcePreview(item, project, visuals, size: 36),
             ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Text(
-              preset?.name ?? 'Choisissez un terrain',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall,
+          if (document.current.spatialScene == null ||
+              view.spatialTerrainMode == SpatialTerrainMode.ground)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: Text(
+                preset?.name ?? 'Choisissez un terrain',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
             ),
-          ),
           StudioButton(
             key: const ValueKey('terrain-paint'),
             label: 'Pinceau',
             icon: Icons.brush_outlined,
             secondary: view.tool != StudioMapTool.terrain,
-            onPressed: preset == null
+            onPressed:
+                preset == null &&
+                    (document.current.spatialScene == null ||
+                        view.spatialTerrainMode == SpatialTerrainMode.ground)
                 ? null
                 : () {
                     view.tool = StudioMapTool.terrain;

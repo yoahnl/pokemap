@@ -7,6 +7,102 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 void main() {
+  testWidgets(
+    'placement preview can reenter without a surface hover callback',
+    (tester) async {
+      final controller = SpatialSceneController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SpatialSceneView(
+            scene: MapSpatialScene(width: 2, depth: 2),
+            models: const [],
+            loadModel: (_) async => Uint8List(0),
+            controller: controller,
+            onCell: (_, _) {},
+            placementPreview: SpatialModelPlacementPreview(
+              modelId: 'tree',
+              position: Model3dVector3.zero,
+            ),
+            background: Colors.black,
+            ground: Colors.green,
+            edge: Colors.grey,
+            errorBuilder: (_, _) => const SizedBox.expand(),
+          ),
+        ),
+      );
+      await tester.pump();
+      final region = tester.widget<MouseRegion>(
+        find.descendant(
+          of: find.byType(SpatialSceneView),
+          matching: find.byType(MouseRegion),
+        ),
+      );
+      expect(region.onHover, isNull);
+      expect(region.onExit, isNotNull);
+      expect(region.onEnter, isNotNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('surface hover opts in and clears when the pointer exits', (
+    tester,
+  ) async {
+    final controller = SpatialSceneController();
+    addTearDown(controller.dispose);
+    final hits = <SpatialSurfaceHit?>[];
+    final preview = SpatialModelPlacementPreview(
+      modelId: 'tree',
+      position: Model3dVector3.zero,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SpatialSceneView(
+          scene: MapSpatialScene(width: 2, depth: 2),
+          models: const [],
+          loadModel: (_) async => Uint8List(0),
+          controller: controller,
+          onCell: (_, _) {},
+          onHover: hits.add,
+          onSurfaceTap: (_) {},
+          placementPreview: preview,
+          background: Colors.black,
+          ground: Colors.green,
+          edge: Colors.grey,
+          errorBuilder: (_, _) => const SizedBox.expand(),
+        ),
+      ),
+    );
+    await tester.pump();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(1, 1));
+    await mouse.moveTo(tester.getCenter(find.byType(SpatialSceneView)));
+    expect(hits, isNotEmpty);
+    final beforeOrbit = hits.length;
+    controller.orbit(10, 0);
+    expect(hits.length, beforeOrbit);
+    await tester.pump();
+    expect(hits.length, beforeOrbit + 1);
+    final beforeRefresh = hits.length;
+    final dynamic state = tester.state(find.byType(SpatialSceneView));
+    state.scheduleHoverRefresh();
+    state.scheduleHoverRefresh();
+    expect(hits.length, beforeRefresh);
+    await tester.pump();
+    expect(hits.length, beforeRefresh + 1);
+    state.scheduleHoverRefresh();
+    final beforeExit = hits.length;
+    await mouse.removePointer();
+    await tester.pump();
+    expect(hits.length, beforeExit + 1);
+    expect(hits.last, isNull);
+    controller.orbit(10, 0);
+    await tester.pump();
+    expect(hits.length, beforeExit + 1);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('fixed runtime camera ignores editor zoom gestures', (
     tester,
   ) async {
@@ -29,6 +125,8 @@ void main() {
       ),
     );
     await tester.pump();
+    final regions = tester.widgetList<MouseRegion>(find.byType(MouseRegion));
+    expect(regions.every((region) => region.onHover == null), isTrue);
     final position = tester.getCenter(find.byType(SpatialSceneView));
     tester.binding.handlePointerEvent(
       PointerScrollEvent(position: position, scrollDelta: const Offset(0, 120)),

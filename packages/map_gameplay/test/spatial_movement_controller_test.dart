@@ -52,6 +52,141 @@ void steps(SpatialMovementController player, int count,
 }
 
 void main() {
+  for (final elevated in [false, true]) {
+    for (final direction in [
+      (name: 'north', x: 0, z: -1, spawnX: 2.5, spawnZ: 4.5),
+      (name: 'south', x: 0, z: 1, spawnX: 2.5, spawnZ: 1.5),
+      (name: 'east', x: 1, z: 0, spawnX: 1.5, spawnZ: 2.5),
+      (name: 'west', x: -1, z: 0, spawnX: 4.5, spawnZ: 2.5),
+    ]) {
+      test(
+          'the full footprint stops at a ${direction.name} cliff from '
+          '${elevated ? 'above' : 'below'}', () {
+        final scene = MapSpatialScene(
+          width: 6,
+          depth: 6,
+          heightLevels: [
+            for (var z = 0; z < 6; z++)
+              for (var x = 0; x < 6; x++)
+                (direction.x > 0
+                            ? x >= 3
+                            : direction.x < 0
+                                ? x < 3
+                                : direction.z > 0
+                                    ? z >= 3
+                                    : z < 3) !=
+                        elevated
+                    ? 3
+                    : 0,
+          ],
+          navigation: SpatialNavigationProfile(
+            spawn: SpatialSpawn(x: direction.spawnX, z: direction.spawnZ),
+          ),
+        );
+        final player = SpatialMovementController(scene: scene, models: []);
+        steps(player, 50, x: direction.x, z: direction.z, run: true);
+        switch (direction.name) {
+          case 'north':
+            expect(player.z, greaterThanOrEqualTo(3.4375));
+            expect(player.z, lessThan(direction.spawnZ));
+          case 'south':
+            expect(player.z, lessThanOrEqualTo(2.9375));
+            expect(player.z, greaterThan(direction.spawnZ));
+          case 'east':
+            expect(player.x, lessThanOrEqualTo(2.625));
+            expect(player.x, greaterThan(direction.spawnX));
+          case 'west':
+            expect(player.x, greaterThanOrEqualTo(3.375));
+            expect(player.x, lessThan(direction.spawnX));
+        }
+        expect(player.y, elevated ? 3 : 0);
+        expect(player.moving, isFalse);
+      });
+    }
+  }
+
+  test('adjacent steep ramps carry a footprint across their shared seam', () {
+    final scene = MapSpatialScene(
+      width: 6,
+      depth: 6,
+      heightLevels: [
+        for (var z = 0; z < 6; z++)
+          for (var x = 0; x < 6; x++) z < 2 ? 5 : 0,
+      ],
+      navigation: SpatialNavigationProfile(
+        spawn: SpatialSpawn(x: 3, z: 4.5),
+        ramps: [
+          for (final x in [2.0, 3.0])
+            SpatialRamp(
+              id: 'ramp-${x.toInt()}',
+              x: x,
+              z: 2,
+              width: 1,
+              depth: 1,
+              lowLevel: 0,
+              highLevel: 5,
+              direction: SpatialRampDirection.north,
+            ),
+        ],
+      ),
+    );
+    final player = SpatialMovementController(scene: scene, models: []);
+    final midway = SpatialMovementController(
+      scene: scene.copyWith(
+        navigation: scene.navigation.copyWith(
+          spawn: SpatialSpawn(x: 3, z: 2.5),
+        ),
+      ),
+      models: [],
+    );
+    expect(midway.y, 2.5);
+    steps(player, 20);
+    expect(player.y, 5);
+    expect(player.z, lessThan(2));
+    steps(player, 20, z: 1);
+    expect(player.y, 0);
+    expect(player.z, greaterThan(3));
+  });
+
+  test('a diagonal approach slides along a cliff without clipping its corner',
+      () {
+    final player = SpatialMovementController(
+      scene: MapSpatialScene(
+        width: 6,
+        depth: 6,
+        heightLevels: [
+          for (var z = 0; z < 6; z++)
+            for (var x = 0; x < 6; x++) x >= 3 && z >= 3 ? 2 : 0,
+        ],
+        navigation: SpatialNavigationProfile(
+          allowDiagonalMovement: true,
+          spawn: SpatialSpawn(x: 2.5, z: 2.5),
+        ),
+      ),
+      models: [],
+    );
+    steps(player, 25, x: 1, z: 1, run: true);
+    expect(player.y, 0);
+    expect(player.x + .375 <= 3 || player.z + .0625 <= 3, isTrue);
+    expect(player.x, greaterThan(3));
+  });
+
+  test('a spawn whose footprint crosses a cliff is rejected', () {
+    final scene = MapSpatialScene(
+      width: 6,
+      depth: 6,
+      heightLevels: [
+        for (var z = 0; z < 6; z++)
+          for (var x = 0; x < 6; x++) x >= 3 ? 1 : 0,
+      ],
+      navigation: SpatialNavigationProfile(
+        spawn: SpatialSpawn(x: 2.8125, z: 2.5),
+      ),
+    );
+    expect(() => SpatialMovementController(scene: scene, models: []),
+        throwsStateError);
+  });
+
   test(
       'a validated five-level ramp stays traversable while its side cliff blocks',
       () {

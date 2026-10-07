@@ -111,13 +111,7 @@ void validateSpatialMapStructure(MapData map) {
       'A v9 map requires a 3D scene, Smart Tile ground/path surfaces and collision layers.',
     );
   }
-  if (map.layers.any((layer) => layer is SmartTileLayer) &&
-      (scene.heightLevels.any((level) => level != 0) ||
-          scene.navigation.ramps.isNotEmpty)) {
-    throw const FormatException(
-      'Smart Tile spatial surfaces require flat terrain without ramps.',
-    );
-  }
+
 }
 
 Map<String, dynamic> _migrateLegacyTileLayers(Map<String, dynamic> json) {

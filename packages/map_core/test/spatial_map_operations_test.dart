@@ -41,6 +41,71 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test(
+    'terrain changes preserve model offset above the supporting surface',
+    () {
+      final before = ops.upsertInstance(
+        map(),
+        SpatialModelInstance(
+          id: 'tree',
+          modelId: 'oak',
+          position: Model3dVector3(x: 1.5, y: .75, z: 1.5),
+        ),
+      );
+      final after = ops.setLevels(before, [
+        const SpatialCellLevel(x: 1, z: 1, level: 3),
+      ]);
+      expect(after.spatialScene!.instances.single.position.y, 3.75);
+      expect(before.spatialScene!.instances.single.position.y, .75);
+      final lowered = ops.setLevels(after, [
+        const SpatialCellLevel(x: 1, z: 1, level: 1),
+      ]);
+      expect(lowered.spatialScene!.instances.single.position.y, 1.75);
+    },
+  );
+
+  test('navigation changes preserve model offset on a ramp', () {
+    final base = ops.setLevels(map(), [
+      const SpatialCellLevel(x: 1, z: 0, level: 2),
+    ]);
+    final before = ops.upsertInstance(
+      base,
+      SpatialModelInstance(
+        id: 'tree',
+        modelId: 'oak',
+        position: Model3dVector3(x: 1.5, y: .5, z: 1.5),
+      ),
+    );
+    final after = ops.configureNavigation(
+      before,
+      SpatialNavigationProfile(
+        ramps: [
+          SpatialRamp(
+            id: 'ramp',
+            x: 1,
+            z: 1,
+            width: 1,
+            depth: 2,
+            lowLevel: 0,
+            highLevel: 2,
+            direction: SpatialRampDirection.north,
+          ),
+        ],
+      ),
+    );
+    expect(after.spatialScene!.instances.single.position.y, 2);
+    expect(
+      ops
+          .configureNavigation(after, SpatialNavigationProfile())
+          .spatialScene!
+          .instances
+          .single
+          .position
+          .y,
+      .5,
+    );
+  });
   test(
     'instances upsert by stable id, preserve order and delete explicitly',
     () {

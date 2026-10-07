@@ -226,7 +226,7 @@ void main() {
   );
 
   testWidgets(
-    'painting a raised map is rejected without changing the document',
+    'painting a raised map keeps its native relief and commits the ground',
     (tester) async {
       final map = MapData(
         id: 'map',
@@ -268,10 +268,12 @@ void main() {
       final scene = tester.widget<SpatialSceneView>(
         find.byType(SpatialSceneView),
       );
-      expect(scene.onDragStart!(0, 0, null), isFalse);
-      expect(document.current, map);
-      expect(document.canUndo, isFalse);
-      expect(document.error, contains('plat'));
+      expect(scene.onDragStart!(0, 1, null), isTrue);
+      scene.onDragEnd!();
+      expect(document.current.spatialScene, map.spatialScene);
+      expect(document.current.layers.whereType<SmartTileLayer>(), hasLength(1));
+      expect(document.canUndo, isTrue);
+      expect(document.error, isNull);
     },
   );
 }

@@ -7,6 +7,45 @@ import 'package:map_render_3d/src/spatial_ground.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 void main() {
+  test('cliff-only ground plans preload their selected atlas frame', () {
+    final scene = MapSpatialScene(
+      width: 1,
+      depth: 1,
+      cliffFrame: const SmartTileFrameRef(atlasId: 'cliff', column: 1, row: 2),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 1, height: 1),
+      spatialScene: scene,
+    );
+    final project = ProjectManifest(
+      name: 'Project',
+      maps: [],
+      tilesets: [],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: const [
+          ProjectSmartTileAtlas(
+            id: 'cliff',
+            name: 'Cliff',
+            tilesetId: 'rock',
+            columns: 4,
+            rows: 4,
+          ),
+        ],
+      ),
+    );
+    final plan = SpatialGroundPlan(map, project);
+    expect(plan.imageIds, {'rock'});
+    expect(
+      plan.cliff!.sourceRect,
+      const SmartTileSourceRect(x: 32, y: 64, width: 32, height: 32),
+    );
+    expect(plan.resolve(0), isEmpty);
+    expect(plan.scene, same(scene));
+  });
+
   test(
     'terrain color keys preserve real alpha and clear only matching pixels',
     () {

@@ -19,6 +19,7 @@ import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -155,6 +156,24 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             'Rotation',
             instance.rotationDegrees,
             (number) => commands.update(instance.id, rotation: number),
+          ),
+          StudioSelect(
+            label: 'Hauteur au-dessus du sol',
+            value:
+                ((instance.position.y -
+                            document.current.spatialScene!.worldHeightAt(
+                              instance.position.x,
+                              instance.position.z,
+                            )) /
+                        document.current.spatialScene!.levelHeight)
+                    .toStringAsFixed(0),
+            options: {
+              for (var level = 0; level <= 32; level++)
+                '$level': '$level ${level == 1 ? "bloc" : "blocs"}',
+            },
+            onChanged: (value) => change(
+              () => commands.update(instance.id, heightLevel: int.parse(value)),
+            ),
           ),
           field(
             'scale',

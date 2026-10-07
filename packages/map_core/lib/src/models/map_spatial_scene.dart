@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
 
 import 'project_model3d.dart';
 import 'spatial_navigation.dart';
+import 'smart_tile.dart';
 
 enum ProjectDimension { twoD, threeD }
 
@@ -151,6 +152,7 @@ final class MapSpatialScene {
     required this.depth,
     Iterable<int>? heightLevels,
     this.levelHeight = 1,
+    this.cliffFrame,
     Iterable<SpatialModelInstance> instances = const [],
     SpatialCameraProfile? camera,
     SpatialNavigationProfile? navigation,
@@ -195,6 +197,7 @@ final class MapSpatialScene {
   final int width, depth;
   final List<int> heightLevels;
   final double levelHeight;
+  final SmartTileFrameRef? cliffFrame;
   final List<SpatialModelInstance> instances;
   final SpatialCameraProfile camera;
   final SpatialNavigationProfile navigation;
@@ -252,11 +255,15 @@ final class MapSpatialScene {
     Iterable<SpatialModelInstance>? instances,
     SpatialCameraProfile? camera,
     SpatialNavigationProfile? navigation,
+    Object? cliffFrame = _unsetCliffFrame,
   }) => MapSpatialScene(
     width: width,
     depth: depth,
     heightLevels: heightLevels ?? this.heightLevels,
     levelHeight: levelHeight,
+    cliffFrame: identical(cliffFrame, _unsetCliffFrame)
+        ? this.cliffFrame
+        : cliffFrame as SmartTileFrameRef?,
     instances: instances ?? this.instances,
     camera: camera ?? this.camera,
     navigation: navigation ?? this.navigation,
@@ -268,6 +275,7 @@ final class MapSpatialScene {
           other.width == width &&
           other.depth == depth &&
           other.levelHeight == levelHeight &&
+          other.cliffFrame == cliffFrame &&
           other.camera == camera &&
           other.navigation == navigation &&
           const DeepCollectionEquality().equals(
@@ -280,6 +288,7 @@ final class MapSpatialScene {
     width,
     depth,
     levelHeight,
+    cliffFrame,
     camera,
     navigation,
     const DeepCollectionEquality().hash(heightLevels),
@@ -295,6 +304,11 @@ final class MapSpatialScene {
       depth: json['depth'] as int,
       heightLevels: (json['heightLevels'] as List).cast<int>(),
       levelHeight: (json['levelHeight'] as num).toDouble(),
+      cliffFrame: json['cliffFrame'] == null
+          ? null
+          : SmartTileFrameRef.fromJson(
+              Map<String, dynamic>.from(json['cliffFrame'] as Map),
+            ),
       instances: (json['instances'] as List).map(
         (v) =>
             SpatialModelInstance.fromJson(Map<String, dynamic>.from(v as Map)),
@@ -315,6 +329,7 @@ final class MapSpatialScene {
     'depth': depth,
     'heightLevels': heightLevels,
     'levelHeight': levelHeight,
+    if (cliffFrame != null) 'cliffFrame': cliffFrame!.toJson(),
     'instances': instances.map((v) => v.toJson()).toList(),
     'camera': camera.toJson(),
     'navigation': navigation.toJson(),
@@ -328,3 +343,5 @@ final class MapSpatialScene {
     return List.filled(width * depth, 0);
   }
 }
+
+const _unsetCliffFrame = Object();

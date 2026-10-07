@@ -198,8 +198,7 @@ final class SpatialMovementController {
         worldStaticObstaclesCollidePixelRect: (rect) {
           if (_collides(rect)) {
             collided = true;
-            if ((dx == 0 || dz == 0) &&
-                !_collides(rect, ignoreBounds: true)) {
+            if ((dx == 0 || dz == 0) && !_collides(rect, ignoreBounds: true)) {
               edgeExitDirection = switch (facing) {
                 EntityFacing.north when rect.topPx < 0 =>
                   MapConnectionDirection.north,
@@ -263,6 +262,7 @@ final class SpatialMovementController {
         (left < 0 || top < 0 || right > scene.width || bottom > scene.depth)) {
       return true;
     }
+    if (_terrainCollides(rect)) return true;
     for (var z = rect.topPx ~/ pixelsPerCell;
         z <= (rect.topPx + rect.heightPx - 1) ~/ pixelsPerCell;
         z++) {
@@ -353,6 +353,29 @@ final class SpatialMovementController {
         }
       }
       if (!separated) return true;
+    }
+    return false;
+  }
+
+  bool _terrainCollides(PixelRect rect) {
+    final left = rect.leftPx,
+        top = rect.topPx,
+        right = left + rect.widthPx - 1,
+        bottom = top + rect.heightPx - 1;
+    bool traversable(int ax, int az, int bx, int bz) =>
+        canTraverseSpatialTerrainStep(scene, ax / pixelsPerCell,
+            az / pixelsPerCell, bx / pixelsPerCell, bz / pixelsPerCell);
+    for (var x = left; x < right; x++) {
+      if (!traversable(x, top, x + 1, top) ||
+          !traversable(x, bottom, x + 1, bottom)) {
+        return true;
+      }
+    }
+    for (var z = top; z < bottom; z++) {
+      if (!traversable(left, z, left, z + 1) ||
+          !traversable(right, z, right, z + 1)) {
+        return true;
+      }
     }
     return false;
   }

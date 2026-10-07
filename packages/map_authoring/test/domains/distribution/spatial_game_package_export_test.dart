@@ -27,6 +27,25 @@ void main() {
 
   test('exports the authored 3D map as autonomous localTest exploration',
       () async {
+    final manifestFile = File(p.join(root.path, 'project.json'));
+    final manifest = ProjectManifest.fromJson(
+        jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>);
+    final atlas = ProjectSmartTileAtlas(
+        id: 'cliff',
+        name: 'Cliff',
+        tilesetId: manifest.tilesets.first.id,
+        columns: 4,
+        rows: 4);
+    await manifestFile.writeAsString(jsonEncode(manifest
+        .copyWith(smartTileCatalog: ProjectSmartTileCatalog(atlases: [atlas]))
+        .toJson()));
+    final mapFile = File(p.join(root.path, manifest.maps.first.relativePath));
+    final map = MapData.fromJson(
+        jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
+    const cliff = SmartTileFrameRef(atlasId: 'cliff', column: 2, row: 1);
+    await mapFile.writeAsString(jsonEncode(map
+        .copyWith(spatialScene: map.spatialScene!.copyWith(cliffFrame: cliff))
+        .toJson()));
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
         profile: _profile(),
@@ -39,6 +58,12 @@ void main() {
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
     final project = jsonDecode(
         utf8.decode(archive.findFile('project/project.json')!.content));
+    final exportedMap = jsonDecode(utf8.decode(archive
+        .findFile('project/${manifest.maps.first.relativePath}')!
+        .content));
+    expect(exportedMap['spatialScene']['cliffFrame'], cliff.toJson());
+    expect(archive.findFile('project/${manifest.tilesets.first.relativePath}'),
+        isNotNull);
     expect(project['newGame']['enabled'], false);
     expect(project['eventRegistry'], isNull);
     expect(project['dialogues'], isNotEmpty);

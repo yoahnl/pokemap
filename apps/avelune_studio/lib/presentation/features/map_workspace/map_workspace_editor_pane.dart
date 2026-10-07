@@ -114,7 +114,9 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                               ),
                             if (widget.view.tool == StudioMapTool.terrain ||
                                 (widget.view.tool == StudioMapTool.erase &&
-                                    widget.view.terrain != null))
+                                    (widget.view.terrain != null ||
+                                        widget.document.current.spatialScene !=
+                                            null)))
                               MapTerrainToolPanel(
                                 document: widget.document,
                                 project: widget.project,

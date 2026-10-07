@@ -7,6 +7,45 @@ import 'resource_usage_projection_test.dart'
     show planche, noPokemon, withDocuments;
 
 void main() {
+  test('spatial cliff texture reports its map usage through the atlas', () {
+    final map = MapData(
+        id: 'relief',
+        name: 'Relief',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 1, height: 1),
+        spatialScene: MapSpatialScene(
+            width: 1,
+            depth: 1,
+            cliffFrame:
+                const SmartTileFrameRef(atlasId: 'cliff', column: 0, row: 0)));
+    final project = ProjectManifest(
+        name: 'Relief',
+        maps: const [
+          ProjectMapEntry(
+              id: 'relief', name: 'Relief', relativePath: 'maps/relief.json')
+        ],
+        tilesets: [planche],
+        pokemon: noPokemon,
+        smartTileCatalog: ProjectSmartTileCatalog(atlases: const [
+          ProjectSmartTileAtlas(
+              id: 'cliff',
+              name: 'Cliff',
+              tilesetId: 'shared',
+              columns: 1,
+              rows: 1)
+        ]));
+    final report = const ResourceUsageProjection().analyze(
+        catalogSnapshot([map], project: project),
+        const ResourceUsageTarget(family: 'images', id: 'shared'));
+    expect(report.complete, isTrue);
+    expect(
+        report.entries.any((entry) =>
+            entry.ownerKind == 'map' &&
+            entry.ownerId == 'relief' &&
+            entry.location.contains('cliffFrame.atlasId')),
+        isTrue);
+  });
+
   test('unplaced terrain atlas rules and drafts retain exact source identity',
       () {
     const preset = ProjectSmartTilePreset(

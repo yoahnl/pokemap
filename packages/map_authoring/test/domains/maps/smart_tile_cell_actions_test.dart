@@ -73,19 +73,16 @@ void main() {
       expect(smartTileSemanticCells(erased.layers.single as SmartTileLayer),
           [0, 0, 0, 0]);
     });
-    test('rejects Smart Tile painting on elevated 3D terrain explicitly', () {
-      expect(
-          () => _build(_fixture(spatial: true, elevated: true).snapshot,
-                  actionId: 'smart_tile.cell.paint',
-                  parameters: const {
-                    'mapId': 'map',
-                    'layerId': 'ground',
-                    'materialId': 'grass',
-                    'cells': [
-                      {'x': 1, 'y': 1}
-                    ],
-                  }),
-          _failure('smart_tile.spatial_flat_required'));
+    test('paints elevated 3D terrain and preserves its supporting scene', () {
+      final fixture = _fixture(spatial: true, elevated: true);
+      final painted = _map(_build(fixture.snapshot,
+        actionId: 'smart_tile.cell.paint', parameters: const {
+          'mapId': 'map', 'layerId': 'ground', 'materialId': 'grass',
+          'cells': [{'x': 1, 'y': 1}],
+        }));
+      expect(painted.spatialScene, fixture.map.spatialScene);
+      expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+        [0,0,0,1]);
     });
     test('registers atomic paint and erase contracts', () {
       expect(

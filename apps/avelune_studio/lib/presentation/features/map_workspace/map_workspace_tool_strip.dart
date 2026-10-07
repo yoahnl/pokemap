@@ -38,7 +38,8 @@ class MapWorkspaceToolStrip extends StatelessWidget {
         : switch (view.tool) {
             StudioMapTool.place => 'Décors',
             StudioMapTool.terrain => 'Terrains',
-            StudioMapTool.erase when view.terrain != null => 'Terrains',
+            StudioMapTool.erase when view.terrain != null || spatial =>
+              'Terrains',
             StudioMapTool.gameplayZone || StudioMapTool.zone => 'Zones',
             StudioMapTool.border => 'Bordures',
             StudioMapTool.environment => 'Environnements',
@@ -121,7 +122,8 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                 (label != 'Peindre' ||
                     view.tile != null ||
                     view.brush != null ||
-                    view.terrain != null),
+                    view.terrain != null ||
+                    (spatial && view.paletteTab == 'Terrains')),
             child: Row(
               children: [
                 Icon(icon, size: 18),

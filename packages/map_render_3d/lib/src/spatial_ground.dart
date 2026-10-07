@@ -7,6 +7,7 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
+import 'spatial_terrain_geometry.dart';
 
 typedef SpatialGroundVisual = ({
   SmartTileLayerVisual visual,
@@ -15,8 +16,22 @@ typedef SpatialGroundVisual = ({
 });
 
 final class SpatialGroundPlan {
-  SpatialGroundPlan(MapData map, ProjectManifest project) {
+  SpatialGroundPlan(MapData map, ProjectManifest project)
+    : scene = map.spatialScene {
     final catalog = project.smartTileCatalog;
+    if (scene?.cliffFrame case final frame?) {
+      _addFrame(frame, catalog);
+      final atlas = catalog.atlases.firstWhere((a) => a.id == frame.atlasId);
+      cliff = (
+        tilesetId: atlas.tilesetId,
+        sourceRect: atlas.sourceRectFor(
+          column: frame.column,
+          row: frame.row,
+          columnSpan: frame.columnSpan,
+          rowSpan: frame.rowSpan,
+        ),
+      );
+    }
     final ordered = mapPaintsFirstLayerInFront(map)
         ? map.layers.reversed
         : map.layers;
@@ -61,6 +76,8 @@ final class SpatialGroundPlan {
     }
   }
 
+  final MapSpatialScene? scene;
+  ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
   final _plans = <SmartTileLayerVisualPlan>[];
   final _opacities = <double>[];
   final imageIds = <String>{};
@@ -152,6 +169,7 @@ List<int> _groundPaintRanks(List<SmartTileLayerVisual> visuals) {
 List<Vertex> spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
+  MapSpatialScene? scene,
 }) {
   final rect = geometry.destinationRect;
   final points =
@@ -166,7 +184,7 @@ List<Vertex> spatialGroundVertices(
   final left = points.map((p) => p.x).reduce((a, b) => a < b ? a : b);
   final top = points.map((p) => p.y).reduce((a, b) => a < b ? a : b);
   final uvs = [Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0)];
-  return [
+  final original = [
     for (var index = 0; index < points.length; index++)
       Vertex(
         position: Vector3(
@@ -177,12 +195,37 @@ List<Vertex> spatialGroundVertices(
         texCoord: uvs[index],
       ),
   ];
+  if (scene == null) return original;
+  final origin = original[0].position;
+  final u = original[3].position - origin;
+  final v = original[1].position - origin;
+  final determinant = u.x * v.z - u.z * v.x;
+  Vector2 uvAt(Vector3 point) {
+    final dx = point.x - origin.x, dz = point.z - origin.z;
+    return Vector2(
+      (dx * v.z - dz * v.x) / determinant,
+      (u.x * dz - u.z * dx) / determinant,
+    );
+  }
+
+  return [
+    for (final patch in spatialSurfacePatches(
+      scene,
+      left: geometry.visualBounds.left,
+      top: geometry.visualBounds.top,
+      right: geometry.visualBounds.right,
+      bottom: geometry.visualBounds.bottom,
+    ))
+      for (final point in patch.corners)
+        Vertex(position: point + Vector3(0, height, 0), texCoord: uvAt(point)),
+  ];
 }
 
 Iterable<Mesh> spatialGroundMeshes(
   List<SpatialGroundVisual> visuals,
-  Map<String, Texture> textures,
-) sync* {
+  Map<String, Texture> textures, {
+  MapSpatialScene? scene,
+}) sync* {
   var mesh = Mesh();
   (String, SmartTileSourceRect, double)? previous;
   List<Vertex> vertices = [];
@@ -230,16 +273,38 @@ Iterable<Mesh> spatialGroundMeshes(
           rect.height / texture.height,
         );
     }
-    final base = vertices.length;
-    vertices.addAll(
-      spatialGroundVertices(visual.geometry, height: item.height),
+    final quads = spatialGroundVertices(
+      visual.geometry,
+      height: item.height,
+      scene: scene,
     );
-    indices.addAll([
-      for (final index
-          in visual.transform.flipX ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3])
-        base + index,
-    ]);
-    vertexCount += 4;
+    for (var offset = 0; offset < quads.length; offset += 4) {
+      final base = vertices.length;
+      vertices.addAll(quads.sublist(offset, offset + 4));
+      indices.addAll([
+        for (final index
+            in scene == null && visual.transform.flipX
+                ? [0, 2, 1, 0, 3, 2]
+                : [0, 1, 2, 0, 2, 3])
+          base + index,
+      ]);
+      vertexCount += 4;
+      if (vertexCount >= 60000) {
+        flushSurface();
+        yield mesh;
+        mesh = Mesh();
+        vertexCount = 0;
+        previous = key;
+        material = SpatialPixelMaterial(texture)
+          ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity)
+          ..uvRect.setValues(
+            rect.x / texture.width,
+            rect.y / texture.height,
+            rect.width / texture.width,
+            rect.height / texture.height,
+          );
+      }
+    }
     if (vertexCount >= 60000) {
       flushSurface();
       yield mesh;

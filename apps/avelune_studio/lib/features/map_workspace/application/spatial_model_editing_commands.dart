@@ -36,14 +36,20 @@ class SpatialModelEditingCommands {
     return Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z);
   }
 
-  SpatialModelInstance place(ProjectModel3dEntry model, GridPos cell) {
+  SpatialModelInstance place(ProjectModel3dEntry model, GridPos cell) =>
+      placeAt(model, Model3dVector3(x: cell.x + .5, y: 0, z: cell.y + .5));
+
+  SpatialModelInstance placeAt(
+    ProjectModel3dEntry model,
+    Model3dVector3 position,
+  ) {
     if (!project.models3d.any((item) => item.id == model.id)) {
       throw StateError('Cette ressource n’existe plus.');
     }
     final instance = SpatialModelInstance(
       id: _id(),
       modelId: model.id,
-      position: _position(cell.x + .5, cell.y + .5),
+      position: _position(position.x, position.z),
     );
     document.commit(operations.upsertInstance(document.current, instance));
     document.selectedId = instance.id;
@@ -57,13 +63,35 @@ class SpatialModelEditingCommands {
     double? rotation,
     double? scale,
     bool? blocksMovement,
+    int? heightLevel,
   }) {
     final instance = selected(id);
     if (instance == null) throw StateError('Ce décor n’existe plus.');
+    if (heightLevel != null && (heightLevel < 0 || heightLevel > 32)) {
+      throw StateError('Choisissez une hauteur de 0 à 32 blocs.');
+    }
+    final scene = document.current.spatialScene!;
+    final elevated =
+        instance.position.y -
+        scene.worldHeightAt(instance.position.x, instance.position.z);
+    final alignment =
+        elevated - (elevated / scene.levelHeight).round() * scene.levelHeight;
+    final anchor = _position(
+      x ?? instance.position.x,
+      z ?? instance.position.z,
+    );
     final next = instance.copyWith(
-      position: x == null && z == null
+      position: x == null && z == null && heightLevel == null
           ? null
-          : _position(x ?? instance.position.x, z ?? instance.position.z),
+          : Model3dVector3(
+              x: anchor.x,
+              y:
+                  anchor.y +
+                  (heightLevel == null
+                      ? elevated
+                      : heightLevel * scene.levelHeight + alignment),
+              z: anchor.z,
+            ),
       rotationDegrees: rotation,
       scale: scale,
       blocksMovement: blocksMovement,

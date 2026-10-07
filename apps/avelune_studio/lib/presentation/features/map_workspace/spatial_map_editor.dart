@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
+import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
@@ -12,6 +13,7 @@ import 'map_canvas_stroke.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
+part 'spatial_map_editor_guidance.dart';
 
 class SpatialMapEditor extends StatefulWidget {
   const SpatialMapEditor({
@@ -42,7 +44,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   MapData? previewMap;
   MapCharacterGesture? gesture;
   MapCanvasStroke? terrainStroke;
+  SpatialTerrainStroke? reliefStroke;
   MapData? terrainSource;
+  ProjectManifest? terrainProject;
   StudioMapTool? terrainTool;
   int previewGeneration = 0;
   Object? error;
@@ -54,6 +58,90 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   MapData? contentSource;
   ProjectManifest? contentProject;
   final nudgeKeys = <LogicalKeyboardKey>{};
+  final cameraKeys = <LogicalKeyboardKey>{};
+  bool get precision => HardwareKeyboard.instance.isShiftPressed;
+  SpatialSurfaceHit? hover;
+  MapData? hoverMap;
+  ProjectManifest? hoverProject;
+  StudioMapTool? hoverTool;
+  String? hoverModelId;
+  SpatialTerrainMode? hoverMode;
+  bool get showsHover =>
+      !locked &&
+      {
+        StudioMapTool.place,
+        StudioMapTool.terrain,
+        StudioMapTool.erase,
+        StudioMapTool.collisionPaint,
+        StudioMapTool.collisionErase,
+      }.contains(widget.view.tool);
+
+  Model3dVector3 positionFor(SpatialSurfaceHit hit) {
+    final scene = widget.document.current.spatialScene!;
+    final x = precision
+        ? hit.position.x.clamp(0.0, scene.width - .000001)
+        : hit.cell.$1 + .5;
+    final z = precision
+        ? hit.position.z.clamp(0.0, scene.depth - .000001)
+        : hit.cell.$2 + .5;
+    return Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z);
+  }
+
+  SpatialModelPlacementPreview? get placementPreview {
+    final model = widget.view.model3d;
+    if (!showsHover ||
+        hover == null ||
+        widget.view.tool != StudioMapTool.place ||
+        model == null ||
+        !widget.project.models3d.any((item) => item.id == model.id)) {
+      return null;
+    }
+    return SpatialModelPlacementPreview(
+      modelId: model.id,
+      position: positionFor(hover!),
+    );
+  }
+
+  bool get textEditing =>
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<EditableText>() !=
+      null;
+
+  void updateHover(SpatialSurfaceHit? hit) {
+    if (!mounted) return;
+    if (hit != null && !textEditing) focus.requestFocus();
+    if (hover?.cell == hit?.cell && hover?.position == hit?.position) return;
+    setState(() {
+      hover = showsHover ? hit : null;
+      hoverMap = widget.document.current;
+      hoverProject = widget.project;
+      hoverTool = widget.view.tool;
+      hoverModelId = widget.view.model3d?.id;
+      hoverMode = widget.view.spatialTerrainMode;
+    });
+  }
+
+  void surfaceTap(SpatialSurfaceHit hit) {
+    if (locked) return;
+    if (widget.view.tool != StudioMapTool.place ||
+        widget.view.model3d == null) {
+      tap(hit.cell.$1, hit.cell.$2);
+      return;
+    }
+    focus.requestFocus();
+    try {
+      final item = SpatialModelEditingCommands(
+        widget.document,
+        widget.project,
+      ).placeAt(widget.view.model3d!, positionFor(hit));
+      widget.view.select(widget.document, MapSelectionFamily.decor, item.id);
+    } on Object catch (failure) {
+      widget.document.error = failure.toString();
+    }
+    hover = null;
+    widget.onChanged();
+  }
+
   bool get locked =>
       widget.document.saving ||
       widget.controller.catalogLocks(widget.document.base.mapId);
@@ -73,6 +161,16 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       identical(contentSource, widget.document.current) &&
       identical(contentProject, widget.project);
 
+  bool get terrainGestureValid =>
+      !locked &&
+      terrainTool == widget.view.tool &&
+      gestureFreeView == widget.view.spatialFreeView &&
+      identical(terrainSource, widget.document.current) &&
+      identical(terrainProject, widget.project) &&
+      (reliefStroke == null ||
+          reliefStroke!.mode == widget.view.spatialTerrainMode &&
+              reliefStroke!.level == widget.view.spatialTerrainLevel);
+
   SpatialSceneContentPreview? get contentPreview {
     if (!contentGestureValid) return null;
     final scene = widget.document.current.spatialScene!;
@@ -82,7 +180,14 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       return SpatialSceneContentPreview(
         kind: SpatialSceneContentKind.model,
         id: modelGesture!,
-        position: Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z),
+        position: Model3dVector3(
+          x: x,
+          y:
+              scene.worldHeightAt(x, z) +
+              modelPosition!.y -
+              scene.worldHeightAt(modelPosition!.x, modelPosition!.z),
+          z: z,
+        ),
       );
     }
     final entity = gesture?.entity;
@@ -106,16 +211,31 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     if (old.project != widget.project || old.visuals != widget.visuals) {
       previewMap = null;
     }
+    if (hoverMap != widget.document.current ||
+        hoverProject != widget.project ||
+        hoverTool != widget.view.tool ||
+        hoverModelId != widget.view.model3d?.id ||
+        hoverMode != widget.view.spatialTerrainMode ||
+        !showsHover) {
+      hover = null;
+    }
     syncCameraView();
     if (contentSource != null && !contentGestureValid) discardGesture();
+    if (terrainSource != null && !terrainGestureValid) discardGesture();
   }
 
-  void syncCameraView() {
+  void syncCameraView({bool preserveGesture = false}) {
     final next = widget.view.spatialFreeView
         ? SpatialEditorView.orbit
         : SpatialEditorView.game;
     if (camera.view == next) return;
-    discardGesture();
+    if (preserveGesture) {
+      if (gestureFreeView != null) {
+        gestureFreeView = widget.view.spatialFreeView;
+      }
+    } else {
+      discardGesture();
+    }
     if (next == SpatialEditorView.orbit) {
       final profile = widget.document.current.spatialScene!.camera;
       camera.yaw = profile.yawDegrees * math.pi / 180;
@@ -172,7 +292,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   bool start(int x, int z, [SpatialSceneContentHit? hit]) {
     if (locked ||
         (widget.view.spatialFreeView &&
-            (widget.view.tool != StudioMapTool.select || hit == null)) ||
+            widget.view.tool == StudioMapTool.select &&
+            hit == null) ||
         widget.view.tool == StudioMapTool.pan) {
       return false;
     }
@@ -189,17 +310,24 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
           widget.view.tool == StudioMapTool.erase ||
           widget.view.tool == StudioMapTool.collisionPaint ||
           widget.view.tool == StudioMapTool.collisionErase) {
-        final scene = document.current.spatialScene!;
         final collision =
             widget.view.tool == StudioMapTool.collisionPaint ||
             widget.view.tool == StudioMapTool.collisionErase;
         if (!collision &&
-            (scene.heightLevels.any((level) => level != 0) ||
-                scene.navigation.ramps.isNotEmpty)) {
-          document.error =
-              'La peinture du sol est disponible sur les cartes plates pour le moment.';
+            widget.view.spatialTerrainMode != SpatialTerrainMode.ground) {
+          reliefStroke = SpatialTerrainStroke(
+            source: document.current,
+            mode: widget.view.spatialTerrainMode,
+            level: widget.view.spatialTerrainLevel,
+            erase: widget.view.tool == StudioMapTool.erase,
+            origin: cell,
+          );
+          terrainSource = document.current;
+          terrainProject = widget.project;
+          terrainTool = widget.view.tool;
+          document.error = reliefStroke!.error;
           widget.onChanged();
-          return false;
+          return true;
         }
         terrainStroke = MapCanvasStroke.start(
           map: document.current,
@@ -209,6 +337,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
           origin: cell,
         );
         terrainSource = terrainStroke == null ? null : document.current;
+        terrainProject = terrainStroke == null ? null : widget.project;
         terrainTool = terrainStroke == null ? null : widget.view.tool;
         widget.onChanged();
         return terrainStroke != null;
@@ -322,7 +451,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     nudgeKeys.clear();
     gestureFreeView = null;
     terrainStroke = null;
+    reliefStroke = null;
     terrainSource = null;
+    terrainProject = null;
     terrainTool = null;
     gesture = null;
     modelGesture = null;
@@ -340,6 +471,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   void finish() {
     if (locked ||
         (contentSource != null && !contentGestureValid) ||
+        (terrainSource != null && !terrainGestureValid) ||
         (gestureFreeView != null &&
             gestureFreeView != widget.view.spatialFreeView)) {
       cancel();
@@ -350,17 +482,23 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     contentProject = null;
     nudgeKeys.clear();
     final stroke = terrainStroke;
+    final relief = reliefStroke;
     final source = terrainSource;
     final tool = terrainTool;
     terrainStroke = null;
+    reliefStroke = null;
     terrainSource = null;
+    terrainProject = null;
     terrainTool = null;
-    if (stroke != null) {
+    if (stroke != null || relief != null) {
       if (!locked &&
           identical(widget.document.current, source) &&
-          widget.view.tool == tool) {
+          widget.view.tool == tool &&
+          (relief == null ||
+              relief.mode == widget.view.spatialTerrainMode &&
+                  relief.level == widget.view.spatialTerrainLevel)) {
         try {
-          widget.document.commit(stroke.commit());
+          widget.document.commit(relief?.commit() ?? stroke!.commit());
         } on Object catch (failure) {
           widget.document.error = failure.toString();
         }
@@ -399,8 +537,17 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       cancel();
       return;
     }
+    if (terrainSource != null && !terrainGestureValid) {
+      cancel();
+      return;
+    }
     if (terrainStroke != null && !locked) {
       terrainStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
+      widget.onChanged();
+    }
+    if (reliefStroke != null && !locked) {
+      reliefStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
+      widget.document.error = reliefStroke!.error;
       widget.onChanged();
     }
     gesture?.end = GridPos(x: cell.$1, y: cell.$2);
@@ -431,13 +578,88 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   KeyEventResult onKey(KeyEvent event) {
+    if (textEditing) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight) {
+      setState(() {});
+      return KeyEventResult.ignored;
+    }
+    final delta = switch (key) {
+      LogicalKeyboardKey.arrowLeft => (-1, 0),
+      LogicalKeyboardKey.arrowRight => (1, 0),
+      LogicalKeyboardKey.arrowUp => (0, -1),
+      LogicalKeyboardKey.arrowDown => (0, 1),
+      _ => null,
+    };
+    if (event is KeyUpEvent && cameraKeys.remove(key)) {
+      return KeyEventResult.handled;
+    }
+    if (event is KeyRepeatEvent && cameraKeys.contains(key) && !precision) {
+      return KeyEventResult.handled;
+    }
+    if (event is KeyRepeatEvent &&
+        !cameraKeys.contains(key) &&
+        !nudgeKeys.contains(key)) {
+      return KeyEventResult.ignored;
+    }
+    if (event is KeyDownEvent &&
+        (key == LogicalKeyboardKey.delete ||
+            key == LogicalKeyboardKey.backspace) &&
+        !precision &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isAltPressed) {
+      final id = widget.view.selectedFor(
+        widget.document.current.id,
+        MapSelectionFamily.decor,
+      );
+      final commands = SpatialModelEditingCommands(
+        widget.document,
+        widget.project,
+      );
+      if (id != null && commands.selected(id) != null) {
+        if (!locked) {
+          discardGesture();
+          try {
+            commands.delete(id);
+            widget.view.clearSelection(widget.document);
+          } on Object catch (failure) {
+            widget.document.error = failure.toString();
+          }
+          widget.onChanged();
+        }
+        return KeyEventResult.handled;
+      }
+    }
+    if (event is! KeyUpEvent &&
+        delta != null &&
+        !locked &&
+        HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isAltPressed) {
+      if (nudgeKeys.isNotEmpty) finish();
+      cameraKeys.add(key);
+      widget.view.spatialFreeView = true;
+      syncCameraView(preserveGesture: true);
+      camera.orbit(delta.$1 * 12, delta.$2 * 12);
+      widget.onChanged();
+      return KeyEventResult.handled;
+    }
     if (event is KeyDownEvent &&
         key == LogicalKeyboardKey.escape &&
         (contentSource != null ||
+            reliefStroke != null ||
+            terrainStroke != null ||
             widget.view.hasSelectionIn(widget.document.current.id) ||
-            widget.view.pendingMove != null)) {
+            widget.view.pendingMove != null ||
+            widget.view.tool == StudioMapTool.place)) {
       discardGesture();
+      hover = null;
+      if (widget.view.tool == StudioMapTool.place) {
+        widget.view.tool = StudioMapTool.select;
+      }
       widget.view.clearSelection(widget.document);
       widget.onChanged();
       return KeyEventResult.handled;
@@ -455,13 +677,6 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         (contentSource != null && nudgeKeys.isEmpty)) {
       return KeyEventResult.ignored;
     }
-    final delta = switch (key) {
-      LogicalKeyboardKey.arrowLeft => (-1, 0),
-      LogicalKeyboardKey.arrowRight => (1, 0),
-      LogicalKeyboardKey.arrowUp => (0, -1),
-      LogicalKeyboardKey.arrowDown => (0, 1),
-      _ => null,
-    };
     if (delta == null) return KeyEventResult.ignored;
     if (nudgeKeys.isEmpty) {
       final map = widget.document.current;
@@ -575,72 +790,113 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       focusNode: focus,
       onKeyEvent: (_, event) => onKey(event),
       onFocusChange: (focused) {
+        if (!focused) cameraKeys.clear();
+        setState(() {});
         if (!focused && nudgeKeys.isNotEmpty) cancel();
       },
-      child: SpatialSceneView(
-        cellOverlays: cellOverlays(colors),
-        contentPreview: contentPreview,
-        selectedContent: selectedModel != null
-            ? SpatialSceneContentHit(
-                kind: SpatialSceneContentKind.model,
-                id: selectedModel.id,
-                cell: (
-                  selectedModel.position.x.floor(),
-                  selectedModel.position.z.floor(),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: SpatialSceneView(
+              onHover: showsHover ? updateHover : null,
+              onSurfaceTap: surfaceTap,
+              placementPreview: placementPreview,
+              cellOverlays: cellOverlays(colors),
+              contentPreview: contentPreview,
+              selectedContent: selectedModel != null
+                  ? SpatialSceneContentHit(
+                      kind: SpatialSceneContentKind.model,
+                      id: selectedModel.id,
+                      cell: (
+                        selectedModel.position.x.floor(),
+                        selectedModel.position.z.floor(),
+                      ),
+                    )
+                  : selectedActor != null
+                  ? SpatialSceneContentHit(
+                      kind: SpatialSceneContentKind.actor,
+                      id: 'npc:${selectedActor.id}',
+                      cell: (selectedActor.pos.x, selectedActor.pos.y),
+                    )
+                  : null,
+              selectionColor: colors.primary,
+              onZoom: (delta) {
+                final factor =
+                    (widget.view.scale * math.exp(-delta * .001)).clamp(
+                      .15,
+                      8,
+                    ) /
+                    widget.view.scale;
+                widget.view.transform.value =
+                    widget.view.transform.value.clone()
+                      ..scaleByDouble(factor, factor, 1, 1);
+              },
+              selectContent:
+                  widget.view.tool == StudioMapTool.select ||
+                  (!freeView && widget.view.tool == StudioMapTool.eraseDecor),
+              scene:
+                  reliefStroke?.preview.spatialScene ??
+                  widget.document.current.spatialScene!,
+              groundMap:
+                  reliefStroke?.preview ??
+                  terrainStroke?.preview ??
+                  widget.document.current,
+              groundProject: widget.project,
+              loadGroundImage:
+                  (visuals as SpatialWorkspaceVisuals).readGroundImage,
+              models: widget.project.models3d,
+              loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
+              controller: camera,
+              onCell: tap,
+              onContextMenu: freeView ? null : widget.onContextMenu,
+              onDragStart: (x, z, hit) =>
+                  widget.view.tool == StudioMapTool.place
+                  ? false
+                  : start(x, z, hit),
+              onDragUpdate: updateDrag,
+              onDragEnd: finish,
+              onDragCancel: cancel,
+              onContent: (hit) {
+                start(hit.cell.$1, hit.cell.$2, hit);
+                finish();
+              },
+              actorFrames: (_) => preview?.frames ?? const {},
+              background: colors.surfaceContainerLowest,
+              ground: colors.primaryContainer,
+              edge: colors.outlineVariant,
+              errorBuilder: (_, failure) => Center(
+                child: StudioNotice(
+                  'Le rendu de cette carte est indisponible : ${error ?? failure}',
                 ),
-              )
-            : selectedActor != null
-            ? SpatialSceneContentHit(
-                kind: SpatialSceneContentKind.actor,
-                id: 'npc:${selectedActor.id}',
-                cell: (selectedActor.pos.x, selectedActor.pos.y),
-              )
-            : null,
-        selectionColor: colors.primary,
-        onZoom: (delta) {
-          final factor =
-              (widget.view.scale * math.exp(-delta * .001)).clamp(.15, 8) /
-              widget.view.scale;
-          widget.view.transform.value = widget.view.transform.value.clone()
-            ..scaleByDouble(factor, factor, 1, 1);
-        },
-        selectContent:
-            widget.view.tool == StudioMapTool.select ||
-            (!freeView && widget.view.tool == StudioMapTool.eraseDecor),
-        scene: widget.document.current.spatialScene!,
-        groundMap: terrainStroke?.preview ?? widget.document.current,
-        groundProject: widget.project,
-        loadGroundImage: (visuals as SpatialWorkspaceVisuals).readGroundImage,
-        models: widget.project.models3d,
-        loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
-        controller: camera,
-        onCell: tap,
-        onContextMenu: freeView ? null : widget.onContextMenu,
-        onDragStart: start,
-        onDragUpdate: updateDrag,
-        onDragEnd: finish,
-        onDragCancel: cancel,
-        onContent: (hit) {
-          start(hit.cell.$1, hit.cell.$2, hit);
-          finish();
-        },
-        actorFrames: (_) => preview?.frames ?? const {},
-        background: colors.surfaceContainerLowest,
-        ground: colors.primaryContainer,
-        edge: colors.outlineVariant,
-        errorBuilder: (_, failure) => Center(
-          child: StudioNotice(
-            'Le rendu de cette carte est indisponible : ${error ?? failure}',
+              ),
+            ),
           ),
-        ),
+          if (guidance != null)
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: IgnorePointer(
+                child: StudioNotice(
+                  guidance!,
+                  isError: reliefStroke?.error != null,
+                  maxLines: 3,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   List<SpatialCellOverlay> cellOverlays(ColorScheme colors) {
-    final map = terrainStroke?.preview ?? widget.document.current;
+    final map =
+        reliefStroke?.preview ??
+        terrainStroke?.preview ??
+        widget.document.current;
     final destination = contentGestureValid ? gesture?.destination : null;
     final cells = <SpatialCellOverlay>[];
+    cells.addAll(previewOverlays(colors));
     for (final layer in map.layers.whereType<CollisionLayer>()) {
       for (var index = 0; index < layer.collisions.length; index++) {
         if (layer.collisions[index]) {

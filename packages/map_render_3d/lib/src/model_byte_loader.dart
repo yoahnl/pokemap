@@ -13,6 +13,20 @@ import 'spatial_pixel_material.dart';
 final class ModelByteLoader {
   static int _sequence = 0;
 
+  static Future<Model> loadCached(
+    Map<String, Future<Model>> cache,
+    String key,
+    Future<Uint8List> Function() read,
+  ) async {
+    final pending = cache.putIfAbsent(key, () async => load(await read()));
+    try {
+      return await pending;
+    } on Object {
+      if (identical(cache[key], pending)) cache.remove(key);
+      rethrow;
+    }
+  }
+
   static Future<Model> load(Uint8List bytes) async {
     final current = Flame.assets;
     final cache = current is _ModelAssetsCache

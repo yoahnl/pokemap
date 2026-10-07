@@ -2,6 +2,8 @@ import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/spatial_navigation.dart';
+import '../models/project_model3d.dart';
+import '../models/smart_tile.dart';
 
 final class SpatialCellLevel {
   const SpatialCellLevel({
@@ -31,7 +33,9 @@ final class SpatialMapOperations {
       }
       levels[cell.z * scene.width + cell.x] = cell.level;
     }
-    return map.copyWith(spatialScene: scene.copyWith(heightLevels: levels));
+    return map.copyWith(
+      spatialScene: _reanchor(scene, scene.copyWith(heightLevels: levels)),
+    );
   }
 
   MapData upsertInstance(MapData map, SpatialModelInstance instance) {
@@ -66,7 +70,35 @@ final class SpatialMapOperations {
   MapData configureNavigation(
     MapData map,
     SpatialNavigationProfile navigation,
-  ) => map.copyWith(spatialScene: _scene(map).copyWith(navigation: navigation));
+  ) {
+    final scene = _scene(map);
+    return map.copyWith(
+      spatialScene: _reanchor(scene, scene.copyWith(navigation: navigation)),
+    );
+  }
+
+  MapData configureTerrainAppearance(
+    MapData map, {
+    SmartTileFrameRef? cliffFrame,
+  }) =>
+      map.copyWith(spatialScene: _scene(map).copyWith(cliffFrame: cliffFrame));
+
+  MapSpatialScene _reanchor(MapSpatialScene before, MapSpatialScene after) =>
+      after.copyWith(
+        instances: before.instances.map((instance) {
+          final position = instance.position;
+          return instance.copyWith(
+            position: Model3dVector3(
+              x: position.x,
+              y:
+                  position.y +
+                  after.worldHeightAt(position.x, position.z) -
+                  before.worldHeightAt(position.x, position.z),
+              z: position.z,
+            ),
+          );
+        }),
+      );
 
   MapSpatialScene _scene(MapData map) {
     if (map.version != ProjectVersion.v9 || map.spatialScene == null) {

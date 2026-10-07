@@ -80,10 +80,7 @@ void main() {
         layerId: 'ground',
         layerName: 'Ground',
       );
-      expect(
-        (elevated as SmartTileLayerCreationFailure).code,
-        'smart_tile.spatial_flat_required',
-      );
+      expect(elevated, isA<SmartTileLayerCreationSuccess>());
     },
   );
   test(

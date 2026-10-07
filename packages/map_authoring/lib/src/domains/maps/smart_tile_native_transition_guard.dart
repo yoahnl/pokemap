@@ -115,15 +115,6 @@ void requireExistingNativeSmartTileProject(
         },
       );
     }
-    final scene = map.spatialScene;
-    if (scene != null &&
-        map.layers.isNotEmpty &&
-        (scene.heightLevels.any((level) => level != 0) ||
-            scene.navigation.ramps.isNotEmpty)) {
-      throw semanticFailure('smart_tile.spatial_flat_required',
-          'Smart Tile spatial surfaces require flat terrain without ramps.',
-          details: {'mapId': map.id, 'operation': operation});
-    }
   }
 }
 

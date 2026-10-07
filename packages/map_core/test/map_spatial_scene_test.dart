@@ -73,36 +73,64 @@ void main() {
       );
     },
   );
-  test('flat spatial maps persist Smart Tile ground and path surfaces', () {
-    final original = map().copyWith(
-      layers: [
-        const MapLayer.smartTile(
-          id: 'ground',
-          name: 'Ground',
-          presetId: 'grass',
-          usage: SmartTileUsage.terrain,
-          materialPalette: ['', 'grass'],
-          field: SmartTileField.cell(
-            semanticCells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  test(
+    'spatial maps persist Smart Tile ground and paths on blocks and ramps',
+    () {
+      final original = map().copyWith(
+        layers: [
+          const MapLayer.smartTile(
+            id: 'ground',
+            name: 'Ground',
+            presetId: 'grass',
+            usage: SmartTileUsage.terrain,
+            materialPalette: ['', 'grass'],
+            field: SmartTileField.cell(
+              semanticCells: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ),
+          ),
+          const MapLayer.smartTile(
+            id: 'path',
+            name: 'Path',
+            presetId: 'dirt',
+            usage: SmartTileUsage.path,
+            materialPalette: ['', 'dirt'],
+            field: SmartTileField.cell(
+              semanticCells: [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+            ),
+          ),
+        ],
+      );
+      final reopened = MapData.fromJson(original.toJson());
+      expect(reopened, original);
+      MapValidator.validate(reopened);
+      final relief = original.copyWith(
+        spatialScene: MapSpatialScene(
+          width: 4,
+          depth: 3,
+          heightLevels: [0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          navigation: SpatialNavigationProfile(
+            ramps: [
+              SpatialRamp(
+                id: 'ramp',
+                x: 1,
+                z: 1,
+                width: 2,
+                depth: 1,
+                lowLevel: 0,
+                highLevel: 2,
+                direction: SpatialRampDirection.north,
+              ),
+            ],
           ),
         ),
-        const MapLayer.smartTile(
-          id: 'path',
-          name: 'Path',
-          presetId: 'dirt',
-          usage: SmartTileUsage.path,
-          materialPalette: ['', 'dirt'],
-          field: SmartTileField.cell(
-            semanticCells: [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
-          ),
-        ),
-      ],
-    );
-    final reopened = MapData.fromJson(original.toJson());
-    expect(reopened, original);
-    MapValidator.validate(reopened);
-  });
-  test('spatial terrain rejects relief and non-surface layers', () {
+      );
+      final reopenedRelief = MapData.fromJson(relief.toJson());
+      expect(reopenedRelief, relief);
+      expect(reopenedRelief.spatialScene!.worldHeightAt(1.5, 1.5), 1);
+      MapValidator.validate(reopenedRelief);
+    },
+  );
+  test('spatial terrain accepts relief and rejects non-surface layers', () {
     final ground = const MapLayer.smartTile(
       id: 'ground',
       name: 'Ground',
@@ -124,7 +152,7 @@ void main() {
             )
             .toJson(),
       ),
-      throwsFormatException,
+      returnsNormally,
     );
     expect(
       () => MapData.fromJson(
@@ -142,6 +170,21 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('spatial appearance roundtrips a cliff atlas frame', () {
+    final json = map().toJson();
+    final scene = json['spatialScene'] as Map<String, dynamic>;
+    scene['cliffFrame'] = const SmartTileFrameRef(
+      atlasId: 'cliffs',
+      column: 2,
+      row: 1,
+      columnSpan: 2,
+      rowSpan: 1,
+    ).toJson();
+    final reopened = MapData.fromJson(json);
+    expect(reopened.spatialScene!.toJson()['cliffFrame'], scene['cliffFrame']);
+    expect(MapData.fromJson(reopened.toJson()), reopened);
   });
   test('spatial Smart Tiles reject obsolete semantic payloads', () {
     final json = map().toJson();

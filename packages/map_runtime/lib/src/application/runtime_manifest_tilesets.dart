@@ -51,6 +51,8 @@ void addSmartTileTilesetIds(
     if (tilesetId.isNotEmpty) ids.add(tilesetId);
   }
 
+  if (map.spatialScene?.cliffFrame case final frame?) addFrame(frame);
+
   void addSource(SmartTileVisualSource source) {
     source.map(
       frame: (source) => addFrame(source.frame),

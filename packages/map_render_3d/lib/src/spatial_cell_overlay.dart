@@ -3,7 +3,7 @@ import 'package:flame_3d/game.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
-enum SpatialCellOverlayKind { spawn, warp, collision }
+enum SpatialCellOverlayKind { spawn, warp, collision, preview }
 
 final class SpatialCellOverlay {
   const SpatialCellOverlay({
@@ -11,20 +11,23 @@ final class SpatialCellOverlay {
     required this.cell,
     required this.kind,
     required this.color,
+    this.targetHeight,
   });
   final String id;
   final (int, int) cell;
   final SpatialCellOverlayKind kind;
   final Color color;
+  final double? targetHeight;
   @override
   bool operator ==(Object other) =>
       other is SpatialCellOverlay &&
       id == other.id &&
       cell == other.cell &&
       kind == other.kind &&
-      color == other.color;
+      color == other.color &&
+      targetHeight == other.targetHeight;
   @override
-  int get hashCode => Object.hash(id, cell, kind, color);
+  int get hashCode => Object.hash(id, cell, kind, color, targetHeight);
 }
 
 Iterable<Mesh> spatialCellOverlayMeshes(
@@ -72,7 +75,11 @@ Iterable<Mesh> spatialCellOverlayMeshes(
         final a = x + point.$1, b = z + point.$2;
         group.vertices.add(
           Vertex(
-            position: Vector3(a, scene.worldHeightAt(a, b) + .035, b),
+            position: Vector3(
+              a,
+              (overlay.targetHeight ?? scene.worldHeightAt(a, b)) + .035,
+              b,
+            ),
             texCoord: Vector2.zero(),
             color: overlay.color,
           ),

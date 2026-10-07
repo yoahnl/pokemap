@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 
 enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
 
@@ -47,6 +48,8 @@ class MapWorkspaceViewState {
   double get scale => transform.value.entry(0, 0).abs();
   StudioMapTool tool = StudioMapTool.select;
   bool spatialFreeView = false;
+  SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
+  int spatialTerrainLevel = 1;
   ProjectElementEntry? brush;
   ProjectModel3dEntry? model3d;
   TileLayerPaletteEntry? tile;

@@ -9,6 +9,7 @@ final class SpatialMapActions {
   const SpatialMapActions();
   static const _fields = {
     'map3d.terrain.set_levels': 'cells',
+    'map3d.terrain.configure_appearance': 'cliffFrame',
     'map3d.instance.upsert': 'instance',
     'map3d.instance.delete': 'instanceId',
     'map3d.camera.configure': 'camera',
@@ -21,6 +22,8 @@ final class SpatialMapActions {
         version: 1,
         summary: switch (entry.value) {
           'cells' => 'Set discrete terrain levels on a 3D map',
+          'cliffFrame' =>
+            'Configure or clear the repeated terrain cliff texture',
           'instance' => 'Place or replace a 3D model instance',
           'instanceId' => 'Delete a 3D model instance',
           'navigation' => 'Configure spawn, ramps and exploration movement',
@@ -69,9 +72,19 @@ final class SpatialMapActions {
       throw semanticFailure('map3d.parameters_invalid',
           'A terrain operation supports at most 65536 cells.');
     }
+    if (!context.parameters.contains(field)) {
+      throw semanticFailure('map3d.parameters_invalid',
+          'The spatial action requires its configuration field.');
+    }
     const operations = SpatialMapOperations();
     try {
       final after = switch (field) {
+        'cliffFrame' => operations.configureTerrainAppearance(context.map,
+            cliffFrame: context.parameters.value(field) == null
+                ? null
+                : SmartTileFrameRef.fromJson(_object(
+                    context.parameters.value(field),
+                    {'atlasId', 'column', 'row', 'columnSpan', 'rowSpan'}))),
         'cells' => operations.setLevels(
             context.map,
             context.parameters.list(field).map((value) {
@@ -143,6 +156,18 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'cliffFrame' => {
+          'type': ['object', 'null'],
+          'additionalProperties': false,
+          'required': ['atlasId', 'column', 'row'],
+          'properties': {
+            'atlasId': {'type': 'string', 'minLength': 1},
+            'column': {'type': 'integer', 'minimum': 0},
+            'row': {'type': 'integer', 'minimum': 0},
+            'columnSpan': {'type': 'integer', 'minimum': 1},
+            'rowSpan': {'type': 'integer', 'minimum': 1},
+          },
+        },
       'navigation' => {
           'type': 'object',
           'additionalProperties': false,
