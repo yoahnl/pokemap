@@ -11,9 +11,9 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
-import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_navigation.dart';
+import 'model_animation_controls.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.missing_material_magenta' =>
@@ -331,16 +331,18 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                 const SizedBox(height: 16),
                 ListenableBuilder(
                   listenable: controls,
-                  builder: (context, _) => StudioSelect(
-                    label: 'Animation',
-                    value: controls.animation?.toString() ?? 'none',
-                    options: {
-                      'none': 'Pose de repos',
-                      for (final clip in model.inspection.animations)
-                        '${clip.index}':
-                            '${clip.name} · ${clip.durationSeconds.toStringAsFixed(2)} s',
-                    },
-                    onChanged: (value) => controls.play(int.tryParse(value)),
+                  builder: (context, _) => ModelAnimationControls(
+                    clips: model.inspection.animations,
+                    animationIndex: controls.animation,
+                    loop: controls.animationLoop,
+                    speed: controls.animationSpeed,
+                    paused: controls.animationPaused,
+                    onClip: controls.play,
+                    onLoop: (value) => controls.configureAnimation(loop: value),
+                    onSpeed: (value) =>
+                        controls.configureAnimation(speed: value),
+                    onPause: controls.toggleAnimationPause,
+                    onReplay: controls.restartAnimation,
                   ),
                 ),
               ],

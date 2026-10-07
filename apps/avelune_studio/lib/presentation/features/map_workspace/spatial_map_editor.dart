@@ -208,6 +208,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   @override
   void didUpdateWidget(SpatialMapEditor old) {
     super.didUpdateWidget(old);
+    if (old.document.base.mapId != widget.document.base.mapId) {
+      widget.view.spatialAnimations.clear();
+    }
     if (old.project != widget.project || old.visuals != widget.visuals) {
       previewMap = null;
     }
@@ -798,6 +801,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         children: [
           Positioned.fill(
             child: SpatialSceneView(
+              animationPreview: widget.view.spatialAnimations,
               onHover: showsHover ? updateHover : null,
               onSurfaceTap: surfaceTap,
               placementPreview: placementPreview,

@@ -2,6 +2,33 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'model playback roundtrips, clears its clip and rejects invalid speed',
+    () {
+      final instance = SpatialModelInstance(
+        id: 'door',
+        modelId: 'door',
+        position: Model3dVector3.zero,
+        animationIndex: 1,
+        animationLoop: false,
+        animationSpeed: .25,
+      );
+      expect(SpatialModelInstance.fromJson(instance.toJson()), instance);
+      final moved = instance.copyWith(
+        position: Model3dVector3(x: 1, y: 0, z: 0),
+      );
+      expect(moved.animationIndex, 1);
+      expect(moved.animationLoop, isFalse);
+      expect(moved.animationSpeed, .25);
+      expect(instance.copyWith(clearAnimation: true).animationIndex, isNull);
+      for (final speed in [0.0, -1.0, double.nan, double.infinity, 17.0]) {
+        expect(
+          () => instance.copyWith(animationSpeed: speed),
+          throwsFormatException,
+        );
+      }
+    },
+  );
   MapData map() => MapData(
     id: 'garden',
     name: 'Jardin',

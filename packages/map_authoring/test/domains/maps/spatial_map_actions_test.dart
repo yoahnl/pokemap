@@ -65,6 +65,9 @@ void main() {
         'instance': SpatialModelInstance(
                 id: 'placed',
                 modelId: 'house',
+                animationIndex: 0,
+                animationLoop: false,
+                animationSpeed: .25,
                 position: Model3dVector3(x: 1.2, y: 3, z: 2.7))
             .toJson()
       });
@@ -129,6 +132,10 @@ void main() {
       });
       final snapshot = await f.snapshots.load(f.project);
       final map = snapshot.mapById('first-map')!;
+      final animated = map.spatialScene!.instances.single;
+      expect(animated.animationIndex, 0);
+      expect(animated.animationLoop, isFalse);
+      expect(animated.animationSpeed, .25);
       expect(map.version, ProjectVersion.v9);
       expect(map.entities.single.id, 'start');
       expect(map.layers.whereType<CollisionLayer>().single.collisions.take(2),
@@ -286,7 +293,7 @@ void main() {
               id: 'bad',
               modelId: 'house',
               position: Model3dVector3.zero,
-              animationIndex: 0)
+              animationIndex: 9)
           .toJson()
     });
     expect(invalidAnimation.status, AuthoringResultStatus.failure);
@@ -436,7 +443,7 @@ final class _Fixture {
             mapWidth: 4,
             mapHeight: 4));
     final root = Directory(receipt.projectPath);
-    await File('${root.path}/input.glb').writeAsBytes(triangleGlb());
+    await File('${root.path}/input.glb').writeAsBytes(animatedGlb());
     final projectFile = File('${root.path}/project.json');
     final manifest = ProjectManifest.fromJson(
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);

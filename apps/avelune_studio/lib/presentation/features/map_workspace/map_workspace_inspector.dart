@@ -17,6 +17,7 @@ import 'map_catalogue_properties.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
+import '../resources/model_animation_controls.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -188,6 +189,39 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               () => commands.update(instance.id, blocksMovement: value),
             ),
           ),
+          if (model != null && model.inspection.animations.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ListenableBuilder(
+              listenable: view.spatialAnimations,
+              builder: (context, _) => ModelAnimationControls(
+                clips: model.inspection.animations,
+                animationIndex: instance.animationIndex,
+                loop: instance.animationLoop,
+                speed: instance.animationSpeed,
+                paused: view.spatialAnimations.isPaused(instance.id),
+                onClip: (value) => change(() {
+                  commands.update(
+                    instance.id,
+                    animationIndex: value,
+                    clearAnimation: value == null,
+                  );
+                  view.spatialAnimations.restart(instance.id);
+                }),
+                onLoop: (value) => change(
+                  () => commands.update(instance.id, animationLoop: value),
+                ),
+                onSpeed: (value) => change(
+                  () => commands.update(instance.id, animationSpeed: value),
+                ),
+                onPause: () => view.spatialAnimations.togglePause(instance.id),
+                onReplay: () => view.spatialAnimations.restart(instance.id),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'La pause et Rejouer ne modifient que l’aperçu. L’animation ne change pas le blocage du passage.',
+            ),
+          ],
           StudioButton(
             label: 'Dupliquer',
             secondary: true,

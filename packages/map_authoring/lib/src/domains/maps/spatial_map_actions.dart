@@ -104,6 +104,8 @@ final class SpatialMapActions {
               'rotationDegrees',
               'scale',
               'animationIndex',
+              'animationLoop',
+              'animationSpeed',
               'blocksMovement'
             }))),
         'navigation' => operations.configureNavigation(
@@ -272,6 +274,12 @@ Map<String, Object?> _schema(String field) => switch (field) {
             'animationIndex': {
               'type': ['integer', 'null'],
               'minimum': 0
+            },
+            'animationLoop': {'type': 'boolean'},
+            'animationSpeed': {
+              'type': 'number',
+              'exclusiveMinimum': 0,
+              'maximum': 16
             },
             'blocksMovement': {'type': 'boolean'}
           }

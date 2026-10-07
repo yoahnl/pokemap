@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
@@ -44,6 +45,7 @@ enum StudioMapTool {
 }
 
 class MapWorkspaceViewState {
+  final spatialAnimations = SpatialAnimationPreviewController();
   final transform = TransformationController();
   double get scale => transform.value.entry(0, 0).abs();
   StudioMapTool tool = StudioMapTool.select;
@@ -272,6 +274,7 @@ class MapWorkspaceViewState {
   }
 
   void dispose() {
+    spatialAnimations.dispose();
     _fitGeneration++;
     transform.dispose();
     for (final controller in paletteAtlasTransforms.values) {

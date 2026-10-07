@@ -69,6 +69,18 @@ final class GamePackageProjectValidator {
         }
         GamePackageSpatialProjectValidator(policy: policy)
             .validate(project, readPayload);
+        final animated = project.maps.any((entry) {
+          final map = MapData.fromJson(jsonDecode(
+                  utf8.decode(readPayload('project/${entry.relativePath}')!))
+              as Map<String, dynamic>);
+          return map.spatialScene!.instances
+              .any((instance) => instance.animationIndex != null);
+        });
+        if (animated &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains('map3d.animation@1')) {
+          _fail('Animated 3D decor requires map3d.animation@1.');
+        }
       }
       return project;
     } on GamePackageFormatException {

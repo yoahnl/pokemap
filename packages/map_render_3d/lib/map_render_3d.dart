@@ -1,5 +1,6 @@
 export 'src/model_byte_loader.dart';
 export 'src/model_preview.dart';
+export 'src/model_playback.dart';
 export 'src/spatial_scene_view.dart';
 export 'src/spatial_scene_neighbor.dart';
 export 'src/spatial_cell_overlay.dart';

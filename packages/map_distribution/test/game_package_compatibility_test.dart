@@ -47,6 +47,21 @@ void main() {
       );
       expect(evaluator.evaluate(spatialPackage, host).decision,
           GamePackageCompatibilityDecision.reject);
+      final animated = _manifest(
+          projectFormat: 'v9',
+          capabilities: const ['map3d@1', 'map3d.animation@1']);
+      expect(evaluator.evaluate(animated, spatialHost).decision,
+          GamePackageCompatibilityDecision.reject);
+      final animatedHost = GamePackageHostCompatibility(
+          hubVersion: spatialHost.hubVersion,
+          runtimeApiVersion: spatialHost.runtimeApiVersion,
+          capabilities: {...spatialHost.capabilities, 'map3d.animation@1'},
+          supportedProjectFormats: spatialHost.supportedProjectFormats,
+          currentProjectFormat: spatialHost.currentProjectFormat,
+          currentProjectFormats: spatialHost.currentProjectFormats,
+          supportedSaveFormats: spatialHost.supportedSaveFormats);
+      expect(evaluator.evaluate(animated, animatedHost),
+          const GamePackageCompatibilityResult.accept());
     });
 
     test('rejects unsupported native current formats', () {

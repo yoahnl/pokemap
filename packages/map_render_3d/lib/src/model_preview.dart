@@ -6,18 +6,23 @@ import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/components.dart';
 import 'package:flame_3d/game.dart';
 import 'package:flame_3d/graphics.dart';
-import 'package:flame_3d/model.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 import 'model_byte_loader.dart';
 import 'adaptive_camera.dart';
+import 'flutter_frame_graphics_device.dart';
+import 'model_playback.dart';
 
 class ModelPreviewController extends ChangeNotifier {
   double yaw = 0.5;
   double pitch = 0.5;
   double zoom = 1;
   int? animation;
+  bool animationLoop = false;
+  bool animationPaused = false;
+  double animationSpeed = 1;
+  int animationVersion = 0;
 
   void orbit(double dx, double dy) {
     yaw -= dx * 0.008;
@@ -39,6 +44,24 @@ class ModelPreviewController extends ChangeNotifier {
 
   void play(int? index) {
     animation = index;
+    animationPaused = false;
+    animationVersion++;
+    notifyListeners();
+  }
+
+  void restartAnimation() => play(animation);
+
+  void toggleAnimationPause() {
+    animationPaused = !animationPaused;
+    notifyListeners();
+  }
+
+  void configureAnimation({bool? loop, double? speed}) {
+    if (speed != null && (!speed.isFinite || speed <= 0 || speed > 16)) {
+      throw ArgumentError.value(speed, 'speed');
+    }
+    animationLoop = loop ?? animationLoop;
+    animationSpeed = speed ?? animationSpeed;
     notifyListeners();
   }
 }
@@ -120,6 +143,9 @@ class _ModelPreviewState extends State<ModelPreview> {
 
 class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   static Future<void>? _initialization;
+  @override
+  late final GraphicsDevice device = FlutterFrameGraphicsDevice();
+
   _ModelPreviewGame(
     this.bytes,
     this.controls,
@@ -133,8 +159,9 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   final Vector3 minimum;
   final Vector3 maximum;
   final Color background;
-  ModelComponent? component;
+  AnimatedModelComponent? component;
   int? activeAnimation;
+  int activeAnimationVersion = -1;
   bool closed = false;
 
   @override
@@ -169,14 +196,24 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
       yaw: controls.yaw,
       distance: distance,
     );
-    if (controls.animation != activeAnimation) {
+    if (controls.animation != activeAnimation ||
+        controls.animationVersion != activeAnimationVersion) {
       activeAnimation = controls.animation;
+      activeAnimationVersion = controls.animationVersion;
       if (activeAnimation == null) {
         component?.stopAnimation();
       } else if (activeAnimation! < (component?.model.animations.length ?? 0)) {
-        component?.playAnimationByIndex(activeAnimation!);
+        component?.play(
+          activeAnimation!,
+          loop: controls.animationLoop,
+          speed: controls.animationSpeed,
+        );
       }
     }
+    component?.playback
+      ?..loop = controls.animationLoop
+      ..speed = controls.animationSpeed
+      ..paused = controls.animationPaused;
   }
 
   @override
@@ -193,7 +230,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 }
 
-class _PreviewModelComponent extends ModelComponent {
+class _PreviewModelComponent extends AnimatedModelComponent {
   _PreviewModelComponent({required super.model});
 
   @override

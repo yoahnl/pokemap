@@ -10,6 +10,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         'dialogue.choices@1',
         'map@1',
         'map3d@1',
+        'map3d.animation@1',
         'overworld.menu@1',
         'world.shop@1',
       },

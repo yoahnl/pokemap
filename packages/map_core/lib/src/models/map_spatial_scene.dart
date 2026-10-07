@@ -70,6 +70,8 @@ final class SpatialModelInstance {
     this.rotationDegrees = 0,
     this.scale = 1,
     this.animationIndex,
+    this.animationLoop = true,
+    this.animationSpeed = 1,
     this.blocksMovement = true,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
@@ -78,7 +80,10 @@ final class SpatialModelInstance {
         !scale.isFinite ||
         scale <= 0 ||
         scale > 1000 ||
-        (animationIndex != null && animationIndex! < 0)) {
+        (animationIndex != null && animationIndex! < 0) ||
+        !animationSpeed.isFinite ||
+        animationSpeed <= 0 ||
+        animationSpeed > 16) {
       throw const FormatException('Invalid spatial model placement.');
     }
   }
@@ -86,19 +91,29 @@ final class SpatialModelInstance {
   final Model3dVector3 position;
   final double rotationDegrees, scale;
   final int? animationIndex;
+  final bool animationLoop;
+  final double animationSpeed;
   final bool blocksMovement;
   SpatialModelInstance copyWith({
     Model3dVector3? position,
     double? rotationDegrees,
     double? scale,
     bool? blocksMovement,
+    int? animationIndex,
+    bool clearAnimation = false,
+    bool? animationLoop,
+    double? animationSpeed,
   }) => SpatialModelInstance(
     id: id,
     modelId: modelId,
     position: position ?? this.position,
     rotationDegrees: rotationDegrees ?? this.rotationDegrees,
     scale: scale ?? this.scale,
-    animationIndex: animationIndex,
+    animationIndex: clearAnimation
+        ? null
+        : animationIndex ?? this.animationIndex,
+    animationLoop: animationLoop ?? this.animationLoop,
+    animationSpeed: animationSpeed ?? this.animationSpeed,
     blocksMovement: blocksMovement ?? this.blocksMovement,
   );
   @override
@@ -111,6 +126,8 @@ final class SpatialModelInstance {
           other.rotationDegrees == rotationDegrees &&
           other.scale == scale &&
           other.animationIndex == animationIndex &&
+          other.animationLoop == animationLoop &&
+          other.animationSpeed == animationSpeed &&
           other.blocksMovement == blocksMovement;
   @override
   int get hashCode => Object.hash(
@@ -120,6 +137,8 @@ final class SpatialModelInstance {
     rotationDegrees,
     scale,
     animationIndex,
+    animationLoop,
+    animationSpeed,
     blocksMovement,
   );
 
@@ -133,6 +152,8 @@ final class SpatialModelInstance {
         rotationDegrees: (json['rotationDegrees'] as num).toDouble(),
         scale: (json['scale'] as num).toDouble(),
         animationIndex: json['animationIndex'] as int?,
+        animationLoop: json['animationLoop'] as bool? ?? true,
+        animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
         blocksMovement: json['blocksMovement'] as bool,
       );
   Map<String, dynamic> toJson() => {
@@ -142,6 +163,8 @@ final class SpatialModelInstance {
     'rotationDegrees': rotationDegrees,
     'scale': scale,
     'animationIndex': animationIndex,
+    'animationLoop': animationLoop,
+    'animationSpeed': animationSpeed,
     'blocksMovement': blocksMovement,
   };
 }

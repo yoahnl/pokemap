@@ -64,9 +64,23 @@ class SpatialModelEditingCommands {
     double? scale,
     bool? blocksMovement,
     int? heightLevel,
+    int? animationIndex,
+    bool clearAnimation = false,
+    bool? animationLoop,
+    double? animationSpeed,
   }) {
     final instance = selected(id);
     if (instance == null) throw StateError('Ce décor n’existe plus.');
+    if (animationIndex != null &&
+        !project.models3d
+            .where((model) => model.id == instance.modelId)
+            .any(
+              (model) => model.inspection.animations.any(
+                (clip) => clip.index == animationIndex,
+              ),
+            )) {
+      throw StateError('Cette animation n’existe pas pour ce décor.');
+    }
     if (heightLevel != null && (heightLevel < 0 || heightLevel > 32)) {
       throw StateError('Choisissez une hauteur de 0 à 32 blocs.');
     }
@@ -95,6 +109,10 @@ class SpatialModelEditingCommands {
       rotationDegrees: rotation,
       scale: scale,
       blocksMovement: blocksMovement,
+      animationIndex: animationIndex,
+      clearAnimation: clearAnimation,
+      animationLoop: animationLoop,
+      animationSpeed: animationSpeed,
     );
     document.commit(operations.upsertInstance(document.current, next));
   }
@@ -111,6 +129,8 @@ class SpatialModelEditingCommands {
       rotationDegrees: item.rotationDegrees,
       scale: item.scale,
       animationIndex: item.animationIndex,
+      animationLoop: item.animationLoop,
+      animationSpeed: item.animationSpeed,
       blocksMovement: item.blocksMovement,
     );
     document.commit(operations.upsertInstance(document.current, next));

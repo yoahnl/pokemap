@@ -8,6 +8,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import '../../support/glb_fixture.dart';
 
 void main() {
   late Directory root;
@@ -24,6 +25,85 @@ void main() {
     }
   });
   tearDown(() async => root.delete(recursive: true));
+
+  test('animated decor requires a capable Player and preserves playback',
+      () async {
+    final manifestFile = File(p.join(root.path, 'project.json'));
+    var manifest = ProjectManifest.fromJson(
+        jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>);
+    final model = manifest.models3d.first;
+    final bytes = Uint8List.fromList(animatedGlb());
+    final source = File(p.join(root.path, 'animation-source.glb'));
+    await source.writeAsBytes(bytes);
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(root.path);
+    final artifacts = LocalArtifactStore(
+        allowedSourceRoots: [root.path], maximumArtifactBytes: 1048576);
+    final mutations = LocalMapAuthoringMutationApi(
+        policy: policy, snapshotLoader: snapshots, artifactStore: artifacts);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    final artifactSource = await artifacts.importFile(source.path);
+    final snapshot = await snapshots.load(opened.projectHandle);
+    final plan = await mutations.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+            requestId: 'door-import',
+            actionId: 'model3d.import',
+            actionVersion: 1,
+            workspaceHandle: opened.workspaceHandle.value,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'door-import',
+            parameters: {
+              'modelId': 'animated-door',
+              'name': 'Door',
+              'artifactHandle': artifactSource.reference.handle
+            }));
+    await mutations.applyMutation(opened.projectHandle,
+        planId: plan.planId, operationId: 'door-import');
+    manifest = (await snapshots.load(opened.projectHandle)).manifest;
+    final mapFile = File(p.join(root.path, manifest.maps.first.relativePath));
+    final map = MapData.fromJson(
+        jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
+    final original = map.spatialScene!.instances
+        .firstWhere((instance) => instance.modelId == model.id);
+    final animated = SpatialModelInstance(
+        id: original.id,
+        modelId: 'animated-door',
+        position: original.position,
+        animationIndex: 0,
+        animationLoop: false,
+        animationSpeed: .25);
+    await mapFile.writeAsString(jsonEncode(map
+        .copyWith(
+            spatialScene: map.spatialScene!.copyWith(instances: [
+          for (final instance in map.spatialScene!.instances)
+            instance.id == animated.id ? animated : instance
+        ]))
+        .toJson()));
+    final artifact = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(artifact.manifest.compatibility.requiredCapabilities,
+        contains('map3d.animation@1'));
+    final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+    final exported = MapData.fromJson(jsonDecode(utf8.decode(archive
+        .findFile('project/${manifest.maps.first.relativePath}')!
+        .content)) as Map<String, dynamic>);
+    expect(
+        exported.spatialScene!.instances
+            .firstWhere((instance) => instance.id == original.id),
+        animated);
+  });
 
   test('exports the authored 3D map as autonomous localTest exploration',
       () async {

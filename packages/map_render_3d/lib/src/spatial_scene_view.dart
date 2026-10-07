@@ -14,8 +14,10 @@ import 'package:map_core/map_core.dart';
 
 import 'model_byte_loader.dart';
 import 'model_preview.dart';
+import 'model_playback.dart';
 import 'spatial_picking.dart';
 import 'adaptive_camera.dart';
+import 'flutter_frame_graphics_device.dart';
 import 'spatial_actor_visual.dart';
 import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
@@ -116,6 +118,7 @@ class SpatialSceneView extends StatefulWidget {
     this.loadGroundImage,
     this.neighbors = const [],
     this.sceneOffset = Offset.zero,
+    this.animationPreview,
   });
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
@@ -132,6 +135,7 @@ class SpatialSceneView extends StatefulWidget {
   final Future<Uint8List> Function(String id)? loadGroundImage;
   final List<SpatialSceneNeighbor> neighbors;
   final Offset sceneOffset;
+  final SpatialAnimationPreviewController? animationPreview;
   final MapSpatialScene scene;
   final List<ProjectModel3dEntry> models;
   final Future<Uint8List> Function(String id) loadModel;
@@ -280,6 +284,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     if (oldWidget.controller != widget.controller && game.sceneReady) {
       oldWidget.controller.removeListener(game.syncCamera);
       widget.controller.addListener(game.syncCamera);
+    }
+    if (oldWidget.animationPreview != widget.animationPreview &&
+        game.sceneReady) {
+      oldWidget.animationPreview?.removeListener(game.syncAnimations);
+      widget.animationPreview?.addListener(game.syncAnimations);
     }
     game.configuration = widget;
     final modelSourcesChanged = !widget.modelSourcesMatch(oldWidget);
@@ -482,6 +491,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 }
 
 class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
+  @override
+  late final GraphicsDevice device = FlutterFrameGraphicsDevice();
+
   _SpatialGame(
     this.configuration, {
     required this.onPreviewStatus,
@@ -500,6 +512,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     ({_SceneModelComponent component, Vector3 position, Model3dVector3 anchor})
   >
   modelComponents = {};
+  Map<(String, String), _SceneModelComponent> animationModels = {};
   bool sceneReady = false, closed = false;
   final actorSelections = <String, List<MeshComponent>>{};
   int generation = 0;
@@ -530,6 +543,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     if (closed) return;
     sceneReady = true;
     configuration.controller.addListener(syncCamera);
+    configuration.animationPreview?.addListener(syncAnimations);
     world.add(LightComponent.ambient(intensity: 0.85));
     await refresh();
     if (!closed) {
@@ -549,6 +563,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final definitions = {for (final model in snapshot.models) model.id: model};
     final components = <Object3D>[];
     final nextGrounds = <_SceneGround>[];
+    final nextAnimationModels = <(String, String), _SceneModelComponent>{};
     final nextModelComponents =
         <
           String,
@@ -660,8 +675,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
               ) *
               scale;
           rotation.rotate(pivot);
+          final animationKey = (placement.map?.id ?? '__scene__', instance.id);
+          final previous = animationModels[animationKey];
           final component = _SceneModelComponent(
             model: model,
+            playback: identical(previous?.model, model)
+                ? ModelPlaybackState.from(previous!.playback)
+                : null,
             position:
                 Vector3(
                   instance.position.x + placement.offset.dx,
@@ -692,9 +712,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
                   )
                 : const [],
           );
-          if (instance.animationIndex case final index?) {
-            component.playAnimationByIndex(index);
-          }
+          component.bindAnimation(
+            instance.animationIndex,
+            loop: instance.animationLoop,
+            speed: instance.animationSpeed,
+          );
+          nextAnimationModels[animationKey] = component;
           components.add(component);
           if (placement.active) {
             nextModelComponents[instance.id] = (
@@ -717,11 +740,19 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           }
           actorSelections.clear();
           grounds = nextGrounds;
+          for (final entry in nextAnimationModels.entries) {
+            final previous = animationModels[entry.key];
+            if (previous != null) {
+              entry.value.playback.synchronizeClock(previous.playback);
+            }
+          }
           modelComponents = nextModelComponents;
+          animationModels = nextAnimationModels;
           renderedConfiguration = configuration;
           actorVisual = null;
           cellOverlayComponents = nextCellOverlays;
           refreshing = false;
+          syncAnimations();
           syncContentPreview();
           syncPlacementPreview();
           syncCamera();
@@ -788,6 +819,22 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final next = buildCellOverlays(visibleConfiguration);
     sceneComponents.replaceSubset(cellOverlayComponents, next);
     cellOverlayComponents = next;
+  }
+
+  final animationRestartVersions = <String, int>{};
+
+  void syncAnimations() {
+    if (refreshing) return;
+    final preview = configuration.animationPreview;
+    for (final entry in modelComponents.entries) {
+      final version = preview?.restartVersion(entry.key) ?? 0;
+      if (version != (animationRestartVersions[entry.key] ?? 0)) {
+        entry.value.component.playback.restart();
+      }
+      entry.value.component.playback.paused =
+          preview?.isPaused(entry.key) ?? false;
+      animationRestartVersions[entry.key] = version;
+    }
   }
 
   void syncCamera() {
@@ -1179,8 +1226,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     sceneComponents.dispose();
     placementRenderer.dispose();
     configuration.controller.removeListener(syncCamera);
+    configuration.animationPreview?.removeListener(syncAnimations);
     cache.clear();
     modelComponents.clear();
+    animationModels.clear();
     groundTextureCache.clear();
     grounds.clear();
     actorSelections.clear();
@@ -1236,13 +1285,14 @@ final class _SceneGround {
   }
 }
 
-class _SceneModelComponent extends ModelComponent {
+class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
     required super.model,
     super.position,
     super.rotation,
     super.scale,
     super.children,
+    super.playback,
   });
   @override
   bool isVisible(CameraComponent3D camera) => true;
