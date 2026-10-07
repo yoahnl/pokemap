@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flame/game.dart' show GameWidget;
 import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/components.dart';
 import 'package:flame_3d/game.dart';
@@ -16,6 +15,9 @@ import 'model_byte_loader.dart';
 import 'model_preview.dart';
 import 'spatial_picking.dart';
 import 'adaptive_camera.dart';
+import 'spatial_actor_visual.dart';
+import 'spatial_game_surface.dart';
+import 'spatial_pixel_material.dart';
 
 enum SpatialEditorView { orbit, top, game }
 
@@ -40,7 +42,9 @@ class SpatialSceneView extends StatefulWidget {
     required this.edge,
     required this.errorBuilder,
     this.selectedCell,
+    this.actorFrame,
   });
+  final SpatialActorVisual Function(double dt)? actorFrame;
   final MapSpatialScene scene;
   final List<ProjectModel3dEntry> models;
   final Future<Uint8List> Function(String id) loadModel;
@@ -104,7 +108,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: GameWidget<_SpatialGame>(
+            child: SpatialGameSurface<_SpatialGame>(
               game: game,
               loadingBuilder: (_) =>
                   const Center(child: Text('Chargement de la scène…')),
@@ -126,6 +130,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   final Map<String, Future<Model>> cache = {};
   bool sceneReady = false, closed = false;
   int generation = 0;
+  MeshComponent? actor;
+  SpatialPixelMaterial? actorMaterial;
+  SpatialActorVisual? actorVisual;
   @override
   Color backgroundColor() => configuration.background;
   @override
@@ -195,17 +202,21 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     world.removeAll(world.children.toList());
     await world.add(LightComponent.ambient(intensity: 0.85));
     await world.addAll(components);
+    if (actor != null) await world.add(actor!);
     syncCamera();
   }
 
   void syncCamera() {
     final scene = configuration.scene;
     final control = configuration.controller;
-    final center = Vector3(
-      scene.width / 2,
-      scene.heightAt(scene.width ~/ 2, scene.depth ~/ 2),
-      scene.depth / 2,
-    );
+    final visual = actorVisual;
+    final center = visual == null
+        ? Vector3(
+            scene.width / 2,
+            scene.heightAt(scene.width ~/ 2, scene.depth ~/ 2),
+            scene.depth / 2,
+          )
+        : Vector3(visual.x, visual.y, visual.z);
     final maximumHeight =
         scene.heightLevels.reduce(math.max) * scene.levelHeight;
     (camera as AdaptiveCamera3D).sceneRadius = math.max(
@@ -236,6 +247,60 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       yaw: yaw,
       distance: distance,
     );
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!sceneReady || closed) return;
+    final frame = configuration.actorFrame?.call(dt);
+    if (frame == null) return;
+    actorVisual = frame;
+    if (actor == null) {
+      actorMaterial = SpatialPixelMaterial(frame.texture.texture);
+      final width = 1.92 * frame.frame.width / frame.frame.height;
+      final mesh = Mesh()
+        ..addSurface(
+          Surface(
+            vertices: [
+              Vertex(
+                position: Vector3(-width / 2, 0, 0),
+                texCoord: Vector2(0, 1),
+              ),
+              Vertex(
+                position: Vector3(width / 2, 0, 0),
+                texCoord: Vector2(1, 1),
+              ),
+              Vertex(
+                position: Vector3(width / 2, 1.92, 0),
+                texCoord: Vector2(1, 0),
+              ),
+              Vertex(
+                position: Vector3(-width / 2, 1.92, 0),
+                texCoord: Vector2(0, 0),
+              ),
+            ],
+            indices: [0, 1, 2, 2, 3, 0],
+            material: actorMaterial!,
+          ),
+        );
+      actor = MeshComponent(mesh: mesh);
+      world.add(actor!);
+    }
+    actor!.position.setValues(frame.x, frame.y + .02, frame.z);
+    final transform = spatialActorTransform(configuration.scene.camera);
+    actor!.rotation.setFrom(transform.rotation);
+    actor!.scale.setFrom(transform.scale);
+    final texture = frame.texture.texture;
+    actorMaterial!
+      ..albedoTexture = texture
+      ..uvRect.setValues(
+        frame.frame.left / texture.width,
+        frame.frame.top / texture.height,
+        frame.frame.width / texture.width,
+        frame.frame.height / texture.height,
+      );
+    syncCamera();
   }
 
   (int, int)? pickCell(Offset offset) {

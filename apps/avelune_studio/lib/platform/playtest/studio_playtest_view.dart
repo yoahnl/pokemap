@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
@@ -39,19 +40,15 @@ class StudioPlaytestView extends StatefulWidget {
 }
 
 class _StudioPlaytestViewState extends State<StudioPlaytestView> {
-  late Future<PlayableMapGame> _loading = _load();
+  late Future<Object> _loading = _load();
   PlayableMapGame? _game;
+  SpatialExplorationSession? _spatial;
   late final _saves = widget.testSession ?? StudioPlaytestSession();
   bool _busy = false;
   String? _message;
 
-  Future<PlayableMapGame> _load() async {
+  Future<Object> _load() async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
-    if (document.map.spatialScene != null) {
-      throw StateError(
-        'Les cartes 3D sont éditables et enregistrables. Le test jouable 3D sera disponible avec la prochaine intégration du runtime.',
-      );
-    }
     if (document.revision != widget.expectedRevision) {
       throw StateError(
         'La carte a changé sur disque. Revenez et rechargez-la.',
@@ -59,6 +56,22 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     }
     final projectPath = p.join(widget.session.directoryPath, 'project.json');
     if (!mounted) throw StateError('Test fermé');
+    if (document.map.spatialScene != null) {
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectPath,
+        mapId: widget.entry.id,
+      );
+      if (bundle.map != document.map) {
+        throw StateError('La carte a changé pendant la préparation du test.');
+      }
+      final exploration = await SpatialExplorationSession.load(bundle);
+      if (!mounted) {
+        exploration.dispose();
+        throw StateError('Test fermé');
+      }
+      setState(() => _spatial = exploration);
+      return exploration;
+    }
     final prepareProjectAssets = widget.prepareProjectAssets;
     if (prepareProjectAssets != null) {
       await prepareProjectAssets(widget.session.directoryPath);
@@ -95,6 +108,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   @override
   void dispose() {
     _game?.pauseEngine();
+    _spatial?.dispose();
     if (widget.testSession == null) _saves.delete();
     super.dispose();
   }
@@ -160,7 +174,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · sauvegardes de test temporaires',
+                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · ${_spatial == null ? 'sauvegardes de test temporaires' : 'Exploration 3D · test initial'}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -172,7 +186,9 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       Padding(
         padding: const EdgeInsets.all(8),
         child: Text(
-          'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir',
+          _spatial == null
+              ? 'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir'
+              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
@@ -182,30 +198,35 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
           spacing: 8,
           runSpacing: 4,
           children: [
-            StudioButton(
-              label: 'Enregistrer le test',
-              icon: Icons.save_outlined,
-              secondary: true,
-              onPressed: _busy ? null : _save,
-            ),
-            StudioButton(
-              label: 'Reprendre le test',
-              icon: Icons.restore,
-              secondary: true,
-              onPressed: _busy || !_saves.hasSave ? null : _resume,
-            ),
-            StudioButton(
-              label: 'Nouvelle partie',
-              icon: Icons.restart_alt,
-              secondary: true,
-              onPressed: _busy ? null : _newGame,
-            ),
+            if (_spatial == null)
+              StudioButton(
+                label: 'Enregistrer le test',
+                icon: Icons.save_outlined,
+                secondary: true,
+                onPressed: _busy ? null : _save,
+              ),
+            if (_spatial == null)
+              StudioButton(
+                label: 'Reprendre le test',
+                icon: Icons.restore,
+                secondary: true,
+                onPressed: _busy || !_saves.hasSave ? null : _resume,
+              ),
+            if (_spatial == null)
+              StudioButton(
+                label: 'Nouvelle partie',
+                icon: Icons.restart_alt,
+                secondary: true,
+                onPressed: _busy ? null : _newGame,
+              ),
+            if (_spatial case final exploration?)
+              StudioSpatialExplorationControls(movement: exploration.movement),
             if (_message != null) Text(_message!),
           ],
         ),
       ),
       Expanded(
-        child: FutureBuilder<PlayableMapGame>(
+        child: FutureBuilder<Object>(
           future: _loading,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
@@ -217,10 +238,18 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             if (game == null) {
               return const Center(child: CircularProgressIndicator());
             }
+            if (game is SpatialExplorationSession) {
+              return ClipRect(
+                child: SpatialExplorationView(
+                  key: ObjectKey(game),
+                  session: game,
+                ),
+              );
+            }
             return ClipRect(
               child: GameWidget<PlayableMapGame>(
                 key: ObjectKey(game),
-                game: game,
+                game: game as PlayableMapGame,
                 autofocus: true,
                 errorBuilder: (context, error) =>
                     Center(child: Text('Erreur du test : $error')),
@@ -234,3 +263,45 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 }
 
 class StudioPlaytestSaveRepository extends StudioPlaytestSession {}
+
+class StudioSpatialExplorationControls extends StatefulWidget {
+  const StudioSpatialExplorationControls({super.key, required this.movement});
+  final SpatialMovementController movement;
+  @override
+  State<StudioSpatialExplorationControls> createState() =>
+      _StudioSpatialExplorationControlsState();
+}
+
+class _StudioSpatialExplorationControlsState
+    extends State<StudioSpatialExplorationControls> {
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 8,
+    runSpacing: 4,
+    children: [
+      StudioButton(
+        label: 'Réinitialiser la position',
+        icon: Icons.restart_alt,
+        secondary: true,
+        onPressed: () => setState(widget.movement.reset),
+      ),
+      StudioButton(
+        label: widget.movement.paused ? 'Reprendre' : 'Pause',
+        secondary: true,
+        onPressed: () =>
+            setState(() => widget.movement.setPaused(!widget.movement.paused)),
+      ),
+      StudioButton(
+        label: widget.movement.allowDiagonalMovement
+            ? 'Diagonales activées'
+            : 'Diagonales désactivées',
+        secondary: true,
+        onPressed: () => setState(
+          () => widget.movement.setDiagonalMovement(
+            !widget.movement.allowDiagonalMovement,
+          ),
+        ),
+      ),
+    ],
+  );
+}

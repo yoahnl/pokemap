@@ -53,7 +53,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await client.connect(transport);
     const catalog = await call("pokemap_describe");
     const ids = (catalog.mutationActions as JsonRecord[]).map((item) => item.id);
-    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure"]) assert.ok(ids.includes(id), id);
+    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure"]) assert.ok(ids.includes(id), id);
     const request = { name: "Spatial MCP", folderName: "spatial", parentPath: root, template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
     const preview = await call("pokemap_project_create_preview", { request });
     const created = await call("pokemap_project_create", { request, confirmation: preview.confirmation });
@@ -85,10 +85,14 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 2, z: 3, level: 2 }] });
     await mutate("map3d.instance.upsert", { mapId, instance: { id: "rock-1", modelId: "rock", position: { x: 2.5, y: 2, z: 3.5 }, rotationDegrees: 90, scale: 1, animationIndex: null, blocksMovement: true } });
     await mutate("map3d.camera.configure", { mapId, camera: { mode: "fixed", pitchDegrees: 60, yawDegrees: 15, fieldOfViewDegrees: 30, distance: 25 } });
+    await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 4, z: 2, level: 1 }] });
+    const navigation = { spawn: { x: 4, z: 4 }, allowDiagonalMovement: false, ramps: [{ id: "stairs", x: 4, z: 3, width: 1, depth: 1, lowLevel: 0, highLevel: 1, direction: "north" }], blockedAreas: [{ x: 0, z: 0, width: 1, depth: 1 }] };
+    await mutate("map3d.navigation.configure", { mapId, navigation });
     const map = JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")) as JsonRecord;
     const scene = record(map.spatialScene);
     assert.equal((scene.heightLevels as number[])[3 * 8 + 2], 2);
     assert.equal(record(scene.camera).pitchDegrees, 60);
+    assert.deepEqual(scene.navigation, navigation);
     assert.equal((scene.instances as unknown[]).length, 1);
     assert.deepEqual(map.layers, []);
     await mutate("map3d.instance.delete", { mapId, instanceId: "rock-1" }, true);

@@ -10,6 +10,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'map_workspace_visuals.dart';
 
@@ -38,7 +39,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   final camera = SpatialSceneController();
   SpatialTool tool = SpatialTool.select;
   int level = 1, brush = 1, sequence = 0;
-  String? modelId, selectedId, error;
+  String? modelId, selectedId, selectedRampId, error;
   (int, int)? cell;
   MapSpatialScene get scene => widget.document.current.spatialScene!;
   bool get locked =>
@@ -153,6 +154,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     final selected = scene.instances
         .where((i) => i.id == selectedId)
         .firstOrNull;
+    final selectedRamp = scene.navigation.ramps
+        .where((r) => r.id == selectedRampId)
+        .firstOrNull;
     final colors = Theme.of(context).colorScheme;
     final sidebar = SingleChildScrollView(
       padding: const EdgeInsets.all(12),
@@ -259,6 +263,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               child: StudioPanel(
                 title: 'Objet sélectionné',
                 children: [
+                  StudioToggleRow(
+                    label: 'Bloque le passage',
+                    value: selected.blocksMovement,
+                    onChanged: (v) =>
+                        updateInstance(selected.copyWith(blocksMovement: v)),
+                  ),
                   number(
                     'X · position horizontale',
                     selected.position.x,
@@ -375,6 +385,152 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               ),
             ),
           ],
+          const SizedBox(height: 12),
+          IgnorePointer(
+            ignoring: locked,
+            child: StudioPanel(
+              title: 'Exploration 3D · départ et escaliers',
+              children: [
+                number(
+                  'Départ X',
+                  scene.navigation.spawn.x,
+                  (v) => configureNavigation(
+                    scene.navigation.copyWith(
+                      spawn: SpatialSpawn(x: v, z: scene.navigation.spawn.z),
+                    ),
+                  ),
+                ),
+                number(
+                  'Départ Z',
+                  scene.navigation.spawn.z,
+                  (v) => configureNavigation(
+                    scene.navigation.copyWith(
+                      spawn: SpatialSpawn(x: scene.navigation.spawn.x, z: v),
+                    ),
+                  ),
+                ),
+                StudioToggleRow(
+                  label: 'Autoriser les diagonales',
+                  value: scene.navigation.allowDiagonalMovement,
+                  onChanged: (v) => configureNavigation(
+                    scene.navigation.copyWith(allowDiagonalMovement: v),
+                  ),
+                ),
+                StudioButton(
+                  label: 'Ajouter un escalier à la case',
+                  secondary: true,
+                  onPressed: cell == null
+                      ? null
+                      : () {
+                          final (x, z) = cell!;
+                          final low = scene.heightLevels[z * scene.width + x];
+                          try {
+                            final ramp = SpatialRamp(
+                              id: 'stairs_${DateTime.now().microsecondsSinceEpoch}',
+                              x: x.toDouble(),
+                              z: z.toDouble(),
+                              width: 1,
+                              depth: 1,
+                              lowLevel: low,
+                              highLevel: low + 1,
+                              direction: SpatialRampDirection.north,
+                            );
+                            configureNavigation(
+                              scene.navigation.copyWith(
+                                ramps: [...scene.navigation.ramps, ramp],
+                              ),
+                            );
+                            setState(() => selectedRampId = ramp.id);
+                          } on Object {
+                            setState(
+                              () => error =
+                                  'L’escalier doit relier deux paliers et rester dans la carte.',
+                            );
+                          }
+                        },
+                ),
+                if (scene.navigation.ramps.isNotEmpty)
+                  StudioSelect(
+                    label: 'Escaliers',
+                    value: selectedRampId,
+                    options: {
+                      for (final ramp in scene.navigation.ramps)
+                        ramp.id:
+                            '${ramp.id} · ${ramp.lowLevel} → ${ramp.highLevel}',
+                    },
+                    onChanged: (v) => setState(() => selectedRampId = v),
+                  ),
+                if (selectedRamp != null) ...[
+                  number(
+                    'Escalier X',
+                    selectedRamp.x,
+                    (v) => updateRamp(() => selectedRamp.copyWith(x: v)),
+                  ),
+                  number(
+                    'Escalier Z',
+                    selectedRamp.z,
+                    (v) => updateRamp(() => selectedRamp.copyWith(z: v)),
+                  ),
+                  number(
+                    'Largeur',
+                    selectedRamp.width,
+                    (v) => updateRamp(() => selectedRamp.copyWith(width: v)),
+                  ),
+                  number(
+                    'Profondeur',
+                    selectedRamp.depth,
+                    (v) => updateRamp(() => selectedRamp.copyWith(depth: v)),
+                  ),
+                  StudioSelect(
+                    label: 'Palier bas',
+                    value: '${selectedRamp.lowLevel}',
+                    options: {for (var i = 0; i < 32; i++) '$i': 'Niveau $i'},
+                    onChanged: (v) => updateRamp(
+                      () => selectedRamp.copyWith(lowLevel: int.parse(v)),
+                    ),
+                  ),
+                  StudioSelect(
+                    label: 'Palier haut',
+                    value: '${selectedRamp.highLevel}',
+                    options: {for (var i = 1; i <= 32; i++) '$i': 'Niveau $i'},
+                    onChanged: (v) => updateRamp(
+                      () => selectedRamp.copyWith(highLevel: int.parse(v)),
+                    ),
+                  ),
+                  StudioSelect(
+                    label: 'Montée vers',
+                    value: selectedRamp.direction.name,
+                    options: const {
+                      'north': 'Nord',
+                      'south': 'Sud',
+                      'east': 'Est',
+                      'west': 'Ouest',
+                    },
+                    onChanged: (v) => updateRamp(
+                      () => selectedRamp.copyWith(
+                        direction: SpatialRampDirection.values.byName(v),
+                      ),
+                    ),
+                  ),
+                  StudioButton(
+                    label: 'Retirer cet escalier',
+                    secondary: true,
+                    onPressed: () => configureNavigation(
+                      scene.navigation.copyWith(
+                        ramps: scene.navigation.ramps.where(
+                          (r) => r.id != selectedRamp.id,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (scene.navigation.blockedAreas.isNotEmpty)
+                  Text(
+                    '${scene.navigation.blockedAreas.length} zones de passage bloquées',
+                  ),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
           IgnorePointer(
             ignoring: locked,
@@ -502,6 +658,30 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         ),
       ],
     );
+  }
+
+  void configureNavigation(SpatialNavigationProfile navigation) {
+    try {
+      edit(operations.configureNavigation(widget.document.current, navigation));
+    } on FormatException catch (failure) {
+      setState(() => error = failure.message);
+    }
+  }
+
+  void updateRamp(SpatialRamp Function() build) {
+    try {
+      final ramp = build();
+      configureNavigation(
+        scene.navigation.copyWith(
+          ramps: [
+            for (final value in scene.navigation.ramps)
+              value.id == ramp.id ? ramp : value,
+          ],
+        ),
+      );
+    } on FormatException catch (failure) {
+      setState(() => error = failure.message);
+    }
   }
 
   void configureCamera({

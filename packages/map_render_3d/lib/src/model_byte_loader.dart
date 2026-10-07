@@ -8,6 +8,7 @@ import 'package:flame_3d/core.dart';
 import 'package:flame_3d/resources.dart';
 
 import 'glb_renderer_layout.dart';
+import 'spatial_pixel_material.dart';
 
 final class ModelByteLoader {
   static int _sequence = 0;
@@ -25,10 +26,8 @@ final class ModelByteLoader {
       for (final node in model.nodes.values) {
         for (final surface in node.mesh?.surfaces ?? <Surface>[]) {
           if (surface.material case final SpatialMaterial material) {
-            surface.material = UnlitMaterial(
-              albedoColor: material.albedoColor,
-              albedoTexture: material.albedoTexture,
-            );
+            surface.material = SpatialPixelMaterial(material.albedoTexture)
+              ..albedoColor = material.albedoColor;
           }
         }
       }

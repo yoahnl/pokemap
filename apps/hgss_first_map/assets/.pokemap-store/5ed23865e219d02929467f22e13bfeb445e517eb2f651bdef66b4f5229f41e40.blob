@@ -1,0 +1,540 @@
+{
+  "sources": [
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/scene.json",
+      "sha256": "87fcc4f7a9a893dd1a83bc142f92c4fbd48a8ea24ef87a5ae52528aff7ec615b"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/provenance.json",
+      "sha256": "f57a70c4ebf4b8bbaaddf942745efce5b7c25298092211ec47ef874393cdb874"
+    }
+  ],
+  "upstream": {
+    "sourceUrl": "https://models.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/592781/",
+    "sourceTitle": "Olivine City",
+    "sourceAuthor": "Kuramapika1",
+    "archiveSha256": "c42cf1f80dad46969627f872fdb0dad835299bc8197c2b76a3152b194e35c3d9",
+    "daePath": "DS _ DSi - Pokemon HeartGold _ SoulSilver - Locations - Olivine City/Olivine City.dae",
+    "daeSha256": "95ee6c2014346484a6a0083b7b3e2066cefebc965c5899853f69b641e8b44a1f",
+    "axes": {
+      "source": "Z_UP",
+      "target": "Y_UP",
+      "mapping": "(globalX, globalZ, -globalY) / 16",
+      "matrixLayout": "row-major",
+      "origin": "preserved"
+    },
+    "uv": "u, 1-v"
+  },
+  "textures": [
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/as_h01.png",
+      "sha256": "b5263c7bf1a3811bcd015ae45a9c8fa62b69a95553591b7fc24163b7b8afcf25"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/grass01gs.png",
+      "sha256": "198bb3f3089dc31a6c0ed541dd645e0f1ef0e3a255bf6cf84af80bccb6dd5b88"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/h_mado.png",
+      "sha256": "ddf8daca4b57e903f962c663f89f06be6d43ca5f29459d0094b4b8140514601f"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/r39_door1.png",
+      "sha256": "1a6bbb9536cbf32dbf17bfb143d7fe98634d693cc8fd1e1529e13fea42eb757b"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/road01.png",
+      "sha256": "87aee0da4e79b740be8dca0cce64dd12b7a7f65fa1428973d2b989299025472d"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/slope.png",
+      "sha256": "9e3971650bc90eb6beeefcc7a28c8588d20ea179f7c9dd8ca7af41647647edb7"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/wall01_d.png",
+      "sha256": "3c7e170f3977a17c05cffecc77720f809e9c00e122c0be8946d293fdd858c484"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/hgss_render_lab/assets/city/olivine/wall01_g.png",
+      "sha256": "0623dc1438cfad42bf5ee7deebc9f3c6c11628b879ee69a91f7d92f2a00b3625"
+    }
+  ],
+  "models": [
+    {
+      "file": "cliff_straight.glb",
+      "sha256": "5af03bb9c866be051a947f773a4f6501a38d1bc4f52529e4e90d64b3281f2aa4",
+      "bounds": [
+        0.0,
+        4.5298740003474336e-07,
+        -1.509958007517298e-07,
+        1.0,
+        1.0000003774895,
+        0.9999999245021005
+      ],
+      "triangleCount": 6,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "textures": [
+        "wall01_d.png",
+        "wall01_g.png"
+      ],
+      "id": "cliff_straight",
+      "geometryStatus": "Real adjacent source face, repeatable along X by translation of 1; not a complete cliff kit",
+      "sourceSelections": [
+        {
+          "nodeId": "map09_07c",
+          "nodeName": "map09_07c",
+          "geometryIds": [
+            "map09_07c-mesh"
+          ],
+          "materialId": "wall01_d_013-material",
+          "texture": "wall01_d.png",
+          "triangleIndices": [
+            171,
+            267
+          ],
+          "translation": [
+            -5,
+            -1,
+            11
+          ]
+        },
+        {
+          "nodeId": "map09_07c",
+          "nodeName": "map09_07c",
+          "geometryIds": [
+            "map09_07c-mesh"
+          ],
+          "materialId": "wall01_g_014-material",
+          "texture": "wall01_g.png",
+          "triangleIndices": [
+            96,
+            97,
+            295,
+            296
+          ],
+          "translation": [
+            -5,
+            -1,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "file": "stairs.glb",
+      "sha256": "3f4a028976dd0fb28c46d2c0bcbca0303719d22aa4272e9163522fa44cbdb9bc",
+      "bounds": [
+        -0.1875,
+        -0.06738267201259995,
+        -1.604330375215568e-07,
+        2.1875,
+        1.125000396363975,
+        0.999999929589384
+      ],
+      "triangleCount": 36,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "textures": [
+        "slope.png"
+      ],
+      "id": "stairs",
+      "geometryStatus": "Real staircase mesh with one unit rise over one unit depth; railings extend beyond nominal 2 unit width",
+      "sourceSelections": [
+        {
+          "nodeId": "map09_07c",
+          "nodeName": "map09_07c",
+          "geometryIds": [
+            "map09_07c-mesh"
+          ],
+          "materialId": "slope_005-material",
+          "texture": "slope.png",
+          "triangleIndices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "translation": [
+            -3,
+            -1,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "file": "house.glb",
+      "sha256": "5936987acb46c1f36bc8df537b50da9503a48c0c6c9a6aa5197169790ebb47e7",
+      "bounds": [
+        0.0,
+        0.015869323366343835,
+        0.0,
+        4.243408125,
+        4.531005933199989,
+        3.27001938419758
+      ],
+      "triangleCount": 182,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "textures": [
+        "as_h01.png",
+        "h_mado.png",
+        "r39_door1.png"
+      ],
+      "id": "house",
+      "geometryStatus": "Real Olivine house and matching door, transparent baked shadow excluded",
+      "sourceSelections": [
+        {
+          "nodeId": "as_h01_002",
+          "nodeName": "as_h01.002",
+          "geometryIds": [
+            "as_h01_002-mesh"
+          ],
+          "materialId": "h_mado_lm7-material",
+          "texture": "h_mado.png",
+          "triangleIndices": [
+            0,
+            1
+          ],
+          "translation": [
+            -2.940918125,
+            -2.062500419743333,
+            17.35571142873609
+          ]
+        },
+        {
+          "nodeId": "as_h01_002",
+          "nodeName": "as_h01.002",
+          "geometryIds": [
+            "as_h01_002-mesh"
+          ],
+          "materialId": "as_h01a_lm2-material",
+          "texture": "as_h01.png",
+          "triangleIndices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            129,
+            130,
+            131,
+            132,
+            133,
+            134,
+            135,
+            136,
+            137,
+            138,
+            139,
+            140,
+            141,
+            142,
+            143,
+            144,
+            145,
+            146,
+            147,
+            148,
+            149,
+            150,
+            151,
+            152,
+            153,
+            154,
+            155,
+            156,
+            157,
+            158,
+            159,
+            160,
+            161,
+            162,
+            163,
+            164,
+            165,
+            166,
+            167,
+            168,
+            169,
+            170,
+            171
+          ],
+          "translation": [
+            -2.940918125,
+            -2.062500419743333,
+            17.35571142873609
+          ]
+        },
+        {
+          "nodeId": "r39_door1_002",
+          "nodeName": "r39_door1.002",
+          "geometryIds": [
+            "r39_door1_003-mesh"
+          ],
+          "materialId": "wk_door2_lm3_001-material",
+          "texture": "r39_door1.png",
+          "triangleIndices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "translation": [
+            -2.940918125,
+            -2.062500419743333,
+            17.35571142873609
+          ]
+        }
+      ]
+    },
+    {
+      "file": "terrain.glb",
+      "sha256": "cc33df00acffac0316c610cf9579049c82bea76a227647293069406129839e4f",
+      "bounds": [
+        0,
+        0.0,
+        0,
+        16,
+        2.0,
+        14
+      ],
+      "triangleCount": 384,
+      "pivot": [
+        0,
+        0,
+        0
+      ],
+      "textures": [
+        "grass01gs.png",
+        "road01.png"
+      ],
+      "id": "terrain",
+      "geometryStatus": "Authored planar terrain using unchanged HGSS grass and road textures; geometry is not extracted",
+      "sourceSelections": []
+    }
+  ],
+  "terrain": {
+    "textureUvScalePerCell": 0.5,
+    "normal": "up",
+    "heights": [
+      0,
+      2
+    ],
+    "excludedRows": [
+      6,
+      7
+    ],
+    "pathColumns": [
+      7,
+      8
+    ]
+  },
+  "staircase": {
+    "sourceFloorHeights": [
+      1,
+      2
+    ],
+    "rise": 1,
+    "run": 1,
+    "localWalkableX": [
+      0.3125,
+      1.6875
+    ],
+    "localWalkableZ": [
+      0,
+      1
+    ],
+    "heightAtLocalZ": "1 - z",
+    "placements": [
+      [
+        7,
+        1,
+        6
+      ],
+      [
+        7,
+        0,
+        7
+      ]
+    ]
+  },
+  "omittedSurfaces": [
+    {
+      "nodeName": "as_h01.002",
+      "texture": "h_kage.png",
+      "reason": "Source opacity 0.2903226; initial rendering contract is opaque only"
+    }
+  ],
+  "layoutSha256": "2c4af1eb2a5f18def7c2f521592b495557dcd050b6c52d55b527f701a85b0772"
+}

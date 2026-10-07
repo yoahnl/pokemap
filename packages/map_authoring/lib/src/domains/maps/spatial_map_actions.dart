@@ -12,6 +12,7 @@ final class SpatialMapActions {
     'map3d.instance.upsert': 'instance',
     'map3d.instance.delete': 'instanceId',
     'map3d.camera.configure': 'camera',
+    'map3d.navigation.configure': 'navigation',
   };
   static final descriptors = [
     for (final entry in _fields.entries)
@@ -22,6 +23,7 @@ final class SpatialMapActions {
           'cells' => 'Set discrete terrain levels on a 3D map',
           'instance' => 'Place or replace a 3D model instance',
           'instanceId' => 'Delete a 3D model instance',
+          'navigation' => 'Configure spawn, ramps and exploration movement',
           _ => 'Configure a fixed 3D map camera',
         },
         inputSchemaId: 'schema.${entry.key}.input.v1',
@@ -91,6 +93,11 @@ final class SpatialMapActions {
               'animationIndex',
               'blocksMovement'
             }))),
+        'navigation' => operations.configureNavigation(
+            context.map,
+            SpatialNavigationProfile.fromJson(_object(
+                context.parameters.object(field),
+                {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas'}))),
         'instanceId' => operations.deleteInstance(
             context.map, context.parameters.string(field)),
         _ => operations.configureCamera(
@@ -136,6 +143,68 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'navigation' => {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': [
+            'spawn',
+            'allowDiagonalMovement',
+            'ramps',
+            'blockedAreas'
+          ],
+          'properties': {
+            'spawn': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['x', 'z'],
+              'properties': {
+                'x': {'type': 'number', 'minimum': 0, 'exclusiveMaximum': 256},
+                'z': {'type': 'number', 'minimum': 0, 'exclusiveMaximum': 256}
+              }
+            },
+            'allowDiagonalMovement': {'type': 'boolean'},
+            'ramps': {
+              'type': 'array',
+              'maxItems': 256,
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': [
+                  'id',
+                  'x',
+                  'z',
+                  'width',
+                  'depth',
+                  'lowLevel',
+                  'highLevel',
+                  'direction'
+                ],
+                'properties': {
+                  ..._rectangleProperties,
+                  'id': {
+                    'type': 'string',
+                    'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
+                  },
+                  'lowLevel': {'type': 'integer', 'minimum': 0, 'maximum': 31},
+                  'highLevel': {'type': 'integer', 'minimum': 1, 'maximum': 32},
+                  'direction': {
+                    'enum': ['north', 'south', 'east', 'west']
+                  }
+                }
+              }
+            },
+            'blockedAreas': {
+              'type': 'array',
+              'maxItems': 4096,
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['x', 'z', 'width', 'depth'],
+                'properties': _rectangleProperties
+              }
+            }
+          }
+        },
       'instanceId' => {'type': 'string', 'minLength': 1},
       'cells' => {
           'type': 'array',
@@ -215,3 +284,10 @@ Map<String, Object?> _schema(String field) => switch (field) {
           }
         },
     };
+
+const _rectangleProperties = <String, Object?>{
+  'x': {'type': 'number', 'minimum': 0, 'maximum': 256},
+  'z': {'type': 'number', 'minimum': 0, 'maximum': 256},
+  'width': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 256},
+  'depth': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 256},
+};

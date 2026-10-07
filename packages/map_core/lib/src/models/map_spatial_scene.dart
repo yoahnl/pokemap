@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
 import 'project_model3d.dart';
+import 'spatial_navigation.dart';
 
 enum ProjectDimension { twoD, threeD }
 
@@ -152,9 +153,11 @@ final class MapSpatialScene {
     this.levelHeight = 1,
     Iterable<SpatialModelInstance> instances = const [],
     SpatialCameraProfile? camera,
+    SpatialNavigationProfile? navigation,
   }) : heightLevels = List.unmodifiable(heightLevels ?? _flat(width, depth)),
        instances = List.unmodifiable(instances),
-       camera = camera ?? SpatialCameraProfile() {
+       camera = camera ?? SpatialCameraProfile(),
+       navigation = navigation ?? SpatialNavigationProfile() {
     if (width <= 0 ||
         depth <= 0 ||
         width > 256 ||
@@ -171,6 +174,15 @@ final class MapSpatialScene {
         'Invalid spatial terrain dimensions, levels or instances.',
       );
     }
+    if (this.navigation.spawn.x >= width ||
+        this.navigation.spawn.z >= depth ||
+        [
+          ...this.navigation.ramps,
+          ...this.navigation.blockedAreas,
+        ].any((r) => r.x + r.width > width || r.z + r.depth > depth)) {
+      throw const FormatException('Navigation must be inside the spatial map.');
+    }
+    _validateRampContacts();
     for (final instance in this.instances) {
       if (instance.position.x < 0 ||
           instance.position.z < 0 ||
@@ -185,11 +197,61 @@ final class MapSpatialScene {
   final double levelHeight;
   final List<SpatialModelInstance> instances;
   final SpatialCameraProfile camera;
+  final SpatialNavigationProfile navigation;
+  double worldHeightAt(double x, double z) {
+    for (final ramp in navigation.ramps) {
+      if (ramp.contains(x, z)) return ramp.levelAt(x, z) * levelHeight;
+    }
+    return heightAt(
+      x.floor().clamp(0, width - 1),
+      z.floor().clamp(0, depth - 1),
+    );
+  }
+
   double heightAt(int x, int z) => heightLevels[z * width + x] * levelHeight;
+  void _validateRampContacts() {
+    const epsilon = 0.000001;
+    for (final ramp in navigation.ramps) {
+      final alongZ =
+          ramp.direction == SpatialRampDirection.north ||
+          ramp.direction == SpatialRampDirection.south;
+      final negativeHigh =
+          ramp.direction == SpatialRampDirection.north ||
+          ramp.direction == SpatialRampDirection.west;
+      for (final fraction in [epsilon, .5, 1 - epsilon]) {
+        final negativeX = alongZ
+            ? ramp.x + ramp.width * fraction
+            : ramp.x - epsilon;
+        final negativeZ = alongZ
+            ? ramp.z - epsilon
+            : ramp.z + ramp.depth * fraction;
+        final positiveX = alongZ ? negativeX : ramp.x + ramp.width + epsilon;
+        final positiveZ = alongZ ? ramp.z + ramp.depth + epsilon : negativeZ;
+        if (negativeX < 0 ||
+            negativeZ < 0 ||
+            positiveX >= width ||
+            positiveZ >= depth ||
+            (worldHeightAt(negativeX, negativeZ) / levelHeight -
+                        (negativeHigh ? ramp.highLevel : ramp.lowLevel))
+                    .abs() >
+                .0001 ||
+            (worldHeightAt(positiveX, positiveZ) / levelHeight -
+                        (negativeHigh ? ramp.lowLevel : ramp.highLevel))
+                    .abs() >
+                .0001) {
+          throw const FormatException(
+            'A ramp must contact its low and high terrain levels.',
+          );
+        }
+      }
+    }
+  }
+
   MapSpatialScene copyWith({
     Iterable<int>? heightLevels,
     Iterable<SpatialModelInstance>? instances,
     SpatialCameraProfile? camera,
+    SpatialNavigationProfile? navigation,
   }) => MapSpatialScene(
     width: width,
     depth: depth,
@@ -197,6 +259,7 @@ final class MapSpatialScene {
     levelHeight: levelHeight,
     instances: instances ?? this.instances,
     camera: camera ?? this.camera,
+    navigation: navigation ?? this.navigation,
   );
   @override
   bool operator ==(Object other) =>
@@ -206,6 +269,7 @@ final class MapSpatialScene {
           other.depth == depth &&
           other.levelHeight == levelHeight &&
           other.camera == camera &&
+          other.navigation == navigation &&
           const DeepCollectionEquality().equals(
             other.heightLevels,
             heightLevels,
@@ -217,6 +281,7 @@ final class MapSpatialScene {
     depth,
     levelHeight,
     camera,
+    navigation,
     const DeepCollectionEquality().hash(heightLevels),
     const DeepCollectionEquality().hash(instances),
   );
@@ -234,6 +299,11 @@ final class MapSpatialScene {
         (v) =>
             SpatialModelInstance.fromJson(Map<String, dynamic>.from(v as Map)),
       ),
+      navigation: json['navigation'] == null
+          ? null
+          : SpatialNavigationProfile.fromJson(
+              Map<String, dynamic>.from(json['navigation'] as Map),
+            ),
       camera: SpatialCameraProfile.fromJson(
         Map<String, dynamic>.from(json['camera'] as Map),
       ),
@@ -247,6 +317,7 @@ final class MapSpatialScene {
     'levelHeight': levelHeight,
     'instances': instances.map((v) => v.toJson()).toList(),
     'camera': camera.toJson(),
+    'navigation': navigation.toJson(),
   };
   static List<int> _flat(int width, int depth) {
     if (width <= 0 || depth <= 0 || width > 256 || depth > 256) {

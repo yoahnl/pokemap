@@ -333,10 +333,18 @@ packages:
     dependency: transitive
     description:
       name: flame
-      sha256: c918f8d0e340cbc5e3b20603bd5dc0bac6d939133fed4044366180081a63561d
+      sha256: b4d7e59b81f35a426f8b39dcec10175180b9c2984b2b2e619021660d8951307c
       url: "https://pub.dev"
     source: hosted
-    version: "1.38.0"
+    version: "1.38.2"
+  flame_3d:
+    dependency: transitive
+    description:
+      name: flame_3d
+      sha256: "85dbda518b7a17628a898e39b2cc2f37f6e3bb69106b88e96de506c2b3696354"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.2"
   flame_audio:
     dependency: "direct main"
     description:
@@ -352,6 +360,11 @@ packages:
     version: "0.0.0"
   flutter_driver:
     dependency: "direct dev"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_gpu:
+    dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
@@ -706,6 +719,13 @@ packages:
     dependency: "direct main"
     description:
       path: "../map_player_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
+  map_render_3d:
+    dependency: transitive
+    description:
+      path: "../map_render_3d"
       relative: true
     source: path
     version: "0.1.0"

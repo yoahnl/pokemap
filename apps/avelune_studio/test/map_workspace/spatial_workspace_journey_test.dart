@@ -100,6 +100,23 @@ void main() {
         navigation.modelRemovalProblem(model.id),
         contains('carte ouverte'),
       );
+      final beforeNavigation = document.current;
+      document.commit(
+        operations.configureNavigation(
+          document.current,
+          SpatialNavigationProfile(
+            spawn: SpatialSpawn(x: 8, z: 8),
+            allowDiagonalMovement: true,
+          ),
+        ),
+      );
+      workspace.restore(redo: false);
+      expect(document.current, beforeNavigation);
+      workspace.restore(redo: true);
+      expect(
+        document.current.spatialScene!.navigation.allowDiagonalMovement,
+        isTrue,
+      );
       expect(await workspace.save(document), isTrue, reason: document.error);
       final reopened = LocalMapWorkspaceAdapter();
       final manifest = await reopened.loadProject(session);
@@ -108,6 +125,10 @@ void main() {
       expect(saved.map.spatialScene!.heightAt(3, 3), 2);
       expect(saved.map.spatialScene!.instances.single.animationIndex, 0);
       expect(saved.map.layers, isEmpty);
+      expect(
+        saved.map.spatialScene!.navigation.spawn,
+        SpatialSpawn(x: 8, z: 8),
+      );
       await expectLater(
         resources.deleteModel(model.id),
         throwsA(isA<ResourceFailure>()),

@@ -56,11 +56,34 @@ void main() {
       });
       await execute('map3d.camera.configure',
           {'camera': SpatialCameraProfile(distance: 60).toJson()});
+      await execute('map3d.terrain.set_levels', {
+        'cells': [
+          {'x': 2, 'z': 0, 'level': 1}
+        ]
+      });
+      await execute('map3d.navigation.configure', {
+        'navigation': SpatialNavigationProfile(
+            spawn: SpatialSpawn(x: 2, z: 3),
+            allowDiagonalMovement: true,
+            ramps: [
+              SpatialRamp(
+                  id: 'stairs',
+                  x: 2,
+                  z: 1,
+                  width: 1,
+                  depth: 1,
+                  lowLevel: 0,
+                  highLevel: 1,
+                  direction: SpatialRampDirection.north)
+            ]).toJson()
+      });
       final snapshot = await f.snapshots.load(f.project);
       final map = snapshot.mapById('first-map')!;
       expect(map.spatialScene!.heightAt(1, 2), 3);
       expect(map.spatialScene!.instances.single.id, 'placed');
       expect(map.spatialScene!.camera.distance, 60);
+      expect(map.spatialScene!.navigation.spawn, SpatialSpawn(x: 2, z: 3));
+      expect(map.spatialScene!.navigation.allowDiagonalMovement, isTrue);
       final queried = await f.request('query', {
         'projectHandle': f.project.value,
         'request': AuthoringQueryRequest(

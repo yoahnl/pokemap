@@ -17,6 +17,8 @@ void main() {
         spatialScene: before.spatialScene!.copyWith(
             heightLevels: [2, 0, 0, 0, 0, 0, 0, 0, 0],
             camera: SpatialCameraProfile(distance: 50),
+            navigation: SpatialNavigationProfile(
+                spawn: SpatialSpawn(x: 1, z: 2), allowDiagonalMovement: true),
             instances: [
               SpatialModelInstance(
                   id: 'tree1',

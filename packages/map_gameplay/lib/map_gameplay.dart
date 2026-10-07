@@ -299,3 +299,5 @@ export 'src/project_item_effect_support.dart'
         projectItemEffectUnsupportedReason;
 
 export 'src/scene_inventory_condition_evaluator.dart';
+
+export 'src/spatial_movement_controller.dart';

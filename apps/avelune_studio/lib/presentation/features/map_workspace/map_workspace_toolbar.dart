@@ -89,16 +89,15 @@ class MapWorkspaceToolbar extends StatelessWidget {
           secondary: true,
           onPressed: onSave,
         ),
-        if (!spatial)
-          Tooltip(
-            message: 'Enregistrer et tester',
-            child: StudioButton(
-              key: const ValueKey('Enregistrer et tester'),
-              label: 'Tester la carte',
-              icon: Icons.play_arrow,
-              onPressed: onTest,
-            ),
+        Tooltip(
+          message: 'Enregistrer et tester',
+          child: StudioButton(
+            key: const ValueKey('Enregistrer et tester'),
+            label: spatial ? 'Tester la carte 3D' : 'Tester la carte',
+            icon: Icons.play_arrow,
+            onPressed: onTest,
           ),
+        ),
       ],
     );
     final controls = spatial

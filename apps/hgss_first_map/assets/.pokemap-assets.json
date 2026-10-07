@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "hgss_source_provenance",
+      "logicalPath": "assets/provenance/hgss.json",
+      "artifact": {
+        "digest": "sha256:5ed23865e219d02929467f22e13bfeb445e517eb2f651bdef66b4f5229f41e40",
+        "handle": "artifact://sha256/5ed23865e219d02929467f22e13bfeb445e517eb2f651bdef66b4f5229f41e40",
+        "mediaType": "text/plain",
+        "byteLength": 12045
+      },
+      "usages": [],
+      "tags": [
+        "provenance"
+      ]
+    },
+    {
+      "id": "image_psdk_player",
+      "logicalPath": "assets/studio/psdk_player.png",
+      "artifact": {
+        "digest": "sha256:94e463f93fac39f2eac3066b3bb1cdfc2d68d68e26bd9767e939cceb2fb7d1f2",
+        "handle": "artifact://sha256/94e463f93fac39f2eac3066b3bb1cdfc2d68d68e26bd9767e939cceb2fb7d1f2",
+        "mediaType": "image/png",
+        "byteLength": 8387
+      },
+      "usages": [
+        "tileset"
+      ],
+      "tags": []
+    },
+    {
+      "id": "model3d_cliff_straight",
+      "logicalPath": "assets/models3d/cliff_straight.glb",
+      "artifact": {
+        "digest": "sha256:8f4156a61e2fa4124539abdb0d29775b63c17c60de2dd5752317bf8e87e62e0f",
+        "handle": "artifact://sha256/8f4156a61e2fa4124539abdb0d29775b63c17c60de2dd5752317bf8e87e62e0f",
+        "mediaType": "model/gltf-binary",
+        "byteLength": 4268
+      },
+      "usages": [],
+      "tags": []
+    },
+    {
+      "id": "model3d_house",
+      "logicalPath": "assets/models3d/house.glb",
+      "artifact": {
+        "digest": "sha256:caf18d1ee0edd298481122075176ac7885ab8388f4e1b0fea88f787153254664",
+        "handle": "artifact://sha256/caf18d1ee0edd298481122075176ac7885ab8388f4e1b0fea88f787153254664",
+        "mediaType": "model/gltf-binary",
+        "byteLength": 22020
+      },
+      "usages": [],
+      "tags": []
+    },
+    {
+      "id": "model3d_stairs",
+      "logicalPath": "assets/models3d/stairs.glb",
+      "artifact": {
+        "digest": "sha256:7ec7300f4df7de9cfd07e2952983335b54a592d7c167ff84c8f13c76cf94ba28",
+        "handle": "artifact://sha256/7ec7300f4df7de9cfd07e2952983335b54a592d7c167ff84c8f13c76cf94ba28",
+        "mediaType": "model/gltf-binary",
+        "byteLength": 5100
+      },
+      "usages": [],
+      "tags": []
+    },
+    {
+      "id": "model3d_terrain",
+      "logicalPath": "assets/models3d/terrain.glb",
+      "artifact": {
+        "digest": "sha256:7780f8853543667a1107dcedd7a3900b032bcff80227da845c8ebfcd4b73a168",
+        "handle": "artifact://sha256/7780f8853543667a1107dcedd7a3900b032bcff80227da845c8ebfcd4b73a168",
+        "mediaType": "model/gltf-binary",
+        "byteLength": 39488
+      },
+      "usages": [],
+      "tags": []
+    },
+    {
+      "id": "psdk_run",
+      "logicalPath": "assets/characters/psdk/run.png",
+      "artifact": {
+        "digest": "sha256:d70a211d857e04d44bdd96ace52007516df372318811eea0e2cdf85d01f71945",
+        "handle": "artifact://sha256/d70a211d857e04d44bdd96ace52007516df372318811eea0e2cdf85d01f71945",
+        "mediaType": "image/png",
+        "byteLength": 8407
+      },
+      "usages": [],
+      "tags": [
+        "PSDK",
+        "character-studio",
+        "character-studio:spriteSheet",
+        "hgss-first-map"
+      ]
+    },
+    {
+      "id": "psdk_source_provenance",
+      "logicalPath": "assets/provenance/psdk_source.json",
+      "artifact": {
+        "digest": "sha256:36055bd63147a79cd5f81b7d65c0af8c7770b3a323f6e8e02fbc8fa7dd6a1874",
+        "handle": "artifact://sha256/36055bd63147a79cd5f81b7d65c0af8c7770b3a323f6e8e02fbc8fa7dd6a1874",
+        "mediaType": "text/plain",
+        "byteLength": 2870
+      },
+      "usages": [],
+      "tags": [
+        "provenance"
+      ]
+    },
+    {
+      "id": "psdk_walk",
+      "logicalPath": "assets/characters/psdk/walk.png",
+      "artifact": {
+        "digest": "sha256:94e463f93fac39f2eac3066b3bb1cdfc2d68d68e26bd9767e939cceb2fb7d1f2",
+        "handle": "artifact://sha256/94e463f93fac39f2eac3066b3bb1cdfc2d68d68e26bd9767e939cceb2fb7d1f2",
+        "mediaType": "image/png",
+        "byteLength": 8387
+      },
+      "usages": [],
+      "tags": [
+        "PSDK",
+        "character-studio",
+        "character-studio:spriteSheet",
+        "hgss-first-map"
+      ]
+    }
+  ]
+}

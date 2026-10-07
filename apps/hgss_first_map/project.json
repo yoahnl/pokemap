@@ -1,0 +1,714 @@
+{
+  "name": "La halte des falaises",
+  "version": "v9",
+  "maps": [
+    {
+      "id": "first-map",
+      "name": "Première carte",
+      "relativePath": "maps/first-map.json",
+      "groupId": null,
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "groups": [],
+  "tilesetFolders": [],
+  "tilesets": [
+    {
+      "id": "psdk_player",
+      "name": "Voyageur PSDK",
+      "relativePath": "assets/studio/psdk_player.png",
+      "source": {
+        "kind": "regular_atlas",
+        "assetId": "image_psdk_player",
+        "pixelWidth": 128,
+        "pixelHeight": 128,
+        "tileWidth": 32,
+        "tileHeight": 32,
+        "tileProperties": []
+      },
+      "scope": "global",
+      "groupId": null,
+      "folderId": null,
+      "sortOrder": 0,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
+    }
+  ],
+  "models3d": [
+    {
+      "id": "terrain",
+      "name": "Sol et chemin HGSS",
+      "sourceAssetId": "model3d_terrain",
+      "relativePath": "assets/models3d/terrain.glb",
+      "inspection": {
+        "schemaVersion": 1,
+        "bounds": {
+          "min": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "max": {
+            "x": 16.0,
+            "y": 2.0,
+            "z": 14.0
+          }
+        },
+        "meshCount": 1,
+        "triangleCount": 384,
+        "materials": [
+          {
+            "index": 0,
+            "name": "grass01gs.png"
+          },
+          {
+            "index": 1,
+            "name": "road01.png"
+          }
+        ],
+        "animations": [],
+        "diagnostics": []
+      },
+      "scale": 1.0,
+      "pivot": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    {
+      "id": "cliff_straight",
+      "name": "Falaise HGSS · un étage",
+      "sourceAssetId": "model3d_cliff_straight",
+      "relativePath": "assets/models3d/cliff_straight.glb",
+      "inspection": {
+        "schemaVersion": 1,
+        "bounds": {
+          "min": {
+            "x": 0.0,
+            "y": 4.529873933734052e-7,
+            "z": -1.5099580252808664e-7
+          },
+          "max": {
+            "x": 1.0,
+            "y": 1.0000003576278687,
+            "z": 0.9999999403953552
+          }
+        },
+        "meshCount": 1,
+        "triangleCount": 6,
+        "materials": [
+          {
+            "index": 0,
+            "name": "wall01_d.png"
+          },
+          {
+            "index": 1,
+            "name": "wall01_g.png"
+          }
+        ],
+        "animations": [],
+        "diagnostics": []
+      },
+      "scale": 1.0,
+      "pivot": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    {
+      "id": "stairs",
+      "name": "Escalier HGSS · un étage",
+      "sourceAssetId": "model3d_stairs",
+      "relativePath": "assets/models3d/stairs.glb",
+      "inspection": {
+        "schemaVersion": 1,
+        "bounds": {
+          "min": {
+            "x": -0.1875,
+            "y": -0.06738267093896866,
+            "z": -1.6043303219248628e-7
+          },
+          "max": {
+            "x": 2.1875,
+            "y": 1.1250003576278687,
+            "z": 0.9999999403953552
+          }
+        },
+        "meshCount": 1,
+        "triangleCount": 36,
+        "materials": [
+          {
+            "index": 0,
+            "name": "slope.png"
+          }
+        ],
+        "animations": [],
+        "diagnostics": []
+      },
+      "scale": 1.0,
+      "pivot": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    },
+    {
+      "id": "house",
+      "name": "Maison d’Oliville",
+      "sourceAssetId": "model3d_house",
+      "relativePath": "assets/models3d/house.glb",
+      "inspection": {
+        "schemaVersion": 1,
+        "bounds": {
+          "min": {
+            "x": 0.0,
+            "y": 0.015869323164224625,
+            "z": 0.0
+          },
+          "max": {
+            "x": 4.243408203125,
+            "y": 4.531005859375,
+            "z": 3.270019292831421
+          }
+        },
+        "meshCount": 1,
+        "triangleCount": 182,
+        "materials": [
+          {
+            "index": 0,
+            "name": "as_h01.png"
+          },
+          {
+            "index": 1,
+            "name": "h_mado.png"
+          },
+          {
+            "index": 2,
+            "name": "r39_door1.png"
+          }
+        ],
+        "animations": [],
+        "diagnostics": []
+      },
+      "scale": 1.0,
+      "pivot": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  ],
+  "elementCategories": [],
+  "elements": [],
+  "environmentPresets": [],
+  "encounterTables": [],
+  "dialogueFolders": [],
+  "dialogues": [],
+  "scripts": [],
+  "scenarios": [],
+  "cinematics": [],
+  "cinematicMediaAssets": [],
+  "facts": [],
+  "worldRules": [],
+  "narrativeDiagnosticSuppressions": [],
+  "scenes": [],
+  "storylines": [],
+  "shops": [],
+  "badges": [],
+  "trainers": [],
+  "characters": [
+    {
+      "id": "voyageur-psdk",
+      "name": "Voyageur PSDK",
+      "tilesetId": "psdk_player",
+      "frameWidth": 1,
+      "frameHeight": 1,
+      "animations": [
+        {
+          "state": "idle",
+          "direction": "south",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 0,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "walk",
+          "direction": "south",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "run",
+          "direction": "south",
+          "sourceAssetId": "psdk_run",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 0,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            }
+          ]
+        },
+        {
+          "state": "idle",
+          "direction": "west",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 0,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "walk",
+          "direction": "west",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "run",
+          "direction": "west",
+          "sourceAssetId": "psdk_run",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 32,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            }
+          ]
+        },
+        {
+          "state": "idle",
+          "direction": "east",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 0,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "walk",
+          "direction": "east",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "run",
+          "direction": "east",
+          "sourceAssetId": "psdk_run",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 64,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            }
+          ]
+        },
+        {
+          "state": "idle",
+          "direction": "north",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 0,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "walk",
+          "direction": "north",
+          "sourceAssetId": "psdk_walk",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 117
+            }
+          ]
+        },
+        {
+          "state": "run",
+          "direction": "north",
+          "sourceAssetId": "psdk_run",
+          "frames": [
+            {
+              "source": {
+                "x": 32,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 96,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            },
+            {
+              "source": {
+                "x": 64,
+                "y": 96,
+                "width": 32,
+                "height": 32
+              },
+              "durationMs": 85
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "sortOrder": 0
+    }
+  ],
+  "settings": {
+    "dimension": "threeD",
+    "spatialCamera": {
+      "mode": "fixed",
+      "pitchDegrees": 48.7,
+      "yawDegrees": 0.0,
+      "fieldOfViewDegrees": 24.0,
+      "distance": 42.0
+    },
+    "tileWidth": 32,
+    "tileHeight": 32,
+    "displayScale": 2.0,
+    "defaultMapWidth": 16,
+    "defaultMapHeight": 14,
+    "defaultPlayerCharacterId": "voyageur-psdk"
+  },
+  "pokemon": {
+    "enabled": false,
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    },
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json",
+      "abilities": "data/pokemon/catalogs/abilities.json",
+      "items": "data/pokemon/catalogs/items.json",
+      "types": "data/pokemon/catalogs/types.json",
+      "growth_rates": "data/pokemon/catalogs/growth_rates.json",
+      "natures": "data/pokemon/catalogs/natures.json",
+      "egg_groups": "data/pokemon/catalogs/egg_groups.json",
+      "habitats": "data/pokemon/catalogs/habitats.json",
+      "encounter_rules": "data/pokemon/catalogs/encounter_rules.json",
+      "generations": "data/pokemon/catalogs/generations.json",
+      "version_groups": "data/pokemon/catalogs/version_groups.json"
+    }
+  },
+  "newGame": {
+    "enabled": false,
+    "startMapId": "",
+    "playerName": "Player",
+    "playerAvatarCharacterIds": [],
+    "playerPronounSet": "neutral",
+    "startingMoney": 0,
+    "initialBag": [],
+    "initialParty": [],
+    "initialFacts": {},
+    "starterOptions": []
+  },
+  "presentationPresets": [],
+  "globalProperties": {}
+}

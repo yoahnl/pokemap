@@ -1,6 +1,7 @@
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
+import '../models/spatial_navigation.dart';
 
 final class SpatialCellLevel {
   const SpatialCellLevel({
@@ -61,6 +62,11 @@ final class SpatialMapOperations {
 
   MapData configureCamera(MapData map, SpatialCameraProfile camera) =>
       map.copyWith(spatialScene: _scene(map).copyWith(camera: camera));
+
+  MapData configureNavigation(
+    MapData map,
+    SpatialNavigationProfile navigation,
+  ) => map.copyWith(spatialScene: _scene(map).copyWith(navigation: navigation));
 
   MapSpatialScene _scene(MapData map) {
     if (map.version != ProjectVersion.v9 || map.spatialScene == null) {

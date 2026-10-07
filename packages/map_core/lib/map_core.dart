@@ -5,3 +5,5 @@ export 'src/operations/tiled_map_compilation.dart';
 export 'src/models/project_model3d.dart';
 
 export 'src/operations/spatial_map_operations.dart';
+
+export 'src/models/spatial_navigation.dart';

@@ -640,3 +640,6 @@ export 'src/player/runtime_pokemon_summary.dart';
 export 'src/player/runtime_player_pause_data_builder.dart'
     show RuntimePlayerPauseDataBuilder;
 export 'src/player/runtime_world_service_models.dart';
+
+export 'src/spatial/spatial_exploration_session.dart';
+export 'src/spatial/spatial_exploration_view.dart';
