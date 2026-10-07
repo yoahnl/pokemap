@@ -8,6 +8,68 @@ import 'package:test/test.dart';
 void main() {
   group('native Smart Tile direct/JSONL parity', () {
     test(
+        'flat 3D paint erase persists byte-identically through direct and JSONL',
+        () async {
+      final direct = await _Harness.create('spatial_direct', spatial: true);
+      final jsonl = await _Harness.create('spatial_jsonl', spatial: true);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      for (final erase in [false, true]) {
+        final action = 'smart_tile.cell.${erase ? 'erase' : 'paint'}';
+        final parameters = <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          if (!erase) 'materialId': 'grass',
+          'cells': [
+            {'x': 0, 'y': 0}
+          ]
+        };
+        await direct.applyDirectAction(
+            actionId: action, parameters: parameters, sequence: action);
+        await jsonl.applyJsonlAction(
+            actionId: action, parameters: parameters, sequence: action);
+        expect(await direct.mapBytes(), await jsonl.mapBytes());
+        final map = MapData.fromJson(
+            jsonDecode(utf8.decode(await direct.mapBytes()))
+                as Map<String, dynamic>);
+        expect(map.version, ProjectVersion.v9);
+        expect(map.spatialScene!.heightLevels, [0]);
+        expect(smartTileSemanticCells(map.layers.single as SmartTileLayer),
+            [erase ? 0 : 1]);
+      }
+      await expectLater(
+        direct.planDirect(actionId: 'smart_tile.preset.delete',
+          parameters: const {'presetId': 'grass'}, sequence: 'spatial-preset-delete'),
+        throwsA(isA<MapAuthoringException>().having((error) => error.code,
+          'code', 'smart_tile.preset.references_blocking')),
+      );
+      final rejected = await jsonl.planJsonlFailure(actionId: 'smart_tile.preset.delete',
+        parameters: const {'presetId': 'grass'}, sequence: 'spatial-preset-delete');
+      expect(rejected.error?.details['domainCode'], 'smart_tile.preset.references_blocking');
+      final steps = <(String, Map<String, Object?>)>[
+        ('smart_tile.layer.create', {'mapId': 'map', 'layerId': 'higher-soil',
+          'name': 'Higher soil', 'presetId': 'grass'}),
+        for (final layerId in ['terrain', 'higher-soil', 'terrain'])
+          ('smart_tile.cell.paint', {'mapId': 'map', 'layerId': layerId,
+            'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}]}),
+      ];
+      for (var index = 0; index < steps.length; index++) {
+        final (action, parameters) = steps[index];
+        await direct.applyDirectAction(actionId: action,
+          parameters: parameters, sequence: 'soil-$index');
+        await jsonl.applyJsonlAction(actionId: action,
+          parameters: parameters, sequence: 'soil-$index');
+        expect(await direct.mapBytes(), await jsonl.mapBytes());
+      }
+      final repainted = MapData.fromJson(jsonDecode(utf8.decode(await direct.mapBytes()))
+        as Map<String, dynamic>);
+      final layers = repainted.layers.whereType<SmartTileLayer>().toList();
+      expect(smartTileSemanticCells(layers.firstWhere((layer) => layer.id == 'terrain')), [1]);
+      expect(smartTileSemanticCells(layers.firstWhere((layer) => layer.id == 'higher-soil')), [0]);
+    });
+    test(
         'edits precise corners byte-identically without changing other lattices',
         () async {
       final direct = await _Harness.create('corners_direct');
@@ -534,7 +596,7 @@ final class _Harness {
     required this.worker,
   });
 
-  static Future<_Harness> create(String suffix) async {
+  static Future<_Harness> create(String suffix, {bool spatial = false}) async {
     final root = await Directory.systemTemp.createTemp(
       'pokemap_stn03_$suffix',
     );
@@ -556,7 +618,12 @@ final class _Harness {
     );
     final manifest = ProjectManifest(
       name: 'STN-03 transport fixture',
-      version: ProjectVersion.v8,
+      version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+      settings: spatial
+          ? ProjectSettings(
+              dimension: ProjectDimension.threeD,
+              spatialCamera: SpatialCameraProfile())
+          : const ProjectSettings(),
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map',
@@ -582,10 +649,11 @@ final class _Harness {
         ],
       ),
     );
-    const map = MapData(
+    final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v8,
+      version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+      spatialScene: spatial ? MapSpatialScene(width: 1, depth: 1) : null,
       size: GridSize(width: 1, height: 1),
     );
     await File('${root.path}/project.json').writeAsBytes(

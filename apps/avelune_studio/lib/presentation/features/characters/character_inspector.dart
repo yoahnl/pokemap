@@ -182,6 +182,24 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         const Text('Quand le joueur lui parle'),
+        if (widget.document.current.spatialScene != null)
+          DropdownButtonFormField<String>(
+            key: ValueKey('dialogue-${entity.id}-${npc.dialogue?.dialogueId}'),
+            initialValue: npc.dialogue?.dialogueId ?? '',
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Dialogue'),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('Aucun dialogue')),
+              for (final d in widget.project.dialogues)
+                DropdownMenuItem(value: d.id, child: Text(d.name)),
+            ],
+            onChanged: (value) => _change(
+              () => _commands.assignDialogue(
+                entity.id,
+                value?.isEmpty == true ? null : value,
+              ),
+            ),
+          ),
         const SizedBox(height: 8),
         StudioButton(
           label: 'Écrire son interaction',

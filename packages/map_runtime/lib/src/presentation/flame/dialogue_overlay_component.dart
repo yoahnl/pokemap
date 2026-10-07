@@ -32,6 +32,7 @@ class DialogueOverlayComponent extends PositionComponent {
   final DialoguePortraitResolver? portraitResolver;
   RuntimeDialogueTextSpeed textSpeed;
   bool _renderInFlame;
+  bool _presentationReady = false;
   int _visibleRuneCount = 0;
   double _revealAccumulatorSeconds = 0;
   int _presentationRevision = 0;
@@ -94,6 +95,7 @@ class DialogueOverlayComponent extends PositionComponent {
     )..layout();
     _resetRevealForCurrentState();
     _rebuildPainters();
+    _presentationReady = true;
     _publishPresentationSnapshot();
     return super.onLoad();
   }
@@ -136,7 +138,7 @@ class DialogueOverlayComponent extends PositionComponent {
     if (speed == RuntimeDialogueTextSpeed.instant) {
       _revealCurrentLineFully();
     }
-    if (isLoaded) {
+    if (_presentationReady) {
       _rebuildPainters();
       _publishPresentationSnapshot();
     }
@@ -306,7 +308,7 @@ class DialogueOverlayComponent extends PositionComponent {
   bool advance() {
     if (!isCurrentLineFullyRevealed) {
       _revealCurrentLineFully();
-      if (isLoaded) {
+      if (_presentationReady) {
         _rebuildPainters();
         _publishPresentationSnapshot();
       }

@@ -7,7 +7,7 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
         view.tool = StudioMapTool.select;
       case 'Décors':
         view.paletteTab = 'Décors';
-        view.tool = view.brush == null
+        view.tool = view.brush == null && view.model3d == null
             ? StudioMapTool.select
             : StudioMapTool.place;
       case 'Terrains':

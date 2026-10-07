@@ -177,27 +177,28 @@ final class SmartTileCellActions {
       );
     }
 
-    final changedCellCount = cells.where((cell) {
-      final before = smartTileMaterialIdAt(
-        layer,
-        mapSize: context.map.size,
-        x: cell.x,
-        y: cell.y,
-      );
-      return before != materialId;
-    }).length;
-    final projectedLayer = applySmartTileMaterialGesture(
-      layer,
-      mapSize: context.map.size,
+    final projected = applySmartTileMapMaterialGesture(
+      context.map,
+      layer: layer,
       cells: <GridPos>[
         for (final cell in cells) GridPos(x: cell.x, y: cell.y),
       ],
       materialId: materialId,
     );
-    final projected = replaceSmartTileLayer(
-      context.map,
-      layer: projectedLayer,
-    );
+    final changedCellCount = cells.where((cell) {
+      for (var index = 0; index < context.map.layers.length; index++) {
+        final before = context.map.layers[index];
+        final after = projected.layers[index];
+        if (before is! SmartTileLayer || after is! SmartTileLayer) continue;
+        if (smartTileMaterialIdAt(before,
+                mapSize: context.map.size, x: cell.x, y: cell.y) !=
+            smartTileMaterialIdAt(after,
+                mapSize: context.map.size, x: cell.x, y: cell.y)) {
+          return true;
+        }
+      }
+      return false;
+    }).length;
     return context.draft(
       SemanticMapEdit(
         map: projected,
@@ -219,12 +220,17 @@ final class SmartTileCellActions {
           'undoBoundary': 'gesture',
         },
       ),
-      delta: MapMutationDelta.smartTileCells(
-        layerId: layerId,
-        cellIndices: <int>{
-          for (final cell in cells) cell.y * context.map.size.width + cell.x,
-        },
-      ),
+      delta: context.map.spatialScene != null &&
+              layer.usage == SmartTileUsage.terrain &&
+              !erase
+          ? null
+          : MapMutationDelta.smartTileCells(
+              layerId: layerId,
+              cellIndices: <int>{
+                for (final cell in cells)
+                  cell.y * context.map.size.width + cell.x,
+              },
+            ),
     );
   }
 }

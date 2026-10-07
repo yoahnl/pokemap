@@ -139,6 +139,8 @@ Widget? workspaceSecondaryContent({
           ? 'la scène'
           : dialogueOrigin == WorkspaceSpace.cinematic
           ? 'la cinématique'
+          : dialogueOrigin == WorkspaceSpace.map
+          ? 'la carte'
           : 'Histoire',
     );
   }

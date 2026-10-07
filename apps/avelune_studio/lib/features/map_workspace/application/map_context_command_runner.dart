@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'spatial_model_editing_commands.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
@@ -167,7 +168,12 @@ class MapContextCommandRunner {
     switch (target.family) {
       case MapContextFamily.decor:
         document.selectedId = target.id;
-        MapEditingCommands(document, project).deleteSelected();
+        final spatial = SpatialModelEditingCommands(document, project);
+        if (spatial.selected(target.id) != null) {
+          spatial.delete(target.id);
+        } else {
+          MapEditingCommands(document, project).deleteSelected();
+        }
       case MapContextFamily.character:
         CharacterEditingCommands(
           document,

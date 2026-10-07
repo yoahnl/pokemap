@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -39,6 +40,19 @@ void main() {
     final project = jsonDecode(
         utf8.decode(archive.findFile('project/project.json')!.content));
     expect(project['newGame']['enabled'], false);
+    expect(project['eventRegistry'], isNull);
+    expect(project['dialogues'], isNotEmpty);
+    for (final dialogue in project['dialogues']) {
+      final compiled = archive.findFile('project/${dialogue['relativePath']}');
+      expect(compiled, isNotNull);
+      final document =
+          const RuntimeDialogueDocumentCodec().decodeUtf8(compiled!.content);
+      expect(
+          document.nodes
+              .expand((n) => n.steps)
+              .every((step) => step is RuntimeDialogueLine),
+          isTrue);
+    }
     for (final model in project['models3d']) {
       expect(archive.findFile('project/${model['relativePath']}'), isNotNull);
     }

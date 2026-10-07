@@ -29,7 +29,6 @@ final class GamePackageSpatialProjectValidator {
       }
       final json = project.toJson();
       for (final field in const [
-        'dialogues',
         'scripts',
         'scenarios',
         'cinematics',
@@ -72,7 +71,6 @@ final class GamePackageSpatialProjectValidator {
               'Map identity differs from its manifest.');
         }
         for (final field in const [
-          'entities',
           'events',
           'triggers',
           'gameplayZones',
@@ -84,6 +82,80 @@ final class GamePackageSpatialProjectValidator {
         }
         MapValidator.validate(map, projectDialogueContext: project);
         maps.add(map);
+      }
+      final dialogues = <String, RuntimeDialogueDocument>{};
+      for (final entry in project.dialogues) {
+        if (entry.declaredOutcomes.isNotEmpty ||
+            !entry.relativePath.endsWith('.json')) {
+          _unsupported('dialogues.${entry.id}');
+        }
+        final path = 'project/${entry.relativePath}';
+        final bytes = _read(readPayload, path);
+        _json(bytes);
+        final document = const RuntimeDialogueDocumentCodec().decodeUtf8(bytes);
+        for (final node in document.nodes) {
+          for (final step in node.steps) {
+            if (step is! RuntimeDialogueLine ||
+                step.characterId != null ||
+                step.portraitStateId != null) {
+              _unsupported('$path.${node.title}');
+            }
+          }
+        }
+        final start = entry.defaultStartNode;
+        if (start != null &&
+            !document.nodes.any((node) => node.title == start)) {
+          _fail('runtime3d.dialogue_node_missing', path,
+              'Dialogue start node is missing.');
+        }
+        dialogues[entry.id] = document;
+      }
+      for (final map in maps) {
+        for (final entity in map.entities) {
+          final npc = entity.npc;
+          if (entity.kind != MapEntityKind.npc ||
+              npc == null ||
+              entity.size != const GridSize(width: 1, height: 1) ||
+              !entity.blocksMovement ||
+              entity.properties.isNotEmpty ||
+              entity.editorVisual != null ||
+              entity.sign != null ||
+              entity.item != null ||
+              entity.spawn != null ||
+              npc.visualElementId.isNotEmpty ||
+              npc.trainerId != null ||
+              npc.lineOfSightRange != 0 ||
+              npc.defeatDialogueRef != null ||
+              npc.movement != const MapEntityNpcMovementConfig() ||
+              npc.visibilityRule != null ||
+              npc.conditionalDialogues.isNotEmpty) {
+            _unsupported('maps.${map.id}.entities.${entity.id}');
+          }
+          final character = project.characters
+              .where((c) => c.id == npc.characterId)
+              .firstOrNull;
+          if (character == null ||
+              !EntityFacing.values.every((direction) => character.animations
+                  .any((clip) =>
+                      clip.direction == direction &&
+                      (clip.state == CharacterAnimationState.idle ||
+                          clip.state == CharacterAnimationState.walk)))) {
+            _fail('runtime3d.npc_character_missing', entity.id,
+                'Static NPC requires directional character animations.');
+          }
+          final ref = npc.dialogue;
+          if (ref != null) {
+            if (ref.scriptPathRelative.isNotEmpty) _unsupported(entity.id);
+            final document = dialogues[ref.dialogueId];
+            if (document == null ||
+                ref.startNode != null &&
+                    !document.nodes
+                        .any((node) => node.title == ref.startNode)) {
+              _fail('runtime3d.dialogue_node_missing', entity.id,
+                  'NPC dialogue or start node is missing.');
+            }
+          }
+        }
       }
       ProjectValidator.validate(project, maps: maps);
       final catalogue = _catalogue(readPayload);

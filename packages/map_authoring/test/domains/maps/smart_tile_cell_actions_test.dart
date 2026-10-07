@@ -6,6 +6,87 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCellActions', () {
+    test('3D repaint clears higher soil through one canonical mutation', () {
+      final fixture = _fixture(
+          spatial: true,
+        field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]),
+        properties: const {'tileLayerOrder': 'bottom_to_top'},
+          additionalLayers: [
+            SmartTileLayer(
+                id: 'higher-soil',
+                name: 'Higher soil',
+                presetId: 'grass-preset',
+                usage: SmartTileUsage.terrain,
+                materialPalette: const ['', 'grass'],
+                field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]))
+          ]);
+      final draft = _build(fixture.snapshot,
+          actionId: 'smart_tile.cell.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'materialId': 'grass',
+            'cells': [
+              {'x': 0, 'y': 0}
+            ]
+          });
+      final map = _map(draft);
+      expect(smartTileSemanticCells(map.layers[0] as SmartTileLayer),
+          [1, 0, 0, 0]);
+      expect(smartTileSemanticCells(map.layers[1] as SmartTileLayer),
+          [0, 0, 0, 0]);
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.preview['changedCellCount'], 1);
+      expect(draft.changeSet.diff.entries.single.path, '/layers');
+    });
+    test(
+        'paints and erases flat 3D surfaces with the existing gesture contract',
+        () {
+      final fixture = _fixture(spatial: true);
+      final painted = _map(_build(fixture.snapshot,
+          actionId: 'smart_tile.cell.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'materialId': 'grass',
+            'cells': [
+              {'x': 1, 'y': 1}
+            ],
+          }));
+      expect(painted.version, ProjectVersion.v9);
+      expect(painted.spatialScene, fixture.map.spatialScene);
+      expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+          [0, 0, 0, 1]);
+      final erased = _map(_build(
+          _fixture(
+                  spatial: true,
+                  field: const SmartTileField.cell(semanticCells: [0, 0, 0, 1]))
+              .snapshot,
+          actionId: 'smart_tile.cell.erase',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'cells': [
+              {'x': 1, 'y': 1}
+            ],
+          }));
+      expect(smartTileSemanticCells(erased.layers.single as SmartTileLayer),
+          [0, 0, 0, 0]);
+    });
+    test('rejects Smart Tile painting on elevated 3D terrain explicitly', () {
+      expect(
+          () => _build(_fixture(spatial: true, elevated: true).snapshot,
+                  actionId: 'smart_tile.cell.paint',
+                  parameters: const {
+                    'mapId': 'map',
+                    'layerId': 'ground',
+                    'materialId': 'grass',
+                    'cells': [
+                      {'x': 1, 'y': 1}
+                    ],
+                  }),
+          _failure('smart_tile.spatial_flat_required'));
+    });
     test('registers atomic paint and erase contracts', () {
       expect(
         SmartTileCellActions.descriptors.map((descriptor) => descriptor.id),
@@ -633,6 +714,10 @@ AuthoringMutationDraft _build(
   bool includePattern = false,
   bool includeCollision = false,
   bool includeInvalidUnrelatedLayer = false,
+  bool spatial = false,
+  bool elevated = false,
+  List<SmartTileLayer> additionalLayers = const [],
+  Map<String, dynamic> properties = const {},
 }) {
   final resolvedField = field ??
       SmartTileField.cell(
@@ -641,8 +726,17 @@ AuthoringMutationDraft _build(
   final map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v8,
+    version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+    spatialScene: spatial
+        ? MapSpatialScene(
+            width: mapSize.width,
+            depth: mapSize.height,
+            heightLevels: elevated
+                ? List.filled(mapSize.width * mapSize.height, 1)
+                : null)
+        : null,
     size: mapSize,
+    properties: properties,
     layers: <MapLayer>[
       MapLayer.smartTile(
         id: 'ground',
@@ -652,6 +746,7 @@ AuthoringMutationDraft _build(
         materialPalette: const <String>['', 'grass'],
         field: resolvedField,
       ),
+      ...additionalLayers,
       if (includeCollision)
         MapLayer.collision(
           id: 'collision',
@@ -689,7 +784,12 @@ AuthoringMutationDraft _build(
   };
   final manifest = ProjectManifest(
     name: 'Cell actions fixture',
-    version: ProjectVersion.v8,
+    version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+    settings: spatial
+        ? ProjectSettings(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile())
+        : const ProjectSettings(),
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

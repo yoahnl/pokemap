@@ -191,7 +191,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                   final item = visible[index];
                                   return StudioPaletteCard(
                                     key: ValueKey(
-                                      item.element != null
+                                      item.kind == ResourceKind.decors
                                           ? 'decor-${item.id}'
                                           : 'terrain-${item.id}',
                                     ),
@@ -209,16 +209,20 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                             widget.visuals,
                                             size: widget.compact ? 48 : 64,
                                           ),
-                                    selected: item.element != null
+                                    selected: item.model3d != null
+                                        ? widget.view.model3d?.id == item.id
+                                        : item.element != null
                                         ? widget.view.brush?.id == item.id
                                         : widget.view.terrain?.id == item.id,
                                     onTap: () {
                                       final view = widget.view;
                                       view.brush = item.element;
+                                      view.model3d = item.model3d;
                                       view.terrain = item.terrain;
                                       view.tile = null;
                                       view.character = null;
-                                      view.tool = item.element != null
+                                      view.tool =
+                                          item.kind == ResourceKind.decors
                                           ? StudioMapTool.place
                                           : StudioMapTool.terrain;
                                       widget.onChanged();

@@ -63,6 +63,38 @@ List<MapContextAction> _decorActions(
   MapContextTarget target,
   MapContextActionContext context,
 ) {
+  if (context.document.current.spatialScene?.instances.any(
+        (item) => item.id == target.id,
+      ) ??
+      false) {
+    return [
+      const MapContextAction(MapContextCommand.properties, 'Propriétés'),
+      const MapContextAction(
+        MapContextCommand.openResource,
+        'Ouvrir sa ressource',
+        unavailable: 'Consultez ce modèle dans la bibliothèque de ressources.',
+      ),
+      const MapContextAction(
+        MapContextCommand.editResource,
+        'Modifier sa ressource',
+        unavailable: 'Modifiez ce modèle dans la bibliothèque de ressources.',
+      ),
+      const MapContextAction(MapContextCommand.move, 'Déplacer'),
+      const MapContextAction(
+        MapContextCommand.bringForward,
+        'Passer devant',
+        unavailable:
+            'La profondeur de ce décor est déterminée par sa position.',
+      ),
+      const MapContextAction(
+        MapContextCommand.sendBackward,
+        'Passer derrière',
+        unavailable:
+            'La profondeur de ce décor est déterminée par sa position.',
+      ),
+      const MapContextAction(MapContextCommand.delete, 'Supprimer le décor'),
+    ];
+  }
   final commands = MapEditingCommands(context.document, context.project);
   final known = context.project.elements.any(
     (entry) =>

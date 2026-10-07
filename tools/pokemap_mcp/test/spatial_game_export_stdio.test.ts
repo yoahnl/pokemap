@@ -23,7 +23,7 @@ test("authored 3D exploration export crosses fresh MCP stdio and canonical worke
   });
   await mkdir(join(project, ".pokemap"), { recursive: true });
   await writeFile(join(project, ".pokemap/export-profile-v1.json"), JSON.stringify({
-    schemaVersion: 1, gameId: "games.yoahn.halte-falaises", gameVersion: "0.1.0",
+    schemaVersion: 1, gameId: "games.yoahn.halte-falaises", gameVersion: process.env.POKEMAP_SPATIAL_GAME_VERSION ?? "0.1.0",
     title: "La halte des falaises", author: { name: "Yoahn" },
     locales: { default: "fr", supported: ["fr"] }, requiredCapabilities: [],
     branding: {}, legal: {},

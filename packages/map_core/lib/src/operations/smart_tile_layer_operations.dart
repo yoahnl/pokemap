@@ -5,6 +5,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
+import 'map_visual_composition.dart';
 
 /// Map-only creation cannot atomically update the v5 manifest catalog.
 MapData addSmartTileLayer(
@@ -567,13 +568,55 @@ SmartTileLayer applySmartTileMaterialGesture(
   return layer.copyWith(materialPalette: interned.palette, field: field);
 }
 
+MapData applySmartTileMapMaterialGesture(
+  MapData map, {
+  required SmartTileLayer layer,
+  required Iterable<GridPos> cells,
+  required String? materialId,
+}) {
+  final positions = cells.toSet();
+  var next = replaceSmartTileLayer(
+    map,
+    layer: applySmartTileMaterialGesture(
+      layer,
+      mapSize: map.size,
+      cells: positions,
+      materialId: materialId,
+    ),
+  );
+  if (map.spatialScene == null ||
+      layer.usage != SmartTileUsage.terrain ||
+      materialId == null ||
+      materialId.trim().isEmpty) {
+    return next;
+  }
+  final index = map.layers.indexWhere((candidate) => candidate.id == layer.id);
+  final higherLayers = mapPaintsFirstLayerInFront(map)
+      ? map.layers.take(index)
+      : map.layers.skip(index + 1);
+  for (final other in higherLayers.whereType<SmartTileLayer>()) {
+    if (other.usage != SmartTileUsage.terrain) continue;
+    next = replaceSmartTileLayer(
+      next,
+      layer: applySmartTileMaterialGesture(
+        other,
+        mapSize: map.size,
+        cells: positions,
+        materialId: null,
+      ),
+    );
+  }
+  return next;
+}
+
 MapData replaceSmartTileLayer(MapData map, {required SmartTileLayer layer}) {
   // Replacement is deliberately map-only: it may maintain an already-native
   // v6 layer, but it must never manufacture the project-wide v6 transition
   // owned by the canonical authoring action together with the manifest.
-  if (map.version != ProjectVersion.v8) {
+  if (map.version != ProjectVersion.v8 &&
+      !(map.version == ProjectVersion.v9 && map.spatialScene != null)) {
     throw const ValidationException(
-      'Native Smart Tile replacement requires a ProjectVersion.v8 map',
+      'Native Smart Tile replacement requires a v8 map or a v9 spatial map',
       code: 'smart_tile_native_project_version_required',
     );
   }
@@ -585,7 +628,9 @@ MapData replaceSmartTileLayer(MapData map, {required SmartTileLayer layer}) {
     throw ValidationException('Layer is not a Smart Tile layer: ${layer.id}');
   }
   final layers = List<MapLayer>.of(map.layers)..[index] = layer;
-  return map.copyWith(layers: layers);
+  final projected = map.copyWith(layers: layers);
+  if (projected.spatialScene != null) validateSpatialMapStructure(projected);
+  return projected;
 }
 
 final class SmartTileRemovedPaletteEntry {

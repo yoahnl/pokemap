@@ -108,6 +108,26 @@ class CharacterEditingCommands {
     );
   }
 
+  void assignDialogue(String id, String? dialogueId) {
+    final entity = selected(id);
+    if (entity?.npc == null) return;
+    if (dialogueId != null &&
+        !project.dialogues.any((d) => d.id == dialogueId)) {
+      throw StateError('Ce dialogue ne fait plus partie du projet.');
+    }
+    document.commit(
+      updateEntityOnMap(
+        document.current,
+        entityId: id,
+        npc: entity!.npc!.copyWith(
+          dialogue: dialogueId == null
+              ? null
+              : DialogueRef(dialogueId: dialogueId),
+        ),
+      ),
+    );
+  }
+
   void assignTrainer(String id, String? trainerId) {
     final entity = selected(id);
     if (entity?.npc == null) return;

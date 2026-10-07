@@ -26,7 +26,7 @@ class AdaptiveCamera3D extends CameraComponent3D {
   Matrix4 get projectionMatrix {
     final distance = (position - target).length;
     final far = math.max(1000.0, distance + sceneRadius * 4);
-    final near = math.max(0.001, math.min(0.01, sceneRadius / 100));
+    final near = math.max(0.001, distance * .02);
     final size = viewport.virtualSize;
     final aspect = size.y > 0 ? size.x / size.y : 1.0;
     return _projection..setAsPerspective(fovY, aspect, near, far);

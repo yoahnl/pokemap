@@ -1,20 +1,17 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:math' as math;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
-
+import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/map_editing_commands.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
-import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/feedback/studio_notice.dart';
-import '../../shared/widgets/inputs/studio_commit_field.dart';
-import '../../shared/widgets/inputs/studio_select.dart';
-import '../../shared/widgets/inputs/studio_toggle_row.dart';
-import '../../shared/widgets/layout/studio_panel.dart';
+import 'map_character_gesture.dart';
+import 'map_canvas_stroke.dart';
+import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
-
-enum SpatialTool { select, raise, lower, level, place }
+import '../../shared/widgets/feedback/studio_notice.dart';
 
 class SpatialMapEditor extends StatefulWidget {
   const SpatialMapEditor({
@@ -23,125 +20,470 @@ class SpatialMapEditor extends StatefulWidget {
     required this.controller,
     required this.project,
     required this.visuals,
+    required this.view,
     required this.onChanged,
-    required this.onResources,
+    this.onContextMenu,
   });
   final EditableMapDocument document;
   final MapWorkspaceController controller;
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
-  final VoidCallback onChanged, onResources;
+  final MapWorkspaceViewState view;
+  final VoidCallback onChanged;
+  final void Function(GridPos, Offset)? onContextMenu;
   @override
   State<SpatialMapEditor> createState() => _SpatialMapEditorState();
 }
 
 class _SpatialMapEditorState extends State<SpatialMapEditor> {
-  final camera = SpatialSceneController();
-  SpatialTool tool = SpatialTool.select;
-  int level = 1, brush = 1, sequence = 0;
-  String? modelId, selectedId, selectedRampId, error;
-  (int, int)? cell;
-  MapSpatialScene get scene => widget.document.current.spatialScene!;
+  final camera = SpatialSceneController()..setView(SpatialEditorView.game);
+  final focus = FocusNode();
+  SpatialNpcPreview? preview;
+  MapData? previewMap;
+  MapCharacterGesture? gesture;
+  MapCanvasStroke? terrainStroke;
+  MapData? terrainSource;
+  StudioMapTool? terrainTool;
+  int previewGeneration = 0;
+  Object? error;
+  String? modelGesture;
+  GridPos? modelEnd;
+  GridPos? modelOrigin;
+  Model3dVector3? modelPosition;
+  bool? gestureFreeView;
+  MapData? contentSource;
+  ProjectManifest? contentProject;
+  final nudgeKeys = <LogicalKeyboardKey>{};
   bool get locked =>
       widget.document.saving ||
       widget.controller.catalogLocks(widget.document.base.mapId);
   @override
-  void dispose() {
-    camera.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    widget.view.transform.addListener(syncZoom);
+    widget.view.recenter = recenter;
+    syncZoom();
+    syncCameraView();
   }
 
-  static const operations = SpatialMapOperations();
-  void edit(MapData next) {
-    if (locked) return;
-    widget.document.commit(next);
-    setState(() => error = null);
+  bool get contentGestureValid =>
+      !locked &&
+      widget.view.tool == StudioMapTool.select &&
+      gestureFreeView == widget.view.spatialFreeView &&
+      identical(contentSource, widget.document.current) &&
+      identical(contentProject, widget.project);
+
+  SpatialSceneContentPreview? get contentPreview {
+    if (!contentGestureValid) return null;
+    final scene = widget.document.current.spatialScene!;
+    if (modelGesture != null && modelEnd != null) {
+      final x = modelPosition!.x + modelEnd!.x - modelOrigin!.x;
+      final z = modelPosition!.z + modelEnd!.y - modelOrigin!.y;
+      return SpatialSceneContentPreview(
+        kind: SpatialSceneContentKind.model,
+        id: modelGesture!,
+        position: Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z),
+      );
+    }
+    final entity = gesture?.entity;
+    final destination = gesture?.destination;
+    if (entity == null || destination == null) return null;
+    final x = destination.x + .5, z = destination.y + .5;
+    return SpatialSceneContentPreview(
+      kind: SpatialSceneContentKind.actor,
+      id: 'npc:${entity.id}',
+      position: Model3dVector3(x: x, y: scene.worldHeightAt(x, z), z: z),
+    );
+  }
+
+  @override
+  void didUpdateWidget(SpatialMapEditor old) {
+    super.didUpdateWidget(old);
+    if (old.project != widget.project || old.visuals != widget.visuals) {
+      previewMap = null;
+    }
+    syncCameraView();
+    if (contentSource != null && !contentGestureValid) discardGesture();
+  }
+
+  void syncCameraView() {
+    final next = widget.view.spatialFreeView
+        ? SpatialEditorView.orbit
+        : SpatialEditorView.game;
+    if (camera.view == next) return;
+    discardGesture();
+    if (next == SpatialEditorView.orbit) {
+      final profile = widget.document.current.spatialScene!.camera;
+      camera.yaw = profile.yawDegrees * math.pi / 180;
+      camera.pitch = profile.pitchDegrees * math.pi / 180;
+    }
+    camera.setView(next);
+  }
+
+  void syncZoom() =>
+      camera.dolly(math.log(1 / widget.view.scale / camera.zoom) * 1000);
+  void recenter() {
+    discardGesture();
+    widget.view.spatialFreeView = false;
+    widget.view.transform.value = Matrix4.identity();
+    camera.reset();
+    camera.setView(SpatialEditorView.game);
     widget.onChanged();
   }
 
-  void paint(int x, int z) {
-    try {
-      applyTool(x, z);
-    } on FormatException {
-      setState(
-        () => error = 'Cette modification dépasse les limites de la carte.',
-      );
-    }
-  }
-
-  void applyTool(int x, int z) {
-    setState(() => cell = (x, z));
-    if (locked) return;
-    if (tool == SpatialTool.select) {
-      final found = scene.instances
-          .where((i) => i.position.x.floor() == x && i.position.z.floor() == z)
-          .toList();
-      setState(() => selectedId = found.isEmpty ? null : found.last.id);
+  Future<void> updatePreview(SpatialWorkspaceVisuals visuals) async {
+    final map = widget.document.current;
+    if (identical(previewMap, map)) return;
+    previewMap = map;
+    final generation = ++previewGeneration;
+    if (map.entities.isEmpty) {
+      preview?.dispose();
+      preview = null;
       return;
     }
-    if (tool == SpatialTool.place) {
-      final model = widget.project.models3d
-          .where((m) => m.id == modelId)
-          .firstOrNull;
-      if (model == null) {
-        setState(() => error = 'Choisissez un modèle dans la palette.');
+    try {
+      final loaded = await visuals.spatialPreview(map);
+      if (!mounted || generation != previewGeneration) {
+        loaded.dispose();
         return;
       }
-      final instance = SpatialModelInstance(
-        id: 'object_${DateTime.now().microsecondsSinceEpoch}_${sequence++}',
-        modelId: model.id,
-        position: Model3dVector3(x: x + .5, y: scene.heightAt(x, z), z: z + .5),
-      );
-      edit(operations.upsertInstance(widget.document.current, instance));
-      setState(() => selectedId = instance.id);
-      return;
-    }
-    final cells = <SpatialCellLevel>[];
-    final radius = brush ~/ 2;
-    for (
-      var pz = math.max(0, z - radius);
-      pz <= math.min(scene.depth - 1, z + radius);
-      pz++
-    ) {
-      for (
-        var px = math.max(0, x - radius);
-        px <= math.min(scene.width - 1, x + radius);
-        px++
-      ) {
-        final index = pz * scene.width + px;
-        final next = switch (tool) {
-          SpatialTool.raise => math.min(32, scene.heightLevels[index] + 1),
-          SpatialTool.lower => math.max(0, scene.heightLevels[index] - 1),
-          _ => level,
-        };
-        cells.add(SpatialCellLevel(x: px, z: pz, level: next));
+      final previous = preview;
+      setState(() {
+        preview = loaded;
+        error = null;
+      });
+      previous?.dispose();
+    } on Object catch (failure) {
+      if (mounted && generation == previewGeneration) {
+        setState(() {
+          error = failure;
+          widget.document.error =
+              'Aperçu des personnages indisponible : $failure';
+        });
+        widget.onChanged();
       }
     }
-    edit(operations.setLevels(widget.document.current, cells));
   }
 
-  void updateInstance(SpatialModelInstance instance) {
-    edit(operations.upsertInstance(widget.document.current, instance));
+  bool start(int x, int z, [SpatialSceneContentHit? hit]) {
+    if (locked ||
+        (widget.view.spatialFreeView &&
+            (widget.view.tool != StudioMapTool.select || hit == null)) ||
+        widget.view.tool == StudioMapTool.pan) {
+      return false;
+    }
+    final armedMove = widget.view.pendingMove;
+    discardGesture();
+    widget.view.pendingMove = armedMove;
+    focus.requestFocus();
+    gestureFreeView = widget.view.spatialFreeView;
+    final document = widget.document;
+    final cell = GridPos(x: x, y: z);
+    final commands = SpatialModelEditingCommands(document, widget.project);
+    try {
+      if (widget.view.tool == StudioMapTool.terrain ||
+          widget.view.tool == StudioMapTool.erase) {
+        final scene = document.current.spatialScene!;
+        if (scene.heightLevels.any((level) => level != 0) ||
+            scene.navigation.ramps.isNotEmpty) {
+          document.error =
+              'La peinture du sol est disponible sur les cartes plates pour le moment.';
+          widget.onChanged();
+          return false;
+        }
+        terrainStroke = MapCanvasStroke.start(
+          map: document.current,
+          project: widget.project,
+          view: widget.view,
+          commands: MapEditingCommands(document, widget.project),
+          origin: cell,
+        );
+        terrainSource = terrainStroke == null ? null : document.current;
+        terrainTool = terrainStroke == null ? null : widget.view.tool;
+        widget.onChanged();
+        return terrainStroke != null;
+      }
+      if (widget.view.tool == StudioMapTool.place &&
+          widget.view.model3d != null) {
+        final item = commands.place(widget.view.model3d!, cell);
+        widget.view.select(document, MapSelectionFamily.decor, item.id);
+        widget.onChanged();
+        return true;
+      }
+      final armed = widget.view.pendingMove;
+      final instance = armed != null
+          ? (armed.family == MapSelectionFamily.decor
+                ? commands.selected(armed.id)
+                : null)
+          : hit?.kind == SpatialSceneContentKind.model
+          ? commands.selected(hit!.id)
+          : hit?.kind == SpatialSceneContentKind.actor
+          ? null
+          : document.current.spatialScene!.instances
+                .where(
+                  (item) =>
+                      item.position.x.floor() == x &&
+                      item.position.z.floor() == z,
+                )
+                .lastOrNull;
+      if (instance != null &&
+          {
+            StudioMapTool.select,
+            StudioMapTool.erase,
+            StudioMapTool.eraseDecor,
+          }.contains(widget.view.tool)) {
+        if (widget.view.tool != StudioMapTool.select) {
+          commands.delete(instance.id);
+        } else {
+          widget.view.select(document, MapSelectionFamily.decor, instance.id);
+          document.stackPosition = cell;
+          modelGesture = instance.id;
+          modelEnd = null;
+          modelOrigin = cell;
+          modelPosition = instance.position;
+          contentSource = document.current;
+          contentProject = widget.project;
+        }
+        widget.onChanged();
+        return true;
+      }
+      if (!{
+        StudioMapTool.select,
+        StudioMapTool.character,
+        StudioMapTool.eraseDecor,
+      }.contains(widget.view.tool)) {
+        document.error =
+            'Cet outil ne s’applique pas aux décors et personnages de cette carte 3D.';
+        widget.onChanged();
+        return false;
+      }
+    } on Object catch (failure) {
+      document.error = failure.toString();
+      widget.onChanged();
+      return false;
+    }
+    if (widget.view.pendingMove == null &&
+        hit?.kind == SpatialSceneContentKind.actor &&
+        hit!.id.startsWith('npc:') &&
+        widget.view.tool == StudioMapTool.select) {
+      final entity = document.current.entities
+          .where((entity) => entity.id == hit.id.substring(4))
+          .firstOrNull;
+      if (entity == null || entity.pos.x != x || entity.pos.y != z) {
+        return false;
+      }
+      widget.view.select(document, MapSelectionFamily.character, entity.id);
+    }
+    gesture = MapCharacterGesture.start(
+      document: widget.document,
+      project: widget.project,
+      view: widget.view,
+      origin: GridPos(x: x, y: z),
+    );
+    if (gesture?.entity != null && widget.view.tool == StudioMapTool.select) {
+      contentSource = document.current;
+      contentProject = widget.project;
+    }
+    widget.onChanged();
+    return gesture != null;
   }
 
-  Widget number(String label, double value, void Function(double) apply) =>
-      StudioCommitField(
-        label: label,
-        value: value.toStringAsFixed(2),
-        tryCommit: (raw) {
-          final parsed = double.tryParse(raw.replaceAll(',', '.'));
-          if (parsed == null || !parsed.isFinite) return false;
-          try {
-            apply(parsed);
-            return true;
-          } on Object {
-            setState(
-              () => error = 'Cette valeur dépasse les limites autorisées.',
-            );
-            return false;
-          }
-        },
+  void discardGesture() {
+    contentSource = null;
+    contentProject = null;
+    nudgeKeys.clear();
+    gestureFreeView = null;
+    terrainStroke = null;
+    terrainSource = null;
+    terrainTool = null;
+    gesture = null;
+    modelGesture = null;
+    modelEnd = null;
+    modelOrigin = null;
+    modelPosition = null;
+    widget.view.pendingMove = null;
+  }
+
+  void cancel() {
+    discardGesture();
+    widget.onChanged();
+  }
+
+  void finish() {
+    if (locked ||
+        (contentSource != null && !contentGestureValid) ||
+        (gestureFreeView != null &&
+            gestureFreeView != widget.view.spatialFreeView)) {
+      cancel();
+      return;
+    }
+    gestureFreeView = null;
+    contentSource = null;
+    contentProject = null;
+    nudgeKeys.clear();
+    final stroke = terrainStroke;
+    final source = terrainSource;
+    final tool = terrainTool;
+    terrainStroke = null;
+    terrainSource = null;
+    terrainTool = null;
+    if (stroke != null) {
+      if (!locked &&
+          identical(widget.document.current, source) &&
+          widget.view.tool == tool) {
+        try {
+          widget.document.commit(stroke.commit());
+        } on Object catch (failure) {
+          widget.document.error = failure.toString();
+        }
+      }
+      widget.onChanged();
+      return;
+    }
+    if (modelGesture != null && modelEnd != null) {
+      try {
+        SpatialModelEditingCommands(widget.document, widget.project).update(
+          modelGesture!,
+          x: modelPosition!.x + modelEnd!.x - modelOrigin!.x,
+          z: modelPosition!.z + modelEnd!.y - modelOrigin!.y,
+        );
+      } on Object catch (failure) {
+        widget.document.error = failure.toString();
+      }
+      widget.view.pendingMove = null;
+    }
+    modelGesture = null;
+    modelEnd = null;
+    modelOrigin = null;
+    modelPosition = null;
+    gesture?.commit();
+    gesture = null;
+    widget.onChanged();
+  }
+
+  void tap(int x, int z) {
+    start(x, z);
+    finish();
+  }
+
+  void updateDrag((int, int) cell) {
+    if (contentSource != null && !contentGestureValid) {
+      cancel();
+      return;
+    }
+    if (terrainStroke != null && !locked) {
+      terrainStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
+      widget.onChanged();
+    }
+    gesture?.end = GridPos(x: cell.$1, y: cell.$2);
+    final moving = gesture;
+    final entity = moving?.entity;
+    final destination = moving?.destination;
+    if (moving != null && entity != null && destination != null) {
+      moving.end = GridPos(
+        x: moving.origin.x + destination.x - entity.pos.x,
+        y: moving.origin.y + destination.y - entity.pos.y,
       );
+    }
+    if (modelGesture != null) {
+      final scene = widget.document.current.spatialScene!;
+      final x = modelPosition!.x.floor(), z = modelPosition!.z.floor();
+      modelEnd = GridPos(
+        x:
+            modelOrigin!.x +
+            (x + cell.$1 - modelOrigin!.x).clamp(0, scene.width - 1) -
+            x,
+        y:
+            modelOrigin!.y +
+            (z + cell.$2 - modelOrigin!.y).clamp(0, scene.depth - 1) -
+            z,
+      );
+    }
+    if (contentSource != null) widget.onChanged();
+  }
+
+  KeyEventResult onKey(KeyEvent event) {
+    final key = event.logicalKey;
+    if (event is KeyDownEvent &&
+        key == LogicalKeyboardKey.escape &&
+        (contentSource != null ||
+            widget.view.hasSelectionIn(widget.document.current.id) ||
+            widget.view.pendingMove != null)) {
+      discardGesture();
+      widget.view.clearSelection(widget.document);
+      widget.onChanged();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent && nudgeKeys.remove(key)) {
+      if (nudgeKeys.isEmpty) finish();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyUpEvent ||
+        locked ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        widget.view.tool != StudioMapTool.select ||
+        (contentSource != null && nudgeKeys.isEmpty)) {
+      return KeyEventResult.ignored;
+    }
+    final delta = switch (key) {
+      LogicalKeyboardKey.arrowLeft => (-1, 0),
+      LogicalKeyboardKey.arrowRight => (1, 0),
+      LogicalKeyboardKey.arrowUp => (0, -1),
+      LogicalKeyboardKey.arrowDown => (0, 1),
+      _ => null,
+    };
+    if (delta == null) return KeyEventResult.ignored;
+    if (nudgeKeys.isEmpty) {
+      final map = widget.document.current;
+      final modelId = widget.view.selectedFor(map.id, MapSelectionFamily.decor);
+      final model = modelId == null
+          ? null
+          : SpatialModelEditingCommands(
+              widget.document,
+              widget.project,
+            ).selected(modelId);
+      final npc = map.entities
+          .where(
+            (entity) =>
+                entity.id ==
+                widget.view.selectedFor(map.id, MapSelectionFamily.character),
+          )
+          .firstOrNull;
+      final hit = model != null
+          ? SpatialSceneContentHit(
+              kind: SpatialSceneContentKind.model,
+              id: model.id,
+              cell: (model.position.x.floor(), model.position.z.floor()),
+            )
+          : npc != null
+          ? SpatialSceneContentHit(
+              kind: SpatialSceneContentKind.actor,
+              id: 'npc:${npc.id}',
+              cell: (npc.pos.x, npc.pos.y),
+            )
+          : null;
+      if (hit == null || !start(hit.cell.$1, hit.cell.$2, hit)) {
+        return KeyEventResult.ignored;
+      }
+    }
+    nudgeKeys.add(key);
+    final position = modelEnd ?? modelOrigin ?? gesture!.end;
+    updateDrag((position.x + delta.$1, position.y + delta.$2));
+    return KeyEventResult.handled;
+  }
+
+  @override
+  void dispose() {
+    previewGeneration++;
+    preview?.dispose();
+    widget.view.transform.removeListener(syncZoom);
+    widget.view.recenter = null;
+    focus.dispose();
+    camera.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,554 +493,90 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         'Le rendu 3D est indisponible dans cette session.',
       );
     }
-    final selected = scene.instances
-        .where((i) => i.id == selectedId)
-        .firstOrNull;
-    final selectedRamp = scene.navigation.ramps
-        .where((r) => r.id == selectedRampId)
-        .firstOrNull;
+    updatePreview(visuals as SpatialWorkspaceVisuals);
+    final freeView = widget.view.spatialFreeView;
     final colors = Theme.of(context).colorScheme;
-    final sidebar = SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          StudioPanel(
-            title: 'Construire la carte',
-            children: [
-              StudioSelect(
-                label: 'Outil',
-                value: tool.name,
-                options: const {
-                  'select': 'Sélectionner',
-                  'raise': 'Monter d’un palier',
-                  'lower': 'Descendre d’un palier',
-                  'level': 'Aplanir à un niveau',
-                  'place': 'Poser un modèle',
-                },
-                onChanged: locked
-                    ? null
-                    : (v) =>
-                          setState(() => tool = SpatialTool.values.byName(v)),
+    final selectedModel = widget.document.current.spatialScene!.instances
+        .where(
+          (instance) =>
+              instance.id ==
+              widget.view.selectedFor(
+                widget.document.current.id,
+                MapSelectionFamily.decor,
               ),
-              if (tool == SpatialTool.raise ||
-                  tool == SpatialTool.lower ||
-                  tool == SpatialTool.level) ...[
-                const SizedBox(height: 12),
-                StudioSelect(
-                  label: 'Taille du pinceau',
-                  value: '$brush',
-                  options: const {
-                    '1': '1 × 1 case',
-                    '3': '3 × 3 cases',
-                    '5': '5 × 5 cases',
-                  },
-                  onChanged: (v) => setState(() => brush = int.parse(v)),
-                ),
-                if (tool == SpatialTool.level) ...[
-                  const SizedBox(height: 12),
-                  StudioSelect(
-                    label: 'Niveau du terrain',
-                    value: '$level',
-                    options: {for (var i = 0; i <= 32; i++) '$i': 'Niveau $i'},
-                    onChanged: (v) => setState(() => level = int.parse(v)),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                const Text(
-                  'Cliquez sur les cases. Chaque palier a une hauteur fixe. Les objets conservent leur hauteur ; « Poser au sol » les ajuste au nouveau relief.',
-                ),
-              ],
-              if (tool == SpatialTool.place) ...[
-                const SizedBox(height: 12),
-                if (widget.project.models3d.isEmpty)
-                  const Text(
-                    'Importez votre premier modèle dans les ressources.',
-                  ),
-                if (widget.project.models3d.isNotEmpty)
-                  StudioSelect(
-                    label: 'Modèle',
-                    value: modelId,
-                    options: {
-                      for (final model in widget.project.models3d)
-                        model.id: model.name,
-                    },
-                    onChanged: (v) => setState(() => modelId = v),
-                  ),
-                const SizedBox(height: 8),
-                StudioButton(
-                  label: 'Ouvrir les ressources',
-                  secondary: true,
-                  onPressed: widget.onResources,
-                ),
-              ],
-              if (cell case final position?) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Case ${position.$1}, ${position.$2} · niveau ${scene.heightLevels[position.$2 * scene.width + position.$1]}',
-                ),
-              ],
-            ],
-          ),
-          if (scene.instances.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            StudioSelect(
-              label: 'Objets de la carte',
-              value: selectedId,
-              options: {
-                for (final item in scene.instances)
-                  item.id:
-                      '${widget.project.models3d.where((m) => m.id == item.modelId).firstOrNull?.name ?? item.modelId} · ${item.position.x.toStringAsFixed(1)}, ${item.position.z.toStringAsFixed(1)}',
-              },
-              onChanged: (v) => setState(() {
-                selectedId = v;
-                tool = SpatialTool.select;
-              }),
-            ),
-          ],
-          if (selected != null) ...[
-            const SizedBox(height: 12),
-            IgnorePointer(
-              ignoring: locked,
-              child: StudioPanel(
-                title: 'Objet sélectionné',
-                children: [
-                  StudioToggleRow(
-                    label: 'Bloque le passage',
-                    value: selected.blocksMovement,
-                    onChanged: (v) =>
-                        updateInstance(selected.copyWith(blocksMovement: v)),
-                  ),
-                  number(
-                    'X · position horizontale',
-                    selected.position.x,
-                    (v) => updateInstance(
-                      selected.copyWith(
-                        position: Model3dVector3(
-                          x: v,
-                          y: selected.position.y,
-                          z: selected.position.z,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  number(
-                    'Z · profondeur',
-                    selected.position.z,
-                    (v) => updateInstance(
-                      selected.copyWith(
-                        position: Model3dVector3(
-                          x: selected.position.x,
-                          y: selected.position.y,
-                          z: v,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  number(
-                    'Y · hauteur',
-                    selected.position.y,
-                    (v) => updateInstance(
-                      selected.copyWith(
-                        position: Model3dVector3(
-                          x: selected.position.x,
-                          y: v,
-                          z: selected.position.z,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  number(
-                    'Rotation en degrés',
-                    selected.rotationDegrees,
-                    (v) =>
-                        updateInstance(selected.copyWith(rotationDegrees: v)),
-                  ),
-                  const SizedBox(height: 10),
-                  number(
-                    'Échelle',
-                    selected.scale,
-                    (v) => updateInstance(selected.copyWith(scale: v)),
-                  ),
-                  const SizedBox(height: 10),
-                  StudioSelect(
-                    label: 'Animation',
-                    value: selected.animationIndex?.toString() ?? 'none',
-                    options: {
-                      'none': 'Pose de repos',
-                      for (final clip
-                          in widget.project.models3d
-                                  .where((m) => m.id == selected.modelId)
-                                  .firstOrNull
-                                  ?.inspection
-                                  .animations ??
-                              <Model3dAnimation>[])
-                        '${clip.index}': clip.name,
-                    },
-                    onChanged: (v) => updateInstance(
-                      SpatialModelInstance(
-                        id: selected.id,
-                        modelId: selected.modelId,
-                        position: selected.position,
-                        rotationDegrees: selected.rotationDegrees,
-                        scale: selected.scale,
-                        blocksMovement: selected.blocksMovement,
-                        animationIndex: int.tryParse(v),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  StudioButton(
-                    label: 'Poser au sol',
-                    secondary: true,
-                    onPressed: () => updateInstance(
-                      selected.copyWith(
-                        position: Model3dVector3(
-                          x: selected.position.x,
-                          y: scene.heightAt(
-                            selected.position.x.floor(),
-                            selected.position.z.floor(),
-                          ),
-                          z: selected.position.z,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  StudioButton(
-                    label: 'Retirer cet objet',
-                    secondary: true,
-                    onPressed: () {
-                      edit(
-                        operations.deleteInstance(
-                          widget.document.current,
-                          selected.id,
-                        ),
-                      );
-                      setState(() => selectedId = null);
-                    },
-                  ),
-                ],
+        )
+        .firstOrNull;
+    final selectedActor = widget.document.current.entities
+        .where(
+          (entity) =>
+              entity.id ==
+              widget.view.selectedFor(
+                widget.document.current.id,
+                MapSelectionFamily.character,
               ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          IgnorePointer(
-            ignoring: locked,
-            child: StudioPanel(
-              title: 'Exploration 3D · départ et escaliers',
-              children: [
-                number(
-                  'Départ X',
-                  scene.navigation.spawn.x,
-                  (v) => configureNavigation(
-                    scene.navigation.copyWith(
-                      spawn: SpatialSpawn(x: v, z: scene.navigation.spawn.z),
-                    ),
-                  ),
+        )
+        .firstOrNull;
+    return Focus(
+      autofocus: true,
+      focusNode: focus,
+      onKeyEvent: (_, event) => onKey(event),
+      onFocusChange: (focused) {
+        if (!focused && nudgeKeys.isNotEmpty) cancel();
+      },
+      child: SpatialSceneView(
+        contentPreview: contentPreview,
+        selectedContent: selectedModel != null
+            ? SpatialSceneContentHit(
+                kind: SpatialSceneContentKind.model,
+                id: selectedModel.id,
+                cell: (
+                  selectedModel.position.x.floor(),
+                  selectedModel.position.z.floor(),
                 ),
-                number(
-                  'Départ Z',
-                  scene.navigation.spawn.z,
-                  (v) => configureNavigation(
-                    scene.navigation.copyWith(
-                      spawn: SpatialSpawn(x: scene.navigation.spawn.x, z: v),
-                    ),
-                  ),
-                ),
-                StudioToggleRow(
-                  label: 'Autoriser les diagonales',
-                  value: scene.navigation.allowDiagonalMovement,
-                  onChanged: (v) => configureNavigation(
-                    scene.navigation.copyWith(allowDiagonalMovement: v),
-                  ),
-                ),
-                StudioButton(
-                  label: 'Ajouter un escalier à la case',
-                  secondary: true,
-                  onPressed: cell == null
-                      ? null
-                      : () {
-                          final (x, z) = cell!;
-                          final low = scene.heightLevels[z * scene.width + x];
-                          try {
-                            final ramp = SpatialRamp(
-                              id: 'stairs_${DateTime.now().microsecondsSinceEpoch}',
-                              x: x.toDouble(),
-                              z: z.toDouble(),
-                              width: 1,
-                              depth: 1,
-                              lowLevel: low,
-                              highLevel: low + 1,
-                              direction: SpatialRampDirection.north,
-                            );
-                            configureNavigation(
-                              scene.navigation.copyWith(
-                                ramps: [...scene.navigation.ramps, ramp],
-                              ),
-                            );
-                            setState(() => selectedRampId = ramp.id);
-                          } on Object {
-                            setState(
-                              () => error =
-                                  'L’escalier doit relier deux paliers et rester dans la carte.',
-                            );
-                          }
-                        },
-                ),
-                if (scene.navigation.ramps.isNotEmpty)
-                  StudioSelect(
-                    label: 'Escaliers',
-                    value: selectedRampId,
-                    options: {
-                      for (final ramp in scene.navigation.ramps)
-                        ramp.id:
-                            '${ramp.id} · ${ramp.lowLevel} → ${ramp.highLevel}',
-                    },
-                    onChanged: (v) => setState(() => selectedRampId = v),
-                  ),
-                if (selectedRamp != null) ...[
-                  number(
-                    'Escalier X',
-                    selectedRamp.x,
-                    (v) => updateRamp(() => selectedRamp.copyWith(x: v)),
-                  ),
-                  number(
-                    'Escalier Z',
-                    selectedRamp.z,
-                    (v) => updateRamp(() => selectedRamp.copyWith(z: v)),
-                  ),
-                  number(
-                    'Largeur',
-                    selectedRamp.width,
-                    (v) => updateRamp(() => selectedRamp.copyWith(width: v)),
-                  ),
-                  number(
-                    'Profondeur',
-                    selectedRamp.depth,
-                    (v) => updateRamp(() => selectedRamp.copyWith(depth: v)),
-                  ),
-                  StudioSelect(
-                    label: 'Palier bas',
-                    value: '${selectedRamp.lowLevel}',
-                    options: {for (var i = 0; i < 32; i++) '$i': 'Niveau $i'},
-                    onChanged: (v) => updateRamp(
-                      () => selectedRamp.copyWith(lowLevel: int.parse(v)),
-                    ),
-                  ),
-                  StudioSelect(
-                    label: 'Palier haut',
-                    value: '${selectedRamp.highLevel}',
-                    options: {for (var i = 1; i <= 32; i++) '$i': 'Niveau $i'},
-                    onChanged: (v) => updateRamp(
-                      () => selectedRamp.copyWith(highLevel: int.parse(v)),
-                    ),
-                  ),
-                  StudioSelect(
-                    label: 'Montée vers',
-                    value: selectedRamp.direction.name,
-                    options: const {
-                      'north': 'Nord',
-                      'south': 'Sud',
-                      'east': 'Est',
-                      'west': 'Ouest',
-                    },
-                    onChanged: (v) => updateRamp(
-                      () => selectedRamp.copyWith(
-                        direction: SpatialRampDirection.values.byName(v),
-                      ),
-                    ),
-                  ),
-                  StudioButton(
-                    label: 'Retirer cet escalier',
-                    secondary: true,
-                    onPressed: () => configureNavigation(
-                      scene.navigation.copyWith(
-                        ramps: scene.navigation.ramps.where(
-                          (r) => r.id != selectedRamp.id,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                if (scene.navigation.blockedAreas.isNotEmpty)
-                  Text(
-                    '${scene.navigation.blockedAreas.length} zones de passage bloquées',
-                  ),
-              ],
-            ),
+              )
+            : selectedActor != null
+            ? SpatialSceneContentHit(
+                kind: SpatialSceneContentKind.actor,
+                id: 'npc:${selectedActor.id}',
+                cell: (selectedActor.pos.x, selectedActor.pos.y),
+              )
+            : null,
+        selectionColor: colors.primary,
+        onZoom: (delta) {
+          final factor =
+              (widget.view.scale * math.exp(-delta * .001)).clamp(.15, 8) /
+              widget.view.scale;
+          widget.view.transform.value = widget.view.transform.value.clone()
+            ..scaleByDouble(factor, factor, 1, 1);
+        },
+        selectContent:
+            widget.view.tool == StudioMapTool.select ||
+            (!freeView && widget.view.tool == StudioMapTool.eraseDecor),
+        scene: widget.document.current.spatialScene!,
+        groundMap: terrainStroke?.preview ?? widget.document.current,
+        groundProject: widget.project,
+        loadGroundImage: (visuals as SpatialWorkspaceVisuals).readGroundImage,
+        models: widget.project.models3d,
+        loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
+        controller: camera,
+        onCell: tap,
+        onContextMenu: freeView ? null : widget.onContextMenu,
+        onDragStart: start,
+        onDragUpdate: updateDrag,
+        onDragEnd: finish,
+        onDragCancel: cancel,
+        onContent: (hit) {
+          start(hit.cell.$1, hit.cell.$2, hit);
+          finish();
+        },
+        actorFrames: (_) => preview?.frames ?? const {},
+        background: colors.surfaceContainerLowest,
+        ground: colors.primaryContainer,
+        edge: colors.outlineVariant,
+        errorBuilder: (_, failure) => Center(
+          child: StudioNotice(
+            'Le rendu de cette carte est indisponible : ${error ?? failure}',
           ),
-          const SizedBox(height: 12),
-          IgnorePointer(
-            ignoring: locked,
-            child: StudioPanel(
-              title: 'Caméra du jeu · angle fixe',
-              children: [
-                number(
-                  'Inclinaison en degrés',
-                  scene.camera.pitchDegrees,
-                  (v) => configureCamera(pitch: v),
-                ),
-                const SizedBox(height: 10),
-                number(
-                  'Orientation en degrés',
-                  scene.camera.yawDegrees,
-                  (v) => configureCamera(yaw: v),
-                ),
-                const SizedBox(height: 10),
-                number(
-                  'Champ de vision en degrés',
-                  scene.camera.fieldOfViewDegrees,
-                  (v) => configureCamera(fov: v),
-                ),
-                const SizedBox(height: 10),
-                number(
-                  'Distance',
-                  scene.camera.distance,
-                  (v) => configureCamera(distance: v),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final view in SpatialEditorView.values)
-                StudioButton(
-                  label: switch (view) {
-                    SpatialEditorView.orbit => 'Vue libre',
-                    SpatialEditorView.top => 'Vue de dessus',
-                    SpatialEditorView.game => 'Caméra du jeu',
-                  },
-                  secondary: camera.view != view,
-                  onPressed: () => setState(() => camera.setView(view)),
-                ),
-              StudioButton(
-                label: 'Recentrer',
-                secondary: true,
-                onPressed: camera.reset,
-              ),
-              StudioButton(
-                label: 'Annuler',
-                secondary: true,
-                onPressed: locked || !widget.document.canUndo
-                    ? null
-                    : () {
-                        widget.controller.restore(redo: false);
-                        widget.onChanged();
-                      },
-              ),
-              StudioButton(
-                label: 'Rétablir',
-                secondary: true,
-                onPressed: locked || !widget.document.canRedo
-                    ? null
-                    : () {
-                        widget.controller.restore(redo: true);
-                        widget.onChanged();
-                      },
-              ),
-            ],
-          ),
-        ),
-        if (error != null) StudioNotice(error!, isError: true),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'Cliquez pour utiliser l’outil · glissez pour tourner en vue libre · molette pour zoomer',
-          ),
-        ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, bounds) {
-              final canvas = SpatialSceneView(
-                selectedCell: cell,
-                scene: scene,
-                models: widget.project.models3d,
-                loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
-                controller: camera,
-                onCell: paint,
-                background: colors.surfaceContainerLowest,
-                ground: colors.primaryContainer,
-                edge: colors.outlineVariant,
-                errorBuilder: (_, failure) => Center(
-                  child: StudioNotice(
-                    'La scène ne peut pas être affichée : $failure',
-                    isError: true,
-                  ),
-                ),
-              );
-              return bounds.maxWidth < 650
-                  ? Column(
-                      children: [
-                        Expanded(child: canvas),
-                        SizedBox(height: 210, child: sidebar),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: canvas),
-                        SizedBox(width: 286, child: sidebar),
-                      ],
-                    );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  void configureNavigation(SpatialNavigationProfile navigation) {
-    try {
-      edit(operations.configureNavigation(widget.document.current, navigation));
-    } on FormatException catch (failure) {
-      setState(() => error = failure.message);
-    }
-  }
-
-  void updateRamp(SpatialRamp Function() build) {
-    try {
-      final ramp = build();
-      configureNavigation(
-        scene.navigation.copyWith(
-          ramps: [
-            for (final value in scene.navigation.ramps)
-              value.id == ramp.id ? ramp : value,
-          ],
-        ),
-      );
-    } on FormatException catch (failure) {
-      setState(() => error = failure.message);
-    }
-  }
-
-  void configureCamera({
-    double? pitch,
-    double? yaw,
-    double? fov,
-    double? distance,
-  }) {
-    final previous = scene.camera;
-    edit(
-      operations.configureCamera(
-        widget.document.current,
-        SpatialCameraProfile(
-          pitchDegrees: pitch ?? previous.pitchDegrees,
-          yawDegrees: yaw ?? previous.yawDegrees,
-          fieldOfViewDegrees: fov ?? previous.fieldOfViewDegrees,
-          distance: distance ?? previous.distance,
         ),
       ),
     );

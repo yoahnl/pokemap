@@ -4,6 +4,64 @@ import 'package:test/test.dart';
 void main() {
   const mapSize = GridSize(width: 2, height: 2);
 
+  test('3D soil repaint replaces higher soils locally and preserves paths', () {
+    SmartTileLayer surface(String id, SmartTileUsage usage) => SmartTileLayer(
+      id: id,
+      name: id,
+      presetId: id,
+      usage: usage,
+      materialPalette: ['', id],
+      field: const SmartTileField.cell(semanticCells: [0, 0, 0, 0]),
+    );
+    var map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: mapSize,
+      version: ProjectVersion.v9,
+      properties: const {'tileLayerOrder': 'bottom_to_top'},
+      spatialScene: MapSpatialScene(width: 2, depth: 2),
+      layers: [
+        surface('grass', SmartTileUsage.terrain),
+        surface('sand', SmartTileUsage.terrain),
+        surface('path', SmartTileUsage.path),
+      ],
+    );
+    void paint(String id, {String? material}) {
+      final layer = map.layers.whereType<SmartTileLayer>().firstWhere(
+        (layer) => layer.id == id,
+      );
+      map = applySmartTileMapMaterialGesture(
+        map,
+        layer: layer,
+        cells: const [GridPos(x: 0, y: 0)],
+        materialId: material ?? id,
+      );
+    }
+
+    paint('grass');
+    paint('sand');
+    paint('path');
+    expect(smartTileSemanticCells(map.layers[0] as SmartTileLayer)[0], 1);
+    expect(smartTileSemanticCells(map.layers[1] as SmartTileLayer)[0], 1);
+    paint('grass');
+    expect(smartTileSemanticCells(map.layers[0] as SmartTileLayer)[0], 1);
+    expect(smartTileSemanticCells(map.layers[1] as SmartTileLayer), [
+      0,
+      0,
+      0,
+      0,
+    ]);
+    expect(smartTileSemanticCells(map.layers[2] as SmartTileLayer)[0], 1);
+    final soil = map.layers[0] as SmartTileLayer;
+    final erased = applySmartTileMapMaterialGesture(
+      map,
+      layer: soil,
+      cells: const [GridPos(x: 0, y: 0)],
+      materialId: null,
+    );
+    expect(smartTileSemanticCells(erased.layers[2] as SmartTileLayer)[0], 1);
+  });
+
   test('map-only Smart Tile creation requires the canonical action', () {
     const map = MapData(
       id: 'map',

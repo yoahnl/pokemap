@@ -1,4 +1,3 @@
-import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
@@ -6,6 +5,7 @@ import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import '../exceptions/map_exceptions.dart';
 import '../validation/validators.dart';
+import 'map_visual_composition.dart';
 
 sealed class SmartTileLayerCreationResult {
   const SmartTileLayerCreationResult();
@@ -125,6 +125,24 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     );
   }
   final target = map;
+  final scene = target.spatialScene;
+  if (scene != null) {
+    if (scene.heightLevels.any((level) => level != 0) ||
+        scene.navigation.ramps.isNotEmpty) {
+      return const SmartTileLayerCreationFailure(
+        code: 'smart_tile.spatial_flat_required',
+        message:
+            'Smart Tile spatial surfaces require flat terrain without ramps.',
+      );
+    }
+    if (preset.usage != SmartTileUsage.terrain &&
+        preset.usage != SmartTileUsage.path) {
+      return const SmartTileLayerCreationFailure(
+        code: 'smart_tile.spatial_usage_unsupported',
+        message: 'Spatial Smart Tiles support only ground and path surfaces.',
+      );
+    }
+  }
 
   final normalizedLayerId = layerId.trim();
   final normalizedLayerName = layerName.trim();
@@ -140,7 +158,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
       message: 'Layer id "$normalizedLayerId" already exists.',
     );
   }
-  if (preset.usage == SmartTileUsage.terrain &&
+  if (target.spatialScene == null && preset.usage == SmartTileUsage.terrain &&
       target.layers.any(
         (layer) =>
             layer is SmartTileLayer && layer.usage == SmartTileUsage.terrain,
@@ -185,7 +203,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     topology: preset.topology,
     width: target.size.width,
     height: target.size.height,
-    fillIndex: preset.coveragePolicy == SmartTileCoveragePolicy.complete
+    fillIndex: target.spatialScene == null && preset.coveragePolicy == SmartTileCoveragePolicy.complete
         ? defaultMaterialIndex
         : 0,
     boundaryPolicy: preset.boundaryPolicy,
@@ -213,14 +231,14 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     field: field,
     layerSeed: preset.seedSalt,
   );
-  // Without an explicit slot the layer goes to the end of the serialized
-  // stack, which the caller may or may not mean as "in front".
-  final targetIndex =
-      (insertIndex ?? target.layers.length).clamp(0, target.layers.length);
+  final targetIndex = (insertIndex ??
+      (target.spatialScene == null ? target.layers.length :
+        resolveAuthoredLayerInsertIndex(target, activeLayerId: null)))
+      .clamp(0, target.layers.length);
   final projectedLayers = List<MapLayer>.from(target.layers, growable: true)
     ..insert(targetIndex, layer);
   final projectedMap = target.copyWith(
-    version: ProjectVersion.v8,
+    version: target.version,
     layers: List<MapLayer>.unmodifiable(projectedLayers),
   );
 

@@ -45,6 +45,7 @@ Future<bool> useResourceOnMap({
     }
     state.tile = tile;
     state.brush = null;
+    state.model3d = null;
     state.terrain = null;
     state.tool = StudioMapTool.paint;
   } else if (item.terrain != null) {
@@ -53,11 +54,13 @@ Future<bool> useResourceOnMap({
     state.terrain = item.terrain;
     state.tile = null;
     state.brush = null;
+    state.model3d = null;
     state.tool = StudioMapTool.terrain;
   } else {
     state.paletteTab = 'Décors';
     state.revealPalette = true;
     state.brush = item.element;
+    state.model3d = item.model3d;
     state.tile = null;
     state.terrain = null;
     state.tool = StudioMapTool.place;

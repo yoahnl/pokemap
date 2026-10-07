@@ -4,6 +4,30 @@ import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
   group('runtime manifest tileset collection', () {
+    test('spatial maps close only referenced pattern frame and animation assets', () {
+      final manifest = ProjectManifest(name: 'Spatial patterns', maps: [], tilesets: [],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: const [ProjectSmartTileAtlas(id: 'static', name: 'Static', tilesetId: 'pattern-static', columns: 1, rows: 1),
+            ProjectSmartTileAtlas(id: 'animated', name: 'Animated', tilesetId: 'pattern-animated', columns: 1, rows: 1)],
+          animations: const [ProjectSmartTileAnimation(id: 'wind', name: 'Wind', frames: [
+            ProjectSmartTileAnimationFrame(frame: SmartTileFrameRef(atlasId: 'animated', column: 0, row: 0), durationMs: 100)])],
+          presets: const [ProjectSmartTilePreset(id: 'ground', name: 'Ground', usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform, coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+            transformPolicy: SmartTileTransformPolicy(), defaultMaterialId: 'grass', allowedMaterialIds: ['grass'])],
+          patterns: const [ProjectSmartTilePattern(id: 'flowers', name: 'Flowers', usage: SmartTileUsage.terrain,
+            width: 1, height: 1, cells: [SmartTilePatternCell(x: 0, y: 0, parts: [
+              SmartTileVisualPart(source: SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'static', column: 0, row: 0))),
+              SmartTileVisualPart(source: SmartTileVisualSource.animation(animationId: 'wind'))])]),
+            ProjectSmartTilePattern(id: 'unused', name: 'Unused', usage: SmartTileUsage.path, width: 1, height: 1)]));
+      final map = MapData(id: 'spatial', name: 'Spatial', version: ProjectVersion.v9,
+        size: const GridSize(width: 1, height: 1), spatialScene: MapSpatialScene(width: 1, depth: 1),
+        layers: const [MapLayer.smartTile(id: 'ground', name: 'Ground', presetId: 'ground', usage: SmartTileUsage.terrain,
+          field: SmartTileField.cell(semanticCells: [0]), patternStrokes: [
+            SmartTilePatternStroke(id: 'flowers', patternId: 'flowers', cells: [GridPos(x: 0, y: 0)])])]);
+      expect(collectAllRuntimeTilesetIds(map, manifest), {'pattern-static', 'pattern-animated'});
+      expect(collectAllRuntimeTilesetIds(map.copyWith(version: ProjectVersion.v8, spatialScene: null), manifest), isEmpty);
+    });
     test('collects visual-only object layer tilesets', () {
       const map = MapData(
         id: 'object-tilesets',

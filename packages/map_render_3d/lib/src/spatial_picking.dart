@@ -3,6 +3,34 @@ import 'dart:math' as math;
 import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
+double? spatialContentDragHeight(
+  Vector3 origin,
+  Vector3 direction,
+  (int, int) anchor,
+) {
+  final horizontalLength =
+      direction.x * direction.x + direction.z * direction.z;
+  if (horizontalLength < .000001) return null;
+  final distance =
+      ((anchor.$1 - origin.x) * direction.x +
+          (anchor.$2 - origin.z) * direction.z) /
+      horizontalLength;
+  if (!distance.isFinite || distance < 0) return null;
+  return origin.y + direction.y * distance;
+}
+
+(int, int)? pickSpatialPlaneCell(
+  Vector3 origin,
+  Vector3 direction,
+  double height,
+) {
+  if (direction.y.abs() < .000001) return null;
+  final distance = (height - origin.y) / direction.y;
+  if (!distance.isFinite || distance < 0) return null;
+  final point = origin + direction * distance;
+  return (point.x.floor(), point.z.floor());
+}
+
 (int, int)? pickSpatialCell(
   MapSpatialScene scene,
   Vector3 origin,
@@ -36,4 +64,13 @@ import 'package:map_core/map_core.dart';
     }
   }
   return selected;
+}
+
+final class SpatialContentDrag {
+  const SpatialContentDrag({required this.anchor, required this.pointerOrigin});
+  final (int, int) anchor, pointerOrigin;
+  (int, int) cellAt((int, int) pointer) => (
+    anchor.$1 + pointer.$1 - pointerOrigin.$1,
+    anchor.$2 + pointer.$2 - pointerOrigin.$2,
+  );
 }

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:typed_data';
 
 import 'package:flame_3d/core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,36 @@ void main() {
     final clip = camera.viewProjectionMatrix.transform(Vector4(0, 0, 0, 1));
     expect(clip.z / clip.w, inInclusiveRange(-1, 1));
   });
+  test(
+    'painted ground depth is distinct and close scene content stays visible',
+    () {
+      final camera = AdaptiveCamera3D(fovY: 40)..sceneRadius = 20;
+      camera.onGameResize(Vector2(800, 600));
+      camera.frame(Vector3.zero(), pitch: .7, yaw: 0, distance: 40);
+      double depth(Vector3 point) {
+        final clip = camera.viewProjectionMatrix.transform(
+          Vector4(point.x, point.y, point.z, 1),
+        );
+        return (clip.z / clip.w + 1) / 2;
+      }
+
+      final base = Float32List.fromList([depth(Vector3.zero())]).single;
+      final painted = Float32List.fromList([depth(Vector3(0, .001, 0))]).single;
+      final overlay = Float32List.fromList([
+        depth(Vector3(0, .0015, 0)),
+      ]).single;
+      expect(painted, lessThan(base));
+      expect(overlay, lessThan(painted));
+      camera.frame(Vector3.zero(), pitch: .7, yaw: 0, distance: 5);
+      for (final point in [
+        Vector3(0, .02, 0),
+        Vector3(3, 4, 0),
+        Vector3(-3, 0, 2),
+      ]) {
+        expect(depth(point), inInclusiveRange(0, 1));
+      }
+    },
+  );
   test('terrain carries palette colors in materials used by the shader', () {
     const ground = Color(0xff125588), edge = Color(0xff113344);
     final surfaces = terrainMeshes(

@@ -5,9 +5,14 @@ import 'package:map_core/map_core.dart';
 
 import '../application/load_runtime_map_bundle.dart';
 import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_host.dart';
+import '../application/runtime_overworld_interaction.dart';
+import 'runtime_overworld_interaction_port.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../spatial/spatial_exploration_session.dart';
+import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
 import 'playable_map_game_session_runtime.dart';
@@ -21,7 +26,9 @@ final class SpatialExplorationGameSessionRuntime
         InProcessGameSessionRuntime,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
-        RuntimePlayerCompanionMenuPort {
+        RuntimePlayerCompanionMenuPort,
+        RuntimePlayerPreferencesPort,
+        RuntimeOverworldInteractionPort {
   SpatialExplorationGameSessionRuntime({
     required this.descriptor,
     required SessionProjectFilePathLoader projectFilePath,
@@ -44,9 +51,91 @@ final class SpatialExplorationGameSessionRuntime
     context: RuntimeInputContext.blocked,
   ));
   SpatialExplorationSession? _session;
+  PlayerPreferencesSnapshot? _preferences;
+  late final overworldInteractions = ValueNotifier(
+      RuntimeOverworldInteractionSnapshot(
+          sessionId: descriptor.sessionId,
+          mapActivationId: _mapActivationId,
+          mapId: 'loading'));
+  final _interactionEvents =
+      StreamController<RuntimeOverworldInteractionSnapshot?>.broadcast();
+  @override
+  RuntimeOverworldInteractionSnapshot? get overworldInteractionSnapshot =>
+      _session == null ? null : overworldInteractions.value;
+  @override
+  Stream<RuntimeOverworldInteractionSnapshot?>
+      get overworldInteractionSnapshots => _interactionEvents.stream;
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    _preferences = preferences;
+    _session?.setTextSpeed(preferences.dialogueTextSpeed);
+  }
+
+  String get _mapActivationId => '${descriptor.sessionId}:spatial:1';
+  void _publishInteractions() {
+    if (_disposed) return;
+    final session = _session;
+    if (session == null) return;
+    final npc = !inputAuthority.value.acceptsOverworldInput
+        ? null
+        : findSpatialNpcInteraction(
+            scene: session.bundle.map.spatialScene!,
+            entities: session.bundle.map.entities,
+            x: session.movement.x,
+            z: session.movement.z,
+            facing: session.movement.facing);
+    final snapshot = RuntimeOverworldInteractionSnapshot(
+        sessionId: descriptor.sessionId,
+        mapActivationId: _mapActivationId,
+        mapId: session.bundle.map.id,
+        primaryAction: npc?.npc?.dialogue == null
+            ? null
+            : RuntimeOverworldInteractionAction(
+                request: RuntimeOverworldInteractionRequest(
+                    sessionId: descriptor.sessionId,
+                    mapActivationId: _mapActivationId,
+                    mapId: session.bundle.map.id,
+                    targetKind: RuntimeOverworldInteractionTargetKind.entity,
+                    targetId: npc!.id,
+                    actionId: 'talk'),
+                verb: RuntimeOverworldInteractionVerb.talk,
+                targetCell: npc.pos,
+                targetBounds: PixelRect(
+                    leftPx: npc.pos.x * SpatialMovementController.pixelsPerCell,
+                    topPx: npc.pos.y * SpatialMovementController.pixelsPerCell,
+                    widthPx: SpatialMovementController.pixelsPerCell,
+                    heightPx: SpatialMovementController.pixelsPerCell)));
+    if (snapshot != overworldInteractions.value) {
+      overworldInteractions.value = snapshot;
+      _interactionEvents.add(snapshot);
+    }
+  }
+
+  @override
+  bool dispatchOverworldInteraction(
+      RuntimeOverworldInteractionRequest request) {
+    if (_disposed || !inputAuthority.value.acceptsOverworldInput) return false;
+    _publishInteractions();
+    if (request != overworldInteractions.value.primaryAction?.request) {
+      return false;
+    }
+    unawaited(_session!.interact());
+    return true;
+  }
+
   bool _mounted = false, _paused = false, _stopped = false, _disposed = false;
 
   SpatialExplorationSession? get session => _session;
+  ValueListenable<DialoguePresentationSnapshot?>
+      get dialoguePresentationListenable => _session!.dialoguePresentation;
+  void dispatchDialoguePresentationCommand(
+      DialoguePresentationCommand command) {
+    if (inputAuthority.value.context == RuntimeInputContext.dialogue &&
+        inputAuthority.value.acceptsRuntimeInput) {
+      _session?.dispatchDialogueCommand(command);
+    }
+  }
+
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
 
@@ -92,6 +181,11 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('Exploration closed while loading.');
       }
       _session = loaded;
+      loaded.interactionActive.addListener(_syncMovement);
+      loaded.onFrame = _publishInteractions;
+      if (_preferences case final preferences?) {
+        loaded.setTextSpeed(preferences.dialogueTextSpeed);
+      }
       _syncMovement();
       _mounted = true;
       await _mountSession(this);
@@ -106,7 +200,31 @@ final class SpatialExplorationGameSessionRuntime
   @override
   bool handleInput(RuntimeInputEvent event) {
     if (_disposed || _session == null) return false;
+    if (!inputAuthority.value.acceptsRuntimeInput) return true;
+    if (inputAuthority.value.context == RuntimeInputContext.dialogue) {
+      if (event.isPress && !event.isRepeat) {
+        if (event.control == RuntimeInputControl.secondary) {
+          _session!.closeDialogue();
+        }
+        if (event.control == RuntimeInputControl.primary) {
+          final snapshot = _session!.dialoguePresentation.value;
+          if (snapshot != null) {
+            dispatchDialoguePresentationCommand(
+                DialogueAdvanceCommand(snapshotRevision: snapshot.revision));
+          }
+        }
+      }
+      return true;
+    }
     if (!inputAuthority.value.acceptsOverworldInput) return true;
+    if (event.control == RuntimeInputControl.primary) {
+      if (event.isPress && !event.isRepeat) {
+        _publishInteractions();
+        final request = overworldInteractions.value.primaryAction?.request;
+        if (request != null) dispatchOverworldInteraction(request);
+      }
+      return true;
+    }
     if (!{
       RuntimeInputControl.up,
       RuntimeInputControl.down,
@@ -146,13 +264,18 @@ final class SpatialExplorationGameSessionRuntime
   void _syncMovement() {
     _pressed.clear();
     final paused = _paused || _stopped || _locks.isNotEmpty || _session == null;
-    _session?.movement.setPaused(paused);
+    final talking = _session?.interactionActive.value ?? false;
+    _session?.dialoguePaused = paused;
+    _session?.movement.setPaused(paused || talking);
     inputAuthority.value = RuntimeInputAuthoritySnapshot(
         context: paused
             ? RuntimeInputContext.blocked
-            : RuntimeInputContext.overworld,
+            : talking
+                ? RuntimeInputContext.dialogue
+                : RuntimeInputContext.overworld,
         externalLocks: Set.unmodifiable(_locks),
-        sprintAllowed: !paused);
+        sprintAllowed: !paused && !talking);
+    _publishInteractions();
   }
 
   @override
@@ -183,6 +306,7 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> stop(GameSessionExitReason reason) async {
     if (_disposed) return;
     _stopped = true;
+    _session?.closeDialogue();
     _syncMovement();
   }
 
@@ -211,13 +335,17 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed) return;
     _disposed = true;
     _stopped = true;
+    _session?.closeDialogue();
     _syncMovement();
     try {
       if (_mounted) await _unmountSession(this);
     } finally {
       _mounted = false;
+      _session?.interactionActive.removeListener(_syncMovement);
       _session?.dispose();
       _session = null;
+      overworldInteractions.dispose();
+      await _interactionEvents.close();
       inputAuthority.dispose();
       await _events.close();
     }

@@ -1,4 +1,4 @@
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
 
 enum ResourceKind { decors, terrains, images }
 
@@ -21,6 +21,7 @@ class ResourceItem {
     required this.name,
     required this.kind,
     this.element,
+    this.model3d,
     this.terrain,
     this.tileset,
     this.category = '',
@@ -30,6 +31,7 @@ class ResourceItem {
   final String name;
   final ResourceKind kind;
   final ProjectElementEntry? element;
+  final ProjectModel3dEntry? model3d;
   final ProjectSmartTilePreset? terrain;
   final ProjectTilesetEntry? tileset;
   final String category;
@@ -130,15 +132,24 @@ class ResourceLibraryState {
 }
 
 List<ResourceItem> resourceCatalog(ProjectManifest manifest) => [
-  for (final e in manifest.elements)
-    ResourceItem(
-      id: e.id,
-      name: e.name,
-      kind: ResourceKind.decors,
-      element: e,
-      category: e.categoryId,
-      tags: e.tags,
-    ),
+  if (manifest.settings.dimension == ProjectDimension.threeD)
+    for (final model in manifest.models3d)
+      ResourceItem(
+        id: model.id,
+        name: model.name,
+        kind: ResourceKind.decors,
+        model3d: model,
+      ),
+  if (manifest.settings.dimension == ProjectDimension.twoD)
+    for (final e in manifest.elements)
+      ResourceItem(
+        id: e.id,
+        name: e.name,
+        kind: ResourceKind.decors,
+        element: e,
+        category: e.categoryId,
+        tags: e.tags,
+      ),
   for (final t in manifest.smartTileCatalog.presets)
     ResourceItem(
       id: t.id,

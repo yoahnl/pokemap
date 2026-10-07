@@ -3,15 +3,20 @@ import 'dart:math' as math;
 import 'package:map_core/map_core.dart';
 
 import 'collision/pixel_movement_resolver.dart';
+import 'spatial_terrain_navigation.dart';
 
 final class SpatialMovementController {
   SpatialMovementController(
-      {required this.scene, required Iterable<ProjectModel3dEntry> models})
-      : models = {for (final model in models) model.id: model},
+      {required this.scene,
+      required Iterable<ProjectModel3dEntry> models,
+      Iterable<MapEntity> entities = const []})
+      : entities = List.unmodifiable(entities),
+        models = {for (final model in models) model.id: model},
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
     reset();
   }
   final MapSpatialScene scene;
+  final List<MapEntity> entities;
   final Map<String, ProjectModel3dEntry> models;
   static const pixelsPerCell = 16;
   late PixelPosition _position;
@@ -111,11 +116,8 @@ final class SpatialMovementController {
               pz = rect.bottomCenterPx.yPx / pixelsPerCell;
           final previousX = px + (originX - px).sign / pixelsPerCell;
           final previousZ = pz + (originZ - pz).sign / pixelsPerCell;
-          return (scene.worldHeightAt(px, pz) -
-                          scene.worldHeightAt(previousX, previousZ))
-                      .abs() >
-                  .25 &&
-              !_rampAllowsTransition(previousX, previousZ, px, pz);
+          return !canTraverseSpatialTerrainStep(
+              scene, previousX, previousZ, px, pz);
         });
     if (stepX != 0 || stepZ != 0) {
       moving =
@@ -126,40 +128,6 @@ final class SpatialMovementController {
     } else if (stepX != 0 || stepZ != 0) {
       animationSeconds = 0;
     }
-  }
-
-  bool _rampAllowsTransition(double ax, double az, double bx, double bz) {
-    for (final ramp in scene.navigation.ramps) {
-      final vertical = ramp.direction == SpatialRampDirection.north ||
-          ramp.direction == SpatialRampDirection.south;
-      final aligned = vertical
-          ? ax >= ramp.x &&
-              ax <= ramp.x + ramp.width &&
-              bx >= ramp.x &&
-              bx <= ramp.x + ramp.width
-          : az >= ramp.z &&
-              az <= ramp.z + ramp.depth &&
-              bz >= ramp.z &&
-              bz <= ramp.z + ramp.depth;
-      final intersects = vertical
-          ? math.max(az, bz) >= ramp.z &&
-              math.min(az, bz) <= ramp.z + ramp.depth
-          : math.max(ax, bx) >= ramp.x &&
-              math.min(ax, bx) <= ramp.x + ramp.width;
-      if (aligned &&
-          intersects &&
-          (scene.worldHeightAt(ax, az) -
-                      ramp.levelAt(ax, az) * scene.levelHeight)
-                  .abs() <
-              .0001 &&
-          (scene.worldHeightAt(bx, bz) -
-                      ramp.levelAt(bx, bz) * scene.levelHeight)
-                  .abs() <
-              .0001) {
-        return true;
-      }
-    }
-    return false;
   }
 
   bool _collides(PixelRect rect) {
@@ -175,6 +143,21 @@ final class SpatialMovementController {
           right > area.x &&
           top < area.z + area.depth &&
           bottom > area.z) {
+        return true;
+      }
+    }
+    for (final entity in entities.where((entity) => entity.blocksMovement)) {
+      final footprint = resolveEntityCollisionRectPx(entity,
+          tileWidthPx: pixelsPerCell, tileHeightPx: pixelsPerCell);
+      final npcLeft = footprint.leftPx / pixelsPerCell,
+          npcTop = footprint.topPx / pixelsPerCell - .5,
+          npcRight = (footprint.leftPx + footprint.widthPx) / pixelsPerCell,
+          npcBottom =
+              (footprint.topPx + footprint.heightPx) / pixelsPerCell - .5;
+      if (left < npcRight &&
+          right > npcLeft &&
+          top < npcBottom &&
+          bottom > npcTop) {
         return true;
       }
     }

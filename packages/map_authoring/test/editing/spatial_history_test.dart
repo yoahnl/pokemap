@@ -3,6 +3,34 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Smart Tile spatial gestures keep one undo boundary across reopen', () {
+    final before = MapData(
+        id: 'world',
+        name: 'World',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 2, height: 2),
+        spatialScene: MapSpatialScene(width: 2, depth: 2),
+        layers: const [
+          MapLayer.smartTile(
+              id: 'ground',
+              name: 'Ground',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+              materialPalette: ['', 'grass'],
+              field: SmartTileField.cell(semanticCells: [0, 0, 0, 0]))
+        ]);
+    final after = replaceSmartTileLayer(before,
+        layer: applySmartTileMaterialGesture(
+            before.layers.single as SmartTileLayer,
+            mapSize: before.size,
+            cells: const [GridPos(x: 0, y: 0), GridPos(x: 1, y: 1)],
+            materialId: 'grass'));
+    final delta = MapHistoryDelta.between(before, after);
+    final reopened = MapData.fromJson(after.toJson());
+    expect(delta.applyBackward(reopened), before);
+    expect(delta.applyForward(MapData.fromJson(before.toJson())), after);
+    expect(after.spatialScene, before.spatialScene);
+  });
   test('spatial history preserves terrain, camera and instances across reopen',
       () {
     final before = MapData(

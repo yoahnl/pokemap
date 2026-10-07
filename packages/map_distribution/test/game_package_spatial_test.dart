@@ -8,6 +8,80 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('packages flat Smart Tile surfaces and closes their texture assets', () {
+    final files = spatialPayload();
+    var project = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(files['project/project.json']!))
+            as Map<String, dynamic>);
+    project = project.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(atlases: const [
+      ProjectSmartTileAtlas(
+          id: 'ground-atlas',
+          name: 'Ground',
+          tilesetId: 'hero-atlas',
+          columns: 1,
+          rows: 1)
+    ], materials: const [
+      ProjectSmartTileMaterial(
+          id: 'grass', name: 'Grass', connectionGroupId: 'ground')
+    ], presets: const [
+      ProjectSmartTilePreset(
+          id: 'grass',
+          name: 'Grass',
+          usage: SmartTileUsage.terrain,
+          topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          coveragePolicy: SmartTileCoveragePolicy.sparse,
+          coverageProfile:
+              SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+          transformPolicy: SmartTileTransformPolicy(),
+          defaultMaterialId: 'grass',
+          allowedMaterialIds: [
+            'grass'
+          ],
+          rules: [
+            SmartTileRule(
+                id: 'grass',
+                centerMatch: SmartTileSlotMatch.material('grass'),
+                candidates: [
+                  SmartTileCandidate(id: 'grass', parts: [
+                    SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                                atlasId: 'ground-atlas', column: 0, row: 0)))
+                  ])
+                ])
+          ])
+    ]));
+    final map = MapData.fromJson(
+            jsonDecode(utf8.decode(files['project/maps/map.json']!))
+                as Map<String, dynamic>)
+        .copyWith(layers: [
+      MapLayer.smartTile(
+          id: 'ground',
+          name: 'Ground',
+          presetId: 'grass',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const ['', 'grass'],
+          field: SmartTileField.cell(semanticCells: List.filled(64, 1)))
+    ]);
+    files['project/project.json'] = utf8.encode(jsonEncode(project.toJson()));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.toJson()));
+    final built = const GamePackageBuilder()
+        .build(manifest: spatialManifest(), payloadFiles: files);
+    expect(
+        const GamePackageInspector()
+            .inspect(built.packageBytes)
+            .manifest
+            .compatibility
+            .projectFormat,
+        'v9');
+    files.remove('project/assets/hero.png');
+    expect(
+        () => const GamePackageBuilder()
+            .build(manifest: spatialManifest(), payloadFiles: files),
+        throwsA(isA<GamePackageFormatException>()));
+  });
   final validator =
       const GamePackageContentValidator(GamePackageSecurityPolicy());
   void validateGlb(List<int> bytes, {bool blob = false}) => validator.validate(

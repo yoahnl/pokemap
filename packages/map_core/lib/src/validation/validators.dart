@@ -2600,7 +2600,7 @@ class MapValidator {
         .where((layer) => layer.usage == SmartTileUsage.terrain)
         .map((layer) => layer.id)
         .toList(growable: false);
-    if (smartTileTerrainProviderIds.length > 1) {
+    if (map.spatialScene == null && smartTileTerrainProviderIds.length > 1) {
       throw ValidationException(
         'A map can contain only one Smart Tile terrain provider; found: '
         '${smartTileTerrainProviderIds.join(', ')}',

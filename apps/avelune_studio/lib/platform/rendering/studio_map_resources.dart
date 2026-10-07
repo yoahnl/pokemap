@@ -1,11 +1,15 @@
 import 'dart:typed_data';
 import 'dart:isolate';
+import 'dart:ui' as ui;
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring_resources.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
@@ -55,6 +59,124 @@ final class StudioMapResources
     imports: imports,
   );
   final String projectRoot;
+  @override
+  Future<Uint8List> readGroundImage(String tilesetId) async {
+    final tileset = manifest.tilesets
+        .where((tileset) => tileset.id == tilesetId)
+        .firstOrNull;
+    if (tileset == null) {
+      throw StateError('Image de terrain absente : $tilesetId');
+    }
+    return Uint8List.fromList(
+      await const LocalProjectFileReader().readBytes(
+        projectRoot: projectRoot,
+        relativePath: tileset.relativePath,
+      ),
+    );
+  }
+
+  @override
+  Future<SpatialNpcPreview> spatialPreview(MapData map) async {
+    final frames = <String, SpatialActorVisual>{};
+    final images = <String, ui.Image>{};
+    if (!map.entities.any((entity) => entity.npc != null)) {
+      return SpatialNpcPreview(frames, () {});
+    }
+    await initializeSpatialRenderer();
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: '$projectRoot/project.json',
+      mapId: map.id,
+      preloadedManifest: manifest,
+    );
+    final resolver = CharacterAnimationSourceResolver();
+    final textures = <String, SpatialActorTexture>{};
+    try {
+      for (final entity in map.entities.where((entity) => entity.npc != null)) {
+        final actor = manifest.characters
+            .where((actor) => actor.id == entity.npc!.characterId)
+            .firstOrNull;
+        if (actor == null) {
+          throw StateError('Personnage du PNJ absent : ${entity.name}');
+        }
+        final animation =
+            actor.animations
+                .where(
+                  (clip) =>
+                      clip.direction == entity.npc!.facing &&
+                      clip.state == CharacterAnimationState.idle,
+                )
+                .firstOrNull ??
+            actor.animations
+                .where(
+                  (clip) =>
+                      clip.direction == entity.npc!.facing &&
+                      clip.state == CharacterAnimationState.walk,
+                )
+                .firstOrNull;
+        if (animation == null || animation.frames.isEmpty) {
+          throw StateError('Animation du PNJ absente : ${entity.name}');
+        }
+        final asset = animation.sourceAssetId?.trim();
+        final imageId = asset != null && asset.isNotEmpty
+            ? characterAnimationRuntimeImageId(asset)
+            : actor.tilesetId;
+        if (!images.containsKey(imageId)) {
+          final path = bundle.runtimeImageAbsolutePathsById[imageId];
+          if (path == null) {
+            throw StateError('Image du PNJ absente : ${entity.name}');
+          }
+          final codec = await ui.instantiateImageCodec(
+            await File(path).readAsBytes(),
+          );
+          try {
+            images[imageId] = (await codec.getNextFrame()).image;
+          } finally {
+            codec.dispose();
+          }
+          textures[imageId] = await SpatialActorTexture.fromImage(
+            images[imageId]!,
+          );
+        }
+        final source = resolver.resolveFrame(
+          character: actor,
+          animation: animation,
+          frame: animation.frames.first,
+          tileWidth: manifest.settings.tileWidth,
+          tileHeight: manifest.settings.tileHeight,
+          availableImageIds: images.keys.toSet(),
+        );
+        final image = images[imageId]!;
+        if (source == null ||
+            source.sourceRect.left < 0 ||
+            source.sourceRect.top < 0 ||
+            source.sourceRect.width <= 0 ||
+            source.sourceRect.height <= 0 ||
+            source.sourceRect.right > image.width ||
+            source.sourceRect.bottom > image.height) {
+          throw StateError('Frame du PNJ invalide : ${entity.name}');
+        }
+        final x = entity.pos.x + .5, z = entity.pos.y + .5;
+        frames['npc:${entity.id}'] = SpatialActorVisual(
+          x: x,
+          y: map.spatialScene!.worldHeightAt(x, z),
+          z: z,
+          texture: textures[imageId]!,
+          frame: source.sourceRect,
+        );
+      }
+      return SpatialNpcPreview(frames, () {
+        for (final image in images.values) {
+          image.dispose();
+        }
+      });
+    } on Object {
+      for (final image in images.values) {
+        image.dispose();
+      }
+      rethrow;
+    }
+  }
+
   @override
   Future<Uint8List> readModel(String modelId) async {
     final model = manifest.models3d

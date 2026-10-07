@@ -202,12 +202,37 @@ class MapCanvasStroke {
         tiles: [erase ? null : tile],
       );
     }
-    if (buffer.revision != revision) {
-      preview = buffer.commit(project: project, validate: (_) {});
+    if (buffer.revision != revision || spatialTerrainPaint) {
+      preview = materialize(validate: false);
     }
     if (!cells.contains(cell)) cells.add(cell);
   }
 
-  MapData commit() =>
-      buffer.commit(project: project, validate: MapDeltaValidator.validate);
+  bool get spatialTerrainPaint =>
+      terrain && !erase && buffer.sourceMap.spatialScene != null;
+
+  MapData materialize({required bool validate}) {
+    final committed = buffer.commit(
+      project: project,
+      validate: validate && !spatialTerrainPaint
+          ? MapDeltaValidator.validate
+          : (_) {},
+    );
+    if (!spatialTerrainPaint) return committed;
+    final layer = committed.layers.whereType<SmartTileLayer>().firstWhere(
+      (layer) => layer.id == buffer.layerId,
+    );
+    final painted = applySmartTileMapMaterialGesture(
+      committed,
+      layer: layer,
+      cells: buffer.smartTileTouchedCells,
+      materialId: materialId,
+    );
+    if (validate) {
+      MapValidator.validate(painted, projectDialogueContext: project);
+    }
+    return painted;
+  }
+
+  MapData commit() => materialize(validate: true);
 }

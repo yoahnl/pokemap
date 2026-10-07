@@ -154,7 +154,8 @@ final class MapDeltaValidator {
         before.name != after.name ||
         before.size != after.size ||
         before.version != after.version ||
-        before.tilesetId != after.tilesetId) {
+        before.tilesetId != after.tilesetId ||
+        before.spatialScene != after.spatialScene) {
       throw const ValidationException(
         'Incremental map validation received an undeclared map mutation',
       );
@@ -526,8 +527,9 @@ final class MapDeltaValidator {
     String layerId,
   ) {
     var count = 0;
-    final environmentOwnedIds =
-        environmentOwnedMapPlacedElementIds(context.after);
+    final environmentOwnedIds = environmentOwnedMapPlacedElementIds(
+      context.after,
+    );
     for (final instance in context.after.placedElements) {
       if (instance.layerId == layerId) {
         MapValidator.validatePlacedElement(

@@ -94,22 +94,35 @@ async function mutationFixture(
     withSmartTileM01?: boolean;
     withSmartTileReconstruction?: boolean;
     withNativeSmartTileV5?: boolean | "mixed";
+    withSpatialSmartTile?: boolean;
   } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-mutation-"));
   const scaffoldBytes = await readFile(scaffold);
-  if (options.withNativeSmartTileV5) {
+  if (options.withNativeSmartTileV5 || options.withSpatialSmartTile) {
+    const project = nativeSmartTileV5Project(options.withNativeSmartTileV5 === "mixed");
+    const map = nativeSmartTileV5Map(options.withNativeSmartTileV5 === "mixed");
+    if (options.withSpatialSmartTile) {
+      const camera = { mode: "fixed", pitchDegrees: 48.7, yawDegrees: 0, fieldOfViewDegrees: 16.2, distance: 42 };
+      project.version = "v9";
+      project.settings = { ...record(project.settings ?? {}), dimension: "threeD", spatialCamera: camera };
+      map.version = "v9";
+      map.tilesetId = "";
+      map.layers = (map.layers as JsonRecord[]).filter((layer) => layer.runtimeType === "smart_tile");
+      map.spatialScene = { schemaVersion: 1, width: 2, depth: 2, heightLevels: [0, 0, 0, 0], levelHeight: 1,
+        instances: [], camera, navigation: { spawn: { x: 0, z: 0 }, allowDiagonalMovement: false, ramps: [], blockedAreas: [] } };
+    }
     await mkdir(join(root, "maps"), { recursive: true });
     await writeFile(
       join(root, "project.json"),
       JSON.stringify(
-        nativeSmartTileV5Project(options.withNativeSmartTileV5 === "mixed"),
+        project,
       ),
     );
     await writeFile(
       join(root, "maps/native_v5.json"),
       JSON.stringify(
-        nativeSmartTileV5Map(options.withNativeSmartTileV5 === "mixed"),
+        map,
       ),
     );
     await writeCanonicalSmartTileImage(root);
@@ -978,6 +991,38 @@ async function applyMutation(
   });
   return String(validation.snapshotRevision);
 }
+
+test("MCP paints and erases flat 3D surfaces with canonical Smart Tile actions", async () => {
+  const fixture = await mutationFixture({ withSpatialSmartTile: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const ids = (described.mutationActions as JsonRecord[]).map((action) => action.id);
+    assert.ok(ids.includes("smart_tile.cell.paint"));
+    assert.ok(ids.includes("smart_tile.cell.erase"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const projectHandle = String(opened.projectHandle);
+    let revision = String((await toolData(fixture.client, "pokemap_validate", { projectHandle })).snapshotRevision);
+    for (const erase of [false, true]) {
+      const actionId = `smart_tile.cell.${erase ? "erase" : "paint"}`;
+      revision = await applyMutation(fixture.client, { projectHandle, workspaceHandle: String(opened.workspaceHandle),
+        expectedRevision: revision, actionId, sequence: actionId,
+        parameters: { mapId: "native_v5", layerId: "smart", ...(!erase ? { materialId: "road" } : {}), cells: [{ x: 1, y: 1 }] } });
+      const map = record(JSON.parse(await readFile(join(fixture.root, "maps/native_v5.json"), "utf8")));
+      assert.equal(map.version, "v9");
+      assert.deepEqual(record(map.spatialScene).heightLevels, [0, 0, 0, 0]);
+      const layer = (map.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+      assert.equal((record(layer.field).semanticCells as number[])[3], erase ? 0 : 1);
+    }
+    await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    await toolData(fixture.client, "pokemap_validate", { projectHandle: reopened.projectHandle });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
 
 test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
   const fixture = await mutationFixture();

@@ -48,7 +48,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   ProjectManifest? _project;
   MapData? _map;
   String? _query;
-  List<ProjectElementEntry> elements = [];
+  List<ResourceItem> elements = [];
   List<ProjectSmartTilePreset> terrains = [];
   List<ProjectTilesetEntry> sources = [];
   List<TileLayerPaletteEntry> tiles = [];
@@ -75,7 +75,8 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
       return;
     }
     bool matches(String name) => name.toLowerCase().contains(query);
-    elements = project.elements
+    elements = resourceCatalog(project)
+        .where((e) => e.kind == ResourceKind.decors)
         .where((e) => matches('${e.name} ${e.tags.join(' ')}'))
         .toList();
     terrains = project.smartTileCatalog.presets
@@ -109,6 +110,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         onPick: (character) {
           view.character = character;
           view.brush = null;
+          view.model3d = null;
           view.tile = null;
           view.terrain = null;
           view.tool = StudioMapTool.character;
@@ -125,6 +127,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         onPick: (entry) {
           view.warpDestination = entry;
           view.brush = null;
+          view.model3d = null;
           view.tile = null;
           view.terrain = null;
           view.character = null;
@@ -170,12 +173,19 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
                       return StudioPaletteCard(
                         key: ValueKey('decor-${e.id}'),
                         name: e.name,
-                        preview: widget.visuals.thumbnail(e, size: 72),
+                        preview: resourcePreview(
+                          e,
+                          widget.project,
+                          widget.visuals,
+                          size: 72,
+                        ),
                         selected:
                             view.tool == StudioMapTool.place &&
-                            view.brush?.id == e.id,
+                            (view.brush?.id == e.id ||
+                                view.model3d?.id == e.id),
                         onTap: () {
-                          view.brush = e;
+                          view.brush = e.element;
+                          view.model3d = e.model3d;
                           view.tile = null;
                           view.terrain = null;
                           view.character = null;
@@ -203,6 +213,8 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
                       onTap: () {
                         view.terrain = t;
                         view.brush = null;
+                        view.model3d = null;
+                        view.model3d = null;
                         view.tile = null;
                         view.character = null;
                         view.tool = StudioMapTool.terrain;

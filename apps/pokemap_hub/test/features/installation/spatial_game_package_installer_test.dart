@@ -94,6 +94,14 @@ void main() {
       expect(prepared.startMap.id, 'first-map');
       expect(prepared.startMap.spatialScene, isNotNull);
       expect(prepared.project.newGame.enabled, isFalse);
+      expect(prepared.startMap.entities.single.npc?.characterId, isNotNull);
+      final dialogue = prepared.project.dialogues.single;
+      expect(
+        File(
+          p.join(p.dirname(p.dirname(map.path)), dialogue.relativePath),
+        ).existsSync(),
+        isTrue,
+      );
       bootstrap.clear();
     },
   );

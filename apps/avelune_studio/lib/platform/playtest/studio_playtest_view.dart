@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
@@ -220,7 +221,10 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                 onPressed: _busy ? null : _newGame,
               ),
             if (_spatial case final exploration?)
-              StudioSpatialExplorationControls(movement: exploration.movement),
+              StudioSpatialExplorationControls(
+                movement: exploration.movement,
+                session: exploration,
+              ),
             if (_message != null) Text(_message!),
           ],
         ),
@@ -240,9 +244,34 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             }
             if (game is SpatialExplorationSession) {
               return ClipRect(
-                child: SpatialExplorationView(
-                  key: ObjectKey(game),
-                  session: game,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: SpatialExplorationView(
+                        key: ObjectKey(game),
+                        session: game,
+                      ),
+                    ),
+                    Positioned.fill(
+                      child:
+                          ValueListenableBuilder<DialoguePresentationSnapshot?>(
+                            valueListenable: game.dialoguePresentation,
+                            builder: (context, snapshot, _) => snapshot == null
+                                ? const SizedBox.shrink()
+                                : Theme(
+                                    data:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? PokeMapPlayerTheme.dark()
+                                        : PokeMapPlayerTheme.light(),
+                                    child: PlayerDialogueOverlay(
+                                      snapshot: snapshot,
+                                      onCommand: game.dispatchDialogueCommand,
+                                    ),
+                                  ),
+                          ),
+                    ),
+                  ],
                 ),
               );
             }
@@ -265,8 +294,13 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 class StudioPlaytestSaveRepository extends StudioPlaytestSession {}
 
 class StudioSpatialExplorationControls extends StatefulWidget {
-  const StudioSpatialExplorationControls({super.key, required this.movement});
+  const StudioSpatialExplorationControls({
+    super.key,
+    required this.movement,
+    this.session,
+  });
   final SpatialMovementController movement;
+  final SpatialExplorationSession? session;
   @override
   State<StudioSpatialExplorationControls> createState() =>
       _StudioSpatialExplorationControlsState();
@@ -283,13 +317,26 @@ class _StudioSpatialExplorationControlsState
         label: 'Réinitialiser la position',
         icon: Icons.restart_alt,
         secondary: true,
-        onPressed: () => setState(widget.movement.reset),
+        onPressed: () => setState(() {
+          widget.session?.closeDialogue();
+          widget.session?.dialoguePaused = false;
+          widget.movement.reset();
+        }),
       ),
       StudioButton(
-        label: widget.movement.paused ? 'Reprendre' : 'Pause',
+        label: (widget.session?.dialoguePaused ?? widget.movement.paused)
+            ? 'Reprendre'
+            : 'Pause',
         secondary: true,
-        onPressed: () =>
-            setState(() => widget.movement.setPaused(!widget.movement.paused)),
+        onPressed: () => setState(() {
+          final paused =
+              !(widget.session?.dialoguePaused ?? widget.movement.paused);
+          widget.session?.dialoguePaused = paused;
+          widget.movement.setPaused(
+            (widget.session?.presentationPaused ?? paused) ||
+                (widget.session?.interactionActive.value ?? false),
+          );
+        }),
       ),
       StudioButton(
         label: widget.movement.allowDiagonalMovement

@@ -32,10 +32,10 @@ void preflightNativeSmartTileMutation({
   final maps = <MapData>[
     for (final map in snapshot.maps) projectedMaps[map.id] ?? map,
   ];
-  if (!_isSupportedProjectManifestVersion(projectedManifest.version)) {
+  if (!_isSupportedProjectManifestVersion(projectedManifest)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Smart Tile authoring requires ProjectVersion.v8.',
+      'Smart Tile authoring requires v8 for 2D or v9 for 3D.',
       details: <String, Object?>{
         'projectVersion': projectedManifest.version.name,
       },
@@ -45,9 +45,9 @@ void preflightNativeSmartTileMutation({
   try {
     ProjectValidator.validate(projectedManifest);
     for (final map in maps) {
-      if (map.version != ProjectVersion.v8) {
+      if (map.version != projectedManifest.version) {
         throw ValidationException(
-          'Map "${map.id}" is not a v8 map.',
+          'Map "${map.id}" version must match its project.',
           code: 'smart_tile_native_project_version_required',
           details: <String, Object?>{
             'mapId': map.id,
@@ -89,11 +89,10 @@ void requireExistingNativeSmartTileProject(
   String? layerId,
 }) {
   _requireCompleteMapSnapshot(snapshot);
-  if (!_isSupportedProjectManifestVersion(snapshot.manifest.version)) {
+  if (!_isSupportedProjectManifestVersion(snapshot.manifest)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Native Smart Tile maintenance requires a ProjectVersion.v8 '
-          'manifest.',
+      'Native Smart Tile maintenance requires v8 for 2D or v9 for 3D.',
       details: <String, Object?>{
         'projectVersion': snapshot.manifest.version.name,
         'operation': operation,
@@ -102,10 +101,12 @@ void requireExistingNativeSmartTileProject(
     );
   }
   for (final map in snapshot.maps) {
-    if (map.version != ProjectVersion.v8) {
+    if (map.version != snapshot.manifest.version ||
+        (map.spatialScene != null) !=
+            (snapshot.manifest.settings.dimension == ProjectDimension.threeD)) {
       throw semanticFailure(
         'smart_tile_native_project_version_required',
-        'Native Smart Tile maintenance requires ProjectVersion.v8 maps.',
+        'Native Smart Tile maps must match their project dimension and version.',
         details: <String, Object?>{
           'mapId': map.id,
           'mapVersion': map.version.name,
@@ -114,11 +115,23 @@ void requireExistingNativeSmartTileProject(
         },
       );
     }
+    final scene = map.spatialScene;
+    if (scene != null &&
+        map.layers.isNotEmpty &&
+        (scene.heightLevels.any((level) => level != 0) ||
+            scene.navigation.ramps.isNotEmpty)) {
+      throw semanticFailure('smart_tile.spatial_flat_required',
+          'Smart Tile spatial surfaces require flat terrain without ramps.',
+          details: {'mapId': map.id, 'operation': operation});
+    }
   }
 }
 
-bool _isSupportedProjectManifestVersion(ProjectVersion version) =>
-    version == ProjectVersion.v8;
+bool _isSupportedProjectManifestVersion(ProjectManifest manifest) =>
+    manifest.version ==
+    (manifest.settings.dimension == ProjectDimension.threeD
+        ? ProjectVersion.v9
+        : ProjectVersion.v8);
 
 void _requireCompleteMapSnapshot(ProjectSnapshot snapshot) {
   final manifestIds = <String>{};

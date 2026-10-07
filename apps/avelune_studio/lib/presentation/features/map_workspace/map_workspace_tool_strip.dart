@@ -18,6 +18,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
     required this.paletteVisible,
     required this.onUndo,
     required this.onRedo,
+    this.spatial = false,
   });
 
   final MapWorkspaceViewState view;
@@ -25,6 +26,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
   final VoidCallback onMoreTools;
   final VoidCallback onResources;
   final bool storyAvailable;
+  final bool spatial;
   final bool paletteVisible;
   final VoidCallback? onUndo, onRedo;
 
@@ -57,12 +59,31 @@ class MapWorkspaceToolStrip extends StatelessWidget {
       ('Collisions', Icons.block_outlined),
       ('Passages', Icons.meeting_room_outlined),
     ];
-    Widget familyButton(String label, IconData icon) => StudioButton(
-      key: label == 'Sélection' ? const ValueKey('Sélectionner') : null,
-      label: label,
-      icon: largeText ? null : icon,
-      secondary: active != label,
-      onPressed: () => _select(label),
+    bool supported(String label) =>
+        !spatial ||
+        {
+          'Sélection',
+          'Décors',
+          'Terrains',
+          'Peindre',
+          'Gomme de tuiles',
+          'Déplacer la vue',
+          'Gomme de décors',
+          'Placer un personnage',
+          'Palette complète',
+          'Gérer les ressources',
+        }.contains(label);
+    Widget familyButton(String label, IconData icon) => Tooltip(
+      message: supported(label)
+          ? label
+          : 'Cet outil n’est pas encore disponible sur les cartes 3D.',
+      child: StudioButton(
+        key: label == 'Sélection' ? const ValueKey('Sélectionner') : null,
+        label: label,
+        icon: largeText ? null : icon,
+        secondary: active != label,
+        onPressed: supported(label) ? () => _select(label) : null,
+      ),
     );
     final moreTools = PopupMenuButton<String>(
       tooltip: 'Autres outils de carte',
@@ -87,10 +108,11 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           PopupMenuItem(
             value: label,
             enabled:
-                label != 'Peindre' ||
-                view.tile != null ||
-                view.brush != null ||
-                view.terrain != null,
+                supported(label) &&
+                (label != 'Peindre' ||
+                    view.tile != null ||
+                    view.brush != null ||
+                    view.terrain != null),
             child: Row(
               children: [
                 Icon(icon, size: 18),
@@ -105,7 +127,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
               ],
             ),
           ),
-        if (storyAvailable)
+        if (storyAvailable && !spatial)
           const PopupMenuItem(
             value: 'Dessiner une zone d’histoire',
             child: Row(
@@ -229,7 +251,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                     onChanged: onChanged,
                   ),
                 ),
-                if (storyAvailable)
+                if (storyAvailable && !spatial)
                   StudioTool(
                     label: 'Dessiner une zone d’histoire',
                     icon: Icons.crop_square,

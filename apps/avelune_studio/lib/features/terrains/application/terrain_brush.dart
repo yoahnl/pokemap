@@ -85,13 +85,10 @@ MapData applyTerrainStroke({
       },
     );
   }
-  return replaceSmartTileLayer(
+  return applySmartTileMapMaterialGesture(
     next,
-    layer: applySmartTileMaterialGesture(
-      layer,
-      mapSize: map.size,
-      cells: positions,
-      materialId: erase ? null : preset.defaultMaterialId,
-    ),
+    layer: layer,
+    cells: positions,
+    materialId: erase ? null : preset.defaultMaterialId,
   );
 }

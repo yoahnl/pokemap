@@ -41,6 +41,10 @@ void addSmartTileTilesetIds(
   final presetById = <String, ProjectSmartTilePreset>{
     for (final preset in catalog.presets) preset.id: preset,
   };
+  final patternById = <String, ProjectSmartTilePattern>{
+    if (map.spatialScene != null)
+      for (final pattern in catalog.patterns) pattern.id: pattern,
+  };
 
   void addFrame(SmartTileFrameRef frame) {
     final tilesetId = atlasById[frame.atlasId]?.tilesetId.trim() ?? '';
@@ -66,6 +70,15 @@ void addSmartTileTilesetIds(
     for (final rule in preset.rules) {
       for (final candidate in rule.candidates) {
         for (final part in candidate.parts) {
+          addSource(part.source);
+        }
+      }
+    }
+    for (final stroke in layer.patternStrokes) {
+      final pattern = patternById[stroke.patternId];
+      if (pattern == null || pattern.usage != layer.usage) continue;
+      for (final cell in pattern.cells) {
+        for (final part in cell.parts) {
           addSource(part.source);
         }
       }

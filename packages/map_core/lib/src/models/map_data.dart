@@ -13,6 +13,7 @@ import 'map_metadata.dart';
 import 'map_visual_stack_config.dart';
 import 'map_spatial_scene.dart';
 import 'smart_tile_gameplay_zone_provenance.dart';
+import 'smart_tile.dart';
 
 import '../compatibility/environment_single_area_migration.dart';
 
@@ -47,6 +48,7 @@ abstract class MapData with _$MapData {
 
   factory MapData.fromJson(Map<String, dynamic> json) {
     if (json['version'] == 'v9') {
+      _preflightSmartTileMapJson(json);
       final map = _$MapDataFromJson(json);
       validateSpatialMapStructure(map);
       return map;
@@ -88,11 +90,29 @@ abstract class MapData with _$MapData {
 
 void validateSpatialMapStructure(MapData map) {
   final scene = map.spatialScene;
-  if (map.version != ProjectVersion.v9 || scene == null ||
-      scene.width != map.size.width || scene.depth != map.size.height ||
-      map.layers.isNotEmpty || map.placedElements.isNotEmpty ||
-      map.tilesetId.isNotEmpty || map.visualStack != null) {
-    throw const FormatException('A v9 map requires a 3D scene and cannot contain 2D terrain or placements.');
+  if (map.version != ProjectVersion.v9 ||
+      scene == null ||
+      scene.width != map.size.width ||
+      scene.depth != map.size.height ||
+      map.layers.any(
+        (layer) =>
+            layer is! SmartTileLayer ||
+            (layer.usage != SmartTileUsage.terrain &&
+                layer.usage != SmartTileUsage.path),
+      ) ||
+      map.placedElements.isNotEmpty ||
+      map.tilesetId.isNotEmpty ||
+      map.visualStack != null) {
+    throw const FormatException(
+      'A v9 map requires a 3D scene and only Smart Tile ground/path surfaces.',
+    );
+  }
+  if (map.layers.isNotEmpty &&
+      (scene.heightLevels.any((level) => level != 0) ||
+          scene.navigation.ramps.isNotEmpty)) {
+    throw const FormatException(
+      'Smart Tile spatial surfaces require flat terrain without ramps.',
+    );
   }
 }
 
@@ -122,7 +142,7 @@ Map<String, dynamic> _migrateLegacyTileLayers(Map<String, dynamic> json) {
 
 void _preflightSmartTileMapJson(Map<String, dynamic> json) {
   final version = json['version'];
-  if (version != 'v8') {
+  if (version != 'v8' && version != 'v9') {
     throw FormatException(
       r'$.version: map_version_unsupported '
       '(expected=v8, actual=$version)',
@@ -148,7 +168,7 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
       throw FormatException(
         r'$.layers['
         '$index]: smart_tile_v6_legacy_payload_unsupported '
-        '(version=v8, variant=smart_tile)',
+        '(version=$version, variant=smart_tile)',
       );
     }
     if (runtimeType == 'terrain' ||
@@ -157,14 +177,14 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
       throw FormatException(
         r'$.layers['
         '$index].runtimeType: smart_tile_v6_legacy_layer_unsupported '
-        '(version=v8, variant=$runtimeType)',
+        '(version=$version, variant=$runtimeType)',
       );
     }
     if (runtimeType == 'smart_tile' && rawLayer['field'] is! Map) {
       throw FormatException(
         r'$.layers['
         '$index].field: smart_tile_v6_field_required '
-        '(version=v8, variant=smart_tile)',
+        '(version=$version, variant=smart_tile)',
       );
     }
   }

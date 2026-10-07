@@ -94,6 +94,22 @@ List<MapContextTarget> mapContextTargetsAt(
         label: _warpLabel(project, warp),
         kindLabel: 'Passage',
       ),
+    for (final instance
+        in map.spatialScene?.instances ?? <SpatialModelInstance>[])
+      if (instance.position.x.floor() == position.x &&
+          instance.position.z.floor() == position.y)
+        MapContextTarget(
+          mapId: mapId,
+          family: MapContextFamily.decor,
+          id: instance.id,
+          label:
+              project.models3d
+                  .where((model) => model.id == instance.modelId)
+                  .firstOrNull
+                  ?.name ??
+              'Ressource manquante',
+          kindLabel: 'Décor',
+        ),
     for (final decor in MapEditingCommands(
       document,
       project,
@@ -136,7 +152,8 @@ typedef MapContextPlacement = ({MapContextTarget target, GridPos at});
 GridPos? mapContextAnchorOf(MapData map, MapContextFamily family, String id) =>
     switch (family) {
       MapContextFamily.decor =>
-        map.placedElements.where((item) => item.id == id).firstOrNull?.pos,
+        map.placedElements.where((item) => item.id == id).firstOrNull?.pos ??
+            _spatialAnchor(map, id),
       MapContextFamily.character || MapContextFamily.marker =>
         map.entities.where((item) => item.id == id).firstOrNull?.pos,
       MapContextFamily.warp =>
@@ -179,3 +196,12 @@ String _decorLabel(ProjectManifest project, MapPlacedElement decor) =>
         .firstOrNull
         ?.name ??
     'Ressource manquante';
+
+GridPos? _spatialAnchor(MapData map, String id) {
+  final item = map.spatialScene?.instances
+      .where((item) => item.id == id)
+      .firstOrNull;
+  return item == null
+      ? null
+      : GridPos(x: item.position.x.floor(), y: item.position.z.floor());
+}

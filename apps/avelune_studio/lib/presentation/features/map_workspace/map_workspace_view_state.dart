@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
@@ -45,7 +45,9 @@ class MapWorkspaceViewState {
   final transform = TransformationController();
   double get scale => transform.value.entry(0, 0).abs();
   StudioMapTool tool = StudioMapTool.select;
+  bool spatialFreeView = false;
   ProjectElementEntry? brush;
+  ProjectModel3dEntry? model3d;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
   ProjectCharacterEntry? character;
@@ -178,12 +180,21 @@ class MapWorkspaceViewState {
   void prepareCharacterPlacement() {
     paletteTab = 'Personnages';
     brush = null;
+    model3d = null;
     tile = null;
     terrain = null;
     tool = character == null ? StudioMapTool.select : StudioMapTool.character;
   }
 
   void reconcileResources(ProjectManifest project) {
+    if (model3d != null) {
+      model3d = project.models3d
+          .where((item) => item.id == model3d!.id)
+          .firstOrNull;
+      if (model3d == null && tool == StudioMapTool.place) {
+        tool = StudioMapTool.select;
+      }
+    }
     if (brush != null) {
       brush = project.elements
           .where((item) => item.id == brush!.id)
@@ -214,6 +225,7 @@ class MapWorkspaceViewState {
   void prepareWarpPlacement() {
     paletteTab = 'Passages';
     brush = null;
+    model3d = null;
     tile = null;
     terrain = null;
     character = null;

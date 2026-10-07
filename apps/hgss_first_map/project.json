@@ -207,7 +207,19 @@
   "environmentPresets": [],
   "encounterTables": [],
   "dialogueFolders": [],
-  "dialogues": [],
+  "dialogues": [
+    {
+      "id": "halte-voyageur",
+      "name": "Le voyageur de la halte",
+      "relativePath": "dialogues/halte-voyageur.yarn",
+      "tags": [],
+      "description": "",
+      "declaredOutcomes": [],
+      "defaultStartNode": "Accueil",
+      "folderId": null,
+      "sortOrder": 0
+    }
+  ],
   "scripts": [],
   "scenarios": [],
   "cinematics": [],

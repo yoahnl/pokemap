@@ -125,6 +125,12 @@ class EditableMapDocument {
   }
 
   void _repairSelection() {
-    if (selected == null) selectedId = null;
+    if (selected == null &&
+        !(current.spatialScene?.instances.any(
+              (item) => item.id == selectedId,
+            ) ??
+            false)) {
+      selectedId = null;
+    }
   }
 }

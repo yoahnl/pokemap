@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -35,12 +38,29 @@ void main() {
               ]),
       ],
     );
+    await File('${root.path}/hello.json').writeAsBytes(
+        const RuntimeDialogueDocumentCodec()
+            .encodeUtf8(RuntimeDialogueDocument(nodes: [
+      RuntimeDialogueNode(title: 'Start', steps: [
+        RuntimeDialogueLine('Salut !'),
+        RuntimeDialogueLine('À bientôt !')
+      ])
+    ])));
     final map = MapData(
         version: ProjectVersion.v9,
         id: 'field',
         name: 'Field',
         size: const GridSize(width: 8, height: 8),
         layers: const [],
+        entities: [
+          MapEntity(
+              id: 'npc',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 4, y: 2),
+              npc: MapEntityNpcData(
+                  characterId: 'hero',
+                  dialogue: DialogueRef(dialogueId: 'hello')))
+        ],
         spatialScene: MapSpatialScene(
             width: 8,
             depth: 8,
@@ -56,6 +76,10 @@ void main() {
             maps: const [
               ProjectMapEntry(
                   id: 'field', name: 'Field', relativePath: 'maps/field.json')
+            ],
+            dialogues: [
+              ProjectDialogueEntry(
+                  id: 'hello', name: 'Hello', relativePath: 'hello.json')
             ],
             tilesets: const [],
             characters: [
@@ -83,6 +107,175 @@ void main() {
   tearDown(() async {
     await runtime.dispose();
     await root.delete(recursive: true);
+  });
+
+  test('primary opens one dialogue, locks sprint and rejects stale commands',
+      () async {
+    await runtime.load((_) {});
+    final session = runtime.session!;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    for (var i = 0; i < 5; i++) {
+      session.frame(.05);
+    }
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    runtime.handleInput(const RuntimeInputEvent.press(
+        RuntimeInputControl.primary,
+        isRepeat: true));
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.dialogue);
+    final line = runtime.dialoguePresentationListenable.value!;
+    expect(line.text, 'Salut !');
+    expect(session.frames(0).keys, containsAll(['hero', 'npc:npc']));
+    expect(session.movement.running, isFalse);
+    runtime.dispatchDialoguePresentationCommand(
+        DialogueAdvanceCommand(snapshotRevision: line.revision));
+    expect(runtime.dialoguePresentationListenable.value!.text, 'À bientôt !');
+    runtime.dispatchDialoguePresentationCommand(
+        DialogueAdvanceCommand(snapshotRevision: line.revision));
+    expect(runtime.dialoguePresentationListenable.value!.text, 'À bientôt !');
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+    session.frame(.05);
+    expect(session.movement.moving, isFalse);
+  });
+
+  test(
+      'shared text reveal freezes under pause and confirm reveals before advancing',
+      () async {
+    await runtime.load((_) {});
+    runtime.applyPlayerPreferences(const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+        dialogueTextSpeed: RuntimeDialogueTextSpeed.normal));
+    final session = runtime.session!;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    for (var i = 0; i < 5; i++) {
+      session.frame(.05);
+    }
+    final request =
+        runtime.overworldInteractionSnapshot!.primaryAction!.request;
+    expect(
+        runtime.dispatchOverworldInteraction(RuntimeOverworldInteractionRequest(
+            sessionId: 'other',
+            mapActivationId: request.mapActivationId,
+            mapId: request.mapId,
+            targetKind: request.targetKind,
+            targetId: request.targetId,
+            actionId: request.actionId)),
+        isFalse);
+    expect(runtime.dispatchOverworldInteraction(request), isTrue);
+    expect(runtime.dispatchOverworldInteraction(request), isFalse);
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(
+        runtime
+            .dialoguePresentationListenable.value!.isCurrentLineFullyRevealed,
+        isFalse);
+    session.frame(.05);
+    final partial = runtime.dialoguePresentationListenable.value!.text;
+    expect(partial.length, lessThan('Salut !'.length));
+    await runtime.pause();
+    session.frame(.05);
+    expect(runtime.dialoguePresentationListenable.value!.text, partial);
+    await runtime.resume();
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    expect(runtime.dialoguePresentationListenable.value!.text, 'Salut !');
+    expect(
+        runtime
+            .dialoguePresentationListenable.value!.isCurrentLineFullyRevealed,
+        isTrue);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    expect(
+        runtime.dialoguePresentationListenable.value!.fullText, 'À bientôt !');
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+  });
+
+  test(
+      'stop invalidates pending dialogue and unreadable content restores control',
+      () async {
+    await runtime.load((_) {});
+    final session = runtime.session!;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    for (var i = 0; i < 5; i++) {
+      session.frame(.05);
+    }
+    await File('${root.path}/hello.json').delete();
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await waitForValue(session.interactionError, (value) => value != null);
+    expect(session.interactionError.value, isNotNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+    final pending = session.interact();
+    await runtime.stop(GameSessionExitReason.title);
+    await pending;
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.blocked);
+  });
+
+  test('direct Studio dialogue controls preserve pause authority', () async {
+    final session = await SpatialExplorationSession.load(bundle);
+    addTearDown(session.dispose);
+    session.movement.setInput(x: 0, z: -1);
+    for (var i = 0; i < 5; i++) {
+      session.frame(.05);
+    }
+    session.dialoguePaused = true;
+    session.movement.setPaused(true);
+    session.closeDialogue();
+    expect(session.movement.paused, isTrue);
+    await session.interact();
+    expect(session.interactionActive.value, isFalse);
+    session.dialoguePaused = false;
+    session.movement.setPaused(false);
+    await session.interact();
+    final snapshot = session.dialoguePresentation.value!;
+    session.dialoguePaused = true;
+    session.dispatchDialogueCommand(
+        DialogueAdvanceCommand(snapshotRevision: snapshot.revision));
+    session.frame(.05);
+    expect(session.dialoguePresentation.value, snapshot);
+    session.closeDialogue();
+    expect(session.movement.paused, isTrue);
+    expect(session.interactionActive.value, isFalse);
+  });
+
+  testWidgets('manual pause survives inactive and resumed lifecycle',
+      (tester) async {
+    final session =
+        (await tester.runAsync(() => SpatialExplorationSession.load(bundle)))!;
+    addTearDown(session.dispose);
+    session.movement.setInput(x: 0, z: -1);
+    for (var i = 0; i < 5; i++) {
+      session.frame(.05);
+    }
+    await tester.runAsync(session.interact);
+    final before = session.dialoguePresentation.value!;
+    await tester.pumpWidget(
+        MaterialApp(home: SpatialExplorationView(session: session)));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    session.dispatchDialogueCommand(
+        DialogueAdvanceCommand(snapshotRevision: before.revision));
+    expect(session.dialoguePresentation.value, before);
+    session.dialoguePaused = true;
+    session.movement.setPaused(true);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    session.frame(.05);
+    expect(session.dialoguePaused, isTrue);
+    expect(session.presentationPaused, isTrue);
+    expect(session.movement.paused, isTrue);
+    expect(session.dialoguePresentation.value, before);
+    session.dispatchDialogueCommand(
+        DialogueAdvanceCommand(snapshotRevision: before.revision));
+    expect(session.dialoguePresentation.value, before);
+    await tester.pumpWidget(const SizedBox());
   });
 
   test('routes digital inputs and sprint through authored spatial movement',
@@ -198,6 +391,23 @@ void main() {
     await expectLater(continued.load((_) {}), throwsStateError);
     expect(continued.session, isNull);
   });
+}
+
+Future<void> waitForValue<T>(
+    ValueListenable<T> value, bool Function(T) matches) async {
+  if (matches(value.value)) return;
+  final ready = Completer<void>();
+  void changed() {
+    if (matches(value.value) && !ready.isCompleted) ready.complete();
+  }
+
+  value.addListener(changed);
+  try {
+    changed();
+    await ready.future.timeout(const Duration(seconds: 3));
+  } finally {
+    value.removeListener(changed);
+  }
 }
 
 GameSessionDescriptor descriptor({bool continueGame = false}) =>

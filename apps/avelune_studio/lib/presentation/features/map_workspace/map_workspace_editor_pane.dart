@@ -71,26 +71,6 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
       final collapsed = widget.view.navigatorCollapsed || compact;
-      if (widget.document.current.spatialScene != null) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.showNavigator)
-              collapsed ? _navigatorRail(context) : _navigator(context),
-            Expanded(
-              child: SpatialMapEditor(
-                key: ValueKey(widget.document.base.mapId),
-                document: widget.document,
-                controller: widget.controller,
-                project: widget.project,
-                visuals: widget.visuals,
-                onChanged: widget.onChanged,
-                onResources: widget.onResources,
-              ),
-            ),
-          ],
-        );
-      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -110,6 +90,9 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                           children: [
                             if (widget.showToolStrip)
                               MapWorkspaceToolStrip(
+                                spatial:
+                                    widget.document.current.spatialScene !=
+                                    null,
                                 view: widget.view,
                                 storyAvailable: widget.onZoneDrawn != null,
                                 paletteVisible: widget.showPaletteDock,
@@ -166,17 +149,29 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                 ),
                               ),
                             Expanded(
-                              child: MapWorkspaceCanvas(
-                                key: ValueKey(widget.document.base.mapId),
-                                document: widget.document,
-                                project: widget.project,
-                                visuals: widget.visuals,
-                                view: widget.view,
-                                onChanged: widget.onChanged,
-                                gestureGeneration: widget.generation,
-                                onZoneDrawn: widget.onZoneDrawn,
-                                onContextMenu: widget.onContextMenu,
-                              ),
+                              child:
+                                  widget.document.current.spatialScene != null
+                                  ? SpatialMapEditor(
+                                      key: ValueKey(widget.document.base.mapId),
+                                      document: widget.document,
+                                      controller: widget.controller,
+                                      project: widget.project,
+                                      visuals: widget.visuals,
+                                      view: widget.view,
+                                      onChanged: widget.onChanged,
+                                      onContextMenu: widget.onContextMenu,
+                                    )
+                                  : MapWorkspaceCanvas(
+                                      key: ValueKey(widget.document.base.mapId),
+                                      document: widget.document,
+                                      project: widget.project,
+                                      visuals: widget.visuals,
+                                      view: widget.view,
+                                      onChanged: widget.onChanged,
+                                      gestureGeneration: widget.generation,
+                                      onZoneDrawn: widget.onZoneDrawn,
+                                      onContextMenu: widget.onContextMenu,
+                                    ),
                             ),
                           ],
                         ),

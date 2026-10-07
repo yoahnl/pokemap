@@ -14,6 +14,11 @@ import 'map_workspace_view_state.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_decor_geometry_panel.dart';
 import 'map_catalogue_properties.dart';
+import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_preview.dart';
+import '../../shared/widgets/inputs/studio_commit_field.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -63,12 +68,138 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
     if (!identical(project, oldWidget.project)) _index();
   }
 
+  Widget _spatialInspector(
+    BuildContext context,
+    SpatialModelInstance instance,
+  ) {
+    final model = project.models3d
+        .where((model) => model.id == instance.modelId)
+        .firstOrNull;
+    final commands = SpatialModelEditingCommands(document, project);
+    bool change(void Function() action) {
+      try {
+        action();
+        onChanged();
+        return true;
+      } on Object catch (error) {
+        document.error = error.toString();
+        onChanged();
+        return false;
+      }
+    }
+
+    Widget field(
+      String id,
+      String label,
+      double value,
+      void Function(double) update,
+    ) => StudioCommitField(
+      key: ValueKey('decor-geometry-$id'),
+      label: label,
+      value: '$value',
+      tryCommit: (text) {
+        final number = double.tryParse(text.trim());
+        if (number == null || !number.isFinite) {
+          document.error = 'Saisissez un nombre valide.';
+          onChanged();
+          return false;
+        }
+        return change(() => update(number));
+      },
+    );
+    return StudioSidebar(
+      width: widget.width,
+      child: ListView(
+        children: [
+          if (widget.showSelectionSummary)
+            Text(
+              'Élément sélectionné',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          const SizedBox(height: 12),
+          if (model != null)
+            StudioAssetPreview(
+              height: 104,
+              child: resourcePreview(
+                ResourceItem(
+                  id: model.id,
+                  name: model.name,
+                  kind: ResourceKind.decors,
+                  model3d: model,
+                ),
+                project,
+                visuals,
+                size: 100,
+              ),
+            ),
+          Text(
+            model?.name ?? 'Ressource manquante',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const Text('Cette instance · décor placé sur la carte'),
+          const SizedBox(height: 12),
+          field(
+            'x',
+            'X',
+            instance.position.x,
+            (number) => commands.update(instance.id, x: number),
+          ),
+          field(
+            'y',
+            'Y',
+            instance.position.z,
+            (number) => commands.update(instance.id, z: number),
+          ),
+          field(
+            'rotation',
+            'Rotation',
+            instance.rotationDegrees,
+            (number) => commands.update(instance.id, rotation: number),
+          ),
+          field(
+            'scale',
+            'Échelle',
+            instance.scale,
+            (number) => commands.update(instance.id, scale: number),
+          ),
+          StudioToggleRow(
+            label: 'Bloque le passage',
+            value: instance.blocksMovement,
+            onChanged: (value) => change(
+              () => commands.update(instance.id, blocksMovement: value),
+            ),
+          ),
+          StudioButton(
+            label: 'Dupliquer',
+            secondary: true,
+            onPressed: () => change(() {
+              commands.duplicate(instance.id);
+              view.select(
+                document,
+                MapSelectionFamily.decor,
+                document.selectedId!,
+              );
+            }),
+          ),
+          StudioTool(
+            label: 'Supprimer le décor',
+            icon: Icons.delete_outline,
+            shortcut: '⌫',
+            onPressed: () => change(() => commands.delete(instance.id)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _index() {
     entries = {for (final entry in project.elements) entry.id: entry};
   }
 
   @override
   Widget build(BuildContext context) {
+    final spatial = SpatialModelEditingCommands(document, project).selected();
+    if (spatial != null) return _spatialInspector(context, spatial);
     final commands = MapEditingCommands(document, project);
     final position = document.stackPosition;
     final stack = document.stackPixelPosition != null

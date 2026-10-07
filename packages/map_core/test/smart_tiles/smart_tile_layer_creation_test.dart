@@ -2,6 +2,90 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('spatial terrain presets create independent empty gesture surfaces', () {
+    final map = MapData(id: 'target', name: 'Target', version: ProjectVersion.v9,
+      size: const GridSize(width: 2, height: 2), spatialScene: MapSpatialScene(width: 2, depth: 2));
+    var manifest = _manifestWithMaterials().copyWith(version: ProjectVersion.v9,
+      settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile()));
+    var current = map;
+    for (final material in ['grass', 'dirt']) {
+      final preset = _preset(topology: SmartTileTopology.uniform,
+        coveragePolicy: SmartTileCoveragePolicy.complete).copyWith(id: material,
+          defaultMaterialId: material, allowedMaterialIds: [material], rules: [
+            SmartTileRule(id: material, centerMatch: SmartTileSlotMatch.material(material),
+              candidates: const [SmartTileCandidate(id: 'base')])]);
+      final result = planNativeSmartTileLayerCreationForMap(map: current, manifest: manifest,
+        preset: preset, layerId: material, layerName: material);
+      expect(result, isA<SmartTileLayerCreationSuccess>());
+      final success = result as SmartTileLayerCreationSuccess;
+      current = success.map;
+      manifest = success.manifest;
+      final layer = current.layers.whereType<SmartTileLayer>().firstWhere((layer) => layer.id == material);
+      expect(smartTileSemanticCells(layer), [0, 0, 0, 0]);
+      current = replaceSmartTileLayer(current, layer: applySmartTileMaterialGesture(layer,
+        mapSize: current.size, cells: [GridPos(x: material == 'grass' ? 0 : 1, y: 0)], materialId: material));
+    }
+    expect(current.layers.length, 2);
+    expect((current.layers.first as SmartTileLayer).id, 'dirt');
+    expect(smartTileSemanticCells(current.layers.first as SmartTileLayer), [0, 1, 0, 0]);
+    expect(smartTileSemanticCells(current.layers.last as SmartTileLayer), [1, 0, 0, 0]);
+    MapValidator.validate(current, projectDialogueContext: manifest);
+  });
+  test(
+    'spatial layer creation preserves v9 and rejects unsupported surfaces',
+    () {
+      final map = MapData(
+        id: 'target',
+        name: 'Target',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 2, height: 2),
+        spatialScene: MapSpatialScene(width: 2, depth: 2),
+      );
+      final manifest =
+          _manifestWithMaterials(
+            maps: const [
+              ProjectMapEntry(
+                id: 'target',
+                name: 'Target',
+                relativePath: 'maps/target.json',
+              ),
+            ],
+          ).copyWith(
+            version: ProjectVersion.v9,
+            settings: ProjectSettings(
+              dimension: ProjectDimension.threeD,
+              spatialCamera: SpatialCameraProfile(),
+            ),
+          );
+      final preset = _preset(topology: SmartTileTopology.uniform);
+      final created = planNativeSmartTileLayerCreationForMap(
+        map: map,
+        manifest: manifest,
+        preset: preset,
+        layerId: 'ground',
+        layerName: 'Ground',
+      );
+      expect(created, isA<SmartTileLayerCreationSuccess>());
+      expect(
+        (created as SmartTileLayerCreationSuccess).map.version,
+        ProjectVersion.v9,
+      );
+      expect(created.map.spatialScene, map.spatialScene);
+      final elevated = planNativeSmartTileLayerCreationForMap(
+        map: map.copyWith(
+          spatialScene: map.spatialScene!.copyWith(heightLevels: [1, 1, 1, 1]),
+        ),
+        manifest: manifest,
+        preset: preset,
+        layerId: 'ground',
+        layerName: 'Ground',
+      );
+      expect(
+        (elevated as SmartTileLayerCreationFailure).code,
+        'smart_tile.spatial_flat_required',
+      );
+    },
+  );
   test(
     'authoritative document creation keeps the full catalog and dirty map',
     () {

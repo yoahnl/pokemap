@@ -5,6 +5,43 @@ import 'package:test/test.dart';
 
 void main() {
   group('MapDeltaValidator', () {
+    test('Smart Tile deltas cannot mutate the spatial scene', () {
+      final before = MapData(
+        id: 'spatial',
+        name: 'Spatial',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 1, height: 1),
+        spatialScene: MapSpatialScene(width: 1, depth: 1),
+        layers: const [
+          MapLayer.smartTile(
+            id: 'ground',
+            name: 'Ground',
+            presetId: 'grass',
+            usage: SmartTileUsage.terrain,
+            materialPalette: ['', 'grass'],
+            field: SmartTileField.cell(semanticCells: [0]),
+          ),
+        ],
+      );
+      final after = before.copyWith(
+        spatialScene: before.spatialScene!.copyWith(
+          camera: SpatialCameraProfile(distance: 25),
+        ),
+      );
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: before,
+            after: after,
+            delta: const MapMutationDelta.smartTileCells(
+              layerId: 'ground',
+              cellIndices: {0},
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
     test('matches full validation for randomized local mutations', () {
       final random = Random(5005);
       var map = _map(32);

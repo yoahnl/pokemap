@@ -329,6 +329,10 @@ final class MapCellStrokeBuffer {
       if (cellChanged) {
         _smartTileTouchedCellIndices.add(cellIndex);
         changed = true;
+      } else if (sourceMap.spatialScene != null &&
+          layer.usage == SmartTileUsage.terrain &&
+          materialId != null) {
+        _smartTileTouchedCellIndices.add(cellIndex);
       }
     }
     if (changed) _publish();

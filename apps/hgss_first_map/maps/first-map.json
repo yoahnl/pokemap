@@ -709,7 +709,50 @@
   "tilesetId": "",
   "layers": [],
   "placedElements": [],
-  "entities": [],
+  "entities": [
+    {
+      "id": "voyageur-halte",
+      "name": "Voyageur de la halte",
+      "kind": "npc",
+      "pos": {
+        "x": 8,
+        "y": 9
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": {
+        "displayName": "Voyageur",
+        "dialogue": {
+          "dialogueId": "halte-voyageur",
+          "scriptPathRelative": "",
+          "startNode": "Accueil"
+        },
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "voyageur-psdk",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {}
+    }
+  ],
   "connections": [],
   "warps": [],
   "triggers": [],

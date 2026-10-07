@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -30,6 +31,8 @@ abstract interface class MapWorkspacePreviewVisuals {
 
 abstract interface class SpatialWorkspaceVisuals {
   Future<Uint8List> readModel(String modelId);
+  Future<Uint8List> readGroundImage(String tilesetId);
+  Future<SpatialNpcPreview> spatialPreview(MapData map);
 }
 
 typedef LoadWorkspaceVisuals =
@@ -55,4 +58,10 @@ abstract interface class MapBorderPreviewVisuals {
 
 abstract interface class ResourceImageDimensionsVisuals {
   Size? cachedImageDimensions(String tilesetId);
+}
+
+final class SpatialNpcPreview {
+  SpatialNpcPreview(this.frames, this.dispose);
+  final Map<String, SpatialActorVisual> frames;
+  final VoidCallback dispose;
 }

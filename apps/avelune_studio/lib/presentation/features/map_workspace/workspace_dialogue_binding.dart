@@ -15,6 +15,14 @@ extension _WorkspaceDialogueBinding on _MapWorkspaceScreenState {
         _scenes?.refreshDialogueResults(id);
   }
 
+  void _openMapDialogue(String id) {
+    final owner = _dialogues;
+    if (owner == null) return;
+    _dialogueOrigin = WorkspaceSpace.map;
+    _show(WorkspaceSpace.dialogue);
+    unawaited(owner.open(id));
+  }
+
   void _openDialogues() {
     _dialogueOrigin = WorkspaceSpace.story;
     _show(WorkspaceSpace.dialogue);

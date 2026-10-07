@@ -108,6 +108,16 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   Future<void> _editInteraction(MapEntity entity) async {
+    if (_controller.active?.current.spatialScene != null) {
+      final dialogue = entity.npc?.dialogue;
+      if (dialogue == null) {
+        _dialogueOrigin = WorkspaceSpace.map;
+        _show(WorkspaceSpace.dialogue);
+      } else {
+        _openMapDialogue(dialogue.dialogueId);
+      }
+      return;
+    }
     if (_events != null && _controller.active != null) {
       await _openEventSource(
         NarrativeEventSourceRef.entityInteract(

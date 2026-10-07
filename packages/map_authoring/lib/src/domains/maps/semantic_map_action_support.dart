@@ -144,6 +144,10 @@ final class SemanticMapActionContext {
     final afterLayer = edit.map.layers.singleWhere(
       (layer) => layer.id == edit.layerId,
     );
+    final changesOtherLayers = map.layers.any((layer) =>
+        layer.id != edit.layerId &&
+        layer !=
+            edit.map.layers.where((next) => next.id == layer.id).firstOrNull);
     return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
         changes: [
@@ -158,9 +162,13 @@ final class SemanticMapActionContext {
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.replace,
             resource: resource,
-            path: '/layers/${edit.layerId}',
-            before: semanticLayerSummary(beforeLayer),
-            after: semanticLayerSummary(afterLayer),
+            path: changesOtherLayers ? '/layers' : '/layers/${edit.layerId}',
+            before: changesOtherLayers
+                ? map.layers.map((layer) => layer.toJson()).toList()
+                : semanticLayerSummary(beforeLayer),
+            after: changesOtherLayers
+                ? edit.map.layers.map((layer) => layer.toJson()).toList()
+                : semanticLayerSummary(afterLayer),
           ),
         ]),
       ),

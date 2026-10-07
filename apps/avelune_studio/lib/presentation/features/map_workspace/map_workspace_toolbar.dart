@@ -35,7 +35,6 @@ class MapWorkspaceToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     final document = controller.active;
-    final spatial = document?.current.spatialScene != null;
     void zoom(double factor) {
       final transform = view?.transform;
       if (transform == null) return;
@@ -93,73 +92,93 @@ class MapWorkspaceToolbar extends StatelessWidget {
           message: 'Enregistrer et tester',
           child: StudioButton(
             key: const ValueKey('Enregistrer et tester'),
-            label: spatial ? 'Tester la carte 3D' : 'Tester la carte',
+            label: 'Tester la carte',
             icon: Icons.play_arrow,
             onPressed: onTest,
           ),
         ),
       ],
     );
-    final controls = spatial
-        ? const Text('Édition 3D')
-        : Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              StudioTool(
-                label: 'Zoom arrière',
-                icon: Icons.remove,
-                onPressed: () => zoom(.8),
+    final controls = Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        StudioTool(
+          label: 'Zoom arrière',
+          icon: Icons.remove,
+          onPressed: () => zoom(.8),
+        ),
+        if (view != null)
+          ValueListenableBuilder<Matrix4>(
+            valueListenable: view!.transform,
+            builder: (context, value, _) => SizedBox(
+              width: MediaQuery.textScalerOf(
+                context,
+              ).scale(largeText ? 70 : 52),
+              child: Text(
+                '${(value.entry(0, 0).abs() * 100).round()} %',
+                textAlign: TextAlign.center,
+                maxLines: largeText ? 1 : null,
+                overflow: largeText ? TextOverflow.ellipsis : null,
               ),
-              if (view != null)
-                ValueListenableBuilder<Matrix4>(
-                  valueListenable: view!.transform,
-                  builder: (context, value, _) => SizedBox(
-                    width: MediaQuery.textScalerOf(
-                      context,
-                    ).scale(largeText ? 70 : 52),
-                    child: Text(
-                      '${(value.entry(0, 0).abs() * 100).round()} %',
-                      textAlign: TextAlign.center,
-                      maxLines: largeText ? 1 : null,
-                      overflow: largeText ? TextOverflow.ellipsis : null,
-                    ),
-                  ),
-                ),
-              StudioTool(
-                label: 'Zoom avant',
-                icon: Icons.add,
-                onPressed: () => zoom(1.25),
-              ),
-              StudioTool(
-                label: 'Recentrer',
-                icon: Icons.center_focus_strong,
-                onPressed: () => view?.recenter?.call(),
-              ),
-              StudioTool(
-                label: 'Afficher la grille',
-                icon: Icons.grid_on,
-                selected: view?.grid ?? false,
-                onPressed: () {
+            ),
+          ),
+        StudioTool(
+          label: 'Zoom avant',
+          icon: Icons.add,
+          onPressed: () => zoom(1.25),
+        ),
+        StudioTool(
+          label: 'Recentrer',
+          icon: Icons.center_focus_strong,
+          onPressed: () => view?.recenter?.call(),
+        ),
+        if (document?.current.spatialScene != null && view != null)
+          Tooltip(
+            message: view!.spatialFreeView
+                ? 'Revenir à la caméra du jeu'
+                : 'En Sélection, glisser un élément pour le déplacer. Flèches pour ajuster. Alt + glisser pour tourner.',
+            child: StudioButton(
+              key: const ValueKey('spatial-camera-view'),
+              label: view!.spatialFreeView ? 'Vue du jeu' : 'Vue libre',
+              icon: view!.spatialFreeView
+                  ? Icons.videogame_asset_outlined
+                  : Icons.threed_rotation,
+              secondary: true,
+              onPressed: () {
+                view!.spatialFreeView = !view!.spatialFreeView;
+                onChanged();
+              },
+            ),
+          ),
+        StudioTool(
+          label: document?.current.spatialScene != null
+              ? 'La grille est indisponible pour cette scène 3D'
+              : 'Afficher la grille',
+          icon: Icons.grid_on,
+          selected: view?.grid ?? false,
+          onPressed: document?.current.spatialScene != null
+              ? null
+              : () {
                   if (view != null) view!.grid = !view!.grid;
                   onChanged();
                 },
-              ),
-              StudioTool(
-                label: 'Palette',
-                icon: Icons.view_sidebar_outlined,
-                selected: paletteVisible,
-                onPressed: onPalette,
-              ),
-              StudioTool(
-                label: 'Inspecteur',
-                icon: Icons.tune,
-                selected: inspectorVisible,
-                onPressed: onInspector,
-              ),
-            ],
-          );
+        ),
+        StudioTool(
+          label: 'Palette',
+          icon: Icons.view_sidebar_outlined,
+          selected: paletteVisible,
+          onPressed: onPalette,
+        ),
+        StudioTool(
+          label: 'Inspecteur',
+          icon: Icons.tune,
+          selected: inspectorVisible,
+          onPressed: onInspector,
+        ),
+      ],
+    );
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Padding(

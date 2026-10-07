@@ -3,10 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import 'spatial_exploration_session.dart';
+import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 
 class SpatialExplorationView extends StatefulWidget {
-  const SpatialExplorationView({super.key, required this.session,
-    this.keyboardInputEnabled = true, this.onReady, this.onError});
+  const SpatialExplorationView(
+      {super.key,
+      required this.session,
+      this.keyboardInputEnabled = true,
+      this.onReady,
+      this.onError});
   final SpatialExplorationSession session;
   final bool keyboardInputEnabled;
   final VoidCallback? onReady;
@@ -34,6 +39,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    widget.session.setLifecyclePaused(state != AppLifecycleState.resumed);
     if (state != AppLifecycleState.resumed) release();
   }
 
@@ -47,6 +53,23 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     if (event is KeyRepeatEvent && !keys.contains(key)) {
       return KeyEventResult.handled;
     }
+    if (key == LogicalKeyboardKey.keyE ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.escape) {
+      if (event is KeyDownEvent) {
+        if (key == LogicalKeyboardKey.escape) {
+          widget.session.closeDialogue();
+        } else if (widget.session.dialoguePresentation.value
+            case final snapshot?) {
+          widget.session.dispatchDialogueCommand(
+              DialogueAdvanceCommand(snapshotRevision: snapshot.revision));
+        } else {
+          widget.session.interact();
+        }
+      }
+      return KeyEventResult.handled;
+    }
+    if (widget.session.interactionActive.value) return KeyEventResult.handled;
     final supported = {
       LogicalKeyboardKey.arrowUp,
       LogicalKeyboardKey.arrowDown,
@@ -105,22 +128,50 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         },
         onKeyEvent: onKey,
         child: Listener(
-            onPointerDown: (_) { if (widget.keyboardInputEnabled) focus.requestFocus(); },
-            child: SpatialSceneView(
-                scene: widget.session.bundle.map.spatialScene!,
-                models: widget.session.bundle.manifest.models3d,
-                loadModel: (id) async =>
-                    Uint8List.fromList(await widget.session.modelBytes(id)),
-                controller: camera,
-                onCell: (_, __) { if (widget.keyboardInputEnabled) focus.requestFocus(); },
-                onReady: widget.onReady,
-                actorFrame: widget.session.frame,
-                background: colors.surfaceContainerLowest,
-                ground: colors.primaryContainer,
-                edge: colors.outlineVariant,
-                errorBuilder: (_, error) {
-                  widget.onError?.call(error);
-                  return Center(child: Text('Erreur d’exploration 3D : $error'));
-                })));
+            onPointerDown: (_) {
+              if (widget.keyboardInputEnabled) focus.requestFocus();
+            },
+            child: Stack(children: [
+              Positioned.fill(
+                  child: SpatialSceneView(
+                      scene: widget.session.bundle.map.spatialScene!,
+                      groundMap: widget.session.bundle.map,
+                      groundProject: widget.session.bundle.manifest,
+                      loadGroundImage: widget.session.groundImageBytes,
+                      models: widget.session.bundle.manifest.models3d,
+                      loadModel: (id) async => Uint8List.fromList(
+                          await widget.session.modelBytes(id)),
+                      controller: camera,
+                      onCell: (_, __) {
+                        if (widget.keyboardInputEnabled) focus.requestFocus();
+                      },
+                      onReady: widget.onReady,
+                      actorFrames: widget.session.frames,
+                      background: colors.surfaceContainerLowest,
+                      ground: colors.primaryContainer,
+                      edge: colors.outlineVariant,
+                      errorBuilder: (_, error) {
+                        widget.onError?.call(error);
+                        return Center(
+                            child: Text('Erreur d’exploration 3D : $error'));
+                      })),
+              Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                  child: ValueListenableBuilder<Object?>(
+                    valueListenable: widget.session.interactionError,
+                    builder: (context, error, _) => error == null
+                        ? const SizedBox.shrink()
+                        : ColoredBox(
+                            color: colors.errorContainer,
+                            child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(
+                                    'Ce dialogue ne peut pas être ouvert.',
+                                    style: TextStyle(
+                                        color: colors.onErrorContainer)))),
+                  )),
+            ])));
   }
 }
