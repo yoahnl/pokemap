@@ -5,6 +5,7 @@ import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 import 'player_pause_menu_state.dart';
+import 'player_spatial_position.dart';
 import 'rail_journey.dart';
 import 'save_data.dart';
 
@@ -80,6 +81,7 @@ abstract class GameState with _$GameState {
 
     /// Position du joueur sur la map.
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
+    PlayerSpatialPosition? playerSpatialPosition,
 
     /// Orientation du joueur.
     @Default(EntityFacing.south) EntityFacing playerFacing,

@@ -30,6 +30,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     saveId: normalizedSaveData.saveId,
     currentMapId: normalizedSaveData.currentMapId,
     playerPosition: normalizedSaveData.playerPosition,
+    playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
     party: normalizedSaveData.party,
@@ -70,6 +71,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     saveId: normalizedGameState.saveId,
     currentMapId: normalizedGameState.currentMapId,
     playerPosition: normalizedGameState.playerPosition,
+    playerSpatialPosition: normalizedGameState.playerSpatialPosition,
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,
     party: normalizedGameState.party,
@@ -88,6 +90,7 @@ SaveData saveDataFromGameState(GameState gameState) {
   ).normalized();
 }
 GameState normalizeLoadedGameState(GameState state) {
+  state.playerSpatialPosition?.validateGridPosition(state.playerPosition);
   final roster = normalizePlayerPokemonRosterIdentities(
     saveId: state.saveId,
     party: state.party,

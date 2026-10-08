@@ -314,6 +314,7 @@ class GameStateMutations {
     return state.copyWith(
       currentMapId: mapId.trim().isEmpty ? state.currentMapId : mapId.trim(),
       playerPosition: GridPos(x: x, y: y),
+      playerSpatialPosition: null,
       playerFacing: facing ?? state.playerFacing,
     );
   }

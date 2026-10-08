@@ -129,6 +129,7 @@ PlayerDefeatRecoveryResult applyPlayerDefeatRecovery({
   final nextState = healed.copyWith(
     currentMapId: recoveryPoint.mapId,
     playerPosition: recoveryPoint.position,
+    playerSpatialPosition: null,
     playerFacing: recoveryPoint.facing,
     playerMovementMode: MovementMode.walk,
     trainerProfile: healed.trainerProfile.copyWith(

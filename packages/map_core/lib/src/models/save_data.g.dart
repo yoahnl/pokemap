@@ -273,6 +273,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   playerPosition: json['playerPosition'] == null
       ? const GridPos(x: 0, y: 0)
       : GridPos.fromJson(json['playerPosition'] as Map<String, dynamic>),
+  playerSpatialPosition: json['playerSpatialPosition'] == null
+      ? null
+      : PlayerSpatialPosition.fromJson(
+          json['playerSpatialPosition'] as Map<String, dynamic>,
+        ),
   playerFacing:
       $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
       EntityFacing.south,
@@ -340,6 +345,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'itemSystemSchemaVersion': instance.itemSystemSchemaVersion,
   'currentMapId': instance.currentMapId,
   'playerPosition': instance.playerPosition.toJson(),
+  'playerSpatialPosition': instance.playerSpatialPosition?.toJson(),
   'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
   'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
   'party': instance.party.toJson(),

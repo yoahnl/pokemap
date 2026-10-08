@@ -136,7 +136,8 @@ final class HubRuntimeStartupBootstrap
   final RuntimeAudioMixer? audioMixer;
   final RuntimeSplashJingleController? splashJingle;
   final HubRuntimeStartupLifetime? lifetime;
-  final SpatialExplorationSessionMount? mountSpatialSession, unmountSpatialSession;
+  final SpatialExplorationSessionMount? mountSpatialSession,
+      unmountSpatialSession;
 
   @override
   Future<RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>> prepare({
@@ -217,9 +218,12 @@ final class HubRuntimeStartupBootstrap
         () => _parseInstalledProject(projectText),
       );
       lifetime?.ensureActive();
-      final spatial = installedProject.settings.dimension == ProjectDimension.threeD;
+      final spatial =
+          installedProject.settings.dimension == ProjectDimension.threeD;
       if (spatial != launch.grantedCapabilities.contains('map3d@1')) {
-        throw StateError('The installed dimension does not match its runtime capability.');
+        throw StateError(
+          'The installed dimension does not match its runtime capability.',
+        );
       }
       if (installedProject.presentationCinematics.isNotEmpty) {
         final media =
@@ -252,9 +256,7 @@ final class HubRuntimeStartupBootstrap
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
       );
-      final spatialBootstrap = spatial ? SpatialExplorationBootstrap(
-        projectFilePath: () async => projectFile.path) : null;
-      final RuntimeNewGameFlowPort newGameFlow = spatialBootstrap ?? RuntimeProjectNewGameFlowPort(
+      final RuntimeNewGameFlowPort newGameFlow = RuntimeProjectNewGameFlowPort(
         projectFilePath: () async => projectFile.path,
         initialMapPreloader: initialMapPreloader,
         preSessionRunnerFactory: presentationRuntime?.buildPreSessionRunner,
@@ -268,7 +270,8 @@ final class HubRuntimeStartupBootstrap
         dimension: installedProject.settings.dimension,
         mountSpatialSession: mountSpatialSession,
         unmountSpatialSession: unmountSpatialSession,
-        preloadedInitialMap: spatialBootstrap?.resolveForSession ?? initialMapPreloader.resolveForSession,
+        preloadedInitialMap: initialMapPreloader.resolveForSession,
+        commitCheckpoint: saveGateway.commit,
         audioMixer: configuredAudioMixer,
         presentationCinematicPlayer: presentationRuntime?.controller,
       );
@@ -281,7 +284,6 @@ final class HubRuntimeStartupBootstrap
         saveGateway: saveGateway,
         preferencesGateway: preferencesGateway,
         newGameFlow: newGameFlow,
-        explorationOnly: spatial,
         inventoryPreferencesGateway: FilePlayerInventoryPreferencesGateway(
           directory: Directory.fromUri(
             supportRoot.uri.resolve('inventory_preferences/'),
@@ -297,7 +299,7 @@ final class HubRuntimeStartupBootstrap
       final graph = RuntimeStartupPreparedGraph(
         playerCoordinator: coordinator,
         preparationPort: startupAdapter,
-        initialMapPreloadPort: spatialBootstrap ?? initialMapPreloader,
+        initialMapPreloadPort: initialMapPreloader,
         assetResolver: startupAdapter,
         introController: RuntimeIntroSequenceController(),
         splashJingleController:

@@ -645,3 +645,7 @@ export 'src/player/runtime_world_service_models.dart';
 export 'src/spatial/spatial_exploration_session.dart';
 export 'src/spatial/spatial_exploration_bootstrap.dart';
 export 'src/spatial/spatial_exploration_view.dart';
+export 'src/spatial/spatial_battle_runtime.dart';
+export 'src/spatial/spatial_battle_view.dart';
+export 'src/spatial/spatial_entity_visual_plan.dart';
+export 'src/spatial/spatial_gameplay_events.dart';

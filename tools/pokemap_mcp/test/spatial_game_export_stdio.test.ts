@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -12,7 +14,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("authored 3D exploration export crosses fresh MCP stdio and canonical worker", async () => {
+test("authored 3D exploration and gameplay exports cross fresh MCP stdio and canonical worker", async () => {
   const root = await mkdtemp(join(tmpdir(), "spatial-export-mcp-"));
   const project = join(root, "project");
   const output = process.env.POKEMAP_SPATIAL_EXPORT_OUTPUT ?? join(root, "exports");
@@ -55,6 +57,24 @@ test("authored 3D exploration export crosses fresh MCP stdio and canonical worke
     assert.ok(Number(result.fileCount) > 10);
     const bytes = await readFile(outputPath);
     assert.equal(bytes.length, result.sizeBytes);
+    assert.match(tools.tools.find((tool) => tool.name === "pokemap_game_export")!.description!, /map3d\.gameplay@1/);
+    const snapshot = await data("pokemap_query", { projectHandle: opened.projectHandle,
+      resourceKind: "project", operation: "get", ids: ["project"], view: "detail" });
+    const plan = await data("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "spatial-gameplay-fact", idempotencyKey: "spatial-gameplay-fact", workspaceHandle: opened.workspaceHandle,
+      actionId: "fact.create", actionVersion: 1, expectedRevision: snapshot.snapshotRevision,
+      parameters: { fact: { id: "fact_quest_done", label: "Quest done", defaultValue: false } },
+    } });
+    await data("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: plan.planId, operationId: "spatial-gameplay-fact-apply" });
+    const gameplayPath = join(output, "gameplay.avelunegame");
+    const gameplay = await data("pokemap_game_export", { projectHandle: opened.projectHandle,
+      mode: "localTest", outputPath: gameplayPath });
+    assert.equal(gameplay.mode, "localTest");
+    assert.equal((await readFile(gameplayPath)).length, gameplay.sizeBytes);
+    const { stdout } = await promisify(execFile)("unzip", ["-p", gameplayPath, "game-manifest.json"]);
+    const gameManifest = record(JSON.parse(stdout));
+    assert.deepEqual(record(gameManifest.compatibility).requiredCapabilities, ["map3d.gameplay@1", "map3d@1"]);
     const rejected = await client.callTool({ name: "pokemap_game_export", arguments: {
       projectHandle: opened.projectHandle, mode: "publication",
       outputPath: join(output, "publication.avelunegame"),

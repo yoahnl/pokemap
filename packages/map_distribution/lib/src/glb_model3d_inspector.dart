@@ -172,6 +172,13 @@ final class _Inspection {
       }
     }
     final samplers = _objects(json['samplers'], 1024);
+    for (final sampler in samplers) {
+      for (final axis in ['wrapS', 'wrapT']) {
+        if (![10497, 33648, 33071].contains(sampler[axis] ?? 10497)) {
+          throw const FormatException('Unsupported texture wrap mode.');
+        }
+      }
+    }
     final textures = _objects(json['textures'], 1024);
     for (final texture in textures) {
       _index(texture['source'], images.length);
@@ -215,7 +222,17 @@ final class _Inspection {
             throw const FormatException(
                 'Normals must be nonnormalized float VEC3 accessors.');
           }
-          if (entry.key == 'TANGENT' || entry.key.startsWith('COLOR_')) {
+          if (entry.key.startsWith('COLOR_')) {
+            if (entry.key != 'COLOR_0' ||
+                !['VEC3', 'VEC4'].contains(values.type) ||
+                values.componentType != 5126 ||
+                values.normalized ||
+                values.values.any((value) => value < 0 || value > 1)) {
+              throw const FormatException(
+                  'COLOR_0 must contain nonnormalized float RGB or RGBA values between zero and one.');
+            }
+          }
+          if (entry.key == 'TANGENT') {
             diagnostics.add('renderer.ignored_${entry.key.toLowerCase()}');
           }
           if (entry.key.startsWith('TEXCOORD_') &&
@@ -374,10 +391,14 @@ final class _Inspection {
   List<Model3dMaterial> _materials(int textureCount) {
     final entries = _objects(json['materials'], 1024);
     for (final material in entries) {
-      if ((material['alphaMode'] ?? 'OPAQUE') != 'OPAQUE' ||
-          material['doubleSided'] == true) {
+      final mode = material['alphaMode'] ?? 'OPAQUE';
+      if (!['OPAQUE', 'MASK'].contains(mode) ||
+          (mode == 'MASK' && material['alphaCutoff'] != .5) ||
+          (mode == 'OPAQUE' && material.containsKey('alphaCutoff')) ||
+          (material.containsKey('doubleSided') &&
+              material['doubleSided'] is! bool)) {
         throw const FormatException(
-            'Transparent and double sided materials are unsupported by this renderer.');
+            'Only OPAQUE or MASK with explicit alpha cutoff 0.5 and boolean doubleSided is supported.');
       }
       for (final key in [
         'normalTexture',
@@ -432,7 +453,13 @@ final class _Inspection {
     return [
       for (var i = 0; i < entries.length; i++)
         Model3dMaterial(
-            index: i, name: _label(entries[i]['name'], 'Material ${i + 1}'))
+            index: i,
+            name: _label(entries[i]['name'], 'Material ${i + 1}'),
+            alphaMode: entries[i]['alphaMode'] == 'MASK'
+                ? Model3dAlphaMode.mask
+                : Model3dAlphaMode.opaque,
+            alphaCutoff: entries[i]['alphaMode'] == 'MASK' ? .5 : null,
+            doubleSided: entries[i]['doubleSided'] as bool? ?? false)
     ];
   }
 

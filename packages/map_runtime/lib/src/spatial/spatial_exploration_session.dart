@@ -15,9 +15,11 @@ import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_runtime_models.dart';
 import '../application/resolve_dialogue.dart';
 import '../application/load_dialogue_content.dart';
+import '../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
+import 'spatial_entity_visual_plan.dart';
 
 final class SpatialExplorationSession {
   SpatialExplorationSession._(
@@ -28,6 +30,10 @@ final class SpatialExplorationSession {
   final Map<String, ui.Image> _images;
   final Map<String, SpatialActorTexture> _textures;
   final _resolver = CharacterAnimationSourceResolver();
+  late SpatialEntityVisualPlan _entityVisuals;
+  bool Function(String mapId, MapEntity entity)? entityIsPresent;
+  bool _present(MapEntity entity) =>
+      entityIsPresent?.call(bundle.map.id, entity) ?? true;
   bool _disposed = false;
   late Future<RuntimeMapBundle> Function(String) _loadMap;
   late SpatialWarpController _warps;
@@ -52,9 +58,11 @@ final class SpatialExplorationSession {
   final dialoguePresentation =
       ValueNotifier<DialoguePresentationSnapshot?>(null);
   DialogueOverlayComponent? _dialogue;
+  Completer<SceneDialogueRuntimeAwaitableResult>? _dialogueCompletion;
   RuntimeDialogueTextSpeed textSpeed = RuntimeDialogueTextSpeed.instant;
   bool dialoguePaused = false;
   bool _lifecyclePaused = false;
+  double _presentationSeconds = 0;
   bool get presentationPaused => dialoguePaused || _lifecyclePaused;
   void setLifecyclePaused(bool paused) {
     if (_disposed) return;
@@ -92,16 +100,47 @@ final class SpatialExplorationSession {
         z: movement.z,
         facing: movement.facing);
     if (entity == null) return;
+    final ref = entity.npc?.dialogue;
+    if (ref == null) return;
+    await _openDialogue(ref, entity: entity);
+  }
+
+  Future<SceneDialogueRuntimeAwaitableResult> showDialogue(DialogueRef ref,
+      {MapEntity? entity, String Function(String)? transformText}) async {
+    final completion = Completer<SceneDialogueRuntimeAwaitableResult>();
+    await _openDialogue(ref,
+        entity: entity, completion: completion, transformText: transformText);
+    return completion.future;
+  }
+
+  Future<void> _openDialogue(DialogueRef ref,
+      {MapEntity? entity,
+      Completer<SceneDialogueRuntimeAwaitableResult>? completion,
+      String Function(String)? transformText}) async {
+    if (_disposed || interactionActive.value || transitioning.value) {
+      completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+          message: 'The spatial dialogue owner is unavailable.'));
+      return;
+    }
     final resolved = resolveDialogue(
-        entityId: entity.id,
-        ref: entity.npc?.dialogue,
+        entityId: entity?.id ?? 'scene',
+        ref: ref,
         projectRootDirectory: bundle.projectRootDirectory,
         dialogues: bundle.manifest.dialogues);
-    if (resolved == null) return;
+    if (resolved == null) {
+      completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'The authored dialogue is unavailable.'));
+      return;
+    }
+    _dialogueCompletion = completion;
     interactionError.value = null;
     final generation = ++_interactionGeneration;
-    npcFacing[entity.id] =
-        spatialNpcFacingPlayer(entity, x: movement.x, z: movement.z);
+    if (entity != null) {
+      npcFacing[entity.id] =
+          spatialNpcFacingPlayer(entity, x: movement.x, z: movement.z);
+    }
     movement.setPaused(true);
     interactionActive.value = true;
     try {
@@ -111,8 +150,11 @@ final class SpatialExplorationSession {
         throw StateError('Le dialogue ne peut pas être ouvert.');
       }
       final overlay = DialogueOverlayComponent(
-          session: loaded,
-          onFinished: (_) => closeDialogue(),
+          session:
+              transformText == null ? loaded : loaded.mapText(transformText),
+          onFinished: (outcome) => _finishDialogue(
+              SceneDialogueRuntimeAwaitableResult.completed(
+                  outcomeId: outcome)),
           viewportSize: Vector2(640, 480),
           renderInFlame: false,
           textSpeed: textSpeed,
@@ -133,6 +175,9 @@ final class SpatialExplorationSession {
         interactionError.value = error;
         _dialogue?.removeFromParent();
         _dialogue = null;
+        _completeDialogue(SceneDialogueRuntimeAwaitableResult.failed(
+            errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+            message: 'The dialogue could not be shown: $error'));
       }
     } finally {
       if (!_disposed &&
@@ -153,13 +198,33 @@ final class SpatialExplorationSession {
     }
     if (command is DialogueAdvanceCommand) {
       _dialogue?.advance();
+    } else if (command is DialogueSelectChoiceCommand) {
+      final state = _dialogue?.currentSession.state;
+      if (state is DialogueWaitingForChoice) {
+        _dialogue!.moveCursor(command.choiceIndex - state.selectedIndex);
+        _dialogue!.confirmChoice();
+      }
+    }
+  }
+
+  void moveDialogueCursor(int delta) {
+    if (!_disposed && !presentationPaused) _dialogue?.moveCursor(delta);
+  }
+
+  void confirmDialogue() {
+    if (_disposed || presentationPaused) return;
+    if (_dialogue?.isShowingChoices ?? false) {
+      _dialogue!.confirmChoice();
+    } else {
+      _dialogue?.advance();
     }
   }
 
   void _publishDialogue() {
     final dialogue = _dialogue;
     final state = dialogue?.currentSession.state;
-    if (dialogue == null || state is! DialogueShowingLine) {
+    if (dialogue == null ||
+        (state is! DialogueShowingLine && state is! DialogueWaitingForChoice)) {
       closeDialogue();
       return;
     }
@@ -172,6 +237,21 @@ final class SpatialExplorationSession {
 
   void closeDialogue() {
     if (_disposed) return;
+    _finishDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
+        errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+        message: 'The spatial dialogue was cancelled.'));
+  }
+
+  void _completeDialogue(SceneDialogueRuntimeAwaitableResult result) {
+    final completion = _dialogueCompletion;
+    _dialogueCompletion = null;
+    if (completion != null && !completion.isCompleted) {
+      completion.complete(result);
+    }
+  }
+
+  void _finishDialogue(SceneDialogueRuntimeAwaitableResult result) {
+    _completeDialogue(result);
     _interactionGeneration++;
     _dialogue?.removeFromParent();
     _dialogue = null;
@@ -183,7 +263,10 @@ final class SpatialExplorationSession {
   static Future<SpatialExplorationSession> load(
     RuntimeMapBundle bundle, {
     GridPos? arrival,
+    PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
+    String? characterId,
+    bool Function(String mapId, MapEntity entity)? entityIsPresent,
     Future<RuntimeMapBundle> Function(String)? loadMap,
   }) async {
     final scene = bundle.map.spatialScene;
@@ -191,7 +274,7 @@ final class SpatialExplorationSession {
         bundle.manifest.settings.dimension != ProjectDimension.threeD) {
       throw StateError('Une carte 3D est requise.');
     }
-    final id = bundle.manifest.settings.defaultPlayerCharacterId;
+    final id = characterId ?? bundle.manifest.settings.defaultPlayerCharacterId;
     final character =
         bundle.manifest.characters.where((v) => v.id == id).firstOrNull;
     if (character == null || character.animations.isEmpty) {
@@ -226,12 +309,17 @@ final class SpatialExplorationSession {
         map: bundle.map,
         models: bundle.manifest.models3d,
         arrival: arrival,
+        spatialArrival: spatialArrival,
+        entityPresencePredicate: (entity) =>
+            entityIsPresent?.call(bundle.map.id, entity) ?? true,
         facing: facing);
+    final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
     final images = <String, ui.Image>{},
         textures = <String, SpatialActorTexture>{};
     try {
       final paths = bundle.runtimeImageAbsolutePathsById;
       final ids = {
+        ...entityVisuals.imageIds,
         for (final actor in characters)
           for (final animation in actor.animations)
             if (animation.sourceAssetId case final asset?
@@ -247,13 +335,19 @@ final class SpatialExplorationSession {
         }
         final codec =
             await ui.instantiateImageCodec(await File(path).readAsBytes());
-        final image = (await codec.getNextFrame()).image;
-        codec.dispose();
-        images[imageId] = image;
-        textures[imageId] = await SpatialActorTexture.fromImage(image);
+        try {
+          final image = (await codec.getNextFrame()).image;
+          images[imageId] = image;
+          textures[imageId] = await entityVisuals.createTexture(imageId, image);
+        } finally {
+          codec.dispose();
+        }
       }
       final session = SpatialExplorationSession._(
           bundle, character, movement, images, textures);
+      entityVisuals.validateImages(images);
+      session._entityVisuals = entityVisuals;
+      session.entityIsPresent = entityIsPresent;
       session._loadMap = loadMap ??
           (id) => loadRuntimeMapBundle(
               projectFilePath:
@@ -370,12 +464,19 @@ final class SpatialExplorationSession {
   }
 
   Map<String, SpatialActorVisual> frames(double dt) {
+    if (dt.isFinite && dt > 0 && !presentationPaused && !transitioning.value) {
+      _presentationSeconds += dt;
+    }
     final hero = frame(dt);
     return {
       'hero': hero,
-      for (final entity in bundle.map.entities
-          .where((entity) => entity.kind == MapEntityKind.npc))
-        'npc:${entity.id}': npcFrame(entity)
+      for (final entity in bundle.map.entities.where(
+          (entity) => entity.kind == MapEntityKind.npc && _present(entity)))
+        'npc:${entity.id}': npcFrame(entity),
+      ..._entityVisuals.frames(
+          textures: _textures,
+          elapsedMs: (_presentationSeconds * 1000).floor(),
+          isPresent: _present),
     };
   }
 
@@ -411,6 +512,33 @@ final class SpatialExplorationSession {
   Future<void> enterWarp(MapWarp warp) async {
     if (!bundle.map.warps.contains(warp)) return;
     await _transfer(warp.targetMapId, (_) => warp.targetPos);
+  }
+
+  Future<void> restoreGameState(GameState state) async {
+    if (_disposed) throw StateError('The spatial session is closed.');
+    final position = state.playerSpatialPosition ??
+        PlayerSpatialPosition(
+            x: state.playerPosition.x + .5, z: state.playerPosition.y + .5);
+    if (state.currentMapId != bundle.map.id) {
+      await _transfer(state.currentMapId, (_) => state.playerPosition,
+          spatialArrival: position, arrivalFacing: state.playerFacing);
+      if (_disposed || bundle.map.id != state.currentMapId) {
+        throw StateError('The authored spatial relocation could not complete.');
+      }
+    } else if (movement.spatialPosition != position ||
+        movement.facing != state.playerFacing) {
+      final diagonal = movement.allowDiagonalMovement;
+      movement = SpatialMovementController.fromMap(
+          map: bundle.map,
+          models: bundle.manifest.models3d,
+          spatialArrival: position,
+          entityPresencePredicate: _present,
+          facing: state.playerFacing);
+      movement.setDiagonalMovement(diagonal);
+      movement.setPaused(presentationPaused || interactionActive.value);
+      _warps =
+          SpatialWarpController(map: bundle.map, x: movement.x, z: movement.z);
+    }
   }
 
   Future<void> enterConnection(MapConnection connection) async {
@@ -480,7 +608,9 @@ final class SpatialExplorationSession {
         GridSize sourceSize,
         double sourceX,
         double sourceZ
-      })? connectionEntry}) async {
+      })? connectionEntry,
+      PlayerSpatialPosition? spatialArrival,
+      EntityFacing? arrivalFacing}) async {
     if (_disposed ||
         transitioning.value ||
         presentationPaused ||
@@ -499,7 +629,12 @@ final class SpatialExplorationSession {
       if (_disposed || generation != _transferGeneration) return;
       _validateDestination(next, targetMapId, bundle.projectRootDirectory);
       candidate = await load(next,
-          arrival: resolveArrival(next.map), facing: facing, loadMap: _loadMap);
+          arrival: spatialArrival == null ? resolveArrival(next.map) : null,
+          spatialArrival: spatialArrival,
+          facing: arrivalFacing ?? facing,
+          characterId: character.id,
+          entityIsPresent: entityIsPresent,
+          loadMap: _loadMap);
       if (_disposed || generation != _transferGeneration) return;
       for (final id in next.map.spatialScene!.instances
           .map((instance) => instance.modelId)
@@ -530,6 +665,7 @@ final class SpatialExplorationSession {
       candidate._images.clear();
       final nextMovement = candidate.movement;
       final nextWarps = candidate._warps;
+      _entityVisuals = candidate._entityVisuals;
       candidate.dispose();
       candidate = null;
       bundle = next;
@@ -555,6 +691,9 @@ final class SpatialExplorationSession {
 
   void dispose() {
     if (_disposed) return;
+    _completeDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
+        errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+        message: 'The spatial dialogue owner was disposed.'));
     _disposed = true;
     _transferGeneration++;
     onFrame = null;

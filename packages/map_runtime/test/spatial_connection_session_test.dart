@@ -317,15 +317,19 @@ void main() {
         () async {
       const connection = MapConnection(
           direction: MapConnectionDirection.east, targetMapId: 'target');
-      final manifest = source.manifest.copyWith(tilesets: [
-        const ProjectTilesetEntry(
-            id: 'unused', name: 'Unused', relativePath: 'hero.png')
-      ], maps: [
-        const ProjectMapEntry(
-            id: 'source', name: 'Source', relativePath: 'source.json'),
-        const ProjectMapEntry(
-            id: 'target', name: 'Target', relativePath: 'target.json'),
-      ]);
+      final manifest = source.manifest.copyWith(
+          newGame:
+              const ProjectNewGameConfig(enabled: true, startMapId: 'source'),
+          tilesets: [
+            const ProjectTilesetEntry(
+                id: 'unused', name: 'Unused', relativePath: 'hero.png')
+          ],
+          maps: [
+            const ProjectMapEntry(
+                id: 'source', name: 'Source', relativePath: 'source.json'),
+            const ProjectMapEntry(
+                id: 'target', name: 'Target', relativePath: 'target.json'),
+          ]);
       source = source.copyWith(
           manifest: manifest,
           map: source.map.copyWith(connections: [connection]));
@@ -350,7 +354,13 @@ void main() {
       await catalogFile.parent.create(recursive: true);
       await catalogFile.writeAsString(jsonEncode(catalog.toJson()));
       final runtime = SpatialExplorationGameSessionRuntime(
-          descriptor: fixture.descriptor(),
+          descriptor: fixture.descriptor(
+              initialState: GameState(
+                  saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
+                  currentMapId: 'source',
+                  playerPosition: const GridPos(x: 4, y: 4),
+                  playerSpatialPosition:
+                      PlayerSpatialPosition(x: 4.5, z: 4.5))),
           projectFilePath: () async => '${root.path}/project.json',
           preloadedInitialMap: (
                   {required projectFilePath,
@@ -381,6 +391,12 @@ void main() {
       expect(
           session.bundle.map.id, interruption == 'none' ? 'target' : 'source');
       expect(session.interactionError.value, isNull);
+      final checkpoint = (await runtime.captureCheckpoint())!;
+      final saved = gameStateFromStrictSaveJson(
+          Map<String, dynamic>.from(checkpoint.state));
+      expect(saved.currentMapId, session.bundle.map.id);
+      expect(saved.playerSpatialPosition!.x, session.movement.x);
+      expect(saved.playerSpatialPosition!.z, session.movement.z);
       if (interruption == 'pause') await runtime.resume();
       if (interruption == 'lifecycle lock') {
         await runtime.setInputLock(RuntimeExternalInputLock.lifecycle,

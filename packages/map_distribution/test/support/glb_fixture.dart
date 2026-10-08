@@ -2,6 +2,39 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
+List<int> coloredGlb(
+    {int width = 4,
+    double color = .25,
+    void Function(Map<String, dynamic>)? edit}) {
+  final source = triangleGlb();
+  final length = ByteData.sublistView(Uint8List.fromList(source))
+      .getUint32(12, Endian.little);
+  final json = jsonDecode(utf8.decode(source.sublist(20, 20 + length)))
+      as Map<String, dynamic>;
+  final binary = Uint8List(36 + 3 * width * 4);
+  binary.setRange(0, 36, source.sublist(28 + length, 64 + length));
+  final data = ByteData.sublistView(binary);
+  for (var i = 0; i < 3 * width; i++) {
+    data.setFloat32(36 + i * 4, i % width == 3 ? 1 : color, Endian.little);
+  }
+  json['buffers'][0]['byteLength'] = binary.length;
+  json['bufferViews']
+      .add({'buffer': 0, 'byteOffset': 36, 'byteLength': 3 * width * 4});
+  json['accessors'].add({
+    'bufferView': 1,
+    'componentType': 5126,
+    'count': 3,
+    'type': width == 3 ? 'VEC3' : 'VEC4'
+  });
+  json['meshes'][0]['primitives'][0]['attributes']['COLOR_0'] = 1;
+  json['meshes'][0]['primitives'][0]['material'] = 0;
+  json['materials'] = [
+    {'name': 'BW2 cutout', 'alphaMode': 'MASK', 'alphaCutoff': .5}
+  ];
+  edit?.call(json);
+  return encodeGlb(json, binary);
+}
+
 List<int> triangleGlb({void Function(Map<String, dynamic>)? edit}) {
   final binary = ByteData(36);
   final values = [0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 3.0, 0.0];

@@ -985,7 +985,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         );
         actor.mesh.scale.setValues(1, 1, 1);
       }
-      actor.mesh.scale.x *= frame.frame.width / frame.frame.height;
+      actor.mesh.scale.x *= frame.resolvedWidth / 1.92;
+      actor.mesh.scale.y *= frame.height / 1.92;
       final selected =
           configuration.selectedContent?.kind ==
               SpatialSceneContentKind.actor &&

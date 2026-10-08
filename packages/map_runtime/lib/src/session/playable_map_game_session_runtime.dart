@@ -236,6 +236,11 @@ final class PlayableMapGameSessionRuntime
       _basePlayTimeSeconds = envelope.playTimeSeconds;
     }
 
+    if (initialState.playerSpatialPosition != null) {
+      preloadedInitialMap?.dispose();
+      throw StateError('A 2D session cannot consume spatial player state.');
+    }
+
     reportProgress(
       const GameSessionLoadingProgress(
         stage: 'world',

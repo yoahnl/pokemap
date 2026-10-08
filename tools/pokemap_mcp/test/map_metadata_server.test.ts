@@ -20,7 +20,7 @@ async function data(client: Client, name: string, args: JsonRecord = {}) {
   return envelope.data as JsonRecord;
 }
 
-test("MCP renames a referenced map title without changing identity or path", async () => {
+test("MCP updates map title and indoor role without changing identity or path", async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-map-title-"));
   const map = {
     id: "town", name: "Town", version: "v8", tilesetId: "",
@@ -50,7 +50,13 @@ test("MCP renames a referenced map title without changing identity or path", asy
       .find((action) => action.id === "map.update_metadata");
     assert.equal(descriptor?.inputSchemaId, "schema.map.update_metadata.input.v1");
     const schema = (descriptor?.extensions as JsonRecord).inputSchema as JsonRecord;
-    assert.deepEqual(schema.required, ["mapId", "name"]);
+    assert.deepEqual(schema.required, ["mapId"]);
+    assert.deepEqual(schema.anyOf, [
+      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] },
+    ]);
+    const properties = schema.properties as JsonRecord;
+    assert.equal((properties.isIndoor as JsonRecord).type, "boolean");
+    assert.ok(((properties.role as JsonRecord).enum as string[]).includes("interior"));
     assert.equal(schema.additionalProperties, false);
     const opened = await data(client, "pokemap_workspace", { operation: "open", projectRoot: root });
     const projectHandle = opened.projectHandle;
@@ -80,6 +86,34 @@ test("MCP renames a referenced map title without changing identity or path", asy
     } });
     assert.equal(noop.isError, true);
     assert.match(JSON.stringify(noop.structuredContent), /map.no_change/);
+    const indoor = await data(client, "pokemap_plan", { projectHandle,
+      request: { requestId: "indoor", actionId: "map.update_metadata", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: { mapId: "town", role: "interior", isIndoor: true },
+        expectedRevision: revision.snapshotRevision, idempotencyKey: "indoor" },
+    });
+    assert.equal(JSON.parse(await readFile(join(root, "project.json"), "utf8")).maps[0].role, "exterior");
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle,
+      planId: indoor.planId, operationId: "indoor" });
+    const indoorMap = JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8"));
+    const indoorManifest = JSON.parse(await readFile(join(root, "project.json"), "utf8"));
+    assert.equal(indoorMap.mapMetadata.isIndoor, true);
+    assert.equal(indoorManifest.maps[0].role, "interior");
+    assert.equal(indoorMap.name, "Village été");
+    assert.equal(indoorManifest.maps[0].name, "Village été");
+    assert.equal(indoorManifest.maps[0].relativePath, "documents/unusual.json");
+    assert.deepEqual(indoorMap.warps, updated.warps);
+    const indoorRevision = await data(client, "pokemap_validate", { projectHandle });
+    const conflict = await client.callTool({ name: "pokemap_plan", arguments: { projectHandle,
+      request: { requestId: "conflict", actionId: "map.update_metadata", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: { mapId: "town", role: "interior", isIndoor: false },
+        expectedRevision: indoorRevision.snapshotRevision, idempotencyKey: "conflict" },
+    } });
+    assert.equal(conflict.isError, true);
+    assert.match(JSON.stringify(conflict.structuredContent), /map.metadata_inconsistent/);
+    assert.deepEqual(JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8")), indoorMap);
+    assert.deepEqual(JSON.parse(await readFile(join(root, "project.json"), "utf8")), indoorManifest);
     await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();

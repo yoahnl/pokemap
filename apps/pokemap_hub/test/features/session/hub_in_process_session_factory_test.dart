@@ -131,7 +131,7 @@ void main() {
     await adapter.dispose();
   });
 
-  test('routes map3d to one spatial session and companion exploration menus', () async {
+  test('routes map3d to one stateful session and restores its scoped save', () async {
     launch = await _context(root, spatial: true);
     saves = HubSaveStore(supportRoot: root, identity: launch.identity);
     final imagePath = '${root.path}/hero.png';
@@ -143,6 +143,7 @@ void main() {
             source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)])]);
     final bundle = RuntimeMapBundle(manifest: ProjectManifest(version: ProjectVersion.v9, name: 'Spatial',
       settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile(), defaultPlayerCharacterId: 'hero'),
+      newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'field'),
       maps: const [ProjectMapEntry(id: 'field', name: 'Field', relativePath: 'field.json')],
       tilesets: const [], characters: [character]),
       map: MapData(version: ProjectVersion.v9, id: 'field', name: 'Field', layers: const [],
@@ -168,10 +169,42 @@ void main() {
     mounted!.session!.frame(.05);
     expect(mounted!.session!.movement.z, lessThan(4));
     final menu = await (adapter as RuntimePlayerCompanionMenuPort).readCompanionMenuData();
-    expect(menu.pauseMenuState.visibilityOverrides[ProjectPauseActionId.save], isFalse);
-    expect(await adapter.captureCheckpoint(), isNull);
+    expect(menu.pauseMenuState.isActionVisible(ProjectPauseActionId.save,
+        projectDefaultVisibility: true), isTrue);
+    final checkpoint = (await adapter.captureCheckpoint())!;
+    final savedState = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state));
+    final savedPosition = savedState.playerSpatialPosition!;
+    final envelope = const GameStateSaveEnvelopeMapper().create(
+        identity: launch.identity, profileId: descriptor.profileId,
+        slotId: descriptor.slotId, saveId: checkpoint.saveId,
+        createdAt: checkpoint.createdAt, updatedAt: checkpoint.updatedAt,
+        status: SaveStatus.active, playTimeSeconds: checkpoint.playTimeSeconds,
+        gameState: savedState);
+    await saves.write(envelope);
     await adapter.dispose();
     expect(unmounts, 1);
+    final continuedDescriptor = _descriptor(launch, save: envelope);
+    final continued = factory.call(continuedDescriptor);
+    await continued.prepare(continuedDescriptor);
+    await continued.start();
+    expect(mounted!.session!.movement.x, savedPosition.x);
+    expect(mounted!.session!.movement.z, savedPosition.z);
+    await continued.dispose();
+    expect(unmounts, 2);
+
+    final stale = factory.call(continuedDescriptor);
+    await stale.prepare(continuedDescriptor);
+    await saves.write(const GameStateSaveEnvelopeMapper().create(
+        identity: launch.identity, profileId: descriptor.profileId,
+        slotId: descriptor.slotId, saveId: checkpoint.saveId,
+        createdAt: checkpoint.createdAt,
+        updatedAt: checkpoint.updatedAt.add(const Duration(minutes: 1)),
+        status: SaveStatus.active, playTimeSeconds: checkpoint.playTimeSeconds,
+        gameState: savedState));
+    await expectLater(stale.start(), throwsStateError);
+    await stale.dispose();
+    expect(unmounts, 2);
   });
 
   test('rejects dimension and capability mismatch before constructing a graph', () {
@@ -182,20 +215,29 @@ void main() {
   });
 }
 
-GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch) =>
+GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch,
+    {SaveEnvelope? save}) =>
     GameSessionDescriptor(
       sessionId: 'session-1',
       sessionToken: 'secret',
       identity: launch.identity,
       profileId: 'player-1',
       slotId: 'slot-1',
-      launchMode: GameSessionLaunchMode.newGame,
+      launchMode: save == null ? GameSessionLaunchMode.newGame :
+          GameSessionLaunchMode.continueGame,
+      saveReadHandle: save == null ? null : hubSaveReadHandle(save),
       installedVersionHandle: launch.installedVersionHandle,
       runtimeApiVersion: launch.runtimeApiVersion,
       grantedCapabilities: launch.grantedCapabilities,
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
-      initialGameState: launch.grantedCapabilities.contains('map3d@1') ? null : const GameState(
+      initialGameState: save != null ? null :
+          launch.grantedCapabilities.contains('map3d@1') ? GameState(
+              saveId: '123e4567-e89b-42d3-a456-426614174020',
+              currentMapId: 'field',
+              playerPosition: const GridPos(x: 4, y: 4),
+              playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4)) :
+          const GameState(
         saveId: 'slot-1',
         currentMapId: 'map-start',
       ),

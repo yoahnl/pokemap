@@ -135,6 +135,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
               y: hero.y,
               z: from.dy + (hero.z - from.dy) * t,
               texture: hero.texture,
+              width: hero.width,
+              height: hero.height,
               frame: hero.frame),
         };
       }
@@ -148,6 +150,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
             y: entry.value.y,
             z: entry.value.z + translation.dy,
             texture: entry.value.texture,
+            width: entry.value.width,
+            height: entry.value.height,
             frame: entry.value.frame),
     };
   }

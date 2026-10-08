@@ -15,9 +15,95 @@ typedef GamePackagePayloadReader = List<int>? Function(String path);
 final class GamePackageSpatialProjectValidator {
   const GamePackageSpatialProjectValidator({
     this.policy = const GamePackageSecurityPolicy(),
+    this.gameplay = false,
   });
 
   final GamePackageSecurityPolicy policy;
+  final bool gameplay;
+
+  void _validateGameplay(ProjectManifest project) {
+    for (final scene in project.scenes) {
+      for (final node in scene.graph.nodes) {
+        if (!SpatialGameplayCapabilities.supportsSceneNode(
+            scene.executionProfile, node)) {
+          _unsupported('scenes.${scene.id}.nodes.${node.id}');
+        }
+      }
+    }
+    for (final scenario in project.scenarios) {
+      if (scenario.scope != ScenarioScope.globalStory) {
+        _unsupported('scenarios.${scenario.id}');
+      }
+      for (final node in scenario.nodes) {
+        if (node.binding.scriptId != null ||
+            node.payload.actionKind != null ||
+            node.type == ScenarioNodeType.dialogue ||
+            node.type == ScenarioNodeType.choice) {
+          _unsupported('scenarios.${scenario.id}.nodes.${node.id}');
+        }
+      }
+    }
+  }
+
+  void _validateGameplayMap(MapData map, String path) {
+    for (final zone in map.gameplayZones) {
+      if (zone.kind != GameplayZoneKind.encounter) {
+        _unsupported('$path.gameplayZones.${zone.id}');
+      }
+    }
+    for (final trigger in map.triggers) {
+      if (trigger.type != TriggerType.event) {
+        _unsupported('$path.triggers.${trigger.id}');
+      }
+    }
+    for (final event in map.events) {
+      for (final page in event.pages) {
+        if (page.script != null ||
+            page.spriteId != null ||
+            page.sceneTarget == null && page.message == null) {
+          _unsupported('$path.events.${event.id}.pages.${page.pageNumber}');
+        }
+        final condition = page.condition;
+        if (condition != null) {
+          _validatePageCondition(condition, '$path.events.${event.id}');
+        }
+      }
+    }
+    for (final entity in map.entities) {
+      final predicates = [
+        entity.npc?.visibilityRule?.predicate,
+        ...?entity.npc?.conditionalDialogues.map((entry) => entry.when)
+      ];
+      for (final predicate in predicates) {
+        if (predicate != null &&
+            const {
+              MapEntityRuntimePredicateKind.cutsceneCompleted,
+              MapEntityRuntimePredicateKind.cutsceneNotCompleted
+            }.contains(predicate.kind)) {
+          _unsupported('$path.entities.${entity.id}');
+        }
+      }
+    }
+  }
+
+  void _validatePageCondition(ScriptCondition condition, String path) {
+    if (!const {
+      ScriptConditionType.allOf,
+      ScriptConditionType.anyOf,
+      ScriptConditionType.not,
+      ScriptConditionType.flagIsSet,
+      ScriptConditionType.flagIsUnset,
+      ScriptConditionType.factEquals,
+      ScriptConditionType.stepCompleted,
+      ScriptConditionType.itemQuantityAtLeast,
+      ScriptConditionType.eventIsConsumed,
+    }.contains(condition.type)) {
+      _unsupported(path);
+    }
+    for (final child in condition.children) {
+      _validatePageCondition(child, path);
+    }
+  }
 
   void validate(ProjectManifest project, GamePackagePayloadReader readPayload) {
     try {
@@ -30,10 +116,18 @@ final class GamePackageSpatialProjectValidator {
       final json = project.toJson();
       for (final field in const [
         'scripts',
-        'scenarios',
         'cinematics',
         'cinematicMediaAssets',
         'presentationCinematics',
+      ]) {
+        final value = json[field];
+        if (value is List && value.isNotEmpty ||
+            value is Map && value.isNotEmpty) {
+          _unsupported('project.$field');
+        }
+      }
+      for (final field in const [
+        'scenarios',
         'facts',
         'worldRules',
         'scenes',
@@ -45,17 +139,20 @@ final class GamePackageSpatialProjectValidator {
         'progression',
       ]) {
         final value = json[field];
-        if (value is List && value.isNotEmpty ||
-            value is Map && value.isNotEmpty) {
+        if (!gameplay &&
+            (value is List && value.isNotEmpty ||
+                value is Map && value.isNotEmpty)) {
           _unsupported('project.$field');
         }
       }
-      if (project.newGame.enabled ||
-          project.pokemon.enabled ||
-          (project.eventRegistry?.records.isNotEmpty ?? false) ||
+      if (!gameplay &&
+              (project.newGame.enabled ||
+                  project.pokemon.enabled ||
+                  (project.eventRegistry?.records.isNotEmpty ?? false)) ||
           project.regionalMap != null) {
         _unsupported('project/project.json');
       }
+      if (gameplay) _validateGameplay(project);
       final maps = <MapData>[];
       for (final entry in project.maps) {
         final path = 'project/${entry.relativePath}';
@@ -76,8 +173,11 @@ final class GamePackageSpatialProjectValidator {
           'gameplayZones',
         ]) {
           final value = mapJson[field];
-          if (value is List && value.isNotEmpty) _unsupported('$path.$field');
+          if (!gameplay && value is List && value.isNotEmpty) {
+            _unsupported('$path.$field');
+          }
         }
+        if (gameplay) _validateGameplayMap(map, path);
         MapValidator.validate(map, projectDialogueContext: project);
         maps.add(map);
       }
@@ -151,7 +251,7 @@ final class GamePackageSpatialProjectValidator {
       }
       final dialogues = <String, RuntimeDialogueDocument>{};
       for (final entry in project.dialogues) {
-        if (entry.declaredOutcomes.isNotEmpty ||
+        if (!gameplay && entry.declaredOutcomes.isNotEmpty ||
             !entry.relativePath.endsWith('.json')) {
           _unsupported('dialogues.${entry.id}');
         }
@@ -161,9 +261,11 @@ final class GamePackageSpatialProjectValidator {
         final document = const RuntimeDialogueDocumentCodec().decodeUtf8(bytes);
         for (final node in document.nodes) {
           for (final step in node.steps) {
-            if (step is! RuntimeDialogueLine ||
-                step.characterId != null ||
-                step.portraitStateId != null) {
+            if (!gameplay &&
+                    (step is! RuntimeDialogueLine ||
+                        step.characterId != null ||
+                        step.portraitStateId != null) ||
+                step is RuntimeDialogueLine && step.portraitStateId != null) {
               _unsupported('$path.${node.title}');
             }
           }
@@ -176,12 +278,24 @@ final class GamePackageSpatialProjectValidator {
         }
         dialogues[entry.id] = document;
       }
+      void validateEntityDialogue(DialogueRef ref, String entityId) {
+        if (ref.scriptPathRelative.isNotEmpty) _unsupported(entityId);
+        final document = dialogues[ref.dialogueId];
+        if (document == null ||
+            ref.startNode != null &&
+                !document.nodes.any((node) => node.title == ref.startNode)) {
+          _fail('runtime3d.dialogue_node_missing', entityId,
+              'Entity dialogue or start node is missing.');
+        }
+      }
+
       for (final map in maps) {
         final defaultSpawnId = map.mapMetadata.defaultSpawnId?.trim();
         if (defaultSpawnId != null &&
             defaultSpawnId.isNotEmpty &&
             !map.entities.any((entity) =>
                 entity.kind == MapEntityKind.spawn &&
+                entity.spawn?.role == EntitySpawnRole.playerStart &&
                 entity.id == defaultSpawnId)) {
           _fail('runtime3d.spawn_missing', 'maps.${map.id}.defaultSpawnId',
               'The default player start entity is missing.');
@@ -190,7 +304,8 @@ final class GamePackageSpatialProjectValidator {
           if (entity.kind == MapEntityKind.spawn) {
             final spawn = entity.spawn;
             if (spawn == null ||
-                spawn.role != EntitySpawnRole.playerStart ||
+                (spawn.role != EntitySpawnRole.playerStart &&
+                    (!gameplay || spawn.role != EntitySpawnRole.other)) ||
                 spawn.categoryTag.isNotEmpty ||
                 entity.size != const GridSize(width: 1, height: 1) ||
                 entity.properties.isNotEmpty ||
@@ -202,23 +317,49 @@ final class GamePackageSpatialProjectValidator {
             }
             continue;
           }
+          if (gameplay && entity.kind == MapEntityKind.sign) {
+            final sign = entity.sign;
+            if (sign == null ||
+                sign.dialogue == null ||
+                sign.plainText.isNotEmpty ||
+                entity.size != const GridSize(width: 1, height: 1) ||
+                entity.properties.isNotEmpty ||
+                entity.npc != null ||
+                entity.item != null ||
+                entity.spawn != null) {
+              _unsupported('maps.${map.id}.entities.${entity.id}');
+            }
+            validateEntityDialogue(sign.dialogue!, entity.id);
+            continue;
+          }
+          if (gameplay && entity.kind == MapEntityKind.custom) {
+            if (entity.properties.isNotEmpty ||
+                entity.npc != null ||
+                entity.sign != null ||
+                entity.item != null ||
+                entity.spawn != null) {
+              _unsupported('maps.${map.id}.entities.${entity.id}');
+            }
+            continue;
+          }
           final npc = entity.npc;
           if (entity.kind != MapEntityKind.npc ||
               npc == null ||
               entity.size != const GridSize(width: 1, height: 1) ||
               !entity.blocksMovement ||
               entity.properties.isNotEmpty ||
-              entity.editorVisual != null ||
+              !gameplay && entity.editorVisual != null ||
               entity.sign != null ||
               entity.item != null ||
               entity.spawn != null ||
               npc.visualElementId.isNotEmpty ||
-              npc.trainerId != null ||
-              npc.lineOfSightRange != 0 ||
-              npc.defeatDialogueRef != null ||
               npc.movement != const MapEntityNpcMovementConfig() ||
-              npc.visibilityRule != null ||
-              npc.conditionalDialogues.isNotEmpty) {
+              npc.lineOfSightRange != 0 ||
+              !gameplay &&
+                  (npc.trainerId != null ||
+                      npc.defeatDialogueRef != null ||
+                      npc.visibilityRule != null ||
+                      npc.conditionalDialogues.isNotEmpty)) {
             _unsupported('maps.${map.id}.entities.${entity.id}');
           }
           final character = project.characters
@@ -233,17 +374,13 @@ final class GamePackageSpatialProjectValidator {
             _fail('runtime3d.npc_character_missing', entity.id,
                 'Static NPC requires directional character animations.');
           }
-          final ref = npc.dialogue;
-          if (ref != null) {
-            if (ref.scriptPathRelative.isNotEmpty) _unsupported(entity.id);
-            final document = dialogues[ref.dialogueId];
-            if (document == null ||
-                ref.startNode != null &&
-                    !document.nodes
-                        .any((node) => node.title == ref.startNode)) {
-              _fail('runtime3d.dialogue_node_missing', entity.id,
-                  'NPC dialogue or start node is missing.');
-            }
+          for (final ref in [
+            npc.dialogue,
+            npc.defeatDialogueRef,
+            ...npc.conditionalDialogues.map((entry) => entry.dialogue)
+          ]) {
+            if (ref == null) continue;
+            validateEntityDialogue(ref, entity.id);
           }
         }
       }
@@ -333,6 +470,50 @@ final class GamePackageSpatialProjectValidator {
             source.pixelHeight != dimensions.height) {
           _fail('runtime3d.image_dimensions_mismatch', tileset.relativePath,
               'Atlas metadata differs from its image.');
+        }
+      }
+      if (gameplay) {
+        for (final map in maps) {
+          for (final entity in map.entities) {
+            final elementId = entity.editorVisual?.elementId;
+            if (elementId == null) continue;
+            final path = 'maps.${map.id}.entities.${entity.id}.editorVisual';
+            final element = project.elements
+                .where((entry) => entry.id == elementId)
+                .firstOrNull;
+            if (element == null || element.frames.isEmpty) {
+              _fail('runtime3d.entity_visual_invalid', path,
+                  'The entity visual requires a canonical element with frames.');
+            }
+            for (final frame in element.frames) {
+              final tilesetId = frame.tilesetId.trim().isEmpty
+                  ? element.tilesetId
+                  : frame.tilesetId;
+              final tileset = project.tilesets
+                  .where((entry) => entry.id == tilesetId)
+                  .firstOrNull;
+              final source = tileset?.source;
+              if (source is! ProjectRegularAtlasTilesetSource) {
+                _fail('runtime3d.entity_visual_invalid', path,
+                    'Entity visual frames require canonical atlas images.');
+              }
+              final dimensions = closeImage(source.assetId,
+                  expectedPath: tileset!.relativePath);
+              final rect = frame.source;
+              if (rect.x < 0 ||
+                  rect.y < 0 ||
+                  rect.width <= 0 ||
+                  rect.height <= 0 ||
+                  (rect.x + rect.width) * project.settings.tileWidth >
+                      dimensions.width ||
+                  (rect.y + rect.height) * project.settings.tileHeight >
+                      dimensions.height ||
+                  frame.durationMs != null && frame.durationMs! <= 0) {
+                _fail('runtime3d.entity_visual_invalid', path,
+                    'Entity visual cell rectangles must fit their canonical image.');
+              }
+            }
+          }
         }
       }
       final hero = project.characters
@@ -471,8 +652,14 @@ final class GamePackageSpatialProjectValidator {
     }
   }
 
-  Never _unsupported(String path) => _fail('runtime3d.exploration_only', path,
-      '3D packages currently support exploration only.');
+  Never _unsupported(String path) => _fail(
+      gameplay
+          ? 'runtime3d.gameplay_unsupported'
+          : 'runtime3d.exploration_only',
+      path,
+      gameplay
+          ? 'This operation is outside map3d.gameplay@1.'
+          : '3D packages currently support exploration only.');
   Never _fail(String code, String path, String message) =>
       throw GamePackageFormatException(
           code: code, path: path, message: message);

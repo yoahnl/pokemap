@@ -5,10 +5,8 @@ import 'package:flame/flame.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/parser.dart';
 import 'package:flame_3d/core.dart';
-import 'package:flame_3d/resources.dart';
 
 import 'glb_renderer_layout.dart';
-import 'spatial_pixel_material.dart';
 
 final class ModelByteLoader {
   static int _sequence = 0;
@@ -34,15 +32,26 @@ final class ModelByteLoader {
         : _ModelAssetsCache(current);
     Flame.assets = cache;
     final key = '__avelune_model_${_sequence++}.glb';
-    cache.models[key] = normalizeGlbAccessors(bytes);
+    final normalized = normalizeGlbAccessors(bytes);
+    final layout = GlbRendererLayout(normalized);
+    cache.models[key] = normalized;
     try {
       final model = await ModelParser.parse(key);
       for (final node in model.nodes.values) {
-        for (final surface in node.mesh?.surfaces ?? <Surface>[]) {
-          if (surface.material case final SpatialMaterial material) {
-            surface.material = SpatialPixelMaterial(material.albedoTexture)
-              ..albedoColor = material.albedoColor;
+        final mesh = node.mesh;
+        if (mesh != null) {
+          var determinant = node.transform.determinant();
+          var parentIndex = node.parentNodeIndex;
+          while (parentIndex != null) {
+            final parent = model.nodes[parentIndex]!;
+            determinant *= parent.transform.determinant();
+            parentIndex = parent.parentNodeIndex;
           }
+          layout.apply(
+            node.nodeIndex,
+            mesh,
+            mirroredTransform: determinant < 0,
+          );
         }
       }
       return Model(

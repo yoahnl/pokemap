@@ -8,6 +8,7 @@ import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 import 'player_pause_menu_state.dart';
+import 'player_spatial_position.dart';
 import 'rail_journey.dart';
 
 part 'save_data.freezed.dart';
@@ -811,6 +812,7 @@ abstract class SaveData with _$SaveData {
     int itemSystemSchemaVersion,
     @Default('') String currentMapId,
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
+    PlayerSpatialPosition? playerSpatialPosition,
     @Default(EntityFacing.south) EntityFacing playerFacing,
 
     /// Mode de déplacement du joueur au moment de la sauvegarde.
@@ -848,6 +850,7 @@ abstract class SaveData with _$SaveData {
   SaveData normalized() {
     final normalizedSaveId = saveId.trim();
     final normalizedCurrentMapId = currentMapId.trim();
+    playerSpatialPosition?.validateGridPosition(playerPosition);
 
     if (normalizedSaveId.isEmpty) {
       throw StateError('SaveData saveId must not be empty');

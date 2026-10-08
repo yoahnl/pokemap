@@ -527,7 +527,18 @@ final class RuntimeProjectProjectionBuilder {
     }
 
     if (projectedProject.settings.dimension == ProjectDimension.threeD) {
-      GamePackageSpatialProjectValidator()
+      final gameplay =
+          SpatialGameplayCapabilities.requiresGameplay(projectedProject, maps: [
+        for (final entry in projectedProject.maps)
+          MapData.fromJson(
+              jsonDecode(utf8.decode(payload['project/${entry.relativePath}']!))
+                  as Map<String, dynamic>)
+      ], dialogues: [
+        for (final entry in projectedProject.dialogues)
+          const RuntimeDialogueDocumentCodec()
+              .decodeUtf8(payload['project/${entry.relativePath}']!)
+      ]);
+      GamePackageSpatialProjectValidator(gameplay: gameplay)
           .validate(projectedProject, (path) => payload[path]);
     }
     return RuntimeProjectProjection(

@@ -55,9 +55,12 @@ final class GamePackageProjectValidator {
         }
       }
       final spatial = project.settings.dimension == ProjectDimension.threeD;
+      final gameplay = packageManifest.compatibility.requiredCapabilities
+          .contains(SpatialGameplayCapabilities.capabilityId);
       if (spatial !=
               packageManifest.compatibility.requiredCapabilities
                   .contains('map3d@1') ||
+          gameplay && !spatial ||
           spatial &&
               packageManifest.compatibility.requiredCapabilities
                   .contains('map@1')) {
@@ -67,7 +70,7 @@ final class GamePackageProjectValidator {
         if (readPayload == null) {
           _fail('Spatial project payload validation is required.');
         }
-        GamePackageSpatialProjectValidator(policy: policy)
+        GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay)
             .validate(project, readPayload);
         final animated = project.maps.any((entry) {
           final map = MapData.fromJson(jsonDecode(

@@ -13,7 +13,6 @@ struct GameListView: View {
     @State private var quickViewGame: Game?
     @State private var quickViewSourceID: String?
     @State private var showFilePicker = false
-    @State private var pendingImportURL: URL?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -113,14 +112,10 @@ struct GameListView: View {
                 }
             }
             .task { await viewModel.refresh() }
-            .sheet(isPresented: $showFilePicker, onDismiss: {
-                guard let url = pendingImportURL else { return }
-                pendingImportURL = nil
-                Task { await viewModel.install(from: url) }
-            }) {
+            .sheet(isPresented: $showFilePicker) {
                 AveluneGamePicker { url in
-                    pendingImportURL = url
                     showFilePicker = false
+                    Task { await viewModel.install(from: url) }
                 }
             }
             .fullScreenCover(isPresented: Binding(

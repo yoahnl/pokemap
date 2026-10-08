@@ -7,15 +7,69 @@ import 'spatial_terrain_navigation.dart';
 import 'direction.dart';
 import 'player_spawn_resolver.dart';
 
+({PlayerSpatialPosition position, EntityFacing facing})
+    resolveSpatialPlayerSpawn({
+  required MapData map,
+  String? preferredSpawnId,
+}) {
+  final scene = map.spatialScene;
+  if (scene == null ||
+      scene.width != map.size.width ||
+      scene.depth != map.size.height) {
+    throw StateError('La carte ne possède pas de scène 3D cohérente.');
+  }
+  late final PlayerSpatialPosition position;
+  var facing = EntityFacing.south;
+  if ((preferredSpawnId?.trim().isNotEmpty ?? false) ||
+      (map.mapMetadata.defaultSpawnId?.trim().isNotEmpty ?? false) ||
+      map.entities.any((entity) =>
+          entity.kind == MapEntityKind.spawn &&
+          entity.spawn?.role == EntitySpawnRole.playerStart)) {
+    final resolved = resolveInitialPlayerSpawn(
+      map,
+      preferredSpawnId: preferredSpawnId,
+    );
+    position = PlayerSpatialPosition(
+      x: resolved.pos.x + .5,
+      z: resolved.pos.y + .5,
+    );
+    facing = resolved.facing.asFacing;
+  } else {
+    position = PlayerSpatialPosition(
+      x: scene.navigation.spawn.x,
+      z: scene.navigation.spawn.z,
+    );
+  }
+  _validateSpatialArrival(position, scene);
+  return (position: position, facing: facing);
+}
+
+void _validateSpatialArrival(
+  PlayerSpatialPosition position,
+  MapSpatialScene scene,
+) {
+  if (position.x >= scene.width || position.z >= scene.depth) {
+    throw StateError('Le point d’arrivée 3D est hors de la carte.');
+  }
+  final x = position.x * SpatialMovementController.pixelsPerCell;
+  final z = position.z * SpatialMovementController.pixelsPerCell;
+  if (x != x.roundToDouble() || z != z.roundToDouble()) {
+    throw StateError(
+        'Le point d’arrivée 3D ne respecte pas la précision du déplacement.');
+  }
+}
+
 final class SpatialMovementController {
   SpatialMovementController({
     required MapSpatialScene scene,
     required Iterable<ProjectModel3dEntry> models,
     Iterable<MapEntity> entities = const [],
+    bool Function(MapEntity entity)? entityPresencePredicate,
   }) : this._(
           scene: scene,
           models: models,
           entities: entities,
+          entityPresencePredicate: entityPresencePredicate,
           spawn: scene.navigation.spawn,
           spawnFacing: EntityFacing.south,
           blockedCells: const {},
@@ -25,7 +79,10 @@ final class SpatialMovementController {
     required MapData map,
     required Iterable<ProjectModel3dEntry> models,
     GridPos? arrival,
+    PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
+    String? preferredSpawnId,
+    bool Function(MapEntity entity)? entityPresencePredicate,
   }) {
     final scene = map.spatialScene;
     if (scene == null ||
@@ -33,35 +90,37 @@ final class SpatialMovementController {
         scene.depth != map.size.height) {
       throw StateError('La carte ne possède pas de scène 3D cohérente.');
     }
-    var spawn = scene.navigation.spawn;
+    if (arrival != null && spatialArrival != null) {
+      throw ArgumentError('Une seule position d’arrivée 3D peut être fournie.');
+    }
+    late final PlayerSpatialPosition position;
     var spawnFacing = EntityFacing.south;
-    if (arrival != null) {
+    if (spatialArrival != null) {
+      position = spatialArrival;
+    } else if (arrival != null) {
       if (arrival.x < 0 ||
           arrival.y < 0 ||
           arrival.x >= scene.width ||
           arrival.y >= scene.depth) {
         throw StateError('Le point d’arrivée 3D est hors de la carte.');
       }
-      spawn = SpatialSpawn(x: arrival.x + .5, z: arrival.y + .5);
-    } else if ((map.mapMetadata.defaultSpawnId?.trim().isNotEmpty ?? false) ||
-        map.entities.any((entity) =>
-            entity.kind == MapEntityKind.spawn &&
-            entity.spawn?.role == EntitySpawnRole.playerStart)) {
-      final resolved = resolveInitialPlayerSpawn(map);
-      final x = (resolved.playerPositionPx.leftPx + 16) / pixelsPerCell;
-      final z = (resolved.playerPositionPx.topPx + 32) / pixelsPerCell - .5;
-      if (x < 0 || z < 0 || x >= scene.width || z >= scene.depth) {
-        throw StateError('Le point de départ 3D est hors de la carte.');
-      }
-      spawn = SpatialSpawn(x: x, z: z);
-      spawnFacing = resolved.facing.asFacing;
+      position = PlayerSpatialPosition(x: arrival.x + .5, z: arrival.y + .5);
+    } else {
+      final resolved = resolveSpatialPlayerSpawn(
+        map: map,
+        preferredSpawnId: preferredSpawnId,
+      );
+      position = resolved.position;
+      spawnFacing = resolved.facing;
     }
+    _validateSpatialArrival(position, scene);
     return SpatialMovementController._(
       scene: scene,
       models: models,
       entities:
           map.entities.where((entity) => entity.kind != MapEntityKind.spawn),
-      spawn: spawn,
+      entityPresencePredicate: entityPresencePredicate,
+      spawn: SpatialSpawn(x: position.x, z: position.z),
       spawnFacing: facing ?? spawnFacing,
       blockedCells: {
         for (final layer in map.layers.whereType<CollisionLayer>())
@@ -77,6 +136,7 @@ final class SpatialMovementController {
     required this.scene,
     required Iterable<ProjectModel3dEntry> models,
     required Iterable<MapEntity> entities,
+    required bool Function(MapEntity entity)? entityPresencePredicate,
     required SpatialSpawn spawn,
     required EntityFacing spawnFacing,
     required Set<int> blockedCells,
@@ -85,12 +145,14 @@ final class SpatialMovementController {
         _spawn = spawn,
         _spawnFacing = spawnFacing,
         _blockedCells = Set.unmodifiable(blockedCells),
+        _entityPresencePredicate = entityPresencePredicate,
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
     reset();
   }
   final SpatialSpawn _spawn;
   final EntityFacing _spawnFacing;
   final Set<int> _blockedCells;
+  bool Function(MapEntity entity)? _entityPresencePredicate;
   GridPos? bumpedCell;
   MapConnectionDirection? edgeExitDirection;
   final MapSpatialScene scene;
@@ -108,7 +170,13 @@ final class SpatialMovementController {
   bool get running => moving && _run;
   double get x => (_position.leftPx + 16) / pixelsPerCell;
   double get z => (_position.topPx + 31) / pixelsPerCell;
+  PlayerSpatialPosition get spatialPosition =>
+      PlayerSpatialPosition(x: x, z: z);
   double get y => scene.worldHeightAt(x, z);
+  void setEntityPresencePredicate(bool Function(MapEntity entity)? predicate) {
+    _entityPresencePredicate = predicate;
+  }
+
   void setInput({required int x, required int z, bool run = false}) {
     if (_run != run) {
       animationSeconds = 0;
@@ -287,6 +355,7 @@ final class SpatialMovementController {
       }
     }
     for (final entity in entities.where((entity) => entity.blocksMovement)) {
+      if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
       final footprint = resolveEntityCollisionRectPx(entity,
           tileWidthPx: pixelsPerCell, tileHeightPx: pixelsPerCell);
       final npcLeft = footprint.leftPx / pixelsPerCell,

@@ -1030,11 +1030,17 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           _mountedGame?.inputAuthorityListenable ??
           _mountedSpatial?.inputAuthority,
       menuInteractionBlocked: _mountedGame?.battleExitTransitionVisible,
-      overworldInteractions: _mountedGame?.overworldInteractions ?? _mountedSpatial?.overworldInteractions,
+      overworldInteractions:
+          _mountedGame?.overworldInteractions ??
+          _mountedSpatial?.overworldInteractions,
       hitTestOverworldInteraction: _mountedGame?.hitTestOverworldInteraction,
       onOverworldInteraction: _sessions?.dispatchOverworldInteraction,
-      dialoguePresentation: _mountedGame?.dialoguePresentationListenable ?? _mountedSpatial?.dialoguePresentationListenable,
-      onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand ?? _mountedSpatial?.dispatchDialoguePresentationCommand,
+      dialoguePresentation:
+          _mountedGame?.dialoguePresentationListenable ??
+          _mountedSpatial?.dialoguePresentationListenable,
+      onDialogueCommand:
+          _mountedGame?.dispatchDialoguePresentationCommand ??
+          _mountedSpatial?.dispatchDialoguePresentationCommand,
       battlePresentation: _mountedGame?.battleCommandOverlayListenable,
       onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand,
       controlProfile: _controlProfile,
@@ -1052,24 +1058,42 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         if (spatial != null && spatial.session != null) {
           return SizedBox.expand(
             key: _gameplayViewportKey,
-            child: SpatialExplorationView(
-              key: ObjectKey(spatial),
-              session: spatial.session!,
-              keyboardInputEnabled: false,
-              onReady: () {
-                final ready = _spatialReady;
-                if (identical(spatial, _mountedSpatial) &&
-                    ready != null &&
-                    !ready.isCompleted)
-                  ready.complete();
-              },
-              onError: (error) {
-                final ready = _spatialReady;
-                if (identical(spatial, _mountedSpatial) &&
-                    ready != null &&
-                    !ready.isCompleted)
-                  ready.completeError(error);
-              },
+            child: Stack(
+              children: [
+                SpatialExplorationView(
+                  key: ObjectKey(spatial),
+                  session: spatial.session!,
+                  keyboardInputEnabled: false,
+                  onReady: () {
+                    final ready = _spatialReady;
+                    if (identical(spatial, _mountedSpatial) &&
+                        ready != null &&
+                        !ready.isCompleted) {
+                      ready.complete();
+                    }
+                  },
+                  onError: (error) {
+                    final ready = _spatialReady;
+                    if (identical(spatial, _mountedSpatial) &&
+                        ready != null &&
+                        !ready.isCompleted) {
+                      ready.completeError(error);
+                    }
+                  },
+                ),
+                if (spatial.battle case final battle?)
+                  ListenableBuilder(
+                    listenable: battle,
+                    builder:
+                        (context, _) =>
+                            battle.isActive
+                                ? SpatialBattleView(
+                                  runtime: battle,
+                                  keyboardInputEnabled: false,
+                                )
+                                : const SizedBox.shrink(),
+                  ),
+              ],
             ),
           );
         }

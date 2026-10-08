@@ -186,8 +186,16 @@ final class CanonicalGamePackageExportService {
         );
       }
       var animatedDecor = false;
+      var spatialGameplay = false;
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
+        spatialGameplay = SpatialGameplayCapabilities.requiresGameplay(
+            projection.project,
+            dialogues: [
+              for (final entry in projection.project.dialogues)
+                const RuntimeDialogueDocumentCodec().decodeUtf8(
+                    projection.payloadFiles['project/${entry.relativePath}']!)
+            ]);
         for (final entry in projection.project.maps) {
           final bytes = await reader.readBytes(
               projectRoot: RuntimeProjectProjectionFileReader.projectRoot,
@@ -196,6 +204,9 @@ final class CanonicalGamePackageExportService {
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
           animatedDecor |= map.spatialScene!.instances
               .any((instance) => instance.animationIndex != null);
+          spatialGameplay |= SpatialGameplayCapabilities.requiresGameplay(
+              projection.project,
+              maps: [map]);
         }
       }
       final requiredCapabilities = <String>{
@@ -205,6 +216,7 @@ final class CanonicalGamePackageExportService {
               ? 'map3d@1'
               : 'map@1',
         if (animatedDecor) 'map3d.animation@1',
+        if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(
@@ -391,6 +403,7 @@ final class CanonicalGamePackageExportService {
             'map@1',
             'map3d@1',
             'map3d.animation@1',
+            SpatialGameplayCapabilities.capabilityId,
             'overworld.menu@1',
             'world.shop@1',
           },

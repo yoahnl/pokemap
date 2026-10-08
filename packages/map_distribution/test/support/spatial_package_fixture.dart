@@ -4,12 +4,14 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'glb_fixture.dart';
 
-Map<String, List<int>> spatialPayload({bool largeModel = false}) {
-  final bytes = triangleGlb(edit: (json) {
-    json['nodes'][0].remove('translation');
-    json['nodes'][0].remove('scale');
-    if (largeModel) json['extras'] = {'padding': 'x' * (1024 * 1024 + 1)};
-  });
+Map<String, List<int>> spatialPayload(
+    {bool largeModel = false, List<int>? modelBytes}) {
+  final bytes = modelBytes ??
+      triangleGlb(edit: (json) {
+        json['nodes'][0].remove('translation');
+        json['nodes'][0].remove('scale');
+        if (largeModel) json['extras'] = {'padding': 'x' * (1024 * 1024 + 1)};
+      });
   final png = image.encodePng(image.Image(width: 32, height: 32));
   final records = <Map<String, Object?>>[];
   final payload = <String, List<int>>{};

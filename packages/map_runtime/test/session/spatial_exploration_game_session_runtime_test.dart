@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
@@ -73,6 +74,8 @@ void main() {
             settings: const ProjectSettings(
                 dimension: ProjectDimension.threeD,
                 defaultPlayerCharacterId: 'hero'),
+            newGame:
+                const ProjectNewGameConfig(enabled: true, startMapId: 'field'),
             maps: const [
               ProjectMapEntry(
                   id: 'field', name: 'Field', relativePath: 'maps/field.json')
@@ -116,6 +119,7 @@ void main() {
     runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
     for (var i = 0; i < 5; i++) {
       session.frame(.05);
+      await Future<void>.delayed(Duration.zero);
     }
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.primary));
@@ -138,9 +142,193 @@ void main() {
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.secondary));
     expect(runtime.dialoguePresentationListenable.value, isNull);
+    await Future<void>.delayed(Duration.zero);
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
     session.frame(.05);
     expect(session.movement.moving, isFalse);
+  });
+
+  test('awaited dialogue completes only after its last line', () async {
+    await runtime.load((_) {});
+    var completed = false;
+    final dialogue = runtime.session!
+        .showDialogue(DialogueRef(dialogueId: 'hello'))
+        .then((result) {
+      completed = true;
+      return result;
+    });
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(completed, isFalse);
+    runtime.session!.confirmDialogue();
+    expect(completed, isFalse);
+    runtime.session!.confirmDialogue();
+    final result = await dialogue;
+    expect(result.success, isTrue);
+    expect(result.scenePortId, 'completed');
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+  });
+
+  test('closing an awaited dialogue reports cancellation', () async {
+    await runtime.load((_) {});
+    final dialogue =
+        runtime.session!.showDialogue(DialogueRef(dialogueId: 'hello'));
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    runtime.session!.closeDialogue();
+    final result = await dialogue;
+    expect(result.success, isFalse);
+    expect(result.errorCode, SceneDialogueRuntimeAwaitableErrorCode.cancelled);
+  });
+
+  test('authored dialogue choices stay visible and resolve their output',
+      () async {
+    await File('${root.path}/hello.json').writeAsBytes(
+        const RuntimeDialogueDocumentCodec()
+            .encodeUtf8(RuntimeDialogueDocument(nodes: [
+      RuntimeDialogueNode(title: 'Start', steps: [
+        RuntimeDialogueChoiceBlock([
+          RuntimeDialogueChoice(text: 'Oui', steps: [], outcomeId: 'accepted'),
+          RuntimeDialogueChoice(text: 'Non', steps: [], outcomeId: 'declined')
+        ])
+      ])
+    ])));
+    await runtime.load((_) {});
+    final dialogue =
+        runtime.session!.showDialogue(DialogueRef(dialogueId: 'hello'));
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    final snapshot = runtime.dialoguePresentationListenable.value!;
+    expect(snapshot.choices.map((choice) => choice.label), ['Oui', 'Non']);
+    runtime.session!.dispatchDialogueCommand(DialogueSelectChoiceCommand(
+        snapshotRevision: snapshot.revision, choiceIndex: 1));
+    expect((await dialogue).outcomeId, 'declined');
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+  });
+
+  test('native map enter commits its Event V2 scene exactly once', () async {
+    bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+            eventRegistry: NarrativeEventRegistry(
+                schemaVersion: 1,
+                mode: EventSystemMode.v2Only,
+                records: [
+                  spatialEvent(
+                      NarrativeEventSourceRef.mapEnter('field'), 'arrival')
+                ],
+                legacyClaims: const []),
+            scenes: [
+          spatialScene('arrival', [SceneConsequence.giveMoney(amount: 25)])
+        ]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(
+        runtime
+            .gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        hasLength(1));
+    runtime.session!.frame(.1);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+  });
+
+  test('cell checks preserve a held direction and accept release while busy',
+      () async {
+    await runtime.load((_) {});
+    runtime
+        .handleInput(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    for (var i = 0; i < 20; i++) {
+      runtime.session!.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(runtime.session!.movement.x, greaterThan(6.5));
+    runtime.handleInput(
+        const RuntimeInputEvent.release(RuntimeInputControl.right));
+    final x = runtime.session!.movement.x;
+    runtime.session!.frame(.05);
+    expect(runtime.session!.movement.x, x);
+  });
+
+  test('entity Scene keeps reward private until its dialogue completes',
+      () async {
+    bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+            eventRegistry: NarrativeEventRegistry(
+                schemaVersion: 1,
+                mode: EventSystemMode.v2Only,
+                records: [
+                  spatialEvent(
+                      NarrativeEventSourceRef.entityInteract('field', 'npc'),
+                      'talk')
+                ],
+                legacyClaims: const []),
+            scenes: [
+          spatialScene('talk', [SceneConsequence.giveMoney(amount: 25)],
+              dialogue: true)
+        ]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    for (var i = 0; i < 5; i++) {
+      runtime.session!.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    await waitForValue(runtime.inputAuthority,
+        (value) => value.context == RuntimeInputContext.overworld);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.dialogue);
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+    runtime.session!.confirmDialogue();
+    runtime.session!.confirmDialogue();
+    await waitForValue(
+        runtime.overworldInteractions,
+        (value) =>
+            value.primaryAction != null &&
+            runtime.gameStateSnapshot.trainerProfile.money == 25);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(runtime.session!.interactionError.value, isNull);
+  });
+
+  test('stop during an entity dialogue rolls back its pending reward',
+      () async {
+    bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+            eventRegistry: NarrativeEventRegistry(
+                schemaVersion: 1,
+                mode: EventSystemMode.v2Only,
+                records: [
+                  spatialEvent(
+                      NarrativeEventSourceRef.entityInteract('field', 'npc'),
+                      'talk')
+                ],
+                legacyClaims: const []),
+            scenes: [
+          spatialScene('talk', [SceneConsequence.giveMoney(amount: 25)],
+              dialogue: true)
+        ]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+    for (var i = 0; i < 5; i++) {
+      runtime.session!.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    await waitForValue(runtime.inputAuthority,
+        (value) => value.context == RuntimeInputContext.overworld);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await waitForValue(
+        runtime.dialoguePresentationListenable, (value) => value != null);
+    await runtime.stop(GameSessionExitReason.hub);
+    await Future<void>.delayed(Duration.zero);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.blocked);
   });
 
   test(
@@ -287,6 +475,7 @@ void main() {
     runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
     for (var i = 0; i < 5; i++) {
       session.frame(.05);
+      await Future<void>.delayed(Duration.zero);
     }
     final request =
         runtime.overworldInteractionSnapshot!.primaryAction!.request;
@@ -327,6 +516,7 @@ void main() {
         runtime.dialoguePresentationListenable.value!.fullText, 'À bientôt !');
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await Future<void>.delayed(Duration.zero);
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
   });
 
@@ -338,12 +528,14 @@ void main() {
     runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
     for (var i = 0; i < 5; i++) {
       session.frame(.05);
+      await Future<void>.delayed(Duration.zero);
     }
     await File('${root.path}/hello.json').delete();
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.primary));
     await waitForValue(session.interactionError, (value) => value != null);
     expect(session.interactionError.value, isNotNull);
+    await Future<void>.delayed(Duration.zero);
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
     final pending = session.interact();
     await runtime.stop(GameSessionExitReason.title);
@@ -420,6 +612,7 @@ void main() {
     runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
     session.frame(.05);
     expect(session.movement.z, lessThan(4));
+    await Future<void>.delayed(Duration.zero);
     runtime
         .handleInput(const RuntimeInputEvent.release(RuntimeInputControl.up));
     runtime
@@ -429,13 +622,18 @@ void main() {
     session.frame(.05);
     expect(session.movement.x, greaterThan(4));
     expect(session.movement.running, isTrue);
+    await Future<void>.delayed(Duration.zero);
     runtime.handleInput(
         const RuntimeInputEvent.release(RuntimeInputControl.right));
     runtime.handleInput(
         const RuntimeInputEvent.release(RuntimeInputControl.sprint));
     session.frame(.05);
     expect(session.movement.moving, isFalse);
-    expect(await runtime.captureCheckpoint(), isNull);
+    final checkpoint = (await runtime.captureCheckpoint())!;
+    final state = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state));
+    expect(state.playerSpatialPosition!.x, session.movement.x);
+    expect(state.playerSpatialPosition!.z, session.movement.z);
   });
 
   test('locks remain independent and resume requires fresh input', () async {
@@ -476,22 +674,159 @@ void main() {
     expect(unmounts, 1);
   });
 
-  test('companion exposes only exploration menus and no save', () async {
+  test('companion exposes live gameplay menus including save and party',
+      () async {
     await runtime.load((_) {});
     final menu = await runtime.readCompanionMenuData();
-    expect(menu.pauseDetails, isEmpty);
+    expect(menu.pauseDetails, isNotEmpty);
     expect(
         menu.pauseMenuState.isActionVisible(ProjectPauseActionId.save,
             projectDefaultVisibility: true),
-        isFalse);
+        isTrue);
     expect(
         menu.pauseMenuState.isActionVisible(ProjectPauseActionId.options,
-            projectDefaultVisibility: false),
+            projectDefaultVisibility: true),
         isTrue);
     expect(
         menu.pauseMenuState.isActionVisible(ProjectPauseActionId.party,
             projectDefaultVisibility: true),
-        isFalse);
+        isTrue);
+  });
+
+  SpatialExplorationGameSessionRuntime serviceRuntime({
+    required GameSessionCheckpointCommitter commitCheckpoint,
+    PlayerServiceRecoveryCapsLoader? recoveryCapsLoader,
+  }) {
+    final initial = descriptor().initialGameState!.copyWith(
+            party: const PlayerParty(members: [
+          PlayerPokemon(
+              individualId: 'starter',
+              speciesId: 'bulbasaur',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              knownMoveIds: ['tackle'],
+              currentPpByMoveId: {'tackle': 2},
+              currentHp: 2,
+              statusId: 'poison'),
+          PlayerPokemon(
+              individualId: 'caught',
+              speciesId: 'pidgey',
+              natureId: 'hardy',
+              abilityId: 'keen-eye',
+              currentHp: 7),
+        ]));
+    return SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(initialState: initial),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: commitCheckpoint,
+        recoveryCapsLoader: recoveryCapsLoader ??
+            (_) async =>
+                const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {
+                  0: 30,
+                  1: 25
+                }, maxPpByPartyIndex: {
+                  0: {'tackle': 35}
+                }),
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++);
+  }
+
+  test('healer restores HP and PP with an acknowledged host checkpoint',
+      () async {
+    final checkpoints = <GameSessionCheckpointCommit>[];
+    final healed = serviceRuntime(
+        commitCheckpoint: (request) async => checkpoints.add(request));
+    addTearDown(healed.dispose);
+    await healed.load((_) {});
+    final before = healed.gameStateSnapshot;
+    final result = await healed.openHealCenter(
+        request: const OpenHealService(
+            interactionId: 'valbois-heal', requiresConfirmation: false));
+    expect(result.status, PlayerServiceRuntimeStatus.completed);
+    expect(healed.gameStateSnapshot.party.members.first.currentHp, 30);
+    expect(healed.gameStateSnapshot.party.members.first.currentPpByMoveId,
+        {'tackle': 35});
+    expect(healed.gameStateSnapshot.party.members.first.statusId, isEmpty);
+    expect(healed.gameStateSnapshot.playerSpatialPosition,
+        before.playerSpatialPosition);
+    expect(checkpoints, hasLength(1));
+    expect(
+        checkpoints.single.descriptor.sessionId, healed.descriptor.sessionId);
+    final saved = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoints.single.checkpoint.state));
+    expect(saved.party, healed.gameStateSnapshot.party);
+    expect(saved.playerSpatialPosition, before.playerSpatialPosition);
+    expect(healed.inputAuthority.value.acceptsOverworldInput, isTrue);
+  });
+
+  test('failed healer checkpoint rolls back the party and releases input',
+      () async {
+    final healed = serviceRuntime(
+        commitCheckpoint: (_) async => throw FileSystemException('disk full'));
+    addTearDown(healed.dispose);
+    await healed.load((_) {});
+    final before = healed.gameStateSnapshot;
+    final result = await healed.openHealCenter(
+        request: const OpenHealService(
+            interactionId: 'valbois-heal', requiresConfirmation: false));
+    expect(result.status, PlayerServiceRuntimeStatus.failed);
+    expect(healed.gameStateSnapshot, before);
+    expect(healed.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect(healed.worldServiceSnapshot, isNull);
+  });
+
+  test('stop during healer hydration rejects late state and checkpoint',
+      () async {
+    final caps = Completer<RuntimePlayerServiceRecoveryCaps>();
+    final requested = Completer<void>();
+    var writes = 0;
+    final healed = serviceRuntime(
+        commitCheckpoint: (_) async => writes++,
+        recoveryCapsLoader: (_) {
+          requested.complete();
+          return caps.future;
+        });
+    addTearDown(healed.dispose);
+    await healed.load((_) {});
+    final before = healed.gameStateSnapshot;
+    final healing = healed.openHealCenter(
+        request: const OpenHealService(
+            interactionId: 'valbois-heal', requiresConfirmation: false));
+    await requested.future;
+    await healed.stop(GameSessionExitReason.hub);
+    caps.complete(const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: {0: 30, 1: 25}));
+    expect((await healing).status, PlayerServiceRuntimeStatus.failed);
+    expect(healed.gameStateSnapshot, before);
+    expect(writes, 0);
+    expect(healed.inputAuthority.value.context, RuntimeInputContext.blocked);
+  });
+
+  test('party pause commands preserve spatial state for controller autosave',
+      () async {
+    var writes = 0;
+    final edited = serviceRuntime(commitCheckpoint: (_) async => writes++);
+    addTearDown(edited.dispose);
+    await edited.load((_) {});
+    await edited.pause();
+    final before = edited.gameStateSnapshot;
+    final result = await edited.dispatchPauseCommand(
+        const RuntimePlayerPauseCommand.setPartyLead(
+            partyTargetId: 'pokemon.caught'));
+    expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(edited.gameStateSnapshot.party.members.first.individualId, 'caught');
+    expect(edited.gameStateSnapshot.playerSpatialPosition,
+        before.playerSpatialPosition);
+    final checkpoint = (await edited.captureCheckpoint())!;
+    final state = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state));
+    expect(state.party, edited.gameStateSnapshot.party);
+    expect(writes, 0);
   });
 
   test('failed mount is unmounted once during disposal', () async {
@@ -513,7 +848,114 @@ void main() {
     expect(failed.session, isNull);
   });
 
-  test('rejects continue instead of restoring a 2D save', () async {
+  test('stop while preload is pending never mounts the loaded world', () async {
+    final preload = Completer<RuntimeInitialMapPreloadResult>();
+    final requested = Completer<void>();
+    final pending = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+            {required projectFilePath,
+            required descriptor,
+            required initialSave}) {
+          requested.complete();
+          return preload.future;
+        },
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++);
+    addTearDown(pending.dispose);
+    final loading = pending.load((_) {});
+    final rejected = expectLater(loading, throwsStateError);
+    await requested.future;
+    await pending.stop(GameSessionExitReason.hub);
+    preload.complete(RuntimeInitialMapPreloadResult(bundle: bundle));
+    await rejected;
+    expect(pending.session, isNull);
+    expect(mounts, 0);
+  });
+
+  test('pause during mount keeps play time and movement paused', () async {
+    final mounted = Completer<void>();
+    final requested = Completer<void>();
+    final pending = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) {
+          requested.complete();
+          return mounted.future;
+        },
+        unmountSession: (_) async => unmounts++);
+    addTearDown(pending.dispose);
+    final loading = pending.load((_) {});
+    await requested.future;
+    await pending.pause();
+    mounted.complete();
+    await loading;
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    expect((await pending.captureCheckpoint())!.playTimeSeconds, 0);
+    expect(pending.session!.movement.paused, isTrue);
+    expect(pending.inputAuthority.value.context, RuntimeInputContext.blocked);
+  });
+
+  test('dispose waits for a pending mount before unmounting once', () async {
+    final mounted = Completer<void>();
+    final requested = Completer<void>();
+    final pending = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) {
+          requested.complete();
+          return mounted.future;
+        },
+        unmountSession: (_) async => unmounts++);
+    final loading = pending.load((_) {});
+    final rejected = expectLater(loading, throwsStateError);
+    await requested.future;
+    final disposing = pending.dispose();
+    await Future<void>.delayed(Duration.zero);
+    final unmountsWhileMounting = unmounts;
+    mounted.complete();
+    await rejected;
+    await disposing;
+    await pending.dispose();
+    expect(unmountsWhileMounting, 0);
+    expect(unmounts, 1);
+    expect(pending.session, isNull);
+  });
+
+  test('concurrent loads cannot create two world sessions', () async {
+    final path = Completer<String>();
+    final pending = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () => path.future,
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++);
+    addTearDown(pending.dispose);
+    final loading = pending.load((_) {});
+    final other = pending.load((_) {});
+    final rejected = expectLater(other, throwsStateError);
+    path.complete('${root.path}/project.json');
+    await loading;
+    await rejected;
+    expect(mounts, 1);
+  });
+
+  test('rejects continue without its authorized save', () async {
     final continued = SpatialExplorationGameSessionRuntime(
         descriptor: descriptor(continueGame: true),
         projectFilePath: () async => '${root.path}/project.json',
@@ -522,6 +964,126 @@ void main() {
     addTearDown(continued.dispose);
     await expectLater(continued.load((_) {}), throwsStateError);
     expect(continued.session, isNull);
+  });
+
+  test('new game uses its authored map instead of the first map entry',
+      () async {
+    await Directory('${root.path}/maps').create();
+    await File('${root.path}/maps/other.json').writeAsString(
+        jsonEncode(bundle.map.copyWith(id: 'other', entities: []).toJson()));
+    bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(maps: const [
+      ProjectMapEntry(
+          id: 'other', name: 'Other', relativePath: 'maps/other.json'),
+      ProjectMapEntry(
+          id: 'field', name: 'Field', relativePath: 'maps/field.json'),
+    ]));
+    await runtime.load((_) {});
+    expect(runtime.session!.bundle.map.id, 'field');
+    expect(runtime.gameStateSnapshot.currentMapId, 'field');
+    expect(runtime.gameStateSnapshot.trainerProfile.name, 'Yoahn');
+  });
+
+  test('continue restores exact spatial position, progress and save authority',
+      () async {
+    bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+            settings: bundle.manifest.settings
+                .copyWith(tileWidth: 32, tileHeight: 24)));
+    final state = GameState(
+        saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
+        currentMapId: 'field',
+        playerPosition: const GridPos(x: 4, y: 5),
+        playerSpatialPosition: PlayerSpatialPosition(x: 4.3125, z: 5.4375),
+        playerFacing: EntityFacing.west,
+        trainerProfile:
+            const TrainerProfile(name: 'Yoahn', avatarCharacterId: 'hero'),
+        bag: const Bag(entries: [BagEntry(itemId: 'poke-ball', quantity: 7)]),
+        storyFlags: const StoryFlags(activeFlags: {'found-herb'}));
+    final save = spatialSave(state);
+    final continued = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(continueGame: true),
+        projectFilePath: () async => '${root.path}/project.json',
+        initialSave: () async => save,
+        preloadedInitialMap: (
+            {required projectFilePath,
+            required descriptor,
+            required initialSave}) async {
+          expect(initialSave, same(save));
+          return RuntimeInitialMapPreloadResult(bundle: bundle);
+        },
+        now: () => DateTime.utc(2026, 10, 8, 2),
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++);
+    addTearDown(continued.dispose);
+    await continued.load((_) {});
+    expect(continued.session!.movement.x, 4.3125);
+    expect(continued.session!.movement.z, 5.4375);
+    expect(continued.session!.movement.facing, EntityFacing.west);
+    expect(continued.gameStateSnapshot.storyFlags.activeFlags,
+        contains('found-herb'));
+    expect(continued.gameStateSnapshot.bag.entries.single.quantity, 7);
+    final checkpoint = (await continued.captureCheckpoint())!;
+    expect(checkpoint.createdAt, save.createdAt);
+    expect(checkpoint.updatedAt, DateTime.utc(2026, 10, 8, 2));
+    expect(checkpoint.playTimeSeconds, greaterThanOrEqualTo(60));
+    final restored = gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(checkpoint.state));
+    expect(restored.playerSpatialPosition, state.playerSpatialPosition);
+    expect(restored.playerFacing, EntityFacing.west);
+    expect(mounts, 1);
+  });
+
+  test('rejects a 2D save and a blocked spatial save before mounting',
+      () async {
+    for (final position in [null, PlayerSpatialPosition(x: 4.5, z: 2.5)]) {
+      final state = GameState(
+          saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
+          currentMapId: 'field',
+          playerPosition: const GridPos(x: 4, y: 2),
+          playerSpatialPosition: position);
+      final continued = SpatialExplorationGameSessionRuntime(
+          descriptor: descriptor(continueGame: true),
+          projectFilePath: () async => '${root.path}/project.json',
+          initialSave: () async => spatialSave(state),
+          preloadedInitialMap: (
+                  {required projectFilePath,
+                  required descriptor,
+                  required initialSave}) async =>
+              RuntimeInitialMapPreloadResult(bundle: bundle),
+          mountSession: (_) async => mounts++,
+          unmountSession: (_) async => unmounts++);
+      await expectLater(continued.load((_) {}), throwsStateError);
+      expect(continued.session, isNull);
+      await continued.dispose();
+    }
+    expect(mounts, 0);
+  });
+
+  test('rejects save identity changes before requesting preload', () async {
+    final state = GameState(
+        saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
+        currentMapId: 'field',
+        playerPosition: const GridPos(x: 4, y: 4),
+        playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4));
+    var preloads = 0;
+    final continued = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(continueGame: true),
+        projectFilePath: () async => '${root.path}/project.json',
+        initialSave: () async => spatialSave(state, profileId: 'other-profile'),
+        preloadedInitialMap: (
+            {required projectFilePath,
+            required descriptor,
+            required initialSave}) async {
+          preloads++;
+          return RuntimeInitialMapPreloadResult(bundle: bundle);
+        },
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++);
+    addTearDown(continued.dispose);
+    await expectLater(continued.load((_) {}), throwsStateError);
+    expect(preloads, 0);
+    expect(mounts, 0);
   });
 }
 
@@ -542,7 +1104,8 @@ Future<void> waitForValue<T>(
   }
 }
 
-GameSessionDescriptor descriptor({bool continueGame = false}) =>
+GameSessionDescriptor descriptor(
+        {bool continueGame = false, GameState? initialState}) =>
     GameSessionDescriptor(
         sessionId: 'session',
         sessionToken: 'token',
@@ -558,8 +1121,77 @@ GameSessionDescriptor descriptor({bool continueGame = false}) =>
             ? GameSessionLaunchMode.continueGame
             : GameSessionLaunchMode.newGame,
         saveReadHandle: continueGame ? 'save' : null,
+        initialGameState: continueGame
+            ? null
+            : initialState ??
+                GameState(
+                    saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
+                    currentMapId: 'field',
+                    playerPosition: const GridPos(x: 4, y: 4),
+                    playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4),
+                    trainerProfile: const TrainerProfile(
+                        name: 'Yoahn', avatarCharacterId: 'hero')),
         installedVersionHandle: 'installed',
         runtimeApiVersion: '1.4.0',
         grantedCapabilities: const {'map3d@1'},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions());
+
+SaveEnvelope spatialSave(GameState state, {String profileId = 'profile'}) =>
+    const GameStateSaveEnvelopeMapper().create(
+        identity: descriptor().identity,
+        profileId: profileId,
+        slotId: 'slot',
+        saveId: state.saveId,
+        createdAt: DateTime.utc(2026, 10, 8),
+        updatedAt: DateTime.utc(2026, 10, 8, 1),
+        status: SaveStatus.active,
+        playTimeSeconds: 60,
+        gameState: state);
+
+NarrativeEventRecord spatialEvent(
+        NarrativeEventSourceRef source, String sceneId) =>
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+        NarrativeEventDefinition(
+            id: 'evt_019abcde-0000-7000-8000-000000000001',
+            name: sceneId,
+            source: source,
+            conditions: const [],
+            sceneId: sceneId,
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            priority: 0,
+            order: 0,
+            resetPolicy: const NarrativeEventResetPolicy.never()),
+        enabled: true);
+
+SceneAsset spatialScene(String id, List<SceneConsequence> consequences,
+    {bool dialogue = false}) {
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    for (var index = 0; index < consequences.length; index++)
+      SceneNode(
+          id: 'action_$index',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(consequences[index])),
+    if (dialogue)
+      SceneNode(
+          id: 'dialogue',
+          kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  return SceneAsset(
+      id: id,
+      name: id,
+      graph: SceneGraph(startNodeId: 'start', nodes: nodes, edges: [
+        for (var i = 0; i < nodes.length - 1; i++)
+          SceneEdge(
+              id: 'edge_$i',
+              fromNodeId: nodes[i].id,
+              fromPortId: 'completed',
+              toNodeId: nodes[i + 1].id,
+              kind: nodes[i].kind == SceneNodeKind.action
+                  ? SceneEdgeKind.actionCompleted
+                  : SceneEdgeKind.defaultFlow)
+      ]));
+}

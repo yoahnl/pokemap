@@ -320,6 +320,27 @@ void _expectRectCloseTo(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('removing a battle overlay releases its loaded stat sheets', () async {
+    final overlay = BattleOverlayComponent(
+      itemCapabilityResolver: _itemResolver,
+      session: _session(
+        player: _combatant(
+            speciesId: 'player', lineupIndex: 0, moves: [_waitingMove()]),
+        enemy: _combatant(
+            speciesId: 'enemy', lineupIndex: 0, moves: [_waitingMove()]),
+      ),
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+    );
+    await overlay.onLoad();
+    for (var i = 0; i < 100 && overlay.debugStatSheetCount < 2; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    expect(overlay.debugStatSheetCount, 2);
+    overlay.onRemove();
+    expect(overlay.debugStatSheetCount, 0);
+  });
+
   group('BattleBackgroundResolver lot 2 context resolution', () {
     const resolver = BattleBackgroundResolver();
 

@@ -61,30 +61,77 @@ final class Model3dBounds {
   Map<String, dynamic> toJson() => {'min': min.toJson(), 'max': max.toJson()};
 }
 
+enum Model3dAlphaMode { opaque, mask }
+
 final class Model3dMaterial {
-  Model3dMaterial({required this.index, required String name})
-    : name = _name(name) {
+  Model3dMaterial({
+    required this.index,
+    required String name,
+    this.alphaMode = Model3dAlphaMode.opaque,
+    this.alphaCutoff,
+    this.doubleSided = false,
+  }) : name = _name(name) {
     if (index < 0) {
       throw const FormatException('Material index must be nonnegative.');
+    }
+    if (alphaMode == Model3dAlphaMode.mask
+        ? alphaCutoff != .5
+        : alphaCutoff != null) {
+      throw const FormatException(
+        'MASK requires an explicit alpha cutoff of 0.5.',
+      );
     }
   }
   final int index;
   final String name;
+  final Model3dAlphaMode alphaMode;
+  final double? alphaCutoff;
+  final bool doubleSided;
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Model3dMaterial && other.index == index && other.name == name;
+      other is Model3dMaterial &&
+          other.index == index &&
+          other.name == name &&
+          other.alphaMode == alphaMode &&
+          other.alphaCutoff == alphaCutoff &&
+          other.doubleSided == doubleSided;
   @override
-  int get hashCode => Object.hash(index, name);
+  int get hashCode =>
+      Object.hash(index, name, alphaMode, alphaCutoff, doubleSided);
 
   factory Model3dMaterial.fromJson(Map<String, dynamic> json) {
-    _keys(json, {'index', 'name'});
+    _keys(json, {
+      'index',
+      'name',
+      if (json.containsKey('alphaMode')) 'alphaMode',
+      if (json.containsKey('alphaCutoff')) 'alphaCutoff',
+      if (json.containsKey('doubleSided')) 'doubleSided',
+    });
+    if (json.containsKey('doubleSided') && json['doubleSided'] is! bool) {
+      throw const FormatException('Material doubleSided must be a boolean.');
+    }
     return Model3dMaterial(
       index: _integer(json['index']),
       name: json['name'] as String,
+      alphaMode: switch (json['alphaMode']) {
+        null || 'opaque' => Model3dAlphaMode.opaque,
+        'mask' => Model3dAlphaMode.mask,
+        _ => throw const FormatException('Unsupported model alpha mode.'),
+      },
+      alphaCutoff: json['alphaCutoff'] == null
+          ? null
+          : _finite(_number(json['alphaCutoff']), 'alphaCutoff'),
+      doubleSided: json['doubleSided'] as bool? ?? false,
     );
   }
-  Map<String, dynamic> toJson() => {'index': index, 'name': name};
+  Map<String, dynamic> toJson() => {
+    'index': index,
+    'name': name,
+    if (alphaMode != Model3dAlphaMode.opaque) 'alphaMode': alphaMode.name,
+    if (alphaCutoff != null) 'alphaCutoff': alphaCutoff,
+    if (doubleSided) 'doubleSided': true,
+  };
 }
 
 final class Model3dAnimation {

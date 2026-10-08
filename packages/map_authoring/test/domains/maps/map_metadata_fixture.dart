@@ -17,13 +17,17 @@ final class MapMetadataFixture {
 
   static Future<MapMetadataFixture> create({
     AuthoringTransactionFaultInjector? faultInjector,
+    ProjectDimension dimension = ProjectDimension.twoD,
   }) async {
     final root = await Directory.systemTemp.createTemp('map-metadata-');
+    final spatial = dimension == ProjectDimension.threeD;
+    final version = spatial ? ProjectVersion.v9 : ProjectVersion.v8;
     final map = MapData(
       id: 'town',
       name: 'Town',
-      version: ProjectVersion.v8,
+      version: version,
       size: const GridSize(width: 5, height: 4),
+      spatialScene: spatial ? MapSpatialScene(width: 5, depth: 4) : null,
       tilesetId: '',
       layers: const [],
       warps: const [
@@ -36,7 +40,10 @@ final class MapMetadataFixture {
     );
     final manifest = ProjectManifest(
       name: 'Metadata',
-      version: ProjectVersion.v8,
+      version: version,
+      settings: ProjectSettings(
+          dimension: dimension,
+          spatialCamera: spatial ? SpatialCameraProfile() : null),
       tilesets: const [],
       maps: const [
         ProjectMapEntry(

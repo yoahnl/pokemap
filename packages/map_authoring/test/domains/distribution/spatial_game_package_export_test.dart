@@ -187,6 +187,65 @@ void main() {
         throwsA(isA<GamePackageExportException>().having(
             (e) => e.code, 'code', 'runtime3d.publication_unsupported')));
   });
+
+  test(
+      'local gameplay export selects a distinct profile and keeps publication blocked',
+      () async {
+    final file = File(p.join(root.path, 'project.json'));
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    await file.writeAsString(jsonEncode(project.copyWith(facts: [
+      NarrativeFactDefinition(id: 'quest.done', label: 'Quest done')
+    ]).toJson()));
+    final artifact = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(artifact.manifest.compatibility.requiredCapabilities,
+        contains(SpatialGameplayCapabilities.capabilityId));
+    expect(
+        const GamePackageInspector()
+            .inspect(artifact.packageBytes)
+            .manifest
+            .compatibility
+            .requiredCapabilities,
+        contains(SpatialGameplayCapabilities.capabilityId));
+    await expectLater(
+        const CanonicalGamePackageExportService()
+            .build(projectRoot: root, profile: _profile()),
+        throwsA(isA<GamePackageExportException>().having((error) => error.code,
+            'code', 'runtime3d.publication_unsupported')));
+  });
+
+  test('3D gameplay does not bypass Pokemon catalog coherence', () async {
+    final file = File(p.join(root.path, 'project.json'));
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    await file.writeAsString(jsonEncode(project
+        .copyWith(pokemon: project.pokemon.copyWith(enabled: true))
+        .toJson()));
+    final service = CanonicalGamePackageExportService(
+      pokemonValidator: (
+              {required reader,
+              required projectRoot,
+              required manifest}) async =>
+          PokemonCatalogCoherenceReport([
+        const PokemonCatalogDiagnostic(
+            code: 'fixtureMissingSpecies',
+            severity: PokemonCatalogDiagnosticSeverity.error,
+            path: 'pokemon/species/missing.json',
+            message: 'Missing species',
+            recommendedAction: 'Repair catalog')
+      ]),
+    );
+    await expectLater(
+        service.build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'gameplayReadinessFailed')));
+  });
 }
 
 GamePackageExportProfile _profile() => GamePackageExportProfile(

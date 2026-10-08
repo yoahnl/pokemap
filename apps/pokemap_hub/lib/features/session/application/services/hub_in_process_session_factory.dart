@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
+import 'hub_session_checkpoint_committer.dart';
 
 /// Composition bridge from verified Hub handles to the production Flame graph.
 ///
@@ -22,6 +23,7 @@ final class HubInProcessSessionFactory {
     this.dimension = ProjectDimension.twoD,
     this.mountSpatialSession,
     this.unmountSpatialSession,
+    this.commitCheckpoint,
   });
 
   final InstalledGameLaunchContext launch;
@@ -33,7 +35,9 @@ final class HubInProcessSessionFactory {
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function()? now;
   final ProjectDimension dimension;
-  final SpatialExplorationSessionMount? mountSpatialSession, unmountSpatialSession;
+  final SpatialExplorationSessionMount? mountSpatialSession,
+      unmountSpatialSession;
+  final GameSessionCheckpointCommitter? commitCheckpoint;
 
   GameSessionAdapter call(GameSessionDescriptor descriptor) {
     if (descriptor.identity != launch.identity ||
@@ -47,7 +51,9 @@ final class HubInProcessSessionFactory {
     }
     if ((dimension == ProjectDimension.threeD) !=
         descriptor.grantedCapabilities.contains('map3d@1')) {
-      throw StateError('The project dimension does not match its runtime capability.');
+      throw StateError(
+        'The project dimension does not match its runtime capability.',
+      );
     }
     if (dimension == ProjectDimension.threeD) {
       final mount = mountSpatialSession;
@@ -55,11 +61,25 @@ final class HubInProcessSessionFactory {
       if (mount == null || unmount == null) {
         throw StateError('The host does not provide a spatial surface.');
       }
-      return InProcessGameSessionAdapter(runtimeFactory: (prepared) =>
-        SpatialExplorationGameSessionRuntime(descriptor: prepared,
-          projectFilePath: () async => (await launch.assets.resolveReference(launch.project)).path,
-          mountSession: mount, unmountSession: unmount,
-          preloadedInitialMap: preloadedInitialMap));
+      return InProcessGameSessionAdapter(
+        runtimeFactory:
+            (prepared) => SpatialExplorationGameSessionRuntime(
+              descriptor: prepared,
+              projectFilePath:
+                  () async =>
+                      (await launch.assets.resolveReference(
+                        launch.project,
+                      )).path,
+              initialSave: () => _loadInitialSave(prepared),
+              commitCheckpoint:
+                  commitCheckpoint ??
+                  HubSessionCheckpointCommitter(store: saves).commit,
+              mountSession: mount,
+              unmountSession: unmount,
+              preloadedInitialMap: preloadedInitialMap,
+              now: now,
+            ),
+      );
     }
     return InProcessGameSessionAdapter(
       runtimeFactory:
@@ -69,29 +89,7 @@ final class HubInProcessSessionFactory {
               final file = await launch.assets.resolveReference(launch.project);
               return file.path;
             },
-            initialSave: () async {
-              if (preparedDescriptor.launchMode ==
-                  GameSessionLaunchMode.newGame) {
-                return null;
-              }
-              final selected = await saves.read(
-                SaveSlotAddress(
-                  gameId: preparedDescriptor.identity.gameId,
-                  profileId: preparedDescriptor.profileId,
-                  slotId: preparedDescriptor.slotId,
-                ),
-              );
-              if (!selected.canContinue || selected.envelope == null) {
-                throw StateError('The selected save is no longer launchable.');
-              }
-              if (hubSaveReadHandle(selected.envelope!) !=
-                  preparedDescriptor.saveReadHandle) {
-                throw StateError(
-                  'The selected save changed after the launch was authorized.',
-                );
-              }
-              return selected.envelope;
-            },
+            initialSave: () => _loadInitialSave(preparedDescriptor),
             mountGame: mountGame,
             unmountGame: unmountGame,
             preloadedInitialMap: preloadedInitialMap,
@@ -100,5 +98,27 @@ final class HubInProcessSessionFactory {
             now: now,
           ),
     );
+  }
+
+  Future<SaveEnvelope?> _loadInitialSave(
+    GameSessionDescriptor descriptor,
+  ) async {
+    if (descriptor.launchMode == GameSessionLaunchMode.newGame) return null;
+    final selected = await saves.read(
+      SaveSlotAddress(
+        gameId: descriptor.identity.gameId,
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
+      ),
+    );
+    if (!selected.canContinue || selected.envelope == null) {
+      throw StateError('The selected save is no longer launchable.');
+    }
+    if (hubSaveReadHandle(selected.envelope!) != descriptor.saveReadHandle) {
+      throw StateError(
+        'The selected save changed after the launch was authorized.',
+      );
+    }
+    return selected.envelope;
   }
 }

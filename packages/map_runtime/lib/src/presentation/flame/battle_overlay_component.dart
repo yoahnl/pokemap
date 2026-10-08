@@ -987,6 +987,7 @@ class BattleOverlayComponent extends PositionComponent {
   int get debugStatSheetCount => _statSheetImages.length;
 
   Future<ui.Image?> _loadStatSheet(String sheetName) async {
+    if (_ballImagesDisposed) return null;
     final cached = _statSheetImages[sheetName];
     if (cached != null) return cached;
     final fileName = battleStatSheetManifest[sheetName];
@@ -1003,11 +1004,21 @@ class BattleOverlayComponent extends PositionComponent {
         return null;
       }
     }
+    if (_ballImagesDisposed) return null;
     try {
       final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      _statSheetImages[sheetName] = frame.image;
-      return frame.image;
+      try {
+        final image = (await codec.getNextFrame()).image;
+        final cached = _statSheetImages[sheetName];
+        if (_ballImagesDisposed || cached != null) {
+          image.dispose();
+          return cached;
+        }
+        _statSheetImages[sheetName] = image;
+        return image;
+      } finally {
+        codec.dispose();
+      }
     } on Object catch (error) {
       debugPrint('[battle] stat sheet undecodable ($sheetName): $error');
       return null;
@@ -1102,6 +1113,10 @@ class BattleOverlayComponent extends PositionComponent {
       image.dispose();
     }
     _ballSheetImages.clear();
+    for (final image in _statSheetImages.values) {
+      image.dispose();
+    }
+    _statSheetImages.clear();
     super.onRemove();
   }
 

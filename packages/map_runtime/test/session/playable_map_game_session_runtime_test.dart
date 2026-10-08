@@ -8,6 +8,55 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('2D session rejects spatial save state before mounting', () async {
+    final identity = GameIdentity(
+        gameId: 'org.example.runtime-fixture',
+        gameVersion: '1.0.0',
+        projectFormat: ProjectFormat.v1,
+        saveFormat: 1,
+        compatibilityId: 'fixture-v1');
+    final createdAt = DateTime.utc(2026, 10, 8);
+    final save = const GameStateSaveEnvelopeMapper().create(
+        identity: identity,
+        profileId: 'player-1',
+        slotId: 'slot-1',
+        saveId: '123e4567-e89b-42d3-a456-426614174002',
+        createdAt: createdAt,
+        updatedAt: createdAt,
+        status: SaveStatus.active,
+        playTimeSeconds: 0,
+        gameState: GameState(
+            saveId: '123e4567-e89b-42d3-a456-426614174002',
+            currentMapId: 'golden_field',
+            playerPosition: const GridPos(x: 1, y: 1),
+            playerSpatialPosition: PlayerSpatialPosition(x: 1.5, z: 1.5)));
+    var mounts = 0;
+    final runtime = PlayableMapGameSessionRuntime(
+        descriptor: GameSessionDescriptor(
+            sessionId: 'session-wrong-dimension',
+            sessionToken: 'secret',
+            identity: identity,
+            profileId: 'player-1',
+            slotId: 'slot-1',
+            launchMode: GameSessionLaunchMode.continueGame,
+            installedVersionHandle: 'verified-fixture',
+            saveReadHandle: 'opaque-save',
+            runtimeApiVersion: '1.0.0',
+            grantedCapabilities: const {'map.v1'},
+            locale: 'fr-FR',
+            accessibility: const GameSessionAccessibilityOptions()),
+        projectFilePath: () async => File(
+                '../../examples/playable_runtime_host/golden_battle_slice/project.json')
+            .absolute
+            .path,
+        initialSave: () async => save,
+        mountGame: (_) async => mounts++,
+        unmountGame: (_) async {});
+    addTearDown(runtime.dispose);
+    await expectLater(runtime.load((_) {}), throwsStateError);
+    expect(mounts, 0);
+  });
+
   test('companion menu reads preserve the loaded world and movement authority',
       () async {
     final identity = GameIdentity(
@@ -280,7 +329,10 @@ void main() {
     expect(mounted!.reducedMotion, isTrue);
     expect(mounted!.textScale, 1.4);
     expect(mounted!.runtimeLocale, 'fr-FR');
-    expect((await runtime.loadPauseDetails())[RuntimePlayerPauseSection.map]!.title, 'Map');
+    expect(
+        (await runtime.loadPauseDetails())[RuntimePlayerPauseSection.map]!
+            .title,
+        'Map');
 
     final result = await runtime.dispatchPauseCommand(
       const RuntimePlayerPauseCommand.setPartyLead(

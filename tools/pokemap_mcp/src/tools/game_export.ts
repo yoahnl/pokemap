@@ -19,7 +19,7 @@ export function registerGameExportTool(
     {
       title: "Export an Avelune game package",
       description:
-        "Builds and writes one .avelunegame file into a configured export root. Publication requires a certified complete story; localTest retains story warnings and validates runtime data, including 3D exploration projects with static character NPCs and text dialogues. Other 3D gameplay and 3D publication are unsupported.",
+        "Builds and writes one .avelunegame file into a configured export root. Publication requires a certified complete story; localTest retains story warnings and validates runtime data, including 3D exploration projects with static character NPCs and text dialogues. The distinct map3d.gameplay@1 localTest profile supports typed Event V2 and Scenes, Facts, presence WorldRules, existing battles and shops/healing/PC. Unsupported commands, cinematics, legacy scripts and 3D publication are rejected.",
       inputSchema: z
         .object({
           projectHandle: z.string().min(1),

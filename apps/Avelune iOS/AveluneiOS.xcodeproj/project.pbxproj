@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		012111EC8E6F735BA856F561 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C8297DB9B85FDD7C686D76 /* Game.swift */; };
 		064B2736739E84B090F31E7B /* GameRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB05939403664069C5DA46 /* GameRepository.swift */; };
+		10D3C94D50389C0ADCCF3D04 /* SpatialGameplayImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A83665B8350D51C22D201BE /* SpatialGameplayImportTests.swift */; };
 		24794E141E452E4406AD4845 /* LibraryVisualGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D96307BEC01034E29BCB09 /* LibraryVisualGateTests.swift */; };
 		28844350F4CC24D7CF3A47F3 /* GameListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EF0A6495FD9C41910A027B /* GameListViewModel.swift */; };
 		3EE917FB245D7BB4DBC93ECE /* HubPlatformChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFEC21B017B60381E9469DE5 /* HubPlatformChannel.swift */; };
@@ -63,6 +64,7 @@
 		66FB05939403664069C5DA46 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRepository.swift; sourceTree = "<group>"; };
 		6FA3B874A0AC2CE3C932464F /* AveluneiOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AveluneiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		768F736FC7ED3ECC450CF532 /* AveluneiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AveluneiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A83665B8350D51C22D201BE /* SpatialGameplayImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialGameplayImportTests.swift; sourceTree = "<group>"; };
 		7DB8C48F97D9A0DE60697BD6 /* FlutterEngineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterEngineManager.swift; sourceTree = "<group>"; };
 		8593CB6197C587105FE26ED3 /* AveluneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AveluneApp.swift; sourceTree = "<group>"; };
 		8FA7EB1F065D0D796E1FFD23 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				40D96307BEC01034E29BCB09 /* LibraryVisualGateTests.swift */,
+				7A83665B8350D51C22D201BE /* SpatialGameplayImportTests.swift */,
 			);
 			path = AveluneiOSUITests;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				24794E141E452E4406AD4845 /* LibraryVisualGateTests.swift in Sources */,
+				10D3C94D50389C0ADCCF3D04 /* SpatialGameplayImportTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

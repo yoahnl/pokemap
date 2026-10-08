@@ -29,8 +29,29 @@ final class GamePackageGameplayReadinessGate {
               path: 'project.json',
               message: '3D exploration is available only through localTest.');
         }
-        GamePackageSpatialProjectValidator()
+        final maps = [
+          for (final entry in project.maps)
+            MapData.fromJson(jsonDecode(utf8.decode(
+                    projection.payloadFiles['project/${entry.relativePath}']!))
+                as Map<String, dynamic>)
+        ];
+        final gameplay = SpatialGameplayCapabilities.requiresGameplay(project,
+            maps: maps,
+            dialogues: [
+              for (final entry in project.dialogues)
+                const RuntimeDialogueDocumentCodec().decodeUtf8(
+                    projection.payloadFiles['project/${entry.relativePath}']!)
+            ]);
+        GamePackageSpatialProjectValidator(gameplay: gameplay)
             .validate(project, (path) => projection.payloadFiles[path]);
+        if (gameplay) {
+          _appendPokemonValidationDiagnostics(
+            project: project,
+            report: pokemonValidationReport,
+            failure: pokemonValidationFailure,
+            target: diagnostics,
+          );
+        }
       } on Object catch (error) {
         diagnostics.add(_diagnostic(
             code: error is GamePackageFormatException

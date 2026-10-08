@@ -3,6 +3,28 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('model material roundtrips explicit MASK and rejects other cutoffs', () {
+    final json = {
+      'index': 0,
+      'name': 'BW2',
+      'alphaMode': 'mask',
+      'alphaCutoff': .5,
+      'doubleSided': true,
+    };
+    expect(Model3dMaterial.fromJson(json).toJson(), json);
+    expect(
+      () => Model3dMaterial.fromJson({...json, 'doubleSided': 'true'}),
+      throwsFormatException,
+    );
+    expect(
+      () => Model3dMaterial.fromJson({...json, 'alphaCutoff': .1}),
+      throwsFormatException,
+    );
+    expect(
+      () => Model3dMaterial.fromJson({...json, 'alphaMode': 'blend'}),
+      throwsFormatException,
+    );
+  });
   test(
     'model catalog roundtrips inspected metadata and authoring transforms',
     () {

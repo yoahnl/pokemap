@@ -11,11 +11,27 @@ MapEntity? findSpatialNpcInteraction({
   required double x,
   required double z,
   required EntityFacing facing,
+}) =>
+    findSpatialEntityInteraction(
+      scene: scene,
+      entities: entities.where(
+          (entity) => entity.kind == MapEntityKind.npc && entity.npc != null),
+      x: x,
+      z: z,
+      facing: facing,
+    );
+
+MapEntity? findSpatialEntityInteraction({
+  required MapSpatialScene scene,
+  required Iterable<MapEntity> entities,
+  required double x,
+  required double z,
+  required EntityFacing facing,
 }) {
   MapEntity? result;
   var nearest = double.infinity;
   for (final entity in entities) {
-    if (entity.kind != MapEntityKind.npc || entity.npc == null) continue;
+    if (entity.kind == MapEntityKind.spawn) continue;
     final dx = entity.pos.x + .5 - x, dz = entity.pos.y + .5 - z;
     final (forward, lateral) = switch (facing) {
       EntityFacing.north => (-dz, dx.abs()),

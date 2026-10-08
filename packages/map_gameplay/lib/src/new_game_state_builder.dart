@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'direction.dart';
 import 'player_spawn_resolver.dart';
+import 'spatial_movement_controller.dart';
 
 const playerNameScriptVariable = 'player_name';
 const playerAvatarScriptVariable = 'player_avatar';
@@ -326,12 +327,21 @@ GameState createNewGameStateFromProject({
     );
   }
 
-  final spawn = resolveInitialPlayerSpawn(
-    startMap,
-    preferredSpawnId: config.startSpawnId,
-    tileWidthPx: tileWidthPx,
-    tileHeightPx: tileHeightPx,
-  );
+  final spatialMovement = project.settings.dimension == ProjectDimension.threeD
+      ? SpatialMovementController.fromMap(
+          map: startMap,
+          models: project.models3d,
+          preferredSpawnId: config.startSpawnId,
+        )
+      : null;
+  final spawn = spatialMovement == null
+      ? resolveInitialPlayerSpawn(
+          startMap,
+          preferredSpawnId: config.startSpawnId,
+          tileWidthPx: tileWidthPx,
+          tileHeightPx: tileHeightPx,
+        )
+      : null;
   final normalizedParty = PlayerParty(
     members: <PlayerPokemon>[
       for (final pokemon in config.initialParty)
@@ -379,8 +389,14 @@ GameState createNewGameStateFromProject({
     GameState(
       saveId: saveId.trim().isEmpty ? 'new_game' : saveId.trim(),
       currentMapId: configuredMapId,
-      playerPosition: spawn.pos,
-      playerFacing: spawn.facing.asFacing,
+      playerPosition: spatialMovement == null
+          ? spawn!.pos
+          : GridPos(
+              x: spatialMovement.x.floor(),
+              y: spatialMovement.z.floor(),
+            ),
+      playerSpatialPosition: spatialMovement?.spatialPosition,
+      playerFacing: spatialMovement?.facing ?? spawn!.facing.asFacing,
       playerMovementMode: MovementMode.walk,
       party: normalizedParty,
       trainerProfile: TrainerProfile(

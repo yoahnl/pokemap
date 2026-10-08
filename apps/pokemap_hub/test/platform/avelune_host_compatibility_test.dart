@@ -22,6 +22,10 @@ void main() {
     });
     expect(compatibility.capabilities, contains('map3d@1'));
     expect(compatibility.capabilities, contains('map3d.animation@1'));
+    expect(
+      compatibility.capabilities,
+      contains(SpatialGameplayCapabilities.capabilityId),
+    );
   });
 
   test('accepts a package using the current v8 project format', () async {

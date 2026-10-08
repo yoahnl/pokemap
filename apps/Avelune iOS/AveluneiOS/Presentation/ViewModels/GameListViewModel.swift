@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import OSLog
 
 enum InstallationStage: String, Identifiable {
     case preparing
@@ -27,6 +28,7 @@ final class GameListViewModel: ObservableObject {
 
     private let loadLibraryUseCase: LoadLibraryUseCase
     private let installGameUseCase: InstallGameUseCase
+    private let importLogger = Logger(subsystem: "com.yoahnl.avelune.player", category: "GameImport")
 
     init(loadLibraryUseCase: LoadLibraryUseCase, installGameUseCase: InstallGameUseCase) {
         self.loadLibraryUseCase = loadLibraryUseCase
@@ -55,6 +57,7 @@ final class GameListViewModel: ObservableObject {
     }
 
     func install(from url: URL) async {
+        importLogger.notice("Starting game package import")
         isBusy = true
         installationName = url.deletingPathExtension().lastPathComponent
         installationStage = .preparing
@@ -78,7 +81,9 @@ final class GameListViewModel: ObservableObject {
             games = try await loadLibraryUseCase.execute()
             libraryState = .loaded
             libraryLoadError = nil
+            importLogger.notice("Game package import completed")
         } catch {
+            importLogger.error("Game package import failed: \(error.localizedDescription, privacy: .private)")
             errorMessage = error.localizedDescription
         }
     }

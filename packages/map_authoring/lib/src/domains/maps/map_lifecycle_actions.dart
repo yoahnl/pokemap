@@ -42,7 +42,9 @@ final class MapLifecycleActions {
         'map.duplicate', 'Duplicate a complete map', AuthoringRiskLevel.low),
     _descriptor(
         'map.rename', 'Rename an unreferenced map', AuthoringRiskLevel.medium),
-    _descriptor('map.update_metadata', 'Update a map title at stable identity',
+    _descriptor(
+        'map.update_metadata',
+        'Update map title, role and indoor setting at stable identity',
         AuthoringRiskLevel.medium),
     _descriptor('map.resize_apply', 'Resize a map without data loss',
         AuthoringRiskLevel.medium),
@@ -127,12 +129,46 @@ AuthoringActionDescriptor _descriptor(
         'inputSchema': const {
           'type': 'object',
           'additionalProperties': false,
-          'required': ['mapId', 'name'],
+          'required': ['mapId'],
+          'anyOf': [
+            {
+              'required': ['name']
+            },
+            {
+              'required': ['role']
+            },
+            {
+              'required': ['isIndoor']
+            },
+          ],
           'properties': {
             'mapId': {'type': 'string', 'minLength': 1},
             'name': {'type': 'string', 'minLength': 1},
+            'role': {
+              'type': 'string',
+              'enum': [
+                'exterior',
+                'interior',
+                'basement',
+                'upper_floor',
+                'connector',
+                'gate',
+                'room',
+                'section',
+                'sub_area'
+              ],
+            },
+            'isIndoor': {'type': 'boolean'},
           },
           'normalizedTitleMaximumLength': 160,
+          'indoorRoleCoherence': {
+            'interior': true,
+            'exterior': false,
+            'roleOnly': 'deriveIndoorSetting',
+            'indoorOnly': 'synchronizeInteriorExteriorRole',
+            'otherRoles': 'preserveIndoorSetting',
+            'conflictingExplicitFields': 'reject',
+          },
         },
     },
   );
