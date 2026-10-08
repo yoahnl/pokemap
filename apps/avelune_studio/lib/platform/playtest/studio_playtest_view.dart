@@ -353,7 +353,8 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                         }),
                 ),
               ),
-            if (_message != null) Text(_message!),
+            if (_message != null)
+              Text(_message!, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),

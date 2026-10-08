@@ -207,6 +207,37 @@ void main() {
   );
 
   testWidgets(
+    'spatial playtest fills the scene under the toolbar Column loose width',
+    (tester) async {
+      final host = (await tester.runAsync(prepare))!;
+      await tester.runAsync(() async {
+        await host.runtime.load((_) {});
+        await host.runtime.gameplayReady;
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                const SizedBox(height: 40),
+                Expanded(
+                  child: StudioSpatialPlaytestView(runtime: host.runtime),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final sceneSize = tester.getSize(find.byType(SpatialExplorationView));
+      final surfaceSize = tester.getSize(find.byType(Scaffold));
+      expect(sceneSize.width, surfaceSize.width);
+      expect(sceneSize.height, surfaceSize.height - 40);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'Studio keyboard runs model Event V2 and save restores final pose',
     (tester) async {
       bundle = fixtures.animatedDoorBundle(bundle);

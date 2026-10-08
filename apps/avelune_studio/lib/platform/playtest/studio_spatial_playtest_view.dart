@@ -89,6 +89,7 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
           behavior: HitTestBehavior.translucent,
           onTap: _focus.requestFocus,
           child: Stack(
+            fit: StackFit.expand,
             children: [
               Positioned.fill(
                 child:
