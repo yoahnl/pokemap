@@ -4,6 +4,54 @@ import 'package:test/test.dart';
 
 void main() {
   group('checkLineOfSight', () {
+    for (final obstacle in ['none', 'terrain', 'otherNpc']) {
+      test('a 2x2 trainer sees past itself but respects $obstacle', () {
+        final map = MapData(
+          id: 'large-trainer',
+          name: 'Large trainer',
+          size: const GridSize(width: 8, height: 8),
+          layers: [
+            MapLayer.collision(
+              id: 'collision',
+              name: 'Collision',
+              collisions: List.generate(
+                  64, (index) => obstacle == 'terrain' && index == 34),
+            ),
+          ],
+          entities: [
+            const MapEntity(
+              id: 'trainer',
+              name: 'Trainer',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 2, y: 2),
+              size: GridSize(width: 2, height: 2),
+              npc: MapEntityNpcData(facing: EntityFacing.south),
+            ),
+            if (obstacle == 'otherNpc')
+              const MapEntity(
+                id: 'other',
+                name: 'Other NPC',
+                kind: MapEntityKind.npc,
+                pos: GridPos(x: 2, y: 4),
+                npc: MapEntityNpcData(),
+              ),
+          ],
+        );
+        final world = GameplayWorldState.initial(
+            map: map, playerPos: const GridPos(x: 2, y: 6));
+        expect(
+          checkLineOfSight(
+            npcPos: const GridPos(x: 2, y: 2),
+            npcFacing: EntityFacing.south,
+            lineOfSightRange: 5,
+            playerPos: const GridPos(x: 2, y: 6),
+            world: world,
+          ),
+          obstacle == 'none',
+        );
+      });
+    }
+
     // Helper pour créer un GameplayWorldState de test
     GameplayWorldState createWorld({
       required MapData map,

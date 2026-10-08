@@ -376,7 +376,11 @@ class GameplayWorldState {
       );
 
   /// PNJ scripté / pathfinding : centre de case → bitmap (pas une primitive joueur).
-  bool isCellCenterBlockedLegacyForGridIndexedSystems(int cellX, int cellY) {
+  bool isCellCenterBlockedLegacyForGridIndexedSystems(
+    int cellX,
+    int cellY, {
+    String? ignoredEntityId,
+  }) {
     if (cellX < 0 ||
         cellY < 0 ||
         cellX >= map.size.width ||
@@ -386,7 +390,10 @@ class GameplayWorldState {
     return _staticCollisionStorage.isCellCenterBlocked(
       cellX,
       cellY,
-      isDynamicCellBlocked: _blockingEntityByPos.containsKey,
+      isDynamicCellBlocked: (index) {
+        final entity = _blockingEntityByPos[index];
+        return entity != null && entity.id != ignoredEntityId;
+      },
     );
   }
 

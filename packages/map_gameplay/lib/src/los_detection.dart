@@ -40,16 +40,16 @@ bool checkLineOfSight({
   // et dans le bon sens (dx/dy de même signe)
   if (expectedDx != 0) {
     // Axe horizontal (est/ouest)
-    if (dy != 0) return false;  // Doit être sur le même axe Y
-    if (dx * expectedDx <= 0) return false;  // Doit être dans le bon sens
+    if (dy != 0) return false; // Doit être sur le même axe Y
+    if (dx * expectedDx <= 0) return false; // Doit être dans le bon sens
   } else {
     // Axe vertical (nord/sud)
-    if (dx != 0) return false;  // Doit être sur le même axe X
-    if (dy * expectedDy <= 0) return false;  // Doit être dans le bon sens
+    if (dx != 0) return false; // Doit être sur le même axe X
+    if (dy * expectedDy <= 0) return false; // Doit être dans le bon sens
   }
 
   // 2. Vérifier distance
-  final distance = dx.abs() + dy.abs();  // Distance Manhattan
+  final distance = dx.abs() + dy.abs(); // Distance Manhattan
   if (distance > lineOfSightRange) return false;
 
   // 3. Vérifier obstacles (cases STRICTEMENT entre NPC et joueur)
@@ -92,9 +92,13 @@ bool _hasObstacleBetween({
   // Commence APRÈS le NPC (i=1) et s'arrête AVANT le joueur (i < distance)
   var x = from.x + stepX;
   var y = from.y + stepY;
+  final observer = world.map.entities
+      .where((entity) => entity.kind == MapEntityKind.npc && entity.pos == from)
+      .firstOrNull;
 
   for (var i = 1; i < distance; i++) {
-    if (world.isCellCenterBlockedLegacyForGridIndexedSystems(x, y)) {
+    if (world.isCellCenterBlockedLegacyForGridIndexedSystems(x, y,
+        ignoredEntityId: observer?.id)) {
       return true;
     }
     x += stepX;

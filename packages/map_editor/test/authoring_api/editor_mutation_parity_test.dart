@@ -660,6 +660,39 @@ void main() {
       },
     );
 
+    test('enables Pokemon data through the editor canonical adapter', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final path = p.join(fixture.root.path, 'project.json');
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          pokemon: fixture.project.pokemon.copyWith(enabled: false),
+        ),
+        path,
+      );
+      final before = await FileProjectRepository().loadProject(path);
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'pokemon.configuration.set_enabled',
+        parameters: {'enabled': true},
+        idempotencyKey: 'editor-pokemon-enabled',
+      );
+      expect(
+        (await FileProjectRepository().loadProject(path)).pokemon.enabled,
+        isFalse,
+      );
+      final applied = await fixture.mutations.apply(
+        plan,
+        operationId: 'editor-pokemon-enable-apply',
+      );
+      final after = await FileProjectRepository().loadProject(path);
+      expect(applied.receipt.actionId, 'pokemon.configuration.set_enabled');
+      expect(
+        after,
+        before.copyWith(pokemon: before.pokemon.copyWith(enabled: true)),
+      );
+    });
+
     test(
       'invalidates species snapshots only for touched species resources',
       () async {

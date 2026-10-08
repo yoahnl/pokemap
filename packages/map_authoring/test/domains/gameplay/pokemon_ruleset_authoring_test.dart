@@ -6,6 +6,59 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('activates Pokemon through direct API and JSONL without changing paths',
+      () async {
+    for (final transport in ['direct', 'jsonl']) {
+      final harness = await _RulesetHarness.create('enabled-$transport');
+      addTearDown(harness.dispose);
+      final before = await harness.projectJson();
+      await harness.setEnabled(transport, true);
+      final after = await harness.projectJson();
+      (before['pokemon'] as Map)['enabled'] = true;
+      expect(after, before);
+    }
+  });
+
+  test(
+      'rejects non-boolean configuration and unknown parameters without writes',
+      () async {
+    final harness = await _RulesetHarness.create('invalid-enabled');
+    addTearDown(harness.dispose);
+    final before = await harness.projectJson();
+    for (final params in [
+      <String, Object?>{'enabled': 'true'},
+      <String, Object?>{'enabled': true, 'dataRoot': '../escape'}
+    ]) {
+      await expectLater(harness.setEnabled('direct', true, parameters: params),
+          throwsA(isA<PokemonRulesetAuthoringException>()));
+      expect(await harness.projectJson(), before);
+    }
+  });
+
+  test('rejects disabling Pokemon while the new game requires a party',
+      () async {
+    final harness = await _RulesetHarness.create('party-enabled');
+    addTearDown(harness.dispose);
+    final file = File('${harness.root.path}/project.json');
+    final project = ProjectManifest.fromJson(await harness.projectJson());
+    await file.writeAsString(jsonEncode(project
+        .copyWith(
+            pokemon: project.pokemon.copyWith(enabled: true),
+            newGame: ProjectNewGameConfig(initialParty: [
+              PlayerPokemon(
+                  speciesId: 'lapras',
+                  natureId: 'hardy',
+                  abilityId: 'water_absorb')
+            ]))
+        .toJson()));
+    final before = await harness.projectJson();
+    await expectLater(
+        harness.setEnabled('direct', false),
+        throwsA(isA<PokemonRulesetAuthoringException>().having(
+            (error) => error.code, 'code', 'pokemon.configuration.in_use')));
+    expect(await harness.projectJson(), before);
+  });
+
   test('rejects the active project ruleset through direct and JSONL', () async {
     final direct = await _RulesetHarness.create('direct');
     final jsonl = await _RulesetHarness.create('jsonl');
@@ -86,12 +139,56 @@ final class _RulesetHarness {
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
 
+  Future<void> setEnabled(String transport, bool enabled,
+      {Map<String, Object?>? parameters}) async {
+    final opened = await readApi.openProject(root.path);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    final snapshot = await snapshots.load(opened.projectHandle);
+    final request = AuthoringRequest(
+        requestId: 'configuration-$transport',
+        actionId: 'pokemon.configuration.set_enabled',
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle.value,
+        parameters: parameters ?? {'enabled': enabled},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'configuration-$transport',
+        dryRun: false);
+    final before = await projectJson();
+    if (transport == 'direct') {
+      final plan = await mutations.plan(opened.projectHandle, request);
+      expect(await projectJson(), before);
+      await mutations.apply(opened.projectHandle,
+          planId: plan['planId'] as String,
+          operationId: 'configuration-apply-$transport');
+    } else {
+      final plan = await _wireRequest(worker, 'plan', args: {
+        'projectHandle': opened.projectHandle.value,
+        'request': request.toJson()
+      });
+      expect(plan.status, AuthoringResultStatus.success,
+          reason: plan.error?.toString());
+      expect(await projectJson(), before);
+      final applied = await _wireRequest(worker, 'apply', args: {
+        'projectHandle': opened.projectHandle.value,
+        'planId': plan.data['planId'],
+        'operationId': 'configuration-apply-$transport'
+      });
+      expect(applied.status, AuthoringResultStatus.success,
+          reason: applied.error?.toString());
+    }
+  }
+
   static Future<_RulesetHarness> create(String suffix) async {
     final root = await Directory.systemTemp.createTemp(
       'pokemon-ruleset-$suffix-',
     );
     final json = const ProjectManifest(
       name: 'Pokemon ruleset fixture',
+      pokemon: ProjectPokemonConfig(
+          enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1),
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     ).toJson();

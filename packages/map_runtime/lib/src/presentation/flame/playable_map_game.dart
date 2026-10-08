@@ -2115,7 +2115,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ValueListenable<BattleCommandOverlaySnapshot?>
       get battleCommandOverlayListenable => _battleCommandOverlayNotifier;
 
-  ValueListenable<bool> get battleExitTransitionVisible => _battleExitTransitionVisible;
+  ValueListenable<bool> get battleExitTransitionVisible =>
+      _battleExitTransitionVisible;
 
   void _setBattleCommandOverlaySnapshot(
     BattleCommandOverlaySnapshot? snapshot,
@@ -11896,6 +11897,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_dialogueOverlay != null) return;
     if (_pendingBattleRequest != null) return;
     if (_pendingTrainerSpot != null) return;
+    if (_inFlightSpatialDispatchCount > 0) return;
+    if (_hasPendingDialogueLoad) return;
 
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
@@ -11952,10 +11955,45 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (inLoS) {
+        if (trainer.rematchPolicy != ProjectTrainerRematchPolicy.allowed &&
+            _authoredTrainerEncounterWasDefeated(entity)) {
+          continue;
+        }
         _beginTrainerSpotSequence(entity);
         return;
       }
     }
+  }
+
+  bool _authoredTrainerEncounterWasDefeated(MapEntity entity) {
+    final registry = _bundle.manifest.eventRegistry;
+    if (registry == null) return false;
+    final source =
+        NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id);
+    for (final record in registry.records) {
+      final definition = record.definitionOrNull;
+      if (record.enabledOrNull != true || definition?.source != source) {
+        continue;
+      }
+      if (registry.mode == EventSystemMode.legacyOnly &&
+          !record.activeInLegacyMode) {
+        continue;
+      }
+      for (final scene in _bundle.manifest.scenes) {
+        if (scene.id != definition!.sceneId) continue;
+        for (final node in scene.graph.nodes) {
+          final payload = node.payload;
+          if (payload is SceneBattlePayload &&
+              payload.battleKind == 'trainer' &&
+              payload.trainerId != null &&
+              _storyBranching.isTrainerDefeated(
+                  _gameState, payload.trainerId!)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /// Repérage par un dresseur : exclamation, approche, puis passage de témoin.
@@ -12056,9 +12094,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _completeTrainerSpot(_PendingTrainerSpot pending, MapEntity entity) {
     _pendingTrainerSpot = null;
+    _triggeredTrainerBattles.add(entity.id);
+    final playerPos = _world.player.pos;
+    final facing = entity.pos.x > playerPos.x
+        ? EntityFacing.east
+        : entity.pos.x < playerPos.x
+            ? EntityFacing.west
+            : entity.pos.y > playerPos.y
+                ? EntityFacing.south
+                : EntityFacing.north;
+    _runScenarioFaceCharacter(entityId: 'player', direction: facing.name);
+    _faceNpcTowardPlayer(entity.id);
     _publishInputAuthoritySnapshot();
     debugPrint('[trainer] approach done entity=${pending.entityId}');
-    _triggerTrainerBattle(entity);
+    _runDetachedNarrativeTask(
+      operation: 'trainerSpot',
+      task: () => _dispatchNarrativeEntityInteraction(
+        NpcInteracted(_world, entity),
+        entity,
+      ),
+    );
   }
 
   /// Le dresseur qui ne peut pas rejoindre le joueur reste inerte.

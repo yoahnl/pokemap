@@ -743,7 +743,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
-  if (actionId == 'pokemon.ruleset.set') {
+  if (actionId == 'pokemon.ruleset.set' ||
+      actionId == 'pokemon.configuration.set_enabled') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
           'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',

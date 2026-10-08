@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -46,7 +49,8 @@ void main() {
       await _pumpUntil(game, () => game.debugPendingBattleRequest != null);
     });
 
-    test('the player cannot move or act while the trainer walks over', () async {
+    test('the player cannot move or act while the trainer walks over',
+        () async {
       final game = await _loadGame(_bundle());
       await _stepRight(game);
 
@@ -73,7 +77,8 @@ void main() {
       // Le dresseur posté juste à côté n'a aucune case à rejoindre. Il doit
       // quand même marquer le repérage puis engager, sans rester coincé à
       // attendre un déplacement qui n'aura pas lieu.
-      final game = await _loadGame(_bundle(trainerAt: const GridPos(x: 2, y: 1)));
+      final game =
+          await _loadGame(_bundle(trainerAt: const GridPos(x: 2, y: 1)));
       await _stepRight(game);
 
       await _pumpUntil(game, () => _emoteOverlay(game) != null, maxTicks: 30);
@@ -109,7 +114,205 @@ void main() {
         reason: 'the trainer lock must not outlive the sequence',
       );
     });
+
+    test('a spotted trainer approaches, speaks and starts its authored battle',
+        () async {
+      final releaseBattle = Completer<void>();
+      final game = await _loadGame(
+        _narrativeBundle(withDialogue: true),
+        beforeBattleHandoffPreparation: () => releaseBattle.future,
+      );
+      await _stepRight(game);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue',
+          maxTicks: 900);
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      expect(game.debugHasPendingSceneBattle, isFalse);
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      await _pumpUntil(game, () => game.debugHasPendingSceneBattle,
+          maxTicks: 900);
+
+      expect(_trainerPos(game), const GridPos(x: 2, y: 1));
+      expect(game.debugHasPendingSceneBattle, isTrue);
+      expect(game.debugFlowPhaseName, 'battleTransition');
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+      releaseBattle.complete();
+      await _pumpUntil(game, () => !game.debugHasPendingSceneBattle);
+    });
+
+    test('an ineligible authored Event never falls back to a direct battle',
+        () async {
+      final game = await _loadGame(_narrativeBundle(enabled: false));
+      await _stepRight(game);
+      await _pumpFrames(game, 900);
+
+      expect(game.debugPendingBattleRequest, isNull);
+      expect(game.debugHasPendingSceneBattle, isFalse);
+      expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+    });
+
+    test('a defeated team variant does not spot the player again', () async {
+      final game = await _loadGame(_narrativeBundle());
+      game.debugMarkTrainerAsDefeated('trainer_spot_variant');
+      await _stepRight(game);
+      await _pumpFrames(game, 900);
+
+      expect(_trainerPos(game), const GridPos(x: 4, y: 1));
+      expect(_emoteOverlay(game), isNull);
+      expect(game.debugPendingBattleRequest, isNull);
+    });
+
+    test('an inactive legacy Event cannot suppress a native trainer', () async {
+      final game = await _loadGame(
+          _narrativeBundle(eventMode: EventSystemMode.legacyOnly));
+      game.debugMarkTrainerAsDefeated('trainer_spot_variant');
+      await _stepRight(game);
+      await _pumpUntil(game, () => game.debugPendingBattleRequest != null,
+          maxTicks: 900);
+      expect(game.debugPendingBattleRequest!.toJson()['trainerId'], _trainerId);
+    });
   });
+}
+
+RuntimeMapBundle _narrativeBundle({
+  bool enabled = true,
+  bool withDialogue = false,
+  EventSystemMode eventMode = EventSystemMode.v2Only,
+}) {
+  final base = _bundle();
+  final manifest = base.manifest.toJson();
+  var projectRoot = base.projectRootDirectory;
+  if (withDialogue) {
+    final directory = Directory.systemTemp.createTempSync('trainer-spot-');
+    projectRoot = directory.path;
+    addTearDown(() => directory.deleteSync(recursive: true));
+    File('$projectRoot/challenge.yarn').writeAsStringSync('''
+title: Challenge
+---
+Dresseur: Tu as croisé mon regard. Je te défie !
+===
+''');
+    manifest['dialogues'] = [
+      const ProjectDialogueEntry(
+        id: 'trainer_challenge',
+        name: 'Défi',
+        relativePath: 'challenge.yarn',
+        defaultStartNode: 'Challenge',
+      ).toJson(),
+    ];
+  }
+  manifest['trainers'] = [
+    ...base.manifest.trainers.map((trainer) => trainer.toJson()),
+    base.manifest.trainers.first.copyWith(id: 'trainer_spot_variant').toJson(),
+  ];
+  manifest['scenes'] = [
+    {
+      'id': 'trainer_spot_scene',
+      'name': 'Défi du dresseur',
+      'graph': {
+        'startNodeId': 'start',
+        'nodes': [
+          {'id': 'start', 'kind': 'start'},
+          if (withDialogue)
+            {
+              'id': 'challenge',
+              'kind': 'yarnDialogue',
+              'payload': {
+                'kind': 'yarnDialogue',
+                'dialogueId': 'trainer_challenge',
+                'yarnNodeName': 'Challenge',
+                'expectedOutcomes': [],
+                'speakerHints': [],
+              },
+            },
+          {
+            'id': 'battle',
+            'kind': 'battle',
+            'payload': {
+              'kind': 'battle',
+              'battleKind': 'trainer',
+              'trainerId': 'trainer_spot_variant',
+              'declaredOutcomes': ['victory', 'defeat'],
+            },
+          },
+          {
+            'id': 'end',
+            'kind': 'end',
+            'payload': {
+              'kind': 'end',
+              'sceneOutcomeId': 'completed',
+              'outcomePolicy': 'progression',
+            },
+          },
+        ],
+        'edges': [
+          {
+            'id': 'begin',
+            'fromNodeId': 'start',
+            'fromPortId': 'completed',
+            'toNodeId': withDialogue ? 'challenge' : 'battle',
+            'kind': 'default',
+          },
+          if (withDialogue)
+            {
+              'id': 'challenged',
+              'fromNodeId': 'challenge',
+              'fromPortId': 'completed',
+              'toNodeId': 'battle',
+              'kind': 'default',
+            },
+          for (final outcome in ['victory', 'defeat'])
+            {
+              'id': outcome,
+              'fromNodeId': 'battle',
+              'fromPortId': outcome,
+              'toNodeId': 'end',
+              'kind': outcome == 'victory' ? 'battleVictory' : 'battleDefeat',
+            },
+        ],
+      },
+      'declaredOutcomes': [
+        {'id': 'completed', 'label': 'Terminé'},
+      ],
+    },
+  ];
+  manifest['eventRegistry'] = {
+    'schemaVersion': 1,
+    'mode': eventMode.name,
+    'legacyClaims': [],
+    'records': [
+      {
+        'state': 'configured',
+        'enabled': enabled,
+        'definition': {
+          'id': 'evt_019abcde-7000-7000-8000-000000000061',
+          'name': 'Défi du dresseur',
+          'source': {
+            'kind': 'entityInteract',
+            'mapId': _mapId,
+            'entityId': _entityId,
+          },
+          'conditions': [],
+          'sceneId': 'trainer_spot_scene',
+          'reusePolicy': 'reusable',
+          'priority': 50,
+          'order': 0,
+        },
+      },
+    ],
+  };
+  return RuntimeMapBundle(
+    manifest: ProjectManifest.fromJson(manifest),
+    map: base.map,
+    projectRootDirectory: projectRoot,
+    tilesetAbsolutePathsById: base.tilesetAbsolutePathsById,
+  );
 }
 
 PositionComponent? _emoteOverlay(PlayableMapGame game) {
@@ -198,7 +401,11 @@ RuntimeMapBundle _bundle({GridPos trainerAt = const GridPos(x: 4, y: 1)}) {
 }
 
 final class _TestGame extends PlayableMapGame {
-  _TestGame({required super.bundle, required super.projectFilePath});
+  _TestGame({
+    required super.bundle,
+    required super.projectFilePath,
+    super.beforeBattleHandoffPreparation,
+  });
 
   bool _onLoadCompleted = false;
 
@@ -212,10 +419,14 @@ final class _TestGame extends PlayableMapGame {
   }
 }
 
-Future<PlayableMapGame> _loadGame(RuntimeMapBundle bundle) async {
+Future<PlayableMapGame> _loadGame(
+  RuntimeMapBundle bundle, {
+  Future<void> Function()? beforeBattleHandoffPreparation,
+}) async {
   final game = _TestGame(
     bundle: bundle,
     projectFilePath: '${bundle.projectRootDirectory}/project.json',
+    beforeBattleHandoffPreparation: beforeBattleHandoffPreparation,
   );
   game.onGameResize(Vector2(640, 480));
   await game.onLoad().timeout(const Duration(seconds: 5));

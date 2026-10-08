@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avelune Studio · Éditeur 3D</title>
+  <link rel="stylesheet" href="map_editor_v2.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="global-nav">
+      <div class="brand"><img src="assets/avelune_symbol.png" alt=""><span>Avelune<br>Studio</span></div>
+      <div class="nav-caption">Maquettes</div>
+      <a class="global-link" href="index.html#project">Nouveau projet</a>
+      <a class="global-link" href="index.html#resources">Ressources</a>
+      <a class="global-link current" href="map_editor_v2.html">Éditeur de map</a>
+      <div class="nav-foot">Prototype interactif<br>Les modifications ne sont pas sauvegardées</div>
+    </aside>
+    <main class="workspace">
+      <header class="workspace-top">
+        <div class="workspace-title"><span class="breadcrumb">Mon aventure <span>/</span> Maps <span>/</span></span><strong>Village du verger</strong><span class="mode-badge">3D</span></div>
+        <div class="workspace-actions"><span id="change-state" class="change-state">Aucune modification</span><button id="undo" class="action" disabled>Annuler</button><button id="reset" class="action">Réinitialiser</button><button id="play" class="action primary">Jouer ici</button></div>
+      </header>
+      <div class="editor-body">
+        <aside class="library">
+          <div class="library-head"><span class="section-kicker">MAP 01</span><strong>Village du verger</strong><span class="library-sub">24 × 24 cases · une surface de sol</span></div>
+          <div class="library-group"><div class="group-title">Structure de la map</div><button class="layer active" data-layer="terrain"><span class="layer-marker green"></span>Terrain et relief <span class="layer-count">1</span></button><button class="layer" data-layer="objects"><span class="layer-marker gold"></span>Objets placés <span class="layer-count" id="object-count">9</span></button><button class="layer" data-layer="passages"><span class="layer-marker aqua"></span>Passages <span class="layer-count">auto</span></button><button class="layer" data-layer="events"><span class="layer-marker purple"></span>Événements <span class="layer-count">0</span></button></div>
+          <div class="library-group assets-group"><div class="group-title">Poser une ressource</div><button class="resource-tile" data-place="house"><img src="assets/cottage.png" alt=""><span><strong>Maison</strong><small>Modèle 3D</small></span></button><button class="resource-tile" data-place="tree"><span class="resource-color tree-color"></span><span><strong>Arbre</strong><small>Décor 3D</small></span></button><button class="resource-tile" data-place="rock"><span class="resource-color rock-color"></span><span><strong>Rocher</strong><small>Décor 3D</small></span></button><button class="resource-tile" data-place="sprite"><img class="pixel" src="assets/personnage_4x4.png" alt=""><span><strong>Personnage pixel</strong><small>Sprite sur plan vertical</small></span></button><a class="library-more" href="index.html#resources">Ouvrir la bibliothèque</a></div>
+          <div class="library-note">Le terrain porte la hauteur. Les objets suivent la surface ; leur décalage en Y reste réglable séparément.</div>
+        </aside>
+        <section class="stage">
+          <div class="tool-bar"><div class="tool-group"><button class="tool selected" data-tool="select">Sélection</button><button class="tool" data-tool="raise">Élever</button><button class="tool" data-tool="lower">Creuser</button><button class="tool" data-tool="flatten">Aplatir</button><button class="tool" data-tool="smooth">Lisser</button><button class="tool emphasized" data-tool="ramp">Tracer une pente</button></div><div class="tool-group view-switch"><button class="view active" data-view="edit">Perspective</button><button class="view" data-view="top">Dessus</button><button class="view" data-view="game">Caméra du jeu</button></div></div>
+          <div class="viewport" id="viewport"><canvas id="scene" aria-label="Map 3D interactive"></canvas><div class="viewport-top"><span class="viewport-chip" id="view-label">Vue de travail · orientation libre</span><button id="toggle-grid" class="viewport-chip button-chip">Afficher la grille</button><button id="toggle-paths" class="viewport-chip button-chip">Afficher les passages</button></div><div id="stage-prompt" class="stage-prompt"><strong>Sélectionne un outil</strong><span>Peins directement sur le terrain. Glisse avec le clic droit pour tourner la vue, molette pour zoomer.</span></div><div id="stage-crosshair" class="stage-crosshair">X 0 · Z 0 · Y 0,0</div><div id="toast" class="toast" hidden></div></div>
+          <div class="status-bar"><span id="status-coordinate">Terrain prêt</span><span id="status-action">Clic gauche pour sélectionner · clic droit pour orbiter</span><span class="status-end">Map 3D · caméra de jeu fixe</span></div>
+        </section>
+        <aside class="inspector"><div class="inspector-head"><span class="section-kicker">PROPRIÉTÉS</span><h2 id="inspector-title">Terrain sélectionné</h2><p id="inspector-subtitle">Modifie le relief directement dans la scène.</p></div><div id="inspector-content"></div></aside>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="map_editor_v2.js"></script>
+</body>
+</html>

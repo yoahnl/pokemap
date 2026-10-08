@@ -24,6 +24,39 @@ final class PokemonRulesetActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
       AuthoringActionDescriptor(
+        id: 'pokemon.configuration.set_enabled',
+        version: 1,
+        summary:
+            'Enable or disable canonical Pokemon data without changing its paths or ruleset',
+        inputSchemaId:
+            'pokemap.authoring/pokemon.configuration.set_enabled.input.v1',
+        outputSchemaId:
+            'pokemap.authoring/pokemon.configuration.set_enabled.output.v1',
+        riskLevel: AuthoringRiskLevel.medium,
+        resourceKinds: const <String>['project'],
+        capabilityIds: const <String>['authoring.gameData.pokemon'],
+        requiredPermissions: const <AuthoringPermission>[
+          AuthoringPermission.projectWrite
+        ],
+        guarantees: const <AuthoringGuarantee>[
+          AuthoringGuarantee.dryRun,
+          AuthoringGuarantee.idempotent,
+          AuthoringGuarantee.atomic,
+          AuthoringGuarantee.revisionChecked,
+          AuthoringGuarantee.undoable,
+        ],
+        extensions: const <String, Object?>{
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'}
+            },
+            'required': ['enabled'],
+          },
+        },
+      ),
+      AuthoringActionDescriptor(
         id: 'pokemon.ruleset.set',
         version: 1,
         summary: 'Set the validated project Pokemon ruleset profile',
@@ -47,6 +80,9 @@ final class PokemonRulesetActions {
   );
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
+    if (context.request.actionId == 'pokemon.configuration.set_enabled') {
+      return _setEnabled(context);
+    }
     if (context.request.actionId != 'pokemon.ruleset.set') {
       throw PokemonRulesetAuthoringException(
         'pokemon.ruleset.action_unsupported',
@@ -132,6 +168,66 @@ final class PokemonRulesetActions {
         'profileId': profile.profileId,
         'schemaVersion': profile.schemaVersion,
         'ruleset': profile.toJson(),
+      },
+    );
+  }
+
+  AuthoringMutationDraft _setEnabled(AuthoringPlanningContext context) {
+    final parameters = context.request.parameters;
+    final enabled = parameters['enabled'];
+    if (enabled is! bool || parameters.keys.any((key) => key != 'enabled')) {
+      throw const PokemonRulesetAuthoringException(
+        'pokemon.configuration.parameters_invalid',
+        'The Pokemon configuration requires only a boolean enabled parameter.',
+      );
+    }
+    final snapshot = context.snapshot;
+    final before = snapshot.manifest.pokemon.enabled;
+    if (before == enabled) {
+      throw const PokemonRulesetAuthoringException(
+        'pokemon.configuration.no_change',
+        'The Pokemon configuration is already current.',
+      );
+    }
+    final newGame = snapshot.manifest.newGame;
+    if (!enabled &&
+        (newGame.initialParty.isNotEmpty ||
+            newGame.starterOptions.isNotEmpty)) {
+      throw const PokemonRulesetAuthoringException(
+        'pokemon.configuration.in_use',
+        'The New Game party or starter options require enabled Pokemon data.',
+      );
+    }
+    final projected = snapshot.manifest.copyWith(
+      pokemon: snapshot.manifest.pokemon.copyWith(enabled: enabled),
+    );
+    ProjectValidator.validate(projected);
+    final project = AuthoringResourceRef(
+        kind: 'project',
+        id: 'project',
+        revision: snapshot.resourceFingerprints['project']);
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: [
+          AuthoringResourceChange(
+              resource: project,
+              storageKey: 'project.json',
+              beforeBytes: snapshot.resourceBytes('project'),
+              afterBytes: encodeProjectAuthoringDocument(snapshot, projected))
+        ],
+        diff: AuthoringDiff([
+          AuthoringDiffEntry(
+              operation: AuthoringDiffOperation.replace,
+              resource: project,
+              path: '/pokemon/enabled',
+              before: before,
+              after: enabled)
+        ]),
+      ),
+      preview: {
+        'enabled': enabled,
+        'rulesetUnchanged': true,
+        'dataPathsUnchanged': true
       },
     );
   }

@@ -47,6 +47,40 @@ async function toolFailure(
   return record(envelope.error);
 }
 
+test("MCP enables canonical Pokemon configuration without changing data paths", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-pokemon-enable-"));
+  const original = { name: "Pokemon configuration", version: "v8", maps: [], tilesets: [], pokemon: { ...canonicalPokemonConfig(), enabled: false, dataRoot: "data/custom", speciesDir: "data/custom/species", learnsetsDir: "data/custom/learnsets", evolutionsDir: "data/custom/evolutions", mediaDir: "data/custom/media", catalogFiles: {} } };
+  await writeFile(join(root, "project.json"), JSON.stringify(original));
+  const authoring = new LocalAuthoringClient({ allowedRoots: [root], authoringPackageRoot, requestTimeoutMs: 60_000, workerTimeoutMs: 30_000 });
+  const server = createPokeMapMcpServer({ authoring, artifacts: new MemoryArtifactReader() });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "pokemon-enable-test", version: "1.0.0" });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  try {
+    const described = await toolData(client, "pokemap_describe");
+    assert.ok((described.mutationActions as JsonRecord[]).some((action) => action.id === "pokemon.configuration.set_enabled"));
+    const opened = await toolData(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const validation = await toolData(client, "pokemap_validate", { projectHandle: opened.projectHandle });
+    const planned = await toolData(client, "pokemap_plan", {
+      projectHandle: opened.projectHandle,
+      request: { requestId: "enable", actionId: "pokemon.configuration.set_enabled", actionVersion: 1, workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision, parameters: { enabled: true }, idempotencyKey: "enable", dryRun: false },
+    });
+    assert.deepEqual(JSON.parse(await readFile(join(root, "project.json"), "utf8")), original);
+    await toolData(client, "pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle, planId: planned.planId, operationId: "enable-apply" });
+    const persisted = JSON.parse(await readFile(join(root, "project.json"), "utf8")) as JsonRecord;
+    assert.deepEqual(persisted.pokemon, { ...original.pokemon, enabled: true });
+    assert.deepEqual(persisted.maps, original.maps);
+    assert.deepEqual(persisted.tilesets, original.tilesets);
+    assert.equal(persisted.name, original.name);
+  } finally {
+    await client.close();
+    await server.close();
+    await authoring.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("MCP writes canonical Pokemon species and rejects invalid schemas", async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-pokemon-"));
   await writeFile(
