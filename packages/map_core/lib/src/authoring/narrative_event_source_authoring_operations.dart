@@ -36,6 +36,9 @@ NarrativeScenarioAuthoringSourceDraft
   NarrativeEventSourcePickerOption option,
 ) {
   return switch (option.sourceKind) {
+    NarrativeEventSourceKind.modelInteract => throw UnsupportedError(
+      'Model interactions require the canonical Event V2 source builder.',
+    ),
     NarrativeEventSourceKind.mapEnter =>
       NarrativeScenarioAuthoringSourceDraft.mapEnter(
         mapId: option.mapId.trim(),

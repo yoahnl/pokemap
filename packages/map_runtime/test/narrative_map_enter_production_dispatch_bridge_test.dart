@@ -926,6 +926,7 @@ NarrativeEventProjectCatalog _catalog(
 ) {
   final mapId = source.when(
     entityInteract: (value, _) => value,
+    modelInteract: (value, _) => value,
     triggerEnter: (value, _) => value,
     mapEnter: (value) => value,
     outcomeReceived: (_) => 'map',

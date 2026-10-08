@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
+import 'studio_spatial_playtest.dart';
+import 'studio_spatial_playtest_view.dart';
 import '../../features/pokemon/data/studio_project_item_icons.dart';
 
 export 'studio_playtest_session.dart';
@@ -44,11 +47,15 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   late Future<Object> _loading = _load();
   PlayableMapGame? _game;
   SpatialExplorationSession? _spatial;
+  StudioSpatialPlaytest? _spatialPlaytest;
   late final _saves = widget.testSession ?? StudioPlaytestSession();
   bool _busy = false;
   String? _message;
+  bool _spatialPaused = false;
+  bool _ready = false;
+  Completer<void>? _spatialMountReady;
 
-  Future<Object> _load() async {
+  Future<Object> _load({bool restoreSpatialSave = false}) async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
     if (document.revision != widget.expectedRevision) {
       throw StateError(
@@ -58,30 +65,62 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     final projectPath = p.join(widget.session.directoryPath, 'project.json');
     if (!mounted) throw StateError('Test fermé');
     if (document.map.spatialScene != null) {
-      final bundle = await loadRuntimeMapBundle(
+      var bundle = await loadRuntimeMapBundle(
         projectFilePath: projectPath,
         mapId: widget.entry.id,
       );
       if (bundle.map != document.map) {
         throw StateError('La carte a changé pendant la préparation du test.');
       }
-      final exploration = await SpatialExplorationSession.load(bundle);
+      StudioSpatialPlaytest.validateHero(bundle);
+      await _prepareProjectAssets();
+      if (!mounted) throw StateError('Test fermé');
+      bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectPath,
+        mapId: widget.entry.id,
+      );
+      if (bundle.map != document.map) {
+        throw StateError('La carte a changé pendant la préparation du test.');
+      }
+      final playtest = await StudioSpatialPlaytest.prepare(
+        bundle: bundle,
+        projectFilePath: projectPath,
+        projectRevision: widget.expectedRevision,
+        saves: _saves,
+        restore: restoreSpatialSave,
+        mountSession: (runtime) async {
+          if (!mounted) throw StateError('Test fermé');
+          final ready = Completer<void>();
+          _spatialMountReady = ready;
+          setState(() => _spatial = runtime.session);
+          await ready.future;
+        },
+        unmountSession: (runtime) async {
+          if (mounted && identical(_spatialPlaytest?.runtime, runtime)) {
+            setState(() => _spatial = null);
+          }
+        },
+      );
       if (!mounted) {
-        exploration.dispose();
+        await playtest.dispose();
         throw StateError('Test fermé');
       }
-      setState(() => _spatial = exploration);
-      return exploration;
+      _spatialPlaytest = playtest;
+      try {
+        await playtest.runtime.load((_) {});
+      } catch (_) {
+        await playtest.dispose();
+        if (identical(_spatialPlaytest, playtest)) _spatialPlaytest = null;
+        rethrow;
+      }
+      if (!mounted) throw StateError('Test fermé');
+      setState(() {
+        _spatial = playtest.runtime.session;
+        _ready = true;
+      });
+      return playtest;
     }
-    final prepareProjectAssets = widget.prepareProjectAssets;
-    if (prepareProjectAssets != null) {
-      await prepareProjectAssets(widget.session.directoryPath);
-    } else {
-      await StudioProjectItemIcons.shared.prepare(
-        widget.session.directoryPath,
-        shouldContinue: () => mounted,
-      );
-    }
+    await _prepareProjectAssets();
     if (!mounted) throw StateError('Test fermé');
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectPath,
@@ -103,20 +142,51 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       initialMapActivationReason: MapActivationReason.initialBoot,
     );
     _game = game;
+    setState(() => _ready = true);
     return game;
+  }
+
+  Future<void> _prepareProjectAssets() async {
+    final prepareProjectAssets = widget.prepareProjectAssets;
+    if (prepareProjectAssets != null) {
+      await prepareProjectAssets(widget.session.directoryPath);
+    } else {
+      await StudioProjectItemIcons.shared.prepare(
+        widget.session.directoryPath,
+        shouldContinue: () => mounted,
+      );
+    }
   }
 
   @override
   void dispose() {
     _game?.pauseEngine();
-    _spatial?.dispose();
+    _finishSpatialMount(StateError('Test fermé'));
+    unawaited(_spatialPlaytest?.dispose());
     if (widget.testSession == null) _saves.delete();
     super.dispose();
   }
 
+  void _finishSpatialMount([Object? error]) {
+    final ready = _spatialMountReady;
+    if (ready == null || ready.isCompleted) return;
+    if (error == null) {
+      ready.complete();
+    } else {
+      ready.completeError(error);
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _busy = true);
-    final saved = await _game?.saveGame() ?? false;
+    var saved = false;
+    try {
+      saved = _spatialPlaytest == null
+          ? await _game?.saveGame() ?? false
+          : await _spatialPlaytest!.save();
+    } catch (_) {
+      saved = false;
+    }
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -128,6 +198,22 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 
   Future<void> _resume() async {
     setState(() => _busy = true);
+    if (_spatialPlaytest != null) {
+      final previous = _spatialPlaytest!;
+      setState(() {
+        _spatialPlaytest = null;
+        _spatial = null;
+        _ready = false;
+        _loading = Future<Object>.sync(() async {
+          await previous.dispose();
+          return _load(restoreSpatialSave: true);
+        });
+        _spatialPaused = false;
+        _busy = false;
+        _message = 'Sauvegarde du test reprise.';
+      });
+      return;
+    }
     final loaded = await _game?.loadGame() ?? false;
     if (!mounted) return;
     setState(() {
@@ -142,13 +228,30 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     setState(() => _busy = true);
     _game?.pauseEngine();
     _game = null;
+    final spatial = _spatialPlaytest;
+    _spatialPlaytest = null;
+    _spatial = null;
+    _ready = false;
+    await spatial?.dispose();
     await _saves.delete();
     if (!mounted) return;
     setState(() {
       _loading = _load();
       _busy = false;
+      _spatialPaused = false;
       _message = 'Nouvelle partie : état de test réinitialisé.';
     });
+  }
+
+  Future<void> _toggleSpatialPause() async {
+    final runtime = _spatialPlaytest?.runtime;
+    if (runtime == null) return;
+    if (_spatialPaused) {
+      await runtime.resume();
+    } else {
+      await runtime.pause();
+    }
+    if (mounted) setState(() => _spatialPaused = !_spatialPaused);
   }
 
   @override
@@ -175,7 +278,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · ${_spatial == null ? 'sauvegardes de test temporaires' : 'Exploration 3D · test initial'}',
+                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · sauvegardes de test temporaires',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -189,7 +292,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         child: Text(
           _spatial == null
               ? 'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir'
-              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir',
+              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir · Entrée pour interagir · Échap pour interrompre la scène',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
@@ -199,31 +302,56 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
           spacing: 8,
           runSpacing: 4,
           children: [
-            if (_spatial == null)
+            StudioButton(
+              label: 'Enregistrer le test',
+              icon: Icons.save_outlined,
+              secondary: true,
+              onPressed: _busy || !_ready ? null : _save,
+            ),
+            StudioButton(
+              label: 'Reprendre le test',
+              icon: Icons.restore,
+              secondary: true,
+              onPressed: _busy || !_ready || !_saves.hasSave ? null : _resume,
+            ),
+            StudioButton(
+              label: 'Nouvelle partie',
+              icon: Icons.restart_alt,
+              secondary: true,
+              onPressed: _busy || !_ready ? null : _newGame,
+            ),
+            if (_spatialPlaytest != null)
               StudioButton(
-                label: 'Enregistrer le test',
-                icon: Icons.save_outlined,
+                label: _spatialPaused ? 'Reprendre' : 'Pause',
                 secondary: true,
-                onPressed: _busy ? null : _save,
+                onPressed: _busy || !_ready ? null : _toggleSpatialPause,
               ),
-            if (_spatial == null)
-              StudioButton(
-                label: 'Reprendre le test',
-                icon: Icons.restore,
-                secondary: true,
-                onPressed: _busy || !_saves.hasSave ? null : _resume,
-              ),
-            if (_spatial == null)
-              StudioButton(
-                label: 'Nouvelle partie',
-                icon: Icons.restart_alt,
-                secondary: true,
-                onPressed: _busy ? null : _newGame,
-              ),
-            if (_spatial case final exploration?)
-              StudioSpatialExplorationControls(
-                movement: exploration.movement,
-                session: exploration,
+            if (_spatial case final spatial?)
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  spatial.mapRevision,
+                  _spatialPlaytest!.runtime.inputAuthority,
+                ]),
+                builder: (context, _) => StudioButton(
+                  label: spatial.movement.allowDiagonalMovement
+                      ? 'Diagonales activées'
+                      : 'Diagonales désactivées',
+                  secondary: true,
+                  onPressed:
+                      _busy ||
+                          !_ready ||
+                          !_spatialPlaytest!
+                              .runtime
+                              .inputAuthority
+                              .value
+                              .acceptsOverworldInput
+                      ? null
+                      : () => setState(() {
+                          spatial.movement.setDiagonalMovement(
+                            !spatial.movement.allowDiagonalMovement,
+                          );
+                        }),
+                ),
               ),
             if (_message != null) Text(_message!),
           ],
@@ -238,41 +366,21 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                 child: Text('Le test ne peut pas démarrer : ${snapshot.error}'),
               );
             }
-            final game = snapshot.data;
+            final game = snapshot.connectionState == ConnectionState.done
+                ? snapshot.data
+                : (_spatial == null ? null : _spatialPlaytest);
             if (game == null) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (game is SpatialExplorationSession) {
-              return ClipRect(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: SpatialExplorationView(
-                        key: ObjectKey(game),
-                        session: game,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child:
-                          ValueListenableBuilder<DialoguePresentationSnapshot?>(
-                            valueListenable: game.dialoguePresentation,
-                            builder: (context, snapshot, _) => snapshot == null
-                                ? const SizedBox.shrink()
-                                : Theme(
-                                    data:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? PokeMapPlayerTheme.dark()
-                                        : PokeMapPlayerTheme.light(),
-                                    child: PlayerDialogueOverlay(
-                                      snapshot: snapshot,
-                                      onCommand: game.dispatchDialogueCommand,
-                                    ),
-                                  ),
-                          ),
-                    ),
-                  ],
-                ),
+            if (game is StudioSpatialPlaytest) {
+              if (!identical(game, _spatialPlaytest)) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return StudioSpatialPlaytestView(
+                key: ObjectKey(game),
+                runtime: game.runtime,
+                onReady: _finishSpatialMount,
+                onError: _finishSpatialMount,
               );
             }
             return ClipRect(

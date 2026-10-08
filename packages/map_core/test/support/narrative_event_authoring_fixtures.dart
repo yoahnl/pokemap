@@ -185,6 +185,12 @@ NarrativeSpatialEventSourceOption spatialOption(
       NarrativeSpatialEventSourceAvailability.selectable,
 }) {
   final identity = source.when(
+    modelInteract: (mapId, instanceId) => (
+      mapId,
+      NarrativeSpatialEventSourceOwnerKind.modelInstance,
+      instanceId,
+      'Interaction avec $instanceId',
+    ),
     entityInteract: (mapId, entityId) => (
       mapId,
       NarrativeSpatialEventSourceOwnerKind.entity,

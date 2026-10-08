@@ -475,6 +475,18 @@ NarrativeEventSourceImpactPreview _sourceImpact({
             : null,
       );
     },
+    modelInteract: (mapId, instanceId) {
+      final option = _spatialOption(catalog, source);
+      return (
+        sentence: option?.humanDescription ??
+            'Interaction avec le décor 3D $instanceId sur $mapId',
+        mapId: mapId,
+        origin: _spatialOrigin(option),
+        navigation: option?.selectable == true
+            ? NarrativeEditorDestination.focusModelInstance(mapId, instanceId)
+            : null,
+      );
+    },
     triggerEnter: (mapId, triggerId) {
       final option = _spatialOption(catalog, source);
       return (

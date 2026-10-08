@@ -16,13 +16,39 @@ void main() {
     expect(samples.keys, unorderedEquals(publishableIds));
 
     for (final command in catalog.publishable) {
+      final spatial = command.id == NarrativeCommandIds.playModelAnimation;
+      final contextProject = spatial
+          ? project.copyWith(
+              settings: project.settings.copyWith(
+                dimension: ProjectDimension.threeD,
+              ),
+              models3d: [_doorModel()],
+            )
+          : project;
+      final contextMaps = spatial
+          ? {
+              'map_port': _map().copyWith(
+                spatialScene: MapSpatialScene(
+                  width: 4,
+                  depth: 4,
+                  instances: [
+                    SpatialModelInstance(
+                      id: 'door',
+                      modelId: 'door_model',
+                      position: Model3dVector3(x: 1, y: 0, z: 1),
+                    ),
+                  ],
+                ),
+              ),
+            }
+          : mapsById;
       final payload = samples[command.id]!();
       final roundTrip = SceneNodePayload.fromJson(payload.toJson());
       final scene = _sceneFor(command.id, roundTrip);
       final diagnostics = diagnoseSceneAgainstProject(
         scene,
-        project,
-        mapsById: mapsById,
+        contextProject,
+        mapsById: contextMaps,
       );
       final plan = buildSceneRuntimePlan(scene);
 
@@ -39,7 +65,7 @@ void main() {
         expect(
           diagnoseInteractiveCommand(
             command: interactiveCommand,
-            project: project,
+            project: contextProject,
           ),
           isEmpty,
           reason: command.id,
@@ -223,6 +249,14 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
           ),
         ),
       ),
+  NarrativeCommandIds.playModelAnimation: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.playModelAnimation(
+      mapId: 'map_port',
+      instanceId: 'door',
+      animationIndex: 0,
+      blocksMovementAfter: false,
+    ),
+  ),
   NarrativeCommandIds.railJourney: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.railJourney(
       commandId: 'scene.parity.rail.begin',
@@ -420,6 +454,24 @@ MapData _map() => MapData(
       npc: MapEntityNpcData(),
     ),
   ],
+);
+
+ProjectModel3dEntry _doorModel() => ProjectModel3dEntry(
+  id: 'door_model',
+  name: 'Porte',
+  sourceAssetId: 'door_source',
+  relativePath: 'assets/models3d/door_model.glb',
+  inspection: Model3dInspection(
+    bounds: Model3dBounds(
+      min: Model3dVector3.zero,
+      max: Model3dVector3(x: 1, y: 2, z: .2),
+    ),
+    meshCount: 1,
+    triangleCount: 4,
+    animations: [
+      Model3dAnimation(index: 0, name: 'Ouvrir', durationSeconds: .2),
+    ],
+  ),
 );
 
 const _parityJourney = RailJourneyDefinition(

@@ -138,4 +138,60 @@ void main() {
     expect(target(3.5, 3.5, EntityFacing.north, map: raised), isNull);
     expect(spatialNpcFacingPlayer(npc, x: 3.5, z: 3.5), EntityFacing.south);
   });
+
+  test('a moved NPC is reached at its exact fractional runtime position', () {
+    final displaced = npc.copyWith(pos: GridPos(x: 6, y: 6));
+    final state = SpatialActorRuntimeState(
+        x: 3.625, z: 2.625, facing: EntityFacing.south);
+    MapEntity? find(EntityFacing facing) => findSpatialNpcInteraction(
+        scene: scene,
+        entities: [displaced],
+        x: 3.625,
+        z: 3.875,
+        facing: facing,
+        actorStateProvider: (_) => state);
+    expect(find(EntityFacing.north)?.id, npc.id);
+    expect(find(EntityFacing.south), isNull);
+    expect(
+        spatialNpcFacingPlayer(displaced,
+            x: 4.625, z: 2.625, actorState: state),
+        EntityFacing.east);
+    expect(
+        findSpatialNpcInteraction(
+            scene: scene,
+            entities: [displaced],
+            x: 6.5,
+            z: 7.5,
+            facing: EntityFacing.north,
+            actorStateProvider: (_) => state),
+        isNull);
+  });
+
+  test('dynamic entity interaction checks terrain at the current position', () {
+    final raised = scene.copyWith(heightLevels: [
+      for (var z = 0; z < 8; z++)
+        for (var x = 0; x < 8; x++) z == 2 ? 2 : 0,
+    ]);
+    final state =
+        SpatialActorRuntimeState(x: 3.5, z: 2.5, facing: EntityFacing.south);
+    expect(
+        findSpatialEntityInteraction(
+            scene: raised,
+            entities: [npc],
+            x: 3.5,
+            z: 4.5,
+            facing: EntityFacing.north,
+            actorStateProvider: (_) => SpatialActorRuntimeState(
+                x: 3.5, z: 3.5, facing: EntityFacing.south))?.id,
+        npc.id);
+    expect(
+        findSpatialEntityInteraction(
+            scene: raised,
+            entities: [npc.copyWith(pos: GridPos(x: 3, y: 4))],
+            x: 3.5,
+            z: 3.5,
+            facing: EntityFacing.north,
+            actorStateProvider: (_) => state),
+        isNull);
+  });
 }

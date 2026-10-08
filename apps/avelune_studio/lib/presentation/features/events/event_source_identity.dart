@@ -47,6 +47,23 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
       final map = snapshot.data;
       if (map == null) return const Text('Source à charger…');
       final id = eventTargetId(widget.source);
+      if (widget.source.kind == NarrativeEventSourceKind.modelInteract) {
+        final instances = map.spatialScene?.instances
+            .where((instance) => instance.id == id).toList() ?? [];
+        if (instances.length != 1) {
+          return Text('${instances.isEmpty ? 'Source absente' : 'Source ambiguë'} · $id');
+        }
+        final instance = instances.single;
+        final model = widget.loader.workspace.project?.models3d
+            .where((model) => model.id == instance.modelId).firstOrNull;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(model?.name ?? 'Ressource 3D absente', style: Theme.of(context).textTheme.titleSmall),
+            Text('Position : (${instance.position.x}, ${instance.position.z})', style: Theme.of(context).textTheme.bodySmall),
+          ],
+        );
+      }
       final entities = map.entities.where((e) => e.id == id).toList();
       final triggers = map.triggers.where((t) => t.id == id).toList();
       if (id == null) return const Text('Toute la carte · à son entrée');

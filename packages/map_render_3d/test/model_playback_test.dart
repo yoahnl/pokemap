@@ -2,11 +2,80 @@ import 'package:flame_3d/core.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/src/parser/gltf/animation_interpolation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/model_byte_loader.dart';
 import 'package:map_render_3d/src/model_preview.dart';
 import 'package:map_render_3d/src/model_playback.dart';
 
 void main() {
+  for (final commandIndex in [0, 1]) {
+    test('cancel restores ambient clock for command clip $commandIndex', () {
+      final clips = [_clip(), _clip()];
+      final component = AnimatedModelComponent(
+        model: Model(nodes: {}, animations: clips),
+      )..bindAnimation(0, speed: .5);
+      component.update(.6);
+      component.bindRuntimeState(
+        SpatialModelRuntimeState(
+          modelId: 'model',
+          animationIndex: commandIndex,
+          normalizedTime: .8,
+          blocksMovement: true,
+        ),
+        authoredAnimationIndex: 0,
+        authoredSpeed: .5,
+      );
+      expect(component.playback.clock, .8);
+      component.bindRuntimeState(
+        null,
+        authoredAnimationIndex: 0,
+        authoredSpeed: .5,
+        paused: true,
+      );
+      expect(component.playback.animationRef, same(clips.first));
+      expect(component.playback.clock, closeTo(.3, 1e-9));
+      expect(component.playback.speed, .5);
+      expect(component.playback.loop, isTrue);
+      component.update(20);
+      expect(component.playback.clock, closeTo(.3, 1e-9));
+      component.bindRuntimeState(
+        null,
+        authoredAnimationIndex: 0,
+        authoredSpeed: .5,
+      );
+      component.update(.2);
+      expect(component.playback.clock, closeTo(.4, 1e-9));
+    });
+  }
+
+  test(
+    'pending model replacement preserves the ambient pose before a command',
+    () {
+      final clips = [_clip(), _clip()];
+      final model = Model(nodes: {}, animations: clips);
+      final visible = AnimatedModelComponent(model: model)..bindAnimation(0);
+      visible.update(.4);
+      visible.bindRuntimeState(
+        SpatialModelRuntimeState(
+          modelId: 'model',
+          animationIndex: 1,
+          normalizedTime: .8,
+          blocksMovement: true,
+        ),
+        authoredAnimationIndex: 0,
+      );
+      final replacement = AnimatedModelComponent(
+        model: model,
+        playback: ModelPlaybackState.from(visible.playback),
+        runtimePoseBefore: visible.runtimePoseBefore,
+      );
+      replacement.bindRuntimeState(null, authoredAnimationIndex: 0);
+      expect(replacement.playback.animationRef, same(clips.first));
+      expect(replacement.playback.clock, .4);
+      expect(visible.playback.clock, .8);
+    },
+  );
+
   test(
     'a pending replacement synchronizes to the visible clock only for the same clip',
     () {

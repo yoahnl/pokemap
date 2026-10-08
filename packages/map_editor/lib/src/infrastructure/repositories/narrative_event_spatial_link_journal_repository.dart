@@ -1091,6 +1091,19 @@ final class NarrativeEventSpatialLinkJournalRepository
     NarrativeEventSourceRef source,
   ) {
     return source.when(
+      modelInteract: (mapId, instanceId) {
+        if (map.id != mapId) return null;
+        final owners = map.spatialScene?.instances
+            .where((instance) => instance.id == instanceId);
+        if (owners == null || owners.length != 1) return null;
+        return {
+          'schemaVersion': 1,
+          'ownerKind': 'modelInstance',
+          'mapId': mapId,
+          'sourceId': instanceId,
+          'owner': owners.single.toJson(),
+        };
+      },
       entityInteract: (mapId, entityId) {
         if (map.id != mapId) return null;
         final owners = map.entities.where((entity) => entity.id == entityId);
@@ -1124,6 +1137,20 @@ final class NarrativeEventSpatialLinkJournalRepository
 
   MapData _removeExactOwner(MapData map, NarrativeEventSourceRef source) {
     return source.when(
+      modelInteract: (mapId, instanceId) {
+        final scene = map.spatialScene;
+        if (map.id != mapId || scene == null) {
+          throw StateError('The model source does not own this spatial map.');
+        }
+        return map.copyWith(
+          spatialScene: scene.copyWith(
+            instances: [
+              for (final instance in scene.instances)
+                if (instance.id != instanceId) instance,
+            ],
+          ),
+        );
+      },
       entityInteract: (_, entityId) => map.copyWith(
         entities: [
           for (final entity in map.entities)

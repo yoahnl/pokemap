@@ -18,6 +18,58 @@ void main() {
     const guard = NarrativeEventSourceDependencyGuard();
     final registry = _registry();
 
+    test('model sources protect map identity and disappearing instances', () {
+      const eventId = 'evt_019abcde-0000-7000-8000-000000000304';
+      final source = NarrativeEventSourceRef.modelInteract('map_a', 'door');
+      final registry = NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            _record(
+                id: eventId, source: source, order: 0, configured: false),
+          ],
+          legacyClaims: const []);
+      final instance = SpatialModelInstance(
+          id: 'door',
+          modelId: 'door-model',
+          position: Model3dVector3(x: 3, y: 0, z: 2));
+      final map = _map().copyWith(
+          spatialScene:
+              MapSpatialScene(width: 8, depth: 6, instances: [instance]));
+
+      expect(guard.inspectMapDelete(registry: registry, mapId: map.id).isAllowed,
+          isFalse);
+      expect(
+          guard
+              .inspectMapRename(
+                  registry: registry, mapId: map.id, newMapId: 'elsewhere')
+              .isAllowed,
+          isFalse);
+      for (final candidate in [
+        map.copyWith(spatialScene: map.spatialScene!.copyWith(instances: [])),
+        map.copyWith(spatialScene: null),
+      ]) {
+        final decision = guard.inspectMapTransition(
+            registry: registry,
+            current: map,
+            candidate: candidate,
+            operation: 'history');
+        expect(decision.isAllowed, isFalse);
+        expect(decision.linkedEventIds, [eventId]);
+      }
+      final edited = guard.inspectMapTransition(
+          registry: registry,
+          current: map,
+          candidate: map.copyWith(
+              spatialScene: map.spatialScene!.copyWith(instances: [
+            instance.copyWith(position: Model3dVector3(x: 4, y: 0, z: 2)),
+          ])),
+          operation: 'history');
+      expect(edited.isAllowed, isTrue);
+      expect(edited.requiresEventRevalidation, isTrue);
+      expect(edited.linkedEventIds, [eventId]);
+    });
+
     test('blocks linked map rename and delete across every record state', () {
       final rename = guard.inspectMapRename(
         registry: registry,

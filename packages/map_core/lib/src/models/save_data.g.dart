@@ -278,6 +278,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
       : PlayerSpatialPosition.fromJson(
           json['playerSpatialPosition'] as Map<String, dynamic>,
         ),
+  spatialWorldState: json['spatialWorldState'] == null
+      ? const SpatialWorldState.empty()
+      : SpatialWorldState.fromJson(
+          json['spatialWorldState'] as Map<String, dynamic>,
+        ),
   playerFacing:
       $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
       EntityFacing.south,
@@ -346,6 +351,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'currentMapId': instance.currentMapId,
   'playerPosition': instance.playerPosition.toJson(),
   'playerSpatialPosition': instance.playerSpatialPosition?.toJson(),
+  'spatialWorldState': instance.spatialWorldState.toJson(),
   'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
   'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
   'party': instance.party.toJson(),

@@ -2928,6 +2928,7 @@ List<MapEntity> _entitiesForSources(
     final event = _mapEventFromProjection(projection);
     for (final candidate in projection.sourceCandidates) {
       candidate.source.when<void>(
+        modelInteract: (_, _) {},
         entityInteract: (sourceMapId, entityId) {
           if (sourceMapId != mapId) return;
           ids.add(entityId);
@@ -2948,6 +2949,7 @@ List<MapEntity> _entitiesForSources(
     choices: choices,
   )) {
     source.when<void>(
+      modelInteract: (_, _) {},
       entityInteract: (sourceMapId, entityId) {
         if (sourceMapId == mapId) ids.add(entityId);
       },
@@ -2980,6 +2982,7 @@ List<MapTrigger> _triggersForSources(
     final event = _mapEventFromProjection(projection);
     for (final candidate in projection.sourceCandidates) {
       candidate.source.when<void>(
+        modelInteract: (_, _) {},
         entityInteract: (_, __) {},
         triggerEnter: (sourceMapId, triggerId) {
           if (sourceMapId != mapId) return;
@@ -3000,6 +3003,7 @@ List<MapTrigger> _triggersForSources(
     choices: choices,
   )) {
     source.when<void>(
+      modelInteract: (_, _) {},
       entityInteract: (_, __) {},
       triggerEnter: (sourceMapId, triggerId) {
         if (sourceMapId == mapId) ids.add(triggerId);
@@ -3056,6 +3060,7 @@ List<NarrativeOutcomeRef> _referencedOutcomes(
     choices: choices,
   )) {
     source.when<void>(
+      modelInteract: (_, _) {},
       entityInteract: (_, __) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
@@ -3183,12 +3188,18 @@ ScenarioNode _scenarioNodeForSource(
 }) {
   final actionKind = source?.when(
         entityInteract: (_, __) => 'sourceEntityInteract',
+        modelInteract: (_, _) => throw UnsupportedError(
+          '3D model sources cannot be represented by legacy scenario nodes.',
+        ),
         triggerEnter: (_, __) => 'sourceTriggerEnter',
         mapEnter: (_) => 'sourceMapEnter',
         outcomeReceived: (_) => 'sourceOutcome',
       ) ??
       'sourceOutcome';
   final binding = source?.when(
+        modelInteract: (_, _) => throw UnsupportedError(
+          '3D model sources cannot be represented by legacy scenario nodes.',
+        ),
         entityInteract: (mapId, entityId) => ScenarioNodeBinding(
           mapId: mapId,
           entityId: entityId,
@@ -3242,6 +3253,7 @@ Set<String> _concernedMapIds(
 void _addSourceMap(Set<String> result, NarrativeEventSourceRef? source) {
   source?.when(
     entityInteract: (mapId, _) => result.add(mapId),
+    modelInteract: (mapId, _) => result.add(mapId),
     triggerEnter: (mapId, _) => result.add(mapId),
     mapEnter: result.add,
     outcomeReceived: (_) {},
@@ -3279,6 +3291,7 @@ LegacyMapEventProjection _projection({
       ];
   final sourcePosition = _sourceFixturePosition(source);
   final sourceMetadata = source.when(
+    modelInteract: (_, _) => const <String, String>{},
     entityInteract: (_, entityId) => confirmed
         ? {LegacyMapEventCompatibilityMetadataKeys.entityId: entityId}
         : const <String, String>{},
@@ -3313,6 +3326,9 @@ LegacyMapEventProjection _projection({
       y: sourcePosition.y,
     ),
     type: source.when(
+      modelInteract: (_, _) => throw UnsupportedError(
+        '3D model sources cannot be represented by legacy map events.',
+      ),
       entityInteract: (_, __) => MapEventType.object,
       triggerEnter: (_, __) => MapEventType.triggerZone,
       mapEnter: (_) => MapEventType.object,
@@ -3326,6 +3342,7 @@ LegacyMapEventProjection _projection({
   final fixtureEntities = <MapEntity>[];
   final fixtureTriggers = <MapTrigger>[];
   source.when<void>(
+    modelInteract: (_, _) {},
     entityInteract: (sourceMapId, entityId) {
       if (sourceMapId == mapId) {
         fixtureEntities.add(
@@ -3395,6 +3412,7 @@ LegacyMapEventProjection _projection({
 
 GridPos _sourceFixturePosition(NarrativeEventSourceRef source) {
   final token = source.when(
+    modelInteract: (_, instanceId) => instanceId,
     entityInteract: (_, entityId) => entityId,
     triggerEnter: (_, triggerId) => triggerId,
     mapEnter: (mapId) => mapId,

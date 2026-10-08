@@ -6,6 +6,7 @@ const Set<String> _sourceWireFields = {
   'kind',
   'mapId',
   'entityId',
+  'instanceId',
   'triggerId',
   'outcome',
 };
@@ -16,6 +17,7 @@ enum NarrativeEventSourceKind {
   mapEnter,
   triggerEnter,
   entityInteract,
+  modelInteract,
   outcomeReceived,
 }
 
@@ -71,18 +73,28 @@ final class NarrativeOutcomeRef {
   int get hashCode => Object.hash(producerKind, producerId, outcomeId);
 }
 
-/// Closed union of the four source identities ratified for Event V2 V0.
-///
-/// Payloads are deliberately available only through [when], keeping invalid
-/// cross-variant field combinations unrepresentable.
 @immutable
 sealed class NarrativeEventSourceRef {
   const NarrativeEventSourceRef._();
+
+  static const contracts = <Map<String, Object?>>[
+    {'kind': 'mapEnter', 'requiredFields': ['kind', 'mapId']},
+    {'kind': 'triggerEnter', 'requiredFields': ['kind', 'mapId', 'triggerId']},
+    {'kind': 'entityInteract', 'requiredFields': ['kind', 'mapId', 'entityId']},
+    {'kind': 'modelInteract', 'requiredFields': ['kind', 'mapId', 'instanceId'],
+      'dimension': 'threeD'},
+    {'kind': 'outcomeReceived', 'requiredFields': ['kind', 'outcome']},
+  ];
 
   factory NarrativeEventSourceRef.entityInteract(
     String mapId,
     String entityId,
   ) = _EntityInteractSourceRef;
+
+  factory NarrativeEventSourceRef.modelInteract(
+    String mapId,
+    String instanceId,
+  ) = _ModelInteractSourceRef;
 
   factory NarrativeEventSourceRef.triggerEnter(
     String mapId,
@@ -124,6 +136,17 @@ sealed class NarrativeEventSourceRef {
             'entityId',
             path: 'source',
           ),
+        );
+      case 'modelInteract':
+        NarrativeEventWire.expectExactFields(
+          object,
+          const {'kind', 'mapId', 'instanceId'},
+          path: 'source',
+          knownFields: _sourceWireFields,
+        );
+        return NarrativeEventSourceRef.modelInteract(
+          NarrativeEventWire.requiredIdentity(object, 'mapId', path: 'source'),
+          NarrativeEventWire.requiredIdentity(object, 'instanceId', path: 'source'),
         );
       case 'triggerEnter':
         NarrativeEventWire.expectExactFields(
@@ -188,6 +211,7 @@ sealed class NarrativeEventSourceRef {
 
   T when<T>({
     required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -211,6 +235,7 @@ final class _EntityInteractSourceRef extends NarrativeEventSourceRef {
   @override
   T when<T>({
     required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -235,6 +260,45 @@ final class _EntityInteractSourceRef extends NarrativeEventSourceRef {
   int get hashCode => Object.hash(kind, mapId, entityId);
 }
 
+final class _ModelInteractSourceRef extends NarrativeEventSourceRef {
+  _ModelInteractSourceRef(String mapId, String instanceId)
+      : mapId = _validateIdentityArgument(mapId, 'mapId'),
+        instanceId = _validateIdentityArgument(instanceId, 'instanceId'),
+        super._();
+
+  final String mapId;
+  final String instanceId;
+
+  @override
+  NarrativeEventSourceKind get kind => NarrativeEventSourceKind.modelInteract;
+
+  @override
+  T when<T>({
+    required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
+    required T Function(String mapId, String triggerId) triggerEnter,
+    required T Function(String mapId) mapEnter,
+    required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
+  }) => modelInteract(mapId, instanceId);
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'kind': 'modelInteract',
+    'mapId': mapId,
+    'instanceId': instanceId,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _ModelInteractSourceRef &&
+          other.mapId == mapId &&
+          other.instanceId == instanceId;
+
+  @override
+  int get hashCode => Object.hash(kind, mapId, instanceId);
+}
+
 final class _TriggerEnterSourceRef extends NarrativeEventSourceRef {
   _TriggerEnterSourceRef(String mapId, String triggerId)
       : mapId = _validateIdentityArgument(mapId, 'mapId'),
@@ -250,6 +314,7 @@ final class _TriggerEnterSourceRef extends NarrativeEventSourceRef {
   @override
   T when<T>({
     required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -287,6 +352,7 @@ final class _MapEnterSourceRef extends NarrativeEventSourceRef {
   @override
   T when<T>({
     required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,
@@ -319,6 +385,7 @@ final class _OutcomeReceivedSourceRef extends NarrativeEventSourceRef {
   @override
   T when<T>({
     required T Function(String mapId, String entityId) entityInteract,
+    required T Function(String mapId, String instanceId) modelInteract,
     required T Function(String mapId, String triggerId) triggerEnter,
     required T Function(String mapId) mapEnter,
     required T Function(NarrativeOutcomeRef outcome) outcomeReceived,

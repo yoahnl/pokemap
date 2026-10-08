@@ -20,6 +20,8 @@ enum NarrativeCommandParameterKind {
   speciesForm,
   starter,
   map,
+  modelInstance,
+  modelAnimation,
   npc,
   warp,
   shop,

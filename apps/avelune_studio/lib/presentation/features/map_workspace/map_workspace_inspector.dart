@@ -33,6 +33,7 @@ class MapWorkspaceInspector extends StatefulWidget {
     this.onOpenResource,
     this.onEditResource,
     this.onRenameMap,
+    this.onEventSource,
     this.width = 300,
     this.tool = StudioMapTool.select,
     this.showSelectionSummary = true,
@@ -44,6 +45,7 @@ class MapWorkspaceInspector extends StatefulWidget {
   final VoidCallback onChanged;
   final ValueChanged<ProjectElementEntry>? onOpenResource, onEditResource;
   final VoidCallback? onRenameMap;
+  final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final double width;
   final StudioMapTool tool;
   final bool showSelectionSummary;
@@ -222,6 +224,15 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               'La pause et Rejouer ne modifient que l’aperçu. L’animation ne change pas le blocage du passage.',
             ),
           ],
+          StudioButton(
+            label: 'Événements de ce décor',
+            icon: Icons.account_tree_outlined,
+            secondary: true,
+            onPressed: widget.onEventSource == null ? null : () => widget.onEventSource!(
+              NarrativeEventSourceRef.modelInteract(document.current.id, instance.id),
+            ),
+          ),
+          const SizedBox(height: 8),
           StudioButton(
             label: 'Dupliquer',
             secondary: true,

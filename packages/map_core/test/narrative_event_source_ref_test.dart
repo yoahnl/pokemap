@@ -8,12 +8,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeEventSourceRef', () {
-    test('keeps the V1 source kind order and exposes the exact V0 variants',
+    test('exposes the current closed source variants',
         () {
       expect(NarrativeEventSourceKind.values, [
         NarrativeEventSourceKind.mapEnter,
         NarrativeEventSourceKind.triggerEnter,
         NarrativeEventSourceKind.entityInteract,
+        NarrativeEventSourceKind.modelInteract,
         NarrativeEventSourceKind.outcomeReceived,
       ]);
       expect(NarrativeOutcomeProducerKind.values, [
@@ -25,6 +26,7 @@ void main() {
       final outcome = _sceneOutcome();
       final sources = [
         NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa'),
+        NarrativeEventSourceRef.modelInteract('map_port', 'door'),
         NarrativeEventSourceRef.triggerEnter('map_port', 'zone_entry'),
         NarrativeEventSourceRef.mapEnter('map_port'),
         NarrativeEventSourceRef.outcomeReceived(outcome),
@@ -32,12 +34,14 @@ void main() {
 
       expect(sources.map((source) => source.kind), [
         NarrativeEventSourceKind.entityInteract,
+        NarrativeEventSourceKind.modelInteract,
         NarrativeEventSourceKind.triggerEnter,
         NarrativeEventSourceKind.mapEnter,
         NarrativeEventSourceKind.outcomeReceived,
       ]);
       expect(sources.map(_describeSource), [
         'entityInteract:map_port:npc_lysa',
+        'modelInteract:map_port:door',
         'triggerEnter:map_port:zone_entry',
         'mapEnter:map_port',
         'outcomeReceived:scene:scene_lysa:victory',
@@ -161,6 +165,10 @@ void main() {
         (
           NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa'),
           '{"kind":"entityInteract","mapId":"map_port","entityId":"npc_lysa"}',
+        ),
+        (
+          NarrativeEventSourceRef.modelInteract('map_port', 'door'),
+          '{"kind":"modelInteract","mapId":"map_port","instanceId":"door"}',
         ),
         (
           NarrativeEventSourceRef.triggerEnter('map_port', 'zone_entry'),
@@ -364,6 +372,7 @@ NarrativeOutcomeRef _sceneOutcome() => NarrativeOutcomeRef(
 
 String _describeSource(NarrativeEventSourceRef source) => source.when(
       entityInteract: (mapId, entityId) => 'entityInteract:$mapId:$entityId',
+      modelInteract: (mapId, instanceId) => 'modelInteract:$mapId:$instanceId',
       triggerEnter: (mapId, triggerId) => 'triggerEnter:$mapId:$triggerId',
       mapEnter: (mapId) => 'mapEnter:$mapId',
       outcomeReceived: (outcome) =>

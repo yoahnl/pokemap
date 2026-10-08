@@ -464,6 +464,7 @@ Set<String> _runtimeStartEventIds(ProjectManifest project) {
     final definition = record.definitionOrNull;
     if (record.enabledOrNull != true || definition == null) continue;
     final startsOnInitialMap = definition.source.when(
+      modelInteract: (mapId, instanceId) => mapId == startMapId,
       entityInteract: (mapId, _) => mapId == startMapId,
       triggerEnter: (mapId, _) => mapId == startMapId,
       mapEnter: (mapId) => mapId == startMapId,

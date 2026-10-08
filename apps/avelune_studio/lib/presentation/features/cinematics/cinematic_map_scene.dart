@@ -11,6 +11,7 @@ import 'cinematic_map_model.dart';
 import 'cinematic_map_overlay.dart';
 import 'cinematic_playback_viewport.dart';
 import 'cinematic_view_state.dart';
+import 'cinematic_spatial_map_scene.dart';
 
 class CinematicMapScene extends StatefulWidget {
   const CinematicMapScene({
@@ -42,6 +43,11 @@ class _CinematicMapSceneState extends State<CinematicMapScene> {
   @override
   Widget build(BuildContext context) {
     final model = widget.model, view = widget.view;
+    if (model.map.spatialScene != null) {
+      return CinematicSpatialMapScene(model: model, visuals: widget.visuals, view: view,
+        transport: widget.transport, changed: widget.changed, onPoint: widget.onPoint,
+        onPointMove: widget.onPointMove, beforeSelect: widget.beforeSelect);
+    }
     final cell = Size(
       model.project.settings.tileWidth *
           model.project.settings.displayScale.toDouble(),

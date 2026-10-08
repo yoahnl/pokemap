@@ -146,6 +146,26 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         ),
       },
     ),
+    NarrativeCommandIds.playModelAnimation => SceneActionPayload.interactive(
+      SceneInteractiveCommand.playModelAnimation(
+        mapId: parameters['mapId']!,
+        instanceId: parameters['instanceId']!,
+        animationIndex: int.parse(parameters['animationIndex']!),
+        speed: switch (parameters['speed']) {
+          final value? when value.trim().isNotEmpty => double.parse(value),
+          _ => 1,
+        },
+        blocksMovementAfter: switch (parameters['blocksMovementAfter']) {
+          'true' => true,
+          'false' => false,
+          null || '' => null,
+          final value => throw ArgumentError.value(
+            value,
+            'blocksMovementAfter',
+          ),
+        },
+      ),
+    ),
     NarrativeCommandIds.railJourney => buildSceneRailJourneyPayload(parameters),
     NarrativeCommandIds.dialogue => SceneYarnDialoguePayload(
       dialogueId: parameters['dialogueId']!,

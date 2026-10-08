@@ -230,10 +230,11 @@ class NarrativeInteractionOpener {
       final fields = source?.toJson();
       final mapId = fields?['mapId'];
       if (mapId is! String ||
-          (fields?['entityId'] == null && fields?['triggerId'] == null)) {
+          (fields?['entityId'] == null && fields?['triggerId'] == null && fields?['instanceId'] == null)) {
         controller.error =
             source?.when(
               entityInteract: (_, _) => null,
+              modelInteract: (_, _) => null,
               triggerEnter: (_, _) => null,
               mapEnter: (_) =>
                   'Cette interaction concerne l’arrivée sur une carte, sans point de localisation précis.',

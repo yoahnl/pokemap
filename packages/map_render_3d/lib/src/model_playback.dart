@@ -1,6 +1,7 @@
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 
 class ModelPlaybackState extends AnimationState {
   ModelPlaybackState();
@@ -66,9 +67,17 @@ class AnimatedModelComponent extends ModelComponent {
     super.scale,
     super.children,
     ModelPlaybackState? playback,
-  }) : playback = playback ?? ModelPlaybackState();
+    ModelPlaybackState? runtimePoseBefore,
+  }) : playback = playback ?? ModelPlaybackState(),
+       _runtimePoseBefore = runtimePoseBefore == null
+           ? null
+           : ModelPlaybackState.from(runtimePoseBefore);
 
   final ModelPlaybackState playback;
+  ModelPlaybackState? _runtimePoseBefore;
+  ModelPlaybackState? get runtimePoseBefore => _runtimePoseBefore == null
+      ? null
+      : ModelPlaybackState.from(_runtimePoseBefore!);
   final _hiddenNodes = <int>{};
 
   @override
@@ -105,6 +114,38 @@ class AnimatedModelComponent extends ModelComponent {
     final clock = playback.clock;
     play(index, loop: playback.loop, speed: playback.speed);
     if (!resetClock) playback.clock = clock;
+  }
+
+  void bindRuntimeState(
+    SpatialModelRuntimeState? state, {
+    int? authoredAnimationIndex,
+    bool authoredLoop = true,
+    double authoredSpeed = 1,
+    bool paused = false,
+  }) {
+    if (state == null) {
+      final before = _runtimePoseBefore;
+      if (before != null) {
+        playback
+          ..animationRef = before.animationRef
+          ..clock = before.clock
+          ..loop = before.loop
+          ..speed = before.speed;
+        _runtimePoseBefore = null;
+      }
+      bindAnimation(
+        authoredAnimationIndex,
+        loop: authoredLoop,
+        speed: authoredSpeed,
+      );
+      playback.paused = paused;
+      return;
+    }
+    _runtimePoseBefore ??= ModelPlaybackState.from(playback);
+    bindAnimation(state.animationIndex, loop: false);
+    playback
+      ..paused = true
+      ..clock = state.normalizedTime * (playback.animationRef?.lastTime ?? 0);
   }
 
   @override

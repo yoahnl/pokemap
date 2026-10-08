@@ -3,6 +3,7 @@ import '../compatibility/legacy_map_event_projection.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
@@ -31,8 +32,11 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
   final manifestMapIds = <String>{};
   final manifestEntryCounts = <String, int>{};
   for (final entry in entries) {
-    manifestEntryCounts.update(entry.id, (count) => count + 1,
-        ifAbsent: () => 1);
+    manifestEntryCounts.update(
+      entry.id,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
   }
   final diagnosedDuplicateManifestIds = <String>{};
   for (final entry in entries) {
@@ -50,6 +54,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
     }
     final matchingMaps = mapsById[entry.id] ?? const <MapData>[];
     _appendMapOptions(
+      project: project,
       entry: entry,
       matchingMaps: matchingMaps,
       manifestIdentityUnique: !duplicateManifestId,
@@ -87,6 +92,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
 }
 
 void _appendMapOptions({
+  required ProjectManifest project,
   required ProjectMapEntry entry,
   required List<MapData> matchingMaps,
   required bool manifestIdentityUnique,
@@ -147,13 +153,13 @@ void _appendMapOptions({
       availability: mapSelectable
           ? NarrativeSpatialEventSourceAvailability.selectable
           : mapSizeValid && source != null
-              ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
-              : NarrativeSpatialEventSourceAvailability.incompatible,
+          ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
+          : NarrativeSpatialEventSourceAvailability.incompatible,
       reason: mapSelectable
           ? null
           : !manifestIdentityUnique
-              ? 'L’identifiant de cette map est dupliqué dans le projet.'
-              : 'La taille ou l’identifiant de la map est invalide.',
+          ? 'L’identifiant de cette map est dupliqué dans le projet.'
+          : 'La taille ou l’identifiant de la map est invalide.',
     ),
   );
   if (!mapSizeValid || source == null) {
@@ -188,6 +194,53 @@ void _appendMapOptions({
     mapUsable: mapSizeValid,
     options: options,
   );
+  for (final instance in map.spatialScene?.instances ?? const []) {
+    final duplicates = map.spatialScene!.instances
+        .where((candidate) => candidate.id == instance.id)
+        .length;
+    final models = project.models3d.where(
+      (candidate) => candidate.id == instance.modelId,
+    );
+    final bounds = MapRect(
+      pos: GridPos(
+        x: instance.position.x.floor(),
+        y: instance.position.z.floor(),
+      ),
+      size: const GridSize(width: 1, height: 1),
+    );
+    final geometryValid = mapSizeValid && _rectWithinMap(bounds, map);
+    final reason = project.settings.dimension != ProjectDimension.threeD
+        ? 'Les interactions avec les décors 3D nécessitent un projet 3D.'
+        : !manifestIdentityUnique || duplicates != 1
+        ? 'L’identifiant de la carte ou du décor est dupliqué.'
+        : models.length != 1
+        ? 'La ressource du décor est introuvable ou ambiguë.'
+        : !geometryValid
+        ? 'Ce décor est placé en dehors de la carte.'
+        : null;
+    final label = models.length == 1 ? models.single.name : instance.modelId;
+    options.add(
+      NarrativeSpatialEventSourceOption(
+        source: NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+        humanLabel: '$label — Décor 3D',
+        humanDescription: 'Interaction avec $label, sur $mapLabel.',
+        mapId: map.id,
+        mapLabel: mapLabel,
+        sourceTypeLabel: 'Décor 3D',
+        availability: reason == null
+            ? NarrativeSpatialEventSourceAvailability.selectable
+            : NarrativeSpatialEventSourceAvailability.visibleButUnavailable,
+        unavailableReason: reason,
+        origin: NarrativeSpatialEventSourceOrigin.canonical,
+        geometry: geometryValid
+            ? NarrativeSpatialSourceGeometrySummary.bounds(bounds)
+            : const NarrativeSpatialSourceGeometrySummary.unavailable(),
+        ownerKind: NarrativeSpatialEventSourceOwnerKind.modelInstance,
+        ownerId: instance.id,
+        debugTechnicalLabel: '${map.id}:${instance.id}',
+      ),
+    );
+  }
 }
 
 NarrativeSpatialEventSourceOption _mapOption({
@@ -272,7 +325,7 @@ NarrativeSpatialEventSourceOption _entityOption({
     mapIdentityUnique,
     entity.kind,
     geometryValid,
-    source
+    source,
   )) {
     (true, _, _, _, _) =>
       'Cet identifiant est utilisé plusieurs fois sur la map.',
@@ -287,8 +340,8 @@ NarrativeSpatialEventSourceOption _entityOption({
   final availability = reason == null
       ? NarrativeSpatialEventSourceAvailability.selectable
       : geometryValid && source != null
-          ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
-          : NarrativeSpatialEventSourceAvailability.incompatible;
+      ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
+      : NarrativeSpatialEventSourceAvailability.incompatible;
   return NarrativeSpatialEventSourceOption(
     source: source,
     humanLabel: '$label — $kindLabel',
@@ -371,7 +424,7 @@ NarrativeSpatialEventSourceOption _triggerOption({
     mapIdentityUnique,
     authorable,
     geometryValid,
-    source
+    source,
   )) {
     (true, _, _, _, _) =>
       'Cet identifiant est utilisé plusieurs fois sur la map.',
@@ -386,8 +439,8 @@ NarrativeSpatialEventSourceOption _triggerOption({
   final availability = reason == null
       ? NarrativeSpatialEventSourceAvailability.selectable
       : geometryValid && source != null
-          ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
-          : NarrativeSpatialEventSourceAvailability.incompatible;
+      ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
+      : NarrativeSpatialEventSourceAvailability.incompatible;
   return NarrativeSpatialEventSourceOption(
     source: source,
     humanLabel: '$label — Zone',
@@ -462,8 +515,9 @@ void _applyLegacyCompatibility({
   for (final provenance in provenances) {
     final group = grouped[provenance]!
       ..sort(
-        (left, right) => _safeCanonicalSortKey(left.toJson())
-            .compareTo(_safeCanonicalSortKey(right.toJson())),
+        (left, right) => _safeCanonicalSortKey(
+          left.toJson(),
+        ).compareTo(_safeCanonicalSortKey(right.toJson())),
       );
     final projection = group.first;
     final duplicateProjection = group.length > 1;
@@ -497,29 +551,30 @@ void _applyLegacyCompatibility({
     final entry = _entryFor(entries, mapId);
     final mapLabel = entry == null ? mapId : _display(entry.name, entry.id);
     final event = _legacyEventFor(mapsById[mapId], eventId);
-    final eventLabel =
-        event == null ? eventId : _display(event.title, event.id);
+    final eventLabel = event == null
+        ? eventId
+        : _display(event.title, event.id);
     final geometry = event == null
         ? const NarrativeSpatialSourceGeometrySummary.unavailable()
         : _legacyGeometry(event, mapsById[mapId]);
     final sourceHint =
         confirmed != null && _spatialSourceMapId(confirmed) == mapId
-            ? confirmed
-            : null;
+        ? confirmed
+        : null;
     final availability = duplicateProjection
         ? NarrativeSpatialEventSourceAvailability.visibleButUnavailable
         : confirmed == null
-            ? NarrativeSpatialEventSourceAvailability.legacyCompatibility
-            : matchingIndexes.isEmpty
-                ? NarrativeSpatialEventSourceAvailability.missing
-                : NarrativeSpatialEventSourceAvailability.visibleButUnavailable;
+        ? NarrativeSpatialEventSourceAvailability.legacyCompatibility
+        : matchingIndexes.isEmpty
+        ? NarrativeSpatialEventSourceAvailability.missing
+        : NarrativeSpatialEventSourceAvailability.visibleButUnavailable;
     final reason = duplicateProjection
         ? 'Cette provenance legacy est dupliquée et doit être vérifiée.'
         : confirmed == null
-            ? 'Cette source existante doit être confirmée avant utilisation.'
-            : matchingIndexes.isEmpty
-                ? 'La source canonique confirmée est introuvable.'
-                : 'La source canonique confirmée est ambiguë.';
+        ? 'Cette source existante doit être confirmée avant utilisation.'
+        : matchingIndexes.isEmpty
+        ? 'La source canonique confirmée est introuvable.'
+        : 'La source canonique confirmée est ambiguë.';
     options.add(
       NarrativeSpatialEventSourceOption(
         source: null,
@@ -637,6 +692,7 @@ String _display(String preferred, String fallback) {
 String? _spatialSourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => null,
@@ -644,12 +700,12 @@ String? _spatialSourceMapId(NarrativeEventSourceRef source) {
 }
 
 String _entityKindLabel(MapEntityKind kind) => switch (kind) {
-      MapEntityKind.npc => 'PNJ',
-      MapEntityKind.sign => 'Panneau',
-      MapEntityKind.item => 'Objet',
-      MapEntityKind.spawn => 'Point d’apparition',
-      MapEntityKind.custom => 'Élément',
-    };
+  MapEntityKind.npc => 'PNJ',
+  MapEntityKind.sign => 'Panneau',
+  MapEntityKind.item => 'Objet',
+  MapEntityKind.spawn => 'Point d’apparition',
+  MapEntityKind.custom => 'Élément',
+};
 
 int _compareMapEntries(ProjectMapEntry left, ProjectMapEntry right) {
   final order = left.sortOrder.compareTo(right.sortOrder);

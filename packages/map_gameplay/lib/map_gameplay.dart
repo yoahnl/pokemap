@@ -301,6 +301,7 @@ export 'src/project_item_effect_support.dart'
 export 'src/scene_inventory_condition_evaluator.dart';
 
 export 'src/spatial_movement_controller.dart';
+export 'src/spatial_model_animation_controller.dart';
 export 'src/spatial_warp_controller.dart';
 
 export 'src/spatial_npc_interaction.dart';

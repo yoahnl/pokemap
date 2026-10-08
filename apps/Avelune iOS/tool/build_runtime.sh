@@ -11,6 +11,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="$ROOT/flutter_runtime/build/swift-package"
+CONFIGURATION="${CONFIGURATION-Debug}"
+case "$CONFIGURATION" in
+  Debug) FLUTTER_BUILD_MODE=debug ;;
+  Release) FLUTTER_BUILD_MODE=release ;;
+  *) echo "Unsupported CONFIGURATION: $CONFIGURATION. Use Debug or Release." >&2; exit 2 ;;
+esac
 
 cd "$ROOT/flutter_runtime"
 flutter pub get
@@ -28,6 +34,9 @@ flutter build swift-package \
   "$@"
 
 python3 "$ROOT/tool/patch_swift_package.py" "$OUTPUT"
+CONFIGURATION="$CONFIGURATION" FLUTTER_BUILD_MODE="$FLUTTER_BUILD_MODE" \
+  FLUTTER_SWIFT_PACKAGE_OUTPUT="$OUTPUT" \
+  /bin/bash "$OUTPUT/Scripts/flutter_integration.sh" prebuild
 
 cd "$ROOT"
 if command -v xcodegen > /dev/null; then

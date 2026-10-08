@@ -187,8 +187,13 @@ final class CanonicalGamePackageExportService {
       }
       var animatedDecor = false;
       var spatialGameplay = false;
+      var spatialStory = false;
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
+        spatialStory =
+            SpatialGameplayCapabilities.requiresStory(projection.project);
+        animatedDecor = SpatialGameplayCapabilities.requiresModelAnimation(
+            projection.project);
         spatialGameplay = SpatialGameplayCapabilities.requiresGameplay(
             projection.project,
             dialogues: [
@@ -202,8 +207,9 @@ final class CanonicalGamePackageExportService {
               relativePath: entry.relativePath);
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
-          animatedDecor |= map.spatialScene!.instances
-              .any((instance) => instance.animationIndex != null);
+          animatedDecor |= SpatialGameplayCapabilities.requiresModelAnimation(
+              projection.project,
+              maps: [map]);
           spatialGameplay |= SpatialGameplayCapabilities.requiresGameplay(
               projection.project,
               maps: [map]);
@@ -217,6 +223,7 @@ final class CanonicalGamePackageExportService {
               : 'map@1',
         if (animatedDecor) 'map3d.animation@1',
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
+        if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(
@@ -404,6 +411,7 @@ final class CanonicalGamePackageExportService {
             'map3d@1',
             'map3d.animation@1',
             SpatialGameplayCapabilities.capabilityId,
+            SpatialGameplayCapabilities.storyCapabilityId,
             'overworld.menu@1',
             'world.shop@1',
           },

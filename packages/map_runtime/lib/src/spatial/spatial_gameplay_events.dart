@@ -272,6 +272,8 @@ final class SpatialGameplayEvents {
     return findSpatialEntityInteraction(
       scene: map.spatialScene!,
       entities: map.entities.where((entity) => entityIsPresent(map.id, entity)),
+      actorStateProvider: (id) =>
+          state.spatialWorldState.actorState(map.id, id),
       x: position.x,
       z: position.z,
       facing: state.playerFacing,
@@ -299,13 +301,46 @@ final class SpatialGameplayEvents {
         .isMapEntityVisible(entity, defaultVisible: present);
   }
 
+  SpatialModelInstance? get modelInteractionTarget {
+    if (!_inputAllowed) return null;
+    final state = _readGameState();
+    final position = state.playerSpatialPosition;
+    if (position == null) return null;
+    final map = _map;
+    final ids = <String>{};
+    for (final record
+        in project.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
+      if (record.enabledOrNull != true) continue;
+      final id = record.definitionOrNull?.source.when<String?>(
+        modelInteract: (mapId, instanceId) =>
+            mapId == map.id ? instanceId : null,
+        entityInteract: (mapId, entityId) => null,
+        triggerEnter: (mapId, triggerId) => null,
+        mapEnter: (mapId) => null,
+        outcomeReceived: (outcome) => null,
+      );
+      if (id != null) ids.add(id);
+    }
+    return findSpatialModelInteraction(
+        scene: map.spatialScene!,
+        models: project.models3d,
+        instances: map.spatialScene!.instances
+            .where((instance) => ids.contains(instance.id)),
+        x: position.x,
+        z: position.z,
+        facing: state.playerFacing);
+  }
+
   Future<NarrativeSpatialProductionDispatchResult?> interact() {
     final entity = interactionTarget;
-    if (entity == null) return Future.value();
+    final model = entity == null ? modelInteractionTarget : null;
+    if (entity == null && model == null) return Future.value();
     final mapId = _map.id;
     return _run(() async {
       final result = await _dispatchSpatial(NarrativeEventOccurrence(
-        source: NarrativeEventSourceRef.entityInteract(mapId, entity.id),
+        source: entity != null
+            ? NarrativeEventSourceRef.entityInteract(mapId, entity.id)
+            : NarrativeEventSourceRef.modelInteract(mapId, model!.id),
       ));
       await _settle();
       return result;
@@ -682,6 +717,7 @@ final class SpatialGameplayEvents {
       return;
     }
     final source = occurrence.source.when(
+      modelInteract: (mapId, instanceId) => null,
       entityInteract: (mapId, entityId) => (mapId: mapId, entityId: entityId),
       triggerEnter: (_, __) => null,
       mapEnter: (_) => null,

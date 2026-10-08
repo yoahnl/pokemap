@@ -85,8 +85,8 @@ void main() {
     expect(supports(SceneConditionPayload(conditionDraft: 'script()')), false);
   });
 
-  test('cinematics and unknown battle types are rejected', () {
-    expect(supports(SceneCinematicPayload(cinematicId: 'movie')), false);
+  test('world cinematics are qualified and unknown battle types rejected', () {
+    expect(supports(SceneCinematicPayload(cinematicId: 'movie')), true);
     for (final kind in ['wild', 'trainer', 'static', 'unsupported']) {
       expect(
         supports(SceneBattlePayload(battleKind: kind)),

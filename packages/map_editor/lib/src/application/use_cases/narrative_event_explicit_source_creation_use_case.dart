@@ -873,6 +873,8 @@ String? _proposalIssue(NarrativeEventCreatedSourceProposal proposal) {
   }
 
   return proposal.source.when(
+    modelInteract: (_, _) =>
+        'Ce flux crée des entités et des zones, pas des décors 3D.',
     entityInteract: (_, entityId) {
       if (proposal.physicalKind == NarrativeEventPhysicalSourceKind.zone1x1) {
         return 'Une zone doit être matérialisée par un trigger.';

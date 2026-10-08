@@ -5,6 +5,7 @@ import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/map_data.dart';
 import '../models/enums.dart';
+import '../models/project_model3d.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity { error, warning, info }
@@ -42,6 +43,10 @@ enum SceneDiagnosticCode {
   commandUnknownNpc,
   commandUnknownWarp,
   commandUnknownRailJourney,
+  commandUnknownMap,
+  commandUnknownModelInstance,
+  commandUnknownModel,
+  commandUnknownModelAnimation,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -637,6 +642,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           badgeIds: badgeIds,
           railJourneyIds: railJourneyIds,
           mapsById: mapsById,
+          modelsById: {for (final model in project.models3d) model.id: model},
           diagnostics: diagnostics,
         );
       case SceneStartPayload():
@@ -1035,9 +1041,53 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> badgeIds,
   required Set<String> railJourneyIds,
   required Map<String, MapData> mapsById,
+  required Map<String, ProjectModel3dEntry> modelsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
+  if (interactiveCommand is ScenePlayModelAnimationInteractiveCommand) {
+    final map = mapsById[interactiveCommand.mapId];
+    final instance = map?.spatialScene?.instances
+        .where((instance) => instance.id == interactiveCommand.instanceId)
+        .firstOrNull;
+    final model = instance == null ? null : modelsById[instance.modelId];
+    final issue = map == null
+        ? (
+            SceneDiagnosticCode.commandUnknownMap,
+            'La commande d’animation 3D référence une carte absente.',
+          )
+        : instance == null
+        ? (
+            SceneDiagnosticCode.commandUnknownModelInstance,
+            'Le décor 3D référencé n’existe pas sur cette carte.',
+          )
+        : model == null
+        ? (
+            SceneDiagnosticCode.commandUnknownModel,
+            'Le modèle du décor 3D est absent des ressources.',
+          )
+        : !model.inspection.animations.any(
+            (clip) => clip.index == interactiveCommand.animationIndex,
+          )
+        ? (
+            SceneDiagnosticCode.commandUnknownModelAnimation,
+            'L’animation choisie n’existe pas dans ce modèle 3D.',
+          )
+        : null;
+    if (issue != null) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: issue.$1,
+          severity: SceneDiagnosticSeverity.error,
+          message: issue.$2,
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un décor et une animation existants.',
+        ),
+      );
+    }
+  }
   if (interactiveCommand is SceneMoveNpcInteractiveCommand) {
     final mapData = mapsById[interactiveCommand.mapId];
     final npcExists =

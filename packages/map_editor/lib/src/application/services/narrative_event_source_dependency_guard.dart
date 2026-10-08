@@ -242,6 +242,7 @@ List<String> _linkedEventIds({
 String? _mapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => null,
@@ -254,6 +255,12 @@ bool _isEventSourceTrigger(TriggerType type) {
 
 bool _isResolvedByMap(NarrativeEventSourceRef source, MapData map) {
   return source.when(
+    modelInteract: (mapId, instanceId) =>
+        mapId == map.id &&
+        map.spatialScene?.instances
+                .where((instance) => instance.id == instanceId)
+                .length ==
+            1,
     entityInteract: (mapId, entityId) =>
         mapId == map.id &&
         map.entities.any(

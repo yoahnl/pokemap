@@ -10,6 +10,24 @@ import 'package:path/path.dart' as p;
 import 'game_export_test_fixture.dart';
 
 void main() {
+  test('export receipts stay outside the projected game payload', () async {
+    final root = await createAuthorProject(withCanonicalPokemon: false);
+    addTearDown(() => root.delete(recursive: true));
+    final receipt = File(p.join(root.path, 'exports', 'validation.json'));
+    await receipt.parent.create(recursive: true);
+    await receipt.writeAsString(jsonEncode({'projectRoot': root.path}));
+    final before = await receipt.readAsBytes();
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+    expect(
+      result.payloadFiles.keys,
+      isNot(contains('project/exports/validation.json')),
+    );
+    expect(await receipt.readAsBytes(), before);
+  });
+
   test('preserves empty projected directories for catalog validation',
       () async {
     final root = await createAuthorProject(withCanonicalPokemon: false);

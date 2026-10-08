@@ -1,5 +1,6 @@
 import '../models/game_state.dart';
 import '../models/save_data.dart';
+import '../models/spatial_world_state.dart';
 
 Map<String, dynamic> strictGameStateSaveJson(GameState state) {
   final normalized = normalizeLoadedGameState(state);
@@ -11,6 +12,11 @@ Map<String, dynamic> strictGameStateSaveJson(GameState state) {
 
 GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
   validateItemSystemSaveSchema(json);
+  final spatial = json['spatialWorldState'];
+  if (spatial is! Map) {
+    throw const FormatException('The save is missing its spatial world state.');
+  }
+  SpatialWorldState.fromJson(Map<String, dynamic>.from(spatial));
   return normalizeLoadedGameState(GameState.fromJson(json));
 }
 
@@ -31,6 +37,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     currentMapId: normalizedSaveData.currentMapId,
     playerPosition: normalizedSaveData.playerPosition,
     playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
+    spatialWorldState: normalizedSaveData.spatialWorldState,
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
     party: normalizedSaveData.party,
@@ -72,6 +79,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     currentMapId: normalizedGameState.currentMapId,
     playerPosition: normalizedGameState.playerPosition,
     playerSpatialPosition: normalizedGameState.playerSpatialPosition,
+    spatialWorldState: normalizedGameState.spatialWorldState,
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,
     party: normalizedGameState.party,

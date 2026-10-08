@@ -10,6 +10,7 @@ enum SceneInteractiveCommandKind {
   openHeal,
   openPc,
   playCharacterAnimation,
+  playModelAnimation,
   railJourney,
 }
 
@@ -58,6 +59,14 @@ abstract base class SceneInteractiveCommand {
     RailJourneyDoorSide? doorSide,
   }) = SceneRailJourneyInteractiveCommand;
 
+  factory SceneInteractiveCommand.playModelAnimation({
+    required String mapId,
+    required String instanceId,
+    required int animationIndex,
+    double speed,
+    bool? blocksMovementAfter,
+  }) = ScenePlayModelAnimationInteractiveCommand;
+
   factory SceneInteractiveCommand.fromJson(Map<String, dynamic> json) {
     final kind = SceneInteractiveCommandKind.values.firstWhere(
       (value) => value.name == json['kind'],
@@ -67,29 +76,45 @@ abstract base class SceneInteractiveCommand {
     );
     return switch (kind) {
       SceneInteractiveCommandKind.warp => SceneWarpInteractiveCommand(
-          destinationMapId: _required(json, 'destinationMapId'),
-          warpId: _required(json, 'warpId'),
-        ),
+        destinationMapId: _required(json, 'destinationMapId'),
+        warpId: _required(json, 'warpId'),
+      ),
       SceneInteractiveCommandKind.moveNpc => SceneMoveNpcInteractiveCommand(
-          mapId: _required(json, 'mapId'),
-          entityId: _required(json, 'entityId'),
-          warpId: _required(json, 'warpId'),
-        ),
+        mapId: _required(json, 'mapId'),
+        entityId: _required(json, 'entityId'),
+        warpId: _required(json, 'warpId'),
+      ),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
-          shopId: _required(json, 'shopId'),
-        ),
+        shopId: _required(json, 'shopId'),
+      ),
       SceneInteractiveCommandKind.openHeal => SceneOpenHealInteractiveCommand(
-          requiresConfirmation:
-              _optionalBool(json, 'requiresConfirmation') ?? true,
-        ),
+        requiresConfirmation:
+            _optionalBool(json, 'requiresConfirmation') ?? true,
+      ),
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
-          storageId: _optional(json, 'storageId'),
-        ),
+        storageId: _optional(json, 'storageId'),
+      ),
       SceneInteractiveCommandKind.playCharacterAnimation =>
         SceneCharacterCustomAnimationInteractiveCommand(
           runtimeCommand: CharacterCustomAnimationRuntimeCommand.fromJson(
             _requiredObject(json, 'runtimeCommand'),
           ),
+        ),
+      SceneInteractiveCommandKind.playModelAnimation =>
+        ScenePlayModelAnimationInteractiveCommand(
+          mapId: _required(json, 'mapId'),
+          instanceId: _required(json, 'instanceId'),
+          animationIndex: json['animationIndex'] is int
+              ? json['animationIndex'] as int
+              : throw const FormatException(
+                  'Model animation index must be an integer.',
+                ),
+          speed: json['speed'] is num
+              ? (json['speed'] as num).toDouble()
+              : throw const FormatException(
+                  'Model animation speed must be a number.',
+                ),
+          blocksMovementAfter: _optionalBool(json, 'blocksMovementAfter'),
         ),
       SceneInteractiveCommandKind.railJourney =>
         SceneRailJourneyInteractiveCommand(
@@ -106,11 +131,7 @@ abstract base class SceneInteractiveCommand {
             'advanceEvent',
             SceneRailJourneyAdvanceEvent.values,
           ),
-          doorSide: _optionalEnum(
-            json,
-            'doorSide',
-            RailJourneyDoorSide.values,
-          ),
+          doorSide: _optionalEnum(json, 'doorSide', RailJourneyDoorSide.values),
         ),
     };
   }
@@ -121,14 +142,71 @@ abstract base class SceneInteractiveCommand {
 }
 
 @immutable
+final class ScenePlayModelAnimationInteractiveCommand
+    extends SceneInteractiveCommand {
+  ScenePlayModelAnimationInteractiveCommand({
+    required String mapId,
+    required String instanceId,
+    required this.animationIndex,
+    this.speed = 1,
+    this.blocksMovementAfter,
+  }) : mapId = _normalize(mapId, 'mapId'),
+       instanceId = _normalize(instanceId, 'instanceId') {
+    if (animationIndex < 0 || !speed.isFinite || speed <= 0 || speed > 16) {
+      throw const FormatException('Invalid model animation command.');
+    }
+  }
+
+  final String mapId, instanceId;
+  final int animationIndex;
+  final double speed;
+  final bool? blocksMovementAfter;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.playModelAnimation;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked', 'cancelled'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'mapId': mapId,
+    'instanceId': instanceId,
+    'animationIndex': animationIndex,
+    'speed': speed,
+    if (blocksMovementAfter != null) 'blocksMovementAfter': blocksMovementAfter,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScenePlayModelAnimationInteractiveCommand &&
+      other.mapId == mapId &&
+      other.instanceId == instanceId &&
+      other.animationIndex == animationIndex &&
+      other.speed == speed &&
+      other.blocksMovementAfter == blocksMovementAfter;
+
+  @override
+  int get hashCode => Object.hash(
+    mapId,
+    instanceId,
+    animationIndex,
+    speed,
+    blocksMovementAfter,
+  );
+}
+
+@immutable
 final class SceneMoveNpcInteractiveCommand extends SceneInteractiveCommand {
   SceneMoveNpcInteractiveCommand({
     required String mapId,
     required String entityId,
     required String warpId,
-  })  : mapId = _normalize(mapId, 'mapId'),
-        entityId = _normalize(entityId, 'entityId'),
-        warpId = _normalize(warpId, 'warpId');
+  }) : mapId = _normalize(mapId, 'mapId'),
+       entityId = _normalize(entityId, 'entityId'),
+       warpId = _normalize(warpId, 'warpId');
 
   final String mapId;
   final String entityId;
@@ -142,11 +220,11 @@ final class SceneMoveNpcInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        'mapId': mapId,
-        'entityId': entityId,
-        'warpId': warpId,
-      };
+    'kind': kind.name,
+    'mapId': mapId,
+    'entityId': entityId,
+    'warpId': warpId,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -164,8 +242,8 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
   SceneWarpInteractiveCommand({
     required String destinationMapId,
     required String warpId,
-  })  : destinationMapId = _normalize(destinationMapId, 'destinationMapId'),
-        warpId = _normalize(warpId, 'warpId');
+  }) : destinationMapId = _normalize(destinationMapId, 'destinationMapId'),
+       warpId = _normalize(warpId, 'warpId');
 
   final String destinationMapId;
   final String warpId;
@@ -178,10 +256,10 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        'destinationMapId': destinationMapId,
-        'warpId': warpId,
-      };
+    'kind': kind.name,
+    'destinationMapId': destinationMapId,
+    'warpId': warpId,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -196,7 +274,7 @@ final class SceneWarpInteractiveCommand extends SceneInteractiveCommand {
 @immutable
 final class SceneOpenShopInteractiveCommand extends SceneInteractiveCommand {
   SceneOpenShopInteractiveCommand({required String shopId})
-      : shopId = _normalize(shopId, 'shopId');
+    : shopId = _normalize(shopId, 'shopId');
 
   final String shopId;
 
@@ -231,9 +309,9 @@ final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        'requiresConfirmation': requiresConfirmation,
-      };
+    'kind': kind.name,
+    'requiresConfirmation': requiresConfirmation,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -247,8 +325,7 @@ final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
 @immutable
 final class SceneOpenPcInteractiveCommand extends SceneInteractiveCommand {
   SceneOpenPcInteractiveCommand({String? storageId})
-      : storageId =
-            storageId?.trim().isEmpty ?? true ? null : storageId!.trim();
+    : storageId = storageId?.trim().isEmpty ?? true ? null : storageId!.trim();
 
   final String? storageId;
 
@@ -260,9 +337,9 @@ final class SceneOpenPcInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        if (storageId != null) 'storageId': storageId,
-      };
+    'kind': kind.name,
+    if (storageId != null) 'storageId': storageId,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -287,17 +364,17 @@ final class SceneCharacterCustomAnimationInteractiveCommand
 
   @override
   List<String> get outputPortIds => const <String>[
-        'completed',
-        'fallback',
-        'interrupted',
-        'failed',
-      ];
+    'completed',
+    'fallback',
+    'interrupted',
+    'failed',
+  ];
 
   @override
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'kind': kind.name,
-        'runtimeCommand': runtimeCommand.toJson(),
-      };
+    'kind': kind.name,
+    'runtimeCommand': runtimeCommand.toJson(),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -309,8 +386,7 @@ final class SceneCharacterCustomAnimationInteractiveCommand
 }
 
 @immutable
-final class SceneRailJourneyInteractiveCommand
-    extends SceneInteractiveCommand {
+final class SceneRailJourneyInteractiveCommand extends SceneInteractiveCommand {
   SceneRailJourneyInteractiveCommand({
     required String commandId,
     required String journeyId,
@@ -318,8 +394,8 @@ final class SceneRailJourneyInteractiveCommand
     this.direction,
     this.advanceEvent,
     this.doorSide,
-  })  : commandId = _normalize(commandId, 'commandId'),
-        journeyId = _normalize(journeyId, 'journeyId') {
+  }) : commandId = _normalize(commandId, 'commandId'),
+       journeyId = _normalize(journeyId, 'journeyId') {
     switch (operation) {
       case SceneRailJourneyOperation.begin:
         if (direction == null || doorSide == null || advanceEvent != null) {
@@ -365,18 +441,18 @@ final class SceneRailJourneyInteractiveCommand
 
   @override
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'kind': kind.name,
-        'commandId': commandId,
-        'journeyId': journeyId,
-        'operation': operation.name,
-        if (direction != null)
-          'direction': switch (direction!) {
-            RailJourneyDirection.outbound => 'outbound',
-            RailJourneyDirection.returnJourney => 'return',
-          },
-        if (advanceEvent != null) 'advanceEvent': advanceEvent!.name,
-        if (doorSide != null) 'doorSide': doorSide!.name,
-      };
+    'kind': kind.name,
+    'commandId': commandId,
+    'journeyId': journeyId,
+    'operation': operation.name,
+    if (direction != null)
+      'direction': switch (direction!) {
+        RailJourneyDirection.outbound => 'outbound',
+        RailJourneyDirection.returnJourney => 'return',
+      },
+    if (advanceEvent != null) 'advanceEvent': advanceEvent!.name,
+    if (doorSide != null) 'doorSide': doorSide!.name,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -390,13 +466,13 @@ final class SceneRailJourneyInteractiveCommand
 
   @override
   int get hashCode => Object.hash(
-        commandId,
-        journeyId,
-        operation,
-        direction,
-        advanceEvent,
-        doorSide,
-      );
+    commandId,
+    journeyId,
+    operation,
+    direction,
+    advanceEvent,
+    doorSide,
+  );
 }
 
 String _normalize(String value, String field) {

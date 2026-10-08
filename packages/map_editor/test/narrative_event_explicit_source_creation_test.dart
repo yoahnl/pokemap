@@ -242,6 +242,8 @@ void main() {
         expect(
           proposal.ownerJson['sourceId'],
           proposal.source.when(
+            modelInteract: (_, _) =>
+                fail('This source creation flow cannot create a 3D model.'),
             entityInteract: (_, entityId) => entityId,
             triggerEnter: (_, triggerId) => triggerId,
             mapEnter: (_) => fail('A created source cannot be mapEnter.'),

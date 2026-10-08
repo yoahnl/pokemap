@@ -278,6 +278,7 @@ String? _recordSceneId(NarrativeEventRecord? record) {
 ) {
   return source?.when(
     entityInteract: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
+    modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
     triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
     mapEnter: (mapId) => (mapId: mapId, ownerId: null),
     outcomeReceived: (_) => (mapId: null, ownerId: null),

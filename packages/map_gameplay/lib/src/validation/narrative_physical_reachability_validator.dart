@@ -25,6 +25,7 @@ enum NarrativePhysicalIssueCode {
   missingSourceTarget,
   explorationBudgetExceeded,
   permanentlyBlocked,
+  unsupportedSpatialTraversal,
 }
 
 final class NarrativePhysicalReachabilityIssue {
@@ -138,6 +139,19 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
       referenceIssueByEventId[event.id] = issue;
       issues.add(issue);
     }
+  }
+
+  if (project.settings.dimension == ProjectDimension.threeD) {
+    issues.add(const NarrativePhysicalReachabilityIssue(
+      code: NarrativePhysicalIssueCode.unsupportedSpatialTraversal,
+      message:
+          'Le parcours 3D doit être vérifié avec les collisions du terrain 3D.',
+    ));
+    return _indeterminateReport(
+      spatial: spatial,
+      nonSpatial: nonSpatial,
+      issues: issues,
+    );
   }
 
   final startMapId = project.newGame.startMapId.trim();
@@ -319,6 +333,18 @@ NarrativePhysicalReachabilityIssue? _validateSourceReference(
   Map<String, MapData> mapsById,
 ) {
   return event.source.when(
+    modelInteract: (mapId, instanceId) => mapsById[mapId]
+                ?.spatialScene
+                ?.instances
+                .any((instance) => instance.id == instanceId) ==
+            true
+        ? null
+        : NarrativePhysicalReachabilityIssue(
+            code: NarrativePhysicalIssueCode.missingSourceTarget,
+            eventId: event.id,
+            mapId: mapId,
+            message: 'Le décor source "$instanceId" est absent de "$mapId".',
+          ),
     mapEnter: (mapId) => mapsById.containsKey(mapId)
         ? null
         : NarrativePhysicalReachabilityIssue(
@@ -465,6 +491,7 @@ _StateExploration _exploreSymbolicState({
     )) {
       if (evidenceByEventId.containsKey(event.id)) continue;
       final evidence = event.source.when<_ReachabilityEvidence?>(
+        modelInteract: (mapId, instanceId) => null,
         mapEnter: (_) => _ReachabilityEvidence(
           mapId: map.id,
           reachedCell: entry.pos,
@@ -886,6 +913,7 @@ List<NarrativeSymbolicState> _canonicalStates(
 }
 
 String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
+      modelInteract: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       triggerEnter: (mapId, _) => mapId,
       entityInteract: (mapId, _) => mapId,

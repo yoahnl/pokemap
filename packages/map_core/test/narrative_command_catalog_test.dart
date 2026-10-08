@@ -238,4 +238,24 @@ void main() {
       ],
     );
   });
+
+  test(
+    'model animation publishes contextual references and optional collision',
+    () {
+      final command = NarrativeCommandCatalog.canonical().byId(
+        NarrativeCommandIds.playModelAnimation,
+      )!;
+      expect(command.isPublishable, isTrue);
+      expect(command.isAwaitable, isTrue);
+      expect(command.wireId, 'SceneInteractiveCommand.playModelAnimation');
+      expect(command.parameters.map((parameter) => parameter.kind), [
+        NarrativeCommandParameterKind.map,
+        NarrativeCommandParameterKind.modelInstance,
+        NarrativeCommandParameterKind.modelAnimation,
+        NarrativeCommandParameterKind.text,
+        NarrativeCommandParameterKind.boolean,
+      ]);
+      expect(command.parameters.last.required, isFalse);
+    },
+  );
 }

@@ -688,6 +688,7 @@ String? _narrativeEventMapId(NarrativeEventRecord record) => record.when(
 
 String? _sourceMapId(NarrativeEventSourceRef? source) => source?.when(
       entityInteract: (mapId, _) => mapId,
+      modelInteract: (mapId, _) => mapId,
       triggerEnter: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       outcomeReceived: (_) => null,

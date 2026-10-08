@@ -48,6 +48,7 @@ test("authored 3D exploration and gameplay exports cross fresh MCP stdio and can
     assert.ok(catalog.resourceKinds);
     const tools = await client.listTools();
     assert.match(tools.tools.find((tool) => tool.name === "pokemap_game_export")!.description!, /3D exploration/);
+    assert.match(tools.tools.find((tool) => tool.name === "pokemap_game_export")!.description!, /map3d\.story@1/);
     const opened = await data("pokemap_workspace", { operation: "open", projectRoot: project });
     const outputPath = join(output, "la-halte-des-falaises.avelunegame");
     const result = await data("pokemap_game_export", { projectHandle: opened.projectHandle,

@@ -61,6 +61,12 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.ok(playbackSchema.animationLoop);
     assert.ok(playbackSchema.animationSpeed);
     for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.terrain.configure_appearance", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure", "connection.create_bidirectional_apply", "connection.delete_bidirectional_apply"]) assert.ok(ids.includes(id), id);
+    const eventDescriptor = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "event_v2.create_draft")!;
+    const modelSource = (record(eventDescriptor.extensions).sourceVariants as JsonRecord[])
+      .find((item) => item.kind === "modelInteract")!;
+    assert.ok(modelSource);
+    assert.deepEqual(modelSource.requiredFields, ["kind", "mapId", "instanceId"]);
+    assert.equal(modelSource.dimension, "threeD");
     const request = { name: "Spatial MCP", folderName: "spatial", parentPath: root, template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
     const preview = await call("pokemap_project_create_preview", { request });
     const created = await call("pokemap_project_create", { request, confirmation: preview.confirmation });
@@ -132,6 +138,35 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.equal(record((second.warps as unknown[])[0]).targetMapId, mapId);
     assert.deepEqual(authored.connections, [{ direction: "east", targetMapId: "second", offset: 2 }]);
     assert.deepEqual(second.connections, [{ direction: "west", targetMapId: mapId, offset: -2 }]);
+    await mutate("scene.upsert", { scene: { id: "open-rock", name: "Open rock", graph: {
+      startNodeId: "start", nodes: [
+        { id: "start", kind: "start" },
+        { id: "play", kind: "action", payload: { kind: "action", interactiveCommand: {
+          kind: "playModelAnimation", mapId, instanceId: "rock-1", animationIndex: 0, speed: 2, blocksMovementAfter: false,
+        } } },
+        { id: "end", kind: "end" },
+      ], edges: [
+        { id: "start-play", fromNodeId: "start", fromPortId: "completed", toNodeId: "play", kind: "defaultFlow" },
+        ...["completed", "blocked", "cancelled"].map((port) => ({ id: port, fromNodeId: "play",
+          fromPortId: port, toNodeId: "end", kind: "defaultFlow" })),
+      ],
+    } } });
+    await mutate("event_v2.create_draft", { name: "Rock interaction", rawUuid: "019a6190-0000-7000-8000-000000000001",
+      initialSource: { kind: "modelInteract", mapId, instanceId: "rock-1" },
+    });
+    const beforeSceneDeleteMap = await readFile(join(projectRoot, String(mapEntry.relativePath)));
+    const beforeSceneDeleteProject = await readFile(join(projectRoot, "project.json"));
+    const validation = await call("pokemap_validate", { projectHandle });
+    const rejected = await call("pokemap_plan", { projectHandle, request: {
+      requestId: "referenced-instance-delete", actionId: "map3d.instance.delete", actionVersion: 1,
+      workspaceHandle, expectedRevision: validation.snapshotRevision, idempotencyKey: "referenced-instance-delete",
+      parameters: { mapId, instanceId: "rock-1" },
+    } }, true);
+    assert.equal(rejected.domainCode, "map3d.instance_referenced");
+    assert.deepEqual(await readFile(join(projectRoot, String(mapEntry.relativePath))), beforeSceneDeleteMap);
+    assert.deepEqual(await readFile(join(projectRoot, "project.json")), beforeSceneDeleteProject);
+    await mutate("event_v2.delete", { eventId: "evt_019a6190-0000-7000-8000-000000000001" }, true);
+    await mutate("scene.delete", { sceneId: "open-rock" }, true);
     await mutate("map3d.instance.delete", { mapId, instanceId: "rock-1" }, true);
     await mutate("model3d.delete", { modelId: "rock" }, true);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });

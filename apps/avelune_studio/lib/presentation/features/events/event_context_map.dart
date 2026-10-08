@@ -6,6 +6,7 @@ import '../map_workspace/map_workspace_visuals.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
 import 'event_labels.dart';
+import 'event_spatial_context_map.dart';
 
 class EventContextMap extends StatefulWidget {
   const EventContextMap({
@@ -56,6 +57,14 @@ class _EventContextMapState extends State<EventContextMap> {
   @override
   Widget build(BuildContext context) {
     final map = widget.map;
+    if (map.spatialScene != null) {
+      return EventSpatialContextMap(
+        map: map, project: widget.project, visuals: widget.visuals,
+        source: widget.source, chooseKind: widget.chooseKind,
+        selectableSources: widget.selectableSources,
+        onChoose: widget.onChoose, onCancel: widget.onCancel,
+      );
+    }
     final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {

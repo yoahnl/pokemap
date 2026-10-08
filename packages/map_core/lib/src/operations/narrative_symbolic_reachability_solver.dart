@@ -941,6 +941,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
     );
     definition.source.when(
       entityInteract: (_, __) {},
+      modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -1131,6 +1132,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
     reads.addAll(consumedEventIds.map((id) => 'consumed:$id'));
     definition.source.when(
       entityInteract: (_, __) {},
+      modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {
@@ -1626,6 +1628,9 @@ bool? _sourceEligibility(
     source.when(
       entityInteract: (mapId, entityId) =>
           mapsById[mapId]?.entities.any((entity) => entity.id == entityId) ==
+          true,
+      modelInteract: (mapId, instanceId) =>
+          mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ==
           true,
       triggerEnter: (mapId, triggerId) =>
           mapsById[mapId]?.triggers.any((trigger) => trigger.id == triggerId) ==

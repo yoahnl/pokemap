@@ -18,6 +18,7 @@ import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart
 import 'package:avelune_studio/presentation/features/scenes/scene_preview_panel.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_payload_picker.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_linked_document.dart';
+import '../events/event_map_loader.dart';
 export 'package:avelune_studio/presentation/features/scenes/scene_builder_view_state.dart';
 
 part 'scene_builder_commands.dart';
@@ -61,6 +62,16 @@ class SceneBuilderPage extends StatefulWidget {
 
 class _SceneBuilderPageState extends State<SceneBuilderPage> {
   final documents = SceneLinkedDocuments();
+  late EventMapLoader mapLoader = EventMapLoader(widget.controller.workspace);
+
+  @override
+  void didUpdateWidget(SceneBuilderPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      mapLoader = EventMapLoader(widget.controller.workspace);
+    }
+  }
+
   SceneBuilderViewState? get view => widget.controller.active == null
       ? null
       : widget.views.forScene(widget.controller.active!.current.id);
@@ -94,6 +105,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
             : SceneInspector(
                 session: session,
                 project: linkedProject,
+                loadMap: mapLoader.load,
                 documents: documents,
                 narrative: widget.narrative,
                 nodeId: state!.nodeId,

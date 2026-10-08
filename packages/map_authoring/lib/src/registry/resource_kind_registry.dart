@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../contracts/json_contract_support.dart';
 
 /// Resource kinds currently published by the canonical read API description.
@@ -403,6 +405,9 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Event V2',
         summary: 'Revision-gated narrative event record',
+        extensions: {
+          'sourceVariants': NarrativeEventSourceRef.contracts,
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'fact',

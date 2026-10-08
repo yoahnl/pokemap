@@ -23,6 +23,7 @@ class MapDecorInspectorTabs extends StatefulWidget {
     required this.onEditResource,
     required this.width,
     this.onRenameMap,
+    this.onEventSource,
   });
 
   final ProjectManifest project;
@@ -33,6 +34,7 @@ class MapDecorInspectorTabs extends StatefulWidget {
   final ValueChanged<ProjectElementEntry> onOpenResource, onEditResource;
   final double width;
   final VoidCallback? onRenameMap;
+  final ValueChanged<NarrativeEventSourceRef>? onEventSource;
 
   @override
   State<MapDecorInspectorTabs> createState() => _MapDecorInspectorTabsState();
@@ -95,6 +97,7 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
                   onOpenResource: widget.onOpenResource,
                   onEditResource: widget.onEditResource,
                   onRenameMap: widget.onRenameMap,
+                  onEventSource: widget.onEventSource,
                   width: widget.width,
                   tool: widget.view.tool,
                   showSelectionSummary: selected == null,

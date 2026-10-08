@@ -1347,6 +1347,7 @@ String _sourceLabel(NarrativeMapEventEntry event) {
         null => 'Entité de map',
       },
     NarrativeEventSourceKind.triggerEnter => 'Zone',
+    NarrativeEventSourceKind.modelInteract => 'Décor 3D',
     NarrativeEventSourceKind.mapEnter => 'Map',
     NarrativeEventSourceKind.outcomeReceived => 'Résultat narratif',
     null => 'Source à configurer',

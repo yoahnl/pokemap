@@ -105,6 +105,115 @@ void main() {
         animated);
   });
 
+  test(
+      'scene clips on idle instances export with story and animation capabilities',
+      () async {
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(root.path);
+    final source = File(p.join(root.path, 'door-source.glb'));
+    await source.writeAsBytes(animatedGlb());
+    final artifacts = LocalArtifactStore(
+        allowedSourceRoots: [root.path], maximumArtifactBytes: 1048576);
+    final staged = await artifacts.importFile(source.path);
+    final mutations = LocalMapAuthoringMutationApi(
+        policy: policy, snapshotLoader: snapshots, artifactStore: artifacts);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    var operation = 0;
+    Future<void> apply(String action, Map<String, Object?> parameters) async {
+      final snapshot = await snapshots.load(opened.projectHandle);
+      final id = 'story-${operation++}';
+      final plan = await mutations.planMutation(
+          opened.projectHandle,
+          AuthoringRequest(
+              requestId: id,
+              actionId: action,
+              actionVersion: 1,
+              workspaceHandle: opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: id,
+              parameters: parameters));
+      await mutations.applyMutation(opened.projectHandle,
+          planId: plan.planId, operationId: id);
+    }
+
+    await apply('model3d.import', {
+      'modelId': 'door',
+      'name': 'Door',
+      'artifactHandle': staged.reference.handle
+    });
+    final mapId = (await snapshots.load(opened.projectHandle)).maps.first.id;
+    await apply('map3d.instance.upsert', {
+      'mapId': mapId,
+      'instance': SpatialModelInstance(
+              id: 'story-door', modelId: 'door', position: Model3dVector3.zero)
+          .toJson()
+    });
+    final scene = SceneAsset(
+        id: 'open-door',
+        name: 'Open door',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+              id: 'play',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                  SceneInteractiveCommand.playModelAnimation(
+                      mapId: mapId,
+                      instanceId: 'story-door',
+                      animationIndex: 0,
+                      speed: 2,
+                      blocksMovementAfter: false))),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [
+          SceneEdge(
+              id: 'start-play',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'play',
+              kind: SceneEdgeKind.defaultFlow),
+          for (final port in ['completed', 'blocked', 'cancelled'])
+            SceneEdge(
+                id: port,
+                fromNodeId: 'play',
+                fromPortId: port,
+                toNodeId: 'end',
+                kind: SceneEdgeKind.defaultFlow),
+        ]));
+    await apply('scene.upsert', {'scene': scene.toJson()});
+    final artifact = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(
+        artifact.manifest.compatibility.requiredCapabilities,
+        containsAll([
+          'map3d@1',
+          'map3d.animation@1',
+          'map3d.gameplay@1',
+          'map3d.story@1'
+        ]));
+    final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+    final exported = ProjectManifest.fromJson(jsonDecode(
+            utf8.decode(archive.findFile('project/project.json')!.content))
+        as Map<String, dynamic>);
+    final command =
+        (exported.scenes.single.graph.nodes[1].payload as SceneActionPayload)
+            .interactiveCommand as ScenePlayModelAnimationInteractiveCommand;
+    expect(command.instanceId, 'story-door');
+    expect(command.animationIndex, 0);
+    expect(command.speed, 2);
+    expect(command.blocksMovementAfter, false);
+  });
+
   test('exports the authored 3D map as autonomous localTest exploration',
       () async {
     final manifestFile = File(p.join(root.path, 'project.json'));

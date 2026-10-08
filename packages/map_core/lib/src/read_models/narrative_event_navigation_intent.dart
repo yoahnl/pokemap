@@ -18,6 +18,7 @@ import '../operations/build_narrative_spatial_event_source_catalog.dart';
 enum NarrativeEditorDestinationKind {
   openMap,
   focusEntity,
+  focusModelInstance,
   focusTrigger,
   openScene,
   openFact,
@@ -27,7 +28,7 @@ enum NarrativeEditorDestinationKind {
   openOutcomeProducer,
 }
 
-enum NarrativeEditorFocusTargetKind { map, entity, trigger }
+enum NarrativeEditorFocusTargetKind { map, entity, modelInstance, trigger }
 
 enum NarrativeEventNavigationDiagnosticSeverity { info, warning, error }
 
@@ -73,6 +74,7 @@ final class NarrativeEditorDestination {
     required this.kind,
     this.mapId,
     this.entityId,
+    this.instanceId,
     this.triggerId,
     this.sceneId,
     this.factId,
@@ -111,6 +113,15 @@ final class NarrativeEditorDestination {
       triggerId: _identity(triggerId, 'triggerId'),
     );
   }
+
+  factory NarrativeEditorDestination.focusModelInstance(
+    String mapId,
+    String instanceId,
+  ) => NarrativeEditorDestination._(
+    kind: NarrativeEditorDestinationKind.focusModelInstance,
+    mapId: _identity(mapId, 'mapId'),
+    instanceId: _identity(instanceId, 'instanceId'),
+  );
 
   factory NarrativeEditorDestination.openScene(String sceneId) {
     return NarrativeEditorDestination._(
@@ -165,6 +176,7 @@ final class NarrativeEditorDestination {
   final NarrativeEditorDestinationKind kind;
   final String? mapId;
   final String? entityId;
+  final String? instanceId;
   final String? triggerId;
   final String? sceneId;
   final String? factId;
@@ -178,6 +190,7 @@ final class NarrativeEditorDestination {
         'kind': kind.name,
         if (mapId != null) 'mapId': mapId,
         if (entityId != null) 'entityId': entityId,
+        if (instanceId != null) 'instanceId': instanceId,
         if (triggerId != null) 'triggerId': triggerId,
         if (sceneId != null) 'sceneId': sceneId,
         if (factId != null) 'factId': factId,
@@ -230,6 +243,17 @@ final class NarrativeEditorFocusTarget {
       bounds: _validBounds(bounds),
     );
   }
+
+  factory NarrativeEditorFocusTarget.modelInstance(
+    String mapId,
+    String instanceId,
+    MapRect bounds,
+  ) => NarrativeEditorFocusTarget._(
+    kind: NarrativeEditorFocusTargetKind.modelInstance,
+    mapId: _identity(mapId, 'mapId'),
+    ownerId: _identity(instanceId, 'instanceId'),
+    bounds: _validBounds(bounds),
+  );
 
   final NarrativeEditorFocusTargetKind kind;
   final String mapId;
@@ -384,6 +408,7 @@ final class NarrativeEventNavigationIndex {
   ) {
     return source.when(
       entityInteract: (_, __) => _spatialNavigation(source),
+      modelInteract: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
       outcomeReceived: navigationForOutcomeProducer,
@@ -395,6 +420,7 @@ final class NarrativeEventNavigationIndex {
   ) {
     return source.when(
       entityInteract: (_, __) => _spatialNavigation(source),
+      modelInteract: (_, _) => _spatialNavigation(source),
       triggerEnter: (_, __) => _spatialNavigation(source),
       mapEnter: (_) => _spatialNavigation(source),
       outcomeReceived: (_) => NarrativeEventNavigationIntent.noDestination(
@@ -513,6 +539,7 @@ final class NarrativeEventNavigationIndex {
 
     return source.when(
       entityInteract: (_, __) => _spatialDiagnostic(source, navigation),
+      modelInteract: (_, _) => _spatialDiagnostic(source, navigation),
       triggerEnter: (_, __) => _spatialDiagnostic(source, navigation),
       mapEnter: (_) => _spatialDiagnostic(source, navigation),
       outcomeReceived: (outcome) {
@@ -679,6 +706,19 @@ final class NarrativeEventNavigationIndex {
               NarrativeEditorFocusTarget.entity(mapId, entityId, bounds),
         );
       },
+      modelInteract: (mapId, instanceId) {
+        final bounds = option.geometry.bounds;
+        if (bounds == null) {
+          return NarrativeEventNavigationIntent.noDestination(
+            'La position du décor 3D référencé est indisponible.',
+          );
+        }
+        return NarrativeEventNavigationIntent.navigate(
+          NarrativeEditorDestination.focusModelInstance(mapId, instanceId),
+          focusTarget:
+              NarrativeEditorFocusTarget.modelInstance(mapId, instanceId, bounds),
+        );
+      },
       triggerEnter: (mapId, triggerId) {
         final bounds = option.geometry.bounds;
         if (bounds == null) {
@@ -842,6 +882,10 @@ bool _focusMatches(
     ) =>
       destination.mapId == focus.mapId &&
           destination.triggerId == focus.ownerId,
+    (
+      NarrativeEditorDestinationKind.focusModelInstance,
+      NarrativeEditorFocusTargetKind.modelInstance,
+    ) => destination.mapId == focus.mapId && destination.instanceId == focus.ownerId,
     _ => false,
   };
 }
@@ -850,6 +894,7 @@ bool _destinationRequiresFocus(NarrativeEditorDestination destination) {
   return switch (destination.kind) {
     NarrativeEditorDestinationKind.openMap ||
     NarrativeEditorDestinationKind.focusEntity ||
+    NarrativeEditorDestinationKind.focusModelInstance ||
     NarrativeEditorDestinationKind.focusTrigger =>
       true,
     _ => false,
@@ -866,6 +911,7 @@ MapRect _validBounds(MapRect bounds) {
 String _missingSpatialReason(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (_, __) => 'L’entité référencée n’existe plus.',
+    modelInteract: (_, _) => 'Le décor 3D référencé n’existe plus.',
     triggerEnter: (_, __) => 'La zone référencée n’existe plus.',
     mapEnter: (_) => 'La map référencée n’existe plus.',
     outcomeReceived: (_) =>
@@ -879,6 +925,11 @@ Map<String, String> _sourceDebugReferences(NarrativeEventSourceRef source) {
       'sourceKind': source.kind.name,
       'mapId': mapId,
       'entityId': entityId,
+    },
+    modelInteract: (mapId, instanceId) => {
+      'sourceKind': source.kind.name,
+      'mapId': mapId,
+      'instanceId': instanceId,
     },
     triggerEnter: (mapId, triggerId) => {
       'sourceKind': source.kind.name,

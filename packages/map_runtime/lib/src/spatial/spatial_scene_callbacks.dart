@@ -17,6 +17,7 @@ final class SpatialSceneCallbacks
     required this.show,
     required this.battle,
     required this.interactive,
+    this.playCinematic,
   });
 
   final ProjectManifest project;
@@ -27,6 +28,7 @@ final class SpatialSceneCallbacks
   final Future<SceneBattleRuntimeOutcomeResult> Function(
       SceneBattleRuntimeBattleRequest request) battle;
   final Future<String> Function(SceneRuntimePlanIntent intent) interactive;
+  final Future<String> Function(SceneRuntimePlanIntent intent)? playCinematic;
 
   SceneRuntimeHostCallbacks build() => SceneRuntimeHostCallbacks(
         evaluateCondition: evaluateCondition,
@@ -50,8 +52,10 @@ final class SpatialSceneCallbacks
           }
           return result.scenePortId!;
         },
-        playCinematic: (_) => throw UnsupportedError(
-            'Spatial cinematic playback is unavailable.'),
+        playCinematic: (intent) =>
+            playCinematic?.call(intent) ??
+            (throw StateError(
+                'Spatial cinematic playback has no active owner.')),
         executeInteractiveCommand: interactive,
       );
 

@@ -13,6 +13,7 @@ AuthoringActionDescriptor narrativeActionDescriptor(
   String summary, {
   List<String> resourceKinds = const ['project'],
   AuthoringRiskLevel risk = AuthoringRiskLevel.medium,
+  Map<String, Object?> extensions = const {},
 }) =>
     AuthoringActionDescriptor(
       id: id,
@@ -21,6 +22,7 @@ AuthoringActionDescriptor narrativeActionDescriptor(
       inputSchemaId: 'pokemap.authoring/$id.input.v1',
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: risk,
+      extensions: extensions,
       resourceKinds: resourceKinds,
       capabilityIds: const ['authoring.narrative.modern'],
       requiredPermissions: const [AuthoringPermission.projectWrite],

@@ -4,6 +4,7 @@ import '../../shared/widgets/feedback/studio_badge.dart';
 
 const eventSourceKinds = [
   NarrativeEventSourceKind.entityInteract,
+  NarrativeEventSourceKind.modelInteract,
   NarrativeEventSourceKind.triggerEnter,
   NarrativeEventSourceKind.mapEnter,
   NarrativeEventSourceKind.outcomeReceived,
@@ -11,6 +12,7 @@ const eventSourceKinds = [
 
 StudioTone eventKindTone(NarrativeEventSourceKind? kind) => switch (kind) {
   NarrativeEventSourceKind.entityInteract => StudioTone.info,
+  NarrativeEventSourceKind.modelInteract => StudioTone.info,
   NarrativeEventSourceKind.triggerEnter => StudioTone.success,
   NarrativeEventSourceKind.mapEnter => StudioTone.feature,
   NarrativeEventSourceKind.outcomeReceived => StudioTone.warning,
@@ -41,6 +43,7 @@ NarrativeEventConditionExpression eventExpression(
 
 String? eventMapId(NarrativeEventSourceRef? source) => source?.when(
   entityInteract: (map, _) => map,
+  modelInteract: (map, _) => map,
   triggerEnter: (map, _) => map,
   mapEnter: (map) => map,
   outcomeReceived: (_) => null,
@@ -48,6 +51,7 @@ String? eventMapId(NarrativeEventSourceRef? source) => source?.when(
 
 String? eventTargetId(NarrativeEventSourceRef? source) => source?.when(
   entityInteract: (_, id) => id,
+  modelInteract: (_, id) => id,
   triggerEnter: (_, id) => id,
   mapEnter: (_) => null,
   outcomeReceived: (_) => null,
@@ -55,6 +59,7 @@ String? eventTargetId(NarrativeEventSourceRef? source) => source?.when(
 
 String eventKindLabel(NarrativeEventSourceKind? kind) => switch (kind) {
   NarrativeEventSourceKind.entityInteract => 'Interaction du joueur',
+  NarrativeEventSourceKind.modelInteract => 'Interaction avec un décor 3D',
   NarrativeEventSourceKind.triggerEnter => 'Entrée de zone',
   NarrativeEventSourceKind.mapEnter => 'Entrée sur la carte',
   NarrativeEventSourceKind.outcomeReceived => 'Réception d’un résultat',
@@ -63,6 +68,7 @@ String eventKindLabel(NarrativeEventSourceKind? kind) => switch (kind) {
 
 IconData eventKindIcon(NarrativeEventSourceKind? kind) => switch (kind) {
   NarrativeEventSourceKind.entityInteract => Icons.forum_outlined,
+  NarrativeEventSourceKind.modelInteract => Icons.view_in_ar_outlined,
   NarrativeEventSourceKind.triggerEnter => Icons.crop_free,
   NarrativeEventSourceKind.mapEnter => Icons.login,
   NarrativeEventSourceKind.outcomeReceived => Icons.flag_outlined,

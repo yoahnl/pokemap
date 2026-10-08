@@ -142,6 +142,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               ? null
                               : () => _show(WorkspaceSpace.story),
                           onEditInteraction: _editInteraction,
+                          onEventSource: _events == null ? null : _openEventSource,
                           onZoneDrawn: _narrative == null ? null : _zone,
                           referenceGuard: _draftReferences.guard,
                           onContextMenu: _openContextMenu,

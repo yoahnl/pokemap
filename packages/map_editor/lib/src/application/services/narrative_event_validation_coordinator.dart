@@ -513,6 +513,8 @@ bool _matchesSpatialDestination(
   NarrativeEventValidationDestination destination,
 ) {
   return source.when(
+    modelInteract: (mapId, instanceId) =>
+        destination.mapId == mapId && destination.sourceOwnerId == instanceId,
     entityInteract: (mapId, entityId) =>
         destination.mapId == mapId && destination.sourceOwnerId == entityId,
     triggerEnter: (mapId, triggerId) =>

@@ -1,6 +1,9 @@
 import '../models/scene_asset.dart';
+import '../models/scene_interactive_command.dart';
+import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import '../models/map_data.dart';
+import '../models/cinematic_asset.dart';
 import '../models/enums.dart';
 import '../dialogue/runtime_dialogue_document.dart';
 import '../models/scene_execution_capabilities.dart';
@@ -8,6 +11,7 @@ import 'narrative_command_catalog.dart';
 
 abstract final class SpatialGameplayCapabilities {
   static const capabilityId = 'map3d.gameplay@1';
+  static const storyCapabilityId = 'map3d.story@1';
   static const productionExportEnabled = false;
   static const commandIds = <String>{
     NarrativeCommandIds.setFact,
@@ -28,6 +32,14 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.dialogue,
     NarrativeCommandIds.trainerBattle,
     NarrativeCommandIds.staticEncounter,
+    NarrativeCommandIds.playModelAnimation,
+  };
+  static const cinematicStepKinds = <CinematicTimelineStepKind>{
+    CinematicTimelineStepKind.wait,
+    CinematicTimelineStepKind.camera,
+    CinematicTimelineStepKind.actorMove,
+    CinematicTimelineStepKind.actorFace,
+    CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
     SceneConditionSourceKind.inventoryItem,
@@ -37,6 +49,45 @@ abstract final class SpatialGameplayCapabilities {
     SceneConditionSourceKind.consumedEvent,
   };
 
+  static bool requiresStory(ProjectManifest project) =>
+      project.scenes.any(
+        (scene) => scene.graph.nodes.any(
+          (node) =>
+              node.payload is SceneCinematicPayload ||
+              node.payload is SceneActionPayload &&
+                  (node.payload as SceneActionPayload).interactiveCommand
+                      is ScenePlayModelAnimationInteractiveCommand,
+        ),
+      ) ||
+      (project.eventRegistry?.records.any(
+            (record) =>
+                record.definitionOrNull?.source.kind ==
+                    NarrativeEventSourceKind.modelInteract ||
+                record.draftOrNull?.source?.kind ==
+                    NarrativeEventSourceKind.modelInteract,
+          ) ??
+          false);
+
+  static bool requiresModelAnimation(
+    ProjectManifest project, {
+    Iterable<MapData> maps = const [],
+  }) =>
+      project.scenes.any(
+        (scene) => scene.graph.nodes.any(
+          (node) =>
+              node.payload is SceneActionPayload &&
+              (node.payload as SceneActionPayload).interactiveCommand
+                  is ScenePlayModelAnimationInteractiveCommand,
+        ),
+      ) ||
+      maps.any(
+        (map) =>
+            map.spatialScene?.instances.any(
+              (instance) => instance.animationIndex != null,
+            ) ??
+            false,
+      );
+
   static bool requiresGameplay(
     ProjectManifest project, {
     Iterable<MapData> maps = const [],
@@ -45,6 +96,8 @@ abstract final class SpatialGameplayCapabilities {
       project.pokemon.enabled ||
       project.newGame.enabled ||
       project.scenes.isNotEmpty ||
+      project.cinematics.isNotEmpty ||
+      project.presentationCinematics.isNotEmpty ||
       project.facts.isNotEmpty ||
       project.worldRules.isNotEmpty ||
       project.storylines.isNotEmpty ||
@@ -89,7 +142,8 @@ abstract final class SpatialGameplayCapabilities {
     }
     final payload = node.payload;
     return switch (payload) {
-      SceneCinematicPayload() || ScenePresentationCinematicPayload() => false,
+      SceneCinematicPayload() => true,
+      ScenePresentationCinematicPayload() => false,
       SceneConditionPayload() =>
         payload.conditionSource != null &&
             (conditionSources.contains(payload.conditionSource!.sourceKind) ||

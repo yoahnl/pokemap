@@ -28,6 +28,7 @@ abstract final class NarrativeCommandIds {
       'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
   static const playCharacterAnimation = 'playCharacterAnimation';
+  static const playModelAnimation = 'playModelAnimation';
   static const railJourney = 'railJourney';
 }
 
@@ -400,6 +401,36 @@ final class NarrativeCommandCatalog {
         _parameter('npcRef', 'PNJ', NarrativeCommandParameterKind.npc),
         _parameter('warpId', 'Destination', NarrativeCommandParameterKind.warp),
       ]),
+      interactive(
+        NarrativeCommandIds.playModelAnimation,
+        'Jouer une animation de décor 3D',
+        'FG-093',
+        [
+          _parameter('mapId', 'Carte', NarrativeCommandParameterKind.map),
+          _parameter(
+            'instanceId',
+            'Décor placé',
+            NarrativeCommandParameterKind.modelInstance,
+          ),
+          _parameter(
+            'animationIndex',
+            'Animation du décor',
+            NarrativeCommandParameterKind.modelAnimation,
+          ),
+          _parameter(
+            'speed',
+            'Vitesse de lecture',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'blocksMovementAfter',
+            'Passage après l’animation',
+            NarrativeCommandParameterKind.boolean,
+            required: false,
+          ),
+        ],
+      ),
       interactive(
         NarrativeCommandIds.playCharacterAnimation,
         'Jouer une animation de personnage',

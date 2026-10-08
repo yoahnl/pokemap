@@ -21,6 +21,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.openHeal,
     this.openPc,
     this.playCharacterAnimation,
+    this.playModelAnimation,
     this.railJourney,
     this.openWorldService,
   });
@@ -31,6 +32,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
   final SceneInteractiveCommandHandler? playCharacterAnimation;
+  final SceneInteractiveCommandHandler? playModelAnimation;
   final SceneInteractiveCommandHandler? railJourney;
   final SceneWorldServiceRequestHandler? openWorldService;
 
@@ -68,6 +70,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
         await _executeRequired(
           command,
           handler: playCharacterAnimation,
+        ),
+      SceneInteractiveCommandKind.playModelAnimation => await _executeRequired(
+          command,
+          handler: playModelAnimation,
         ),
       SceneInteractiveCommandKind.railJourney => await _executeRequired(
           command,

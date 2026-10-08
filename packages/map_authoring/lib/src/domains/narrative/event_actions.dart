@@ -25,6 +25,9 @@ final class EventV2Actions {
         entry.$1,
         entry.$2,
         resourceKinds: const ['project', 'eventV2'],
+        extensions: {
+          'sourceVariants': NarrativeEventSourceRef.contracts,
+        },
         risk: entry.$1.endsWith('.delete')
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,

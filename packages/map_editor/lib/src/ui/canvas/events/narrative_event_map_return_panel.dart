@@ -251,6 +251,7 @@ NarrativeEventRecord? _recordById(
 String _mapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => throw StateError('A global source has no map.'),
@@ -265,6 +266,7 @@ String _spatialSourceLabel(
   final mapName = _mapName(project, mapId);
   return source.when(
     entityInteract: (_, _) => 'Interaction avec une entité · $mapName',
+    modelInteract: (_, _) => 'Interaction avec un décor 3D · $mapName',
     triggerEnter: (_, _) => 'Entrée dans une zone · $mapName',
     mapEnter: (_) => 'Entrée sur la map · $mapName',
     outcomeReceived: (_) => 'Event global',

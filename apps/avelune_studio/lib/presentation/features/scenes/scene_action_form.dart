@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart'
+    show ProjectModel3dEntry, Model3dAnimation;
 
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
@@ -7,26 +9,32 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_f
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 
+part 'scene_action_references.dart';
+
 class SceneActionForm extends StatefulWidget {
   const SceneActionForm({
     super.key,
     required this.project,
     required this.current,
     required this.onApply,
+    this.loadMap,
   });
 
   final ProjectManifest project;
   final SceneNodePayload? current;
   final ValueChanged<SceneNodePayload> onApply;
+  final Future<MapData> Function(String)? loadMap;
 
   @override
   State<SceneActionForm> createState() => _SceneActionFormState();
 }
 
 class _SceneActionFormState extends State<SceneActionForm> {
-  final _commands = [
+  List<NarrativeCommandDescriptor> get _commands => [
     for (final command in NarrativeCommandCatalog.canonical().commands)
       if (command.isPublishable &&
+          (command.id != NarrativeCommandIds.playModelAnimation ||
+              widget.project.settings.dimension == ProjectDimension.threeD) &&
           command.backend != NarrativeCommandBackend.dedicatedSceneNode)
         command,
   ];
@@ -34,6 +42,12 @@ class _SceneActionFormState extends State<SceneActionForm> {
   String? _commandId;
   bool _unsupported = false;
   String? _error;
+  MapData? _referenceMap;
+  String? _referenceMapId;
+  String? _referenceError;
+  bool _referenceLoading = false;
+  int _referenceRequest = 0;
+  void _refreshReferences(VoidCallback changed) => setState(changed);
 
   NarrativeCommandDescriptor? get _command =>
       _commands.where((command) => command.id == _commandId).firstOrNull;
@@ -48,6 +62,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
   void didUpdateWidget(SceneActionForm oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.current != widget.current) _readCurrent();
+    if (oldWidget.loadMap != widget.loadMap ||
+        oldWidget.project != widget.project) {
+      _loadReferenceMap();
+    }
   }
 
   void _readCurrent() {
@@ -56,14 +74,17 @@ class _SceneActionFormState extends State<SceneActionForm> {
     _commandId = null;
     final current = widget.current;
     _unsupported = current != null;
-    if (current == null) return;
-    if (current is! SceneActionPayload) return;
+    if (current is! SceneActionPayload) {
+      _loadReferenceMap();
+      return;
+    }
     final data =
         current.consequence?.toJson() ?? current.interactiveCommand?.toJson();
     _commandId =
         current.consequence?.kind.name ?? current.interactiveCommand?.kind.name;
     if (_command == null || data == null) {
       _commandId = null;
+      _loadReferenceMap();
       return;
     }
     for (final parameter in _command!.parameters) {
@@ -82,6 +103,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _unsupported = true;
     }
     if (_unsupported) _commandId = null;
+    _loadReferenceMap();
   }
 
   SceneNodePayload _buildPayload() {
@@ -107,13 +129,18 @@ class _SceneActionFormState extends State<SceneActionForm> {
     _error = null;
     _values.clear();
     for (final parameter in _command!.parameters) {
-      if (parameter.kind == NarrativeCommandParameterKind.boolean) {
+      if (parameter.kind == NarrativeCommandParameterKind.boolean &&
+          parameter.required) {
         _values[parameter.id] = 'true';
       } else if (parameter.kind == NarrativeCommandParameterKind.integer &&
           parameter.required) {
         _values[parameter.id] = '1';
       }
     }
+    if (commandId == NarrativeCommandIds.playModelAnimation) {
+      _values['speed'] = '1';
+    }
+    _loadReferenceMap();
   });
 
   bool get _valid {
@@ -130,6 +157,15 @@ class _SceneActionFormState extends State<SceneActionForm> {
       } else if (parameter.kind != NarrativeCommandParameterKind.text &&
           parameter.kind != NarrativeCommandParameterKind.boolean &&
           !_options(parameter.kind).containsKey(value)) {
+        return false;
+      }
+    }
+    if (command.id == NarrativeCommandIds.playModelAnimation) {
+      final rawSpeed = _values['speed']?.trim();
+      final speed = double.tryParse(
+        rawSpeed == null || rawSpeed.isEmpty ? '1' : rawSpeed,
+      );
+      if (speed == null || !speed.isFinite || speed <= 0 || speed > 16) {
         return false;
       }
     }
@@ -157,6 +193,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
     NarrativeCommandParameterKind.map => {
       for (final map in widget.project.maps) map.id: map.name,
     },
+    NarrativeCommandParameterKind.modelInstance => _modelInstances,
+    NarrativeCommandParameterKind.modelAnimation => _modelAnimations,
     NarrativeCommandParameterKind.shop => {
       for (final shop in widget.project.shops) shop.id: shop.label,
     },
@@ -206,6 +244,16 @@ class _SceneActionFormState extends State<SceneActionForm> {
         onChanged: _commands.isEmpty ? null : _choose,
       ),
       if (_commands.isEmpty) const StudioNotice('Aucune commande disponible.'),
+      if (_referenceLoading)
+        const StudioNotice('Chargement des décors de la carte…'),
+      if (_referenceError != null) ...[
+        StudioNotice(_referenceError!, isError: true),
+        StudioButton(
+          label: 'Recharger la carte',
+          secondary: true,
+          onPressed: () => setState(_loadReferenceMap),
+        ),
+      ],
       for (final parameter
           in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
         Padding(
@@ -235,7 +283,27 @@ class _SceneActionFormState extends State<SceneActionForm> {
     void changed(String value) => setState(() {
       _values[parameter.id] = value;
       _error = null;
+      if (parameter.id == 'mapId') {
+        _values.remove('instanceId');
+        _values.remove('animationIndex');
+        _loadReferenceMap();
+      } else if (parameter.id == 'instanceId') {
+        _values.remove('animationIndex');
+      }
     });
+    if (parameter.id == 'blocksMovementAfter' &&
+        _commandId == NarrativeCommandIds.playModelAnimation) {
+      return StudioSelect(
+        label: parameter.label,
+        value: _values[parameter.id] ?? '',
+        options: const {
+          '': 'Conserver le passage actuel',
+          'false': 'Laisser passer',
+          'true': 'Bloquer le passage',
+        },
+        onChanged: changed,
+      );
+    }
     if (parameter.kind == NarrativeCommandParameterKind.boolean) {
       return StudioToggleRow(
         label: parameter.label,

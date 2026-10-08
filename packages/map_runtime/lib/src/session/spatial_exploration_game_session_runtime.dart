@@ -30,6 +30,7 @@ import '../spatial/spatial_exploration_session.dart';
 import '../spatial/spatial_battle_runtime.dart';
 import '../spatial/spatial_gameplay_events.dart';
 import '../spatial/spatial_scene_callbacks.dart';
+import '../spatial/spatial_story_playback.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
@@ -109,6 +110,7 @@ final class SpatialExplorationGameSessionRuntime
     context: RuntimeInputContext.blocked,
   ));
   SpatialExplorationSession? _session;
+  SpatialStoryPlayback? _story;
   PlayerPreferencesSnapshot? _preferences;
   late final overworldInteractions = ValueNotifier(
       RuntimeOverworldInteractionSnapshot(
@@ -145,6 +147,42 @@ final class SpatialExplorationGameSessionRuntime
                 x: session.movement.x,
                 z: session.movement.z,
                 facing: session.movement.facing);
+    final model = npc == null && inputAuthority.value.acceptsOverworldInput
+        ? _gameplay?.modelInteractionTarget
+        : null;
+    if (model != null) {
+      final cell =
+          GridPos(x: model.position.x.floor(), y: model.position.z.floor());
+      final snapshot = RuntimeOverworldInteractionSnapshot(
+        sessionId: descriptor.sessionId,
+        mapActivationId: _mapActivationId,
+        mapId: session.bundle.map.id,
+        primaryAction: RuntimeOverworldInteractionAction(
+            request: RuntimeOverworldInteractionRequest(
+                sessionId: descriptor.sessionId,
+                mapActivationId: _mapActivationId,
+                mapId: session.bundle.map.id,
+                targetKind: RuntimeOverworldInteractionTargetKind.modelInstance,
+                targetId: model.id,
+                actionId: 'interact'),
+            verb: RuntimeOverworldInteractionVerb.interact,
+            targetCell: cell,
+            targetBounds: PixelRect(
+                leftPx: cell.x * session.bundle.manifest.settings.tileWidth,
+                topPx: cell.y * session.bundle.manifest.settings.tileHeight,
+                widthPx: session.bundle.manifest.settings.tileWidth,
+                heightPx: session.bundle.manifest.settings.tileHeight)),
+      );
+      if (snapshot != overworldInteractions.value) {
+        overworldInteractions.value = snapshot;
+        _interactionEvents.add(snapshot);
+      }
+      return;
+    }
+    final npcPose = npc == null ? null : session.actorRuntimeState(npc);
+    final npcCell = npcPose == null
+        ? npc?.pos
+        : GridPos(x: npcPose.x.floor(), y: npcPose.z.floor());
     final snapshot = RuntimeOverworldInteractionSnapshot(
         sessionId: descriptor.sessionId,
         mapActivationId: _mapActivationId,
@@ -166,12 +204,12 @@ final class SpatialExplorationGameSessionRuntime
                   MapEntityKind.item => RuntimeOverworldInteractionVerb.collect,
                   _ => RuntimeOverworldInteractionVerb.interact,
                 },
-                targetCell: npc.pos,
+                targetCell: npcCell!,
                 targetBounds: PixelRect(
                     leftPx:
-                        npc.pos.x * session.bundle.manifest.settings.tileWidth,
+                        npcCell.x * session.bundle.manifest.settings.tileWidth,
                     topPx:
-                        npc.pos.y * session.bundle.manifest.settings.tileHeight,
+                        npcCell.y * session.bundle.manifest.settings.tileHeight,
                     widthPx: session.bundle.manifest.settings.tileWidth,
                     heightPx: session.bundle.manifest.settings.tileHeight)));
     if (snapshot != overworldInteractions.value) {
@@ -286,6 +324,10 @@ final class SpatialExplorationGameSessionRuntime
         maps[entry.id] = loaded;
       }
     }
+    validateSpatialWorldState(
+        state: gameStateSnapshot.spatialWorldState,
+        project: project,
+        maps: maps.values);
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
       return;
@@ -384,6 +426,8 @@ final class SpatialExplorationGameSessionRuntime
         project: _session!.bundle.manifest,
         runtimeSourceId: _mapActivationId,
         readGameState: read,
+        playCinematic: (intent) => _withSceneState(read, commit,
+            () => _story!.playCinematic(intent, _mapActivationId)),
         show: (request) => _withSceneState(
             read,
             commit,
@@ -427,7 +471,9 @@ final class SpatialExplorationGameSessionRuntime
         interactive: (intent) => _withSceneState(
             read,
             commit,
-            () => SceneInteractiveCommandRuntimeExecutor(warp: (command) async {
+            () => SceneInteractiveCommandRuntimeExecutor(
+                playModelAnimation: (command) => _story!.playModel(command),
+                warp: (command) async {
                   if (command is! SceneWarpInteractiveCommand) return 'blocked';
                   final destination = _mapsById[command.destinationMapId];
                   final warp = destination?.warps
@@ -437,7 +483,8 @@ final class SpatialExplorationGameSessionRuntime
                   commit(const GameStateMutations().warpPlayer(
                       read(), destination!.id, warp.pos.x, warp.pos.y));
                   return 'completed';
-                }, openWorldService: (request) async {
+                },
+                openWorldService: (request) async {
                   final result = await switch (request) {
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
@@ -483,7 +530,11 @@ final class SpatialExplorationGameSessionRuntime
       await action();
       if (!_disposed && !_stopped) await _materializeState(_gameState!);
     } catch (error) {
-      if (!_disposed && !_stopped) _session?.interactionError.value = error;
+      if (!_disposed && !_stopped) {
+        final cancelled = _story?.wasCancelled == true;
+        _story?.synchronize(_gameState!.spatialWorldState);
+        _session?.interactionError.value = cancelled ? null : error;
+      }
     } finally {
       _gameplayOperations--;
       if (!_disposed) _syncMovement();
@@ -493,6 +544,7 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> _materializeState(GameState state) async {
     _ensureGameplayActive();
     final session = _session!;
+    _story?.synchronize(state.spatialWorldState);
     final changedMap = session.bundle.map.id != state.currentMapId;
     final position = state.playerSpatialPosition ??
         PlayerSpatialPosition(
@@ -592,6 +644,12 @@ final class SpatialExplorationGameSessionRuntime
           manifest.maps.isEmpty) {
         throw StateError('A spatial project with an initial map is required.');
       }
+      if (SpatialGameplayCapabilities.requiresStory(manifest) &&
+          !descriptor.grantedCapabilities
+              .contains(SpatialGameplayCapabilities.storyCapabilityId)) {
+        throw StateError(
+            'Spatial story playback requires ${SpatialGameplayCapabilities.storyCapabilityId}.');
+      }
       late final GameState state;
       if (descriptor.launchMode == GameSessionLaunchMode.newGame) {
         final initial = descriptor.initialGameState;
@@ -631,6 +689,7 @@ final class SpatialExplorationGameSessionRuntime
           narrativeSnapshot: preload?.narrativeSnapshot);
       _ensureLoadActive(generation);
       final loaded = await SpatialExplorationSession.load(bundle,
+          worldStateProvider: () => _gameState!.spatialWorldState,
           spatialArrival: position,
           facing: state.playerFacing,
           entityIsPresent: (mapId, entity) =>
@@ -641,6 +700,17 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('Exploration closed while loading.');
       }
       _session = loaded;
+      _story = SpatialStoryPlayback(
+        session: loaded,
+        readGameState: _readMutableState,
+        writeGameState: (state) {
+          final writer = _sceneStateWriter;
+          if (writer == null) {
+            throw StateError('Spatial playback has no Scene transaction.');
+          }
+          writer(state);
+        },
+      );
       _initializePlayerServices(bundle);
       loaded.interactionActive.addListener(_syncMovement);
       loaded.transitioning.addListener(_syncMovement);
@@ -681,6 +751,18 @@ final class SpatialExplorationGameSessionRuntime
   bool handleInput(RuntimeInputEvent event) {
     if (_disposed || _session == null) return false;
     if (event.isRelease) _pressed.remove(event.control);
+    if (!_paused &&
+        _locks.isEmpty &&
+        _session?.storyActive.value == true &&
+        event.isPress &&
+        !event.isRepeat) {
+      if (event.control == RuntimeInputControl.secondary) {
+        _story?.cancel();
+      } else if (event.control == RuntimeInputControl.primary) {
+        _story?.skip();
+      }
+      return true;
+    }
     if (!inputAuthority.value.acceptsRuntimeInput) return true;
     if (inputAuthority.value.context == RuntimeInputContext.battle) {
       return _battle?.handleInput(event) ?? true;
@@ -989,6 +1071,7 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<void> stop(GameSessionExitReason reason) async {
+    _story?.cancel();
     if (_disposed) return;
     _stopped = true;
     _loadGeneration++;
@@ -1037,6 +1120,8 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<void> dispose() async {
+    _story?.dispose();
+    _story = null;
     if (_disposed) return;
     _disposed = true;
     _stopped = true;

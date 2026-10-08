@@ -168,6 +168,7 @@ final class NarrativeEventRuntimeSnapshot {
     for (final projection in legacyScenarioProjections)
       if (projection.source != null)
         ...projection.source!.when(
+          modelInteract: (mapId, instanceId) => const <NarrativeOutcomeRef>[],
           entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],

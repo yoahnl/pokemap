@@ -222,6 +222,7 @@ String _sourceKey(NarrativeEventSourceRef source) =>
 
 String? _mapId(NarrativeEventSourceRef source) => source.when(
       entityInteract: (mapId, _) => mapId,
+      modelInteract: (mapId, _) => mapId,
       triggerEnter: (mapId, _) => mapId,
       mapEnter: (mapId) => mapId,
       outcomeReceived: (_) => null,
@@ -229,6 +230,7 @@ String? _mapId(NarrativeEventSourceRef source) => source.when(
 
 String? _ownerId(NarrativeEventSourceRef source) => source.when(
       entityInteract: (_, entityId) => entityId,
+      modelInteract: (_, instanceId) => instanceId,
       triggerEnter: (_, triggerId) => triggerId,
       mapEnter: (_) => null,
       outcomeReceived: (_) => null,

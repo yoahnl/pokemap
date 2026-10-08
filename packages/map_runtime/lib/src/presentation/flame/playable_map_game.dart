@@ -1184,6 +1184,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final source = record.definitionOrNull?.source;
         if (source == null) break;
         return source.when(
+          modelInteract: (mapId, instanceId) => instanceId,
           entityInteract: (_, entityId) => entityId,
           triggerEnter: (_, triggerId) => triggerId,
           mapEnter: (mapId) => mapId,

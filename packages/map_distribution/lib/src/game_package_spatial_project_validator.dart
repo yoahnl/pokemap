@@ -22,11 +22,20 @@ final class GamePackageSpatialProjectValidator {
   final bool gameplay;
 
   void _validateGameplay(ProjectManifest project) {
+    final cinematicIds = project.cinematics.map((asset) => asset.id).toSet();
     for (final scene in project.scenes) {
       for (final node in scene.graph.nodes) {
         if (!SpatialGameplayCapabilities.supportsSceneNode(
             scene.executionProfile, node)) {
           _unsupported('scenes.${scene.id}.nodes.${node.id}');
+        }
+        final payload = node.payload;
+        if (payload is SceneCinematicPayload &&
+            !cinematicIds.contains(payload.cinematicId)) {
+          _fail(
+              'runtime3d.cinematic_missing',
+              'scenes.${scene.id}.nodes.${node.id}.cinematicId',
+              'The scene references a missing cinematic.');
         }
       }
     }
@@ -41,6 +50,240 @@ final class GamePackageSpatialProjectValidator {
             node.type == ScenarioNodeType.choice) {
           _unsupported('scenarios.${scenario.id}.nodes.${node.id}');
         }
+      }
+    }
+  }
+
+  void _validateSpatialGameplayReferences(
+      ProjectManifest project, Map<String, MapData> mapsById) {
+    for (final scene in project.scenes) {
+      for (final node in scene.graph.nodes) {
+        final payload = node.payload;
+        final command =
+            payload is SceneActionPayload ? payload.interactiveCommand : null;
+        if (command is! ScenePlayModelAnimationInteractiveCommand) continue;
+        final instance = mapsById[command.mapId]
+            ?.spatialScene
+            ?.instances
+            .where((instance) => instance.id == command.instanceId)
+            .firstOrNull;
+        final model = project.models3d
+            .where((model) => model.id == instance?.modelId)
+            .firstOrNull;
+        if (model == null ||
+            !model.inspection.animations
+                .any((clip) => clip.index == command.animationIndex)) {
+          _fail(
+              'runtime3d.model_animation_invalid',
+              'scenes.${scene.id}.nodes.${node.id}.interactiveCommand',
+              'Model animation requires an existing map instance and inspected clip.');
+        }
+      }
+    }
+    for (final asset in project.cinematics) {
+      final path = 'cinematics.${asset.id}';
+      final map = mapsById[asset.mapId];
+      if (map == null || map.spatialScene == null) {
+        _fail('runtime3d.cinematic_invalid', '$path.mapId',
+            'A spatial cinematic requires an existing spatial map.');
+      }
+      for (final step in asset.timeline.steps) {
+        if (!SpatialGameplayCapabilities.cinematicStepKinds
+            .contains(step.kind)) {
+          _fail('runtime3d.cinematic_unsupported', '$path.steps.${step.id}',
+              'This cinematic beat is outside the spatial gameplay profile.');
+        }
+      }
+      final context = asset.stageContext;
+      if (context?.actorAppearanceBindings.isNotEmpty ?? false) {
+        _fail(
+            'runtime3d.cinematic_unsupported',
+            '$path.actorAppearanceBindings',
+            'Spatial cinematics use the existing map actors.');
+      }
+      final shared = preflightCinematicPlayback(
+          cinematic: asset,
+          availableMapIds: mapsById.keys,
+          activeMapId: map.id,
+          mode: CinematicPlaybackPreflightMode.runtime);
+      if (!shared.isReady) {
+        final issue = shared.issues.first;
+        _fail(
+            'runtime3d.cinematic_invalid',
+            issue.stepId == null ? path : '$path.steps.${issue.stepId}',
+            issue.message);
+      }
+      void invalid(String field, String message) =>
+          _fail('runtime3d.cinematic_invalid', '$path.$field', message);
+      bool inside(double x, double z) =>
+          x.isFinite &&
+          z.isFinite &&
+          x >= 0 &&
+          z >= 0 &&
+          x < map.size.width &&
+          z < map.size.height;
+      final entities = {for (final entity in map.entities) entity.id: entity};
+      final actorIds = <String>{};
+      final identities = <String>{};
+      for (final binding in context?.actorBindings ?? const []) {
+        actorIds.add(binding.actorId);
+        final identity = binding.kind == CinematicActorBindingKind.player
+            ? 'player'
+            : 'entity:${binding.mapEntityId}';
+        if (!identities.add(identity) ||
+            binding.kind == CinematicActorBindingKind.mapEntity &&
+                !entities.containsKey(binding.mapEntityId)) {
+          invalid('actorBindings.${binding.actorId}',
+              'The cinematic actor is missing or bound more than once.');
+        }
+      }
+      final points = <String, CinematicStagePoint>{};
+      for (final point in context?.stagePoints ?? const []) {
+        if (points.containsKey(point.id) || !inside(point.x, point.y)) {
+          invalid('stagePoints.${point.id}',
+              'Stage points require unique identities and coordinates inside the map cells.');
+        }
+        points[point.id] = point;
+      }
+      final targetIds = <String>{};
+      for (final target in context?.movementTargetBindings ?? const []) {
+        targetIds.add(target.targetId);
+        if (target.kind == CinematicMovementTargetBindingKind.mapEntity &&
+            !entities.containsKey(target.sourceId)) {
+          invalid('movementTargetBindings.${target.targetId}',
+              'The movement target entity is missing.');
+        }
+      }
+      final placed = <String>{};
+      for (final placement in context?.initialPlacements ?? const []) {
+        if (!actorIds.contains(placement.actorId) ||
+            !placed.add(placement.actorId) ||
+            placement.kind == CinematicActorInitialPlacementKind.stagePoint &&
+                !points.containsKey(placement.stagePointId) ||
+            placement.kind ==
+                    CinematicActorInitialPlacementKind.fromMovementTarget &&
+                !targetIds.contains(placement.targetId)) {
+          invalid('initialPlacements.${placement.actorId}',
+              'The initial placement references a missing actor or target.');
+        }
+      }
+      final paths = <String, CinematicManualPath>{};
+      for (final route in context?.manualPaths ?? const []) {
+        if (paths.containsKey(route.ownerActorMoveStepId) ||
+            route.waypointStagePointIds.any((id) => !points.containsKey(id))) {
+          invalid('manualPaths.${route.id}',
+              'Manual routes require a unique movement step and existing stage points.');
+        }
+        paths[route.ownerActorMoveStepId] = route;
+      }
+      for (final step in asset.timeline.steps) {
+        final field = 'steps.${step.id}';
+        if (step.kind == CinematicTimelineStepKind.actorMove &&
+            ((step.durationMs ?? 0) <= 0 ||
+                cinematicTimelineActorMovementModeOf(step) == null ||
+                cinematicTimelineActorPathModeOf(step) == null ||
+                cinematicTimelineActorPathModeOf(step) ==
+                        CinematicTimelineActorPathMode.manual &&
+                    (!paths.containsKey(step.id) ||
+                        paths[step.id]!.waypointStagePointIds.isEmpty))) {
+          invalid(field,
+              'Actor movement requires a duration, movement mode and authored route.');
+        }
+        if (step.kind == CinematicTimelineStepKind.actorFace &&
+            cinematicTimelineActorFacingDirectionOf(step) == null) {
+          invalid(field, 'Actor facing requires an explicit direction.');
+        }
+        if (step.kind == CinematicTimelineStepKind.camera) {
+          final mode = cinematicTimelineCameraModeOf(step);
+          if (mode == null ||
+              mode == CinematicTimelineCameraMode.hold &&
+                  (step.durationMs ?? 0) <= 0) {
+            invalid(
+                field, 'Camera hold requires a duration and a supported mode.');
+          }
+          if (mode == CinematicTimelineCameraMode.focus) {
+            final focus = cinematicTimelineCameraFocusBindingOf(step);
+            if (focus == null ||
+                focus.target.kind == CinematicCameraTargetKind.actor &&
+                    !actorIds.contains(focus.target.actorId) ||
+                focus.target.kind == CinematicCameraTargetKind.stagePoint &&
+                    !points.containsKey(focus.target.stagePointId)) {
+              invalid(field,
+                  'The camera focus references a missing actor or stage point.');
+            }
+          }
+        }
+      }
+      _validatePlayerCinematicEndpoint(asset, map, path);
+    }
+  }
+
+  void _validatePlayerCinematicEndpoint(
+      CinematicAsset asset, MapData map, String path) {
+    final context = asset.stageContext;
+    if (context == null) return;
+    final entities = {for (final entity in map.entities) entity.id: entity};
+    final points = {
+      for (final point in context.stagePoints)
+        point.id: (x: point.x, z: point.y)
+    };
+    final positions = <String, ({double x, double z})?>{
+      for (final binding in context.actorBindings)
+        binding.actorId: binding.kind == CinematicActorBindingKind.player
+            ? null
+            : (
+                x: entities[binding.mapEntityId]!.pos.x + .5,
+                z: entities[binding.mapEntityId]!.pos.y + .5
+              ),
+    };
+    final origins = <String, String>{};
+    ({double x, double z})? target(String? targetId) {
+      final binding = context.movementTargetBindings
+          .where((binding) => binding.targetId == targetId)
+          .first;
+      if (binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
+        return points[binding.sourceId];
+      }
+      for (final actor in context.actorBindings) {
+        if (actor.kind == CinematicActorBindingKind.mapEntity &&
+            actor.mapEntityId == binding.sourceId) {
+          return positions[actor.actorId];
+        }
+      }
+      final entity = entities[binding.sourceId]!;
+      return (x: entity.pos.x + .5, z: entity.pos.y + .5);
+    }
+
+    for (final placement in context.initialPlacements) {
+      final point = switch (placement.kind) {
+        CinematicActorInitialPlacementKind.stagePoint =>
+          points[placement.stagePointId],
+        CinematicActorInitialPlacementKind.fromMovementTarget =>
+          target(placement.targetId),
+        CinematicActorInitialPlacementKind.fromMapEntity =>
+          positions[placement.actorId],
+        CinematicActorInitialPlacementKind.unset =>
+          positions[placement.actorId],
+      };
+      positions[placement.actorId] = point;
+      origins[placement.actorId] = 'initialPlacements.${placement.actorId}';
+    }
+    for (final step in asset.timeline.steps) {
+      if (step.kind != CinematicTimelineStepKind.actorMove) continue;
+      positions[step.actorId!] = target(step.targetId);
+      origins[step.actorId!] = 'steps.${step.id}';
+    }
+    for (final binding in context.actorBindings) {
+      if (binding.kind != CinematicActorBindingKind.player) continue;
+      final point = positions[binding.actorId];
+      if (point == null) continue;
+      final x = point.x * 16, z = point.z * 16;
+      if ((x - x.roundToDouble()).abs() > 1e-7 ||
+          (z - z.roundToDouble()).abs() > 1e-7) {
+        _fail(
+            'runtime3d.cinematic_invalid',
+            '$path.${origins[binding.actorId]}',
+            'The player terminal position must align to the 1/16-cell movement precision.');
       }
     }
   }
@@ -116,8 +359,6 @@ final class GamePackageSpatialProjectValidator {
       final json = project.toJson();
       for (final field in const [
         'scripts',
-        'cinematics',
-        'cinematicMediaAssets',
         'presentationCinematics',
       ]) {
         final value = json[field];
@@ -127,6 +368,8 @@ final class GamePackageSpatialProjectValidator {
         }
       }
       for (final field in const [
+        'cinematics',
+        'cinematicMediaAssets',
         'scenarios',
         'facts',
         'worldRules',
@@ -182,6 +425,7 @@ final class GamePackageSpatialProjectValidator {
         maps.add(map);
       }
       final mapsById = {for (final map in maps) map.id: map};
+      if (gameplay) _validateSpatialGameplayReferences(project, mapsById);
       for (final map in maps) {
         for (final connection in map.connections) {
           final path =

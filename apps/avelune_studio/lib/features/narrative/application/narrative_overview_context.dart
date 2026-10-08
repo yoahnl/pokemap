@@ -148,6 +148,17 @@ class NarrativeOverviewContext {
 
     return ref.when(
       entityInteract: (map, id) => located(map, id, true),
+      modelInteract: (map, id) {
+        final instances = openMaps[map]?.spatialScene?.instances.where((instance) => instance.id == id).toList();
+        final instance = instances?.length == 1 ? instances!.single : null;
+        final model = project.models3d.where((model) => model.id == instance?.modelId).firstOrNull;
+        return (
+          mapId: map,
+          label: model?.name ?? 'Décor 3D · détails à charger',
+          when: 'Quand le joueur interagit avec le décor',
+          missing: !mapNames.containsKey(map) ? 'Carte source absente : $map' : instances != null && instance == null ? 'Décor 3D absent ou ambigu : $id' : null,
+        );
+      },
       triggerEnter: (map, id) => located(map, id, false),
       mapEnter: (map) => located(map, null, false),
       outcomeReceived: (_) => (

@@ -2,7 +2,12 @@ import 'package:map_core/map_core.dart';
 
 enum RuntimeOverworldInteractionVerb { interact, talk, read, collect, enter }
 
-enum RuntimeOverworldInteractionTargetKind { entity, placedElement, mapEvent }
+enum RuntimeOverworldInteractionTargetKind {
+  entity,
+  placedElement,
+  mapEvent,
+  modelInstance
+}
 
 final class RuntimeOverworldInteractionRequest {
   const RuntimeOverworldInteractionRequest({

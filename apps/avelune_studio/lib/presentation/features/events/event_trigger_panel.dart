@@ -107,6 +107,8 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
             title: 'Type de déclencheur',
             children: [
               for (final type in eventSourceKinds)
+                if (type != NarrativeEventSourceKind.modelInteract ||
+                    widget.controller.project.settings.dimension == ProjectDimension.threeD)
                 StudioChoice(
                   label: eventKindLabel(type),
                   selected: kind == type,
@@ -225,6 +227,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                       targetId != null &&
                       !map.entities.any((e) => e.id == targetId) &&
                       !map.triggers.any((t) => t.id == targetId);
+                  final missingModel = source?.kind == NarrativeEventSourceKind.modelInteract &&
+                      _choosing == null && eventMapId(source) == map.id &&
+                      !(map.spatialScene?.instances.any((instance) => instance.id == targetId) ?? false);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -235,7 +240,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
-                      if (missing)
+                      if (source?.kind == NarrativeEventSourceKind.modelInteract ? missingModel : missing)
                         const StudioNotice(
                           'La cible est absente. Sa référence est conservée pour réparation.',
                         ),

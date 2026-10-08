@@ -125,7 +125,10 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
     final trigger = source.kind == NarrativeEventSourceKind.triggerEnter
         ? map.triggers.where((t) => t.id == id).firstOrNull
         : null;
-    if (id != null && entity == null && trigger == null) {
+    final instance = source.kind == NarrativeEventSourceKind.modelInteract
+        ? map.spatialScene?.instances.where((item) => item.id == id).firstOrNull
+        : null;
+    if (id != null && entity == null && trigger == null && instance == null) {
       return 'La cible est absente. Aucune cible de remplacement n’a été choisie.';
     }
     final view = _view!;
@@ -134,10 +137,12 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
       view.select(document, MapSelectionFamily.character, entity.id);
     } else if (trigger != null) {
       view.select(document, MapSelectionFamily.trigger, trigger.id);
+    } else if (instance != null) {
+      view.select(document, MapSelectionFamily.decor, instance.id);
     } else {
       view.clearSelection(document);
     }
-    final position = entity?.pos ?? trigger?.area.pos;
+    final position = entity?.pos ?? trigger?.area.pos ?? (instance == null ? null : GridPos(x: instance.position.x.floor(), y: instance.position.z.floor()));
     _eventMapReturn = true;
     _openMap();
     _toolChanged();

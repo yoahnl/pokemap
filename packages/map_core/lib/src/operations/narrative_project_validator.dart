@@ -1398,6 +1398,10 @@ bool _eventSourceStaticallyReachable(
       NarrativeEventSourceRef.entityInteract(mapId, entityId),
       mapsById,
     ),
+    modelInteract: (mapId, instanceId) => _sourceConnected(
+      NarrativeEventSourceRef.entityInteract(mapId, instanceId),
+      mapsById,
+    ),
     triggerEnter: (mapId, triggerId) => _sourceConnected(
       NarrativeEventSourceRef.triggerEnter(mapId, triggerId),
       mapsById,
@@ -2129,6 +2133,7 @@ List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
 ) =>
     source?.when(
       entityInteract: (mapId, entityId) => (mapId: mapId, ownerId: entityId),
+      modelInteract: (mapId, instanceId) => (mapId: mapId, ownerId: instanceId),
       triggerEnter: (mapId, triggerId) => (mapId: mapId, ownerId: triggerId),
       mapEnter: (mapId) => (mapId: mapId, ownerId: null),
       outcomeReceived: (_) => (mapId: null, ownerId: null),
@@ -2143,6 +2148,9 @@ bool _sourceConnected(
   return source.when(
     entityInteract: (mapId, entityId) =>
         mapsById[mapId]?.entities.any((entity) => entity.id == entityId) ??
+        false,
+    modelInteract: (mapId, instanceId) =>
+        mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ??
         false,
     triggerEnter: (mapId, triggerId) =>
         mapsById[mapId]?.triggers.any((trigger) => trigger.id == triggerId) ??
@@ -2169,6 +2177,11 @@ bool _sourceConnected(
       }
       return (label: entity?.inspectorHeadline, entityKind: entity?.kind);
     },
+    modelInteract: (mapId, instanceId) {
+        final instance = mapsById[mapId]?.spatialScene?.instances
+            .where((value) => value.id == instanceId).firstOrNull;
+        return (label: instance?.modelId, entityKind: null);
+      },
     triggerEnter: (mapId, triggerId) {
       MapTrigger? trigger;
       for (final candidate

@@ -1000,6 +1000,7 @@ List<NarrativeEventDispatchReason> _sortedReasons(
 String? _sourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
     outcomeReceived: (_) => null,

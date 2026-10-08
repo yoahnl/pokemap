@@ -9,6 +9,7 @@ enum NarrativeSpatialEventSourceOwnerKind {
   entity,
   trigger,
   placedElement,
+  modelInstance,
   legacyMapEvent,
 }
 
@@ -281,6 +282,10 @@ final class NarrativeSpatialEventSourceOption {
           ownerKind == NarrativeSpatialEventSourceOwnerKind.entity &&
           mapId == sourceMapId &&
           ownerId == entityId,
+      modelInteract: (sourceMapId, instanceId) =>
+          ownerKind == NarrativeSpatialEventSourceOwnerKind.modelInstance &&
+          mapId == sourceMapId &&
+          ownerId == instanceId,
       triggerEnter: (sourceMapId, triggerId) =>
           ownerKind == NarrativeSpatialEventSourceOwnerKind.trigger &&
           mapId == sourceMapId &&
@@ -299,6 +304,7 @@ final class NarrativeSpatialEventSourceOption {
     }
     return value.when(
       entityInteract: (sourceMapId, _) => mapId == sourceMapId,
+      modelInteract: (sourceMapId, _) => mapId == sourceMapId,
       triggerEnter: (sourceMapId, _) => mapId == sourceMapId,
       mapEnter: (sourceMapId) => mapId == sourceMapId,
       outcomeReceived: (_) => false,
@@ -478,6 +484,8 @@ NarrativeSpatialEventSourcePresentationKind _defaultPresentationKindForOwner(
         NarrativeSpatialEventSourcePresentationKind.zone,
       NarrativeSpatialEventSourceOwnerKind.placedElement =>
         NarrativeSpatialEventSourcePresentationKind.placedElement,
+      NarrativeSpatialEventSourceOwnerKind.modelInstance =>
+        NarrativeSpatialEventSourcePresentationKind.placedElement,
       NarrativeSpatialEventSourceOwnerKind.legacyMapEvent =>
         NarrativeSpatialEventSourcePresentationKind.legacy,
     };
@@ -496,6 +504,8 @@ bool _presentationMatchesOwner(
       NarrativeSpatialEventSourceOwnerKind.trigger =>
         presentationKind == NarrativeSpatialEventSourcePresentationKind.zone,
       NarrativeSpatialEventSourceOwnerKind.placedElement => presentationKind ==
+          NarrativeSpatialEventSourcePresentationKind.placedElement,
+      NarrativeSpatialEventSourceOwnerKind.modelInstance => presentationKind ==
           NarrativeSpatialEventSourcePresentationKind.placedElement,
       NarrativeSpatialEventSourceOwnerKind.legacyMapEvent =>
         presentationKind == NarrativeSpatialEventSourcePresentationKind.legacy,

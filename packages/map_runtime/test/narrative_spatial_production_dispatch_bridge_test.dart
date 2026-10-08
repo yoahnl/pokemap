@@ -802,6 +802,7 @@ NarrativeEventProjectCatalog _catalog(
         MapEntity? entity,
         MapTrigger? trigger,
       })>(
+    modelInteract: (mapId, _) => (mapId: mapId, entity: null, trigger: null),
     entityInteract: (mapId, entityId) => (
       mapId: mapId,
       entity: MapEntity(

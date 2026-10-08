@@ -232,6 +232,160 @@ void main() {
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
   });
 
+  test(
+      'model interaction waits for visible frames, persists pose and rewards once',
+      () async {
+    bundle = animatedDoorBundle(bundle);
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(
+        runtime.overworldInteractionSnapshot!.primaryAction!.request.targetKind,
+        RuntimeOverworldInteractionTargetKind.modelInstance);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await waitForValue(runtime.session!.storyActive, (value) => value);
+    runtime.session!.frames(.5);
+    final visible =
+        runtime.session!.worldStateProvider!().modelState('field', 'door')!;
+    expect(visible.normalizedTime, .25);
+    expect(visible.blocksMovement, isTrue);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    runtime.session!.frames(1.5);
+    await waitForValue(runtime.session!.storyActive, (value) => !value);
+    await Future<void>.delayed(Duration.zero);
+    final state = runtime.gameStateSnapshot;
+    expect(state.trainerProfile.money, 25);
+    expect(state.spatialWorldState.modelState('field', 'door')!.blocksMovement,
+        isFalse);
+    expect(
+        state.spatialWorldState.modelState('field', 'door')!.normalizedTime, 1);
+    final restored =
+        gameStateFromStrictSaveJson(strictGameStateSaveJson(state));
+    expect(restored.spatialWorldState, state.spatialWorldState);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await Future<void>.delayed(Duration.zero);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    final continued = restoredRuntime(
+        bundle,
+        root,
+        restored.copyWith(
+            playerPosition: const GridPos(x: 4, y: 5),
+            playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 5.5)));
+    addTearDown(continued.dispose);
+    await continued.load((_) {});
+    await continued.gameplayReady;
+    expect(continued.session!.movement.z, 5.5);
+    expect(continued.session!.worldStateProvider!().modelState('field', 'door'),
+        state.spatialWorldState.modelState('field', 'door'));
+    expect(continued.gameStateSnapshot.trainerProfile.money, 25);
+  });
+
+  test('cancelling a model Scene restores private consequences and controls',
+      () async {
+    bundle = animatedDoorBundle(bundle, rewardBefore: true);
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await waitForValue(runtime.session!.storyActive, (value) => value);
+    runtime.session!.frames(.5);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await waitForValue(runtime.session!.storyActive, (value) => !value);
+    await Future<void>.delayed(Duration.zero);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.gameStateSnapshot.spatialWorldState,
+        const SpatialWorldState.empty());
+    expect(
+        runtime
+            .gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        isEmpty);
+    expect(runtime.session!.worldStateProvider!(),
+        const SpatialWorldState.empty());
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+  });
+
+  test('cinematic frames move and persist a NPC while pause freezes its clock',
+      () async {
+    bundle = npcCinematicBundle(bundle);
+    await runtime.load((_) {});
+    await waitForStory(runtime);
+    runtime.session!.frames(.25);
+    expect(runtime.session!.storyCamera!()!.zoom, closeTo(.8, .001));
+    runtime.session!.frames(.75);
+    expect(runtime.session!.frames(0)['npc:npc']!.x, closeTo(5.5, .001));
+    expect(runtime.gameStateSnapshot.spatialWorldState.actorsByMap, isEmpty);
+    await runtime.pause();
+    runtime.session!.frames(10);
+    expect(runtime.session!.frames(0)['npc:npc']!.x, closeTo(5.5, .001));
+    await runtime.resume();
+    runtime.session!.frames(1);
+    await runtime.gameplayReady;
+    expect(runtime.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(
+        runtime.gameStateSnapshot.spatialWorldState
+            .actorState('field', 'npc')!
+            .x,
+        6.5);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(runtime.session!.storyCamera!(), isNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+    final continued = restoredRuntime(
+        bundle,
+        root,
+        runtime.gameStateSnapshot.copyWith(
+            playerPosition: const GridPos(x: 6, y: 3),
+            playerSpatialPosition: PlayerSpatialPosition(x: 6.5, z: 3.5),
+            playerFacing: EntityFacing.north));
+    addTearDown(continued.dispose);
+    await continued.load((_) {});
+    await continued.gameplayReady;
+    expect(continued.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(continued.overworldInteractionSnapshot!.primaryAction!.targetCell,
+        const GridPos(x: 6, y: 2));
+    final bounds =
+        continued.overworldInteractionSnapshot!.primaryAction!.targetBounds;
+    expect(bounds.leftPx, 6 * bundle.manifest.settings.tileWidth);
+    expect(bounds.topPx, 2 * bundle.manifest.settings.tileHeight);
+    expect(bounds.widthPx, bundle.manifest.settings.tileWidth);
+    expect(bounds.heightPx, bundle.manifest.settings.tileHeight);
+  });
+
+  test('cancelling a cinematic rolls back its NPC pose, camera and reward',
+      () async {
+    bundle = npcCinematicBundle(bundle);
+    await runtime.load((_) {});
+    await waitForStory(runtime);
+    runtime.session!.frames(1);
+    expect(runtime.session!.frames(0)['npc:npc']!.x, 5.5);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await runtime.gameplayReady;
+    expect(runtime.session!.frames(0)['npc:npc']!.x, 4.5);
+    expect(runtime.gameStateSnapshot.spatialWorldState,
+        const SpatialWorldState.empty());
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.session!.storyCamera!(), isNull);
+    expect(runtime.session!.interactionError.value, isNull);
+    expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
+  });
+
+  test('skipping a cinematic commits its final pose once', () async {
+    bundle = npcCinematicBundle(bundle);
+    await runtime.load((_) {});
+    await waitForStory(runtime);
+    runtime.handleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await runtime.gameplayReady;
+    expect(runtime.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(
+        runtime
+            .gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        hasLength(1));
+  });
+
   test('cell checks preserve a held direction and accept release while busy',
       () async {
     await runtime.load((_) {});
@@ -1087,6 +1241,32 @@ void main() {
   });
 }
 
+SpatialExplorationGameSessionRuntime restoredRuntime(
+        RuntimeMapBundle bundle, Directory root, GameState state) =>
+    SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(continueGame: true),
+        projectFilePath: () async => '${root.path}/project.json',
+        initialSave: () async => spatialSave(state),
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {},
+        unmountSession: (_) async {});
+
+Future<void> waitForStory(SpatialExplorationGameSessionRuntime runtime) =>
+    Future.any([
+      waitForValue(runtime.session!.storyActive, (value) => value),
+      runtime.gameplayReady.then((_) {
+        if (!runtime.session!.storyActive.value) {
+          throw StateError(
+              runtime.session!.interactionError.value?.toString() ??
+                  'The scene completed without starting playback.');
+        }
+      }),
+    ]);
+
 Future<void> waitForValue<T>(
     ValueListenable<T> value, bool Function(T) matches) async {
   if (matches(value.value)) return;
@@ -1133,7 +1313,7 @@ GameSessionDescriptor descriptor(
                         name: 'Yoahn', avatarCharacterId: 'hero')),
         installedVersionHandle: 'installed',
         runtimeApiVersion: '1.4.0',
-        grantedCapabilities: const {'map3d@1'},
+        grantedCapabilities: const {'map3d@1', 'map3d.story@1'},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions());
 
@@ -1163,6 +1343,171 @@ NarrativeEventRecord spatialEvent(
             order: 0,
             resetPolicy: const NarrativeEventResetPolicy.never()),
         enabled: true);
+
+RuntimeMapBundle npcCinematicBundle(RuntimeMapBundle bundle) {
+  final asset = CinematicAsset(
+      id: 'guide-walk',
+      title: 'Le guide marche',
+      mapId: 'field',
+      requiredActors: [CinematicActorRef(actorId: 'guide')],
+      movementTargets: [
+        CinematicMovementTargetRef(targetId: 'end', label: 'Arrivée')
+      ],
+      stageContext: CinematicStageContext(actorBindings: [
+        CinematicActorBinding(
+            actorId: 'guide',
+            kind: CinematicActorBindingKind.mapEntity,
+            mapEntityId: 'npc')
+      ], stagePoints: [
+        CinematicStagePoint(id: 'end', label: 'Arrivée', x: 6.5, y: 2.5)
+      ], movementTargetBindings: [
+        CinematicMovementTargetBinding(
+            targetId: 'end',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'end')
+      ]),
+      timeline: CinematicTimeline(steps: [
+        CinematicTimelineStep(
+            id: 'camera',
+            kind: CinematicTimelineStepKind.camera,
+            durationMs: 500,
+            metadata: const {
+              'camera.mode': 'focus',
+              'camera.targetKind': 'stagePoint',
+              'camera.targetStagePointId': 'end',
+              'camera.zoomPreset': 'close'
+            }),
+        CinematicTimelineStep(
+            id: 'walk',
+            kind: CinematicTimelineStepKind.actorMove,
+            actorId: 'guide',
+            targetId: 'end',
+            durationMs: 1000,
+            metadata: const {
+              'actor.movementMode': 'walk',
+              'actor.pathMode': 'direct'
+            }),
+      ]));
+  final reward =
+      spatialScene('walk-scene', [SceneConsequence.giveMoney(amount: 25)]);
+  final cinematic = SceneNode(
+      id: 'cinematic',
+      kind: SceneNodeKind.cinematic,
+      payload: SceneCinematicPayload(cinematicId: asset.id));
+  final graph = SceneGraph(startNodeId: reward.graph.startNodeId, nodes: [
+    reward.graph.nodes.first,
+    cinematic,
+    ...reward.graph.nodes.skip(1)
+  ], edges: [
+    SceneEdge(
+        id: 'to-cinematic',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: cinematic.id,
+        kind: SceneEdgeKind.defaultFlow),
+    SceneEdge(
+        id: 'to-reward',
+        fromNodeId: cinematic.id,
+        fromPortId: 'completed',
+        toNodeId: 'action_0',
+        kind: SceneEdgeKind.cinematicCompleted),
+    ...reward.graph.edges.skip(1)
+  ]);
+  return bundle.copyWith(
+      manifest: bundle.manifest.copyWith(
+          cinematics: [asset],
+          scenes: [SceneAsset(id: reward.id, name: reward.name, graph: graph)],
+          eventRegistry: NarrativeEventRegistry(
+              schemaVersion: 1,
+              mode: EventSystemMode.v2Only,
+              records: [
+                spatialEvent(
+                    NarrativeEventSourceRef.mapEnter('field'), reward.id)
+              ],
+              legacyClaims: const [])));
+}
+
+RuntimeMapBundle animatedDoorBundle(RuntimeMapBundle bundle,
+    {bool rewardBefore = false}) {
+  final model = ProjectModel3dEntry(
+    id: 'door-model',
+    name: 'Porte',
+    sourceAssetId: 'nb2-door',
+    relativePath: 'assets/models3d/door-model.glb',
+    inspection: Model3dInspection(
+        bounds: Model3dBounds(
+            min: Model3dVector3(x: -.5, y: 0, z: -.1),
+            max: Model3dVector3(x: .5, y: 2, z: .1)),
+        meshCount: 1,
+        triangleCount: 2,
+        animations: [
+          Model3dAnimation(index: 0, name: 'Ouvrir', durationSeconds: 2)
+        ]),
+  );
+  final map = bundle.map.copyWith(
+      entities: [],
+      spatialScene: MapSpatialScene(
+          width: 8,
+          depth: 8,
+          instances: [
+            SpatialModelInstance(
+                id: 'door',
+                modelId: model.id,
+                blocksMovement: true,
+                position: Model3dVector3(x: 4, y: 0, z: 5))
+          ],
+          navigation:
+              SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4))));
+  final reward = SceneNode(
+      id: 'reward',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload.consequence(
+          SceneConsequence.giveMoney(amount: 25)));
+  final open = SceneNode(
+      id: 'open',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.playModelAnimation(
+              mapId: 'field',
+              instanceId: 'door',
+              animationIndex: 0,
+              blocksMovementAfter: false)));
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    if (rewardBefore) reward,
+    open,
+    if (!rewardBefore) reward,
+    SceneNode(id: 'end', kind: SceneNodeKind.end)
+  ];
+  final scene = SceneAsset(
+      id: 'door-scene',
+      name: 'Ouvrir la porte',
+      graph: SceneGraph(startNodeId: 'start', nodes: nodes, edges: [
+        for (var index = 0; index < nodes.length - 1; index++)
+          SceneEdge(
+              id: 'edge_$index',
+              fromNodeId: nodes[index].id,
+              fromPortId: 'completed',
+              toNodeId: nodes[index + 1].id,
+              kind: nodes[index].kind == SceneNodeKind.action
+                  ? SceneEdgeKind.actionCompleted
+                  : SceneEdgeKind.defaultFlow)
+      ]));
+  return bundle.copyWith(
+      map: map,
+      manifest: bundle.manifest.copyWith(
+          models3d: [model],
+          scenes: [scene],
+          eventRegistry: NarrativeEventRegistry(
+              schemaVersion: 1,
+              mode: EventSystemMode.v2Only,
+              records: [
+                spatialEvent(
+                    NarrativeEventSourceRef.modelInteract('field', 'door'),
+                    scene.id)
+              ],
+              legacyClaims: const [])));
+}
 
 SceneAsset spatialScene(String id, List<SceneConsequence> consequences,
     {bool dialogue = false}) {

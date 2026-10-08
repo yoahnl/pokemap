@@ -18,6 +18,7 @@ void main() {
       openHeal: handler,
       openPc: handler,
       playCharacterAnimation: handler,
+      playModelAnimation: handler,
       railJourney: handler,
     );
     for (final command in <SceneInteractiveCommand>[
@@ -38,6 +39,12 @@ void main() {
           actorId: 'npc.guard',
           definitionId: 'wave',
         ),
+      ),
+      SceneInteractiveCommand.playModelAnimation(
+        mapId: 'map.port',
+        instanceId: 'door',
+        animationIndex: 0,
+        blocksMovementAfter: false,
       ),
       SceneInteractiveCommand.railJourney(
         commandId: 'board-t1',

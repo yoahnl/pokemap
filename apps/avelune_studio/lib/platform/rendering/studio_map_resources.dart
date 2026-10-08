@@ -31,6 +31,7 @@ import '../../features/presentations/domain/presentation_port.dart';
 import 'presentation_workspace_visuals.dart';
 part 'studio_map_resource_recovery.dart';
 part 'studio_map_resources_helpers.dart';
+part 'studio_cinematic_spatial_preview.dart';
 
 final class StudioMapResources
     implements
@@ -40,6 +41,7 @@ final class StudioMapResources
         ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
         CinematicWorkspaceVisuals,
+        CinematicSpatialWorkspaceVisuals,
         CinematicMediaWorkspaceVisuals,
         PresentationMediaWorkspaceVisuals,
         MapBorderPreviewVisuals,
@@ -59,6 +61,11 @@ final class StudioMapResources
     imports: imports,
   );
   final String projectRoot;
+  @override
+  Future<CinematicSpatialPreview> cinematicSpatialPreview(
+    MapData map,
+    CinematicActorDisplayPreviewModel actors,
+  ) => _cinematicSpatialPreview(map, actors);
   @override
   Future<Uint8List> readGroundImage(String tilesetId) async {
     final tileset = manifest.tilesets

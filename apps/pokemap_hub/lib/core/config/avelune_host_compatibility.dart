@@ -12,6 +12,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         'map3d@1',
         'map3d.animation@1',
         SpatialGameplayCapabilities.capabilityId,
+        SpatialGameplayCapabilities.storyCapabilityId,
         'overworld.menu@1',
         'world.shop@1',
       },

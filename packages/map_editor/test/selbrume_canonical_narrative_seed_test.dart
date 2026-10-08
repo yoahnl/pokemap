@@ -489,6 +489,7 @@ void _expectPlayerServicesContract(
       .whereType<NarrativeEventDefinition>()
       .map(
         (event) => event.source.when<String?>(
+          modelInteract: (_, _) => null,
           entityInteract: (mapId, entityId) =>
               mapId == 'map_port_brisants' ? entityId : null,
           triggerEnter: (_, _) => null,
@@ -998,6 +999,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
       definitions['evt_019abcde-5000-7000-8000-000000000036']!;
   expect(mistDispersal.sceneId, 'scene_mist_disperses');
   mistDispersal.source.when(
+    modelInteract: (_, _) => fail('La dissipation vient du boss.'),
     entityInteract: (_, _) => fail('La dissipation vient du boss.'),
     triggerEnter: (_, _) => fail('La dissipation vient du boss.'),
     mapEnter: (_) => fail('La dissipation vient du boss.'),
@@ -1028,6 +1030,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
   );
   final cabinKey = definitions['evt_019abcde-5000-7000-8000-000000000029']!;
   cabinKey.source.when(
+    modelInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
     entityInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
     triggerEnter: (mapId, triggerId) {
       expect(mapId, 'map_phare_exterieur');
@@ -1426,6 +1429,14 @@ void _expectEventSourcesClose(
       );
     }
     definition.source.when(
+      modelInteract: (mapId, instanceId) {
+        final map = _mapJson(fixture, manifest, mapCache, mapId);
+        final scene = map['spatialScene'] as Map<String, dynamic>;
+        final ids = (scene['instances'] as List<dynamic>)
+            .cast<Map<String, dynamic>>()
+            .map((entry) => entry['id']);
+        expect(ids, contains(instanceId), reason: definition.id);
+      },
       entityInteract: (mapId, entityId) {
         final map = _mapJson(fixture, manifest, mapCache, mapId);
         final ids = (map['entities'] as List<dynamic>)

@@ -9,6 +9,7 @@ import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 import 'player_pause_menu_state.dart';
 import 'player_spatial_position.dart';
+import 'spatial_world_state.dart';
 import 'rail_journey.dart';
 
 part 'save_data.freezed.dart';
@@ -813,6 +814,7 @@ abstract class SaveData with _$SaveData {
     @Default('') String currentMapId,
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
     PlayerSpatialPosition? playerSpatialPosition,
+    @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
     @Default(EntityFacing.south) EntityFacing playerFacing,
 
     /// Mode de déplacement du joueur au moment de la sauvegarde.

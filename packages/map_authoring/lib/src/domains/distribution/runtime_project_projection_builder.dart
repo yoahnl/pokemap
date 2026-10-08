@@ -1119,7 +1119,8 @@ final class RuntimeProjectProjectionBuilder {
     if (_isPokeMapStoreBlob(path)) return false;
     final segments = path.toLowerCase().split('/');
     final basename = segments.last;
-    if (segments.any((segment) => segment.startsWith('.')) ||
+    if (segments.first == 'exports' ||
+        segments.any((segment) => segment.startsWith('.')) ||
         _excludedSegments.any(segments.contains)) {
       return true;
     }

@@ -49,6 +49,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.resourceContent,
     this.onStory,
     this.onEditInteraction,
+    this.onEventSource,
     this.onZoneDrawn,
     this.referenceGuard,
     this.onContextMenu,
@@ -78,6 +79,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final Widget? resourceContent;
   final VoidCallback? onStory, onHome, onEnvironments, onBorders;
   final ValueChanged<MapEntity>? onEditInteraction;
+  final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<MapRect>? onZoneDrawn;
   final MapReferenceGuard? referenceGuard;
   final void Function(GridPos, Offset)? onContextMenu;
@@ -154,6 +156,10 @@ class MapWorkspaceLayout extends StatelessWidget {
           onEditInteraction: (entity) {
             close?.call();
             onEditInteraction?.call(entity);
+          },
+          onEventSource: onEventSource == null ? null : (source) {
+            close?.call();
+            onEventSource!(source);
           },
           onOpenMap: mapLibraryOpenAction(project, onActivate, close),
           onLinkMaps: onLinkMaps,

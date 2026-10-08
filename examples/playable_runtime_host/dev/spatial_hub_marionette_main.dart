@@ -1,6 +1,10 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +28,11 @@ Future<void> main() async {
   }
   MarionetteBinding.ensureInitialized();
   final supportRoot = await _ownedSupportRoot();
+  final captureKey = GlobalKey();
+  final recorder = SpatialHubFrameRecorder(
+    supportRoot: supportRoot,
+    boundaryKey: captureKey,
+  );
   final package = await _configuredPackage();
   final container = ProviderContainer(
     overrides: [supportRootProvider.overrideWith((ref) async => supportRoot)],
@@ -132,6 +141,7 @@ Future<void> main() async {
       return MarionetteExtensionResult.success({
         'pid': pid,
         'supportRoot': supportRoot.path,
+        'recording': recorder.snapshot,
         'packagePath': package?.path,
         'importedGameId': importedManifest?.gameId,
         'importedTreeSha256': importedManifest?.content.treeSha256,
@@ -179,6 +189,17 @@ Future<void> main() async {
                   .toList()
             : null,
         'transitioning': unchanged ? session?.transitioning.value : null,
+        'storyActive': unchanged ? session?.storyActive.value : null,
+        'worldPresentation': unchanged
+            ? session?.worldStateProvider?.call().toJson()
+            : null,
+        'actorPoses': unchanged && session != null
+            ? {
+                for (final entity in session.bundle.map.entities)
+                  if (session.actorRuntimeState(entity) case final pose?)
+                    entity.id: pose.toJson(),
+              }
+            : null,
         'interaction': interaction?.primaryAction?.toJson(),
         'dialogue': dialogue == null
             ? null
@@ -288,15 +309,257 @@ Future<void> main() async {
       });
     },
   );
+  registerMarionetteExtension(
+    name: 'spatialHub.recordingStart',
+    description:
+        'Records real Player window PNG frames in the owned support root.',
+    callback: (parameters) async {
+      final fps = int.tryParse(parameters['fps'] ?? '15');
+      final duration = int.tryParse(parameters['maxDurationSeconds'] ?? '300');
+      if (fps == null ||
+          fps < 10 ||
+          fps > 20 ||
+          duration == null ||
+          duration < 1 ||
+          duration > 300) {
+        return const MarionetteExtensionResult.invalidParams(
+          'Use fps from 10 to 20 and maxDurationSeconds from 1 to 300.',
+        );
+      }
+      final session = _mountedPlayer().spatial?.session;
+      if (session == null ||
+          !p.isWithin(supportRoot.path, session.bundle.projectRootDirectory)) {
+        return const MarionetteExtensionResult.error(
+          0,
+          'No spatial Player is mounted in the owned Hub installation.',
+        );
+      }
+      try {
+        return MarionetteExtensionResult.success(
+          await recorder.start(fps: fps, maxDurationSeconds: duration),
+        );
+      } on Object catch (error) {
+        return MarionetteExtensionResult.error(0, error.toString());
+      }
+    },
+  );
+  registerMarionetteExtension(
+    name: 'spatialHub.recordingStop',
+    description: 'Stops capture and flushes its frame timestamps and receipt.',
+    callback: (_) async {
+      try {
+        return MarionetteExtensionResult.success(await recorder.stop());
+      } on Object catch (error) {
+        return MarionetteExtensionResult.error(0, error.toString());
+      }
+    },
+  );
   runApp(
     UncontrolledProviderScope(
       container: container,
       child: DefaultAssetBundle(
         bundle: _PackagedHubAssets(rootBundle),
-        child: const PokeMapHubBootstrap(),
+        child: RepaintBoundary(
+          key: captureKey,
+          child: const PokeMapHubBootstrap(),
+        ),
       ),
     ),
   );
+}
+
+final class SpatialHubFrameRecorder {
+  SpatialHubFrameRecorder({
+    required this.supportRoot,
+    required this.boundaryKey,
+  });
+
+  final Directory supportRoot;
+  final GlobalKey boundaryKey;
+  final _clock = Stopwatch();
+  final _frames = <Map<String, Object?>>[];
+  Timer? _timer, _limit;
+  Future<void>? _pending;
+  Future<Map<String, Object?>>? _stopFuture;
+  Directory? _directory;
+  DateTime? _startedAt, _stoppedAt;
+  bool _running = false, _finishing = false, _starting = false;
+  int _fps = 15, _maxDurationSeconds = 300, _dropped = 0, _errors = 0;
+  String? _lastError, _stopReason;
+
+  Map<String, Object?> get snapshot => {
+    'running': _running,
+    'finishing': _finishing,
+    'directory': _directory?.path,
+    'metadataPath': _directory == null
+        ? null
+        : p.join(_directory!.path, 'metadata.json'),
+    'fps': _fps,
+    'maxDurationSeconds': _maxDurationSeconds,
+    'pixelRatio': 1.0,
+    'startedAt': _startedAt?.toIso8601String(),
+    'stoppedAt': _stoppedAt?.toIso8601String(),
+    'elapsedMicros': _clock.elapsedMicroseconds,
+    'capturedFrames': _frames.length,
+    'droppedFrames': _dropped,
+    'errors': _errors,
+    'lastError': _lastError,
+    'stopReason': _stopReason,
+  };
+
+  Future<Map<String, Object?>> start({
+    int fps = 15,
+    int maxDurationSeconds = 300,
+  }) async {
+    if (fps < 10 ||
+        fps > 20 ||
+        maxDurationSeconds < 1 ||
+        maxDurationSeconds > 300) {
+      throw ArgumentError(
+        'Capture must use 10–20 fps and last at most 300 seconds.',
+      );
+    }
+    if (_running || _finishing || _starting) {
+      throw StateError('A Player recording is already active.');
+    }
+    _starting = true;
+    try {
+      final parent = Directory(p.join(supportRoot.path, 'recordings'));
+      final type = await FileSystemEntity.type(parent.path, followLinks: false);
+      if (type == FileSystemEntityType.notFound) {
+        await parent.create();
+      } else if (type != FileSystemEntityType.directory) {
+        throw StateError(
+          'The owned recording directory must not be a symlink.',
+        );
+      }
+      if (await parent.resolveSymbolicLinks() != p.normalize(parent.path)) {
+        throw StateError('The owned recording directory must be canonical.');
+      }
+      _directory = await parent.createTemp('take-');
+      _frames.clear();
+      _dropped = _errors = 0;
+      _lastError = _stopReason = null;
+      _fps = fps;
+      _maxDurationSeconds = maxDurationSeconds;
+      _startedAt = DateTime.now().toUtc();
+      _stoppedAt = null;
+      _stopFuture = null;
+      _clock
+        ..reset()
+        ..start();
+      _running = true;
+      _pending = _captureFrame();
+      await _pending;
+      _pending = null;
+      if (!_running) return await _stopFuture!;
+      if (_frames.isEmpty) {
+        await stop(reason: 'captureError');
+        throw StateError(_lastError ?? 'The Player has no painted frame.');
+      }
+      var previousTick = 0;
+      _timer = Timer.periodic(Duration(microseconds: 1000000 ~/ fps), (timer) {
+        _dropped += timer.tick - previousTick - 1;
+        previousTick = timer.tick;
+        if (!_running) return;
+        if (_pending != null) {
+          _dropped++;
+          return;
+        }
+        _pending = _captureFrame().whenComplete(() => _pending = null);
+      });
+      final remaining = Duration(seconds: maxDurationSeconds) - _clock.elapsed;
+      if (remaining <= Duration.zero) {
+        return await stop(reason: 'durationLimit');
+      }
+      _limit = Timer(remaining, () {
+        unawaited(
+          stop(reason: 'durationLimit').catchError((Object error) {
+            _errors++;
+            _lastError = error.toString();
+            return snapshot;
+          }),
+        );
+      });
+      return snapshot;
+    } finally {
+      _starting = false;
+    }
+  }
+
+  Future<void> _captureFrame() async {
+    ui.Image? image;
+    final elapsed = _clock.elapsedMicroseconds;
+    final at = DateTime.now().toUtc();
+    try {
+      final boundary = boundaryKey.currentContext?.findRenderObject();
+      if (boundary is! RenderRepaintBoundary ||
+          !boundary.hasSize ||
+          boundary.size.isEmpty) {
+        throw StateError('The Player capture surface is unavailable.');
+      }
+      if (boundary.debugNeedsPaint) {
+        _dropped++;
+        return;
+      }
+      image = await boundary.toImage(pixelRatio: 1);
+      final png = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (png == null) {
+        throw StateError('The painted frame could not be encoded.');
+      }
+      final file = 'frame_${_frames.length.toString().padLeft(6, '0')}.png';
+      await File(p.join(_directory!.path, file)).writeAsBytes(
+        png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+      );
+      _frames.add({
+        'file': file,
+        'timestamp': at.toIso8601String(),
+        'elapsedMicros': elapsed,
+        'captureDurationMicros': _clock.elapsedMicroseconds - elapsed,
+        'width': image.width,
+        'height': image.height,
+      });
+    } on Object catch (error) {
+      _errors++;
+      _dropped++;
+      _lastError = error.toString();
+    } finally {
+      image?.dispose();
+    }
+  }
+
+  Future<Map<String, Object?>> stop({String reason = 'requested'}) {
+    if (_stopFuture case final stopping?) return stopping;
+    if (_starting && !_running) {
+      return Future.error(
+        StateError('The Player recording is still preparing.'),
+      );
+    }
+    if (!_running) return Future.value(snapshot);
+    _running = false;
+    _finishing = true;
+    _timer?.cancel();
+    _limit?.cancel();
+    _stopReason = reason;
+    return _stopFuture = _finish();
+  }
+
+  Future<Map<String, Object?>> _finish() async {
+    try {
+      await _pending;
+      _clock.stop();
+      _stoppedAt = DateTime.now().toUtc();
+      _finishing = false;
+      final receipt = {'schemaVersion': 1, ...snapshot, 'frames': _frames};
+      await File(p.join(_directory!.path, 'metadata.json')).writeAsString(
+        const JsonEncoder.withIndent('  ').convert(receipt),
+        flush: true,
+      );
+      return snapshot;
+    } finally {
+      _finishing = false;
+    }
+  }
 }
 
 final class _PackagedHubAssets extends CachingAssetBundle {
@@ -306,7 +569,8 @@ final class _PackagedHubAssets extends CachingAssetBundle {
 
   @override
   Future<ByteData> load(String key) => source.load(
-      key.startsWith('assets/avelune/') ? 'packages/pokemap_hub/$key' : key);
+    key.startsWith('assets/avelune/') ? 'packages/pokemap_hub/$key' : key,
+  );
 }
 
 Map<String, Object?> _stateContext(GameState state) => {
@@ -327,6 +591,7 @@ Map<String, Object?> _stateContext(GameState state) => {
       },
   ],
   'facts': state.narrativeFactRuntimeState.overridesByFactId,
+  'spatialWorldState': state.spatialWorldState.toJson(),
   'storyFlags': state.storyFlags.toJson(),
 };
 

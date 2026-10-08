@@ -556,6 +556,7 @@ NarrativeEventBuilderProjectReadModel
       if (projection.source != null)
         ...projection.source!.when(
           entityInteract: (_, __) => const <NarrativeOutcomeRef>[],
+          modelInteract: (_, _) => const <NarrativeOutcomeRef>[],
           triggerEnter: (_, __) => const <NarrativeOutcomeRef>[],
           mapEnter: (_) => const <NarrativeOutcomeRef>[],
           outcomeReceived: (outcome) => [outcome],
@@ -1906,6 +1907,16 @@ NarrativeEventSourceSummary _missingSourceSummary(
       humanSentence: reason ??
           'Source introuvable — l’entité « $entityId » n’existe plus.',
       sourceTypeLabel: 'Interaction avec un élément',
+      mapId: mapId,
+      mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
+      available: false,
+      debugTechnicalLabel: _canonicalKey(source.toJson()),
+    ),
+    modelInteract: (mapId, instanceId) => NarrativeEventSourceSummary(
+      source: source,
+      humanSentence: reason ??
+          'Source introuvable — le décor 3D « $instanceId » n’existe plus.',
+      sourceTypeLabel: 'Interaction avec un décor 3D',
       mapId: mapId,
       mapLabel: mapLabelsById[mapId] ?? 'Map introuvable',
       available: false,

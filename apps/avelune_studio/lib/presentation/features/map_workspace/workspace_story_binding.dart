@@ -218,6 +218,8 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
       view.select(location.document, MapSelectionFamily.character, entityId);
     } else if (triggerId != null) {
       view.select(location.document, MapSelectionFamily.trigger, triggerId);
+    } else if (location.instanceId case final instanceId?) {
+      view.select(location.document, MapSelectionFamily.decor, instanceId);
     } else {
       view.clearSelection(location.document);
     }

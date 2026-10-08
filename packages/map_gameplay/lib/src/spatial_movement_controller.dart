@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'spatial_terrain_navigation.dart';
+import 'spatial_model_geometry.dart';
 import 'direction.dart';
 import 'player_spawn_resolver.dart';
 
@@ -65,11 +66,15 @@ final class SpatialMovementController {
     required Iterable<ProjectModel3dEntry> models,
     Iterable<MapEntity> entities = const [],
     bool Function(MapEntity entity)? entityPresencePredicate,
+    SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
+    SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
   }) : this._(
           scene: scene,
           models: models,
           entities: entities,
           entityPresencePredicate: entityPresencePredicate,
+          modelStateProvider: modelStateProvider,
+          actorStateProvider: actorStateProvider,
           spawn: scene.navigation.spawn,
           spawnFacing: EntityFacing.south,
           blockedCells: const {},
@@ -83,6 +88,8 @@ final class SpatialMovementController {
     EntityFacing? facing,
     String? preferredSpawnId,
     bool Function(MapEntity entity)? entityPresencePredicate,
+    SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
+    SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
   }) {
     final scene = map.spatialScene;
     if (scene == null ||
@@ -120,6 +127,8 @@ final class SpatialMovementController {
       entities:
           map.entities.where((entity) => entity.kind != MapEntityKind.spawn),
       entityPresencePredicate: entityPresencePredicate,
+      modelStateProvider: modelStateProvider,
+      actorStateProvider: actorStateProvider,
       spawn: SpatialSpawn(x: position.x, z: position.z),
       spawnFacing: facing ?? spawnFacing,
       blockedCells: {
@@ -137,6 +146,8 @@ final class SpatialMovementController {
     required Iterable<ProjectModel3dEntry> models,
     required Iterable<MapEntity> entities,
     required bool Function(MapEntity entity)? entityPresencePredicate,
+    required this.modelStateProvider,
+    required this.actorStateProvider,
     required SpatialSpawn spawn,
     required EntityFacing spawnFacing,
     required Set<int> blockedCells,
@@ -158,6 +169,8 @@ final class SpatialMovementController {
   final MapSpatialScene scene;
   final List<MapEntity> entities;
   final Map<String, ProjectModel3dEntry> models;
+  SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider;
+  SpatialActorRuntimeState? Function(String entityId)? actorStateProvider;
   static const pixelsPerCell = 16;
   late PixelPosition _position;
   double _remainderX = 0, _remainderZ = 0;
@@ -175,6 +188,69 @@ final class SpatialMovementController {
   double get y => scene.worldHeightAt(x, z);
   void setEntityPresencePredicate(bool Function(MapEntity entity)? predicate) {
     _entityPresencePredicate = predicate;
+  }
+
+  bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
+      {String? ignoredEntityId,
+      bool collideWithPlayer = false,
+      PlayerSpatialPosition? playerPosition,
+      SpatialActorRuntimeState? Function(String entityId)?
+          actorStateProvider}) {
+    bool inside(double x, double z) =>
+        x.isFinite &&
+        z.isFinite &&
+        x >= 0 &&
+        z >= 0 &&
+        x < scene.width &&
+        z < scene.depth;
+    if (!inside(fromX, fromZ) || !inside(toX, toZ)) return false;
+    final count = math.max(
+        1,
+        (math.sqrt(math.pow(toX - fromX, 2) + math.pow(toZ - fromZ, 2)) *
+                pixelsPerCell)
+            .ceil());
+    var previousX = fromX, previousZ = fromZ;
+    for (var i = 0; i <= count; i++) {
+      final x = fromX + (toX - fromX) * i / count;
+      final z = fromZ + (toZ - fromZ) * i / count;
+      final footprint = _actorFootprint(x, z);
+      if (_collides(footprint.rect,
+              offsetX: footprint.offsetX,
+              offsetZ: footprint.offsetZ,
+              ignoredEntityId: ignoredEntityId,
+              actorStateProvider: actorStateProvider) ||
+          collideWithPlayer &&
+              _overlapsPlayer(footprint.rect,
+                  offsetX: footprint.offsetX,
+                  offsetZ: footprint.offsetZ,
+                  playerPosition: playerPosition) ||
+          !canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z)) {
+        return false;
+      }
+      previousX = x;
+      previousZ = z;
+    }
+    return true;
+  }
+
+  bool wouldModelBlockActor(String instanceId, double x, double z) {
+    final instance = scene.instances
+        .where((instance) => instance.id == instanceId)
+        .firstOrNull;
+    if (instance == null) {
+      throw StateError('Modèle de collision absent : $instanceId');
+    }
+    final footprint = _actorFootprint(x, z);
+    return _modelCollides(footprint.rect, instance,
+        offsetX: footprint.offsetX, offsetZ: footprint.offsetZ);
+  }
+
+  void setRuntimeStateProviders({
+    SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
+    SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+  }) {
+    this.modelStateProvider = modelStateProvider;
+    this.actorStateProvider = actorStateProvider;
   }
 
   void setInput({required int x, required int z, bool run = false}) {
@@ -224,6 +300,19 @@ final class SpatialMovementController {
   PixelRect _hitbox(PixelPosition position) =>
       PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
           spriteTopLeftPx: position, spriteWidthPx: 32, spriteHeightPx: 32);
+
+  ({PixelRect rect, double offsetX, double offsetZ}) _actorFootprint(
+      double x, double z) {
+    final rect = _hitbox(PixelPosition(
+        leftPx: (x * pixelsPerCell).round() - 16,
+        topPx: (z * pixelsPerCell).round() - 31));
+    return (
+      rect: rect,
+      offsetX: x - rect.bottomCenterPx.xPx / pixelsPerCell,
+      offsetZ: z - rect.bottomCenterPx.yPx / pixelsPerCell
+    );
+  }
+
   void update(double dt) {
     bumpedCell = null;
     edgeExitDirection = null;
@@ -321,22 +410,24 @@ final class SpatialMovementController {
     }
   }
 
-  bool _collides(PixelRect rect, {bool ignoreBounds = false}) {
-    final left = rect.leftPx / pixelsPerCell,
-        top = rect.topPx / pixelsPerCell,
-        right = (rect.leftPx + rect.widthPx) / pixelsPerCell,
-        bottom = (rect.topPx + rect.heightPx) / pixelsPerCell;
+  bool _collides(PixelRect rect,
+      {bool ignoreBounds = false,
+      double offsetX = 0,
+      double offsetZ = 0,
+      String? ignoredEntityId,
+      SpatialActorRuntimeState? Function(String entityId)?
+          actorStateProvider}) {
+    final left = rect.leftPx / pixelsPerCell + offsetX,
+        top = rect.topPx / pixelsPerCell + offsetZ,
+        right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
+        bottom = (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ;
     if (!ignoreBounds &&
         (left < 0 || top < 0 || right > scene.width || bottom > scene.depth)) {
       return true;
     }
-    if (_terrainCollides(rect)) return true;
-    for (var z = rect.topPx ~/ pixelsPerCell;
-        z <= (rect.topPx + rect.heightPx - 1) ~/ pixelsPerCell;
-        z++) {
-      for (var x = rect.leftPx ~/ pixelsPerCell;
-          x <= (rect.leftPx + rect.widthPx - 1) ~/ pixelsPerCell;
-          x++) {
+    if (_terrainCollides(rect, offsetX: offsetX, offsetZ: offsetZ)) return true;
+    for (var z = top.floor(); z < bottom.ceil(); z++) {
+      for (var x = left.floor(); x < right.ceil(); x++) {
         if (x >= 0 &&
             x < scene.width &&
             z >= 0 &&
@@ -355,14 +446,21 @@ final class SpatialMovementController {
       }
     }
     for (final entity in entities.where((entity) => entity.blocksMovement)) {
+      if (entity.id == ignoredEntityId) continue;
       if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
       final footprint = resolveEntityCollisionRectPx(entity,
           tileWidthPx: pixelsPerCell, tileHeightPx: pixelsPerCell);
-      final npcLeft = footprint.leftPx / pixelsPerCell,
-          npcTop = footprint.topPx / pixelsPerCell - .5,
-          npcRight = (footprint.leftPx + footprint.widthPx) / pixelsPerCell,
-          npcBottom =
-              (footprint.topPx + footprint.heightPx) / pixelsPerCell - .5;
+      final state = actorStateProvider?.call(entity.id) ??
+          this.actorStateProvider?.call(entity.id);
+      final entityOffsetX = state == null ? 0 : state.x - entity.pos.x - .5;
+      final entityOffsetZ = state == null ? 0 : state.z - entity.pos.y - .5;
+      final npcLeft = footprint.leftPx / pixelsPerCell + entityOffsetX,
+          npcTop = footprint.topPx / pixelsPerCell - .5 + entityOffsetZ,
+          npcRight = (footprint.leftPx + footprint.widthPx) / pixelsPerCell +
+              entityOffsetX,
+          npcBottom = (footprint.topPx + footprint.heightPx) / pixelsPerCell -
+              .5 +
+              entityOffsetZ;
       if (left < npcRight &&
           right > npcLeft &&
           top < npcBottom &&
@@ -370,70 +468,91 @@ final class SpatialMovementController {
         return true;
       }
     }
-    for (final instance in scene.instances.where((v) => v.blocksMovement)) {
-      final model = models[instance.modelId];
-      if (model == null) {
-        throw StateError('Modèle de collision absent : ${instance.modelId}');
+    for (final instance in scene.instances) {
+      final blocks = modelStateProvider?.call(instance.id)?.blocksMovement ??
+          instance.blocksMovement;
+      if (!blocks) continue;
+      if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ)) {
+        return true;
       }
-      final scale = model.scale * instance.scale;
-      final bounds = model.inspection.bounds;
-      final actorHeight = scene.worldHeightAt(
-          rect.bottomCenterPx.xPx / pixelsPerCell,
-          rect.bottomCenterPx.yPx / pixelsPerCell);
-      final minY = instance.position.y + (bounds.min.y - model.pivot.y) * scale;
-      final maxY = instance.position.y + (bounds.max.y - model.pivot.y) * scale;
-      if (actorHeight >= maxY || actorHeight + 1.92 <= minY) continue;
-      final angle = instance.rotationDegrees * math.pi / 180,
-          cos = math.cos(angle),
-          sin = math.sin(angle);
-      final polygon = <({double x, double z})>[];
-      for (final corner in [
-        (bounds.min.x, bounds.min.z),
-        (bounds.max.x, bounds.min.z),
-        (bounds.max.x, bounds.max.z),
-        (bounds.min.x, bounds.max.z)
-      ]) {
-        final lx = (corner.$1 - model.pivot.x) * scale,
-            lz = (corner.$2 - model.pivot.z) * scale;
-        polygon.add((
-          x: instance.position.x + cos * lx + sin * lz,
-          z: instance.position.z - sin * lx + cos * lz
-        ));
-      }
-      final player = [
-        (x: left, z: top),
-        (x: right, z: top),
-        (x: right, z: bottom),
-        (x: left, z: bottom)
-      ];
-      var separated = false;
-      for (final axis in [
-        (x: 1.0, z: 0.0),
-        (x: 0.0, z: 1.0),
-        (x: cos, z: -sin),
-        (x: sin, z: cos)
-      ]) {
-        final a = polygon.map((p) => p.x * axis.x + p.z * axis.z),
-            b = player.map((p) => p.x * axis.x + p.z * axis.z);
-        if (a.reduce(math.max) <= b.reduce(math.min) ||
-            b.reduce(math.max) <= a.reduce(math.min)) {
-          separated = true;
-          break;
-        }
-      }
-      if (!separated) return true;
     }
     return false;
   }
 
-  bool _terrainCollides(PixelRect rect) {
+  bool _modelCollides(PixelRect rect, SpatialModelInstance instance,
+      {double offsetX = 0, double offsetZ = 0}) {
+    final left = rect.leftPx / pixelsPerCell + offsetX,
+        top = rect.topPx / pixelsPerCell + offsetZ,
+        right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
+        bottom = (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ;
+    final model = models[instance.modelId];
+    if (model == null) {
+      throw StateError('Modèle de collision absent : ${instance.modelId}');
+    }
+    final geometry = spatialModelWorldGeometry(instance, model);
+    final actorHeight = scene.worldHeightAt(
+        rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
+        rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);
+    if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
+      return false;
+    }
+    final player = [
+      (x: left, z: top),
+      (x: right, z: top),
+      (x: right, z: bottom),
+      (x: left, z: bottom)
+    ];
+    var separated = false;
+    for (final axis in [
+      (x: 1.0, z: 0.0),
+      (x: 0.0, z: 1.0),
+      (x: geometry.cos, z: -geometry.sin),
+      (x: geometry.sin, z: geometry.cos)
+    ]) {
+      final a = geometry.polygon.map((p) => p.x * axis.x + p.z * axis.z),
+          b = player.map((p) => p.x * axis.x + p.z * axis.z);
+      if (a.reduce(math.max) <= b.reduce(math.min) ||
+          b.reduce(math.max) <= a.reduce(math.min)) {
+        separated = true;
+        break;
+      }
+    }
+    return !separated;
+  }
+
+  bool _overlapsPlayer(PixelRect rect,
+      {required double offsetX,
+      required double offsetZ,
+      PlayerSpatialPosition? playerPosition}) {
+    final playerFootprint = playerPosition == null
+        ? (rect: _hitbox(_position), offsetX: 0.0, offsetZ: 0.0)
+        : _actorFootprint(playerPosition.x, playerPosition.z);
+    final player = playerFootprint.rect;
+    return rect.leftPx / pixelsPerCell + offsetX <
+            (player.leftPx + player.widthPx) / pixelsPerCell +
+                playerFootprint.offsetX &&
+        (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX >
+            player.leftPx / pixelsPerCell + playerFootprint.offsetX &&
+        rect.topPx / pixelsPerCell + offsetZ <
+            (player.topPx + player.heightPx) / pixelsPerCell +
+                playerFootprint.offsetZ &&
+        (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ >
+            player.topPx / pixelsPerCell + playerFootprint.offsetZ;
+  }
+
+  bool _terrainCollides(PixelRect rect,
+      {double offsetX = 0, double offsetZ = 0}) {
     final left = rect.leftPx,
         top = rect.topPx,
         right = left + rect.widthPx - 1,
         bottom = top + rect.heightPx - 1;
     bool traversable(int ax, int az, int bx, int bz) =>
-        canTraverseSpatialTerrainStep(scene, ax / pixelsPerCell,
-            az / pixelsPerCell, bx / pixelsPerCell, bz / pixelsPerCell);
+        canTraverseSpatialTerrainStep(
+            scene,
+            ax / pixelsPerCell + offsetX,
+            az / pixelsPerCell + offsetZ,
+            bx / pixelsPerCell + offsetX,
+            bz / pixelsPerCell + offsetZ);
     for (var x = left; x < right; x++) {
       if (!traversable(x, top, x + 1, top) ||
           !traversable(x, bottom, x + 1, bottom)) {

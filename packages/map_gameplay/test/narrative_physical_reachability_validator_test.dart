@@ -7,6 +7,29 @@ const _eventB = 'evt_019abcde-0000-7000-8000-000000000102';
 
 void main() {
   group('narrative physical reachability', () {
+    test('a 3D source stays indeterminate without a spatial path proof', () {
+      final map = _map(id: 'start', width: 5, height: 3).copyWith(
+          version: ProjectVersion.v9,
+          spatialScene: MapSpatialScene(width: 5, depth: 3));
+      final project = _project([
+        _event(_eventA, NarrativeEventSourceRef.mapEnter('start')),
+      ]);
+      final report = validateNarrativePhysicalReachability(
+          project: project.copyWith(
+              version: ProjectVersion.v9,
+              settings: project.settings
+                  .copyWith(dimension: ProjectDimension.threeD)),
+          maps: [map],
+          narrativeReport: _symbolicReport());
+      expect(
+          report.verdict, NarrativePhysicalReachabilityVerdict.indeterminate);
+      expect(report.resultForEvent(_eventA)!.status,
+          NarrativePhysicalSourceStatus.indeterminate);
+      expect(report.issues.single.code,
+          NarrativePhysicalIssueCode.unsupportedSpatialTraversal);
+      expect(report.exploredStateCount, 0);
+    });
+
     test('proves mapEnter and trigger cells from the authored spawn', () {
       final map = _map(
         id: 'start',

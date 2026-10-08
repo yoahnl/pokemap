@@ -77,7 +77,7 @@ final class NarrativeEventSpatialLinkMapCommitRequest {
       throw ArgumentError.value(
         source,
         'source',
-        'must be an entityInteract or triggerEnter source',
+        'must be an entityInteract, modelInteract or triggerEnter source',
       );
     }
     if (beforeMap.id != sourceMapId || afterMap.id != sourceMapId) {
@@ -386,6 +386,7 @@ final class NarrativeEventSpatialLinkOperationResult {
 String? narrativeEventSpatialSourceMapId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (mapId, _) => mapId,
+    modelInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (_) => null,
     outcomeReceived: (_) => null,
@@ -403,6 +404,7 @@ String narrativeEventRecordCanonicalFingerprint(NarrativeEventRecord record) {
 String narrativeEventSpatialSourceOwnerId(NarrativeEventSourceRef source) {
   return source.when(
     entityInteract: (_, entityId) => entityId,
+    modelInteract: (_, instanceId) => instanceId,
     triggerEnter: (_, triggerId) => triggerId,
     mapEnter: (_) => throw ArgumentError.value(source, 'source'),
     outcomeReceived: (_) => throw ArgumentError.value(source, 'source'),

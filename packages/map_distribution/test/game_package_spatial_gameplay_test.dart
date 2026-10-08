@@ -90,7 +90,6 @@ void main() {
       SceneActionPayload(actionKind: 'legacy-script'),
       SceneActionPayload.interactive(SceneInteractiveCommand.moveNpc(
           mapId: 'map', entityId: 'npc', warpId: 'warp')),
-      SceneCinematicPayload(cinematicId: 'movie'),
       SceneBattlePayload(battleKind: 'unknown'),
       SceneConditionPayload(
           conditionSource: SceneConditionSource(

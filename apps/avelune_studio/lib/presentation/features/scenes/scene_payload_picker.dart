@@ -6,8 +6,9 @@ import 'package:avelune_studio/presentation/features/scenes/scene_action_form.da
 Future<SceneNodePayload?> chooseScenePayload(
   BuildContext context,
   SceneNodeKind kind,
-  ProjectManifest project,
-) => showDialog<SceneNodePayload>(
+  ProjectManifest project, {
+  Future<MapData> Function(String)? loadMap,
+}) => showDialog<SceneNodePayload>(
   context: context,
   builder: (context) {
     final choices = <String, (String, SceneNodePayload)>{
@@ -69,6 +70,7 @@ Future<SceneNodePayload?> chooseScenePayload(
               ? SceneActionForm(
                   project: project,
                   current: null,
+                  loadMap: loadMap,
                   onApply: (payload) => Navigator.pop(context, payload),
                 )
               : Column(

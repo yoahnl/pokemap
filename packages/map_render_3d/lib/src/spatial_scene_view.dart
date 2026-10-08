@@ -119,7 +119,14 @@ class SpatialSceneView extends StatefulWidget {
     this.neighbors = const [],
     this.sceneOffset = Offset.zero,
     this.animationPreview,
+    this.modelRuntimeState,
+    this.presentationPaused,
+    this.cameraPose,
   });
+  final SpatialModelRuntimeState? Function(String mapId, String instanceId)?
+  modelRuntimeState;
+  final bool Function()? presentationPaused;
+  final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
   final ValueChanged<SpatialSceneContentHit>? onContent;
@@ -682,6 +689,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             playback: identical(previous?.model, model)
                 ? ModelPlaybackState.from(previous!.playback)
                 : null,
+            runtimePoseBefore: identical(previous?.model, model)
+                ? previous?.runtimePoseBefore
+                : null,
             position:
                 Vector3(
                   instance.position.x + placement.offset.dx,
@@ -843,7 +853,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final scene = configuration.scene;
     final control = configuration.controller;
     final visual = actorVisual;
-    final center = visual == null
+    final cameraPose = configuration.cameraPose?.call();
+    final center = cameraPose != null
+        ? Vector3(cameraPose.x, cameraPose.y, cameraPose.z)
+        : visual == null
         ? Vector3(
             scene.width / 2,
             scene.heightAt(scene.width ~/ 2, scene.depth ~/ 2),
@@ -883,7 +896,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     } else if (control.view == SpatialEditorView.game) {
       pitch = scene.camera.pitchDegrees * math.pi / 180;
       yaw = scene.camera.yawDegrees * math.pi / 180;
-      distance = scene.camera.distance * control.zoom;
+      distance = scene.camera.distance * control.zoom * (cameraPose?.zoom ?? 1);
       camera.fovY = scene.camera.fieldOfViewDegrees;
     }
     center.x += control.pan.dx + configuration.sceneOffset.dx;
@@ -912,6 +925,37 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       }
     }
     syncActors(dt);
+    syncRuntimeModels();
+  }
+
+  void syncRuntimeModels() {
+    final provider = visibleConfiguration.modelRuntimeState;
+    if (provider == null) return;
+    for (final entry in animationModels.entries) {
+      final state = provider(entry.key.$1, entry.key.$2);
+      final component = entry.value;
+      final map = entry.key.$1 == visibleConfiguration.groundMap?.id
+          ? visibleConfiguration.groundMap
+          : visibleConfiguration.neighbors
+                .where((neighbor) => neighbor.map.id == entry.key.$1)
+                .firstOrNull
+                ?.map;
+      final instance = (map?.spatialScene ?? visibleConfiguration.scene)
+          .instances
+          .where((value) => value.id == entry.key.$2)
+          .firstOrNull;
+      if (instance == null) continue;
+      component.bindRuntimeState(
+        state,
+        authoredAnimationIndex: instance.animationIndex,
+        authoredLoop: instance.animationLoop,
+        authoredSpeed: instance.animationSpeed,
+        paused:
+            (visibleConfiguration.presentationPaused?.call() ?? false) ||
+            (visibleConfiguration.animationPreview?.isPaused(instance.id) ??
+                false),
+      );
+    }
   }
 
   void syncActors(double dt) {
@@ -1294,6 +1338,7 @@ class _SceneModelComponent extends AnimatedModelComponent {
     super.scale,
     super.children,
     super.playback,
+    super.runtimePoseBefore,
   });
   @override
   bool isVisible(CameraComponent3D camera) => true;

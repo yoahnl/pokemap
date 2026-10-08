@@ -20,6 +20,7 @@ import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'spatial_entity_visual_plan.dart';
+import 'spatial_cinematic_runtime_playback_sink.dart';
 
 final class SpatialExplorationSession {
   SpatialExplorationSession._(
@@ -53,11 +54,40 @@ final class SpatialExplorationSession {
     double sourceZ
   })? get connectionEntry => _connectionEntry;
   VoidCallback? onFrame;
+  void Function(double dt, bool paused)? onPresentationFrame;
+  SpatialWorldState Function()? worldStateProvider;
+  SpatialCinematicActorPose? Function()? heroStoryPose;
+  SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
+  SpatialCinematicCameraPose? Function()? storyCamera;
+  VoidCallback? onCancelStory, onSkipStory;
+  final storyActive = ValueNotifier(false);
+  bool storyInputLocked = false;
+
+  SpatialActorRuntimeState? actorRuntimeState(MapEntity entity) {
+    final pose = npcStoryPose?.call(entity);
+    return pose == null
+        ? worldStateProvider?.call().actorState(bundle.map.id, entity.id)
+        : SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
+  }
+
+  void attachWorldStateProviders() {
+    movement.setRuntimeStateProviders(
+      modelStateProvider: (id) =>
+          worldStateProvider?.call().modelState(bundle.map.id, id),
+      actorStateProvider: (id) {
+        final entity =
+            bundle.map.entities.where((value) => value.id == id).firstOrNull;
+        return entity == null ? null : actorRuntimeState(entity);
+      },
+    );
+  }
+
   final interactionError = ValueNotifier<Object?>(null);
   final interactionActive = ValueNotifier(false);
   final dialoguePresentation =
       ValueNotifier<DialoguePresentationSnapshot?>(null);
   DialogueOverlayComponent? _dialogue;
+  String? _dialogueEntityId;
   Completer<SceneDialogueRuntimeAwaitableResult>? _dialogueCompletion;
   RuntimeDialogueTextSpeed textSpeed = RuntimeDialogueTextSpeed.instant;
   bool dialoguePaused = false;
@@ -135,11 +165,12 @@ final class SpatialExplorationSession {
       return;
     }
     _dialogueCompletion = completion;
+    _dialogueEntityId = entity?.id;
     interactionError.value = null;
     final generation = ++_interactionGeneration;
     if (entity != null) {
-      npcFacing[entity.id] =
-          spatialNpcFacingPlayer(entity, x: movement.x, z: movement.z);
+      npcFacing[entity.id] = spatialNpcFacingPlayer(entity,
+          x: movement.x, z: movement.z, actorState: actorRuntimeState(entity));
     }
     movement.setPaused(true);
     interactionActive.value = true;
@@ -255,6 +286,7 @@ final class SpatialExplorationSession {
     _interactionGeneration++;
     _dialogue?.removeFromParent();
     _dialogue = null;
+    _dialogueEntityId = null;
     dialoguePresentation.value = null;
     movement.setPaused(presentationPaused || transitioning.value);
     interactionActive.value = false;
@@ -267,6 +299,7 @@ final class SpatialExplorationSession {
     EntityFacing? facing,
     String? characterId,
     bool Function(String mapId, MapEntity entity)? entityIsPresent,
+    SpatialWorldState Function()? worldStateProvider,
     Future<RuntimeMapBundle> Function(String)? loadMap,
   }) async {
     final scene = bundle.map.spatialScene;
@@ -312,6 +345,10 @@ final class SpatialExplorationSession {
         spatialArrival: spatialArrival,
         entityPresencePredicate: (entity) =>
             entityIsPresent?.call(bundle.map.id, entity) ?? true,
+        modelStateProvider: (id) =>
+            worldStateProvider?.call().modelState(bundle.map.id, id),
+        actorStateProvider: (id) =>
+            worldStateProvider?.call().actorState(bundle.map.id, id),
         facing: facing);
     final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
     final images = <String, ui.Image>{},
@@ -348,6 +385,7 @@ final class SpatialExplorationSession {
       entityVisuals.validateImages(images);
       session._entityVisuals = entityVisuals;
       session.entityIsPresent = entityIsPresent;
+      session.worldStateProvider = worldStateProvider;
       session._loadMap = loadMap ??
           (id) => loadRuntimeMapBundle(
               projectFilePath:
@@ -402,6 +440,7 @@ final class SpatialExplorationSession {
     if (!_disposed) {
       movement.update(dt);
       if (!presentationPaused &&
+          !storyInputLocked &&
           !interactionActive.value &&
           !transitioning.value) {
         final warp = _warps.update(
@@ -424,18 +463,21 @@ final class SpatialExplorationSession {
         _dialogue?.update(dt.clamp(0.0, .05));
       }
     }
-    final state = movement.moving
-        ? (movement.running
-            ? CharacterAnimationState.run
-            : CharacterAnimationState.walk)
-        : CharacterAnimationState.idle;
+    final story = heroStoryPose?.call();
+    final facing = story?.facing ?? movement.facing;
+    final state = story?.motion ??
+        (movement.moving
+            ? (movement.running
+                ? CharacterAnimationState.run
+                : CharacterAnimationState.walk)
+            : CharacterAnimationState.idle);
     final animation = character.animations
-            .where((v) => v.state == state && v.direction == movement.facing)
+            .where((v) => v.state == state && v.direction == facing)
             .firstOrNull ??
         character.animations
             .where((v) =>
                 v.state == CharacterAnimationState.walk &&
-                v.direction == movement.facing)
+                v.direction == facing)
             .firstOrNull;
     if (animation == null) {
       throw StateError(
@@ -443,7 +485,8 @@ final class SpatialExplorationSession {
     }
     final total =
         animation.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs);
-    var remaining = (movement.animationSeconds * 1000).floor();
+    var remaining =
+        ((story?.animationSeconds ?? movement.animationSeconds) * 1000).floor();
     remaining =
         animation.loop ? remaining % total : remaining.clamp(0, total - 1);
     var selected = animation.frames.last;
@@ -456,14 +499,17 @@ final class SpatialExplorationSession {
     }
     final resolved = _resolve(animation, selected);
     return SpatialActorVisual(
-        x: movement.x,
-        y: movement.y,
-        z: movement.z,
+        x: story?.x ?? movement.x,
+        y: story == null
+            ? movement.y
+            : bundle.map.spatialScene!.worldHeightAt(story.x, story.z),
+        z: story?.z ?? movement.z,
         texture: _textures[resolved.imageId]!,
         frame: resolved.sourceRect);
   }
 
   Map<String, SpatialActorVisual> frames(double dt) {
+    onPresentationFrame?.call(dt, presentationPaused || transitioning.value);
     if (dt.isFinite && dt > 0 && !presentationPaused && !transitioning.value) {
       _presentationSeconds += dt;
     }
@@ -483,17 +529,36 @@ final class SpatialExplorationSession {
   SpatialActorVisual npcFrame(MapEntity entity) {
     final actor = bundle.manifest.characters
         .firstWhere((c) => c.id == entity.npc!.characterId);
-    final facing = npcFacing[entity.id] ?? entity.npc!.facing;
+    final pose = npcStoryPose?.call(entity);
+    final saved = actorRuntimeState(entity);
+    final facing = pose?.facing ??
+        (_dialogueEntityId == entity.id ? npcFacing[entity.id] : null) ??
+        saved?.facing ??
+        npcFacing[entity.id] ??
+        entity.npc!.facing;
     final animation = actor.animations
             .where((clip) =>
                 clip.direction == facing &&
-                clip.state == CharacterAnimationState.idle)
+                clip.state == (pose?.motion ?? CharacterAnimationState.idle))
             .firstOrNull ??
         actor.animations.firstWhere((clip) =>
             clip.direction == facing &&
             clip.state == CharacterAnimationState.walk);
-    final source = _resolve(animation, animation.frames.first, actor: actor);
-    final x = entity.pos.x + .5, z = entity.pos.y + .5;
+    final duration =
+        animation.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs);
+    var elapsed = ((pose?.animationSeconds ?? 0) * 1000).floor();
+    elapsed =
+        animation.loop ? elapsed % duration : elapsed.clamp(0, duration - 1);
+    var selected = animation.frames.last;
+    for (final frame in animation.frames) {
+      if (elapsed < frame.durationMs) {
+        selected = frame;
+        break;
+      }
+      elapsed -= frame.durationMs;
+    }
+    final source = _resolve(animation, selected, actor: actor);
+    final x = saved?.x ?? entity.pos.x + .5, z = saved?.z ?? entity.pos.y + .5;
     return SpatialActorVisual(
         x: x,
         z: z,
@@ -533,7 +598,16 @@ final class SpatialExplorationSession {
           models: bundle.manifest.models3d,
           spatialArrival: position,
           entityPresencePredicate: _present,
+          modelStateProvider: (id) =>
+              worldStateProvider?.call().modelState(bundle.map.id, id),
+          actorStateProvider: (id) {
+            final entity = bundle.map.entities
+                .where((value) => value.id == id)
+                .firstOrNull;
+            return entity == null ? null : actorRuntimeState(entity);
+          },
           facing: state.playerFacing);
+      attachWorldStateProviders();
       movement.setDiagonalMovement(diagonal);
       movement.setPaused(presentationPaused || interactionActive.value);
       _warps =
@@ -633,6 +707,7 @@ final class SpatialExplorationSession {
           spatialArrival: spatialArrival,
           facing: arrivalFacing ?? facing,
           characterId: character.id,
+          worldStateProvider: worldStateProvider,
           entityIsPresent: entityIsPresent,
           loadMap: _loadMap);
       if (_disposed || generation != _transferGeneration) return;
@@ -670,6 +745,7 @@ final class SpatialExplorationSession {
       candidate = null;
       bundle = next;
       movement = nextMovement;
+      attachWorldStateProviders();
       _warps = nextWarps;
       movement.setDiagonalMovement(diagonal);
       npcFacing.clear();
@@ -697,12 +773,14 @@ final class SpatialExplorationSession {
     _disposed = true;
     _transferGeneration++;
     onFrame = null;
+    onPresentationFrame = null;
     _interactionGeneration++;
     _dialogue?.removeFromParent();
     _dialogue = null;
     interactionError.dispose();
     interactionActive.dispose();
     dialoguePresentation.dispose();
+    storyActive.dispose();
     mapRevision.dispose();
     transitioning.dispose();
     movement.setPaused(true);

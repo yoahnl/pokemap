@@ -2,12 +2,15 @@ import 'package:map_core/map_core_domain.dart';
 
 class CinematicMapModel {
   CinematicMapModel(this.asset, this.project, this.map) {
-    actors = buildCinematicActorDisplayPreviewModel(
+    final actorPreview = buildCinematicActorDisplayPreviewModel(
       cinematic: asset,
       project: project,
       stageMap: project.maps.where((m) => m.id == asset.mapId).firstOrNull,
       mapData: map,
     );
+    actors = map.spatialScene == null
+        ? actorPreview
+        : _spatialActors(actorPreview, map, asset);
     final hidden =
         asset.stageContext?.actorBindings
             .where((b) => b.kind == CinematicActorBindingKind.mapEntity)
@@ -28,10 +31,9 @@ class CinematicMapModel {
           .firstOrNull;
       if (binding.kind == CinematicMovementTargetBindingKind.mapEntity &&
           entity != null) {
-        final focus = cinematicEntityFocusPoint(
-          entity: entity,
-          project: project,
-        );
+        final focus = map.spatialScene != null
+            ? (x: entity.pos.x + .5, y: entity.pos.y + .5)
+            : cinematicEntityFocusPoint(entity: entity, project: project);
         targets[binding.targetId] = CinematicPreviewPlaybackPoint(
           x: focus.x,
           y: focus.y,
@@ -59,6 +61,79 @@ class CinematicMapModel {
         width: map.size.width.toDouble(),
         height: map.size.height.toDouble(),
       );
+}
+
+CinematicActorDisplayPreviewModel _spatialActors(
+  CinematicActorDisplayPreviewModel source,
+  MapData map,
+  CinematicAsset asset,
+) => CinematicActorDisplayPreviewModel(
+  status: source.status,
+  summary: source.summary,
+  diagnostics: source.diagnostics,
+  actors: [
+    for (final actor in source.actors)
+      if (actor.position.isResolved)
+        _spatialActor(actor, map, asset)
+      else
+        actor,
+  ],
+);
+
+CinematicActorDisplayPreviewActor _spatialActor(
+  CinematicActorDisplayPreviewActor actor,
+  MapData map,
+  CinematicAsset asset,
+) {
+  ({double x, double y})? ground;
+  if (actor.position.sourceKind ==
+      CinematicActorPreviewPositionSourceKind.mapEntity) {
+    final entity = map.entities
+        .where((entity) => entity.id == actor.position.sourceId)
+        .firstOrNull;
+    if (entity != null) ground = (x: entity.pos.x + .5, y: entity.pos.y + .5);
+  } else {
+    var pointId = actor.position.sourceId;
+    if (actor.position.sourceKind ==
+        CinematicActorPreviewPositionSourceKind.movementTarget) {
+      final target = asset.stageContext?.movementTargetBindings
+          .where((binding) => binding.targetId == pointId)
+          .firstOrNull;
+      pointId = target?.kind == CinematicMovementTargetBindingKind.stagePoint
+          ? target?.sourceId
+          : null;
+    } else if (actor.position.sourceKind !=
+        CinematicActorPreviewPositionSourceKind.stagePoint) {
+      pointId = null;
+    }
+    final point = asset.stageContext?.stagePoints
+        .where((point) => point.id == pointId)
+        .firstOrNull;
+    if (point != null) ground = (x: point.x, y: point.y);
+  }
+  if (ground == null) return actor;
+  return CinematicActorDisplayPreviewActor(
+    actorId: actor.actorId,
+    label: actor.label,
+    role: actor.role,
+    bindingStatus: actor.bindingStatus,
+    bindingKind: actor.bindingKind,
+    bindingSourceId: actor.bindingSourceId,
+    bindingSourceLabel: actor.bindingSourceLabel,
+    appearance: actor.appearance,
+    direction: actor.direction,
+    directionSource: actor.directionSource,
+    renderHint: actor.renderHint,
+    diagnostics: actor.diagnostics,
+    position: CinematicActorPreviewPosition(
+      status: actor.position.status,
+      sourceKind: actor.position.sourceKind,
+      sourceId: actor.position.sourceId,
+      sourceLabel: actor.position.sourceLabel,
+      x: ground.x,
+      y: ground.y,
+    ),
+  );
 }
 
 List<String> cinematicPointUses(CinematicAsset asset, String id) => [

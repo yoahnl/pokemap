@@ -76,6 +76,23 @@ final class SpatialMapActions {
       throw semanticFailure('map3d.parameters_invalid',
           'The spatial action requires its configuration field.');
     }
+    if (field == 'instanceId') {
+      final instanceId = context.parameters.string(field);
+      final index = buildNarrativeDependencyIndex(
+          project: context.manifest, maps: planning.snapshot.maps);
+      final usages = index.usagesFor(NarrativeDependencyKey.mapSource(
+          mapId: context.map.id,
+          sourceKind: 'modelInstance',
+          sourceId: instanceId));
+      if (usages.isNotEmpty) {
+        throw semanticFailure('map3d.instance_referenced',
+            'The 3D instance is still referenced and cannot be deleted.',
+            details: {
+              'instanceId': instanceId,
+              'references': usages.map((usage) => usage.path).toList()..sort(),
+            });
+      }
+    }
     const operations = SpatialMapOperations();
     try {
       final after = switch (field) {

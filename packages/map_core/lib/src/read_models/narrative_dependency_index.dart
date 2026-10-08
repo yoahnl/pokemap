@@ -531,6 +531,28 @@ final class _NarrativeDependencyIndexBuilder {
         sourceKind: 'map',
       );
     }
+    for (final model in project.models3d) {
+      final owner = _definition(
+        NarrativeDependencyTargetKind.sourceMap,
+        model.id,
+        model.name,
+        scope: 'synthetic',
+        sourceKind: 'model3d',
+        path: 'models3d[${model.id}]',
+      );
+      for (final clip in model.inspection.animations) {
+        _definition(
+          NarrativeDependencyTargetKind.sourceMap,
+          '${clip.index}',
+          clip.name,
+          owner: owner,
+          scope: 'synthetic',
+          parentId: model.id,
+          sourceKind: 'modelAnimation',
+          path: 'models3d[${model.id}].inspection.animations[${clip.index}]',
+        );
+      }
+    }
     for (final fact in project.facts) {
       _definition(
         NarrativeDependencyTargetKind.fact,
@@ -734,6 +756,28 @@ final class _NarrativeDependencyIndexBuilder {
           scope: _physicalMapScope,
           parentId: map.id,
           sourceKind: 'map',
+        );
+      }
+      for (final instance in map.spatialScene?.instances ?? const []) {
+        final owner = _definition(
+          NarrativeDependencyTargetKind.sourceMap,
+          instance.id,
+          instance.id,
+          owner: mapKey,
+          path: 'maps[${map.id}].spatialScene.instances[${instance.id}]',
+          scope: _physicalMapScope,
+          parentId: map.id,
+          sourceKind: 'modelInstance',
+        );
+        _usage(
+          target: NarrativeDependencyKey.synthetic(
+            sourceKind: 'model3d',
+            sourceId: instance.modelId,
+          ),
+          owner: owner,
+          path:
+              'maps[${map.id}].spatialScene.instances[${instance.id}].modelId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
       }
       for (var index = 0; index < map.entities.length; index++) {
@@ -1252,6 +1296,20 @@ final class _NarrativeDependencyIndexBuilder {
           target: _mapSourceChildKey(mapId, 'entity', entityId),
           owner: owner,
           path: '$prefix.entityId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      },
+      modelInteract: (mapId, instanceId) {
+        _usage(
+          target: _mapKey(mapId),
+          owner: owner,
+          path: '$prefix.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        _usage(
+          target: _mapSourceChildKey(mapId, 'modelInstance', instanceId),
+          owner: owner,
+          path: '$prefix.instanceId',
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
       },
@@ -2194,6 +2252,42 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
+      case ScenePlayModelAnimationInteractiveCommand(
+        :final mapId,
+        :final instanceId,
+        :final animationIndex,
+      ):
+        _usage(
+          target: _mapKey(mapId),
+          owner: owner,
+          path: '$path.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        _usage(
+          target: _mapSourceChildKey(mapId, 'modelInstance', instanceId),
+          owner: owner,
+          path: '$path.instanceId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        final instance = maps
+            .where((map) => map.id == mapId)
+            .firstOrNull
+            ?.spatialScene
+            ?.instances
+            .where((instance) => instance.id == instanceId)
+            .firstOrNull;
+        if (instance != null) {
+          _usage(
+            target: NarrativeDependencyKey.synthetic(
+              sourceKind: 'modelAnimation',
+              sourceId: '$animationIndex',
+              parentId: instance.modelId,
+            ),
+            owner: owner,
+            path: '$path.animationIndex',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          );
+        }
       case SceneMoveNpcInteractiveCommand(
         :final mapId,
         :final entityId,

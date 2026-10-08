@@ -145,6 +145,12 @@ void main() {
     );
     game.update(.3);
     expect(game.debugPlayerGridPosition, const GridPos(x: 9, y: 9));
+    await tester.tap(find.text('Enregistrer le test'));
+    await tester.pump();
+    expect(
+      find.text('Test enregistré en mémoire pour cette session.'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Retour à la carte'));
     expect(returned, isTrue);
     await tester.pumpWidget(const SizedBox());

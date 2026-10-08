@@ -40,6 +40,7 @@ class SceneInspector extends StatelessWidget {
     this.documents,
     this.narrative,
     this.onCreatePresentation,
+    this.loadMap,
   });
   final SceneLinkedDocuments? documents;
   final NarrativeWorkspaceController? narrative;
@@ -49,6 +50,7 @@ class SceneInspector extends StatelessWidget {
   final VoidCallback changed, onDelete, onDuplicate;
   final ValueChanged<SceneNode> onDocument;
   final ValueChanged<SceneNode>? onCreatePresentation;
+  final Future<MapData> Function(String)? loadMap;
 
   void edit(SceneAsset Function(SceneAsset) mutation) {
     session.mutate(mutation);

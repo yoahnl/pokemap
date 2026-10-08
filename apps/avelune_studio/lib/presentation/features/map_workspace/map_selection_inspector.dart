@@ -32,6 +32,7 @@ class MapSelectionInspector extends StatelessWidget {
     required this.onOpenElement,
     required this.onEditElement,
     this.onEditInteraction,
+    this.onEventSource,
     this.onOpenMap,
     this.onRenameMap,
     this.onLinkMaps,
@@ -46,6 +47,7 @@ class MapSelectionInspector extends StatelessWidget {
   final VoidCallback onChanged;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<MapEntity>? onEditInteraction;
+  final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<String>? onOpenMap;
   final VoidCallback? onRenameMap;
   final Future<void> Function(MapConnectionDirection, String, int)? onLinkMaps;
@@ -306,6 +308,7 @@ class MapSelectionInspector extends StatelessWidget {
                     onOpenResource: onOpenElement,
                     onEditResource: onEditElement,
                     onRenameMap: onRenameMap,
+                    onEventSource: onEventSource,
                     width: width,
                   ),
           ),

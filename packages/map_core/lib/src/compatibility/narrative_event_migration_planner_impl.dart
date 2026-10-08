@@ -325,6 +325,7 @@ final class NarrativeEventMigrationPlanner {
       );
       candidate.source?.when(
         entityInteract: (mapId, _) => concernedMapIds.add(mapId),
+        modelInteract: (mapId, _) => concernedMapIds.add(mapId),
         triggerEnter: (mapId, _) => concernedMapIds.add(mapId),
         mapEnter: concernedMapIds.add,
         outcomeReceived: (_) {},
@@ -2128,6 +2129,7 @@ List<NarrativeOutcomeRef> _candidateOutcomeReferences(
   for (final candidate in candidates) {
     candidate.source?.when<void>(
       entityInteract: (_, __) {},
+      modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {

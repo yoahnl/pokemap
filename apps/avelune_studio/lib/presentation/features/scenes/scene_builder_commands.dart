@@ -122,7 +122,12 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
           SceneNodeKind.presentationCinematic,
           SceneNodeKind.action,
         }.contains(block.kind)) {
-      payload = await chooseScenePayload(context, block.kind, linkedProject);
+      payload = await chooseScenePayload(
+        context,
+        block.kind,
+        linkedProject,
+        loadMap: mapLoader.load,
+      );
       if (!mounted || widget.controller.active != session || payload == null) {
         return;
       }

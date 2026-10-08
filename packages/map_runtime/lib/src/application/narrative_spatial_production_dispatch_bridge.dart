@@ -345,11 +345,12 @@ final class NarrativeSpatialProductionDispatchBridge {
       );
     }
     if (occurrence.source.kind != NarrativeEventSourceKind.entityInteract &&
-        occurrence.source.kind != NarrativeEventSourceKind.triggerEnter) {
+        occurrence.source.kind != NarrativeEventSourceKind.triggerEnter &&
+        occurrence.source.kind != NarrativeEventSourceKind.modelInteract) {
       throw ArgumentError.value(
         occurrence.source.kind,
         'occurrence.source.kind',
-        'must be entityInteract or triggerEnter',
+        'must be entityInteract, modelInteract or triggerEnter',
       );
     }
   }

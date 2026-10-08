@@ -30,6 +30,7 @@ Future<void> seedUi10Visuals(
       defaultPlayerCharacterId: 'guide',
     ),
     tilesets: [
+      ...manifest.tilesets,
       for (final id in assets.keys)
         ProjectTilesetEntry(
           id: id,
@@ -82,6 +83,7 @@ Future<void> seedUi10Visuals(
       ),
     ],
     elements: [
+      ...manifest.elements,
       ProjectElementEntry(
         id: 'pine',
         categoryId: 'atelier',

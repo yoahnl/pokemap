@@ -190,6 +190,101 @@ void main() {
     });
   }
 
+  for (final direct in [false, true]) {
+    for (final reference in ['scene', 'modelInteract']) {
+      test(
+          'referenced decor deletion is rejected without writes through ${direct ? "direct API" : "JSONL"} for $reference',
+          () async {
+        final f = await _Fixture.create();
+        addTearDown(f.dispose);
+        expect((await f.apply(await f.plan())).status,
+            AuthoringResultStatus.success);
+        expect(
+            (await f.apply(await f.planAction('map3d.instance.upsert', {
+              'mapId': 'first-map',
+              'instance': SpatialModelInstance(
+                      id: 'door',
+                      modelId: 'house',
+                      position: Model3dVector3.zero)
+                  .toJson(),
+            })))
+                .status,
+            AuthoringResultStatus.success);
+        if (reference == 'scene') {
+          final snapshot = await f.snapshots.load(f.project);
+          final scene = _modelScene();
+          final diagnostics = diagnoseSceneAgainstProject(
+              scene, snapshot.manifest.copyWith(scenes: [scene]),
+              mapsById: {for (final map in snapshot.maps) map.id: map});
+          expect(diagnostics.hasErrors, isFalse,
+              reason: diagnostics.diagnostics
+                  .map((d) => '${d.code.name}: ${d.message}')
+                  .join('\n'));
+          final runtime = buildSceneRuntimePlan(scene);
+          expect(runtime.canBuild, isTrue,
+              reason: runtime.diagnostics.toString());
+          final planned = await f.mutations.planMutation(
+              f.project,
+              AuthoringRequest(
+                  requestId: 'scene-direct',
+                  actionId: 'scene.upsert',
+                  actionVersion: 1,
+                  workspaceHandle: f.workspace.value,
+                  expectedRevision: snapshot.revision,
+                  idempotencyKey: 'scene-direct',
+                  parameters: {'scene': _modelScene().toJson()}));
+          await f.mutations.applyMutation(f.project,
+              planId: planned.planId, operationId: 'scene-direct');
+        }
+        final authored = reference == 'scene'
+            ? null
+            : await f.planAction('event_v2.create_draft', {
+                'name': 'Open door',
+                'rawUuid': '019a6190-0000-7000-8000-000000000001',
+                'initialSource':
+                    NarrativeEventSourceRef.modelInteract('first-map', 'door')
+                        .toJson(),
+              });
+        if (authored != null) {
+          expect(authored.status, AuthoringResultStatus.success,
+              reason: authored.toJson().toString());
+          expect(
+              (await f.apply(authored)).status, AuthoringResultStatus.success);
+        }
+        final mapFile = File('${f.root.path}/maps/first-map.json');
+        final mapBefore = await mapFile.readAsBytes();
+        final projectBefore = await f.projectFile.readAsBytes();
+        final parameters = {'mapId': 'first-map', 'instanceId': 'door'};
+        if (direct) {
+          final snapshot = await f.snapshots.load(f.project);
+          await expectLater(
+              f.mutations.planMutation(
+                  f.project,
+                  AuthoringRequest(
+                      requestId: 'delete-direct',
+                      actionId: 'map3d.instance.delete',
+                      actionVersion: 1,
+                      workspaceHandle: f.workspace.value,
+                      expectedRevision: snapshot.revision,
+                      idempotencyKey: 'delete-direct',
+                      parameters: parameters)),
+              throwsA(isA<MapAuthoringException>()
+                  .having((e) => e.code, 'code', 'map3d.instance_referenced')));
+        } else {
+          final result =
+              await f.planAction('map3d.instance.delete', parameters);
+          expect(result.status, AuthoringResultStatus.failure);
+          expect(result.error!.code, AuthoringErrorCode.validationFailed);
+          expect(
+              result.error!.details['domainCode'], 'map3d.instance_referenced');
+          expect(result.error!.details['references'], isNotEmpty);
+        }
+        expect(await mapFile.readAsBytes(), mapBefore);
+        expect(await f.projectFile.readAsBytes(), projectBefore);
+      });
+    }
+  }
+
   test(
       'invalid edits, model references, dimension mixing and resize cannot publish',
       () async {
@@ -415,6 +510,34 @@ void main() {
     expect((await f.snapshots.load(f.project)).mapById('first-map'), before);
   });
 }
+
+SceneAsset _modelScene() => SceneAsset(
+    id: 'open',
+    name: 'Open door',
+    graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+          id: 'play',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.playModelAnimation(
+                  mapId: 'first-map', instanceId: 'door', animationIndex: 0))),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(
+          id: 'begin',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'play',
+          kind: SceneEdgeKind.defaultFlow),
+      for (final port in ['completed', 'blocked', 'cancelled'])
+        SceneEdge(
+            id: port,
+            fromNodeId: 'play',
+            fromPortId: port,
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow),
+    ]));
 
 final class _Fixture {
   _Fixture(this.root, this.snapshots, this.worker, this.project, this.workspace,

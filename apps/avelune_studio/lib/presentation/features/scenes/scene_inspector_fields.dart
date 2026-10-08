@@ -98,6 +98,7 @@ extension _SceneInspectorFields on SceneInspector {
         SceneActionForm(
           project: project,
           current: value,
+          loadMap: loadMap,
           onApply: (v) => payload(node, v),
         ),
       ];

@@ -1021,6 +1021,7 @@ LegacyMapEventProjection _projection({
 }) {
   final entityId = candidate.when(
     entityInteract: (_, entityId) => entityId,
+    modelInteract: (_, _) => throw StateError('Expected an entity source.'),
     triggerEnter: (_, __) => throw StateError('Expected an entity source.'),
     mapEnter: (_) => throw StateError('Expected an entity source.'),
     outcomeReceived: (_) => throw StateError('Expected an entity source.'),
@@ -1240,6 +1241,7 @@ List<NarrativeOutcomeRef> _outcomesFrom(
   for (final source in sources) {
     source.when<void>(
       entityInteract: (_, __) {},
+      modelInteract: (_, _) {},
       triggerEnter: (_, __) {},
       mapEnter: (_) {},
       outcomeReceived: (outcome) {

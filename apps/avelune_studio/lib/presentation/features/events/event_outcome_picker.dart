@@ -59,7 +59,8 @@ class EventOutcomeSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outcome = source?.when<NarrativeOutcomeRef?>(
-      entityInteract: (_, _) => null,
+    entityInteract: (_, _) => null,
+    modelInteract: (_, _) => null,
       triggerEnter: (_, _) => null,
       mapEnter: (_) => null,
       outcomeReceived: (o) => o,

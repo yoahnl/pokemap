@@ -37,6 +37,7 @@ void main() {
       NarrativeCommandIds.setPauseMenuEntryVisibility,
       NarrativeCommandIds.moveNpc,
       NarrativeCommandIds.playCharacterAnimation,
+      NarrativeCommandIds.playModelAnimation,
       NarrativeCommandIds.railJourney,
     };
 

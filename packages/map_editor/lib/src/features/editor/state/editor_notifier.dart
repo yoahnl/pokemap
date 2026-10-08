@@ -3381,6 +3381,8 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null || focus.mapId != map.id) return false;
     switch (focus.kind) {
+      case NarrativeEditorFocusTargetKind.modelInstance:
+        return false;
       case NarrativeEditorFocusTargetKind.map:
         if (focus.ownerId != null || focus.bounds != null) return false;
         state = state.copyWith(
@@ -3548,6 +3550,12 @@ class EditorNotifier extends _$EditorNotifier
     String? selectedTriggerId;
     MapEntityKind? selectedEntityKind;
     final isSpatialOwner = proposal.source.when(
+      modelInteract: (mapId, instanceId) =>
+          mapId == proposal.afterMap.id &&
+          proposal.afterMap.spatialScene?.instances
+                  .where((candidate) => candidate.id == instanceId)
+                  .length ==
+              1,
       entityInteract: (mapId, entityId) {
         if (mapId != proposal.afterMap.id) return false;
         MapEntity? owner;
@@ -3914,6 +3922,7 @@ class EditorNotifier extends _$EditorNotifier
     String? removedTriggerId;
     journal.source.when(
       entityInteract: (_, entityId) => removedEntityId = entityId,
+      modelInteract: (_, _) {},
       triggerEnter: (_, triggerId) => removedTriggerId = triggerId,
       mapEnter: (_) {},
       outcomeReceived: (_) {},
@@ -3946,6 +3955,29 @@ class EditorNotifier extends _$EditorNotifier
     NarrativeEventSpatialLinkJournal journal,
   ) {
     return journal.source.when(
+      modelInteract: (mapId, instanceId) {
+        final scene = map.spatialScene;
+        if (mapId != map.id || scene == null) return null;
+        final owners = scene.instances
+            .where((candidate) => candidate.id == instanceId)
+            .toList();
+        if (owners.length != 1 ||
+            !_matchesNarrativeEventJournalOwner(
+              journal: journal,
+              ownerKind: 'modelInstance',
+              owner: owners.single.toJson(),
+              sourceId: instanceId,
+            )) {
+          return null;
+        }
+        return map.copyWith(
+          spatialScene: scene.copyWith(
+            instances: scene.instances
+                .where((candidate) => candidate.id != instanceId)
+                .toList(),
+          ),
+        );
+      },
       entityInteract: (mapId, entityId) {
         if (mapId != map.id) return null;
         final owners = map.entities
@@ -4097,6 +4129,12 @@ class EditorNotifier extends _$EditorNotifier
     NarrativeEventSourceRef source,
   ) {
     return source.when(
+      modelInteract: (mapId, instanceId) =>
+          map.id == mapId &&
+          map.spatialScene?.instances
+                  .where((candidate) => candidate.id == instanceId)
+                  .length ==
+              1,
       entityInteract: (mapId, entityId) =>
           map.id == mapId &&
           map.entities.any((candidate) => candidate.id == entityId),
@@ -4113,6 +4151,23 @@ class EditorNotifier extends _$EditorNotifier
     _NarrativeEventSourceCleanupInterlock interlock,
   ) {
     return interlock.source.when(
+      modelInteract: (mapId, instanceId) {
+        if (map.id != mapId) return false;
+        final owners = map.spatialScene?.instances
+            .where((candidate) => candidate.id == instanceId)
+            .toList();
+        if (owners == null || owners.length != 1) return false;
+        final envelope = _narrativeEventOwnerEnvelope(
+          ownerKind: 'modelInstance',
+          mapId: mapId,
+          sourceId: instanceId,
+          owner: owners.single.toJson(),
+        );
+        return narrativeEventBytesFingerprint(
+              canonicalizeNarrativeEventJsonUtf8(envelope),
+            ) ==
+            interlock.sourceOwnerFingerprint;
+      },
       entityInteract: (mapId, entityId) {
         if (map.id != mapId) return false;
         final owners = map.entities

@@ -194,7 +194,13 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         key == LogicalKeyboardKey.escape) {
       if (event is KeyDownEvent) {
         if (key == LogicalKeyboardKey.escape) {
-          widget.session.closeDialogue();
+          if (widget.session.storyActive.value) {
+            widget.session.onCancelStory?.call();
+          } else {
+            widget.session.closeDialogue();
+          }
+        } else if (widget.session.storyActive.value) {
+          widget.session.onSkipStory?.call();
         } else if (widget.session.dialoguePresentation.value
             case final snapshot?) {
           widget.session.dispatchDialogueCommand(
@@ -293,6 +299,23 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                       },
                       onReady: widget.onReady,
                       actorFrames: (dt) => frames(dt, renderedOrigin),
+                      modelRuntimeState: (mapId, instanceId) => widget
+                          .session.worldStateProvider
+                          ?.call()
+                          .modelState(mapId, instanceId),
+                      presentationPaused: () =>
+                          widget.session.presentationPaused,
+                      cameraPose: () {
+                        final pose = widget.session.storyCamera?.call();
+                        return pose == null
+                            ? null
+                            : (
+                                x: pose.x,
+                                y: pose.y,
+                                z: pose.z,
+                                zoom: pose.zoom
+                              );
+                      },
                       background: colors.surfaceContainerLowest,
                       ground: colors.primaryContainer,
                       edge: colors.outlineVariant,
@@ -301,6 +324,23 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                         return Center(
                             child: Text('Erreur d’exploration 3D : $error'));
                       })),
+              Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: widget.session.storyActive,
+                    builder: (context, active, _) => !active
+                        ? const SizedBox.shrink()
+                        : Row(children: [
+                            FilledButton.tonal(
+                                onPressed: widget.session.onSkipStory,
+                                child: const Text('Passer la scène')),
+                            const SizedBox(width: 8),
+                            FilledButton.tonal(
+                                onPressed: widget.session.onCancelStory,
+                                child: const Text('Annuler')),
+                          ]),
+                  )),
               Positioned(
                   left: 16,
                   right: 16,

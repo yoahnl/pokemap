@@ -11,6 +11,102 @@ import 'package:map_editor/src/infrastructure/repositories/narrative_event_spati
 import 'support/event_registry_persistence_fixtures.dart';
 
 void main() {
+  test('model journal validates its exact owner and cleans only that instance',
+      () async {
+    final neighbor = SpatialModelInstance(
+        id: 'neighbor',
+        modelId: 'door',
+        position: Model3dVector3(x: 5, y: 0, z: 2));
+    final door = SpatialModelInstance(
+        id: 'new-door',
+        modelId: 'door',
+        position: Model3dVector3(x: 3, y: 0, z: 2));
+    final before = _beforeMap.copyWith(
+        version: ProjectVersion.v9,
+        spatialScene:
+            MapSpatialScene(width: 8, depth: 6, instances: [neighbor]));
+    final after = before.copyWith(
+        spatialScene: before.spatialScene!.copyWith(instances: [neighbor, door]));
+    final fixture = await createPersistenceFixture(
+        map: before,
+        registry: persistenceRegistry(records: [persistenceDraft()]),
+        extraRoot: {
+          'version': ProjectVersion.v9.name,
+          'settings': ProjectSettings(
+                  dimension: ProjectDimension.threeD,
+                  spatialCamera: SpatialCameraProfile())
+              .toJson(),
+          'models3d': [
+            ProjectModel3dEntry(
+                    id: 'door',
+                    name: 'Door',
+                    sourceAssetId: 'door-source',
+                    relativePath: 'assets/models3d/door.glb',
+                    inspection: Model3dInspection(
+                        bounds: Model3dBounds(
+                            min: Model3dVector3(x: -.1, y: 0, z: -.1),
+                            max: Model3dVector3(x: .1, y: 2, z: .1)),
+                        meshCount: 1,
+                        triangleCount: 1))
+                .toJson(),
+          ],
+        });
+    addTearDown(fixture.dispose);
+    final source = NarrativeEventSourceRef.modelInteract(before.id, door.id);
+    expect(narrativeEventSpatialSourceMapId(source), before.id);
+    expect(narrativeEventSpatialSourceOwnerId(source), door.id);
+    final envelope = _object(jsonDecode(jsonEncode({
+      'schemaVersion': 1,
+      'ownerKind': 'modelInstance',
+      'mapId': before.id,
+      'sourceId': door.id,
+      'owner': door.toJson(),
+    })));
+    final repository = NarrativeEventSpatialLinkJournalRepository();
+    final result = await repository.commitMap(
+        NarrativeEventSpatialLinkMapCommitRequest(
+            projectPath: fixture.projectPath,
+            projectRevision: fixture.revision,
+            operationId: 'model-link',
+            eventId: persistenceEventA,
+            eventRecordFingerprintBefore: _eventRecordFingerprintBefore,
+            beforeMap: before,
+            afterMap: after,
+            source: source,
+            sourceOwnerJson: envelope,
+            sourceOwnerFingerprint: narrativeEventBytesFingerprint(
+                canonicalizeNarrativeEventJsonUtf8(envelope))));
+    expect(result.status, NarrativeEventSpatialLinkOperationStatus.mapCommitted);
+    final inspection = await repository.inspectProject(fixture.projectPath);
+    expect(inspection.journal!.source, source);
+    expect(inspection.journal!.sourceOwnerJson, envelope);
+
+    final changed = after.copyWith(
+        spatialScene: after.spatialScene!.copyWith(instances: [
+      neighbor,
+      door.copyWith(rotationDegrees: 90),
+    ]));
+    await _writeMap(fixture, changed);
+    final rejected = await repository.cleanupSource(
+        projectPath: fixture.projectPath,
+        operationId: 'model-link',
+        confirmed: true);
+    expect(rejected.succeeded, isFalse);
+    expect((await _readMap(fixture)).spatialScene!.instances,
+        changed.spatialScene!.instances);
+
+    await _writeMap(fixture, after);
+    final cleaned = await repository.cleanupSource(
+        projectPath: fixture.projectPath,
+        operationId: 'model-link',
+        confirmed: true);
+    expect(cleaned.status, NarrativeEventSpatialLinkOperationStatus.cleaned);
+    final disk = await _readMap(fixture);
+    expect(disk.spatialScene!.instances, [neighbor]);
+    expect(disk.entities, before.entities);
+    expect(disk.triggers, before.triggers);
+  });
+
   test('spatial journal commit inspect and cleanup preserve transformed decor', () async {
     final map = _beforeMap.copyWith(layers: [MapLayer.tile(id: 'decor', name: 'Decor', cells: List.filled(48, 0))],
       placedElements: const [MapPlacedElement(id: 'placed', layerId: 'decor', elementId: 'prop', pos: GridPos(x: 2, y: 2),
