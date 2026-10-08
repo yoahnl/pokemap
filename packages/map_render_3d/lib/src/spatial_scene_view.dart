@@ -105,6 +105,7 @@ class SpatialSceneView extends StatefulWidget {
     this.selectionColor,
     this.actorFrames,
     this.onReady,
+    this.onVisibleMapsChanged,
     this.onContent,
     this.selectContent = true,
     this.onZoom,
@@ -129,6 +130,7 @@ class SpatialSceneView extends StatefulWidget {
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
+  final ValueChanged<Set<String>>? onVisibleMapsChanged;
   final ValueChanged<SpatialSceneContentHit>? onContent;
   final bool selectContent;
   final ValueChanged<double>? onZoom;
@@ -305,6 +307,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     }
     if (modelSourcesChanged) {
       game.cache.clear();
+      game.sceneChunks.clear();
       game.placementRenderer.clear();
     }
     if (widget.placementPreview == null) game.placementRenderer.clear();
@@ -527,7 +530,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
   SpatialActorVisual? actorVisual;
   double billboardPitch = 0, billboardYaw = 0;
-  final groundTextureCache = <(String, String), Future<Texture>>{};
+  final groundTextureCache = <String, Future<Texture>>{};
+  Map<String, _SceneChunk> sceneChunks = {};
   List<_SceneGround> grounds = [];
   late final sceneComponents = SpatialSceneComponents(world);
   late final placementRenderer = SpatialPlacementPreviewRenderer(
@@ -568,7 +572,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final snapshot = configuration;
     final neighbors = List<SpatialSceneNeighbor>.of(snapshot.neighbors);
     final definitions = {for (final model in snapshot.models) model.id: model};
-    final components = <Object3D>[];
+    final groups = <Object, Iterable<Object3D>>{};
+    final nextChunks = <String, _SceneChunk>{};
     final nextGrounds = <_SceneGround>[];
     final nextAnimationModels = <(String, String), _SceneModelComponent>{};
     final nextModelComponents =
@@ -603,6 +608,34 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         final map = placement.map;
         final project = snapshot.groundProject;
         final loader = placement.loader;
+        final mapId = map?.id ?? '__scene__';
+        final signature = (
+          map,
+          placement.scene,
+          project,
+          placement.offset,
+          snapshot.ground,
+          snapshot.edge,
+          placement.active ? snapshot.selectedCell : null,
+          placement.active ? snapshot.selectedContent?.kind : null,
+          placement.active ? snapshot.selectedContent?.id : null,
+          snapshot.selectionColor,
+        );
+        final previousChunk = sceneChunks[mapId];
+        if (previousChunk?.signature == signature) {
+          final chunk = previousChunk!;
+          nextChunks[mapId] = chunk;
+          groups[mapId] = chunk.components;
+          if (chunk.ground case final ground?) nextGrounds.add(ground);
+          for (final entry in chunk.models.entries) {
+            nextAnimationModels[(mapId, entry.key)] = entry.value.component;
+          }
+          if (placement.active) nextModelComponents.addAll(chunk.models);
+          continue;
+        }
+        final components = <Object3D>[];
+        final placedModels = <String, _ScenePlacedModel>{};
+        _SceneGround? sceneGround;
         SpatialGroundPlan? groundPlan;
         final textures = <String, Texture>{};
         if (map != null &&
@@ -613,7 +646,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           final plan = SpatialGroundPlan(map, project);
           groundPlan = plan;
           for (final id in plan.imageIds) {
-            final key = (map.id, id);
+            final key = id;
             final pending = groundTextureCache.putIfAbsent(
               key,
               () async => loadSpatialGroundTexture(
@@ -635,6 +668,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             if (ticket != generation || closed) return false;
           }
           final ground = _SceneGround(plan, textures, placement.offset);
+          sceneGround = ground;
           ground.resolve((groundElapsed * 1000).round());
           nextGrounds.add(ground);
           components.addAll(ground.components);
@@ -729,20 +763,28 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           );
           nextAnimationModels[animationKey] = component;
           components.add(component);
+          placedModels[instance.id] = (
+            component: component,
+            position: component.position.clone(),
+            anchor: instance.position,
+          );
           if (placement.active) {
-            nextModelComponents[instance.id] = (
-              component: component,
-              position: component.position.clone(),
-              anchor: instance.position,
-            );
+            nextModelComponents[instance.id] = placedModels[instance.id]!;
           }
         }
+        nextChunks[mapId] = _SceneChunk(
+          signature: signature,
+          components: components,
+          ground: sceneGround,
+          models: placedModels,
+        );
+        groups[mapId] = components;
       }
       if (ticket != generation || closed) return false;
       final nextCellOverlays = buildCellOverlays(snapshot);
-      components.addAll(nextCellOverlays);
-      return await sceneComponents.replace(
-        components,
+      groups[(#overlays,)] = nextCellOverlays;
+      return await sceneComponents.replaceGroups(
+        groups,
         isCurrent: () => ticket == generation && !closed,
         onCommit: () {
           for (final entry in actorSelections.entries) {
@@ -750,6 +792,19 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           }
           actorSelections.clear();
           grounds = nextGrounds;
+          sceneChunks = nextChunks;
+          final imageIds = {
+            for (final ground in grounds) ...ground.plan.imageIds,
+          };
+          groundTextureCache.removeWhere((id, _) => !imageIds.contains(id));
+          final modelIds = {
+            for (final placement in placements)
+              for (final instance in placement.scene.instances)
+                definitions[instance.modelId]?.sourceAssetId,
+            if (snapshot.placementPreview case final preview?)
+              definitions[preview.modelId]?.sourceAssetId,
+          };
+          cache.removeWhere((id, _) => !modelIds.contains(id));
           for (final entry in nextAnimationModels.entries) {
             final previous = animationModels[entry.key];
             if (previous != null) {
@@ -767,6 +822,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           syncPlacementPreview();
           syncCamera();
           syncActors(0);
+          snapshot.onVisibleMapsChanged?.call(
+            Set.unmodifiable({
+              for (final placement in placements)
+                if (placement.map case final map?) map.id,
+            }),
+          );
           if (!listEquals(snapshot.cellOverlays, configuration.cellOverlays)) {
             syncCellOverlays();
           }
@@ -848,7 +909,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   void syncCamera() {
-    if (refreshing) return;
+    if (refreshing && renderedConfiguration == null) return;
     final configuration = visibleConfiguration;
     final scene = configuration.scene;
     final control = configuration.controller;
@@ -914,7 +975,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   void update(double dt) {
     super.update(dt);
-    if (!sceneReady || closed || refreshing) return;
+    if (!sceneReady || closed || (refreshing && renderedConfiguration == null))
+      return;
     if (grounds.any((ground) => ground.plan.animated)) {
       if (dt.isFinite && dt > 0) groundElapsed += dt;
       for (final ground in grounds.where((ground) => ground.plan.animated)) {
@@ -1277,6 +1339,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     animationModels.clear();
     groundTextureCache.clear();
     grounds.clear();
+    sceneChunks.clear();
     actorSelections.clear();
     super.onRemove();
   }
@@ -1294,6 +1357,26 @@ bool _sameNeighbors(
     }
   }
   return true;
+}
+
+typedef _ScenePlacedModel = ({
+  _SceneModelComponent component,
+  Vector3 position,
+  Model3dVector3 anchor,
+});
+
+final class _SceneChunk {
+  _SceneChunk({
+    required this.signature,
+    required this.components,
+    required this.ground,
+    required this.models,
+  });
+
+  final Object signature;
+  final List<Object3D> components;
+  final _SceneGround? ground;
+  final Map<String, _ScenePlacedModel> models;
 }
 
 final class _SceneGround {

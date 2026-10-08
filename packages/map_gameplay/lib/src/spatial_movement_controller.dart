@@ -60,6 +60,25 @@ void _validateSpatialArrival(
   }
 }
 
+final class SpatialMovementNeighbor {
+  SpatialMovementNeighbor({
+    required this.controller,
+    required this.offsetX,
+    required this.offsetZ,
+  }) {
+    if (!offsetX.isFinite ||
+        !offsetZ.isFinite ||
+        offsetX != offsetX.roundToDouble() ||
+        offsetZ != offsetZ.roundToDouble()) {
+      throw ArgumentError('Une connexion doit être alignée sur les cases.');
+    }
+  }
+
+  final SpatialMovementController controller;
+  final double offsetX;
+  final double offsetZ;
+}
+
 final class SpatialMovementController {
   SpatialMovementController({
     required MapSpatialScene scene,
@@ -87,6 +106,7 @@ final class SpatialMovementController {
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
     String? preferredSpawnId,
+    bool validateSpawn = true,
     bool Function(MapEntity entity)? entityPresencePredicate,
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
@@ -138,6 +158,7 @@ final class SpatialMovementController {
               i++)
             if (layer.collisions[i]) i,
       },
+      validateSpawn: validateSpawn,
     );
   }
 
@@ -151,6 +172,7 @@ final class SpatialMovementController {
     required SpatialSpawn spawn,
     required EntityFacing spawnFacing,
     required Set<int> blockedCells,
+    bool validateSpawn = true,
   })  : entities = List.unmodifiable(entities),
         models = {for (final model in models) model.id: model},
         _spawn = spawn,
@@ -158,7 +180,7 @@ final class SpatialMovementController {
         _blockedCells = Set.unmodifiable(blockedCells),
         _entityPresencePredicate = entityPresencePredicate,
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
-    reset();
+    _reset(validateSpawn: validateSpawn);
   }
   final SpatialSpawn _spawn;
   final EntityFacing _spawnFacing;
@@ -166,6 +188,11 @@ final class SpatialMovementController {
   bool Function(MapEntity entity)? _entityPresencePredicate;
   GridPos? bumpedCell;
   MapConnectionDirection? edgeExitDirection;
+  PlayerSpatialPosition? connectionArrival;
+  Map<MapConnectionDirection, SpatialMovementNeighbor> _connectedNeighbors = {};
+  bool _connectedTraversalEnabled = false;
+  late final SpatialMovementNeighbor _localMap =
+      SpatialMovementNeighbor(controller: this, offsetX: 0, offsetZ: 0);
   final MapSpatialScene scene;
   final List<MapEntity> entities;
   final Map<String, ProjectModel3dEntry> models;
@@ -186,6 +213,84 @@ final class SpatialMovementController {
   PlayerSpatialPosition get spatialPosition =>
       PlayerSpatialPosition(x: x, z: z);
   double get y => scene.worldHeightAt(x, z);
+  bool get isPositionTraversable =>
+      x >= 0 &&
+      z >= 0 &&
+      x < scene.width &&
+      z < scene.depth &&
+      !_connectedCollides(_hitbox(_position));
+  void setConnectedNeighbors(
+      Map<MapConnectionDirection, SpatialMovementNeighbor> neighbors,
+      {bool waitForReady = false}) {
+    for (final entry in neighbors.entries) {
+      final neighbor = entry.value;
+      final aligned = switch (entry.key) {
+        MapConnectionDirection.east => neighbor.offsetX == scene.width,
+        MapConnectionDirection.west =>
+          neighbor.offsetX == -neighbor.controller.scene.width,
+        MapConnectionDirection.south => neighbor.offsetZ == scene.depth,
+        MapConnectionDirection.north =>
+          neighbor.offsetZ == -neighbor.controller.scene.depth,
+      };
+      if (!aligned || identical(neighbor.controller, this)) {
+        throw ArgumentError('La carte voisine ne rejoint pas ce bord.');
+      }
+    }
+    _connectedNeighbors = Map.unmodifiable(neighbors);
+    _connectedTraversalEnabled = waitForReady || neighbors.isNotEmpty;
+  }
+
+  void adoptConnectionMotion(SpatialMovementController source) {
+    final direction = source.edgeExitDirection;
+    final neighbor = source._connectedNeighbors[direction];
+    final arrival = source.connectionArrival;
+    if (neighbor == null ||
+        !identical(neighbor.controller, this) ||
+        arrival == null) {
+      throw StateError('Aucun raccord préparé ne mène à cette carte.');
+    }
+    _validateSpatialArrival(arrival, scene);
+    final candidate = PixelPosition(
+      leftPx: (arrival.x * pixelsPerCell).round() - 16,
+      topPx: (arrival.z * pixelsPerCell).round() - 31,
+    );
+    final opposite = switch (direction!) {
+      MapConnectionDirection.north => MapConnectionDirection.south,
+      MapConnectionDirection.south => MapConnectionDirection.north,
+      MapConnectionDirection.east => MapConnectionDirection.west,
+      MapConnectionDirection.west => MapConnectionDirection.east,
+    };
+    final neighbors = {
+      ..._connectedNeighbors,
+      opposite: SpatialMovementNeighbor(
+          controller: source,
+          offsetX: -neighbor.offsetX,
+          offsetZ: -neighbor.offsetZ)
+    };
+    final previousNeighbors = _connectedNeighbors;
+    _connectedNeighbors = neighbors;
+    if (_connectedCollides(_hitbox(candidate))) {
+      _connectedNeighbors = previousNeighbors;
+      throw StateError('Le raccord 3D est bloqué.');
+    }
+    _position = candidate;
+    _connectedTraversalEnabled = true;
+    _remainderX = source._remainderX;
+    _remainderZ = source._remainderZ;
+    _inputX = source._inputX;
+    _inputZ = source._inputZ;
+    _run = source._run;
+    paused = source.paused;
+    moving = source.moving;
+    allowDiagonalMovement = source.allowDiagonalMovement;
+    facing = source.facing;
+    animationSeconds = source.animationSeconds;
+    inputEpoch = source.inputEpoch;
+    bumpedCell = null;
+    edgeExitDirection = null;
+    connectionArrival = null;
+  }
+
   void setEntityPresencePredicate(bool Function(MapEntity entity)? predicate) {
     _entityPresencePredicate = predicate;
   }
@@ -265,6 +370,7 @@ final class SpatialMovementController {
   void releaseInput() {
     bumpedCell = null;
     edgeExitDirection = null;
+    connectionArrival = null;
     inputEpoch++;
     _inputX = _inputZ = 0;
     _run = false;
@@ -273,9 +379,17 @@ final class SpatialMovementController {
     animationSeconds = 0;
   }
 
-  void setPaused(bool value) {
+  void setPaused(bool value, {bool preserveInput = false}) {
+    if (paused == value) {
+      if (value &&
+          !preserveInput &&
+          (_inputX != 0 || _inputZ != 0 || _run || moving)) {
+        releaseInput();
+      }
+      return;
+    }
     paused = value;
-    releaseInput();
+    if (!preserveInput) releaseInput();
   }
 
   void setDiagonalMovement(bool value) {
@@ -283,12 +397,14 @@ final class SpatialMovementController {
     releaseInput();
   }
 
-  void reset() {
+  void reset() => _reset(validateSpawn: true);
+
+  void _reset({required bool validateSpawn}) {
     final candidate = PixelPosition(
       leftPx: (_spawn.x * pixelsPerCell).round() - 16,
       topPx: (_spawn.z * pixelsPerCell).round() - 31,
     );
-    if (_collides(_hitbox(candidate))) {
+    if (validateSpawn && _collides(_hitbox(candidate))) {
       throw StateError('Le point de départ 3D est bloqué.');
     }
     _position = candidate;
@@ -316,6 +432,7 @@ final class SpatialMovementController {
   void update(double dt) {
     bumpedCell = null;
     edgeExitDirection = null;
+    connectionArrival = null;
     if (!dt.isFinite || dt <= 0 || paused) return;
     final elapsed = dt.clamp(0.0, .05);
     var dx = _inputX, dz = _inputZ;
@@ -353,6 +470,22 @@ final class SpatialMovementController {
         spriteWidthPx: 32,
         spriteHeightPx: 32,
         worldStaticObstaclesCollidePixelRect: (rect) {
+          if (_connectedTraversalEnabled) {
+            final blocked = _connectedCollides(rect) ||
+                !_canTraverseConnectedTerrain(
+                    rect.bottomCenterPx.xPx / pixelsPerCell +
+                        (originX - rect.bottomCenterPx.xPx / pixelsPerCell)
+                                .sign /
+                            pixelsPerCell,
+                    rect.bottomCenterPx.yPx / pixelsPerCell +
+                        (originZ - rect.bottomCenterPx.yPx / pixelsPerCell)
+                                .sign /
+                            pixelsPerCell,
+                    rect.bottomCenterPx.xPx / pixelsPerCell,
+                    rect.bottomCenterPx.yPx / pixelsPerCell);
+            if (blocked) collided = true;
+            return blocked;
+          }
           if (_collides(rect)) {
             collided = true;
             if ((dx == 0 || dz == 0) && !_collides(rect, ignoreBounds: true)) {
@@ -408,6 +541,107 @@ final class SpatialMovementController {
     } else if (stepX != 0 || stepZ != 0) {
       animationSeconds = 0;
     }
+    if (_connectedTraversalEnabled &&
+        (x < 0 || z < 0 || x >= scene.width || z >= scene.depth)) {
+      final direction = x < 0
+          ? MapConnectionDirection.west
+          : x >= scene.width
+              ? MapConnectionDirection.east
+              : z < 0
+                  ? MapConnectionDirection.north
+                  : MapConnectionDirection.south;
+      final neighbor = _connectedNeighbors[direction];
+      if (neighbor != null) {
+        connectionArrival = PlayerSpatialPosition(
+            x: x - neighbor.offsetX, z: z - neighbor.offsetZ);
+        edgeExitDirection = direction;
+      }
+      _position = before;
+    }
+  }
+
+  SpatialMovementNeighbor? _connectedMapAt(double x, double z) {
+    if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
+      return _localMap;
+    }
+    for (final neighbor in _connectedNeighbors.values) {
+      final localX = x - neighbor.offsetX, localZ = z - neighbor.offsetZ;
+      if (localX >= 0 &&
+          localZ >= 0 &&
+          localX < neighbor.controller.scene.width &&
+          localZ < neighbor.controller.scene.depth) {
+        return neighbor;
+      }
+    }
+    return null;
+  }
+
+  bool _canTraverseConnectedTerrain(
+      double ax, double az, double bx, double bz) {
+    final a = _connectedMapAt(ax, az), b = _connectedMapAt(bx, bz);
+    if (a == null || b == null) return false;
+    if (identical(a.controller, b.controller)) {
+      return canTraverseSpatialTerrainStep(a.controller.scene, ax - a.offsetX,
+          az - a.offsetZ, bx - b.offsetX, bz - b.offsetZ);
+    }
+    return (a.controller.scene.worldHeightAt(ax - a.offsetX, az - a.offsetZ) -
+                b.controller.scene
+                    .worldHeightAt(bx - b.offsetX, bz - b.offsetZ))
+            .abs() <=
+        .25;
+  }
+
+  bool _connectedCollides(PixelRect rect) {
+    final left = rect.leftPx, top = rect.topPx;
+    final right = left + rect.widthPx, bottom = top + rect.heightPx;
+    if (left >= 0 &&
+        top >= 0 &&
+        right <= scene.width * pixelsPerCell &&
+        bottom <= scene.depth * pixelsPerCell) {
+      return _collides(rect);
+    }
+    for (var pz = top; pz < bottom; pz++) {
+      for (var px = left; px < right; px++) {
+        if (_connectedMapAt(px / pixelsPerCell, pz / pixelsPerCell) == null) {
+          return true;
+        }
+        if (px + 1 < right &&
+            !_canTraverseConnectedTerrain(
+                px / pixelsPerCell,
+                pz / pixelsPerCell,
+                (px + 1) / pixelsPerCell,
+                pz / pixelsPerCell)) {
+          return true;
+        }
+        if (pz + 1 < bottom &&
+            !_canTraverseConnectedTerrain(
+                px / pixelsPerCell,
+                pz / pixelsPerCell,
+                px / pixelsPerCell,
+                (pz + 1) / pixelsPerCell)) {
+          return true;
+        }
+      }
+    }
+    for (final neighbor in [_localMap, ..._connectedNeighbors.values]) {
+      final ox = (neighbor.offsetX * pixelsPerCell).round();
+      final oz = (neighbor.offsetZ * pixelsPerCell).round();
+      final localLeft = math.max(0, left - ox);
+      final localTop = math.max(0, top - oz);
+      final localRight =
+          math.min(neighbor.controller.scene.width * pixelsPerCell, right - ox);
+      final localBottom = math.min(
+          neighbor.controller.scene.depth * pixelsPerCell, bottom - oz);
+      if (localLeft >= localRight || localTop >= localBottom) continue;
+      if (neighbor.controller._collides(PixelRect(
+          leftPx: localLeft,
+          topPx: localTop,
+          widthPx: localRight - localLeft,
+          heightPx: localBottom - localTop))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   bool _collides(PixelRect rect,

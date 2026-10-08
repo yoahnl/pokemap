@@ -7,27 +7,47 @@ final class SpatialSceneComponents {
   SpatialSceneComponents(this.parent);
 
   final Component parent;
-  _SceneBatch? _active;
+  Map<Object, _SceneBatch> _active = {};
   _PendingScene? _pending;
 
   Future<bool> replace(
     Iterable<Component> next, {
     bool Function()? isCurrent,
     void Function()? onCommit,
+  }) =>
+      replaceGroups({Object(): next}, isCurrent: isCurrent, onCommit: onCommit);
+
+  Future<bool> replaceGroups(
+    Map<Object, Iterable<Component>> groups, {
+    bool Function()? isCurrent,
+    void Function()? onCommit,
   }) async {
     cancelPending();
-    final children = next.toList();
+    final next = <Object, _SceneBatch>{};
+    final staged = <_SceneBatch>[];
+    for (final entry in groups.entries) {
+      final children = entry.value.toList();
+      final previous = _active[entry.key];
+      if (previous != null && previous.matches(children)) {
+        next[entry.key] = previous;
+      } else {
+        final batch = _SceneBatch(children);
+        next[entry.key] = batch;
+        staged.add(batch);
+      }
+    }
     final descendants = [
-      for (final child in children) ...child.descendants(includeSelf: true),
+      for (final batch in staged)
+        for (final child in batch.source)
+          ...child.descendants(includeSelf: true),
     ];
-    final batch = _SceneBatch(children);
-    final pending = _PendingScene(batch);
+    final pending = _PendingScene(staged);
     _pending = pending;
     try {
-      parent.add(batch);
+      parent.addAll(staged);
       final ready = parent.isMounted
           ? Future.wait([
-              batch.mounted,
+              for (final batch in staged) batch.mounted,
               for (final child in descendants) child.mounted,
             ]).then((_) => true)
           : Future.value(true);
@@ -39,19 +59,29 @@ final class SpatialSceneComponents {
         return false;
       }
       final previous = _active;
-      previous?.visible = false;
-      batch.visible = true;
-      _active = batch;
+      for (final batch in previous.values) {
+        if (!next.containsValue(batch)) batch.visible = false;
+      }
+      for (final batch in next.values) {
+        batch.visible = true;
+      }
+      _active = next;
       _pending = null;
       try {
         onCommit?.call();
       } on Object {
-        batch.visible = false;
-        previous?.visible = true;
+        for (final batch in staged) {
+          batch.visible = false;
+        }
+        for (final batch in previous.values) {
+          batch.visible = true;
+        }
         _active = previous;
         rethrow;
       }
-      previous?.removeFromParent();
+      for (final batch in previous.values) {
+        if (!next.containsValue(batch)) batch.removeFromParent();
+      }
       return true;
     } on Object {
       _cancel(pending);
@@ -60,10 +90,19 @@ final class SpatialSceneComponents {
   }
 
   void replaceSubset(Iterable<Component> previous, Iterable<Component> next) {
-    final batch = _active;
+    final previousChildren = previous.toList();
+    final batch =
+        _active.values
+            .where(
+              (candidate) => previousChildren.any(
+                (component) => identical(component.parent, candidate),
+              ),
+            )
+            .firstOrNull ??
+        _active.values.lastOrNull;
     if (batch == null) return;
     batch.removeAll(
-      previous.where((component) => identical(component.parent, batch)),
+      previousChildren.where((component) => identical(component.parent, batch)),
     );
     batch.addAll(next);
   }
@@ -74,29 +113,43 @@ final class SpatialSceneComponents {
   }
 
   void _cancel(_PendingScene pending) {
-    pending.batch.visible = false;
-    pending.batch.removeFromParent();
+    for (final batch in pending.batches) {
+      batch.visible = false;
+      batch.removeFromParent();
+    }
     if (!pending.cancelled.isCompleted) pending.cancelled.complete(false);
     if (identical(_pending, pending)) _pending = null;
   }
 
   void dispose() {
     cancelPending();
-    _active?.visible = false;
-    _active?.removeFromParent();
-    _active = null;
+    for (final batch in _active.values) {
+      batch.visible = false;
+      batch.removeFromParent();
+    }
+    _active = {};
   }
 }
 
 final class _PendingScene {
-  _PendingScene(this.batch);
+  _PendingScene(this.batches);
 
-  final _SceneBatch batch;
+  final List<_SceneBatch> batches;
   final cancelled = Completer<bool>();
 }
 
 final class _SceneBatch extends Component {
-  _SceneBatch(List<Component> children) : super(children: children);
+  _SceneBatch(this.source) : super(children: source);
+
+  final List<Component> source;
+
+  bool matches(List<Component> next) {
+    if (source.length != next.length) return false;
+    for (var index = 0; index < source.length; index++) {
+      if (!identical(source[index], next[index])) return false;
+    }
+    return true;
+  }
 
   bool visible = false;
 

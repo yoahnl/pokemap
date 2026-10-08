@@ -45,6 +45,119 @@ List<String> _render(World3D world, List<String> rendered) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('connected maps retain mounted components when promoted', (
+    tester,
+  ) async {
+    final game = await _mountedGame(tester);
+    final scene = SpatialSceneComponents(game.world);
+    final rendered = <String>[];
+    final village = _SceneProbe('village', rendered);
+    final forest = _SceneProbe('forest', rendered);
+    final first = scene.replaceGroups({
+      'village': [village],
+      'forest': [forest],
+    });
+    await tester.runAsync(game.ready);
+    expect(await tester.runAsync(() => first), isTrue);
+    final originalVillageParent = village.parent;
+    final originalForestParent = forest.parent;
+    final next = scene.replaceGroups({
+      'forest': [forest],
+      'village': [village],
+    });
+    await tester.runAsync(game.ready);
+    expect(await tester.runAsync(() => next), isTrue);
+    expect(village.parent, same(originalVillageParent));
+    expect(forest.parent, same(originalForestParent));
+    expect(_render(game.world, rendered), ['village', 'forest']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('pending neighbor keeps retained and previous maps visible', (
+    tester,
+  ) async {
+    final game = await _mountedGame(tester);
+    final scene = SpatialSceneComponents(game.world);
+    final rendered = <String>[];
+    final village = _SceneProbe('village', rendered);
+    final forest = _SceneProbe('forest', rendered);
+    final first = scene.replaceGroups({
+      'village': [village],
+      'forest': [forest],
+    });
+    await tester.runAsync(game.ready);
+    await tester.runAsync(() => first);
+    final gate = Completer<void>();
+    final next = scene.replaceGroups({
+      'forest': [forest],
+      'clearing': [_SceneProbe('clearing', rendered, loading: gate)],
+    });
+    game.update(0);
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    game.update(0);
+    expect(_render(game.world, rendered), ['village', 'forest']);
+    gate.complete();
+    await tester.runAsync(game.ready);
+    expect(await tester.runAsync(() => next), isTrue);
+    expect(_render(game.world, rendered), ['forest', 'clearing']);
+    await tester.runAsync(game.ready);
+    expect(game.world.descendants(), isNot(contains(village)));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('cancelled neighbor never removes retained map components', (
+    tester,
+  ) async {
+    final game = await _mountedGame(tester);
+    final scene = SpatialSceneComponents(game.world);
+    final rendered = <String>[];
+    final forest = _SceneProbe('forest', rendered);
+    final first = scene.replaceGroups({
+      'forest': [forest],
+    });
+    await tester.runAsync(game.ready);
+    await tester.runAsync(() => first);
+    final originalParent = forest.parent;
+    final gate = Completer<void>();
+    final stale = scene.replaceGroups({
+      'forest': [forest],
+      'clearing': [_SceneProbe('clearing', rendered, loading: gate)],
+    });
+    game.update(0);
+    final latest = scene.replaceGroups({
+      'forest': [forest],
+    });
+    gate.complete();
+    await tester.runAsync(game.ready);
+    expect(await tester.runAsync(() => stale), isFalse);
+    expect(await tester.runAsync(() => latest), isTrue);
+    expect(forest.parent, same(originalParent));
+    expect(_render(game.world, rendered), ['forest']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('promoted map retains its current animated ground', (
+    tester,
+  ) async {
+    final game = await _mountedGame(tester);
+    final scene = SpatialSceneComponents(game.world);
+    final rendered = <String>[];
+    final oldGround = _SceneProbe('old-ground', rendered);
+    final tree = _SceneProbe('tree', rendered);
+    final source = [oldGround, tree];
+    final first = scene.replaceGroups({'forest': source});
+    await tester.runAsync(game.ready);
+    await tester.runAsync(() => first);
+    final animatedGround = _SceneProbe('animated-ground', rendered);
+    scene.replaceSubset([oldGround], [animatedGround]);
+    await tester.runAsync(game.ready);
+    final promoted = scene.replaceGroups({'forest': source});
+    await tester.runAsync(game.ready);
+    expect(await tester.runAsync(() => promoted), isTrue);
+    expect(_render(game.world, rendered), ['tree', 'animated-ground']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('initial scene commits before its world is mounted', () async {
     final world = World3D();
     final scene = SpatialSceneComponents(world);

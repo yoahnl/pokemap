@@ -68,8 +68,188 @@ void main() {
   });
   tearDown(() async => root.delete(recursive: true));
 
+  test('prepared neighbors share resources and preserve moving animation',
+      () async {
+    const connection = MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'target',
+        offset: 0);
+    source =
+        source.copyWith(map: source.map.copyWith(connections: [connection]));
+    target = target.copyWith(
+        map: target.map.copyWith(entities: [
+      MapEntity(
+          id: 'guide',
+          kind: MapEntityKind.npc,
+          pos: const GridPos(x: 3, y: 3),
+          npc: const MapEntityNpcData(characterId: 'hero')),
+    ]));
+    var loads = 0;
+    final session =
+        await SpatialExplorationSession.load(source, loadMap: (_) async {
+      loads++;
+      return target;
+    });
+    addTearDown(session.dispose);
+    final prepared = await Future.wait([
+      session.loadConnectionNeighbor(connection),
+      session.loadConnectionNeighbor(connection),
+    ]);
+    expect(loads, 1);
+    expect(prepared.first, same(prepared.last));
+    final before = session.frames(0);
+    expect(session.frames(0, mapIds: {'source'}).keys,
+        isNot(contains('target:npc:guide')));
+    expect(before['target:npc:guide']!.x, 11.5);
+    expect(before['target:npc:guide']!.texture, same(before['hero']!.texture));
+    session.setVisibleMaps({'source', 'target'});
+    final transitions = <bool>[];
+    session.transitioning
+        .addListener(() => transitions.add(session.transitioning.value));
+    session.movement.setInput(x: 1, z: 0, run: true);
+    var previousPhase = 0.0;
+    for (var index = 0;
+        index < 100 && session.bundle.map.id == 'source';
+        index++) {
+      previousPhase = session.movement.animationSeconds;
+      session.frame(.05);
+    }
+    expect(session.bundle.map.id, 'target');
+    expect(transitions, isEmpty);
+    expect(session.movement.running, isTrue);
+    expect(
+        session.movement.animationSeconds, greaterThanOrEqualTo(previousPhase));
+    final arrivalX = session.movement.x;
+    session.frame(.05);
+    expect(session.movement.x, greaterThan(arrivalX));
+    expect(session.frames(0)['target:npc:guide']!.x, 3.5);
+    expect(loads, 1);
+  });
+
+  test('retained neighbor collision reads its own map state after promotion',
+      () async {
+    const connection = MapConnection(
+        direction: MapConnectionDirection.east, targetMapId: 'target');
+    final npc = MapEntity(
+        id: 'guide',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 2),
+        npc: const MapEntityNpcData(characterId: 'hero'));
+    source = source.copyWith(
+        map: source.map.copyWith(connections: [connection], entities: [npc]));
+    target = target.copyWith(map: target.map.copyWith(entities: [npc]));
+    var world = const SpatialWorldState.empty()
+        .setActorState(
+            'source',
+            'guide',
+            SpatialActorRuntimeState(
+                x: 1.5, z: 1.5, facing: EntityFacing.south))
+        .setActorState(
+            'target',
+            'guide',
+            SpatialActorRuntimeState(
+                x: 3.5, z: 3.5, facing: EntityFacing.south));
+    final session = await SpatialExplorationSession.load(source,
+        worldStateProvider: () => world, loadMap: (_) async => target);
+    addTearDown(session.dispose);
+    session.attachWorldStateProviders();
+    final oldMovement = session.movement;
+    await session.loadConnectionNeighbor(connection);
+    session.setVisibleMaps({'source', 'target'});
+    attemptExit(session, MapConnectionDirection.east);
+    expect(session.bundle.map.id, 'target');
+    expect(oldMovement.isPositionTraversable, isTrue);
+    world = world.setActorState(
+        'source',
+        'guide',
+        SpatialActorRuntimeState(
+            x: oldMovement.x, z: oldMovement.z, facing: EntityFacing.south));
+    expect(oldMovement.isPositionTraversable, isFalse);
+    expect(session.frames(0)['target:npc:guide']!.x, 3.5);
+  });
+
+  test('maps outside active neighbors and rendered window are evicted',
+      () async {
+    const connection = MapConnection(
+        direction: MapConnectionDirection.east, targetMapId: 'target');
+    const outward = MapWarp(
+        id: 'outward',
+        pos: GridPos(x: 2, y: 2),
+        targetMapId: 'third',
+        targetPos: GridPos(x: 3, y: 3));
+    const back = MapWarp(
+        id: 'back',
+        pos: GridPos(x: 2, y: 2),
+        targetMapId: 'source',
+        targetPos: GridPos(x: 3, y: 3));
+    source = source.copyWith(
+        map: source.map.copyWith(connections: [connection], warps: [outward]));
+    final third =
+        target.copyWith(map: target.map.copyWith(id: 'third', warps: [back]));
+    final loaded = <String>[];
+    final session =
+        await SpatialExplorationSession.load(source, loadMap: (id) async {
+      loaded.add(id);
+      return id == 'source'
+          ? source
+          : id == 'target'
+              ? target
+              : third;
+    });
+    addTearDown(session.dispose);
+    await session.loadConnectionNeighbor(connection);
+    session.setVisibleMaps({'source', 'target'});
+    await session.enterWarp(outward);
+    session.setVisibleMaps({'third'});
+    await session.enterWarp(back);
+    await session.loadConnectionNeighbor(connection);
+    expect(loaded, ['target', 'third', 'source', 'target']);
+  });
+
+  for (final oneWay in [false, true]) {
+    test('saved connected edge validates prepared neighbors oneWay=$oneWay',
+        () async {
+      const east = MapConnection(
+          direction: MapConnectionDirection.east, targetMapId: 'target');
+      const west = MapConnection(
+          direction: MapConnectionDirection.west, targetMapId: 'source');
+      source = source.copyWith(map: source.map.copyWith(connections: [east]));
+      target = target.copyWith(
+          map: target.map.copyWith(connections: oneWay ? [] : [west]));
+      final session = await SpatialExplorationSession.load(target,
+          spatialArrival: PlayerSpatialPosition(x: .125, z: 3.8125),
+          knownMaps: [source.map, target.map],
+          loadMap: (id) async => id == 'source' ? source : target);
+      addTearDown(session.dispose);
+      expect(session.movement.x, .125);
+      expect(session.movement.z, 3.8125);
+      expect(session.movement.isPositionTraversable, isTrue);
+      expect(session.viewConnections, contains(west));
+      if (oneWay) {
+        expect(session.bundle.map.connections, isEmpty);
+        session.movement.setInput(x: -1, z: 0);
+        session.frame(.05);
+        expect(session.bundle.map.id, 'target');
+        expect(session.transitioning.value, isFalse);
+      }
+      final restored = await SpatialExplorationSession.load(source,
+          knownMaps: [source.map, target.map],
+          loadMap: (id) async => id == 'source' ? source : target);
+      addTearDown(restored.dispose);
+      await restored.restoreGameState(GameState(
+          saveId: 'edge-save',
+          currentMapId: 'target',
+          playerPosition: const GridPos(x: 0, y: 3),
+          playerSpatialPosition: PlayerSpatialPosition(x: .125, z: 3.8125),
+          playerFacing: EntityFacing.east));
+      expect(restored.bundle.map.id, 'target');
+      expect(restored.movement.x, .125);
+      expect(restored.movement.isPositionTraversable, isTrue);
+    });
+  }
+
   testWidgets(
-      'connected viewport retains world placement, neighbors and smooth arrival',
+      'connected viewport retains world placement and continuous arrival',
       (tester) async {
     const forward = MapConnection(
         direction: MapConnectionDirection.east,
@@ -106,14 +286,17 @@ void main() {
     expect(scene.neighbors.single.map.id, 'target');
     expect(scene.neighbors.single.offset, const Offset(8, 2));
     expect(scene.sceneOffset, Offset.zero);
+    session.setVisibleMaps({'source', 'target'});
     await tester.runAsync(() async {
       attemptExit(session, MapConnectionDirection.east);
       await settle(session);
     });
     final oldViewportHero = scene.actorFrames!(0)['hero']!;
     final connectionEntry = session.connectionEntry!;
-    expect(oldViewportHero.x + scene.sceneOffset.dx,
-        closeTo(connectionEntry.sourceX, .0001));
+    expect(
+        oldViewportHero.x + scene.sceneOffset.dx,
+        inInclusiveRange(
+            connectionEntry.sourceX, connectionEntry.sourceX + .16));
     expect(oldViewportHero.z + scene.sceneOffset.dy,
         closeTo(connectionEntry.sourceZ, .0001));
     await tester.pump();
@@ -124,10 +307,9 @@ void main() {
     expect(scene.neighbors.single.map.id, 'source');
     expect(scene.neighbors.single.offset, const Offset(-8, -2));
     expect(loadedMaps.where((id) => id == 'source'), isEmpty);
-    final entry = session.connectionEntry!;
     final first = scene.actorFrames!(0)['hero']!;
-    expect(first.x + scene.sceneOffset.dx, closeTo(entry.sourceX, .0001));
-    expect(first.z + scene.sceneOffset.dy, closeTo(entry.sourceZ, .0001));
+    expect(first.x + scene.sceneOffset.dx, closeTo(oldViewportHero.x, .0001));
+    expect(first.z + scene.sceneOffset.dy, closeTo(oldViewportHero.z, .0001));
     final arrived = scene.actorFrames!(.15)['hero']!;
     expect(arrived.x, session.movement.x);
     await tester.runAsync(() => session.enterWarp(target.map.warps.single));
@@ -207,7 +389,7 @@ void main() {
         expect(session.bundle.map.id, 'source');
         expect(session.movement.x, sourceCell.x + .5);
         expect(session.movement.z, sourceCell.y + .5);
-        expect(loads, 2);
+        expect(loads, 1);
       });
     }
   }
@@ -531,8 +713,13 @@ void main() {
 void attemptExit(
     SpatialExplorationSession session, MapConnectionDirection direction) {
   final (dx, dz) = input(direction);
+  final sourceId = session.bundle.map.id;
   session.movement.setInput(x: dx, z: dz);
-  for (var i = 0; i < 100 && !session.transitioning.value; i++) {
+  for (var i = 0;
+      i < 100 &&
+          !session.transitioning.value &&
+          session.bundle.map.id == sourceId;
+      i++) {
     session.frame(.05);
   }
 }

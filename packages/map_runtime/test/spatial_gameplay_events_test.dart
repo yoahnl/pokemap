@@ -13,6 +13,20 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/spatial/spatial_gameplay_events.dart';
 
 void main() {
+  test('empty connected activation preserves movement without taking the gameplay gate', () async {
+    final map = _map();
+    final host = await _Host.create(_project(map), map);
+    final activation = _activation('connected', MapActivationReason.connection);
+    final pending = host.events.activateMap(activation);
+    expect(host.events.isBusy, isFalse);
+    expect(host.gate.activity, NarrativeRuntimeActivity.idle);
+    expect(host.state.narrativeEventProgress.activeNarrativeMapId, map.id);
+    expect(host.state.narrativeEventProgress.visitedNarrativeMapIds, contains(map.id));
+    host.moveTo(3.25, 2.5);
+    await pending;
+    expect(host.state.playerSpatialPosition, PlayerSpatialPosition(x: 3.25, z: 2.5));
+  });
+
   test('map enter executes once per activation and persists one-shot reuse',
       () async {
     final map = _map();
@@ -30,6 +44,56 @@ void main() {
     expect(host.state.narrativeEventProgress.consumedNarrativeEventIds,
         {_id('evt', 1)});
     expect(host.gate.activity, NarrativeRuntimeActivity.idle);
+  });
+
+  test('connected activation drains a pending outcome instead of bypassing it', () async {
+    final map = _map();
+    final outcome = NarrativeOutcomeRef(producerKind: NarrativeOutcomeProducerKind.scene,
+      producerId: 'producer', outcomeId: 'completed');
+    final project = _project(map, records: [
+      _event(1, NarrativeEventSourceRef.outcomeReceived(outcome), 'reward')
+    ], scenes: [
+      _scene('producer', [], outcome: 'completed'),
+      _scene('reward', [SceneConsequence.giveMoney(amount: 25)]),
+    ]);
+    final host = await _Host.create(project, map, state: GameState(
+      saveId: 'save', currentMapId: map.id,
+      playerPosition: const GridPos(x: 2, y: 2),
+      narrativeEventProgress: NarrativeEventProgress(pendingNarrativeOutcomeDeliveries: [
+        NarrativeOutcomeDelivery(deliveryId: _id('outd', 2), outcome: outcome,
+          rootCorrelationId: _id('corr', 3), depth: 0, attemptCount: 0),
+      ]),
+    ));
+    final pending = host.events.activateMap(_activation('connected', MapActivationReason.connection));
+    expect(host.events.isBusy, isTrue);
+    await pending;
+    expect(host.state.trainerProfile.money, 25);
+    expect(host.state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries, isEmpty);
+  });
+
+  test('empty connected activation still resets one-shot interactions on reentry', () async {
+    final map = _map(entities: const [MapEntity(id: 'pickup',
+      kind: MapEntityKind.item, pos: GridPos(x: 2, y: 3))]);
+    final event = NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(id: _id('evt', 1), name: 'Pickup',
+        source: NarrativeEventSourceRef.entityInteract(map.id, 'pickup'),
+        conditions: [], sceneId: 'reward', reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0, order: 0, resetPolicy: const NarrativeEventResetPolicy.onMapReentry()),
+      enabled: true);
+    final host = await _Host.create(_project(map, records: [event],
+      scenes: [_scene('reward', [SceneConsequence.giveMoney(amount: 7)])]), map,
+      state: GameState(saveId: 'save', currentMapId: map.id,
+        playerPosition: const GridPos(x: 2, y: 2),
+        playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 2.5),
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: {_id('evt', 1)},
+          activeNarrativeMapId: 'previous', visitedNarrativeMapIds: {'previous', map.id})));
+    final pending = host.events.activateMap(_activation('reentry', MapActivationReason.connection));
+    expect(host.events.isBusy, isFalse);
+    await pending;
+    expect(host.state.narrativeEventProgress.consumedNarrativeEventIds, isEmpty);
+    await host.events.interact();
+    expect(host.state.trainerProfile.money, 7);
   });
 
   test('pickup commits once and world rule removes its interaction presence',
@@ -66,7 +130,7 @@ void main() {
     ]).copyWith(
         facts: [NarrativeFactDefinition(id: 'picked', label: 'Picked')]);
     final host = await _Host.create(project, map);
-    await host.events.activateMap(_activation('pickup'));
+    await host.events.activateMap(_activation('pickup', MapActivationReason.connection));
     expect(host.events.interactionTarget?.id, 'pickup');
     expect(await host.events.interact(),
         isA<NarrativeSpatialProductionDispatchV2Handled>());

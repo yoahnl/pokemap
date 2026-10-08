@@ -331,6 +331,40 @@ void main() {
     expect(player.z.isFinite, isTrue);
   });
 
+  test('transient suspension retains motion, sprint and animation phase', () {
+    final player = SpatialMovementController(scene: plateau(), models: []);
+    steps(player, 3, run: true);
+    final position = player.spatialPosition;
+    final animationSeconds = player.animationSeconds;
+    final inputEpoch = player.inputEpoch;
+    player.setPaused(true, preserveInput: true);
+    player.update(.05);
+    expect(player.spatialPosition, position);
+    expect(player.animationSeconds, animationSeconds);
+    expect(player.inputEpoch, inputEpoch);
+    player.setPaused(false, preserveInput: true);
+    player.update(.05);
+    expect(player.z, lessThan(position.z));
+    expect(player.running, isTrue);
+    expect(player.animationSeconds, greaterThan(animationSeconds));
+    expect(player.inputEpoch, inputEpoch);
+  });
+
+  test('a real pause interrupts input during a transient suspension', () {
+    final player = SpatialMovementController(scene: plateau(), models: []);
+    steps(player, 3, run: true);
+    final position = player.spatialPosition;
+    final inputEpoch = player.inputEpoch;
+    player.setPaused(true, preserveInput: true);
+    player.setPaused(true);
+    expect(player.inputEpoch, inputEpoch + 1);
+    expect(player.moving, isFalse);
+    player.setPaused(false, preserveInput: true);
+    player.update(.05);
+    expect(player.spatialPosition, position);
+    expect(player.running, isFalse);
+  });
+
   test('a live door opens and closes without clearing held input', () {
     var doorState = _doorState(true);
     final player = SpatialMovementController(

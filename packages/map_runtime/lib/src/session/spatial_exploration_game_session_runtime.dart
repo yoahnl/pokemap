@@ -157,6 +157,8 @@ final class SpatialExplorationGameSessionRuntime
         sessionId: descriptor.sessionId,
         mapActivationId: _mapActivationId,
         mapId: session.bundle.map.id,
+        movementContinuityId:
+            '${descriptor.sessionId}:${session.movement.inputEpoch}',
         primaryAction: RuntimeOverworldInteractionAction(
             request: RuntimeOverworldInteractionRequest(
                 sessionId: descriptor.sessionId,
@@ -187,6 +189,8 @@ final class SpatialExplorationGameSessionRuntime
         sessionId: descriptor.sessionId,
         mapActivationId: _mapActivationId,
         mapId: session.bundle.map.id,
+        movementContinuityId:
+            '${descriptor.sessionId}:${session.movement.inputEpoch}',
         primaryAction: npc == null ||
                 (_gameplay == null && npc.npc?.dialogue == null)
             ? null
@@ -328,11 +332,11 @@ final class SpatialExplorationGameSessionRuntime
         state: gameStateSnapshot.spatialWorldState,
         project: project,
         maps: maps.values);
+    _mapsById = Map.unmodifiable(maps);
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
       return;
     }
-    _mapsById = Map.unmodifiable(maps);
     _battle = SpatialBattleRuntime(
         readGameState: _readMutableState,
         commitGameState: (expected, next) {
@@ -603,12 +607,17 @@ final class SpatialExplorationGameSessionRuntime
     _lastCell = _gameState!.playerPosition;
     final gameplay = _gameplay;
     if (gameplay != null) {
-      unawaited(_runGameplay(() => gameplay.activateMap(MapActivation(
+      final activation = MapActivation(
           activationId: _mapActivationId,
           mapId: _session!.bundle.map.id,
           reason: _session!.connectionEntry == null
               ? MapActivationReason.warp
-              : MapActivationReason.connection))));
+              : MapActivationReason.connection);
+      if (gameplay.tryActivateConnectedMap(activation)) {
+        _publishInteractions();
+        return;
+      }
+      unawaited(_runGameplay(() => gameplay.activateMap(activation)));
     }
   }
 
@@ -689,6 +698,7 @@ final class SpatialExplorationGameSessionRuntime
           narrativeSnapshot: preload?.narrativeSnapshot);
       _ensureLoadActive(generation);
       final loaded = await SpatialExplorationSession.load(bundle,
+          knownMaps: _mapsById.values,
           worldStateProvider: () => _gameState!.spatialWorldState,
           spatialArrival: position,
           facing: state.playerFacing,
@@ -847,7 +857,8 @@ final class SpatialExplorationGameSessionRuntime
       _materializationResumed = null;
     }
     _session?.dialoguePaused = paused;
-    _session?.movement.setPaused(paused || talking || battling || busy);
+    _session?.movement.setPaused(paused || talking || battling || busy,
+        preserveInput: !paused && !talking && !battling);
     if (!paused && !talking && !battling && !busy) {
       _session?.movement.setInput(
           x: (_pressed.contains(RuntimeInputControl.right) ? 1 : 0) -

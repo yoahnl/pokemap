@@ -131,7 +131,7 @@ void main() {
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.dialogue);
     final line = runtime.dialoguePresentationListenable.value!;
     expect(line.text, 'Salut !');
-    expect(session.frames(0).keys, containsAll(['hero', 'npc:npc']));
+    expect(session.frames(0).keys, containsAll(['hero', 'field:npc:npc']));
     expect(session.movement.running, isFalse);
     runtime.dispatchDialoguePresentationCommand(
         DialogueAdvanceCommand(snapshotRevision: line.revision));
@@ -233,6 +233,100 @@ void main() {
   });
 
   test(
+      'prepared connection keeps running phase and never rewinds an empty activation',
+      () async {
+    const connection = MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'other',
+        offset: 0);
+    final hero = ProjectCharacterEntry(
+        id: 'hero',
+        name: 'Hero',
+        tilesetId: 'hero',
+        animations: [
+          for (final state in [
+            CharacterAnimationState.walk,
+            CharacterAnimationState.run
+          ])
+            for (final direction in EntityFacing.values)
+              CharacterAnimation(
+                  state: state,
+                  direction: direction,
+                  frames: const [
+                    CharacterAnimationFrame(
+                        source:
+                            TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+                        durationMs: 100)
+                  ])
+        ]);
+    bundle = bundle.copyWith(
+      map: bundle.map.copyWith(connections: [connection]),
+      manifest: bundle.manifest.copyWith(
+          settings:
+              bundle.manifest.settings.copyWith(tileWidth: 16, tileHeight: 16),
+          characters: [
+            hero
+          ],
+          tilesets: const [
+            ProjectTilesetEntry(
+                id: 'hero', name: 'Hero', relativePath: 'hero.png')
+          ],
+          maps: [
+            ...bundle.manifest.maps,
+            const ProjectMapEntry(
+                id: 'other', name: 'Other', relativePath: 'maps/other.json')
+          ]),
+      tilesetAbsolutePathsById: {'hero': '${root.path}/hero.png'},
+      characterAnimationAbsolutePathsByAssetId: const {},
+    );
+    final destination =
+        bundle.map.copyWith(id: 'other', entities: [], connections: []);
+    await Directory('${root.path}/maps').create();
+    await File('${root.path}/maps/other.json')
+        .writeAsString(jsonEncode(destination.toJson()));
+    await File('${root.path}/project.json')
+        .writeAsString(jsonEncode(bundle.manifest.toJson()));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    await session.loadConnectionNeighbor(connection);
+    session.setVisibleMaps({'field', 'other'});
+    final movementContinuity =
+        runtime.overworldInteractionSnapshot!.movementContinuityId;
+    final contexts = <RuntimeInputContext>[];
+    runtime.inputAuthority
+        .addListener(() => contexts.add(runtime.inputAuthority.value.context));
+    runtime
+        .handleInput(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    runtime
+        .handleInput(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+    var phaseBefore = 0.0;
+    for (var frame = 0;
+        frame < 100 && session.bundle.map.id == 'field';
+        frame++) {
+      phaseBefore = session.movement.animationSeconds;
+      session.frame(.016);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(session.bundle.map.id, 'other');
+    expect(runtime.overworldInteractionSnapshot!.movementContinuityId,
+        movementContinuity);
+    expect(session.movement.running, isTrue);
+    expect(
+        session.movement.animationSeconds, greaterThanOrEqualTo(phaseBefore));
+    expect(contexts, isNot(contains(RuntimeInputContext.blocked)));
+    final x = session.movement.x;
+    session.frame(.016);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.movement.x, greaterThan(x));
+    expect(runtime.gameStateSnapshot.playerSpatialPosition,
+        session.movement.spatialPosition);
+    expect(
+        runtime.gameStateSnapshot.narrativeEventProgress.activeNarrativeMapId,
+        'other');
+  });
+
+  test(
       'model interaction waits for visible frames, persists pose and rewards once',
       () async {
     bundle = animatedDoorBundle(bundle);
@@ -314,15 +408,15 @@ void main() {
     runtime.session!.frames(.25);
     expect(runtime.session!.storyCamera!()!.zoom, closeTo(.8, .001));
     runtime.session!.frames(.75);
-    expect(runtime.session!.frames(0)['npc:npc']!.x, closeTo(5.5, .001));
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, closeTo(5.5, .001));
     expect(runtime.gameStateSnapshot.spatialWorldState.actorsByMap, isEmpty);
     await runtime.pause();
     runtime.session!.frames(10);
-    expect(runtime.session!.frames(0)['npc:npc']!.x, closeTo(5.5, .001));
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, closeTo(5.5, .001));
     await runtime.resume();
     runtime.session!.frames(1);
     await runtime.gameplayReady;
-    expect(runtime.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, 6.5);
     expect(
         runtime.gameStateSnapshot.spatialWorldState
             .actorState('field', 'npc')!
@@ -341,7 +435,7 @@ void main() {
     addTearDown(continued.dispose);
     await continued.load((_) {});
     await continued.gameplayReady;
-    expect(continued.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(continued.session!.frames(0)['field:npc:npc']!.x, 6.5);
     expect(continued.overworldInteractionSnapshot!.primaryAction!.targetCell,
         const GridPos(x: 6, y: 2));
     final bounds =
@@ -358,11 +452,11 @@ void main() {
     await runtime.load((_) {});
     await waitForStory(runtime);
     runtime.session!.frames(1);
-    expect(runtime.session!.frames(0)['npc:npc']!.x, 5.5);
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, 5.5);
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.secondary));
     await runtime.gameplayReady;
-    expect(runtime.session!.frames(0)['npc:npc']!.x, 4.5);
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, 4.5);
     expect(runtime.gameStateSnapshot.spatialWorldState,
         const SpatialWorldState.empty());
     expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
@@ -378,7 +472,7 @@ void main() {
     runtime.handleInput(
         const RuntimeInputEvent.press(RuntimeInputControl.primary));
     await runtime.gameplayReady;
-    expect(runtime.session!.frames(0)['npc:npc']!.x, 6.5);
+    expect(runtime.session!.frames(0)['field:npc:npc']!.x, 6.5);
     expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
     expect(
         runtime
@@ -788,6 +882,92 @@ void main() {
         Map<String, dynamic>.from(checkpoint.state));
     expect(state.playerSpatialPosition!.x, session.movement.x);
     expect(state.playerSpatialPosition!.z, session.movement.z);
+  });
+
+  for (final running in [false, true]) {
+    test(
+        'one held input continues through three asynchronous cell checks: '
+        'running $running', () async {
+      bundle = bundle.copyWith(
+          map: bundle.map.copyWith(triggers: const [
+        MapTrigger(
+            id: 'passive-trigger',
+            type: TriggerType.event,
+            area: MapRect(
+                pos: GridPos(x: 0, y: 0), size: GridSize(width: 1, height: 1))),
+      ]));
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final session = runtime.session!;
+      final checkedCells = <int>{};
+      final inputEpoch = session.movement.inputEpoch;
+      final continuity =
+          runtime.overworldInteractions.value.movementContinuityId;
+      runtime
+          .handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
+      if (running) {
+        runtime.handleInput(
+            const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      }
+      for (var frame = 0; frame < 80 && session.movement.z < 7.1; frame++) {
+        session.frame(.05);
+        if (session.movement.paused) {
+          checkedCells.add(session.movement.z.floor());
+          expect(runtime.inputAuthority.value.context,
+              RuntimeInputContext.overworld);
+        }
+        expect(session.movement.inputEpoch, inputEpoch);
+        expect(runtime.overworldInteractions.value.movementContinuityId,
+            continuity);
+        expect(session.movement.animationSeconds, greaterThan(0));
+        for (var tick = 0; tick < 100 && session.movement.paused; tick++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(session.movement.paused, isFalse);
+        expect(session.movement.inputEpoch, inputEpoch);
+      }
+      expect(checkedCells, containsAll([5, 6, 7]));
+      expect(session.movement.z, greaterThanOrEqualTo(7.1));
+      runtime.handleInput(
+          const RuntimeInputEvent.release(RuntimeInputControl.down));
+      final releasedAt = session.movement.z;
+      session.frame(.05);
+      expect(session.movement.z, releasedAt);
+    });
+  }
+
+  test('release during an asynchronous cell check prevents resumed movement',
+      () async {
+    bundle = bundle.copyWith(
+        map: bundle.map.copyWith(triggers: const [
+      MapTrigger(
+          id: 'passive-trigger',
+          type: TriggerType.event,
+          area: MapRect(
+              pos: GridPos(x: 0, y: 0), size: GridSize(width: 1, height: 1))),
+    ]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    runtime
+        .handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    for (var frame = 0; frame < 80 && !session.movement.paused; frame++) {
+      session.frame(.05);
+    }
+    expect(session.movement.paused, isTrue);
+    final releasedAt = session.movement.z;
+    runtime
+        .handleInput(const RuntimeInputEvent.release(RuntimeInputControl.down));
+    for (var tick = 0; tick < 100 && session.movement.paused; tick++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(session.movement.paused, isFalse);
+    for (var frame = 0; frame < 30; frame++) {
+      session.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(session.movement.z, releasedAt);
+    expect(session.movement.moving, isFalse);
   });
 
   test('locks remain independent and resume requires fresh input', () async {

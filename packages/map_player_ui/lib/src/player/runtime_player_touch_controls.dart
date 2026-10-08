@@ -336,8 +336,7 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
     if (previous == next) return;
     _interactionSnapshot = next;
     if (previous?.sessionId != next?.sessionId ||
-        previous?.mapActivationId != next?.mapActivationId ||
-        previous?.mapId != next?.mapId) {
+        previous?.movementContinuityId != next?.movementContinuityId) {
       _cancel();
     } else {
       _invalidateTaps();

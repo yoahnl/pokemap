@@ -9,6 +9,62 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final running in [false, true]) {
+    testWidgets('connected maps retain held touch movement: running $running',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final projection = ValueNotifier(_projection(continuity: 'movement-1'));
+      addTearDown(projection.dispose);
+      final events = <RuntimeInputEvent>[];
+      final taps = <RuntimeOverworldInteractionRequest>[];
+      await tester.pumpWidget(_material(RuntimePlayerTouchControls(
+        dispatch: events.add,
+        sprintAllowed: true,
+        readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+        interactionChanges: projection,
+        resolveTapTarget: (_) => projection.value.primaryAction?.request,
+        onTap: taps.add,
+      )));
+      final movement = await tester.startGesture(const Offset(100, 450),
+          pointer: 1, kind: ui.PointerDeviceKind.touch);
+      await movement.moveBy(Offset(running ? 60 : 30, 0));
+      final pending = await tester.startGesture(const Offset(650, 100),
+          pointer: 2, kind: ui.PointerDeviceKind.touch);
+      events.clear();
+      projection.value = _projection(
+          map: 'next-map',
+          activation: 'next-activation',
+          continuity: 'movement-1');
+      await tester.pump();
+      expect(events, isEmpty);
+      expect(find.byType(PlayerOverworldJoystickVisual), findsOneWidget);
+      await pending.up();
+      expect(taps, isEmpty);
+      await movement.moveBy(Offset(running ? -120 : -60, 0));
+      expect(events, const [
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+        RuntimeInputEvent.press(RuntimeInputControl.left),
+      ]);
+      events.clear();
+      projection.value = _projection(
+          map: 'warped-map',
+          activation: 'warp-activation',
+          continuity: 'movement-2');
+      expect(
+          events,
+          unorderedEquals([
+            const RuntimeInputEvent.release(RuntimeInputControl.left),
+            if (running)
+              const RuntimeInputEvent.release(RuntimeInputControl.sprint),
+          ]));
+      events.clear();
+      await movement.up();
+      expect(events, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
   for (final rotate in [true, false]) {
     testWidgets(
         'OW007 relayout cancels running and pending tap: rotation $rotate',
@@ -37,7 +93,7 @@ void main() {
       await tester.pumpWidget(app());
       final running = await tester.startGesture(const Offset(100, 450),
           pointer: 1, kind: ui.PointerDeviceKind.touch);
-      await running.moveBy(const Offset(50, 0));
+      await running.moveBy(const Offset(60, 0));
       final pending = await tester.startGesture(const Offset(650, 100),
           pointer: 2, kind: ui.PointerDeviceKind.touch);
       await tester.pump();
@@ -77,7 +133,7 @@ void main() {
       events.clear();
       final fresh = await tester.startGesture(Offset(100, size.height - 150),
           pointer: 3, kind: ui.PointerDeviceKind.touch);
-      await fresh.moveBy(const Offset(50, 0));
+      await fresh.moveBy(const Offset(60, 0));
       expect(
           events,
           unorderedEquals(const [
@@ -115,7 +171,7 @@ void main() {
       )));
       final oldMovement = await tester.startGesture(const Offset(100, 450),
           pointer: 1, kind: ui.PointerDeviceKind.touch);
-      await oldMovement.moveBy(const Offset(50, 0));
+      await oldMovement.moveBy(const Offset(60, 0));
       final oldAction = await tester.startGesture(const Offset(650, 100),
           pointer: 2, kind: ui.PointerDeviceKind.touch);
       events.clear();
@@ -134,7 +190,7 @@ void main() {
       events.clear();
       final fresh = await tester.startGesture(const Offset(150, 450),
           pointer: 3, kind: ui.PointerDeviceKind.touch);
-      await fresh.moveBy(const Offset(-50, 0));
+      await fresh.moveBy(const Offset(-60, 0));
       expect(
           events,
           unorderedEquals(const [
@@ -259,11 +315,13 @@ RuntimeOverworldInteractionSnapshot _projection({
   String session = 'session',
   String map = 'map',
   String activation = 'activation',
+  String? continuity,
 }) =>
     RuntimeOverworldInteractionSnapshot(
       sessionId: session,
       mapActivationId: activation,
       mapId: map,
+      movementContinuityId: continuity,
       primaryAction: RuntimeOverworldInteractionAction(
         request: RuntimeOverworldInteractionRequest(
           sessionId: session,

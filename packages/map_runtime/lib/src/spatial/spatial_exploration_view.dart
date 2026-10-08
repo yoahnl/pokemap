@@ -34,8 +34,6 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Offset sceneOffset = Offset.zero;
   List<SpatialSceneNeighbor> neighbors = const [];
   int neighborGeneration = 0;
-  Offset? arrivalFrom;
-  double arrivalElapsed = 0;
   Object? neighborError;
   void release() {
     keys.clear();
@@ -49,17 +47,18 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    widget.session.setVisibleMaps({});
     loadNeighbors();
   }
 
   void mapChanged() {
-    release();
     final previous = activeBundle;
     activeBundle = widget.session.bundle;
     final entry = widget.session.connectionEntry;
     if (entry == null) {
+      release();
       sceneOffset = Offset.zero;
-      arrivalFrom = null;
+      neighbors = const [];
     } else {
       final translation = spatialConnectionOffset(
           entry.sourceSize,
@@ -67,14 +66,19 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           entry.connection.direction,
           entry.connection.offset);
       sceneOffset += translation;
-      arrivalFrom = Offset(entry.sourceX, entry.sourceZ) - translation;
-      arrivalElapsed = 0;
+      neighbors = [
+        SpatialSceneNeighbor(
+            map: previous.map,
+            offset: -translation,
+            loadGroundImage: (id) => groundBytes(previous, id)),
+        for (final existing in neighbors)
+          if (existing.map.id != activeBundle.map.id)
+            SpatialSceneNeighbor(
+                map: existing.map,
+                offset: existing.offset - translation,
+                loadGroundImage: existing.loadGroundImage),
+      ];
     }
-    neighbors = [
-      for (final connection in activeBundle.map.connections)
-        if (connection.targetMapId == previous.map.id)
-          neighbor(previous, connection),
-    ];
     neighborError = null;
     if (mounted) setState(() {});
     loadNeighbors(previous: previous);
@@ -86,20 +90,25 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           map: bundle.map,
           offset: spatialConnectionOffset(activeBundle.map.size,
               bundle.map.size, connection.direction, connection.offset),
-          loadGroundImage: (id) async {
-            final path = bundle.runtimeImageAbsolutePathsById[id];
-            if (path == null) {
-              throw StateError('Image du terrain introuvable : $id');
-            }
-            return File(path).readAsBytes();
-          });
+          loadGroundImage: (id) => groundBytes(bundle, id));
+
+  Future<Uint8List> groundBytes(RuntimeMapBundle bundle, String id) async {
+    final path = bundle.runtimeImageAbsolutePathsById[id];
+    if (path == null) {
+      throw StateError('Image du terrain introuvable : $id');
+    }
+    return File(path).readAsBytes();
+  }
+
+  Future<Uint8List> loadModel(String id) async =>
+      Uint8List.fromList(await widget.session.modelBytes(id));
 
   Future<void> loadNeighbors({RuntimeMapBundle? previous}) async {
     final generation = ++neighborGeneration;
     final session = widget.session;
     final loaded = <SpatialSceneNeighbor>[];
     Object? failure;
-    for (final connection in activeBundle.map.connections) {
+    for (final connection in session.viewConnections) {
       try {
         final bundle = connection.targetMapId == previous?.map.id
             ? previous!
@@ -111,6 +120,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       }
     }
     if (!mounted || generation != neighborGeneration) return;
+    if (session.connectionEntry != null &&
+        previous != null &&
+        !loaded.any((neighbor) => neighbor.map.id == previous.map.id)) {
+      final incoming = neighbors
+          .where((neighbor) => neighbor.map.id == previous.map.id)
+          .firstOrNull;
+      if (incoming != null) loaded.add(incoming);
+    }
     setState(() {
       neighbors = loaded;
       neighborError = failure;
@@ -118,29 +135,9 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     if (failure != null) widget.onError?.call(failure);
   }
 
-  Map<String, SpatialActorVisual> frames(double dt, Offset renderedOrigin) {
-    var frames = widget.session.frames(dt);
-    final from = arrivalFrom;
-    final hero = frames['hero'];
-    if (from != null && hero != null) {
-      if (dt.isFinite && dt > 0) arrivalElapsed += dt;
-      final t = (arrivalElapsed / .15).clamp(0.0, 1.0);
-      if (t >= 1) {
-        arrivalFrom = null;
-      } else {
-        frames = {
-          ...frames,
-          'hero': SpatialActorVisual(
-              x: from.dx + (hero.x - from.dx) * t,
-              y: hero.y,
-              z: from.dy + (hero.z - from.dy) * t,
-              texture: hero.texture,
-              width: hero.width,
-              height: hero.height,
-              frame: hero.frame),
-        };
-      }
-    }
+  Map<String, SpatialActorVisual> frames(
+      double dt, Offset renderedOrigin, Set<String> renderedMaps) {
+    final frames = widget.session.frames(dt, mapIds: renderedMaps);
     final translation = sceneOffset - renderedOrigin;
     if (translation == Offset.zero) return frames;
     return {
@@ -168,8 +165,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     activeBundle = widget.session.bundle;
     sceneOffset = Offset.zero;
     neighbors = const [];
-    arrivalFrom = null;
     neighborError = null;
+    widget.session.setVisibleMaps({});
     loadNeighbors();
   }
 
@@ -269,6 +266,10 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final renderedOrigin = sceneOffset;
+    final renderedMaps = {
+      widget.session.bundle.map.id,
+      for (final neighbor in neighbors) neighbor.map.id,
+    };
     return Focus(
         autofocus: widget.keyboardInputEnabled,
         focusNode: focus,
@@ -291,14 +292,15 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                       sceneOffset: sceneOffset,
                       neighbors: neighbors,
                       models: widget.session.bundle.manifest.models3d,
-                      loadModel: (id) async => Uint8List.fromList(
-                          await widget.session.modelBytes(id)),
+                      loadModel: loadModel,
                       controller: camera,
                       onCell: (_, __) {
                         if (widget.keyboardInputEnabled) focus.requestFocus();
                       },
                       onReady: widget.onReady,
-                      actorFrames: (dt) => frames(dt, renderedOrigin),
+                      onVisibleMapsChanged: widget.session.setVisibleMaps,
+                      actorFrames: (dt) =>
+                          frames(dt, renderedOrigin, renderedMaps),
                       modelRuntimeState: (mapId, instanceId) => widget
                           .session.worldStateProvider
                           ?.call()
@@ -316,7 +318,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                                 zoom: pose.zoom
                               );
                       },
-                      background: colors.surfaceContainerLowest,
+                      background: Colors.black,
                       ground: colors.primaryContainer,
                       edge: colors.outlineVariant,
                       errorBuilder: (_, error) {

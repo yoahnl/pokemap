@@ -102,13 +102,16 @@ final class RuntimeOverworldInteractionSnapshot {
     required this.sessionId,
     required this.mapActivationId,
     required this.mapId,
+    String? movementContinuityId,
     this.primaryAction,
     RuntimeOverworldInteractionAction? tapAction,
-  }) : tapAction = tapAction ?? primaryAction;
+  })  : movementContinuityId = movementContinuityId ?? mapActivationId,
+        tapAction = tapAction ?? primaryAction;
 
   final String sessionId;
   final String mapActivationId;
   final String mapId;
+  final String movementContinuityId;
   final RuntimeOverworldInteractionAction? primaryAction;
   final RuntimeOverworldInteractionAction? tapAction;
 
@@ -116,6 +119,7 @@ final class RuntimeOverworldInteractionSnapshot {
         'sessionId': sessionId,
         'mapActivationId': mapActivationId,
         'mapId': mapId,
+        'movementContinuityId': movementContinuityId,
         'primaryAction': primaryAction?.toJson(),
         'tapAction': tapAction?.toJson(),
       };
@@ -126,10 +130,11 @@ final class RuntimeOverworldInteractionSnapshot {
       sessionId == other.sessionId &&
       mapActivationId == other.mapActivationId &&
       mapId == other.mapId &&
+      movementContinuityId == other.movementContinuityId &&
       primaryAction == other.primaryAction &&
       tapAction == other.tapAction;
 
   @override
-  int get hashCode =>
-      Object.hash(sessionId, mapActivationId, mapId, primaryAction, tapAction);
+  int get hashCode => Object.hash(sessionId, mapActivationId, mapId,
+      movementContinuityId, primaryAction, tapAction);
 }

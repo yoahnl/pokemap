@@ -240,15 +240,8 @@ final class SpatialGameplayEvents {
       throw StateError(
           'Map activation does not match the authoritative state.');
     }
-    _activation = activation;
-    _generation++;
-    _occurrences.clear();
-    _lastCell = _readGameState().playerPosition;
-    _occupiedTriggers = resolveNarrativeTriggerEnterFronts(
-      map: _map,
-      currentPosition: _lastCell!,
-      previousOccupiedTriggerIds: null,
-    ).currentOccupiedTriggerIds;
+    if (tryActivateConnectedMap(activation)) return;
+    _installActivation(activation);
     await _run<void>(() async {
       final result = await _mapEnter.dispatchCompletedActivation(activation);
       if (!_currentOperation) return;
@@ -261,6 +254,50 @@ final class SpatialGameplayEvents {
       }
       await _settle();
     });
+  }
+
+  bool tryActivateConnectedMap(MapActivation activation) {
+    if (!_available ||
+        activation.reason != MapActivationReason.connection ||
+        activation.mapId != _readGameState().currentMapId ||
+        isBusy || _hostEffectsPending || _legacyFallback != null ||
+        activityGate.checkpointInProgress ||
+        activityGate.activity != NarrativeRuntimeActivity.idle ||
+        _readGameState().narrativeEventProgress.pendingNarrativeOutcomeDeliveries.isNotEmpty) {
+      return false;
+    }
+    final source = activation.occurrence.source;
+    final registry = project.eventRegistry;
+    if (registry != null &&
+        (registry.records.any((record) =>
+            record.definitionOrNull?.source == source ||
+            record.draftOrNull?.source == source) ||
+         registry.legacyClaims.any((claim) => claim.source == source))) {
+      return false;
+    }
+    final authority = _prepareAuthority(activation.occurrence);
+    if (authority is! NarrativeEventDispatchAuthorityReady) return false;
+    final state = authority.applyMapActivationReset(
+      gameState: _readGameState(),
+      activationId: activation.activationId,
+      mapId: activation.mapId,
+      resetEligible: true,
+    );
+    _installActivation(activation);
+    _commitGameState(state);
+    return true;
+  }
+
+  void _installActivation(MapActivation activation) {
+    _activation = activation;
+    _generation++;
+    _occurrences.clear();
+    _lastCell = _readGameState().playerPosition;
+    _occupiedTriggers = resolveNarrativeTriggerEnterFronts(
+      map: _map,
+      currentPosition: _lastCell!,
+      previousOccupiedTriggerIds: null,
+    ).currentOccupiedTriggerIds;
   }
 
   MapEntity? get interactionTarget {

@@ -23,18 +23,51 @@ import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 
 final class SpatialExplorationSession {
-  SpatialExplorationSession._(
-      this.bundle, this.character, this.movement, this._images, this._textures);
+  SpatialExplorationSession._(this.bundle, this.character, this.movement,
+      this._assets, this._ownsAssets, this._knownMaps);
   RuntimeMapBundle bundle;
   ProjectCharacterEntry character;
   SpatialMovementController movement;
-  final Map<String, ui.Image> _images;
-  final Map<String, SpatialActorTexture> _textures;
+  final _SpatialActorAssets _assets;
+  final bool _ownsAssets;
+  Map<String, ui.Image> get _images => _assets.images;
+  Map<String, SpatialActorTexture> get _textures => _assets.textures;
+  final Object _assetOwner = Object();
+  Set<String> _imageIds = {};
+  final _preparedMaps = <String, _PreparedSpatialMap>{};
+  final _preparingMaps = <String, Future<_PreparedSpatialMap>>{};
+  final _mapOrigins = <String, ui.Offset>{};
+  Set<String> _visibleMaps = {};
+  bool _rendererAttached = false;
+  final Map<String, MapData> _knownMaps;
+  final _viewConnectionsById = <String, List<MapConnection>>{};
+  List<MapConnection> get viewConnections => _connectionsFor(bundle.map);
+
+  List<MapConnection> _connectionsFor(MapData map) =>
+      _viewConnectionsById.putIfAbsent(map.id, () {
+        final result = [...map.connections];
+        final occupied = {
+          for (final connection in result) connection.direction
+        };
+        for (final source in _knownMaps.values) {
+          for (final connection in source.connections) {
+            final direction = connection.direction.opposite;
+            if (connection.targetMapId != map.id ||
+                occupied.contains(direction)) {
+              continue;
+            }
+            occupied.add(direction);
+            result.add(MapConnection(
+                direction: direction,
+                targetMapId: source.id,
+                offset: -connection.offset));
+          }
+        }
+        return List.unmodifiable(result);
+      });
   final _resolver = CharacterAnimationSourceResolver();
   late SpatialEntityVisualPlan _entityVisuals;
   bool Function(String mapId, MapEntity entity)? entityIsPresent;
-  bool _present(MapEntity entity) =>
-      entityIsPresent?.call(bundle.map.id, entity) ?? true;
   bool _disposed = false;
   late Future<RuntimeMapBundle> Function(String) _loadMap;
   late SpatialWarpController _warps;
@@ -71,15 +104,24 @@ final class SpatialExplorationSession {
   }
 
   void attachWorldStateProviders() {
+    final source = bundle;
     movement.setRuntimeStateProviders(
       modelStateProvider: (id) =>
-          worldStateProvider?.call().modelState(bundle.map.id, id),
+          worldStateProvider?.call().modelState(source.map.id, id),
       actorStateProvider: (id) {
         final entity =
-            bundle.map.entities.where((value) => value.id == id).firstOrNull;
-        return entity == null ? null : actorRuntimeState(entity);
+            source.map.entities.where((value) => value.id == id).firstOrNull;
+        return entity == null
+            ? null
+            : source.map.id == bundle.map.id
+                ? actorRuntimeState(entity)
+                : worldStateProvider?.call().actorState(source.map.id, id);
       },
     );
+    if (_preparedMaps.containsKey(bundle.map.id)) {
+      _preparedMaps[bundle.map.id] = _capturePrepared();
+      _trimPreparedMaps();
+    }
   }
 
   final interactionError = ValueNotifier<Object?>(null);
@@ -301,6 +343,30 @@ final class SpatialExplorationSession {
     bool Function(String mapId, MapEntity entity)? entityIsPresent,
     SpatialWorldState Function()? worldStateProvider,
     Future<RuntimeMapBundle> Function(String)? loadMap,
+    Iterable<MapData> knownMaps = const [],
+  }) =>
+      _load(bundle,
+          arrival: arrival,
+          spatialArrival: spatialArrival,
+          facing: facing,
+          characterId: characterId,
+          entityIsPresent: entityIsPresent,
+          worldStateProvider: worldStateProvider,
+          loadMap: loadMap,
+          knownMaps: knownMaps);
+
+  static Future<SpatialExplorationSession> _load(
+    RuntimeMapBundle bundle, {
+    GridPos? arrival,
+    PlayerSpatialPosition? spatialArrival,
+    EntityFacing? facing,
+    String? characterId,
+    bool Function(String mapId, MapEntity entity)? entityIsPresent,
+    SpatialWorldState Function()? worldStateProvider,
+    Future<RuntimeMapBundle> Function(String)? loadMap,
+    _SpatialActorAssets? sharedAssets,
+    bool validateSpawn = true,
+    Iterable<MapData> knownMaps = const [],
   }) async {
     final scene = bundle.map.spatialScene;
     if (scene == null ||
@@ -349,10 +415,18 @@ final class SpatialExplorationSession {
             worldStateProvider?.call().modelState(bundle.map.id, id),
         actorStateProvider: (id) =>
             worldStateProvider?.call().actorState(bundle.map.id, id),
+        validateSpawn: validateSpawn && spatialArrival == null,
         facing: facing);
     final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
-    final images = <String, ui.Image>{},
-        textures = <String, SpatialActorTexture>{};
+    final assets = sharedAssets ?? _SpatialActorAssets();
+    final session = SpatialExplorationSession._(
+        bundle,
+        character,
+        movement,
+        assets,
+        sharedAssets == null,
+        {for (final map in knownMaps) map.id: map});
+    final images = assets.images;
     try {
       final paths = bundle.runtimeImageAbsolutePathsById;
       final ids = {
@@ -365,23 +439,15 @@ final class SpatialExplorationSession {
             else
               actor.tilesetId
       };
+      session._imageIds = ids;
+      assets.owners[session._assetOwner] = ids;
       for (final imageId in ids) {
         final path = paths[imageId];
         if (path == null) {
           throw StateError('Image du héros introuvable : $imageId');
         }
-        final codec =
-            await ui.instantiateImageCodec(await File(path).readAsBytes());
-        try {
-          final image = (await codec.getNextFrame()).image;
-          images[imageId] = image;
-          textures[imageId] = await entityVisuals.createTexture(imageId, image);
-        } finally {
-          codec.dispose();
-        }
+        await assets.load(imageId, path, entityVisuals);
       }
-      final session = SpatialExplorationSession._(
-          bundle, character, movement, images, textures);
       entityVisuals.validateImages(images);
       session._entityVisuals = entityVisuals;
       session.entityIsPresent = entityIsPresent;
@@ -416,11 +482,15 @@ final class SpatialExplorationSession {
         }
       }
       session.frames(0);
+      session._preparedMaps[bundle.map.id] = session._capturePrepared();
+      session._mapOrigins[bundle.map.id] = ui.Offset.zero;
+      if (validateSpawn && spatialArrival != null) {
+        await session._validateSavedPosition();
+      }
       return session;
     } on Object {
-      for (final image in images.values) {
-        image.dispose();
-      }
+      assets.owners.remove(session._assetOwner);
+      if (sharedAssets == null) assets.dispose();
       rethrow;
     }
   }
@@ -508,33 +578,68 @@ final class SpatialExplorationSession {
         frame: resolved.sourceRect);
   }
 
-  Map<String, SpatialActorVisual> frames(double dt) {
+  Map<String, SpatialActorVisual> frames(double dt, {Set<String>? mapIds}) {
     onPresentationFrame?.call(dt, presentationPaused || transitioning.value);
     if (dt.isFinite && dt > 0 && !presentationPaused && !transitioning.value) {
       _presentationSeconds += dt;
     }
     final hero = frame(dt);
-    return {
-      'hero': hero,
-      for (final entity in bundle.map.entities.where(
-          (entity) => entity.kind == MapEntityKind.npc && _present(entity)))
-        'npc:${entity.id}': npcFrame(entity),
-      ..._entityVisuals.frames(
-          textures: _textures,
-          elapsedMs: (_presentationSeconds * 1000).floor(),
-          isPresent: _present),
-    };
+    final result = <String, SpatialActorVisual>{'hero': hero};
+    final activeOrigin = _mapOrigins[bundle.map.id] ?? ui.Offset.zero;
+    final visible = mapIds ??
+        {
+          bundle.map.id,
+          ..._visibleMaps,
+          for (final connection in viewConnections) connection.targetMapId,
+        };
+    for (final id in visible) {
+      final prepared = _preparedMaps[id] ??
+          (id == bundle.map.id ? _capturePrepared() : null);
+      if (prepared == null) continue;
+      final source = prepared.bundle;
+      final offset = (_mapOrigins[id] ?? activeOrigin) - activeOrigin;
+      bool present(MapEntity entity) =>
+          entityIsPresent?.call(id, entity) ?? true;
+      final visuals = {
+        for (final entity in source.map.entities.where(
+            (entity) => entity.kind == MapEntityKind.npc && present(entity)))
+          'npc:${entity.id}': npcFrame(entity, sourceBundle: source),
+        ...prepared.visuals.frames(
+            textures: _textures,
+            elapsedMs: (_presentationSeconds * 1000).floor(),
+            isPresent: present),
+      };
+      for (final entry in visuals.entries) {
+        final visual = entry.value;
+        result['$id:${entry.key}'] = SpatialActorVisual(
+            x: visual.x + offset.dx,
+            y: visual.y,
+            z: visual.z + offset.dy,
+            texture: visual.texture,
+            frame: visual.frame,
+            width: visual.width,
+            height: visual.height);
+      }
+    }
+    return result;
   }
 
-  SpatialActorVisual npcFrame(MapEntity entity) {
-    final actor = bundle.manifest.characters
+  SpatialActorVisual npcFrame(MapEntity entity,
+      {RuntimeMapBundle? sourceBundle}) {
+    final source = sourceBundle ?? bundle;
+    final active = source.map.id == bundle.map.id;
+    final actor = source.manifest.characters
         .firstWhere((c) => c.id == entity.npc!.characterId);
-    final pose = npcStoryPose?.call(entity);
-    final saved = actorRuntimeState(entity);
+    final pose = active ? npcStoryPose?.call(entity) : null;
+    final saved = active
+        ? actorRuntimeState(entity)
+        : worldStateProvider?.call().actorState(source.map.id, entity.id);
     final facing = pose?.facing ??
-        (_dialogueEntityId == entity.id ? npcFacing[entity.id] : null) ??
+        (active && _dialogueEntityId == entity.id
+            ? npcFacing[entity.id]
+            : null) ??
         saved?.facing ??
-        npcFacing[entity.id] ??
+        (active ? npcFacing[entity.id] : null) ??
         entity.npc!.facing;
     final animation = actor.animations
             .where((clip) =>
@@ -557,14 +662,14 @@ final class SpatialExplorationSession {
       }
       elapsed -= frame.durationMs;
     }
-    final source = _resolve(animation, selected, actor: actor);
+    final resolved = _resolve(animation, selected, actor: actor);
     final x = saved?.x ?? entity.pos.x + .5, z = saved?.z ?? entity.pos.y + .5;
     return SpatialActorVisual(
         x: x,
         z: z,
-        y: bundle.map.spatialScene!.worldHeightAt(x, z),
-        texture: _textures[source.imageId]!,
-        frame: source.sourceRect);
+        y: source.map.spatialScene!.worldHeightAt(x, z),
+        texture: _textures[resolved.imageId]!,
+        frame: resolved.sourceRect);
   }
 
   Future<List<int>> modelBytes(String id) async {
@@ -592,12 +697,16 @@ final class SpatialExplorationSession {
       }
     } else if (movement.spatialPosition != position ||
         movement.facing != state.playerFacing) {
+      final source = bundle;
+      final previousMovement = movement;
       final diagonal = movement.allowDiagonalMovement;
       movement = SpatialMovementController.fromMap(
           map: bundle.map,
           models: bundle.manifest.models3d,
           spatialArrival: position,
-          entityPresencePredicate: _present,
+          validateSpawn: false,
+          entityPresencePredicate: (entity) =>
+              entityIsPresent?.call(source.map.id, entity) ?? true,
           modelStateProvider: (id) =>
               worldStateProvider?.call().modelState(bundle.map.id, id),
           actorStateProvider: (id) {
@@ -608,6 +717,13 @@ final class SpatialExplorationSession {
           },
           facing: state.playerFacing);
       attachWorldStateProviders();
+      try {
+        await _validateSavedPosition();
+      } on Object {
+        movement = previousMovement;
+        attachWorldStateProviders();
+        rethrow;
+      }
       movement.setDiagonalMovement(diagonal);
       movement.setPaused(presentationPaused || interactionActive.value);
       _warps =
@@ -616,7 +732,11 @@ final class SpatialExplorationSession {
   }
 
   Future<void> enterConnection(MapConnection connection) async {
-    if (!bundle.map.connections.contains(connection) ||
+    if (_disposed ||
+        transitioning.value ||
+        presentationPaused ||
+        interactionActive.value ||
+        !bundle.map.connections.contains(connection) ||
         movement.edgeExitDirection != connection.direction) {
       return;
     }
@@ -629,6 +749,31 @@ final class SpatialExplorationSession {
       sourceX: movement.x,
       sourceZ: movement.z
     );
+    final prepared = _preparedMaps[connection.targetMapId];
+    if (prepared != null &&
+        _visibleMaps.contains(connection.targetMapId) &&
+        movement.connectionArrival != null) {
+      try {
+        prepared.movement.adoptConnectionMotion(movement);
+        _preparedMaps[bundle.map.id] = _capturePrepared();
+        bundle = prepared.bundle;
+        movement = prepared.movement;
+        _entityVisuals = prepared.visuals;
+        _imageIds = prepared.imageIds;
+        _assets.owners[_assetOwner] = _imageIds;
+        attachWorldStateProviders();
+        _warps = SpatialWarpController(
+            map: bundle.map, x: movement.x, z: movement.z);
+        npcFacing.clear();
+        _connectionEntry = entry;
+        interactionError.value = null;
+        _trimPreparedMaps();
+        mapRevision.value++;
+      } on Object catch (error) {
+        interactionError.value = error;
+      }
+      return;
+    }
     await _transfer(connection.targetMapId, (next) {
       final arrival = resolveConnectedMapTargetPos(
           sourcePos: sourcePos,
@@ -653,13 +798,133 @@ final class SpatialExplorationSession {
 
   Future<RuntimeMapBundle> loadConnectionNeighbor(
       MapConnection connection) async {
-    if (_disposed || !bundle.map.connections.contains(connection)) {
+    if (_disposed || !viewConnections.contains(connection)) {
       throw StateError('La connexion ne possède pas de voisin actif.');
     }
-    final root = bundle.projectRootDirectory;
-    final next = await _loadMap(connection.targetMapId);
-    _validateDestination(next, connection.targetMapId, root);
-    return next;
+    final source = bundle;
+    final sourceOrigin = _mapOrigins[source.map.id] ?? ui.Offset.zero;
+    final prepared = await _prepareMap(connection.targetMapId);
+    if (_preparedMaps.containsKey(prepared.bundle.map.id)) {
+      _mapOrigins[prepared.bundle.map.id] = sourceOrigin +
+          spatialConnectionOffset(source.map.size, prepared.bundle.map.size,
+              connection.direction, connection.offset);
+    }
+    _trimPreparedMaps();
+    return prepared.bundle;
+  }
+
+  _PreparedSpatialMap _capturePrepared() =>
+      _PreparedSpatialMap(bundle, movement, _entityVisuals, _imageIds);
+
+  void setVisibleMaps(Set<String> ids) {
+    if (_disposed) return;
+    _rendererAttached = true;
+    _visibleMaps = Set.of(ids);
+    _trimPreparedMaps();
+  }
+
+  Future<void> _validateSavedPosition() async {
+    if (movement.isPositionTraversable) return;
+    for (final connection in viewConnections) {
+      await loadConnectionNeighbor(connection);
+    }
+    _linkPreparedMaps(_preparedMaps.keys.toSet());
+    if (!movement.isPositionTraversable) {
+      throw StateError('La position sauvegardée est bloquée.');
+    }
+  }
+
+  Future<_PreparedSpatialMap> _prepareMap(String id) async {
+    final existing = _preparedMaps[id];
+    if (existing != null) return existing;
+    final future = _preparingMaps.putIfAbsent(id, () async {
+      final next = await _loadMap(id);
+      if (_disposed) throw StateError('La session est fermée.');
+      _validateDestination(next, id, bundle.projectRootDirectory);
+      final candidate = await _load(next,
+          characterId: character.id,
+          worldStateProvider: worldStateProvider,
+          entityIsPresent: entityIsPresent,
+          loadMap: _loadMap,
+          sharedAssets: _assets,
+          knownMaps: _knownMaps.values,
+          validateSpawn: false);
+      try {
+        if (_disposed) throw StateError('La session est fermée.');
+        final prepared = candidate._capturePrepared();
+        _preparedMaps[id] = prepared;
+        return prepared;
+      } finally {
+        candidate.dispose();
+      }
+    });
+    try {
+      return await future;
+    } finally {
+      if (identical(_preparingMaps[id], future)) {
+        _preparingMaps.remove(id);
+        if (!_disposed) _trimPreparedMaps();
+      }
+    }
+  }
+
+  void _trimPreparedMaps() {
+    final retained = {
+      bundle.map.id,
+      ..._visibleMaps,
+      for (final connection in viewConnections) connection.targetMapId,
+      ..._preparingMaps.keys
+    };
+    for (final id
+        in _preparedMaps.keys.where((id) => !retained.contains(id)).toList()) {
+      _preparedMaps.remove(id)!.movement.setConnectedNeighbors({});
+      _mapOrigins.remove(id);
+    }
+    _linkPreparedMaps(_visibleMaps);
+    _assets.retain(
+        {for (final prepared in _preparedMaps.values) ...prepared.imageIds});
+  }
+
+  void _linkPreparedMaps(Set<String> ready) {
+    for (final prepared in _preparedMaps.values) {
+      final neighbors = <MapConnectionDirection, SpatialMovementNeighbor>{};
+      for (final source in _preparedMaps.values) {
+        if (!ready.contains(source.bundle.map.id)) continue;
+        for (final connection in _connectionsFor(source.bundle.map)) {
+          if (connection.targetMapId != prepared.bundle.map.id) continue;
+          final offset = spatialConnectionOffset(
+              source.bundle.map.size,
+              prepared.bundle.map.size,
+              connection.direction,
+              connection.offset);
+          neighbors[connection.direction.opposite] = SpatialMovementNeighbor(
+              controller: source.movement,
+              offsetX: -offset.dx,
+              offsetZ: -offset.dy);
+        }
+      }
+      neighbors.addAll({
+        for (final connection in _connectionsFor(prepared.bundle.map))
+          if (ready.contains(connection.targetMapId))
+            if (_preparedMaps[connection.targetMapId] case final neighbor?)
+              connection.direction: SpatialMovementNeighbor(
+                  controller: neighbor.movement,
+                  offsetX: spatialConnectionOffset(
+                          prepared.bundle.map.size,
+                          neighbor.bundle.map.size,
+                          connection.direction,
+                          connection.offset)
+                      .dx,
+                  offsetZ: spatialConnectionOffset(
+                          prepared.bundle.map.size,
+                          neighbor.bundle.map.size,
+                          connection.direction,
+                          connection.offset)
+                      .dy),
+      });
+      prepared.movement
+          .setConnectedNeighbors(neighbors, waitForReady: _rendererAttached);
+    }
   }
 
   static void _validateDestination(
@@ -699,57 +964,54 @@ final class SpatialExplorationSession {
     transitioning.value = true;
     SpatialExplorationSession? candidate;
     try {
-      final next = await _loadMap(targetMapId);
+      final next =
+          _preparedMaps[targetMapId]?.bundle ?? await _loadMap(targetMapId);
       if (_disposed || generation != _transferGeneration) return;
       _validateDestination(next, targetMapId, bundle.projectRootDirectory);
-      candidate = await load(next,
+      candidate = await _load(next,
           arrival: spatialArrival == null ? resolveArrival(next.map) : null,
           spatialArrival: spatialArrival,
           facing: arrivalFacing ?? facing,
           characterId: character.id,
           worldStateProvider: worldStateProvider,
           entityIsPresent: entityIsPresent,
-          loadMap: _loadMap);
+          loadMap: _loadMap,
+          sharedAssets: _assets,
+          knownMaps: _knownMaps.values);
       if (_disposed || generation != _transferGeneration) return;
-      for (final id in next.map.spatialScene!.instances
-          .map((instance) => instance.modelId)
-          .toSet()) {
-        await ModelByteLoader.load(
-            Uint8List.fromList(await candidate.modelBytes(id)));
-      }
-      final ground = SpatialGroundPlan(next.map, next.manifest);
-      ground.resolve(0);
-      for (final id in ground.imageIds) {
-        final codec = await ui
-            .instantiateImageCodec(await candidate.groundImageBytes(id));
-        try {
-          (await codec.getNextFrame()).image.dispose();
-        } finally {
-          codec.dispose();
-        }
-      }
-      if (_disposed || generation != _transferGeneration) return;
-      for (final entry in candidate._images.entries) {
-        if (_images.containsKey(entry.key)) {
-          entry.value.dispose();
-        } else {
-          _images[entry.key] = entry.value;
-          _textures[entry.key] = candidate._textures[entry.key]!;
-        }
-      }
-      candidate._images.clear();
+      final previousOrigin = _mapOrigins[bundle.map.id] ?? ui.Offset.zero;
+      _preparedMaps[bundle.map.id] = _capturePrepared();
       final nextMovement = candidate.movement;
       final nextWarps = candidate._warps;
       _entityVisuals = candidate._entityVisuals;
+      _imageIds = candidate._imageIds;
+      _assets.owners[_assetOwner] = _imageIds;
+      final preparedNeighbors = Map.of(candidate._preparedMaps);
+      final preparedOrigins = Map.of(candidate._mapOrigins);
       candidate.dispose();
       candidate = null;
       bundle = next;
       movement = nextMovement;
+      _preparedMaps.addAll(preparedNeighbors);
+      _mapOrigins.addAll(preparedOrigins);
+      _preparedMaps[bundle.map.id] = _capturePrepared();
+      _mapOrigins[bundle.map.id] = connectionEntry == null
+          ? ui.Offset.zero
+          : previousOrigin +
+              spatialConnectionOffset(
+                  connectionEntry.sourceSize,
+                  next.map.size,
+                  connectionEntry.connection.direction,
+                  connectionEntry.connection.offset);
       attachWorldStateProviders();
       _warps = nextWarps;
       movement.setDiagonalMovement(diagonal);
       npcFacing.clear();
       _connectionEntry = connectionEntry;
+      _trimPreparedMaps();
+      if (spatialArrival != null) {
+        _linkPreparedMaps(_preparedMaps.keys.toSet());
+      }
       mapRevision.value++;
     } on Object catch (error) {
       if (!_disposed && generation == _transferGeneration) {
@@ -784,9 +1046,12 @@ final class SpatialExplorationSession {
     mapRevision.dispose();
     transitioning.dispose();
     movement.setPaused(true);
-    for (final image in _images.values) {
-      image.dispose();
+    for (final prepared in _preparedMaps.values) {
+      prepared.movement.setConnectedNeighbors({});
     }
+    _preparedMaps.clear();
+    _assets.owners.remove(_assetOwner);
+    if (_ownsAssets) _assets.dispose();
   }
 
   void cancelPendingTransition() {
@@ -803,5 +1068,69 @@ final class SpatialExplorationSession {
     movement.setPaused(presentationPaused);
     _warps =
         SpatialWarpController(map: bundle.map, x: movement.x, z: movement.z);
+  }
+}
+
+final class _PreparedSpatialMap {
+  _PreparedSpatialMap(this.bundle, this.movement, this.visuals, this.imageIds);
+  final RuntimeMapBundle bundle;
+  final SpatialMovementController movement;
+  final SpatialEntityVisualPlan visuals;
+  final Set<String> imageIds;
+}
+
+final class _SpatialActorAssets {
+  final images = <String, ui.Image>{};
+  final textures = <String, SpatialActorTexture>{};
+  final owners = <Object, Set<String>>{};
+  final pending = <String, Future<void>>{};
+  bool disposed = false;
+
+  Future<void> load(
+      String id, String path, SpatialEntityVisualPlan plan) async {
+    if (images.containsKey(id)) return;
+    final future = pending.putIfAbsent(id, () async {
+      final codec =
+          await ui.instantiateImageCodec(await File(path).readAsBytes());
+      ui.Image? image;
+      try {
+        image = (await codec.getNextFrame()).image;
+        final texture = await plan.createTexture(id, image);
+        if (disposed) {
+          throw StateError('Les ressources de la session sont fermées.');
+        }
+        images[id] = image;
+        textures[id] = texture;
+        image = null;
+      } finally {
+        image?.dispose();
+        codec.dispose();
+      }
+    });
+    try {
+      await future;
+    } finally {
+      if (identical(pending[id], future)) pending.remove(id);
+    }
+  }
+
+  void retain(Set<String> ids) {
+    final retained = {...ids, for (final owned in owners.values) ...owned};
+    for (final id
+        in images.keys.where((id) => !retained.contains(id)).toList()) {
+      images.remove(id)!.dispose();
+      textures.remove(id);
+    }
+  }
+
+  void dispose() {
+    if (disposed) return;
+    disposed = true;
+    for (final image in images.values) {
+      image.dispose();
+    }
+    images.clear();
+    textures.clear();
+    owners.clear();
   }
 }
