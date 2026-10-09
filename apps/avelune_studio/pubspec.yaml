@@ -1,7 +1,7 @@
 name: avelune_studio
 description: "Avelune Studio, édition de cartes PokeMap."
 publish_to: 'none'
-version: 0.3.24+324
+version: 0.3.25+325
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
