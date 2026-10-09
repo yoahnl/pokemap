@@ -509,6 +509,19 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'model3d.source.replace' ||
+      actionId == 'model3d.source.replace_batch') {
+    return {
+      AuthoringTransport.directApi: actionId.endsWith('_batch')
+          ? 'test/domains/assets/model3d_import_batch_test.dart'
+          : 'test/domains/assets/model3d_actions_test.dart',
+      AuthoringTransport.cli: actionId.endsWith('_batch')
+          ? 'test/domains/assets/model3d_import_batch_test.dart'
+          : 'test/domains/assets/model3d_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.preset.draft.import') {
     return const {
       AuthoringTransport.directApi:
@@ -1384,7 +1397,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/spatial_map_actions_test.dart',
   ),
   _ContractEvidenceRule(
-    ['model3d.import_batch'],
+    ['model3d.import_batch', 'model3d.source.replace_batch'],
     'test/domains/assets/model3d_import_batch_test.dart',
   ),
   _ContractEvidenceRule(

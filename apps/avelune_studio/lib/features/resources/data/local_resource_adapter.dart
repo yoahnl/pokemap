@@ -59,6 +59,8 @@ final class LocalResourceAdapter
 
   static final _actions = {
     'model3d.import',
+    'model3d.source.replace',
+    'model3d.source.replace_batch',
     'model3d.configure',
     'model3d.delete',
     'asset.move',
@@ -126,6 +128,17 @@ final class LocalResourceAdapter
   }) => _run(
     'model3d.import',
     (_) => {'modelId': _identity('model'), 'name': name.trim()},
+    sourcePath: sourcePath,
+    sourceMediaType: 'model/gltf-binary',
+  );
+
+  @override
+  Future<ResourceMutationReceipt> replaceModelSource({
+    required String modelId,
+    required String sourcePath,
+  }) => _run(
+    'model3d.source.replace',
+    (_) => {'modelId': modelId},
     sourcePath: sourcePath,
     sourceMediaType: 'model/gltf-binary',
   );

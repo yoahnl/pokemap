@@ -83,6 +83,23 @@ final class SpatialGroundPlan {
   final imageIds = <String>{};
   bool animated = false;
   List<SpatialGroundVisual>? _static;
+  late final Set<(int, int)>? paintedCells = scene == null || _plans.isEmpty
+      ? null
+      : Set.unmodifiable({
+          for (final part in resolve(0))
+            for (
+              var z = part.visual.geometry.visualBounds.top.floor();
+              z < part.visual.geometry.visualBounds.bottom.ceil();
+              z++
+            )
+              for (
+                var x = part.visual.geometry.visualBounds.left.floor();
+                x < part.visual.geometry.visualBounds.right.ceil();
+                x++
+              )
+                if (x >= 0 && z >= 0 && x < scene!.width && z < scene!.depth)
+                  (x, z),
+        });
 
   void _addSource(
     SmartTileVisualSource source,

@@ -9,6 +9,332 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('source batch exposes bounded recoverable replacement semantics', () {
+    final descriptor = Model3dActions.descriptors
+        .singleWhere((action) => action.id == 'model3d.source.replace_batch');
+    expect(descriptor.guarantees, isNot(contains(AuthoringGuarantee.atomic)));
+    expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
+    expect(descriptor.guarantees, contains(AuthoringGuarantee.revisionChecked));
+    expect(descriptor.requiredPermissions,
+        contains(AuthoringPermission.importRun));
+    expect(descriptor.extensions['maximumModelCount'], 50);
+    expect(descriptor.extensions['maximumTotalByteLength'], 64 << 20);
+    final schema = descriptor.extensions['inputSchema'] as Map;
+    expect(schema['required'], ['models']);
+    final items =
+        ((schema['properties'] as Map)['models'] as Map)['items'] as Map;
+    expect(items['required'], ['modelId', 'artifactHandle']);
+    expect(items['additionalProperties'], isFalse);
+  });
+
+  test(
+      'direct source batch publishes one catalog and manifest with a shared blob',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await f.apply(await f.plan(await f.models(['house', 'tree'])));
+    await f.apply(await f.plan({
+      'modelId': 'house',
+      'name': 'Configured house',
+      'scale': 2.5,
+      'pivot': {'x': 1, 'y': 2, 'z': -3}
+    }, action: 'model3d.configure'));
+    final before = await f.snapshot();
+    final handle = await f.stage('animated', bytes: animatedGlb());
+    final planned = await f.mutations.planMutation(
+        f.project,
+        f.authoringRequest([
+          {'modelId': 'house', 'artifactHandle': handle},
+          {'modelId': 'tree', 'artifactHandle': handle}
+        ],
+            action: 'model3d.source.replace_batch',
+            expectedRevision: before.revision));
+    final changes = planned.plan.changeSet.changes;
+    expect(changes.where((change) => change.storageKey == 'project.json'),
+        hasLength(1));
+    expect(
+        changes.where((change) => change.storageKey == assetCatalogStorageKey),
+        hasLength(1));
+    expect(changes.where((change) => change.resource.kind == 'assetBlob'),
+        hasLength(1));
+    final applied = await f.mutations.applyMutation(f.project,
+        planId: planned.planId, operationId: 'source-batch');
+    final otherLease = await f.stage('other-lease', bytes: animatedGlb());
+    final replay = await f.mutations.applyMutation(f.project,
+        planId: planned.planId, operationId: 'source-batch');
+    expect(replay.receipt.receiptId, applied.receipt.receiptId);
+    expect(f.mutations.artifacts.inspect(otherLease), isNotNull);
+    await f.mutations.artifacts.release(otherLease);
+    final after = await f.snapshot();
+    for (var i = 0; i < before.manifest.models3d.length; i++) {
+      final previous = before.manifest.models3d[i];
+      final current = after.manifest.models3d[i];
+      expect({...current.toJson(), 'inspection': previous.inspection.toJson()},
+          previous.toJson());
+      expect(current.inspection.animations.single.name, 'Wind');
+      expect(await File('${f.root.path}/${current.relativePath}').readAsBytes(),
+          animatedGlb());
+    }
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test(
+      'source batch rejects a trailing invalid model before publishing any bytes',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await f.apply(await f.plan(await f.models(['house', 'tree'])));
+    final before = await f.projectFile.readAsBytes();
+    final catalog =
+        await File('${f.root.path}/$assetCatalogStorageKey').readAsBytes();
+    final good = await f.stage('animated', bytes: animatedGlb());
+    final bad = await f.stage('bad', bytes: [0, 1, 2]);
+    final planned = await f.plan([
+      {'modelId': 'house', 'artifactHandle': good},
+      {'modelId': 'tree', 'artifactHandle': bad}
+    ], action: 'model3d.source.replace_batch');
+    expect(planned.status, AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(await File('${f.root.path}/$assetCatalogStorageKey').readAsBytes(),
+        catalog);
+    for (final id in ['house', 'tree']) {
+      expect(await File('${f.root.path}/assets/models3d/$id.glb').readAsBytes(),
+          triangleGlb());
+    }
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source batch updates bytes when the inspection remains identical',
+      () async {
+    final f = await _Fixture.create(manifest: _replacementManifest(['house']));
+    addTearDown(f.dispose);
+    final before = await f.projectFile.readAsBytes();
+    final bytes = triangleGlb(
+        edit: (document) => document['extras'] = {'sourceEdition': 2});
+    final handle = await f.stage('same-inspection', bytes: bytes);
+    final planned = await f.plan([
+      {'modelId': 'house', 'artifactHandle': handle}
+    ], action: 'model3d.source.replace_batch');
+    expect(planned.status, AuthoringResultStatus.success,
+        reason: jsonEncode(planned.toJson()));
+    expect((await f.apply(planned)).status, AuthoringResultStatus.success);
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        bytes);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('JSONL source batch replaces fifty models with one shared animation',
+      () async {
+    final ids = [for (var i = 0; i < 50; i++) 'tree-$i'];
+    final f = await _Fixture.create(manifest: _replacementManifest(ids));
+    addTearDown(f.dispose);
+    final handle = await f.stage('shared-animation', bytes: animatedGlb());
+    final planned = await f.plan([
+      for (final id in ids) {'modelId': id, 'artifactHandle': handle}
+    ], action: 'model3d.source.replace_batch');
+    expect((await f.apply(planned)).status, AuthoringResultStatus.success);
+    final after = await f.snapshot();
+    expect(after.manifest.models3d, hasLength(50));
+    expect(
+        after.manifest.models3d
+            .every((model) => model.inspection.animations.length == 1),
+        isTrue);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source batch skips identical sources and dry run releases all leases',
+      () async {
+    final f = await _Fixture.create(
+        manifest: _replacementManifest(['house', 'tree']));
+    addTearDown(f.dispose);
+    final before = await f.projectFile.readAsBytes();
+    final same = await f.stage('same');
+    final noOp = await f.plan([
+      for (final id in ['house', 'tree'])
+        {'modelId': id, 'artifactHandle': same}
+    ], action: 'model3d.source.replace_batch');
+    expect(noOp.status, AuthoringResultStatus.success);
+    expect(noOp.data['applicable'], isFalse);
+    expect(f.mutations.artifacts.list(), isEmpty);
+    final changed = await f.stage('changed', bytes: animatedGlb());
+    final planned = await f.mutations.planMutation(
+        f.project,
+        f.authoringRequest([
+          {'modelId': 'house', 'artifactHandle': changed}
+        ],
+            action: 'model3d.source.replace_batch',
+            dryRun: true,
+            expectedRevision: (await f.snapshot()).revision));
+    expect(planned.applicable, isFalse);
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  for (final invalid in ['duplicate', 'unknown', 'too-many', 'field']) {
+    test('source batch rejects $invalid entries and releases staged handles',
+        () async {
+      final f = await _Fixture.create(
+          manifest: _replacementManifest(['house', 'tree']));
+      addTearDown(f.dispose);
+      final before = await f.projectFile.readAsBytes();
+      final handle = await f.stage('changed', bytes: animatedGlb());
+      final entries = switch (invalid) {
+        'duplicate' => [
+            for (var i = 0; i < 2; i++)
+              {'modelId': 'house', 'artifactHandle': handle}
+          ],
+        'unknown' => [
+            {'modelId': 'house', 'artifactHandle': handle},
+            {'modelId': 'missing', 'artifactHandle': handle}
+          ],
+        'too-many' => [
+            for (var i = 0; i < 51; i++)
+              {'modelId': 'house', 'artifactHandle': handle}
+          ],
+        _ => [
+            {'modelId': 'house', 'artifactHandle': handle, 'name': 'Surprise'}
+          ]
+      };
+      final planned =
+          await f.plan(entries, action: 'model3d.source.replace_batch');
+      expect(planned.status, AuthoringResultStatus.failure);
+      expect(await f.projectFile.readAsBytes(), before);
+      expect(f.mutations.artifacts.list(), isEmpty);
+    });
+  }
+
+  test(
+      'source batch refuses removing any used animation and preserves placement bytes',
+      () async {
+    final f = await _Fixture.create(
+        manifest: _replacementManifest(['house', 'tree'], animated: true),
+        initialBytes: animatedGlb());
+    addTearDown(f.dispose);
+    final map = await f.addPlacement(animationIndex: 0);
+    final beforeMap = await map.readAsBytes();
+    final beforeProject = await f.projectFile.readAsBytes();
+    final handle = await f.stage('without-animation');
+    final planned = await f.plan([
+      for (final id in ['tree', 'house'])
+        {'modelId': id, 'artifactHandle': handle}
+    ], action: 'model3d.source.replace_batch');
+    expect(planned.status, AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), beforeProject);
+    expect(await map.readAsBytes(), beforeMap);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source batch undo restores all sources, inspections and the catalog',
+      () async {
+    final f = await _Fixture.create(
+        manifest: _replacementManifest(['house', 'tree']));
+    addTearDown(f.dispose);
+    final map = await f.addPlacement();
+    final beforeMap = await map.readAsBytes();
+    final before = await f.projectFile.readAsBytes();
+    final beforeCatalog =
+        await File('${f.root.path}/$assetCatalogStorageKey').readAsBytes();
+    final handle = await f.stage('changed', bytes: animatedGlb());
+    await f.apply(await f.plan([
+      for (final id in ['house', 'tree'])
+        {'modelId': id, 'artifactHandle': handle}
+    ], action: 'model3d.source.replace_batch'));
+    expect(await map.readAsBytes(), beforeMap);
+    final history = await f
+        .request('history', {'projectHandle': f.project.value, 'limit': 1});
+    final entry = (history.data['entries'] as List).single as Map;
+    final undone = await f.request('undo', {
+      'projectHandle': f.project.value,
+      'entryId': entry['entryId'],
+      'idempotencyKey': 'undo-source-batch'
+    });
+    expect(undone.status, AuthoringResultStatus.success,
+        reason: jsonEncode(undone.toJson()));
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(await File('${f.root.path}/$assetCatalogStorageKey').readAsBytes(),
+        beforeCatalog);
+    expect(await map.readAsBytes(), beforeMap);
+    for (final id in ['house', 'tree']) {
+      expect(await File('${f.root.path}/assets/models3d/$id.glb').readAsBytes(),
+          triangleGlb());
+    }
+  });
+
+  test('source batch rejects stale revisions before publication', () async {
+    final f = await _Fixture.create(
+        manifest: _replacementManifest(['house', 'tree']));
+    addTearDown(f.dispose);
+    final handle = await f.stage('changed', bytes: animatedGlb());
+    final planned = await f.plan([
+      for (final id in ['house', 'tree'])
+        {'modelId': id, 'artifactHandle': handle}
+    ], action: 'model3d.source.replace_batch');
+    final changed = (await f.snapshot()).manifest.copyWith(name: 'Concurrent');
+    await f.projectFile.writeAsString(jsonEncode(changed.toJson()));
+    expect((await f.apply(planned)).status, AuthoringResultStatus.failure);
+    for (final id in ['house', 'tree']) {
+      expect(await File('${f.root.path}/assets/models3d/$id.glb').readAsBytes(),
+          triangleGlb());
+    }
+  });
+
+  test('source batch recovers an interrupted publication as one operation',
+      () async {
+    final f = await _Fixture.create(
+        failAfterPromotion: true,
+        manifest: _replacementManifest(['house', 'tree']));
+    addTearDown(f.dispose);
+    final handle = await f.stage('changed', bytes: animatedGlb());
+    expect(
+        (await f.apply(await f.plan([
+          for (final id in ['house', 'tree'])
+            {'modelId': id, 'artifactHandle': handle}
+        ], action: 'model3d.source.replace_batch')))
+            .status,
+        AuthoringResultStatus.failure);
+    final recovered = await f.request('recover',
+        {'projectHandle': f.project.value, 'operationId': f.lastOperation});
+    expect(recovered.status, AuthoringResultStatus.success,
+        reason: jsonEncode(recovered.toJson()));
+    for (final id in ['house', 'tree']) {
+      expect(await File('${f.root.path}/assets/models3d/$id.glb').readAsBytes(),
+          animatedGlb());
+    }
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  for (final count in [1, 2]) {
+    test(
+        'source batch rejects its declared byte budget before reading $count sources',
+        () async {
+      final ids = [for (var i = 0; i < count; i++) 'model-$i'];
+      final f = await _Fixture.create(manifest: _replacementManifest(ids));
+      addTearDown(f.dispose);
+      final bytes = animatedGlb();
+      final actual =
+          ContentArtifactRef.fromBytes(bytes, mediaType: 'model/gltf-binary');
+      final store = _ProbeArtifactStore(
+          ContentArtifactRef(
+              digest: actual.digest,
+              mediaType: actual.mediaType,
+              byteLength: (64 << 20) ~/ count + 1),
+          bytes);
+      await expectLater(
+          Model3dActions(artifactStore: store).build(AuthoringPlanningContext(
+              snapshot: await f.snapshot(),
+              request: f.authoringRequest([
+                for (final id in ids)
+                  {'modelId': id, 'artifactHandle': actual.handle}
+              ], action: 'model3d.source.replace_batch'),
+              planId: 'budget',
+              seed: 1)),
+          throwsA(isA<FormatException>().having(
+              (error) => error.message, 'message', contains('64 MiB'))));
+      expect(store.readCount, 0);
+    });
+  }
+
   test('discovers a bounded recoverable model import contract', () {
     final descriptor = Model3dActions.descriptors
         .singleWhere((action) => action.id == 'model3d.import_batch');
@@ -426,7 +752,8 @@ void main() {
         jsonDecode(await f.projectFile.readAsString())['name'], 'Concurrent');
   });
 
-  test('real CLI discovers and imports a batch that reopens', () async {
+  test('real CLI discovers, imports and replaces a batch that reopens',
+      () async {
     final f = await _Fixture.create();
     addTearDown(f.dispose);
     await File('${f.root.path}/cli.glb').writeAsBytes(triangleGlb());
@@ -486,9 +813,46 @@ void main() {
       'planId': planned.data['planId'],
       'operationId': 'model-cli'
     });
+    expect(
+        (described.data['mutationActions'] as List)
+            .where((action) => action['id'] == 'model3d.source.replace_batch'),
+        hasLength(1));
+    await File('${f.root.path}/cli-animated.glb').writeAsBytes(animatedGlb());
+    final replacement = await send(
+        'stage_artifact', {'sourcePath': '${f.root.path}/cli-animated.glb'});
+    final replacementPlan = await send('plan', {
+      'projectHandle': opened.data['projectHandle'],
+      'request': AuthoringRequest(
+          requestId: 'model-cli-replace',
+          actionId: 'model3d.source.replace_batch',
+          actionVersion: 1,
+          workspaceHandle: opened.data['workspaceHandle'] as String,
+          expectedRevision: (await f.snapshot()).revision,
+          idempotencyKey: 'model-cli-replace',
+          parameters: {
+            'models': [
+              for (final id in ['cli-house', 'cli-tree'])
+                {
+                  'modelId': id,
+                  'artifactHandle': replacement.data['artifactHandle']
+                }
+            ]
+          }).toJson()
+    });
+    await send('apply', {
+      'projectHandle': opened.data['projectHandle'],
+      'planId': replacementPlan.data['planId'],
+      'operationId': 'model-cli-replace'
+    });
     await send('close', {'workspaceHandle': opened.data['workspaceHandle']});
     expect((await f.snapshot()).manifest.models3d.map((model) => model.id),
         ['cli-house', 'cli-tree']);
+    expect(
+        (await f.snapshot())
+            .manifest
+            .models3d
+            .every((model) => model.inspection.animations.length == 1),
+        isTrue);
     await process.stdin.close();
     expect(await process.exitCode, 0);
     expect(await errors, isEmpty);
@@ -497,6 +861,25 @@ void main() {
 
 Map<String, Object?> _model(String id, String handle) =>
     {'modelId': id, 'name': id, 'artifactHandle': handle};
+
+ProjectManifest _replacementManifest(List<String> ids,
+    {bool animated = false}) {
+  final inspection = const GlbModel3dInspector()
+      .inspect(animated ? animatedGlb() : triangleGlb());
+  return ProjectManifest(
+      name: 'Replace sources',
+      maps: [],
+      tilesets: [],
+      models3d: [
+        for (final id in ids)
+          ProjectModel3dEntry(
+              id: id,
+              name: id,
+              sourceAssetId: 'model3d_$id',
+              relativePath: 'assets/models3d/$id.glb',
+              inspection: inspection)
+      ]);
+}
 
 final class _ProbeArtifactStore implements ArtifactStore {
   _ProbeArtifactStore(this.reference, this.bytes);
@@ -543,13 +926,15 @@ final class _Fixture {
   Future<ProjectSnapshot> snapshot() => snapshots.load(project);
 
   static Future<_Fixture> create(
-      {bool failAfterPromotion = false, ProjectManifest? manifest}) async {
+      {bool failAfterPromotion = false,
+      ProjectManifest? manifest,
+      List<int>? initialBytes}) async {
     final root = await Directory.systemTemp.createTemp('model3d-import-batch-');
     await File('${root.path}/project.json').writeAsString(jsonEncode(
         (manifest ?? ProjectManifest(name: 'Models', maps: [], tilesets: []))
             .toJson()));
     if (manifest?.models3d.isNotEmpty ?? false) {
-      final bytes = triangleGlb();
+      final bytes = initialBytes ?? triangleGlb();
       final artifact =
           ContentArtifactRef.fromBytes(bytes, mediaType: 'model/gltf-binary');
       final blob = File('${root.path}/${assetBlobStorageKey(artifact)}');
@@ -612,6 +997,38 @@ final class _Fixture {
     return staged.reference.handle;
   }
 
+  Future<File> addPlacement({int? animationIndex}) async {
+    final current = await snapshot();
+    final map = MapData(
+        id: 'room',
+        name: 'Room',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 4, height: 4),
+        layers: [],
+        spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [
+          SpatialModelInstance(
+              id: 'placed',
+              modelId: 'house',
+              position: Model3dVector3(x: 1, y: 0, z: 1),
+              animationIndex: animationIndex,
+              animationSpeed: 1.5,
+              animationLoop: false)
+        ]));
+    final file = File('${root.path}/maps/room.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(map.toJson()));
+    await projectFile.writeAsString(jsonEncode(current.manifest.copyWith(
+        version: ProjectVersion.v9,
+        settings: ProjectSettings(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile()),
+        maps: [
+          const ProjectMapEntry(
+              id: 'room', name: 'Room', relativePath: 'maps/room.json')
+        ]).toJson()));
+    return file;
+  }
+
   Future<List<Map<String, Object?>>> models(List<String> ids) async {
     final handle = await stage('models-${sequence++}');
     return [for (final id in ids) _model(id, handle)];
@@ -629,7 +1046,8 @@ final class _Fixture {
           idempotencyKey: 'model-batch-${sequence++}',
           dryRun: dryRun,
           expectedRevision: expectedRevision,
-          parameters: action == 'model3d.import_batch'
+          parameters: action == 'model3d.import_batch' ||
+                  action == 'model3d.source.replace_batch'
               ? {'models': entries}
               : entries as Map<String, Object?>);
 

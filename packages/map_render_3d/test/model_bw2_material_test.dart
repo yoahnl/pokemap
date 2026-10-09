@@ -11,8 +11,132 @@ import 'package:map_render_3d/src/glb_renderer_layout.dart';
 
 import '../../map_distribution/test/support/glb_fixture.dart';
 
+Uint8List sharedIndexedGlb({bool mismatchedColors = false}) {
+  final binary = ByteData(300);
+  final positions = [
+    [0.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [2.0, 0.0, 0.0],
+    [3.0, 0.0, 0.0],
+    [2.0, 1.0, 0.0],
+  ];
+  for (var i = 0; i < 6; i++) {
+    for (var axis = 0; axis < 3; axis++) {
+      binary.setFloat32(i * 12 + axis * 4, positions[i][axis], Endian.little);
+      binary.setFloat32(
+        72 + i * 12 + axis * 4,
+        axis == 2 ? 1 : 0,
+        Endian.little,
+      );
+    }
+    binary.setFloat32(144 + i * 8, i / 8, Endian.little);
+    binary.setFloat32(148 + i * 8, 1 - i / 8, Endian.little);
+    for (var axis = 0; axis < 4; axis++) {
+      binary.setFloat32(
+        192 + i * 16 + axis * 4,
+        axis == 3 ? 1 : i / 8,
+        Endian.little,
+      );
+    }
+  }
+  for (final (i, index) in [2, 0, 1, 5, 3, 4].indexed) {
+    binary.setUint16(288 + i * 2, index, Endian.little);
+  }
+  final json = <String, dynamic>{
+    'asset': {'version': '2.0'},
+    'scene': 0,
+    'scenes': [
+      {
+        'nodes': [0],
+      },
+    ],
+    'nodes': [
+      {'mesh': 0},
+    ],
+    'meshes': [
+      {
+        'primitives': [
+          for (final index in [4, 5])
+            {
+              'attributes': {
+                'POSITION': 0,
+                'NORMAL': 1,
+                'TEXCOORD_0': 2,
+                'COLOR_0': 3,
+              },
+              'indices': index,
+              'material': 0,
+            },
+        ],
+      },
+    ],
+    'materials': [
+      {'pbrMetallicRoughness': {}},
+    ],
+    'buffers': [
+      {'byteLength': binary.lengthInBytes},
+    ],
+    'bufferViews': [
+      for (final (offset, length) in [
+        (0, 72),
+        (72, 72),
+        (144, 48),
+        (192, 96),
+        (288, 6),
+        (294, 6),
+      ])
+        {'buffer': 0, 'byteOffset': offset, 'byteLength': length},
+    ],
+    'accessors': [
+      for (final (index, type) in ['VEC3', 'VEC3', 'VEC2', 'VEC4'].indexed)
+        {
+          'bufferView': index,
+          'componentType': 5126,
+          'count': index == 3 && mismatchedColors ? 5 : 6,
+          'type': type,
+        },
+      for (final index in [4, 5])
+        {
+          'bufferView': index,
+          'componentType': 5123,
+          'count': 3,
+          'type': 'SCALAR',
+        },
+    ],
+  };
+  return Uint8List.fromList(encodeGlb(json, binary.buffer.asUint8List()));
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'indexed primitives retain original vertex identifiers across shared attribute arrays',
+    () async {
+      final model = await ModelByteLoader.load(sharedIndexedGlb());
+      final surfaces = model.nodes.values.single.mesh!.surfaces.toList();
+      expect(surfaces.map((surface) => surface.vertexCount), [3, 6]);
+      expect(surfaces[0].indices, [2, 0, 1]);
+      expect(surfaces[1].indices, [5, 3, 4]);
+      for (final surface in surfaces) {
+        final colors = (surface as SpatialModelSurface).vertexColors;
+        for (final index in surface.indices) {
+          expect(colors[index].r, index / 8);
+        }
+      }
+      expect(surfaces[0].positions, [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      expect(surfaces[1].positions.sublist(9), [2, 0, 0, 3, 0, 0, 2, 1, 0]);
+    },
+  );
+  test(
+    'indexed primitives reject colors whose original count differs from positions',
+    () async {
+      await expectLater(
+        ModelByteLoader.load(sharedIndexedGlb(mismatchedColors: true)),
+        throwsFormatException,
+      );
+    },
+  );
   test(
     'MASK uses backface culling and explicit cutoff through the real loader',
     () async {
@@ -160,6 +284,69 @@ void main() {
     });
   }
   final fixtures = Platform.environment['AVELUNE_BW2_FIXTURES'];
+  final doorFixture = Platform.environment['AVELUNE_BW2_DOOR_FIXTURE'];
+  if (doorFixture != null) {
+    test(
+      'original child doors remain closed under ambient and play separately once',
+      () async {
+        final model = await ModelByteLoader.load(
+          await File(doorFixture).readAsBytes(),
+        );
+        expect(model.animations.map((clip) => clip.name), [
+          'c5_build_01',
+          'door_c05_b_op',
+          'door_c05_b_cl',
+        ]);
+        final doors = model.nodes.values
+            .where((node) => node.name == 'door_l' || node.name == 'door_r')
+            .toList();
+        expect(doors, hasLength(2));
+        expect(
+          model.nodes.values.any(
+            (node) => node.name == 'Verified static source geometry',
+          ),
+          isFalse,
+        );
+        final component = AnimatedModelComponent(model: model)
+          ..bindAnimation(0);
+        final closed = model.processNodes(component.playback);
+        component.update(1.3);
+        final ambient = model.processNodes(component.playback);
+        for (final door in doors) {
+          expect(
+            ambient[door.nodeIndex]!.combinedTransform.storage,
+            orderedEquals(closed[door.nodeIndex]!.combinedTransform.storage),
+          );
+        }
+        component.play(1, loop: false);
+        component.update(1);
+        expect(component.playback.clock, closeTo(8 / 60, 1e-6));
+        final opened = model.processNodes(component.playback);
+        component.play(2, loop: false);
+        final beforeClose = model.processNodes(component.playback);
+        for (final door in doors) {
+          expect(
+            beforeClose[door.nodeIndex]!.combinedTransform.storage,
+            orderedEquals(opened[door.nodeIndex]!.combinedTransform.storage),
+          );
+        }
+        component.update(1);
+        final closedAgain = model.processNodes(component.playback);
+        for (final door in doors) {
+          expect(
+            closedAgain[door.nodeIndex]!.combinedTransform.storage,
+            orderedEquals(closed[door.nodeIndex]!.combinedTransform.storage),
+          );
+          expect(
+            opened[door.nodeIndex]!.combinedTransform.storage,
+            isNot(
+              orderedEquals(closed[door.nodeIndex]!.combinedTransform.storage),
+            ),
+          );
+        }
+      },
+    );
+  }
   if (fixtures != null) {
     test(
       'loads every authentic BW2 model with original colors and cutouts',

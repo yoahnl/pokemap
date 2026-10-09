@@ -287,6 +287,24 @@ final class _Inspection {
           'The default scene must contain visible triangle geometry.');
     }
     final animations = _animations();
+    final materialAnimations = Model3dMaterialAnimations.fromGlbJson(json);
+    final sourceMaterials = _objects(json['materials'], 1024);
+    final nodeAnimationCount = animations.length;
+    for (var i = 0; i < materialAnimations.clips.length; i++) {
+      final clip = materialAnimations.clips[i];
+      for (final track in clip.tracks) {
+        final pbr =
+            sourceMaterials[track.materialIndex]['pbrMetallicRoughness'];
+        if (pbr is! Map || pbr['baseColorTexture'] == null) {
+          throw const FormatException(
+              'Material animations require a base color texture.');
+        }
+      }
+      animations.add(Model3dAnimation(
+          index: nodeAnimationCount + i,
+          name: clip.name,
+          durationSeconds: clip.durationSeconds));
+    }
     return Model3dInspection(
         bounds: Model3dBounds(
             min: Model3dVector3(x: minimum[0], y: minimum[1], z: minimum[2]),
@@ -550,11 +568,6 @@ final class _Inspection {
           }
           previous = time;
         }
-        if (input.values.last <= 0 ||
-            input.values.last - input.values.first <= 0) {
-          throw const FormatException('Animation must have positive duration.');
-        }
-        duration = math.max(duration, input.values.last);
       }
       final channels = _objects(animation['channels'], 4096);
       if (channels.isEmpty) {
@@ -579,10 +592,15 @@ final class _Inspection {
               'Animated nodes require strictly positive initial scale components.');
         }
         final output = accessor(_index(sampler['output'], accessors.length));
+        final input = accessor(_index(sampler['input'], accessors.length));
+        duration = math.max(duration, input.values.last);
         if (output.type != (path == 'rotation' ? 'VEC4' : 'VEC3')) {
           throw const FormatException(
               'Animation output type does not match its target.');
         }
+      }
+      if (duration <= 0) {
+        throw const FormatException('Animation must have positive duration.');
       }
       result.add(Model3dAnimation(
           index: i,

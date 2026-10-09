@@ -202,7 +202,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
       activeAnimationVersion = controls.animationVersion;
       if (activeAnimation == null) {
         component?.stopAnimation();
-      } else if (activeAnimation! < (component?.model.animations.length ?? 0)) {
+      } else if (activeAnimation! < (component?.animationCount ?? 0)) {
         component?.play(
           activeAnimation!,
           loop: controls.animationLoop,

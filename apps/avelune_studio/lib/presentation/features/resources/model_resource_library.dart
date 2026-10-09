@@ -62,6 +62,29 @@ Future<void> importStudioModel(
   }
 }
 
+Future<void> replaceStudioModelSource(
+  ResourceNavigation navigation,
+  String modelId, {
+  PickModelSource picker = pickNativeModel,
+}) async {
+  if (navigation.busy || navigation.port is! ModelResourcePort) return;
+  navigation.setImportBusy(true);
+  try {
+    final source = await picker();
+    if (source == null || navigation.isDisposed) return;
+    final receipt = await (navigation.port as ModelResourcePort)
+        .replaceModelSource(modelId: modelId, sourcePath: source.path);
+    await navigation.accept(receipt);
+  } on ResourceFailure catch (failure) {
+    navigation.pendingReceipt = failure.partialReceipt;
+    if (!navigation.isDisposed) navigation.setImportError(failure.message);
+  } on Object catch (failure) {
+    if (!navigation.isDisposed) navigation.setImportError('$failure');
+  } finally {
+    if (!navigation.isDisposed) navigation.setImportBusy(false);
+  }
+}
+
 class ModelResourceLibrary extends StatefulWidget {
   const ModelResourceLibrary({super.key, required this.navigation});
   final ResourceNavigation navigation;
@@ -352,6 +375,21 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                   child: StudioNotice(modelDiagnosticLabel(diagnostic)),
                 ),
               const SizedBox(height: 16),
+              StudioButton(
+                label: 'Remplacer le modèle GLB',
+                secondary: true,
+                onPressed: n.busy
+                    ? null
+                    : () async {
+                        await replaceStudioModelSource(n, model.id);
+                        if (!mounted) return;
+                        final current = n.workspace.project!.models3d
+                            .where((entry) => entry.id == model.id)
+                            .firstOrNull;
+                        if (current != null) setState(() => select(current));
+                      },
+              ),
+              const SizedBox(height: 8),
               StudioButton(
                 label: 'Retirer de la bibliothèque',
                 secondary: true,

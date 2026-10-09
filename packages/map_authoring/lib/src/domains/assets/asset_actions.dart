@@ -510,6 +510,107 @@ final class AssetActions {
   }) =>
       const AssetImportProjector().project(catalog, record: record);
 
+  Future<AuthoringMutationDraft> composeReplacements(
+    ProjectSnapshot snapshot,
+    List<({String assetId, ContentArtifactRef artifact, List<int> bytes})>
+        entries,
+  ) async {
+    final state = _catalogState(snapshot);
+    var catalog = state.catalog;
+    final changes = <AuthoringResourceChange>[];
+    final diff = <AuthoringDiffEntry>[];
+    final artifacts = <String, AuthoringArtifactRef>{};
+    final blobs = <String>{};
+    final retained = <String>{};
+    final identities = <String>{};
+    final catalogRef = AuthoringResourceRef(
+        kind: 'assetCatalog',
+        id: 'project',
+        revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity]);
+    for (final entry in entries) {
+      if (!identities.add(entry.assetId) ||
+          snapshot.manifest.models3d
+              .any((model) => model.sourceAssetId == entry.assetId)) {
+        throw const FormatException(
+            'Asset replacements require unique inspected owners.');
+      }
+      final result =
+          replace(catalog, assetId: entry.assetId, artifact: entry.artifact);
+      catalog = result.catalog;
+      final before = result.before!;
+      final after = result.after!;
+      if (after.logicalPath == assetBlobStorageKey(after.artifact)) {
+        throw const FormatException(
+            'Model source paths must remain project-owned logical paths.');
+      }
+      diff.add(AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.replace,
+          resource: catalogRef,
+          path: '/records/${entry.assetId}',
+          before: before.toJson(),
+          after: after.toJson()));
+      _addLogicalAssetChange(
+          changes: changes,
+          diff: diff,
+          record: after,
+          beforeBytes: snapshot
+              .resourceBytes(assetBlobResourceIdentity(before.artifact.digest)),
+          afterBytes: entry.bytes,
+          beforeArtifact: before.artifact,
+          afterArtifact: entry.artifact,
+          operation: AuthoringDiffOperation.replace);
+      final artifact = entry.artifact;
+      artifacts[artifact.digest] = AuthoringArtifactRef(
+          id: artifact.digest,
+          mediaType: artifact.mediaType,
+          uri: artifact.handle,
+          byteLength: artifact.byteLength,
+          sha256: artifact.digest);
+      if (!blobs.add(artifact.digest) ||
+          state.catalog.records
+              .any((record) => record.artifact.digest == artifact.digest)) {
+        continue;
+      }
+      final existing = snapshot
+              .findResourceBytes(assetBlobResourceIdentity(artifact.digest)) ??
+          await retainedBlobReader?.call(snapshot, artifact);
+      if (existing != null) {
+        if (!_sameBytes(existing, entry.bytes)) {
+          throw AssetActionException('asset.retained_blob_mismatch',
+              'The retained content-addressed blob does not match the inspected candidate.');
+        }
+        retained.add(artifact.digest);
+        continue;
+      }
+      final resource =
+          AuthoringResourceRef(kind: 'assetBlob', id: artifact.digest);
+      changes.add(AuthoringResourceChange(
+          resource: resource,
+          storageKey: assetBlobStorageKey(artifact),
+          beforeBytes: null,
+          afterBytes: entry.bytes));
+      diff.add(AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: resource,
+          path: '/',
+          after: artifact.toJson()));
+    }
+    changes.add(AuthoringResourceChange(
+        resource: catalogRef,
+        storageKey: assetCatalogStorageKey,
+        beforeBytes: state.bytes,
+        afterBytes: _encodeCatalog(catalog)));
+    return AuthoringMutationDraft(
+        changeSet:
+            AuthoringChangeSet(changes: changes, diff: AuthoringDiff(diff)),
+        artifacts: artifacts.values,
+        referenceImpact: {
+          'blobDeleted': false,
+          if (retained.isNotEmpty)
+            'retainedBlobDigests': retained.toList()..sort()
+        });
+  }
+
   AssetActionResult replace(
     AssetCatalog catalog, {
     required String assetId,

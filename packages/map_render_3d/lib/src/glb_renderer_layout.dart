@@ -32,6 +32,7 @@ final class GlbRendererLayout {
   late final Map<String, dynamic> json;
   late final ByteData binary;
   late final List<Model3dMaterial> materials;
+  final materialBindings = <int, List<SpatialPixelMaterial>>{};
 
   Model3dMaterial _material(int index, Map<String, dynamic> raw) {
     if ((raw.containsKey('doubleSided') && raw['doubleSided'] is! bool) ||
@@ -100,6 +101,11 @@ final class GlbRendererLayout {
                   : mirroredTransform
                   ? CullMode.frontFace
                   : CullMode.backFace;
+        if (materialIndex != null) {
+          (materialBindings[materialIndex] ??= []).add(
+            surface.material as SpatialPixelMaterial,
+          );
+        }
       }
       final attributes = primitive['attributes'] as Map<String, dynamic>;
       if (attributes.keys.any(
@@ -110,8 +116,29 @@ final class GlbRendererLayout {
       final colorIndex = attributes['COLOR_0'] as int?;
       if (colorIndex == null) continue;
       final colorAccessor = json['accessors'][colorIndex];
-      if (colorAccessor['count'] != surface.vertexCount) {
-        throw const FormatException('COLOR_0 must match the vertex count.');
+      final positionCount =
+          json['accessors'][attributes['POSITION']]['count'] as int;
+      final indicesIndex = primitive['indices'] as int?;
+      final sourceIndices = indicesIndex == null
+          ? null
+          : _indices(indicesIndex);
+      final renderedCount = sourceIndices == null
+          ? positionCount
+          : sourceIndices.fold<int>(
+              0,
+              (count, index) => index >= count ? index + 1 : count,
+            );
+      if (colorAccessor['count'] != positionCount ||
+          renderedCount > positionCount ||
+          renderedCount != surface.vertexCount ||
+          sourceIndices != null &&
+              (sourceIndices.length != surface.indices.length ||
+                  sourceIndices.indexed.any(
+                    (entry) => surface.indices[entry.$1] != entry.$2,
+                  ))) {
+        throw const FormatException(
+          'COLOR_0 must match the original vertex layout.',
+        );
       }
       final width = switch (colorAccessor['type']) {
         'VEC3' => 3,
@@ -127,6 +154,14 @@ final class GlbRendererLayout {
       }
       final uvIndex = attributes['TEXCOORD_0'] as int?;
       final normalIndex = attributes['NORMAL'] as int?;
+      if ([uvIndex, normalIndex].any(
+        (index) =>
+            index != null && json['accessors'][index]['count'] != positionCount,
+      )) {
+        throw const FormatException(
+          'Vertex attributes must share the original position count.',
+        );
+      }
       final uvs = uvIndex == null ? null : _floats(uvIndex, 2);
       final normals = normalIndex == null ? null : _floats(normalIndex, 3);
       mesh.updateSurface(
@@ -174,6 +209,25 @@ final class GlbRendererLayout {
     if (values.any((value) => !value.isFinite))
       throw const FormatException('Nonfinite vertex values.');
     return values;
+  }
+
+  List<int> _indices(int index) {
+    final accessor = json['accessors'][index];
+    final view = json['bufferViews'][accessor['bufferView']];
+    final offset =
+        (view['byteOffset'] as int? ?? 0) +
+        (accessor['byteOffset'] as int? ?? 0);
+    return List.generate(
+      accessor['count'] as int,
+      (i) => switch (accessor['componentType']) {
+        5121 => binary.getUint8(offset + i),
+        5123 => binary.getUint16(offset + i * 2, Endian.little),
+        5125 => binary.getUint32(offset + i * 4, Endian.little),
+        _ => throw const FormatException(
+          'Triangle indices must use unsigned integers.',
+        ),
+      },
+    );
   }
 }
 

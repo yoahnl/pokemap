@@ -3,9 +3,11 @@ import 'dart:typed_data';
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
 import 'package:flame_3d/model.dart';
-import 'package:flame_3d/parser.dart';
 import 'package:flame_3d/core.dart';
+import 'package:flame_3d/src/parser/glb_parser.dart';
+import 'package:map_core/map_core.dart';
 
+import 'animated_render_model.dart';
 import 'glb_renderer_layout.dart';
 
 final class ModelByteLoader {
@@ -36,7 +38,11 @@ final class ModelByteLoader {
     final layout = GlbRendererLayout(normalized);
     cache.models[key] = normalized;
     try {
-      final model = await ModelParser.parse(key);
+      final materialAnimations = Model3dMaterialAnimations.fromGlbJson(
+        layout.json,
+      );
+      final root = await GlbParser().parseRoot(key);
+      final model = root.toFlameModel();
       for (final node in model.nodes.values) {
         final mesh = node.mesh;
         if (mesh != null) {
@@ -54,30 +60,64 @@ final class ModelByteLoader {
           );
         }
       }
-      return Model(
+      final animations = [
+        for (final clip in model.animations)
+          ModelAnimation(
+            name: clip.name,
+            nodes: {
+              for (final entry in clip.nodes.entries)
+                entry.key: AbsoluteNodeAnimation(
+                  channels: [
+                    for (final channel in entry.value.channels)
+                      EndpointSafeAnimationController(
+                        animation: channel.animation,
+                      ),
+                  ],
+                ),
+            },
+          ),
+      ];
+      if (materialAnimations.clips.isEmpty) {
+        return Model(nodes: model.nodes, animations: animations);
+      }
+      final targets = {
+        for (final clip in materialAnimations.clips)
+          for (final track in clip.tracks) track.materialIndex,
+      };
+      return AnimatedRenderModel(
         nodes: model.nodes,
-        animations: [
-          for (final clip in model.animations)
-            ModelAnimation(
-              name: clip.name,
-              nodes: {
-                for (final entry in clip.nodes.entries)
-                  entry.key: AbsoluteNodeAnimation(
-                    channels: [
-                      for (final channel in entry.value.channels)
-                        EndpointSafeAnimationController(
-                          animation: channel.animation,
-                        ),
-                    ],
-                  ),
-              },
-            ),
+        animations: animations,
+        materialAnimations: materialAnimations,
+        materialBindings: {
+          for (final target in targets)
+            target: layout.materialBindings[target] ?? [],
+        },
+        textures: [
+          for (final texture in root.textures) texture.toFlameTexture(),
+        ],
+        textureWrapModes: [
+          for (final texture in (layout.json['textures'] as List?) ?? const [])
+            _textureWrapModes(layout.json, texture as Map<String, dynamic>),
         ],
       );
     } finally {
       cache.models.remove(key);
     }
   }
+}
+
+({int wrapS, int wrapT}) _textureWrapModes(
+  Map<String, dynamic> json,
+  Map<String, dynamic> texture,
+) {
+  final samplerIndex = texture['sampler'] as int?;
+  final sampler = samplerIndex == null
+      ? null
+      : json['samplers'][samplerIndex] as Map<String, dynamic>;
+  return (
+    wrapS: sampler?['wrapS'] as int? ?? 10497,
+    wrapT: sampler?['wrapT'] as int? ?? 10497,
+  );
 }
 
 class AbsoluteNodeAnimation extends NodeAnimation {

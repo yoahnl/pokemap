@@ -112,6 +112,57 @@ void main() {
         .toSet();
     expect(colors, containsAll([ground, edge]));
   });
+  test('terrain leaves unpainted water cells free of opaque base faces', () {
+    final surfaces = terrainMeshes(
+      MapSpatialScene(width: 2, depth: 2),
+      const Color(0xff125588),
+      const Color(0xff113344),
+      paintedCells: {(0, 0), (0, 1), (1, 1)},
+    ).expand((mesh) => mesh.surfaces);
+    final topCells = <(int, int)>{};
+    for (final surface in surfaces) {
+      for (var i = 0; i < surface.positions.length; i += 12) {
+        final points = [
+          for (var j = i; j < i + 12; j += 3)
+            Vector3.array(surface.positions, j),
+        ];
+        if (points.every((point) => point.y == 0)) {
+          topCells.add((
+            (points.map((point) => point.x).reduce((a, b) => a + b) / 4)
+                .floor(),
+            (points.map((point) => point.z).reduce((a, b) => a + b) / 4)
+                .floor(),
+          ));
+        }
+      }
+    }
+    expect(topCells, {(0, 0), (0, 1), (1, 1)});
+  });
+  test('painted terrain retains its cliff faces beside empty cells', () {
+    final surfaces = terrainMeshes(
+      MapSpatialScene(width: 2, depth: 1, heightLevels: [4, 0]),
+      const Color(0xff125588),
+      const Color(0xff113344),
+      paintedCells: {(0, 0)},
+    ).expand((mesh) => mesh.surfaces);
+    expect(
+      surfaces.any((surface) {
+        for (var i = 0; i < surface.positions.length; i += 12) {
+          final points = [
+            for (var j = i; j < i + 12; j += 3)
+              Vector3.array(surface.positions, j),
+          ];
+          if (points.every((point) => point.x == 1) &&
+              points.any((point) => point.y == 0) &&
+              points.any((point) => point.y > 0)) {
+            return true;
+          }
+        }
+        return false;
+      }),
+      isTrue,
+    );
+  });
   test('cell picking handles top, cliff faces, empty space and grid edges', () {
     final scene = MapSpatialScene(
       width: 2,

@@ -44,6 +44,7 @@ void main() {
     );
     expect(plan.resolve(0), isEmpty);
     expect(plan.scene, same(scene));
+    expect(plan.paintedCells, isNull);
   });
 
   test(
@@ -218,6 +219,20 @@ void main() {
     );
     expect(plan.imageIds, {'tiles'});
     expect(plan.animated, isFalse);
+    expect(plan.paintedCells, {(0, 0), (0, 1), (1, 1)});
+    expect(
+      SpatialGroundPlan(
+        map.copyWith(
+          layers: [
+            layer.copyWith(
+              field: const SmartTileField.cell(semanticCells: [0, 0, 0, 0]),
+            ),
+          ],
+        ),
+        project,
+      ).paintedCells,
+      isEmpty,
+    );
     expect(plan.resolve(5000), same(actual));
     final translucent = SpatialGroundPlan(
       map.copyWith(layers: [layer.copyWith(opacity: .5)]),

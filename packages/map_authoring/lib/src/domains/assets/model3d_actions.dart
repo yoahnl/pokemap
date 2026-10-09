@@ -26,7 +26,14 @@ final class Model3dActions {
   static const maximumInlineModelDiffByteLength = 8 * 1024;
 
   static final descriptors = [
-    for (final action in ['import', 'import_batch', 'configure', 'delete'])
+    for (final action in [
+      'import',
+      'import_batch',
+      'source.replace',
+      'source.replace_batch',
+      'configure',
+      'delete'
+    ])
       AuthoringActionDescriptor(
         id: 'model3d.$action',
         version: 1,
@@ -34,6 +41,10 @@ final class Model3dActions {
           'import' => 'Import an inspected standalone GLB model atomically',
           'import_batch' =>
             'Import 1 to 50 inspected GLB models in one recoverable publication',
+          'source.replace' =>
+            'Replace an inspected GLB source while preserving model identity and placements',
+          'source.replace_batch' =>
+            'Replace 1 to 50 inspected GLB sources in one recoverable publication',
           'configure' => 'Configure a model name, scale and pivot',
           _ => 'Delete an unused model and its owned source'
         },
@@ -52,21 +63,28 @@ final class Model3dActions {
         capabilityIds: const ['authoring.visual_library'],
         requiredPermissions: [
           AuthoringPermission.projectWrite,
-          if (action.startsWith('import')) AuthoringPermission.importRun
+          if (action.startsWith('import') ||
+              action.startsWith('source.replace'))
+            AuthoringPermission.importRun
         ],
         guarantees: [
           AuthoringGuarantee.dryRun,
           AuthoringGuarantee.idempotent,
-          if (action != 'import_batch') AuthoringGuarantee.atomic,
+          if (action != 'import_batch' && !action.startsWith('source.replace'))
+            AuthoringGuarantee.atomic,
           AuthoringGuarantee.revisionChecked,
           AuthoringGuarantee.undoable
         ],
         extensions: {
-          if (action == 'import_batch') ...{
+          if (action == 'source.replace')
+            'publicationSemantics': 'recoverable_cross_file',
+          if (action == 'import_batch' || action == 'source.replace_batch') ...{
             'maximumModelCount': maximumModelCount,
             'maximumTotalByteLength': maximumTotalByteLength,
             'publicationSemantics': 'recoverable_cross_file',
-            'diffProjection': 'batch_model_additions',
+            'diffProjection': action == 'import_batch'
+                ? 'batch_model_additions'
+                : 'batch_model_replacements',
             'maximumInlineModelDiffByteLength':
                 maximumInlineModelDiffByteLength,
             'inputSchema': {
@@ -81,17 +99,22 @@ final class Model3dActions {
                   'items': {
                     'type': 'object',
                     'additionalProperties': false,
-                    'required': ['modelId', 'name', 'artifactHandle'],
+                    'required': [
+                      'modelId',
+                      if (action == 'import_batch') 'name',
+                      'artifactHandle'
+                    ],
                     'properties': {
                       'modelId': {
                         'type': 'string',
                         'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
                       },
-                      'name': {
-                        'type': 'string',
-                        'minLength': 1,
-                        'maxLength': 256
-                      },
+                      if (action == 'import_batch')
+                        'name': {
+                          'type': 'string',
+                          'minLength': 1,
+                          'maxLength': 256
+                        },
                       'artifactHandle': {'type': 'string', 'minLength': 1}
                     }
                   }
@@ -104,16 +127,18 @@ final class Model3dActions {
               'additionalProperties': false,
               'required': [
                 'modelId',
-                if (action == 'import') ...['artifactHandle', 'name']
+                if (action == 'import') 'name',
+                if (action == 'import' || action == 'source.replace')
+                  'artifactHandle'
               ],
               'properties': {
                 'modelId': {
                   'type': 'string',
                   'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
                 },
-                if (action == 'import')
+                if (action == 'import' || action == 'source.replace')
                   'artifactHandle': {'type': 'string', 'minLength': 1},
-                if (action != 'delete')
+                if (action == 'import' || action == 'configure')
                   'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
                 if (action == 'configure') ...{
                   'scale': {
@@ -141,10 +166,14 @@ final class Model3dActions {
     if (context.request.actionId == 'model3d.import_batch') {
       return _importBatch(context);
     }
+    if (context.request.actionId == 'model3d.source.replace_batch') {
+      return _replaceSources(context);
+    }
     final parameters = VisualLibraryParameters(context.request.parameters);
     final action = context.request.actionId;
     parameters.allow(switch (action) {
       'model3d.import' => {'modelId', 'name', 'artifactHandle'},
+      'model3d.source.replace' => {'modelId', 'artifactHandle'},
       'model3d.configure' => {'modelId', 'name', 'scale', 'pivot'},
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
@@ -155,6 +184,9 @@ final class Model3dActions {
     }
     final current =
         context.snapshot.manifest.models3d.where((v) => v.id == id).firstOrNull;
+    if (action == 'model3d.source.replace') {
+      return _replaceSource(context, parameters, current);
+    }
     if (action == 'model3d.import') {
       if (current != null) {
         throw const FormatException('Model identity is already in use.');
@@ -261,6 +293,289 @@ final class Model3dActions {
         : null;
     return _compose(context, manifest,
         before: current, after: null, assetDraft: assetDraft);
+  }
+
+  Future<AuthoringMutationDraft> _replaceSource(
+      AuthoringPlanningContext context,
+      VisualLibraryParameters parameters,
+      ProjectModel3dEntry? current) async {
+    final store = artifactStore;
+    if (store == null) {
+      throw const FormatException('An artifact store is required.');
+    }
+    final handle = parameters.string('artifactHandle');
+    try {
+      if (current == null) {
+        throw const FormatException('Unknown model identity.');
+      }
+      final artifact = store.inspect(handle);
+      if (artifact == null) {
+        throw const FormatException('The staged model is unavailable.');
+      }
+      if (artifact.mediaType != 'model/gltf-binary') {
+        throw const FormatException('Model sources must be GLB artifacts.');
+      }
+      final bytes = await store.read(handle);
+      final actual =
+          ContentArtifactRef.fromBytes(bytes, mediaType: artifact.mediaType);
+      if (actual.digest != artifact.digest ||
+          actual.byteLength != artifact.byteLength) {
+        throw const FormatException('The staged model content changed.');
+      }
+      final inspection = const GlbModel3dInspector().inspect(bytes);
+      for (final map in context.snapshot.maps) {
+        for (final instance
+            in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
+          final animationIndex = instance.animationIndex;
+          if (instance.modelId == current.id &&
+              animationIndex != null &&
+              animationIndex >= inspection.animations.length) {
+            throw const FormatException(
+                'The replacement removes an animation used by a map instance.');
+          }
+        }
+      }
+      final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+              context.snapshot.resourceBytes(assetCatalogResourceIdentity)))
+          as Map<String, dynamic>);
+      final source = catalog.require(current.sourceAssetId);
+      final next = ProjectModel3dEntry(
+          id: current.id,
+          name: current.name,
+          sourceAssetId: current.sourceAssetId,
+          relativePath: current.relativePath,
+          inspection: inspection,
+          scale: current.scale,
+          pivot: current.pivot);
+      final sameContent = source.artifact.digest == actual.digest &&
+          source.artifact.byteLength == actual.byteLength;
+      if (sameContent && next == current) {
+        await store.release(handle);
+        return AuthoringMutationDraft(
+            changeSet: AuthoringChangeSet.noChanges(),
+            projectedProject: context.snapshot.manifest,
+            preview: {
+              'operation': context.request.actionId,
+              'modelId': current.id,
+              'noOp': true
+            });
+      }
+      final manifest = context.snapshot.manifest.copyWith(models3d: [
+        for (final model in context.snapshot.manifest.models3d)
+          model.id == current.id ? next : model
+      ]);
+      if (sameContent) {
+        await store.release(handle);
+        return _compose(context, manifest, before: current, after: next);
+      }
+      final projected = ProjectSnapshot(
+          projectHandle: context.snapshot.projectHandle,
+          revision: context.snapshot.revision,
+          manifest: context.snapshot.manifest.copyWith(models3d: [
+            for (final model in context.snapshot.manifest.models3d)
+              if (model.id != current.id) model
+          ]),
+          pokemonInventoryComplete: context.snapshot.pokemonInventoryComplete,
+          maps: context.snapshot.maps,
+          resourceFingerprints: context.snapshot.resourceFingerprints,
+          resourceBytes: {
+            for (final identity in context.snapshot.resourceFingerprints.keys)
+              identity: context.snapshot.resourceBytes(identity)
+          },
+          resourceStorageKeys: context.snapshot.resourceStorageKeys);
+      final assetDraft = await _asset(context, projected, 'asset.replace',
+          {'assetId': current.sourceAssetId, 'artifactHandle': handle});
+      final result = _compose(context, manifest,
+          before: current, after: next, assetDraft: assetDraft);
+      if (context.request.dryRun) await store.release(handle);
+      return result;
+    } on Object {
+      await store.release(handle);
+      rethrow;
+    }
+  }
+
+  Future<AuthoringMutationDraft> _replaceSources(
+      AuthoringPlanningContext context) async {
+    final store = artifactStore;
+    if (store == null) {
+      throw const FormatException('An artifact store is required.');
+    }
+    final raw = context.request.parameters['models'];
+    final handles = <String>{
+      if (raw is List)
+        for (final input in raw)
+          if (input is Map && input['artifactHandle'] is String)
+            input['artifactHandle'] as String
+    };
+    try {
+      final parameters = VisualLibraryParameters(context.request.parameters)
+        ..allow(const {'models'});
+      final inputs = parameters.objects('models');
+      if (inputs.isEmpty || inputs.length > maximumModelCount) {
+        throw const FormatException(
+            'Expected 1 to 50 model source replacements.');
+      }
+      final models = {
+        for (final model in context.snapshot.manifest.models3d) model.id: model
+      };
+      final entries =
+          <({ProjectModel3dEntry model, ContentArtifactRef artifact})>[];
+      final identities = <String>{};
+      var byteLength = 0;
+      for (final input in inputs) {
+        final fields = VisualLibraryParameters(input)
+          ..allow(const {'modelId', 'artifactHandle'});
+        final id = fields.string('modelId');
+        final model = models[id];
+        if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
+            !identities.add(id) ||
+            model == null) {
+          throw const FormatException(
+              'Model identity is unknown, invalid or duplicated.');
+        }
+        final artifact = store.inspect(fields.string('artifactHandle'));
+        if (artifact == null || artifact.mediaType != 'model/gltf-binary') {
+          throw const FormatException(
+              'An inspected staged GLB model is required.');
+        }
+        byteLength += artifact.byteLength;
+        if (byteLength > maximumTotalByteLength) {
+          throw const FormatException('Model source batch exceeds 64 MiB.');
+        }
+        entries.add((model: model, artifact: artifact));
+      }
+      final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+              context.snapshot.resourceBytes(assetCatalogResourceIdentity)))
+          as Map<String, dynamic>);
+      final usedAnimations = <String, Set<int>>{};
+      for (final map in context.snapshot.maps) {
+        for (final instance
+            in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
+          if (identities.contains(instance.modelId) &&
+              instance.animationIndex != null) {
+            (usedAnimations[instance.modelId] ??= {})
+                .add(instance.animationIndex!);
+          }
+        }
+      }
+      final bytesByHandle = <String, List<int>>{};
+      final inspections = <String, Model3dInspection>{};
+      final replacements = <String, ProjectModel3dEntry>{};
+      final sourceEntries =
+          <({String assetId, ContentArtifactRef artifact, List<int> bytes})>[];
+      final retainedHandles = <String>{};
+      for (final entry in entries) {
+        final artifact = entry.artifact;
+        final bytes = bytesByHandle[artifact.handle] ??=
+            await store.read(artifact.handle);
+        final actual =
+            ContentArtifactRef.fromBytes(bytes, mediaType: artifact.mediaType);
+        if (actual.digest != artifact.digest ||
+            actual.byteLength != artifact.byteLength) {
+          throw const FormatException('The staged model content changed.');
+        }
+        final inspection = inspections.putIfAbsent(
+            artifact.handle, () => const GlbModel3dInspector().inspect(bytes));
+        if ((usedAnimations[entry.model.id] ?? const <int>{})
+            .any((index) => index >= inspection.animations.length)) {
+          throw const FormatException(
+              'The replacement removes an animation used by a map instance.');
+        }
+        final current = entry.model;
+        final source = catalog.require(current.sourceAssetId);
+        final next = ProjectModel3dEntry(
+            id: current.id,
+            name: current.name,
+            sourceAssetId: current.sourceAssetId,
+            relativePath: current.relativePath,
+            inspection: inspection,
+            scale: current.scale,
+            pivot: current.pivot);
+        final sameContent = source.artifact.digest == actual.digest &&
+            source.artifact.byteLength == actual.byteLength;
+        if (sameContent && next == current) continue;
+        replacements[current.id] = next;
+        if (!sameContent) {
+          retainedHandles.add(artifact.handle);
+          sourceEntries.add((
+            assetId: current.sourceAssetId,
+            artifact: artifact,
+            bytes: bytes
+          ));
+        }
+      }
+      if (replacements.isEmpty) {
+        for (final handle in handles) {
+          await store.release(handle);
+        }
+        return AuthoringMutationDraft(
+            changeSet: AuthoringChangeSet.noChanges(),
+            projectedProject: context.snapshot.manifest,
+            preview: {'operation': context.request.actionId, 'noOp': true});
+      }
+      final manifest = context.snapshot.manifest.copyWith(models3d: [
+        for (final model in context.snapshot.manifest.models3d)
+          replacements[model.id] ?? model
+      ]);
+      AuthoringMutationDraft? assetDraft;
+      if (sourceEntries.isNotEmpty) {
+        final projected = context.snapshot.projectMapResources(
+            revision: context.snapshot.revision,
+            manifest: context.snapshot.manifest.copyWith(models3d: [
+              for (final model in context.snapshot.manifest.models3d)
+                if (!replacements.containsKey(model.id)) model
+            ]),
+            maps: context.snapshot.maps,
+            resourceFingerprints: context.snapshot.resourceFingerprints,
+            replacementBytes: const {});
+        assetDraft = await AssetActions(retainedBlobReader: retainedBlobReader)
+            .composeReplacements(projected, sourceEntries);
+      }
+      final projectDraft = buildVisualManifestDraft(context.snapshot, manifest,
+          operation: context.request.actionId, path: '/models3d');
+      final result = AuthoringMutationDraft(
+          changeSet: AuthoringChangeSet(
+              changes: [
+                ...?assetDraft?.changeSet.changes,
+                ...projectDraft.changeSet.changes
+              ],
+              diff: AuthoringDiff([
+                ...?assetDraft?.changeSet.diff.entries,
+                for (final entry in entries)
+                  if (replacements.containsKey(entry.model.id) &&
+                      projectDraft.changeSet.changes.isNotEmpty)
+                    AuthoringDiffEntry(
+                        operation: AuthoringDiffOperation.replace,
+                        resource:
+                            projectDraft.changeSet.changes.single.resource,
+                        path: '/models3d/${entry.model.id}',
+                        before: _modelBatchDiffValue(entry.model),
+                        after:
+                            _modelBatchDiffValue(replacements[entry.model.id]!))
+              ])),
+          projectedProject: manifest,
+          preview: {
+            'operation': context.request.actionId,
+            'replacedCount': replacements.length,
+            'modelIds': replacements.keys.toList(),
+            'totalByteLength': byteLength,
+            'publicationSemantics': 'recoverable_cross_file'
+          },
+          artifacts: assetDraft?.artifacts ?? const [],
+          referenceImpact: assetDraft?.referenceImpact ?? const {});
+      for (final handle in handles) {
+        if (context.request.dryRun || !retainedHandles.contains(handle)) {
+          await store.release(handle);
+        }
+      }
+      return result;
+    } on Object {
+      for (final handle in handles) {
+        await store.release(handle);
+      }
+      rethrow;
+    }
   }
 
   Future<AuthoringMutationDraft> _importBatch(

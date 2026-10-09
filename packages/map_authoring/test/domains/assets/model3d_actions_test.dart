@@ -6,6 +6,172 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('source replacement exposes a revision checked recoverable contract',
+      () {
+    final descriptor = Model3dActions.descriptors
+        .singleWhere((action) => action.id == 'model3d.source.replace');
+    expect(descriptor.requiredPermissions,
+        contains(AuthoringPermission.importRun));
+    expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
+    expect(descriptor.guarantees, contains(AuthoringGuarantee.idempotent));
+    expect(descriptor.guarantees, contains(AuthoringGuarantee.revisionChecked));
+    expect(descriptor.guarantees, isNot(contains(AuthoringGuarantee.atomic)));
+    final schema = descriptor.extensions['inputSchema'] as Map;
+    expect(schema['required'], ['modelId', 'artifactHandle']);
+    expect((schema['properties'] as Map).keys,
+        unorderedEquals(['modelId', 'artifactHandle']));
+  });
+
+  test('JSONL source replacement preserves configured model and placed map',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    expect(
+        (await f.apply(await f.planAction('model3d.configure', {
+          'modelId': 'house',
+          'name': 'Configured house',
+          'scale': 2.5,
+          'pivot': {'x': 1, 'y': 2, 'z': -3}
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    final mapFile = await f.addPlacement();
+    final beforeMap = await mapFile.readAsBytes();
+    final before = (await f.snapshots.load(f.project)).manifest.models3d.single;
+    final plan = await f.planReplacement(animatedGlb());
+    expect(plan.status, AuthoringResultStatus.success,
+        reason: jsonEncode(plan.toJson()));
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        triangleGlb());
+    expect((await f.apply(plan)).status, AuthoringResultStatus.success);
+    final after = (await f.snapshots.load(f.project)).manifest.models3d.single;
+    expect(after.id, before.id);
+    expect(after.name, before.name);
+    expect(after.scale, before.scale);
+    expect(after.pivot, before.pivot);
+    expect(after.relativePath, before.relativePath);
+    expect(after.sourceAssetId, before.sourceAssetId);
+    expect(after.inspection.animations.single.name, 'Wind');
+    expect(await mapFile.readAsBytes(), beforeMap);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        animatedGlb());
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source replacement undo restores bytes and inspection together',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final before = (await f.snapshots.load(f.project)).manifest.models3d.single;
+    expect((await f.apply(await f.planReplacement(animatedGlb()))).status,
+        AuthoringResultStatus.success);
+    final history = await f
+        .request('history', {'projectHandle': f.project.value, 'limit': 10});
+    final entry = (history.data['entries'] as List).cast<Map>().firstWhere(
+        (e) => (e['receipt'] as Map)['actionId'] == 'model3d.source.replace');
+    final undone = await f.request('undo', {
+      'projectHandle': f.project.value,
+      'entryId': entry['entryId'],
+      'idempotencyKey': 'undo-model-source-replace'
+    });
+    expect(undone.status, AuthoringResultStatus.success,
+        reason: jsonEncode(undone.toJson()));
+    expect(
+        (await f.snapshots.load(f.project)).manifest.models3d.single, before);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        triangleGlb());
+  });
+
+  test('source replacement refuses removing a placed animation', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await File('${f.root.path}/input.glb').writeAsBytes(animatedGlb());
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final map = await f.addPlacement(animationIndex: 0);
+    final before = await f.projectFile.readAsBytes();
+    final beforeMap = await map.readAsBytes();
+    final plan = await f.planReplacement(triangleGlb());
+    expect(plan.status, AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(await map.readAsBytes(), beforeMap);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        animatedGlb());
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source replacement rejects invalid bytes and unknown models', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final before = await f.projectFile.readAsBytes();
+    expect((await f.planReplacement([0, 1, 2])).status,
+        AuthoringResultStatus.failure);
+    expect((await f.planReplacement(animatedGlb(), modelId: 'unknown')).status,
+        AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
+  test('source replacement refuses a stale revision without changing bytes',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final plan = await f.planReplacement(animatedGlb());
+    final manifest = (await f.snapshots.load(f.project))
+        .manifest
+        .copyWith(name: 'Concurrent edit');
+    await f.projectFile.writeAsString(jsonEncode(manifest.toJson()));
+    expect((await f.apply(plan)).status, AuthoringResultStatus.failure);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        triangleGlb());
+  });
+
+  test(
+      'direct source replacement replays the same receipt and skips identical bytes',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    await File('${f.root.path}/replacement.glb').writeAsBytes(animatedGlb());
+    final staged = await f.mutations
+        .stageArtifactFile(sourcePath: '${f.root.path}/replacement.glb');
+    final snapshot = await f.snapshots.load(f.project);
+    final plan = await f.mutations.planMutation(
+        f.project,
+        AuthoringRequest(
+            requestId: 'direct-replace',
+            actionId: 'model3d.source.replace',
+            actionVersion: 1,
+            workspaceHandle: f.workspace.value,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'direct-replace',
+            parameters: {
+              'modelId': 'house',
+              'artifactHandle': staged.reference.handle
+            }));
+    final applied = await f.mutations.applyMutation(f.project,
+        planId: plan.planId, operationId: 'direct-replace');
+    final replay = await f.mutations.applyMutation(f.project,
+        planId: plan.planId, operationId: 'direct-replace');
+    expect(replay.receipt.receiptId, applied.receipt.receiptId);
+    expect(f.mutations.artifacts.list(), isEmpty);
+    final before = await f.projectFile.readAsBytes();
+    final identical = await f.planReplacement(animatedGlb());
+    expect(identical.status, AuthoringResultStatus.success,
+        reason: jsonEncode(identical.toJson()));
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(f.mutations.artifacts.list(), isEmpty);
+  });
+
   test('JSONL discovers and atomically imports a project owned model',
       () async {
     final f = await _Fixture.create();
@@ -392,6 +558,48 @@ final class _Fixture {
       'modelId': 'house',
       'name': 'Maison',
     });
+  }
+
+  Future<AuthoringResult> planReplacement(List<int> bytes,
+      {String modelId = 'house'}) async {
+    await File('${root.path}/replacement.glb').writeAsBytes(bytes);
+    final staged = await request(
+        'stage_artifact', {'sourcePath': '${root.path}/replacement.glb'});
+    expect(staged.status, AuthoringResultStatus.success);
+    return planAction('model3d.source.replace',
+        {'modelId': modelId, 'artifactHandle': staged.data['artifactHandle']});
+  }
+
+  Future<File> addPlacement({int? animationIndex}) async {
+    final snapshot = await snapshots.load(project);
+    final map = MapData(
+        id: 'room',
+        name: 'Room',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 4, height: 4),
+        layers: [],
+        spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [
+          SpatialModelInstance(
+              id: 'placed',
+              modelId: 'house',
+              position: Model3dVector3(x: 1, y: 0, z: 1),
+              animationIndex: animationIndex,
+              animationLoop: false,
+              animationSpeed: 1.5)
+        ]));
+    final file = File('${root.path}/maps/room.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(map.toJson()));
+    await projectFile.writeAsString(jsonEncode(snapshot.manifest.copyWith(
+        version: ProjectVersion.v9,
+        settings: ProjectSettings(
+            dimension: ProjectDimension.threeD,
+            spatialCamera: SpatialCameraProfile()),
+        maps: [
+          const ProjectMapEntry(
+              id: 'room', name: 'Room', relativePath: 'maps/room.json')
+        ]).toJson()));
+    return file;
   }
 
   Future<AuthoringResult> planAction(

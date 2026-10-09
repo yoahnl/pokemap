@@ -222,8 +222,11 @@ final class LocalMapAuthoringMutationApi
     AuthoringRequest request,
   ) async {
     final result = await _session(projectHandle).planMutation(request);
-    if ({'model3d.import_batch', 'smart_tile.preset.draft.import'}
-            .contains(request.actionId) &&
+    if ({
+          'model3d.import_batch',
+          'model3d.source.replace_batch',
+          'smart_tile.preset.draft.import'
+        }.contains(request.actionId) &&
         result.applicable &&
         !result.plan.appliedPayloadReleased) {
       _modelBatchStagingPlans.add((projectHandle, result.planId));
@@ -366,12 +369,17 @@ final class LocalMapAuthoringMutationApi
       'presentationMedia.import',
       'model3d.import',
       'model3d.import_batch',
+      'model3d.source.replace',
+      'model3d.source.replace_batch',
       'smart_tile.preset.draft.import',
     }.contains(result.receipt.actionId)) {
       return;
     }
-    if ({'model3d.import_batch', 'smart_tile.preset.draft.import'}
-        .contains(result.receipt.actionId)) {
+    if ({
+      'model3d.import_batch',
+      'model3d.source.replace_batch',
+      'smart_tile.preset.draft.import'
+    }.contains(result.receipt.actionId)) {
       final planId = result.receipt.extensions['planId'];
       if (planId is! String ||
           !_modelBatchStagingPlans.remove((projectHandle, planId))) {
