@@ -7,7 +7,7 @@ void main() {
     final repositoryRoot = Directory.current.parent.parent;
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
-      'pokemap_hub_product_certification.yml',
+      'pokemap_product_certification.yml',
     ).readAsStringSync();
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
@@ -61,7 +61,7 @@ void main() {
     final repositoryRoot = Directory.current.parent.parent;
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
-      'pokemap_hub_product_certification.yml',
+      'pokemap_product_certification.yml',
     ).readAsStringSync();
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
@@ -83,7 +83,7 @@ void main() {
     final repositoryRoot = Directory.current.parent.parent;
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
-      'pokemap_hub_product_certification.yml',
+      'pokemap_product_certification.yml',
     ).readAsStringSync();
 
     String job(String name, String nextName) {
@@ -200,7 +200,7 @@ void main() {
     final workflow =
         File(
           '${repositoryRoot.path}/.github/workflows/'
-          'pokemap_hub_product_certification.yml',
+          'pokemap_product_certification.yml',
         ).readAsStringSync();
     final gateStart = workflow.indexOf('  map-editor-performance-gate:');
     expect(gateStart, greaterThanOrEqualTo(0));

@@ -29,6 +29,12 @@ void main() {
     expect(source, contains('timeout-minutes: 15'));
     expect(source, contains('cancel-in-progress: true'));
     expect('"apps/avelune_studio/**"'.allMatches(source), hasLength(2));
+    expect('"apps/Avelune iOS/**"'.allMatches(source), hasLength(2));
+    expect('"apps/avelune_android/**"'.allMatches(source), hasLength(2));
+    expect('"apps/pokemap_hub/lib/**"'.allMatches(source), hasLength(2));
+    expect(source, isNot(contains('"apps/pokemap_hub/**"')));
+    expect(source, isNot(contains('working-directory: apps/pokemap_hub')));
+    expect(source, contains('test_native_host_contracts.py'));
     expect(source, contains('working-directory: apps/avelune_studio'));
     expect(source, contains('test/app/studio_bootstrap_test.dart'));
     expect(source, contains('test/home/recent_projects_test.dart'));
@@ -64,7 +70,7 @@ void main() {
     }
 
     expect(
-      triggers(workflow('pokemap_hub_product_certification.yml')),
+      triggers(workflow('pokemap_product_certification.yml')),
       contains('  workflow_dispatch:'),
     );
 

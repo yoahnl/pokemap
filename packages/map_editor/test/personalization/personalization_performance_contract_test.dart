@@ -20,7 +20,7 @@ void main() {
     expect(source, contains("'soakGestures': 10"));
 
     final workflow = File(
-      '../../.github/workflows/pokemap_hub_product_certification.yml',
+      '../../.github/workflows/pokemap_product_certification.yml',
     ).readAsStringSync();
     expect(
       workflow,

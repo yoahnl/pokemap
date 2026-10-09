@@ -7,7 +7,7 @@ dmg_path=''
 notary_profile=''
 result_json=''
 log_directory=''
-volume_name='PokeMap Hub'
+volume_name='Avelune Studio'
 
 usage() {
   echo 'Usage: notarize_macos_release.sh --app <bundle.app> --dmg <output.dmg> --notary-profile <profile> --result-json <file> [--log-directory <directory>] [--volume-name <name>]' >&2

@@ -126,7 +126,7 @@ void main() {
       final workflow = File(
         p.join(
           repositoryRoot,
-          '.github/workflows/pokemap_hub_product_certification.yml',
+          '.github/workflows/pokemap_product_certification.yml',
         ),
       ).readAsStringSync();
 

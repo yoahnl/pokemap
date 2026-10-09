@@ -3,20 +3,26 @@ name: PokeMap quick checks
 on:
   pull_request:
     paths:
-      - "apps/pokemap_hub/**"
+      - "apps/Avelune iOS/**"
+      - "apps/avelune_android/**"
+      - "apps/pokemap_hub/lib/**"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
       - "tools/pokemap_product_certification/**"
+      - "tools/release/**"
       - ".github/workflows/**"
   push:
     branches: [main]
     paths:
-      - "apps/pokemap_hub/**"
+      - "apps/Avelune iOS/**"
+      - "apps/avelune_android/**"
+      - "apps/pokemap_hub/lib/**"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
       - "tools/pokemap_product_certification/**"
+      - "tools/release/**"
       - ".github/workflows/**"
 
 permissions:
@@ -45,17 +51,11 @@ jobs:
           git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Hub workflow contracts
-        working-directory: apps/pokemap_hub
+      - name: Native host ownership contracts
         run: |
-          flutter pub get
-          flutter test --no-pub --timeout 2m \
-            test/release/ci_cost_workflow_test.dart \
-            test/release/desktop_platform_release_gate_test.dart \
-            test/release/intro_codec_fixture_test.dart \
-            test/release/mobile_platform_release_gate_test.dart \
-            test/release/performance_observation_workflow_test.dart
-          flutter analyze --no-pub lib test/release
+          python3 -m unittest discover \
+            -s apps/avelune_android/tool \
+            -p 'test_native_host_contracts.py' -v
       - name: Core roadmap contracts
         working-directory: packages/map_core
         run: |
@@ -84,6 +84,8 @@ jobs:
         run: |
           flutter pub get
           flutter test --no-pub --timeout 2m \
+            test/release/ci_cost_workflow_test.dart \
+            test/release/performance_observation_workflow_test.dart \
             test/app/studio_bootstrap_test.dart \
             test/home/recent_projects_test.dart \
             test/project_session/scoped_project_session_adapter_test.dart \

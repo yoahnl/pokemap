@@ -26,15 +26,16 @@ void main() {
     skip: !_ffprobeAvailable,
   );
 
-  test('GitHub verifies codecs while Xcode Cloud owns iOS playback', () async {
+  test('native certification excludes retired Hub codec fixtures', () async {
     final workflow = await File(
-      '../../.github/workflows/pokemap_hub_product_certification.yml',
+      '../../.github/workflows/pokemap_product_certification.yml',
     ).readAsString();
     final support = await File(
       'tool/release/platform_support.json',
     ).readAsString();
 
-    expect(workflow, contains('tool/release/verify_intro_codecs.sh'));
+    expect(workflow, isNot(contains('tool/release/verify_intro_codecs.sh')));
+    expect(workflow, contains('test_native_host_contracts.py'));
     expect(workflow, isNot(contains('pst_074_native_codec_playback_test.dart')));
     expect(workflow, isNot(contains('flutter build ios')));
     expect(support, contains('"releaseGate": "xcode-cloud"'));

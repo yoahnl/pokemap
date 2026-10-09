@@ -14,7 +14,7 @@ void main() {
 
     final workflow =
         File(
-          '../../.github/workflows/pokemap_hub_product_certification.yml',
+          '../../.github/workflows/pokemap_product_certification.yml',
         ).readAsStringSync();
     expect(workflow, isNot(contains('flutter build macos --release')));
     expect(workflow, isNot(contains('flutter build windows --release')));

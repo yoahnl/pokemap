@@ -11,7 +11,7 @@ void main() {
         'pokemap-notarization-fixture-',
       );
       addTearDown(() => root.delete(recursive: true));
-      final app = Directory('${root.path}/PokeMap Hub.app');
+      final app = Directory('${root.path}/Avelune Studio.app');
       await app.create();
       final tools = Directory('${root.path}/tools');
       await tools.create();
@@ -72,14 +72,14 @@ if [[ "\$1" == "-d" ]]; then
 fi
 ''',
       );
-      final dmg = File('${root.path}/PokeMapHub.dmg');
+      final dmg = File('${root.path}/AveluneStudio.dmg');
       final result = File('${root.path}/notary-result.json');
       final logs = Directory('${root.path}/logs');
 
       final execution = await Process.run(
         '/bin/bash',
         <String>[
-          'tool/release/notarize_macos_release.sh',
+          '../../tools/release/notarize_macos_release.sh',
           '--app',
           app.path,
           '--dmg',

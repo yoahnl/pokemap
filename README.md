@@ -519,7 +519,7 @@ Ce parcours embarque le projet dans les ressources de l'application et produit s
 
 ### Distribuer Avelune
 
-Avelune dispose de ses propres configurations et workflows, dont la [distribution Android](.github/workflows/avelune_android_release.yml) et la [certification produit du hub](.github/workflows/pokemap_hub_product_certification.yml).
+Avelune utilise les hôtes natifs SwiftUI et Kotlin, avec ses propres configurations et workflows, dont la [distribution Android](.github/workflows/avelune_android_release.yml) et la [certification produit](.github/workflows/pokemap_product_certification.yml).
 
 Les secrets de signature et les permissions de publication appartiennent à l'environnement de release. Ils ne sont pas nécessaires à documenter dans un exemple de configuration public et ne doivent pas être ajoutés au dépôt pour faciliter un build local.
 

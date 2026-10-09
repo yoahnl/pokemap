@@ -213,7 +213,7 @@ jobs:
             "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
           test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
           test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
-          ../pokemap_hub/tool/release/sign_macos_app.sh \
+          bash ../../tools/release/sign_macos_app.sh \
             --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
@@ -231,7 +231,7 @@ jobs:
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
-          ../pokemap_hub/tool/release/notarize_macos_release.sh \
+          bash ../../tools/release/notarize_macos_release.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
@@ -562,7 +562,7 @@ jobs:
             "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
           test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
           test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
-          ../pokemap_hub/tool/release/sign_macos_app.sh \
+          bash ../../tools/release/sign_macos_app.sh \
             --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
@@ -580,7 +580,7 @@ jobs:
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
-          ../pokemap_hub/tool/release/notarize_macos_release.sh \
+          bash ../../tools/release/notarize_macos_release.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg "build/release/PokeMap-Editor-$RELEASE_VERSION-macOS.dmg" \
             --notary-profile pokemap-release \

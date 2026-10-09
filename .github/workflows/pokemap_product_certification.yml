@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pokemap-hub-product-${{ github.event.pull_request.number || github.ref }}
+  group: pokemap-product-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -35,19 +35,11 @@ jobs:
           git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Hub tests and analysis
-        working-directory: apps/pokemap_hub
+      - name: Native host ownership contracts
         run: |
-          flutter pub get
-          flutter test --timeout 2m --exclude-tags visual
-          flutter analyze
-      - name: Verify intro codecs
-        working-directory: apps/pokemap_hub
-        run: |
-          if ! command -v ffprobe >/dev/null 2>&1; then
-            brew install ffmpeg
-          fi
-          tool/release/verify_intro_codecs.sh
+          python3 -m unittest discover \
+            -s apps/avelune_android/tool \
+            -p 'test_native_host_contracts.py' -v
       - name: Product certification contracts
         working-directory: tools/pokemap_product_certification
         run: |

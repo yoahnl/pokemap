@@ -52,7 +52,7 @@ void main() {
 ''');
 
       final signing = await Process.run('/bin/bash', <String>[
-        'tool/release/sign_macos_app.sh',
+        '../../tools/release/sign_macos_app.sh',
         '--app',
         app.path,
         '--identity',
@@ -126,7 +126,7 @@ void main() {
 ''');
 
       final signing = await Process.run('/bin/bash', <String>[
-        'tool/release/sign_macos_app.sh',
+        '../../tools/release/sign_macos_app.sh',
         '--app',
         app.path,
         '--identity',
@@ -155,7 +155,7 @@ void main() {
   );
 
   test('release signing script enforces Developer ID team coherence', () async {
-    final signing = await File('tool/release/sign_macos_app.sh').readAsString();
+    final signing = await File('../../tools/release/sign_macos_app.sh').readAsString();
 
     expect(signing, contains('Authority=Developer ID Application:'));
     expect(signing, contains('TeamIdentifier='));

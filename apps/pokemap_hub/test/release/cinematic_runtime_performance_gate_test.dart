@@ -10,7 +10,7 @@ void main() {
   test('CIN-038 profile soak remains local and absent from CI', () async {
     final workflow =
         await File(
-          '../../.github/workflows/pokemap_hub_product_certification.yml',
+          '../../.github/workflows/pokemap_product_certification.yml',
         ).readAsString();
     final support =
         jsonDecode(
@@ -60,7 +60,7 @@ void main() {
     );
     expect(
       (platforms['android']! as Map<String, Object?>)['status'],
-      'build-target',
+      'build-and-distribution-target',
     );
     expect(workflow, isNot(contains('flutter build ios')));
   });

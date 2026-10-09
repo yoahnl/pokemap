@@ -18,7 +18,12 @@ void main() {
     expect(workflow, contains('PokeMap-windows-x64.zip'));
     expect(workflow, contains('PokeMap-linux-x64.tar.gz'));
     expect(workflow, contains('tool/release/package_macos_preview.sh'));
-    expect(workflow, contains('tool/release/notarize_macos_release.sh'));
+    expect(workflow, contains('bash ../../tools/release/notarize_macos_release.sh'));
+    expect(workflow, contains('bash ../../tools/release/sign_macos_app.sh'));
+    expect(workflow, isNot(contains('pokemap_hub')));
+    for (final name in ['sign_macos_app.sh', 'notarize_macos_release.sh']) {
+      expect(File('../../tools/release/$name').existsSync(), isTrue);
+    }
     expect(workflow, contains("--volume-name 'Avelune Studio'"));
     expect(workflow, contains('workflow_dispatch:'));
     expect(workflow, contains('macos-preflight:'));
