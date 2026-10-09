@@ -1,20 +1,46 @@
-# PokéMap
+<p align="center">
+  <img src="apps/avelune_studio/assets/home/4.0x/avelune_logo.png" alt="Logo Avelune Studio" width="400">
+</p>
 
-**Français** · [English](documentation/en/README.md)
+<h1 align="center">Avelune Studio · PokéMap</h1>
 
-**Créer des mondes, raconter des histoires et les rendre jouables.**
+<p align="center">
+  <strong>Créer des mondes, raconter des histoires et les rendre jouables.</strong><br>
+  Un atelier de création de RPG 2D, un moteur partagé et des lecteurs natifs.
+</p>
 
-PokéMap est un environnement de création de RPG 2D en tuiles, orienté Pokémon-like et conçu autour d'une approche **no-code**. Le projet réunit un éditeur visuel, des moteurs de gameplay et de combat, un runtime Flutter/Flame, ainsi qu'une application de lecture des jeux : **Avelune**.
+<p align="center">
+  <a href="https://github.com/yoahnl/pokemap/releases/latest">📥 Télécharger Studio</a> ·
+  <a href="#demarrage">🚀 Démarrer</a> ·
+  <a href="#apercus">🖼️ Aperçus</a> ·
+  <a href="#sommaire">🧭 Sommaire</a><br>
+  <strong>Français</strong> · <a href="documentation/en/README.md">English</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/yoahnl/pokemap/actions/workflows/pokemap_quick_checks.yml"><img src="https://github.com/yoahnl/pokemap/actions/workflows/pokemap_quick_checks.yml/badge.svg" alt="État des vérifications rapides"></a>
+  <a href="https://github.com/yoahnl/pokemap/actions/workflows/pokemap_desktop_release.yml"><img src="https://github.com/yoahnl/pokemap/actions/workflows/pokemap_desktop_release.yml/badge.svg" alt="État de la distribution Studio desktop"></a>
+  <a href="https://github.com/yoahnl/pokemap/actions/workflows/avelune_android_release.yml"><img src="https://github.com/yoahnl/pokemap/actions/workflows/avelune_android_release.yml/badge.svg" alt="État de la distribution Android native"></a>
+</p>
+
+![Illustration d'accueil Avelune Studio : une baie, un village côtier et un phare devant les montagnes](apps/avelune_studio/assets/home/hero_landscape.png)
+
+<p align="center"><em>Illustration d'accueil d'Avelune Studio.</em></p>
+
+**Avelune Studio** est l'application de création : cartes, personnages, dialogues et événements se préparent dans un atelier visuel. **PokéMap** est son socle moteur, un environnement de RPG 2D en tuiles orienté Pokémon-like et conçu autour d'une approche **no-code**. Les lecteurs **Avelune iOS et Android**, en SwiftUI et Kotlin/Compose, embarquent le runtime Flutter/Flame pour jouer aux aventures distribuées.
 
 L'ambition dépasse le dessin de cartes : relier les lieux, les personnages, les dialogues, les événements et la progression pour construire une aventure que l'on peut tester, sauvegarder et distribuer.
 
 > **Projet en développement actif.** Ce README présente les composants et les parcours du dépôt, pas une certification de complétude de toutes les mécaniques. Les limites, critères de validation et preuves détaillées restent dans la [roadmap mécanique](pokemap_roadmap_mecaniques_fangame.md) et la [documentation](documentation/).
 
-**[Démarrer](#demarrage) · [Fonctionnalités](#fonctionnalites) · [Architecture](#architecture) · [MCP](#mcp) · [Contribuer](#contribuer)**
+**[Fonctionnalités](#fonctionnalites) · [Architecture](#architecture) · [Automatisation MCP](#mcp) · [Contribuer](#contribuer)**
 
-## Sommaire
+<a id="sommaire"></a>
+
+## 🧭 Sommaire
 
 - [Comprendre le projet](#presentation)
+- [Avelune Studio en images](#apercus)
 - [Fonctionnalités et périmètre](#fonctionnalites)
 - [Démarrage rapide](#demarrage)
 - [Premier parcours de création](#premier-projet)
@@ -33,27 +59,31 @@ L'ambition dépasse le dessin de cartes : relier les lieux, les personnages, les
 
 <a id="presentation"></a>
 
-## Comprendre le projet
+## 🌍 Comprendre le projet
 
 ### Un outil de création, un moteur et un lecteur
 
 | Composant | À quoi sert-il ? | Point d'entrée |
 | --- | --- | --- |
-| **Éditeur PokéMap** | Construire les cartes, préparer le contenu, configurer les systèmes et tester une aventure. | [`packages/map_editor`](packages/map_editor/) |
+| **🛠️ Avelune Studio** | Construire les cartes, préparer le contenu et tester une aventure dans l'application desktop. | [`apps/avelune_studio`](apps/avelune_studio/) |
 | **Runtime PokéMap** | Exécuter les données du projet : exploration, événements, combats, présentation et état de la partie. | [`packages/map_runtime`](packages/map_runtime/) |
-| **Avelune** | Fournir l'application joueur et l'intégration des jeux distribués. Son nom technique dans le dépôt est `pokemap_hub`. | [`apps/pokemap_hub`](apps/pokemap_hub/) |
+| **📱 Avelune iOS** | Fournir le lecteur natif SwiftUI et embarquer le runtime partagé. | [`apps/Avelune iOS`](apps/Avelune%20iOS/) |
+| **🤖 Avelune Android** | Fournir le lecteur natif Kotlin/Compose et embarquer le runtime partagé. | [`apps/avelune_android`](apps/avelune_android/) |
+| **Outillage d'édition partagé** | Regrouper les interfaces et capacités d'authoring réutilisées par Studio. | [`packages/map_editor`](packages/map_editor/) |
 | **Host de développement** | Charger un projet local et exercer le runtime sans passer par toute l'application Avelune. | [`examples/playable_runtime_host`](examples/playable_runtime_host/) |
 | **API d'authoring et MCP** | Manipuler les projets avec des opérations explicites, des validations et des outils d'automatisation. | [`packages/map_authoring`](packages/map_authoring/) et [`tools/pokemap_mcp`](tools/pokemap_mcp/) |
 
-Le créateur travaille sur un **projet PokéMap**. Le runtime interprète ce projet. Avelune fournit l'application dans laquelle le joueur retrouve l'expérience finale.
+Le créateur travaille sur un **projet PokéMap** dans Studio. Le runtime interprète ce projet. Les applications natives Avelune fournissent l'expérience joueur.
+
+`apps/pokemap_hub` conserve la bibliothèque Dart, les assets et les services encore embarqués par les deux hôtes natifs. L'ancienne application Flutter Hub n'est plus le point d'entrée mobile.
 
 ```mermaid
 flowchart LR
-    Editor["Éditeur PokéMap"] --> Project["Projet PokéMap"]
+    Editor["Avelune Studio"] --> Project["Projet PokéMap"]
     Automation["API d'authoring / MCP"] --> Project
     Project --> Playtest["Test local dans le runtime"]
     Project --> Package["Validation et packaging"]
-    Package --> Avelune["Avelune"]
+    Package --> Avelune["Avelune iOS / Android"]
     Avelune --> Runtime["Exécution du jeu"]
 ```
 
@@ -69,13 +99,26 @@ Ce schéma décrit le parcours du contenu, pas le graphe des dépendances Dart.
 
 **Valider une aventure, pas seulement une collection d'écrans.** Le parcours important relie exploration, interaction, combat, récompense, gestion de l'équipe et sauvegarde.
 
+<a id="apercus"></a>
+
+## 🖼️ Avelune Studio en images
+
+Captures réelles de l'application **Avelune Studio sur macOS**, avec le projet de démonstration **Clairbois**. Cliquer sur une image pour l'agrandir.
+
+| 🗺️ Carte et décors | 💬 Dialogues visuels |
+| --- | --- |
+| [<img src="documentation/avelune_studio/screenshots/studio-map-clairbois.jpg" alt="Avelune Studio : carte de Clairbois, outils de terrain, décors et bibliothèque de ressources" width="480">](documentation/avelune_studio/screenshots/studio-map-clairbois.jpg) | [<img src="documentation/avelune_studio/screenshots/studio-dialogue-clairbois.jpg" alt="Avelune Studio : éditeur de dialogue avec une conversation de bienvenue à Clairbois et ses propriétés" width="480">](documentation/avelune_studio/screenshots/studio-dialogue-clairbois.jpg) |
+| Composer les lieux, placer les décors et organiser les cartes. | Écrire les répliques, relier les suites et essayer une conversation. |
+
+<p align="center"><em>Captures du 9 octobre 2026, réalisées avec Avelune Studio 0.3.24.</em></p>
+
 <a id="fonctionnalites"></a>
 
-## Fonctionnalités et périmètre
+## ✨ Fonctionnalités et périmètre
 
 Les familles ci-dessous correspondent à des systèmes présents dans le code. Leur présence ne signifie pas que toutes les variantes possibles sont exposées dans chaque interface ou certifiées sur chaque plateforme.
 
-### Construction du monde
+### 🗺️ Construction du monde
 
 L'éditeur comprend des outils de travail sur les cartes, les entités, les bordures, les tuiles intelligentes et l'environnement. Le runtime charge les cartes et les ressources associées pour construire la scène jouable.
 
@@ -89,7 +132,7 @@ L'éditeur comprend des outils de travail sur les cartes, les entités, les bord
 
 Les outils visuels se trouvent principalement dans les [fonctionnalités de l'éditeur](packages/map_editor/lib/src/features/). Les décisions d'exploration sont exposées par [`map_gameplay`](packages/map_gameplay/lib/map_gameplay.dart).
 
-### Dialogues, événements et mise en scène
+### 💬 Dialogues, événements et mise en scène
 
 Le projet dispose de systèmes de dialogue, de conditions, de pages d'événements et d'exécution de scènes. La partie narrative relie les déclencheurs du monde aux actions et aux changements d'état de la partie.
 
@@ -97,7 +140,7 @@ La présentation inclut également des composants pour les portraits de dialogue
 
 Le point essentiel est la cohérence entre **ce que l'auteur configure**, **ce qui est enregistré** et **ce que le joueur voit réellement**. Une commande enregistrable ne constitue pas, à elle seule, une preuve de prise en charge complète.
 
-### Gameplay et progression
+### 🎒 Gameplay et progression
 
 [`map_gameplay`](packages/map_gameplay/lib/map_gameplay.dart) expose notamment les systèmes suivants :
 
@@ -114,7 +157,7 @@ Le point essentiel est la cohérence entre **ce que l'auteur configure**, **ce q
 
 Les fonctionnalités dépendent des catalogues, des règles activées et des capacités effectivement prises en charge. La roadmap reste la référence pour connaître les limites d'une mécanique particulière.
 
-### Combats
+### ⚔️ Combats
 
 Le moteur [`map_battle`](packages/map_battle/lib/map_battle.dart) est écrit en Dart et indépendant de Flutter/Flame. Il sépare la préparation du combat, les décisions des participants, la résolution des actions et les événements produits.
 
@@ -122,32 +165,33 @@ Le code comprend des systèmes de capacités, de types, de statistiques, de stat
 
 Le runtime assure ensuite le passage depuis l'exploration, la présentation du combat et l'application de son résultat à la partie. **La couverture exacte des comportements ne se résume pas à la présence d'une classe ou d'une entrée de catalogue.**
 
-### Présentation et application joueur
+### 🎮 Présentation et application joueur
 
 La personnalisation couvre des profils de présentation, des libellés de menus, des thèmes sémantiques et de la typographie. Le runtime expose aussi des contrôleurs de démarrage, de séquences d'introduction et de lecture des médias.
 
-Avelune compose les modules joueur et le runtime dans une application distincte de l'éditeur. Cette séparation permet de faire évoluer l'outil de création sans transformer l'application joueur en interface d'édition.
+Les hôtes natifs Avelune composent l'interface joueur et le runtime dans des applications distinctes de Studio. Cette séparation permet de faire évoluer l'outil de création sans transformer l'application joueur en interface d'édition.
 
 <a id="demarrage"></a>
 
-## Démarrage rapide
+## 🚀 Démarrage rapide
 
 ### Prérequis
 
 Prévoir **Git**, une installation de **Flutter avec son SDK Dart**, ainsi que l'outillage natif de la plateforme ciblée. Pour le parcours macOS ci-dessous, préparer l'environnement Apple demandé par `flutter doctor`.
 
-La référence reproductible utilisée par les [vérifications rapides de la CI](.github/workflows/pokemap_quick_checks.yml) au moment de cette documentation est :
+Les [vérifications rapides](.github/workflows/pokemap_quick_checks.yml) et la [distribution Studio](.github/workflows/pokemap_desktop_release.yml) utilisent le même pin Flutter. La [distribution Android native](.github/workflows/avelune_android_release.yml) possède sa propre référence :
 
 | Élément | Référence |
 | --- | --- |
-| Flutter | `3.46.0-0.3.pre` |
-| Révision Flutter | `677d472756f83c14371dd8cc624387065f3d32a7` |
+| Flutter — Studio et quick checks | `3.48.0-0.4.pre` |
+| Révision Flutter — Studio et quick checks | `e3005e3402d9cfa2043114c8bc53c59d12e9b98e` |
+| Flutter — distribution Android native | `3.47.5` |
 | Dart | Utiliser le SDK livré avec cette installation de Flutter. |
 | Node.js | `>=20`, uniquement pour les outils MCP qui le déclarent. |
 
-Le pin Flutter est une **préversion**. En cas d'écart, consulter les workflows et les `pubspec.yaml` plutôt que supposer que n'importe quelle version stable est compatible. Les contraintes déclarées par un package ne décrivent pas nécessairement toutes celles de ses dépendances.
+Le pin Studio est une **préversion**. Choisir la toolchain du parcours ciblé en consultant son workflow et ses manifestes. Les contraintes déclarées par un package ne décrivent pas nécessairement toutes celles de ses dépendances.
 
-Les applications éditeur et Avelune activent **Swift Package Manager** dans leur configuration Flutter. Le parcours de démarrage ne demande pas d'ajouter une installation CocoaPods par défaut.
+Studio et l'intégration iOS du runtime utilisent **Swift Package Manager**. Le parcours de démarrage ne demande pas d'ajouter une installation CocoaPods par défaut.
 
 ### Récupérer le dépôt
 
@@ -164,17 +208,17 @@ flutter devices
 
 Les blocs avec parenthèses ci-dessous utilisent Bash ou Zsh et partent de la racine du dépôt. Ils exécutent la commande dans un sous-shell : le terminal reste donc à la racine. Avec un autre shell, entrer dans le dossier indiqué puis lancer les commandes séparément.
 
-### Lancer l'éditeur sur macOS
+### 🛠️ Lancer Avelune Studio sur macOS
 
 ```bash
 (
-  cd packages/map_editor &&
+  cd apps/avelune_studio &&
   flutter pub get &&
   flutter run -d macos
 )
 ```
 
-C'est le point d'entrée pour créer et modifier le contenu. Les dépendances internes sont référencées par chemins relatifs : conserver l'organisation du monorepo plutôt que copier uniquement `map_editor` dans un autre dossier.
+C'est le point d'entrée pour créer et modifier le contenu. Les dépendances internes sont référencées par chemins relatifs : conserver l'organisation du monorepo. Le [README Studio](apps/avelune_studio/README.md) détaille les parcours de l'atelier.
 
 ### Lancer le host de développement
 
@@ -188,23 +232,33 @@ C'est le point d'entrée pour créer et modifier le contenu. Les dépendances in
 
 Le host permet de sélectionner un dossier de projet contenant `project.json`. Le dépôt fournit notamment le projet [`selbrume`](selbrume/) et un scénario de référence décrit dans le [README du host](examples/playable_runtime_host/README.md).
 
-### Lancer Avelune sur un appareil disponible
+### 📱 Préparer Avelune iOS sur simulateur
+
+Depuis la racine, avec Xcode, XcodeGen et un simulateur iOS déjà démarré :
 
 ```bash
-(
-  cd apps/pokemap_hub &&
-  flutter pub get &&
-  flutter run
-)
+bash "apps/Avelune iOS/tool/build_runtime.sh"
+bash "apps/Avelune iOS/tool/build_simulator.sh"
 ```
 
-Choisir une cible proposée par Flutter, ou ajouter `-d` avec l'identifiant obtenu par `flutter devices`. Les prérequis natifs, la signature et les autorisations dépendent de la plateforme ; la présence d'une cible ne garantit pas qu'un environnement vierge soit déjà prêt à compiler.
+Le premier script prépare le runtime en package Swift et régénère le projet Xcode. Le second construit l'application SwiftUI, l'installe sur le simulateur démarré et affiche la commande de lancement. Consulter les [scripts iOS](apps/Avelune%20iOS/tool/) et la [configuration du projet](apps/Avelune%20iOS/project.yml) pour les détails.
 
-**Pour commencer :** ouvrir l'éditeur pour créer du contenu, le host pour isoler un problème de runtime, et Avelune pour travailler sur l'expérience de l'application joueur.
+### 🤖 Construire Avelune Android en debug
+
+Préparer **JDK 17** et **Android SDK 36**, puis lancer depuis la racine :
+
+```bash
+bash apps/avelune_android/tool/build_runtime.sh debug
+bash apps/avelune_android/tool/build_android.sh
+```
+
+Le premier script prépare le runtime embarqué. Le second exécute les tests Kotlin et construit l'APK debug ; l'installation sur appareil ou émulateur reste une étape séparée. Les [scripts Android](apps/avelune_android/tool/) et la [configuration Gradle](apps/avelune_android/app/build.gradle.kts) décrivent les variantes et paramètres disponibles.
+
+**Pour commencer :** ouvrir Studio pour créer du contenu, le host pour isoler un problème de runtime, et les applications natives Avelune pour travailler sur l'expérience joueur.
 
 <a id="premier-projet"></a>
 
-## Premier parcours de création
+## 🌱 Premier parcours de création
 
 Pour découvrir PokéMap, commencer par une petite boucle jouable plutôt que par une région entière.
 
@@ -225,12 +279,15 @@ C'est un bon point de départ pour comprendre le passage **exploration → comba
 
 <a id="organisation"></a>
 
-## Organisation du dépôt
+## 📁 Organisation du dépôt
 
 ```text
 pokemap/
 ├── apps/
-│   └── pokemap_hub/
+│   ├── avelune_studio/
+│   ├── Avelune iOS/
+│   ├── avelune_android/
+│   └── pokemap_hub/          Bibliothèque embarquée partagée
 ├── packages/
 │   ├── map_core/
 │   ├── map_gameplay/
@@ -247,7 +304,9 @@ pokemap/
 ├── selbrume/
 ├── documentation/
 ├── tools/
-│   └── pokemap_mcp/
+│   ├── pokemap_mcp/
+│   ├── pokemap_product_certification/
+│   └── release/
 ├── tool/
 ├── skills/
 ├── plugins/
@@ -259,8 +318,12 @@ pokemap/
 
 Cette arborescence est volontairement simplifiée ; elle ne liste pas tous les outils, fixtures et rapports.
 
-| Package | Responsabilité principale |
+| Application ou package | Responsabilité principale |
 | --- | --- |
+| [`avelune_studio`](apps/avelune_studio/) | Application desktop de création et composition de l'atelier. |
+| [`Avelune iOS`](apps/Avelune%20iOS/) | Lecteur natif SwiftUI avec runtime embarqué. |
+| [`avelune_android`](apps/avelune_android/) | Lecteur natif Kotlin/Compose avec runtime embarqué. |
+| [`pokemap_hub`](apps/pokemap_hub/) | Bibliothèque Dart, assets et services partagés par les hôtes natifs. |
 | [`map_core`](packages/map_core/) | Modèles partagés, contrats, sérialisation et validation des données. |
 | [`map_gameplay`](packages/map_gameplay/) | Règles d'exploration, état de jeu, progression et opérations métier hors combat. |
 | [`map_battle`](packages/map_battle/) | Règles et résolution des combats. |
@@ -268,12 +331,12 @@ Cette arborescence est volontairement simplifiée ; elle ne liste pas tous les o
 | [`map_distribution`](packages/map_distribution/) | Construction et inspection des packages de jeu, manifestes, compatibilité et politiques de validation. |
 | [`map_runtime`](packages/map_runtime/) | Intégration Flutter/Flame : chargement, rendu, exécution et liaison avec les systèmes de jeu. |
 | [`map_player_ui`](packages/map_player_ui/) | Composants d'interface destinés à l'expérience joueur. |
-| [`map_editor`](packages/map_editor/) | Application d'édition desktop et parcours de création visuelle. |
+| [`map_editor`](packages/map_editor/) | UI et capacités d'authoring partagées avec Studio. |
 | [`gamepads_darwin`](packages/gamepads_darwin/) / [`gamepads_ios`](packages/gamepads_ios/) | Adaptations locales liées aux contrôleurs sur les plateformes Apple. |
 
 <a id="architecture"></a>
 
-## Architecture et technologies
+## 🧩 Architecture et technologies
 
 ### Répartition des responsabilités
 
@@ -290,17 +353,20 @@ Concrètement, une modification doit être placée au bon niveau :
 | Validation d'une archive distribuée ou de son manifeste | `map_distribution` |
 | Affichage, animation et liaison avec la boucle de jeu | `map_runtime` |
 | Parcours visuel d'édition | `map_editor` |
-| Composition de l'application Avelune | `apps/pokemap_hub` |
+| Composition de l'atelier desktop | `apps/avelune_studio` |
+| Interface et intégration du lecteur iOS | `apps/Avelune iOS` |
+| Interface et intégration du lecteur Android | `apps/avelune_android` |
+| Services et ressources Dart embarqués par les lecteurs | `apps/pokemap_hub/lib` et `apps/pokemap_hub/assets` |
 
 Cette séparation évite de cacher les règles de gameplay dans des composants Flame ou de faire dépendre l'API d'automatisation de gestes propres à l'éditeur.
 
 ### Stack principale
 
-**Dart** porte les modèles et les règles. **Flutter** fournit les applications et les interfaces. **Flame** prend en charge la scène de jeu. **Riverpod** intervient dans la gestion d'état des applications ; **Freezed**, **json_serializable** et **build_runner** sont utilisés par les packages qui déclarent de la génération de code.
+**Dart** porte les modèles et les règles. **Flutter** fournit Studio, les interfaces partagées et le runtime embarqué ; **Flame** prend en charge la scène de jeu. **SwiftUI** et **Kotlin/Jetpack Compose** composent les lecteurs natifs iOS et Android. **Riverpod** intervient dans la gestion d'état côté Flutter ; **Freezed**, **json_serializable** et **build_runner** sont utilisés par les packages qui déclarent de la génération de code.
 
 Le serveur MCP est un outil séparé en **TypeScript/Node.js**. Il adapte l'API d'authoring Dart ; ce n'est pas un second moteur de jeu.
 
-Les versions exactes appartiennent aux manifestes et fichiers de verrouillage des packages. Consulter notamment ceux de [l'éditeur](packages/map_editor/pubspec.yaml), du [runtime](packages/map_runtime/pubspec.yaml), d'[Avelune](apps/pokemap_hub/pubspec.yaml) et du [serveur MCP](tools/pokemap_mcp/package.json).
+Les versions exactes appartiennent aux manifestes et fichiers de verrouillage. Consulter notamment [Studio](apps/avelune_studio/pubspec.yaml), [l'UI d'édition](packages/map_editor/pubspec.yaml), le [runtime](packages/map_runtime/pubspec.yaml), le [projet iOS](apps/Avelune%20iOS/project.yml), le [module Android](apps/avelune_android/app/build.gradle.kts) et le [serveur MCP](tools/pokemap_mcp/package.json).
 
 ### Interfaces publiques et design system
 
@@ -310,7 +376,7 @@ Pour l'éditeur, les primitives d'interface et les couleurs passent par le desig
 
 <a id="donnees"></a>
 
-## Projets, ressources et sauvegardes
+## 💾 Projets, ressources et sauvegardes
 
 ### Projet de création
 
@@ -332,7 +398,7 @@ Utiliser les parcours prévus par l'éditeur et le lecteur, plutôt que supposer
 
 <a id="mcp"></a>
 
-## Automatisation et serveur MCP
+## 🤖 Automatisation et serveur MCP
 
 Le serveur [PokeMap MCP](tools/pokemap_mcp/README.md) permet à un client compatible d'accéder à l'API d'authoring. Il est **local**, communique sur **stdio** et n'accède qu'aux racines de projets explicitement autorisées.
 
@@ -390,7 +456,7 @@ La documentation MCP distingue les tests du serveur et la gate de conformité in
 
 <a id="tests"></a>
 
-## Tests et vérifications
+## 🧪 Tests et vérifications
 
 ### Vérifier le package concerné
 
@@ -402,7 +468,7 @@ dart test
 dart analyze
 ```
 
-Pour les packages et applications Flutter, notamment `map_editor`, `map_runtime`, `pokemap_hub` et le host de développement, lancer depuis leur dossier :
+Pour les packages et applications Flutter, notamment `map_editor`, `map_runtime`, `avelune_studio` et le host de développement, lancer depuis leur dossier :
 
 ```bash
 flutter pub get
@@ -453,7 +519,7 @@ Une vérification utile indique la commande, la révision testée, le résultat 
 
 <a id="generation"></a>
 
-## Génération de code
+## ⚙️ Génération de code
 
 Les packages qui déclarent `build_runner` peuvent nécessiter une régénération après modification des modèles ou des providers concernés. Installer d'abord leurs dépendances et ne régénérer que le périmètre utile.
 
@@ -481,23 +547,23 @@ Inspecter le diff après génération. Éviter les modifications massives de fic
 
 <a id="distribution"></a>
 
-## Construction et distribution
+## 📦 Construction et distribution
 
 Il faut distinguer **construire l'éditeur**, **exporter un jeu** et **publier l'application joueur**.
 
-### Construire l'éditeur localement
+### Construire Studio localement
 
 Exemple macOS :
 
 ```bash
 (
-  cd packages/map_editor &&
+  cd apps/avelune_studio &&
   flutter pub get &&
   flutter build macos --release
 )
 ```
 
-Une compilation locale n'est pas une release signée et publiée. Le workflow [PokeMap desktop distribution](.github/workflows/pokemap_desktop_release.yml) contient les contrôles de version, les étapes de préflight et les règles de publication.
+Les versions publiées de Studio pour **macOS, Windows et Linux** sont accessibles depuis la [dernière release](https://github.com/yoahnl/pokemap/releases/latest). Le workflow [PokeMap desktop distribution](.github/workflows/pokemap_desktop_release.yml) contient les contrôles de version, les étapes de préflight et les règles de publication. Une compilation locale n'est pas une release signée et publiée.
 
 ### Exporter un jeu
 
@@ -519,13 +585,13 @@ Ce parcours embarque le projet dans les ressources de l'application et produit s
 
 ### Distribuer Avelune
 
-Avelune utilise les hôtes natifs SwiftUI et Kotlin, avec ses propres configurations et workflows, dont la [distribution Android](.github/workflows/avelune_android_release.yml) et la [certification produit](.github/workflows/pokemap_product_certification.yml).
+Avelune utilise les hôtes natifs SwiftUI et Kotlin/Compose, avec leurs [scripts iOS](apps/Avelune%20iOS/tool/), [scripts Android](apps/avelune_android/tool/) et configurations propres. La [distribution Android](.github/workflows/avelune_android_release.yml) publie sur le canal de test interne Google Play. La [certification produit](.github/workflows/pokemap_product_certification.yml) reste un parcours manuel distinct des releases Studio.
 
 Les secrets de signature et les permissions de publication appartiennent à l'environnement de release. Ils ne sont pas nécessaires à documenter dans un exemple de configuration public et ne doivent pas être ajoutés au dépôt pour faciliter un build local.
 
 <a id="etat"></a>
 
-## État du projet et limites
+## 🚧 État du projet et limites
 
 PokéMap évolue encore. Les versions de l'éditeur, du runtime, du serveur MCP et d'Avelune sont distinctes : la version d'une application ne doit pas être interprétée comme un numéro de certification de tout l'écosystème.
 
@@ -547,10 +613,14 @@ Pour suivre les priorités, commencer par la [roadmap mécanique](pokemap_roadma
 
 <a id="documentation"></a>
 
-## Documentation de référence
+## 📚 Documentation de référence
 
 | Besoin | Document ou dossier |
 | --- | --- |
+| Utiliser l'atelier de création desktop | [README Avelune Studio](apps/avelune_studio/README.md) |
+| Télécharger la dernière version stable de Studio | [Releases GitHub](https://github.com/yoahnl/pokemap/releases/latest) |
+| Préparer et construire le lecteur natif iOS | [Scripts iOS](apps/Avelune%20iOS/tool/) et [projet XcodeGen](apps/Avelune%20iOS/project.yml) |
+| Préparer et construire le lecteur natif Android | [Scripts Android](apps/avelune_android/tool/) et [configuration Gradle](apps/avelune_android/app/build.gradle.kts) |
 | Comprendre les règles de contribution et les frontières des packages | [`AGENTS.md`](AGENTS.md) |
 | Suivre la complétude des mécaniques et leurs critères de validation | [Roadmap mécanique fangame](pokemap_roadmap_mecaniques_fangame.md) |
 | Examiner les opérations d'authoring et les contrats MCP | [Catalogue d'actions](pokemap_authoring_api_mcp_action_catalog.md) |
@@ -564,7 +634,7 @@ Les documents détaillés peuvent couvrir des périmètres plus anciens ou plus 
 
 <a id="contribuer"></a>
 
-## Contribuer
+## 🤝 Contribuer
 
 Avant de commencer, lire [`AGENTS.md`](AGENTS.md) et les éventuelles instructions plus proches des fichiers concernés. Pour une mécanique de jeu, identifier aussi le lot et les critères de validation de la roadmap.
 
@@ -584,11 +654,11 @@ Ne jamais publier de clé API, de certificat, de mot de passe ou de sauvegarde p
 
 <a id="depannage"></a>
 
-## Dépannage et questions fréquentes
+## 🛠️ Dépannage et questions fréquentes
 
 ### `flutter pub get` ne trouve pas de projet
 
-Vérifier le dossier courant. Il n'existe pas de package Dart racine : utiliser `packages/map_editor`, `apps/pokemap_hub` ou le package sur lequel vous travaillez.
+Vérifier le dossier courant. Il n'existe pas de package Dart racine : utiliser `apps/avelune_studio` pour l'application desktop, ou le package sur lequel vous travaillez. Pour les lecteurs natifs, suivre leurs scripts de préparation du runtime et de build.
 
 ### Les dépendances refusent de se résoudre
 
@@ -620,7 +690,7 @@ Non. C'est l'environnement de création et d'exécution. Les aventures, leurs do
 
 <a id="licence"></a>
 
-## Licence et ressources tierces
+## 📜 Licence et ressources tierces
 
 Aucun fichier de licence globale n'est présent à la racine du dépôt dans la version documentée. **Ce README n'ajoute pas de licence MIT, Apache ou autre**, et ne remplace pas une décision explicite du mainteneur sur la réutilisation du code.
 
