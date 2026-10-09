@@ -14,6 +14,31 @@ import 'package:map_runtime/src/presentation/flame/playable_map_game.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('runtime trims unused decoded tilesets while preserving its live player', () async {
+    final unused = RuntimeTilesetImage(images: const [], chunks: const [],
+      width: 5000, height: 5000);
+    final live = await _runtimeTilesetImage();
+    final cache = RuntimeTilesetImageSingleFlightCache(
+      loader: (paths, {transparentColorByTilesetId = const {}}) async => {
+        for (final id in paths.keys) id: id == 'unused' ? unused : live,
+      },
+    );
+    await cache.loadById({'unused': '/tmp/unused.png'});
+    final game = PlayableMapGame(
+      bundle: _bundle(),
+      projectFilePath: '/tmp/tileset-lifecycle/project.json',
+      initialTilesetImageCache: cache,
+      runtimePlayerPokemonProgressionCatalogLoader: ({required gameState,
+        required projectRootDirectory, required pokemonConfig}) async =>
+          const RuntimePlayerPokemonProgressionCatalogs(speciesById: {}, maxPpByMoveId: {}),
+    );
+    addTearDown(game.onRemove);
+    game.onGameResize(Vector2(128, 96));
+    await game.onLoad();
+    expect(unused.debugDisposed, isTrue);
+    expect(live.debugDisposed, isFalse);
+  });
+
   test('removal waits for the onLoad image handoff before disposal', () async {
     final imagesReady = Completer<void>();
     final releaseLoad = Completer<void>();

@@ -270,6 +270,7 @@ abstract base class SceneInteractionRequest {
     required int revision,
     required SceneInteractionPrompt prompt,
     SceneTextInputConstraints? constraints,
+    String initialValue,
     Duration? timeout,
   }) = SceneTextInteractionRequest;
 
@@ -324,6 +325,7 @@ abstract base class SceneInteractionRequest {
         requestId: requestId,
         revision: revision,
         prompt: prompt,
+        initialValue: _readOptionalString(json, 'initialValue') ?? '',
         constraints: json['constraints'] == null
             ? SceneTextInputConstraints()
             : SceneTextInputConstraints.fromJson(
@@ -494,10 +496,12 @@ final class SceneTextInteractionRequest extends SceneInteractionRequest {
     required super.revision,
     required super.prompt,
     SceneTextInputConstraints? constraints,
+    this.initialValue = '',
     super.timeout,
   }) : constraints = constraints ?? SceneTextInputConstraints();
 
   final SceneTextInputConstraints constraints;
+  final String initialValue;
 
   @override
   SceneInteractionRequestKind get kind => SceneInteractionRequestKind.text;
@@ -540,16 +544,19 @@ final class SceneTextInteractionRequest extends SceneInteractionRequest {
   Map<String, dynamic> toJson() => <String, dynamic>{
     ...baseJson(),
     'constraints': constraints.toJson(),
+    if (initialValue.isNotEmpty) 'initialValue': initialValue,
   };
 
   @override
   bool operator ==(Object other) =>
       other is SceneTextInteractionRequest &&
       baseEquals(other) &&
-      other.constraints == constraints;
+      other.constraints == constraints &&
+      other.initialValue == initialValue;
 
   @override
-  int get hashCode => Object.hash(kind, baseHashCode, constraints);
+  int get hashCode =>
+      Object.hash(kind, baseHashCode, constraints, initialValue);
 }
 
 @immutable

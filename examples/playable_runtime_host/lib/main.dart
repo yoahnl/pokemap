@@ -176,14 +176,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
 
-  bool get _prefersBattleFlutterCommandOverlay => true;
-
-  void _syncBattleCommandOverlayPreference() {
-    _game?.setBattleFlutterCommandOverlayPreferred(
-      _prefersBattleFlutterCommandOverlay,
-    );
-  }
-
   void _bindGamepadInputsIfNeeded() {
     if (kIsWeb || _runtimeGamepadSubscription != null) {
       return;
@@ -193,7 +185,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       final game = _game;
       if (!_hasConnectedGamepad && mounted) {
         setState(() => _hasConnectedGamepad = true);
-        _syncBattleCommandOverlayPreference();
       }
       final runtimeEvents = event.button != null
           ? bridge.handleButton(
@@ -248,7 +239,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         return;
       }
       setState(() => _hasConnectedGamepad = hasConnectedGamepad);
-      _syncBattleCommandOverlayPreference();
     } catch (_) {
       // Best-effort seulement : une erreur de détection de manette ne doit
       // jamais bloquer le host ni le runtime.
@@ -810,9 +800,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       );
       nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
-      nextGame.setBattleFlutterCommandOverlayPreferred(
-        _prefersBattleFlutterCommandOverlay,
-      );
       nextGame.setDialogueFlutterOverlayPreferred(true);
       final preferences = _startupHost?.playerCoordinator.snapshot.preferences;
       if (preferences == null) {

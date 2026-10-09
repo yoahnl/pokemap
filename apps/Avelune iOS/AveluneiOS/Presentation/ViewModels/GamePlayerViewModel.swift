@@ -35,4 +35,8 @@ final class GamePlayerViewModel: ObservableObject {
         dataSource.onPlayerExit = nil
         try? await playGameUseCase.stop()
     }
+
+    func setDebugEnabled(_ enabled: Bool) {
+        dataSource.setDebugEnabled(enabled)
+    }
 }

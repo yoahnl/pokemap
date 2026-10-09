@@ -37,6 +37,24 @@ final class RuntimeTilesetImageSingleFlightCache {
       <_RuntimeTilesetImageCacheKey, Future<RuntimeTilesetImage?>>{};
   bool _isDisposed = false;
 
+  void trimToBudget({
+    required int maxBytes,
+    required Iterable<RuntimeTilesetImage> retainedImages,
+  }) {
+    if (_isDisposed) return;
+    final retained = Set<RuntimeTilesetImage>.identity()..addAll(retainedImages);
+    final oldestFirst = Set<RuntimeTilesetImage>.identity()
+      ..addAll(_completed.values);
+    var bytes = oldestFirst.fold<int>(
+      0, (total, image) => total + image.width * image.height * 4);
+    for (final image in oldestFirst) {
+      if (bytes <= maxBytes) break;
+      if (retained.contains(image)) continue;
+      bytes -= image.width * image.height * 4;
+      evictImage(image);
+    }
+  }
+
   void evictImage(RuntimeTilesetImage image, {bool dispose = true}) {
     final owned = _completed.values.any((value) => identical(value, image));
     _completed.removeWhere((key, value) => identical(value, image));
@@ -69,6 +87,8 @@ final class RuntimeTilesetImageSingleFlightCache {
       );
       final completed = _completed[key];
       if (completed != null) {
+        _completed.remove(key);
+        _completed[key] = completed;
         imageFutureById[entry.key] =
             Future<RuntimeTilesetImage?>.value(completed);
         continue;

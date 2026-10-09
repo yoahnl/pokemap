@@ -26,8 +26,8 @@ void main() {
     'non triangles': (j) => j['meshes'][0]['primitives'][0]['mode'] = 1,
     'sparse accessor': (j) => j['accessors'][0]['sparse'] = {},
     'false bounds': (j) => j['accessors'][0]['max'] = [1, 1, 0],
-    'transparent material': (j) => j['materials'] = [
-          {'alphaMode': 'BLEND'}
+    'transparent material cutoff': (j) => j['materials'] = [
+          {'alphaMode': 'BLEND', 'alphaCutoff': .5}
         ],
   }.entries) {
     test('rejects ${entry.key}', () {
@@ -37,6 +37,16 @@ void main() {
           throwsFormatException);
     });
   }
+  test('exposes translucent material metadata through the authoring inspector', () {
+    final result = const GlbModel3dInspector().inspect(triangleGlb(edit: (j) {
+      j['materials'] = [
+        {'alphaMode': 'BLEND', 'pbrMetallicRoughness': {'baseColorFactor': [1, 1, 1, .387096763]}}
+      ];
+      j['meshes'][0]['primitives'][0]['material'] = 0;
+    }));
+    expect(result.materials.single.toJson()['alphaMode'], 'blend');
+    expect(result.materials.single.alphaCutoff, isNull);
+  });
   test('rejects truncated chunks', () {
     final bytes = triangleGlb();
     expect(

@@ -46,7 +46,7 @@ struct SettingsView: View {
                                     Text("Infos de debug")
                                         .font(.headline)
                                         .foregroundStyle(AveluneTheme.text)
-                                    Text("Afficher les informations techniques")
+                                    Text("FPS, latence de rendu, mémoire et CPU dans le jeu")
                                         .font(.caption)
                                         .foregroundStyle(AveluneTheme.muted)
                                 }

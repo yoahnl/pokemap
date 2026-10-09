@@ -10,8 +10,11 @@ import '../presentation/flame/runtime_input_event.dart';
 import 'spatial_battle_runtime.dart';
 
 class SpatialBattleView extends StatefulWidget {
-  const SpatialBattleView(
-      {super.key, required this.runtime, this.keyboardInputEnabled = true});
+  const SpatialBattleView({
+    super.key,
+    required this.runtime,
+    this.keyboardInputEnabled = true,
+  });
 
   final SpatialBattleRuntime runtime;
   final bool keyboardInputEnabled;
@@ -35,6 +38,12 @@ class _SpatialBattleViewState extends State<SpatialBattleView>
 
   void changed() {
     if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.runtime.setViewSafeAreaPadding(MediaQuery.viewPaddingOf(context));
   }
 
   @override
@@ -80,11 +89,13 @@ class _SpatialBattleViewState extends State<SpatialBattleView>
 
   @override
   Widget build(BuildContext context) => AbsorbPointer(
-      absorbing: widget.runtime.isPaused,
-      child: Focus(
+        absorbing: widget.runtime.isPaused,
+        child: Focus(
           autofocus: widget.keyboardInputEnabled,
           onKeyEvent: handleKey,
-          child: GameWidget(game: game, autofocus: false)));
+          child: GameWidget(game: game, autofocus: false),
+        ),
+      );
 
   @override
   void dispose() {
@@ -108,6 +119,9 @@ final class SpatialBattlePresentation extends FlameGame {
   bool stopped = false;
 
   @override
+  Color backgroundColor() => Colors.transparent;
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
     if (stopped) return;
@@ -115,35 +129,59 @@ final class SpatialBattlePresentation extends FlameGame {
     sync();
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    runtime.entryTransition?.size.setFrom(camera.viewport.size);
+    runtime.exitTransition?.size.setFrom(camera.viewport.size);
+  }
+
   void sync() {
     if (stopped) return;
-    mountedOverlays.removeWhere((overlay) =>
-        overlay != runtime.battleOverlay &&
-        overlay != runtime.postBattleOverlay);
+    mountedOverlays.removeWhere(
+      (overlay) =>
+          overlay != runtime.battleOverlay &&
+          overlay != runtime.postBattleOverlay &&
+          overlay != runtime.entryTransition &&
+          overlay != runtime.exitTransition,
+    );
     if (!runtime.isActive) processLifecycleEvents();
     if (runtime.isPaused || !runtime.isActive) {
       pauseEngine();
     } else {
       resumeEngine();
     }
-    for (final overlay in [runtime.battleOverlay, runtime.postBattleOverlay]) {
-      if (overlay == null || !mountedOverlays.add(overlay)) continue;
+    for (final overlay in [
+      runtime.battleOverlay,
+      runtime.postBattleOverlay,
+      runtime.entryTransition,
+      runtime.exitTransition,
+    ]) {
+      if (overlay == null) continue;
+      overlay.size.setFrom(camera.viewport.size);
+      if (!mountedOverlays.add(overlay)) continue;
       overlay.onGameResize(camera.viewport.size);
-      unawaited(Future<void>.sync(() async {
-        await camera.viewport.add(overlay);
-      }).then((_) {
-        if (stopped ||
-            (overlay != runtime.battleOverlay &&
-                overlay != runtime.postBattleOverlay)) {
-          overlay.removeFromParent();
-        }
-      }).catchError((Object failure) {
-        if (!stopped &&
-            (overlay == runtime.battleOverlay ||
-                overlay == runtime.postBattleOverlay)) {
-          runtime.reportPresentationFailure(failure);
-        }
-      }));
+      unawaited(
+        Future<void>.sync(() async {
+          await camera.viewport.add(overlay);
+        }).then((_) {
+          if (stopped ||
+              (overlay != runtime.battleOverlay &&
+                  overlay != runtime.postBattleOverlay &&
+                  overlay != runtime.entryTransition &&
+                  overlay != runtime.exitTransition)) {
+            overlay.removeFromParent();
+          }
+        }).catchError((Object failure) {
+          if (!stopped &&
+              (overlay == runtime.battleOverlay ||
+                  overlay == runtime.postBattleOverlay ||
+                  overlay == runtime.entryTransition ||
+                  overlay == runtime.exitTransition)) {
+            runtime.reportPresentationFailure(failure);
+          }
+        }),
+      );
     }
   }
 

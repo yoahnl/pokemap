@@ -122,6 +122,17 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                       : PokeMapPlayerTheme.light(),
                   child: Stack(
                     children: [
+                      if (runtime.battle case final battle?)
+                        ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+                          valueListenable: battle.battlePresentationListenable,
+                          builder: (context, snapshot, _) => snapshot == null
+                              ? const SizedBox.shrink()
+                              : PlayerBattleOverlay(
+                                  snapshot: snapshot,
+                                  onCommand:
+                                      battle.dispatchBattlePresentationCommand,
+                                ),
+                        ),
                       ValueListenableBuilder<DialoguePresentationSnapshot?>(
                         valueListenable: runtime.dialoguePresentationListenable,
                         builder: (context, snapshot, _) => snapshot == null
@@ -156,6 +167,11 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                               snapshot: service,
                               onCommand: command,
                             ),
+                            RuntimeWorldServiceKind.textInput =>
+                              PlayerTextInputOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
                           };
                         },
                       ),

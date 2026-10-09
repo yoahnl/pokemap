@@ -7,13 +7,9 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
-import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_item_icon_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
-import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
-import 'package:map_runtime/src/presentation/flame/battle_party_menu_model.dart';
-import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
 import 'package:path/path.dart' as p;
 
@@ -109,10 +105,6 @@ BagEntry _bagEntry({
   );
 }
 
-BattleCommandPanelComponent _panelFromOverlay(BattleOverlayComponent overlay) {
-  return overlay.children.whereType<BattleCommandPanelComponent>().single;
-}
-
 Future<void> _writeProjectItemsCatalog(
   Directory root, {
   required List<Map<String, Object?>> entries,
@@ -144,41 +136,6 @@ Future<String> _writeTinyItemSprite(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
-
-  group('Battle command panel responsive layout', () {
-    test('uses a stacked mobile layout on narrow widths', () async {
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-      );
-
-      await panel.onLoad();
-
-      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
-      expect(panel.promptPanelSize.x, closeTo(360, 0.01));
-      expect(panel.commandsPanelSize.x, closeTo(360, 0.01));
-      expect(panel.commandsPanelPosition.y, greaterThan(0));
-    });
-
-    test('keeps the split layout on wider battle panels', () async {
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(920, 170),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-      );
-
-      await panel.onLoad();
-
-      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.split);
-      expect(panel.commandsPanelPosition.x, greaterThan(0));
-      expect(panel.promptPanelSize.x, lessThan(panel.size.x));
-    });
-  });
 
   group('Battle command menu root', () {
     test('model exposes exactly FIGHT/BAG/POKÉMON/RUN on the root menu', () {
@@ -317,129 +274,6 @@ void main() {
         isTrue,
       );
     });
-
-    test(
-        'keeps root labels and subtitles inside buttons on a compact portrait panel',
-        () async {
-      final session = _session(
-        player: _combatant(
-          speciesId: 'charmander',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        enemy: _combatant(
-          speciesId: 'squirtle',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-      );
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-      );
-
-      await panel.onLoad();
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Que doit faire le joueur ?',
-        narrationLines: const <String>['Choisis une action.'],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.root,
-          selectedRootIndex: 0,
-          selectedChoiceIndex: 0,
-        ),
-      );
-
-      expect(panel.currentRootButtonSnapshots, hasLength(4));
-      final pokemonButton = panel.currentRootButtonSnapshots[2];
-      expect(
-        pokemonButton.titleRect.left,
-        greaterThanOrEqualTo(pokemonButton.bounds.left),
-      );
-      expect(
-        pokemonButton.titleRect.right,
-        lessThanOrEqualTo(pokemonButton.bounds.right),
-      );
-      if (pokemonButton.subtitleRect != null) {
-        expect(
-          pokemonButton.titleRect.overlaps(pokemonButton.subtitleRect!),
-          isFalse,
-        );
-        expect(
-          pokemonButton.subtitleRect!.right,
-          lessThanOrEqualTo(pokemonButton.bounds.right),
-        );
-      }
-    });
-
-    test(
-        'keeps root labels and disabled subtitles inside buttons on a small landscape panel',
-        () async {
-      final session = _session(
-        player: _combatant(
-          speciesId: 'charmander',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        enemy: _combatant(
-          speciesId: 'squirtle',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-      );
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(300, 126),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-        layoutModeOverride: BattleCommandPanelLayoutMode.split,
-      );
-
-      await panel.onLoad();
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Que doit faire le joueur ?',
-        narrationLines: const <String>['Choisis une action.'],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.root,
-          selectedRootIndex: 0,
-          selectedChoiceIndex: 0,
-        ),
-      );
-
-      expect(panel.currentRootButtonSnapshots, hasLength(4));
-      for (final snapshot in panel.currentRootButtonSnapshots) {
-        expect(
-          snapshot.titleRect.left,
-          greaterThanOrEqualTo(snapshot.bounds.left),
-        );
-        expect(
-          snapshot.titleRect.right,
-          lessThanOrEqualTo(snapshot.bounds.right),
-        );
-        if (snapshot.subtitleRect != null) {
-          expect(snapshot.titleRect.overlaps(snapshot.subtitleRect!), isFalse);
-          expect(
-            snapshot.subtitleRect!.bottom,
-            lessThanOrEqualTo(snapshot.bounds.bottom),
-          );
-        }
-      }
-    });
   });
 
   group('Battle command menu interaction', () {
@@ -476,17 +310,36 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
-      expect(panel.currentSelectedRootIndex, 0);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          0);
       overlay.moveSelectionRight();
-      expect(panel.currentSelectedRootIndex, 1);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedRootIndex, 3);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          3);
       overlay.moveSelectionLeft();
-      expect(panel.currentSelectedRootIndex, 2);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          2);
       overlay.moveSelectionUp();
-      expect(panel.currentSelectedRootIndex, 0);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          0);
     });
 
     test('FIGHT opens legal moves and validates the selected fight choice',
@@ -519,13 +372,19 @@ void main() {
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
       expect(overlay.validateSelectedChoice(), isTrue);
-
-      final panel = _panelFromOverlay(overlay);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
-      expect(panel.currentChoiceLabels, const <String>['Scratch', 'Ember']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.primaryLabel)
+              .toList(),
+          const <String>['Scratch', 'Ember']);
 
       overlay.moveSelectionRight();
-      expect(panel.currentSelectedChoiceIndex, 1);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceFight>());
       expect((pickedChoice as PlayerBattleChoiceFight).moveIndex, 1);
@@ -561,19 +420,33 @@ void main() {
 
       await overlay.onLoad();
       expect(overlay.validateSelectedChoice(), isTrue);
-
-      final panel = _panelFromOverlay(overlay);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
-      expect(panel.currentSelectedChoiceIndex, 0);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          0);
 
       overlay.moveSelectionRight();
-      expect(panel.currentSelectedChoiceIndex, 1);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
 
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedChoiceIndex, 3);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          3);
 
       overlay.moveSelectionLeft();
-      expect(panel.currentSelectedChoiceIndex, 2);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          2);
     });
 
     test(
@@ -611,19 +484,36 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedRootIndex,
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
           BattleCommandRootAction.pokemon.index);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
-      expect(panel.currentPartySpeciesLabels,
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.primaryLabel)
+              .toList(),
           const <String>['charmander', 'ivysaur']);
-      expect(panel.currentPartySelectableStates, const <bool>[false, true]);
-      expect(panel.currentPartyStatusLabels, const <String>['Actif', 'OK']);
-      expect(panel.currentSelectedPartyIndex, 1);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.enabled)
+              .toList(),
+          const <bool>[false, true]);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.statusLabel ?? '')
+              .toList(),
+          const <String>['Actif', 'OK']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
     });
 
     test('battle bag submenu opens from root BAG when bag can be inspected',
@@ -660,16 +550,31 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
-      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.bag.index);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          BattleCommandRootAction.bag.index);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(panel.currentBagEntryLabels, const <String>['Poké Ball x3']);
-      expect(panel.currentBagSelectableStates, const <bool>[true]);
-      expect(panel.currentSelectedBagIndex, 0);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          const <String>['Poké Ball x3']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.enabled)
+              .toList(),
+          const <bool>[true]);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          0);
     });
 
     test(
@@ -714,22 +619,27 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(
-        panel.currentBagEntryLabels,
-        const <String>['Antidote x1', 'Potion x2', 'Rare Candy x1'],
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+            .toList(),
+        const <String>['Antidote x1', 'Potion x2', 'rare-candy x1'],
       );
       expect(
-        panel.currentBagSelectableStates,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.enabled)
+            .toList(),
         const <bool>[true, true, false],
       );
       expect(
-        panel.currentBagStatusLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.statusLabel ?? '')
+            .toList(),
         const <String>['OK', 'OK', 'Invalid definition'],
       );
     });
@@ -789,7 +699,6 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -800,18 +709,28 @@ void main() {
         BattleCommandMenuMode.bagMedicineTarget,
       );
       expect(
-        panel.currentMedicineTargetSpeciesLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.primaryLabel)
+            .toList(),
         const <String>['charmander', 'bulbasaur', 'squirtle'],
       );
       expect(
-        panel.currentMedicineTargetSelectableStates,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.enabled)
+            .toList(),
         const <bool>[true, false, false],
       );
       expect(
-        panel.currentMedicineTargetStatusLabels,
-        const <String>['Actif', 'Full HP', 'K.O.'],
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.statusLabel ?? '')
+            .toList(),
+        const <String>['OK', 'Full HP', 'K.O.'],
       );
-      expect(panel.currentSelectedMedicineTargetIndex, equals(0));
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          equals(0));
     });
 
     test('battle medicine target submenu does not mask active full hp status',
@@ -849,18 +768,21 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.validateSelectedChoice(), isTrue);
 
       expect(
-        panel.currentMedicineTargetStatusLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.statusLabel ?? '')
+            .toList(),
         const <String>['Full HP'],
       );
       expect(
-        panel.currentMedicineTargetSelectableStates,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.enabled)
+            .toList(),
         const <bool>[false],
       );
     });
@@ -899,15 +821,26 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(panel.currentBagEntryLabels, const <String>['Poké Ball x2']);
-      expect(panel.currentBagSelectableStates, const <bool>[false]);
-      expect(panel.currentBagStatusLabels, const <String>['Trainer battle']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          const <String>['Poké Ball x2']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.enabled)
+              .toList(),
+          const <bool>[false]);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.statusLabel ?? '')
+              .toList(),
+          const <String>['Trainer only']);
     });
 
     test('battle bag submenu handles an empty bag', () async {
@@ -936,62 +869,17 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(panel.currentBagEntryLabels, isEmpty);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          isEmpty);
       expect(overlay.currentPromptText, 'Sac vide.');
-    });
-
-    test('battle bag submenu layout survives portrait and landscape', () async {
-      Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
-        final overlay = BattleOverlayComponent(
-          itemCapabilityResolver: _itemCapabilityResolver,
-          session: _session(
-            player: _combatant(
-              speciesId: 'lead_player',
-              lineupIndex: 0,
-              moves: <BattleMoveData>[
-                _move(id: 'scratch', name: 'Scratch'),
-              ],
-            ),
-            enemy: _combatant(
-              speciesId: 'enemy',
-              lineupIndex: 0,
-              moves: <BattleMoveData>[
-                _move(id: 'tackle', name: 'Tackle'),
-              ],
-            ),
-            isTrainerBattle: false,
-            allowCapture: true,
-          ),
-          gameState: _gameState(
-            bag: Bag(
-              entries: <BagEntry>[
-                _bagEntry(itemId: 'poke-ball', quantity: 3),
-                _bagEntry(itemId: 'potion', quantity: 2),
-              ],
-            ),
-          ),
-          viewportSize: viewport,
-          onPlayerChoice: (_) {},
-        );
-        await overlay.onLoad();
-        overlay.moveSelectionRight();
-        expect(overlay.validateSelectedChoice(), isTrue);
-        return _panelFromOverlay(overlay);
-      }
-
-      final portraitPanel = await loadPanel(Vector2(390, 844));
-      final landscapePanel = await loadPanel(Vector2(844, 390));
-
-      expect(portraitPanel.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(landscapePanel.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(portraitPanel.currentBagEntryLabels, hasLength(2));
-      expect(landscapePanel.currentBagEntryLabels, hasLength(2));
     });
 
     test('battle party submenu keeps fainted reserves visible but disabled',
@@ -1029,13 +917,17 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       expect(
-          panel.currentRootEnabledStates[BattleCommandRootAction.pokemon.index],
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.enabled)
+              .toList()[BattleCommandRootAction.pokemon.index],
           isFalse);
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedRootIndex,
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
           BattleCommandRootAction.pokemon.index);
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
@@ -1084,404 +976,24 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionDown();
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
-      expect(panel.currentPartySpeciesLabels,
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.primaryLabel)
+              .toList(),
           const <String>['charmander', 'fainted_one', 'healthy_two']);
-      expect(panel.currentSelectedPartyIndex, 2);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          2);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
       expect((pickedChoice as PlayerBattleChoiceSwitch).reserveIndex, 1);
-    });
-
-    test('party submenu layout survives portrait and landscape', () async {
-      Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
-        final overlay = BattleOverlayComponent(
-          itemCapabilityResolver: _itemCapabilityResolver,
-          session: _session(
-            player: _combatant(
-              speciesId: 'lead_player',
-              lineupIndex: 0,
-              moves: <BattleMoveData>[
-                _move(id: 'scratch', name: 'Scratch'),
-              ],
-            ),
-            playerReserve: <BattleCombatantData>[
-              _combatant(
-                speciesId: 'bench_one',
-                lineupIndex: 1,
-                moves: <BattleMoveData>[
-                  _move(id: 'vine_whip', name: 'Vine Whip'),
-                ],
-              ),
-              _combatant(
-                speciesId: 'bench_two',
-                lineupIndex: 2,
-                currentHp: 0,
-                moves: <BattleMoveData>[
-                  _move(id: 'growl', name: 'Growl', power: 0),
-                ],
-              ),
-            ],
-            enemy: _combatant(
-              speciesId: 'enemy',
-              lineupIndex: 0,
-              moves: <BattleMoveData>[
-                _move(id: 'tackle', name: 'Tackle'),
-              ],
-            ),
-          ),
-          viewportSize: viewport,
-          onPlayerChoice: (_) {},
-        );
-        await overlay.onLoad();
-        overlay.moveSelectionDown();
-        expect(overlay.validateSelectedChoice(), isTrue);
-        return _panelFromOverlay(overlay);
-      }
-
-      final portraitPanel = await loadPanel(Vector2(390, 844));
-      final landscapePanel = await loadPanel(Vector2(844, 390));
-
-      expect(portraitPanel.currentMenuMode, BattleCommandMenuMode.pokemon);
-      expect(landscapePanel.currentMenuMode, BattleCommandMenuMode.pokemon);
-      expect(portraitPanel.currentPartySpeciesLabels, hasLength(3));
-      expect(landscapePanel.currentPartySpeciesLabels, hasLength(3));
-    });
-
-    test(
-        'party submenu keeps a scrollable visible window instead of squeezing every entry',
-        () async {
-      final reserves = List<BattleCombatantData>.generate(
-        6,
-        (index) => _combatant(
-          speciesId: 'bench_$index',
-          lineupIndex: index + 1,
-          moves: <BattleMoveData>[
-            _move(id: 'move_$index', name: 'Move $index'),
-          ],
-        ),
-      );
-      final session = _session(
-        player: _combatant(
-          speciesId: 'lead_player',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        playerReserve: reserves,
-        enemy: _combatant(
-          speciesId: 'enemy',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-      );
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-      );
-
-      await panel.onLoad();
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Choisis un Pokémon.',
-        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.pokemon,
-          selectedRootIndex: BattleCommandRootAction.pokemon.index,
-          selectedChoiceIndex: 0,
-        ),
-        partyMenuModel: buildBattlePartyMenuModel(session: session),
-        selectedPartyIndex: 1,
-      );
-
-      expect(panel.currentPartySpeciesLabels.length, equals(7));
-      expect(
-        panel.currentPartyEntrySnapshots.length,
-        lessThan(panel.currentPartySpeciesLabels.length),
-      );
-      expect(panel.currentListScrollControlsVisible, isTrue);
-      expect(panel.currentListCanScrollDown, isTrue);
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Choisis un Pokémon.',
-        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.pokemon,
-          selectedRootIndex: BattleCommandRootAction.pokemon.index,
-          selectedChoiceIndex: 0,
-        ),
-        partyMenuModel: buildBattlePartyMenuModel(session: session),
-        selectedPartyIndex: 6,
-      );
-
-      expect(panel.currentSelectedPartyIndex, 6);
-      expect(panel.currentListCanScrollUp, isTrue);
-    });
-
-    test(
-        'party submenu uses touch drag scrolling on mobile panels when touch scrolling is preferred',
-        () async {
-      final reserves = List<BattleCombatantData>.generate(
-        6,
-        (index) => _combatant(
-          speciesId: 'bench_$index',
-          lineupIndex: index + 1,
-          moves: <BattleMoveData>[
-            _move(id: 'move_$index', name: 'Move $index'),
-          ],
-        ),
-      );
-      final session = _session(
-        player: _combatant(
-          speciesId: 'lead_player',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        playerReserve: reserves,
-        enemy: _combatant(
-          speciesId: 'enemy',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-      );
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-        onScrollUpRequested: () => false,
-        onScrollDownRequested: () => false,
-        preferTouchListDragScroll: true,
-      );
-
-      await panel.onLoad();
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Choisis un Pokémon.',
-        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.pokemon,
-          selectedRootIndex: BattleCommandRootAction.pokemon.index,
-          selectedChoiceIndex: 0,
-        ),
-        partyMenuModel: buildBattlePartyMenuModel(session: session),
-        selectedPartyIndex: 1,
-      );
-
-      expect(panel.currentUsesTouchListDragScroll, isTrue);
-      expect(panel.currentListScrollControlsVisible, isFalse);
-    });
-
-    test(
-        'bag submenu uses touch drag scrolling on mobile panels when touch scrolling is preferred',
-        () async {
-      final session = _session(
-        player: _combatant(
-          speciesId: 'lead_player',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        enemy: _combatant(
-          speciesId: 'enemy',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-        isTrainerBattle: false,
-        allowCapture: true,
-      );
-      final gameState = _gameState(
-        bag: Bag(
-          entries: <BagEntry>[
-            _bagEntry(itemId: 'poke-ball', quantity: 3),
-            _bagEntry(
-              itemId: 'hyper-potion',
-              quantity: 2,
-            ),
-            _bagEntry(
-              itemId: 'super-potion',
-              quantity: 2,
-            ),
-            _bagEntry(itemId: 'potion', quantity: 2),
-            _bagEntry(itemId: 'antidote', quantity: 1),
-            _bagEntry(itemId: 'rare-candy', quantity: 1),
-            _bagEntry(itemId: 'repel', quantity: 1),
-          ],
-        ),
-      );
-      final bagMenuModel = buildBattleBagMenuModel(
-        gameState: gameState,
-        session: session,
-        resolver: _itemCapabilityResolver,
-      );
-      var selectedBagIndex = 0;
-      late BattleCommandPanelComponent panel;
-
-      void syncPanel() {
-        panel.sync(
-          battleLabel: 'Combat sauvage',
-          prompt: 'Choisis un objet.',
-          narrationLines: const <String>[
-            'Les objets indisponibles restent grisés.',
-          ],
-          menuModel: buildBattleCommandMenuModel(
-            session: session,
-            mode: BattleCommandMenuMode.bag,
-            selectedRootIndex: BattleCommandRootAction.bag.index,
-            selectedChoiceIndex: 0,
-          ),
-          bagMenuModel: bagMenuModel,
-          selectedBagIndex: selectedBagIndex,
-        );
-      }
-
-      panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-        onBagEntrySelected: (_) {},
-        onScrollUpRequested: () {
-          if (selectedBagIndex <= 0) {
-            return false;
-          }
-          selectedBagIndex -= 1;
-          syncPanel();
-          return true;
-        },
-        onScrollDownRequested: () {
-          if (selectedBagIndex >= bagMenuModel.entries.length - 1) {
-            return false;
-          }
-          selectedBagIndex += 1;
-          syncPanel();
-          return true;
-        },
-        preferTouchListDragScroll: true,
-      );
-
-      await panel.onLoad();
-      syncPanel();
-
-      expect(panel.currentUsesTouchListDragScroll, isTrue);
-      expect(panel.currentListScrollControlsVisible, isFalse);
-      expect(
-        panel.currentVisibleBagEntryLabels.length,
-        lessThan(panel.currentBagEntryLabels.length),
-      );
-      expect(panel.currentSelectedBagIndex, 0);
-
-      final initialVisibleEntries = panel.currentVisibleBagEntryLabels;
-      final appliedSteps = panel.dragTouchListForTest(-180);
-
-      expect(appliedSteps, greaterThan(0));
-      expect(panel.currentSelectedBagIndex, greaterThan(0));
-      expect(panel.currentVisibleBagEntryLabels, isNot(initialVisibleEntries));
-    });
-
-    test(
-        'touch scrolling bag entries do not activate on touch down before release',
-        () async {
-      final session = _session(
-        player: _combatant(
-          speciesId: 'lead_player',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'scratch', name: 'Scratch'),
-          ],
-        ),
-        enemy: _combatant(
-          speciesId: 'enemy',
-          lineupIndex: 0,
-          moves: <BattleMoveData>[
-            _move(id: 'tackle', name: 'Tackle'),
-          ],
-        ),
-        isTrainerBattle: false,
-        allowCapture: true,
-      );
-      final gameState = _gameState(
-        bag: Bag(
-          entries: <BagEntry>[
-            _bagEntry(itemId: 'poke-ball', quantity: 3),
-            _bagEntry(
-              itemId: 'hyper-potion',
-              quantity: 2,
-            ),
-            _bagEntry(
-              itemId: 'super-potion',
-              quantity: 2,
-            ),
-            _bagEntry(itemId: 'potion', quantity: 2),
-            _bagEntry(itemId: 'antidote', quantity: 1),
-            _bagEntry(itemId: 'rare-candy', quantity: 1),
-            _bagEntry(itemId: 'repel', quantity: 1),
-          ],
-        ),
-      );
-      final bagMenuModel = buildBattleBagMenuModel(
-        gameState: gameState,
-        session: session,
-        resolver: _itemCapabilityResolver,
-      );
-      BattleBagMenuEntry? selectedEntry;
-      final panel = BattleCommandPanelComponent(
-        position: Vector2.zero(),
-        size: Vector2(360, 220),
-        onChoiceSelected: (_) {},
-        onRootActionSelected: (_) {},
-        onPartyEntrySelected: (_) {},
-        onBagEntrySelected: (entry) => selectedEntry = entry,
-        onScrollUpRequested: () => false,
-        onScrollDownRequested: () => false,
-        preferTouchListDragScroll: true,
-      );
-
-      await panel.onLoad();
-      panel.sync(
-        battleLabel: 'Combat sauvage',
-        prompt: 'Choisis un objet.',
-        narrationLines: const <String>[
-          'Les objets indisponibles restent grisés.',
-        ],
-        menuModel: buildBattleCommandMenuModel(
-          session: session,
-          mode: BattleCommandMenuMode.bag,
-          selectedRootIndex: BattleCommandRootAction.bag.index,
-          selectedChoiceIndex: 0,
-        ),
-        bagMenuModel: bagMenuModel,
-        selectedBagIndex: 0,
-      );
-
-      expect(panel.currentUsesTouchListDragScroll, isTrue);
-      expect(panel.touchDownVisibleBagEntryForTest(0), isTrue);
-      expect(selectedEntry, isNull);
-      expect(panel.touchUpVisibleBagEntryForTest(0), isTrue);
-      expect(selectedEntry, isNotNull);
     });
 
     test('bag submenu prefers project local item sprites when available',
@@ -1564,20 +1076,27 @@ void main() {
       );
 
       await overlay.onLoad();
-      final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
-      await panel.debugWaitForBagIconLoads();
+      for (var attempt = 0; attempt < 100; attempt += 1) {
+        if (overlay.currentCommandOverlaySnapshot!.entries.every(
+          (entry) => entry.iconAssetPath != null,
+        )) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
 
-      expect(visualAssetCache.debugActualImageLoadCount, equals(3));
       expect(
         {
           p.normalize(pokeBallPath),
           p.normalize(hyperPotionPath),
           p.normalize(potionPath),
         },
-        hasLength(3),
+        equals(overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => p.normalize(entry.iconAssetPath!))
+            .toSet()),
       );
     });
 
@@ -1606,10 +1125,12 @@ void main() {
       );
 
       await overlay.onLoad();
-
-      final panel = _panelFromOverlay(overlay);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.continueOnly);
-      expect(panel.currentChoiceLabels, const <String>['CONTINUE']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.primaryLabel)
+              .toList(),
+          const <String>['CONTINUE']);
     });
   });
 

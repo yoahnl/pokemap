@@ -185,7 +185,8 @@ final class MapMutationDispatcher {
     const railJourneys = RailJourneyActions();
     return MapMutationDispatcher([
       for (final descriptor in SpatialMapActions.descriptors)
-        MapMutationActionRegistration(descriptor: descriptor, build: const SpatialMapActions().build),
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: const SpatialMapActions().build),
       for (final descriptor in RegionalMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const RegionalMapActions().build),
@@ -202,7 +203,9 @@ final class MapMutationDispatcher {
       for (final descriptor in SmartTileCatalogActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
-          build: smartTileCatalog.build,
+          build: descriptor.id == 'smart_tile.preset.draft.import'
+              ? SmartTileCatalogActions(artifactStore: artifacts).importDraft
+              : smartTileCatalog.build,
         ),
       for (final descriptor in SmartTileLayerActions.descriptors)
         MapMutationActionRegistration(

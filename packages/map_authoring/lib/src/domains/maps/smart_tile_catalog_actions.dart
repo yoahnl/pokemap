@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/artifact_ref.dart';
 import '../../contracts/authoring_diff.dart';
+import '../../contracts/authoring_receipt.dart';
 import '../../contracts/resource_ref.dart';
 import '../../domains/assets/asset_store.dart';
 import '../../domains/assets/resource_information_document.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../ports/artifact_store.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
@@ -17,11 +21,15 @@ import 'smart_tile_native_transition_guard.dart';
 import 'smart_tile_tiled_wang_projection.dart';
 
 part 'smart_tile_catalog_support.dart';
+part 'smart_tile_draft_artifact_actions.dart';
 part 'smart_tile_preset_lifecycle_actions.dart';
 
 /// Canonical native Smart Tile catalog mutations shared by every transport.
 final class SmartTileCatalogActions {
-  const SmartTileCatalogActions();
+  const SmartTileCatalogActions({this.artifactStore});
+
+  final ArtifactStore? artifactStore;
+  static const maximumDraftArtifactBytes = 8 * 1024 * 1024;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
@@ -102,6 +110,7 @@ final class SmartTileCatalogActions {
         ],
         risk: AuthoringRiskLevel.high,
       ),
+      _draftArtifactDescriptor(),
       _descriptor(
         'smart_tile.preset.draft.upsert',
         'Create or replace one isolated Smart Tile authoring draft',
@@ -398,6 +407,14 @@ final class SmartTileCatalogActions {
       field: 'draft',
       decode: ProjectSmartTileAuthoringDraft.fromJson,
     );
+    return _storeDraft(planning, draft);
+  }
+
+  AuthoringMutationDraft _storeDraft(
+    AuthoringPlanningContext planning,
+    ProjectSmartTileAuthoringDraft draft, {
+    List<AuthoringArtifactRef> artifacts = const [],
+  }) {
     final catalog = planning.snapshot.manifest.smartTileCatalog;
     final before = _findById(catalog.drafts, draft.id, (item) => item.id);
     _validateDraftTarget(catalog, draft, replacingDraftId: draft.id);
@@ -408,10 +425,11 @@ final class SmartTileCatalogActions {
     return _manifestDraft(
       planning,
       manifest: _nativeManifest(planning.snapshot.manifest, projected),
-      operation: 'smart_tile.preset.draft.upsert',
+      operation: planning.request.actionId,
       path: '/smartTileCatalog/drafts/${draft.id}',
       before: before?.toJson(),
       after: draft.toJson(),
+      artifacts: artifacts,
     );
   }
 
@@ -670,6 +688,7 @@ AuthoringMutationDraft _manifestDraft(
   Object? after,
   ProjectSmartTileAuthoringDraft? removedDraft,
   Map<String, Object?> preview = const <String, Object?>{},
+  List<AuthoringArtifactRef> artifacts = const [],
 }) {
   preflightNativeSmartTileMutation(
     snapshot: planning.snapshot,
@@ -703,15 +722,15 @@ AuthoringMutationDraft _manifestDraft(
                   : AuthoringDiffOperation.replace,
           resource: project,
           path: path,
-          before: before,
-          after: after,
+          before: _smartTileDiffValue(before),
+          after: _smartTileDiffValue(after),
         ),
         if (removedDraft != null)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.remove,
             resource: project,
             path: '/smartTileCatalog/drafts/${removedDraft.id}',
-            before: removedDraft.toJson(),
+            before: _smartTileDiffValue(removedDraft.toJson()),
           ),
       ]),
     ),
@@ -722,6 +741,7 @@ AuthoringMutationDraft _manifestDraft(
       'projectWidePreflight': 'passed',
       ...preview,
     },
+    artifacts: artifacts,
   );
 }
 
@@ -776,15 +796,15 @@ AuthoringMutationDraft _manifestAndMapDraft(
                 : AuthoringDiffOperation.replace,
             resource: project,
             path: '/smartTileCatalog/presets/${presetAfter.id}',
-            before: presetBefore?.toJson(),
-            after: presetAfter.toJson(),
+            before: _smartTileDiffValue(presetBefore?.toJson()),
+            after: _smartTileDiffValue(presetAfter.toJson()),
           ),
         if (projectChanged && removedDraft != null)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.remove,
             resource: project,
             path: '/smartTileCatalog/drafts/${removedDraft.id}',
-            before: removedDraft.toJson(),
+            before: _smartTileDiffValue(removedDraft.toJson()),
           ),
         AuthoringDiffEntry(
           operation: AuthoringDiffOperation.add,

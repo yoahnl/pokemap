@@ -117,24 +117,28 @@ void main() {
     final overlay = await _mountFatalTurn();
 
     expect(
-      overlay.debugPlayerHud!.debugStatusLabel,
+      overlay.currentCommandOverlaySnapshot!.playerHud.statusLabel ?? '',
       isEmpty,
       reason: 'l’issue est calculée mais pas encore jouée : afficher K.O. '
           'pendant que le Pokémon attaque spoile la mort — le défaut filmé',
     );
-    expect(overlay.debugPlayerHud!.currentDisplayedHp, 1.0);
+    expect(
+        overlay.currentCommandOverlaySnapshot!.playerHud.effectiveDisplayedHp,
+        1.0);
 
     await _pump(overlay, 2.0);
     expect(
-      overlay.debugPlayerHud!.debugStatusLabel,
+      overlay.currentCommandOverlaySnapshot!.playerHud.statusLabel ?? '',
       isEmpty,
       reason: 'la Tornade fatale n’a pas encore frappé',
     );
 
     await _pump(overlay, 10.0);
-    expect(overlay.debugPlayerHud!.currentDisplayedHp, 0.0);
     expect(
-      overlay.debugPlayerHud!.debugStatusLabel,
+        overlay.currentCommandOverlaySnapshot!.playerHud.effectiveDisplayedHp,
+        0.0);
+    expect(
+      overlay.currentCommandOverlaySnapshot!.playerHud.statusLabel ?? '',
       'K.O.',
       reason: 'une fois la mort JOUÉE, le badge dit la vérité',
     );
@@ -149,7 +153,6 @@ void main() {
       () async {
     BattleCommandOverlaySnapshot? snapshot;
     final overlay = await _mountFatalTurn(onSnapshot: (s) => snapshot = s);
-    overlay.setUseFlutterCommandOverlay(true);
     await _pump(overlay, 0.2);
 
     expect(snapshot, isNotNull);
@@ -322,8 +325,10 @@ void main() {
       overlay.updateTree(0.1);
       await Future<void>.delayed(Duration.zero);
       currentMessage = overlay.debugCurrentAnimationMessage;
-      final hp = overlay.debugPlayerHud!.currentDisplayedHp;
-      final badge = overlay.debugPlayerHud!.debugStatusLabel;
+      final hp =
+          overlay.currentCommandOverlaySnapshot!.playerHud.effectiveDisplayedHp;
+      final badge =
+          overlay.currentCommandOverlaySnapshot!.playerHud.statusLabel ?? '';
       expect(
         badge == 'K.O.' && hp > 0,
         isFalse,

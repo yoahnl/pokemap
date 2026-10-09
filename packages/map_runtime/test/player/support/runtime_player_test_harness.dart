@@ -395,6 +395,7 @@ final class FakeRuntimeSessionAdapter
     safeMessage: 'Objet utilisé.',
   );
   GameSessionCheckpoint? checkpoint;
+  Future<GameSessionCheckpoint?> Function()? checkpointLoader;
   int disposeCalls = 0;
   bool gameplayLocked = false;
   final completionAcknowledgements = <bool>[];
@@ -467,6 +468,7 @@ final class FakeRuntimeSessionAdapter
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async {
     calls.add('checkpoint');
+    if (checkpointLoader case final loader?) return loader();
     return checkpoint;
   }
 

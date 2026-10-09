@@ -84,6 +84,11 @@ final class BorderRuntimeAssetBundle {
 
   final Map<String, BorderRuntimeLoadedSnapshot> _snapshotById;
 
+  Iterable<RuntimeTilesetImage> get images =>
+      Set<RuntimeTilesetImage>.identity()
+        ..addAll(_snapshotById.values
+            .expand((snapshot) => snapshot.frames.map((frame) => frame.image)));
+
   BorderRuntimeLoadedSnapshot snapshotById(String snapshotId) {
     final snapshot = _snapshotById[snapshotId];
     if (snapshot == null) {
@@ -108,8 +113,36 @@ final class BorderRuntimeAssetCache {
   final Map<_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>
       _imageFutureByKey =
       <_BorderRuntimeImageCacheKey, Future<RuntimeTilesetImage>>{};
+  final Map<_BorderRuntimeImageCacheKey, RuntimeTilesetImage> _loadedByKey = {};
   bool _disposed = false;
   Future<void>? _disposal;
+
+  void trimToBudget({
+    required int maxBytes,
+    required Iterable<RuntimeTilesetImage> retainedImages,
+  }) {
+    if (_disposed) return;
+    final retained = Set<RuntimeTilesetImage>.identity()
+      ..addAll(retainedImages);
+    final oldestFirst = Set<RuntimeTilesetImage>.identity()
+      ..addAll(_loadedByKey.values);
+    var bytes = oldestFirst.fold<int>(
+        0, (total, image) => total + image.width * image.height * 4);
+    for (final image in oldestFirst) {
+      if (bytes <= maxBytes) break;
+      if (retained.contains(image)) continue;
+      bytes -= image.width * image.height * 4;
+      final keys = _loadedByKey.entries
+          .where((entry) => identical(entry.value, image))
+          .map((entry) => entry.key)
+          .toList();
+      for (final key in keys) {
+        _loadedByKey.remove(key);
+        _imageFutureByKey.remove(key);
+      }
+      image.dispose();
+    }
+  }
 
   Future<RuntimeTilesetImage> loadFrame({
     required String projectRoot,
@@ -127,6 +160,8 @@ final class BorderRuntimeAssetCache {
     );
     final cached = _imageFutureByKey[key];
     if (cached != null) {
+      final loaded = _loadedByKey.remove(key);
+      if (loaded != null) _loadedByKey[key] = loaded;
       return cached;
     }
 
@@ -136,7 +171,11 @@ final class BorderRuntimeAssetCache {
     );
     _imageFutureByKey[key] = future;
     try {
-      return await future;
+      final image = await future;
+      if (!_disposed && identical(_imageFutureByKey[key], future)) {
+        _loadedByKey[key] = image;
+      }
+      return image;
     } catch (_) {
       if (identical(_imageFutureByKey[key], future)) {
         _imageFutureByKey.remove(key);
@@ -176,6 +215,7 @@ final class BorderRuntimeAssetCache {
     _disposed = true;
     final pending = _imageFutureByKey.values.toList();
     _imageFutureByKey.clear();
+    _loadedByKey.clear();
     final images = await Future.wait(
       pending.map((future) => future.then<RuntimeTilesetImage?>(
             (image) => image,

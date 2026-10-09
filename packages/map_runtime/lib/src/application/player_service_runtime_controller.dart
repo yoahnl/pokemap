@@ -240,6 +240,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   _ContextualShopSession? _shopSession;
   _ContextualHealSession? _healSession;
   _ContextualPcSession? _pcSession;
+  _ContextualTextSession? _textSession;
+  var _textRevision = -1;
 
   bool get isActive => _active;
 
@@ -250,6 +252,178 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServiceSnapshots.stream;
+
+  Future<PlayerServiceRuntimeResult> openTextInput({
+    required OpenTextInputService request,
+  }) async {
+    if (_disposed) {
+      return PlayerServiceRuntimeResult.failed(
+        StateError('The player-service controller is disposed.'),
+      );
+    }
+    if (_active) return const PlayerServiceRuntimeResult.busy();
+    final state = _currentGameState();
+    final unavailableReason = _worldRequestUnavailableReason(request, state);
+    if (unavailableReason != null) {
+      return PlayerServiceRuntimeResult.unavailable(unavailableReason);
+    }
+    final currentValue = state.scriptVariables.values[request.variableId];
+    if (currentValue != null && currentValue is! ScriptVariableValueString) {
+      return const PlayerServiceRuntimeResult.unavailable(
+        'Cette variable de scénario ne contient pas du texte.',
+      );
+    }
+    _active = true;
+    var inputLocked = false;
+    final session = _ContextualTextSession(request: request);
+    try {
+      _setInputLocked(true);
+      inputLocked = true;
+      _textSession = session;
+      _publishWorldService(_buildTextSnapshot(session));
+      if (request.interaction.timeout case final timeout?) {
+        session.timer = Timer(timeout, () {
+          if (!session.result.isCompleted) {
+            session.result.complete(
+              const PlayerServiceRuntimeResult.cancelled(),
+            );
+          }
+        });
+      }
+      return await session.result.future;
+    } catch (error) {
+      return PlayerServiceRuntimeResult.failed(error);
+    } finally {
+      session.timer?.cancel();
+      if (identical(_textSession, session)) {
+        _textSession = null;
+        _publishWorldService(null);
+      }
+      if (inputLocked) _setInputLocked(false);
+      _active = false;
+    }
+  }
+
+  RuntimeWorldServiceSnapshot _buildTextSnapshot(
+    _ContextualTextSession session, {
+    RuntimeWorldServiceStage stage = RuntimeWorldServiceStage.active,
+    String? safeMessage,
+  }) {
+    final previousRevision = _worldServiceSnapshot?.revision ?? -1;
+    _textRevision =
+        (previousRevision > _textRevision ? previousRevision : _textRevision) +
+            1;
+    final revision = _textRevision;
+    final source = session.request.interaction;
+    session.interaction = SceneTextInteractionRequest(
+      requestId: source.requestId,
+      revision: revision,
+      prompt: source.prompt,
+      constraints: source.constraints,
+      initialValue: session.value ?? source.initialValue,
+      timeout: source.timeout,
+    );
+    return RuntimeWorldServiceSnapshot(
+      revision: revision,
+      request: session.request,
+      stage: stage,
+      content: session.interaction,
+      safeMessage: safeMessage,
+      actions: stage == RuntimeWorldServiceStage.applying
+          ? const []
+          : const [
+              RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.confirm,
+              ),
+              RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.cancel,
+              ),
+            ],
+    );
+  }
+
+  Future<RuntimeWorldServiceCommandResult> _dispatchText(
+    _ContextualTextSession session,
+    RuntimeWorldServiceCommand command,
+  ) async {
+    if (session.result.isCompleted) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+        safeMessage: 'Cette demande est déjà terminée.',
+      );
+    }
+    final interaction = session.interaction!;
+    final result = command.interactionResult;
+    if (result != null &&
+        (result.requestId != interaction.requestId ||
+            result.revision != interaction.revision)) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+        safeMessage: 'La demande a changé avant cette réponse.',
+      );
+    }
+    if (command.action == RuntimeWorldServiceAction.cancel ||
+        command.action == RuntimeWorldServiceAction.close) {
+      session.result.complete(const PlayerServiceRuntimeResult.cancelled());
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.cancelled,
+      );
+    }
+    if (result == null || result is! SceneTextSubmittedInteractionResult) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'Cette réponse ne contient pas du texte.',
+      );
+    }
+    if (interaction.validateResult(result).isNotEmpty) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'La longueur du texte ne respecte pas cette demande.',
+      );
+    }
+    session.value = result.value;
+    session.timer?.cancel();
+    _publishWorldService(
+      _buildTextSnapshot(session, stage: RuntimeWorldServiceStage.applying),
+    );
+    try {
+      final currentState = _currentGameState();
+      final currentValue =
+          currentState.scriptVariables.values[session.request.variableId];
+      if (currentValue != null && currentValue is! ScriptVariableValueString) {
+        throw StateError('The text variable type changed during the request.');
+      }
+      final next = const GameStateMutations().setVariable(
+        currentState,
+        session.request.variableId,
+        ScriptVariableValue.string(result.value),
+      );
+      await _commitAndSave(next);
+      if (_disposed || !identical(_textSession, session)) {
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.cancelled,
+        );
+      }
+      session.result.complete(PlayerServiceRuntimeResult.completed(next));
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.accepted,
+      );
+    } catch (error) {
+      if (!_disposed && identical(_textSession, session)) {
+        _publishWorldService(
+          _buildTextSnapshot(
+            session,
+            stage: RuntimeWorldServiceStage.failed,
+            safeMessage: 'Le texte n’a pas pu être enregistré.',
+          ),
+        );
+      }
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.failed,
+        safeMessage: 'Le texte n’a pas pu être enregistré.',
+      );
+    }
+  }
 
   Future<PlayerServiceRuntimeResult> openShop(
     ShopDefinition shop, {
@@ -1047,6 +1221,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'Le service a changé avant cette action.',
       );
     }
+    if (command.interactionResult != null &&
+        snapshot.request is! OpenTextInputService) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+        safeMessage: 'Cette réponse appartient à une autre demande.',
+      );
+    }
     if (!snapshot.isActionEnabled(command.action)) {
       return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
@@ -1060,6 +1241,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (heal != null) return _dispatchHeal(heal, command);
     final pc = _pcSession;
     if (pc != null) return _dispatchPc(pc, command);
+    final text = _textSession;
+    if (text != null) return _dispatchText(text, command);
     return const RuntimeWorldServiceCommandResult(
       status: RuntimeWorldServiceCommandStatus.unavailable,
       safeMessage: 'Ce service n’accepte pas cette action.',
@@ -2113,9 +2296,24 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       pc.result.complete(const PlayerServiceRuntimeResult.cancelled());
     }
     _pcSession = null;
+    final text = _textSession;
+    if (text != null && !text.result.isCompleted) {
+      text.result.complete(const PlayerServiceRuntimeResult.cancelled());
+    }
+    _textSession = null;
     _publishWorldService(null);
     await _worldServiceSnapshots.close();
   }
+}
+
+final class _ContextualTextSession {
+  _ContextualTextSession({required this.request});
+
+  final OpenTextInputService request;
+  final result = Completer<PlayerServiceRuntimeResult>();
+  SceneTextInteractionRequest? interaction;
+  Timer? timer;
+  String? value;
 }
 
 final class _ContextualShopSession {

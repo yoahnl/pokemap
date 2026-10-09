@@ -89,13 +89,15 @@ void main() {
         SmartTileCellActions.descriptors.map((descriptor) => descriptor.id),
         <String>[
           'smart_tile.cell.paint',
+          'smart_tile.cell.paint_batch',
           'smart_tile.cell.erase',
           'smart_tile.corner.paint',
           'smart_tile.corner.erase',
         ],
       );
       for (final descriptor in SmartTileCellActions.descriptors.where(
-          (descriptor) => descriptor.id.startsWith('smart_tile.cell.'))) {
+          (descriptor) => descriptor.id == 'smart_tile.cell.paint' ||
+              descriptor.id == 'smart_tile.cell.erase')) {
         expect(descriptor.guarantees, contains(AuthoringGuarantee.atomic));
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
         expect(descriptor.extensions['gestureAtomic'], isTrue);

@@ -12,17 +12,20 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
-import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_combatant_gender_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_bundle_cache.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
-import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_layer_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_rmxp_animation_component.dart';
+
+String _hudSpeciesText(BattleCommandOverlayHudSnapshot hud) {
+  final gender = hud.genderSymbol;
+  return gender == null ? hud.speciesLabel : '${hud.speciesLabel} $gender';
+}
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -211,10 +214,6 @@ BagEntry _bagEntry({
     itemId: itemId,
     quantity: quantity,
   );
-}
-
-BattleCommandPanelComponent _panelFromOverlay(BattleOverlayComponent overlay) {
-  return overlay.children.whereType<BattleCommandPanelComponent>().single;
 }
 
 RuntimeMapBundle _runtimeBundle({
@@ -822,7 +821,7 @@ void main() {
     });
 
     test(
-        'mounts a structured battle scene with backdrop, battler zones, huds, command box and narration box by default',
+        'mounts the battle backdrop and battlers with a canonical presentation snapshot',
         () async {
       final overlay = BattleOverlayComponent(
         itemCapabilityResolver: _itemResolver,
@@ -852,12 +851,7 @@ void main() {
         overlay.children.whereType<BattleSceneCombatantComponent>(),
         hasLength(2),
       );
-      expect(
-        overlay.children.whereType<BattleSceneHudComponent>(),
-        hasLength(2),
-      );
-      expect(overlay.commandPanelMounted, isTrue);
-      expect(overlay.narrationPanelMounted, isTrue);
+      expect(overlay.currentCommandOverlaySnapshot, isNotNull);
       expect(overlay.children.whereType<BattleDebugPanelComponent>(), isEmpty);
       expect(overlay.debugPanelMounted, isFalse);
     });
@@ -1053,49 +1047,7 @@ void main() {
       );
     });
 
-    test(
-        'switches to a mobile-friendly bottom panel layout on narrow viewports',
-        () async {
-      final overlay = BattleOverlayComponent(
-        itemCapabilityResolver: _itemResolver,
-        session: _session(
-          player: _combatant(
-            speciesId: 'squirtle',
-            lineupIndex: 0,
-            moves: <BattleMoveData>[_tackle()],
-          ),
-          enemy: _combatant(
-            speciesId: 'pikachu',
-            lineupIndex: 0,
-            moves: <BattleMoveData>[_tackle()],
-          ),
-        ),
-        viewportSize: Vector2(390, 844),
-        onPlayerChoice: (_) {},
-      );
-
-      await overlay.onLoad();
-
-      final panel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      await panel.onLoad();
-
-      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
-      expect(
-        panel.commandsPanelPosition.y,
-        greaterThan(panel.promptPanelPosition.y),
-      );
-      expect(panel.promptPanelSize.x, closeTo(panel.size.x, 0.01));
-      expect(panel.commandsPanelSize.x, closeTo(panel.size.x, 0.01));
-      expect(
-        overlay.currentSceneLayout.commandPanelLayoutMode,
-        BattleCommandPanelLayoutMode.stacked,
-      );
-    });
-
-    test(
-        'can publish a Flutter command overlay snapshot without mounting the Flame command panel',
-        () async {
+    test('publishes the canonical Flutter command overlay snapshot', () async {
       final overlay = BattleOverlayComponent(
         itemCapabilityResolver: _itemResolver,
         session: _session(
@@ -1121,16 +1073,11 @@ void main() {
         ),
         viewportSize: Vector2(390, 844),
         onPlayerChoice: (_) {},
-        useFlutterCommandOverlay: true,
         playerExperienceProgressByLineupIndex: const <int, double>{0: 0.64},
       );
 
       await overlay.onLoad();
       await overlay.waitForPendingVisualSync();
-
-      expect(overlay.commandPanelMounted, isFalse);
-      expect(overlay.enemyHudMounted, isFalse);
-      expect(overlay.playerHudMounted, isFalse);
       expect(overlay.currentCommandOverlaySnapshot, isNotNull);
       expect(
         overlay.currentCommandOverlaySnapshot!.mode,
@@ -1186,7 +1133,6 @@ void main() {
         ),
         viewportSize: Vector2(436, 697),
         onPlayerChoice: (_) {},
-        useFlutterCommandOverlay: true,
       );
 
       await overlay.onLoad();
@@ -1227,7 +1173,6 @@ void main() {
         session: session,
         viewportSize: Vector2(390, 844),
         onPlayerChoice: (_) {},
-        useFlutterCommandOverlay: true,
       );
 
       await overlay.onLoad();
@@ -1366,16 +1311,12 @@ void main() {
       );
 
       await overlay.onLoad();
-
-      final panel = _panelFromOverlay(overlay);
       expect(overlay.currentSceneLayout.isPortrait, isFalse);
-      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.split);
 
       overlay.onGameResize(Vector2(390, 844));
 
       expect(overlay.currentSceneLayout.isPortrait, isTrue);
       expect(overlay.currentSceneLayout.viewportSize, const ui.Size(390, 844));
-      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
     });
 
     test(
@@ -1397,7 +1338,6 @@ void main() {
         ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
-        useFlutterCommandOverlay: true,
       );
 
       await overlay.onLoad();
@@ -1502,8 +1442,6 @@ void main() {
         hasLength(1),
       );
       expect(overlay.debugPanelMounted, isTrue);
-      expect(overlay.commandPanelMounted, isTrue);
-      expect(overlay.narrationPanelMounted, isTrue);
     });
 
     test('updateState refreshes the visible prompt and command menu source',
@@ -1563,11 +1501,15 @@ void main() {
       );
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
       expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentSelectedPartyIndex, 1);
       expect(
-        commandPanel.currentPartySpeciesLabels,
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
+      expect(
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.primaryLabel)
+            .toList(),
         const <String>['sproutle', 'benchmate'],
       );
     });
@@ -1606,12 +1548,12 @@ void main() {
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(
-          commandPanel.currentBagEntryLabels, const <String>['Poké Ball x3']);
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          const <String>['Poké Ball x3']);
       expect(pickedChoice, isNull);
     });
 
@@ -1750,10 +1692,10 @@ void main() {
         overlay.currentMenuMode,
         BattleCommandMenuMode.bagMedicineTarget,
       );
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
-        commandPanel.currentMedicineTargetSpeciesLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.primaryLabel)
+            .toList(),
         const <String>['sproutle'],
       );
       expect(pickedChoice, isNull);
@@ -2653,11 +2595,10 @@ void main() {
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.validateSelectedChoice(), isTrue);
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
-        commandPanel.currentMedicineTargetSelectableStates,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.enabled)
+            .toList(),
         const <bool>[false, false],
       );
       expect(overlay.validateSelectedChoice(), isFalse);
@@ -2708,13 +2649,16 @@ void main() {
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.validateSelectedChoice(), isTrue);
       overlay.moveSelectionDown();
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentSelectedMedicineTargetIndex, equals(1));
       expect(
-        commandPanel.currentMedicineTargetStatusLabels,
-        const <String>['Actif', 'K.O.'],
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          equals(1));
+      expect(
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.statusLabel ?? '')
+            .toList(),
+        const <String>['OK', 'K.O.'],
       );
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(
@@ -2765,7 +2709,7 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 
-    test('touch back control mirrors escape navigation for submenus', () async {
+    test('canonical snapshot permits back navigation for submenus', () async {
       final overlay = BattleOverlayComponent(
         itemCapabilityResolver: _itemResolver,
         session: _session(
@@ -2794,16 +2738,14 @@ void main() {
       );
 
       await overlay.onLoad();
-      overlay.setPreferTouchListDragScroll(true);
-      final panel = _panelFromOverlay(overlay);
 
-      expect(panel.currentShowsTouchBackControl, isFalse);
+      expect(overlay.currentCommandOverlaySnapshot!.canGoBack, isFalse);
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(panel.currentShowsTouchBackControl, isTrue);
-      expect(panel.tapTouchBackControlForTest(), isTrue);
+      expect(overlay.currentCommandOverlaySnapshot!.canGoBack, isTrue);
+      expect(overlay.handleEscape(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 
@@ -2838,10 +2780,11 @@ void main() {
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentBagEntryLabels, const <String>['Potion x1']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          const <String>['Potion x1']);
 
       overlay.updateState(
         initialSession,
@@ -2858,7 +2801,9 @@ void main() {
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(
-        commandPanel.currentBagEntryLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+            .toList(),
         const <String>['Poké Ball x2', 'Potion x4'],
       );
     });
@@ -2907,7 +2852,8 @@ void main() {
       overlay.updateState(initialSession.applyChoice(pickedChoice!));
       await overlay.waitForPendingVisualSync();
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('sproutle'));
       overlay.updateTree(0.42);
       // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
       // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
@@ -2915,7 +2861,8 @@ void main() {
       overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('benchmate'));
       final playerCombatant = overlay.children
           .whereType<BattleSceneCombatantComponent>()
           .singleWhere((component) => component.belongsToPlayerSide);
@@ -2965,13 +2912,17 @@ void main() {
       expect(overlay.handleEscape(), isFalse);
       expect(overlay.moveSelectionRight(), isFalse);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
-        commandPanel.currentPartySpeciesLabels,
+        overlay.currentCommandOverlaySnapshot!.entries
+            .map((entry) => entry.primaryLabel)
+            .toList(),
         const <String>['sproutle', 'fainted_one', 'benchmate'],
       );
-      expect(commandPanel.currentSelectedPartyIndex, 2);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          2);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
@@ -2980,7 +2931,8 @@ void main() {
       overlay.updateState(initialSession.applyChoice(pickedChoice!));
       await overlay.waitForPendingVisualSync();
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('sproutle'));
       overlay.updateTree(0.42);
       // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
       // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
@@ -2988,7 +2940,8 @@ void main() {
       overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('benchmate'));
     });
 
     test(
@@ -3028,13 +2981,18 @@ void main() {
       );
 
       await overlay.onLoad();
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentSelectedPartyIndex, 1);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          1);
 
       overlay.moveSelectionDown();
-      expect(commandPanel.currentSelectedPartyIndex, 2);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .singleWhere((entry) => entry.selected)
+              .index,
+          2);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
@@ -3062,14 +3020,11 @@ void main() {
       );
 
       await overlay.onLoad();
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
-      expect(commandPanel.currentNarrationText,
+      expect(overlay.currentCommandOverlaySnapshot!.narrationLines.join('\n'),
           isNot('Que doit faire sproutle ?'));
       expect(
-        commandPanel.currentNarrationText,
+        overlay.currentCommandOverlaySnapshot!.narrationLines.join('\n'),
         isNot(contains('Que doit faire sproutle ?\nQue doit faire sproutle ?')),
       );
     });
@@ -3127,7 +3082,6 @@ void main() {
           'caterpie' => 'Chenipan',
           _ => speciesId,
         },
-        useFlutterCommandOverlay: true,
         onCommandOverlaySnapshotChanged: (value) => snapshot = value,
         onPlayerChoice: (_) {},
       );
@@ -3171,11 +3125,9 @@ void main() {
           initialSession.applyChoice(const PlayerBattleChoiceFight(0));
       overlay.updateState(nextSession);
       await overlay.waitForPendingVisualSync();
-
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentPromptText, isNotEmpty);
-      expect(commandPanel.currentNarrationText, isEmpty);
+      expect(overlay.currentCommandOverlaySnapshot!.prompt, isNotEmpty);
+      expect(overlay.currentCommandOverlaySnapshot!.narrationLines.join('\n'),
+          isEmpty);
     });
 
     test('shows resolved gender symbols in both hud labels when known',
@@ -3205,8 +3157,10 @@ void main() {
 
       await overlay.onLoad();
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle ♀'));
-      expect(overlay.currentEnemyHudSpeciesText, equals('sparkitten ♂'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('sproutle ♀'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.enemyHud),
+          equals('sparkitten ♂'));
     });
 
     test(
@@ -3252,7 +3206,8 @@ void main() {
       overlay.updateState(switchedSession);
       await overlay.waitForPendingVisualSync();
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle ♀'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('sproutle ♀'));
       overlay.updateTree(0.42);
       // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
       // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
@@ -3260,7 +3215,8 @@ void main() {
       overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
-      expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
+      expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
+          equals('aquafi ♂'));
     });
 
     // BETA-BAT-012 : le bandeau de fin attend que le tour soit joué.
@@ -3270,119 +3226,6 @@ void main() {
     // message, avec l'adversaire encore affiché. L'issue est décidée quand le
     // tour est CALCULÉ, et le bandeau suivait cette horloge au lieu de celle de
     // l'animation.
-    test('le bandeau de victoire n’apparaît pas pendant le tour', () async {
-      // Un combat de DRESSEUR : une victoire sauvage ne s'annonce plus du tout,
-      // donc elle ne pourrait pas prouver un problème de moment.
-      final session = _session(
-        isTrainerBattle: true,
-        player: _combatant(
-          speciesId: 'sproutle',
-          lineupIndex: 0,
-          currentHp: 40,
-          stats: _stats(speed: 120, attack: 180),
-          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
-        ),
-        enemy: _combatant(
-          speciesId: 'sparkitten',
-          lineupIndex: 0,
-          maxHp: 24,
-          currentHp: 24,
-          stats: _stats(speed: 40, defense: 20),
-          moves: <BattleMoveData>[_waitingMove()],
-        ),
-      );
-      final overlay = BattleOverlayComponent(
-        itemCapabilityResolver: _itemResolver,
-        session: session,
-        viewportSize: Vector2(960, 540),
-        onPlayerChoice: (_) {},
-      );
-
-      await overlay.onLoad();
-      await overlay.waitForPendingVisualSync();
-
-      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
-      expect(
-        afterTurn.state.outcome?.isVictory,
-        isTrue,
-        reason: 'l’issue est déjà décidée à cet instant — c’est tout le sujet',
-      );
-
-      overlay.updateState(afterTurn);
-      await overlay.waitForPendingVisualSync();
-
-      expect(
-        overlay.outcomeBannerText,
-        isNull,
-        reason: 'le bandeau s’affichait dès que l’issue était décidée, '
-            'par-dessus l’attaque qui la provoquait',
-      );
-
-      // On avance par petits pas et on vérifie qu'à AUCUN moment le bandeau ne
-      // cohabite avec un message de tour.
-      var sawPresentation = false;
-      for (var step = 0; step < 40; step += 1) {
-        overlay.updateTree(0.1);
-        if (overlay.isTurnPresentationActive) {
-          sawPresentation = true;
-          expect(
-            overlay.outcomeBannerText,
-            isNull,
-            reason: 'bandeau visible alors que le tour joue encore',
-          );
-        }
-      }
-
-      expect(sawPresentation, isTrue, reason: 'le tour doit avoir été joué');
-      expect(overlay.isTurnPresentationActive, isFalse);
-      // La synchronisation visuelle qui pose le bandeau est asynchrone : la
-      // boucle d'images ci-dessus ne laisse pas tourner la boucle d'événements.
-      await overlay.waitForPendingVisualSync();
-
-      expect(overlay.outcomeBannerText, 'Tu as gagné le combat !');
-    });
-
-    test('une victoire sauvage n’affiche aucun bandeau', () async {
-      // Décision de Yoahn du 2026-08-23 : parité avec la référence, où
-      // `show_wild_victory` ne fait qu'un changement de musique et l'XP.
-      final session = _session(
-        player: _combatant(
-          speciesId: 'sproutle',
-          lineupIndex: 0,
-          currentHp: 40,
-          stats: _stats(speed: 120, attack: 180),
-          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
-        ),
-        enemy: _combatant(
-          speciesId: 'sparkitten',
-          lineupIndex: 0,
-          maxHp: 24,
-          currentHp: 24,
-          stats: _stats(speed: 40, defense: 20),
-          moves: <BattleMoveData>[_waitingMove()],
-        ),
-      );
-      final overlay = BattleOverlayComponent(
-        itemCapabilityResolver: _itemResolver,
-        session: session,
-        viewportSize: Vector2(960, 540),
-        onPlayerChoice: (_) {},
-      );
-
-      await overlay.onLoad();
-      await overlay.waitForPendingVisualSync();
-      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
-      overlay.updateState(afterTurn);
-      await overlay.waitForPendingVisualSync();
-      for (var step = 0; step < 40; step += 1) {
-        overlay.updateTree(0.1);
-      }
-      await overlay.waitForPendingVisualSync();
-
-      expect(afterTurn.state.outcome?.isVictory, isTrue);
-      expect(overlay.isTurnPresentationActive, isFalse);
-      expect(overlay.outcomeBannerText, isNull);
-    });
 
     // BETA-BAT-015 : le thème de victoire suit le moment VISIBLE de l'issue.
     //
@@ -3438,7 +3281,6 @@ void main() {
 
       expect(presented, hasLength(1));
       expect(presented.single.isVictory, isTrue);
-      expect(overlay.outcomeBannerText, isNull);
 
       overlay.onGameResize(Vector2(1024, 600));
       overlay.updateState(afterTurn);
@@ -3542,9 +3384,6 @@ void main() {
       await overlay.onLoad();
       await overlay.waitForPendingVisualSync();
 
-      final initialEnemyHud = overlay.children
-          .whereType<BattleSceneHudComponent>()
-          .singleWhere((hud) => !hud.belongsToPlayerSide);
       final initialEnemyCombatant = overlay.children
           .whereType<BattleSceneCombatantComponent>()
           .singleWhere((combatant) => !combatant.belongsToPlayerSide);
@@ -3552,14 +3391,13 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
       overlay.updateState(afterTurn);
       await overlay.waitForPendingVisualSync();
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
 
       expect(overlay.isTurnPresentationActive, isTrue);
       expect(overlay.currentPromptText, equals('sproutle utilise Tackle !'));
-      expect(commandPanel.currentNarrationText, isEmpty);
+      expect(overlay.currentCommandOverlaySnapshot!.narrationLines.join('\n'),
+          isEmpty);
       expect(
-        initialEnemyHud.currentDisplayedHp.round(),
+        overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
         equals(session.state.enemy.currentHp),
       );
       expect(initialEnemyCombatant.isHitFlashActive, isFalse);
@@ -3570,22 +3408,29 @@ void main() {
       overlay.updateTree(0.02);
 
       expect(overlay.isTurnPresentationActive, isTrue);
-      expect(initialEnemyHud.isHpAnimationActive, isFalse);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.enemyHud.hpTweenDurationMs !=
+              null,
+          isFalse);
 
       overlay.updateTree(0.13);
       overlay.updateTree(0.01);
 
-      expect(initialEnemyHud.isHpAnimationActive, isTrue);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.enemyHud.hpTweenDurationMs !=
+              null,
+          isTrue);
 
       overlay.updateTree(0.05);
 
       expect(
-        initialEnemyHud.currentDisplayedHp,
-        lessThan(session.state.enemy.currentHp.toDouble()),
+        overlay
+            .currentCommandOverlaySnapshot!.enemyHud.effectiveTargetDisplayedHp,
+        equals(afterTurn.state.enemy.currentHp),
       );
       expect(
-        initialEnemyHud.currentDisplayedHp,
-        greaterThan(afterTurn.state.enemy.currentHp.toDouble()),
+        overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
+        equals(session.state.enemy.currentHp),
       );
 
       // BETA-BAT-013 : la chorégraphie est délibérément plus longue. Le
@@ -3599,9 +3444,12 @@ void main() {
 
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(initialEnemyCombatant.isHitFlashActive, isFalse);
-      expect(initialEnemyHud.isHpAnimationActive, isFalse);
       expect(
-        initialEnemyHud.currentDisplayedHp.round(),
+          overlay.currentCommandOverlaySnapshot!.enemyHud.hpTweenDurationMs !=
+              null,
+          isFalse);
+      expect(
+        overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
         equals(afterTurn.state.enemy.currentHp),
       );
     });
@@ -3752,8 +3600,8 @@ void main() {
 
       await overlay.onLoad();
       await overlay.waitForPendingVisualSync();
-      final commandPanel = _panelFromOverlay(overlay);
-      final initialCommandPanelPosition = commandPanel.position.clone();
+      final initialCommandPanelPosition =
+          overlay.currentCommandOverlaySnapshot!.panelRect;
 
       final afterTurn = initialSession.applyChoice(
         const PlayerBattleChoiceFight(0),
@@ -3766,7 +3614,8 @@ void main() {
       expect(overlay.isBattleCameraFocusActive, isTrue);
       expect(overlay.battleCameraOffset.length, greaterThan(0));
       expect(overlay.battleCameraScale, greaterThan(1));
-      expect(commandPanel.position, equals(initialCommandPanelPosition));
+      expect(overlay.currentCommandOverlaySnapshot!.panelRect,
+          equals(initialCommandPanelPosition));
 
       for (var i = 0; i < 24 && overlay.isTurnPresentationActive; i++) {
         overlay.updateTree(0.25);
@@ -3777,7 +3626,8 @@ void main() {
       expect(overlay.isBattleCameraFocusActive, isFalse);
       expect(overlay.battleCameraOffset, equals(Vector2.zero()));
       expect(overlay.battleCameraScale, equals(1));
-      expect(commandPanel.position, equals(initialCommandPanelPosition));
+      expect(overlay.currentCommandOverlaySnapshot!.panelRect,
+          equals(initialCommandPanelPosition));
     });
 
     test('latest updateState wins when an older fx prewarm completes late',

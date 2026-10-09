@@ -793,9 +793,27 @@ final class RuntimePlayerCoordinator {
                 : _sessions.snapshot.failure?.safeMessage ??
                     'La sauvegarde n’a pas pu être enregistrée.',
           );
-        } catch (error, stackTrace) {
+        } catch (_) {
           boundary.complete(false);
-          Error.throwWithStackTrace(error, stackTrace);
+          if (!_canPublishPauseData(saveSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
+          const failure = GameSessionFailure(
+            code: GameSessionFailureCode.runtime,
+            recoverability: GameSessionFailureRecoverability.retry,
+            safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
+          );
+          _publishPause(
+            section,
+            logicalSelectionId: logicalSelectionId,
+            failure: failure,
+          );
+          return RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: failure.safeMessage,
+          );
         } finally {
           if (identical(_activeSaveBoundary, boundaryFuture)) {
             _activeSaveBoundary = null;

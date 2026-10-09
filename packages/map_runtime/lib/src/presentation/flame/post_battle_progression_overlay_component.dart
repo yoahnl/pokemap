@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_post_battle_decision_coordinator.dart';
@@ -18,12 +16,7 @@ typedef PostBattleEvolutionDecisionHandler = RuntimePostBattleCoordinatorResult
   BattleEvolutionDecision decision,
 );
 
-/// Real Flame presentation for the ordered FG-048 post-battle flow.
-///
-/// It owns no progression rules: exact typed decisions are returned to the
-/// coordinator callbacks and the resulting immutable transaction is rendered.
-final class PostBattleProgressionOverlayComponent extends PositionComponent
-    with TapCallbacks {
+final class PostBattleProgressionOverlayComponent extends PositionComponent {
   PostBattleProgressionOverlayComponent({
     required RuntimePostBattleCoordinatorResult initialResult,
     required Vector2 viewportSize,
@@ -31,10 +24,8 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     required this.onEvolutionDecision,
     required this.onCompleted,
     this.onPresentationSnapshotChanged,
-    bool renderInFlame = true,
   })  : _transaction = initialResult.transaction,
         _failure = initialResult.failure,
-        _renderInFlame = renderInFlame,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -51,19 +42,12 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
 
   RuntimePostBattleTransaction? _transaction;
   RuntimePostBattleCoordinatorFailure? _failure;
-  bool _renderInFlame;
   final Completer<void> _completion = Completer<void>();
   int _messageIndex = 0;
   int _selectedDecisionIndex = 0;
   bool _isCompleted = false;
   int _presentationRevision = 0;
   PostBattlePresentationSnapshot? _currentPresentationSnapshot;
-
-  RectangleComponent? _scrim;
-  RectangleComponent? _panel;
-  TextComponent? _title;
-  TextBoxComponent<TextPaint>? _message;
-  final List<TextComponent> _choiceTexts = <TextComponent>[];
 
   String get messageSemanticKey => 'post-battle-message';
 
@@ -119,22 +103,6 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
   PostBattlePresentationSnapshot? get currentPresentationSnapshot =>
       _currentPresentationSnapshot;
 
-  @visibleForTesting
-  Rect get debugPanelRect => _layoutMetrics.panelRect;
-
-  @visibleForTesting
-  List<Rect> get debugDecisionHitBoxes =>
-      List<Rect>.unmodifiable(_layoutMetrics.decisionHitBoxes);
-
-  @visibleForTesting
-  Rect get debugMessageRect => _layoutMetrics.messageRect;
-
-  @visibleForTesting
-  TextBoxComponent<TextPaint>? get debugMessageComponent => _message;
-
-  @visibleForTesting
-  bool debugTapAt(Offset localPosition) => _handleTapAt(localPosition);
-
   RuntimePostBattleMessage get _currentMessage {
     final messages = _messages;
     return messages[_messageIndex.clamp(0, messages.length - 1)];
@@ -181,85 +149,13 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    if (_renderInFlame) {
-      await _mountFlamePresentation();
-    }
     _publishPresentationSnapshot();
   }
-
-  Future<void> _mountFlamePresentation() async {
-    if (_scrim != null) {
-      return;
-    }
-    final layout = _layoutMetrics;
-    _scrim = RectangleComponent(
-      size: size.clone(),
-      paint: Paint()..color = const Color(0xCC06101D),
-      priority: 0,
-    );
-    _panel = RectangleComponent(
-      paint: Paint()..color = const Color(0xFF102033),
-      priority: 1,
-    );
-    _title = TextComponent(
-      text: 'APRÈS-COMBAT',
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF7FB6FF),
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      priority: 2,
-    );
-    _message = TextBoxComponent<TextPaint>(
-      text: currentMessageText,
-      textRenderer: _messageTextRenderer(layout.messageFontSize),
-      boxConfig: TextBoxConfig(
-        maxWidth: layout.messageRect.width,
-        margins: EdgeInsets.zero,
-      ),
-      size: Vector2(layout.messageRect.width, layout.messageRect.height),
-      priority: 2,
-    );
-    await addAll(<Component>[_scrim!, _panel!, _title!, _message!]);
-    _syncLayout();
-    _syncText();
-  }
-
-  void setRenderInFlame(bool renderInFlame) {
-    if (_renderInFlame == renderInFlame) {
-      return;
-    }
-    _renderInFlame = renderInFlame;
-    if (!renderInFlame) {
-      _scrim?.removeFromParent();
-      _panel?.removeFromParent();
-      _title?.removeFromParent();
-      _message?.removeFromParent();
-      for (final choice in _choiceTexts) {
-        choice.removeFromParent();
-      }
-      _choiceTexts.clear();
-      _scrim = null;
-      _panel = null;
-      _title = null;
-      _message = null;
-    } else if (isLoaded) {
-      unawaited(_mountFlamePresentation());
-    }
-    _publishPresentationSnapshot();
-  }
-
-  @override
-  bool containsLocalPoint(Vector2 point) =>
-      _renderInFlame && super.containsLocalPoint(point);
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     this.size = size;
-    _syncLayout();
   }
 
   bool moveSelectionUp() => _moveSelection(-1);
@@ -416,76 +312,7 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     }
   }
 
-  @override
-  void onTapUp(TapUpEvent event) {
-    _handleTapAt(event.localPosition.toOffset());
-  }
-
-  bool _handleTapAt(Offset localPosition) {
-    if (_isCompleted) return false;
-    final layout = _layoutMetrics;
-    final labels = decisionLabels;
-    if (labels.isNotEmpty) {
-      final index = layout.decisionHitBoxes.indexWhere(
-        (hitBox) => hitBox.contains(localPosition),
-      );
-      if (index < 0 || !selectDecision(index)) return false;
-      return validateSelectedChoice();
-    }
-    if (!layout.panelRect.contains(localPosition)) return false;
-    return validateSelectedChoice();
-  }
-
-  void _syncLayout() {
-    _scrim?.size = size.clone();
-    final layout = _layoutMetrics;
-    _panel
-      ?..position = Vector2(layout.panelRect.left, layout.panelRect.top)
-      ..size = Vector2(layout.panelRect.width, layout.panelRect.height);
-    _title?.position = layout.titlePosition;
-    final message = _message;
-    if (message != null) {
-      message
-        ..position = Vector2(layout.messageRect.left, layout.messageRect.top)
-        ..size = Vector2(layout.messageRect.width, layout.messageRect.height)
-        ..textRenderer = _messageTextRenderer(layout.messageFontSize)
-        ..boxConfig = TextBoxConfig(
-          maxWidth: layout.messageRect.width,
-          margins: EdgeInsets.zero,
-        );
-      unawaited(message.redraw());
-    }
-    _layoutChoices(layout);
-  }
-
-  void _syncText() {
-    _message?.text = _isCompleted ? 'Terminé.' : currentMessageText;
-    for (final component in _choiceTexts) {
-      component.removeFromParent();
-    }
-    _choiceTexts.clear();
-    final labels = decisionLabels;
-    if (_renderInFlame) {
-      for (var index = 0; index < labels.length; index++) {
-        final selected = index == _selectedDecisionIndex;
-        final text = TextComponent(
-          text: '${selected ? '▶ ' : '  '}${labels[index]}',
-          textRenderer: TextPaint(
-            style: TextStyle(
-              color: selected ? const Color(0xFF7FB6FF) : Colors.white,
-              fontSize: 19,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-            ),
-          ),
-          priority: 2,
-        );
-        _choiceTexts.add(text);
-        add(text);
-      }
-    }
-    _syncLayout();
-    _publishPresentationSnapshot();
-  }
+  void _syncText() => _publishPresentationSnapshot();
 
   void _publishPresentationSnapshot() {
     final labels = decisionLabels;
@@ -511,105 +338,6 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);
   }
-
-  _PostBattleOverlayLayout get _layoutMetrics =>
-      _PostBattleOverlayLayout.calculate(
-        viewportSize: size,
-        decisionCount: decisionLabels.length,
-      );
-
-  void _layoutChoices(_PostBattleOverlayLayout layout) {
-    for (var index = 0; index < _choiceTexts.length; index++) {
-      final hitBox = layout.decisionHitBoxes[index];
-      _choiceTexts[index].position = Vector2(
-        hitBox.left,
-        hitBox.top + math.max(0, (hitBox.height - 24) / 2),
-      );
-    }
-  }
-}
-
-final class _PostBattleOverlayLayout {
-  const _PostBattleOverlayLayout({
-    required this.panelRect,
-    required this.titlePosition,
-    required this.messageRect,
-    required this.messageFontSize,
-    required this.decisionHitBoxes,
-  });
-
-  factory _PostBattleOverlayLayout.calculate({
-    required Vector2 viewportSize,
-    required int decisionCount,
-  }) {
-    final horizontalMargin =
-        (viewportSize.x * 0.09).clamp(16.0, 72.0).toDouble();
-    final verticalMargin = (viewportSize.y * 0.10).clamp(12.0, 60.0).toDouble();
-    final panelRect = Rect.fromLTRB(
-      horizontalMargin,
-      verticalMargin,
-      viewportSize.x - horizontalMargin,
-      viewportSize.y - verticalMargin,
-    );
-    final titlePosition = Vector2(panelRect.left + 24, panelRect.top + 20);
-    final messageTop = panelRect.top + 70;
-    final messageFontSize = (viewportSize.y / 20).clamp(18.0, 24.0).toDouble();
-
-    final firstChoiceY = decisionCount == 0
-        ? panelRect.bottom - 24
-        : math.max(
-            messageTop + 70,
-            panelRect.top + panelRect.height * 0.43,
-          );
-    final availableChoiceHeight = decisionCount == 0
-        ? 0.0
-        : math.max(0.0, panelRect.bottom - 20 - firstChoiceY);
-    final rowHeight = decisionCount == 0
-        ? 0.0
-        : math.min(40.0, availableChoiceHeight / decisionCount);
-    final choiceLeft = panelRect.left + 24;
-    final choiceWidth = math.max(0.0, panelRect.width - 48);
-    final messageBottom =
-        decisionCount == 0 ? panelRect.bottom - 24 : firstChoiceY - 12;
-    final messageRect = Rect.fromLTWH(
-      choiceLeft,
-      messageTop,
-      choiceWidth,
-      math.max(0.0, messageBottom - messageTop),
-    );
-    final decisionHitBoxes = <Rect>[
-      for (var index = 0; index < decisionCount; index++)
-        Rect.fromLTWH(
-          choiceLeft,
-          firstChoiceY + index * rowHeight,
-          choiceWidth,
-          rowHeight,
-        ),
-    ];
-    return _PostBattleOverlayLayout(
-      panelRect: panelRect,
-      titlePosition: titlePosition,
-      messageRect: messageRect,
-      messageFontSize: messageFontSize,
-      decisionHitBoxes: decisionHitBoxes,
-    );
-  }
-
-  final Rect panelRect;
-  final Vector2 titlePosition;
-  final Rect messageRect;
-  final double messageFontSize;
-  final List<Rect> decisionHitBoxes;
-}
-
-TextPaint _messageTextRenderer(double fontSize) {
-  return TextPaint(
-    style: TextStyle(
-      color: Colors.white,
-      fontSize: fontSize,
-      fontWeight: FontWeight.w700,
-    ),
-  );
 }
 
 String _displayId(String id) {

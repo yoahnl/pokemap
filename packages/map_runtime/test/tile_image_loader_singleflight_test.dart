@@ -38,6 +38,40 @@ Future<RuntimeTilesetImage> _fakeRuntimeTilesetImage(ui.Color color) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('byte budget evicts least recently used unreferenced images', () async {
+    final a = await _fakeRuntimeTilesetImage(const ui.Color(0xFFFF0000));
+    final b = await _fakeRuntimeTilesetImage(const ui.Color(0xFF00FF00));
+    final c = await _fakeRuntimeTilesetImage(const ui.Color(0xFF0000FF));
+    final cache = RuntimeTilesetImageSingleFlightCache(
+      loader: (paths, {transparentColorByTilesetId = const {}}) async => {
+        for (final id in paths.keys) id: {'a': a, 'b': b, 'c': c}[id]!,
+      },
+    );
+    await cache.loadById({'a': '/tmp/a.png', 'b': '/tmp/b.png', 'c': '/tmp/c.png'});
+    await cache.loadById({'a': '/tmp/a.png'});
+    cache.trimToBudget(maxBytes: 128, retainedImages: <RuntimeTilesetImage>{c});
+    expect(a.debugDisposed, isFalse);
+    expect(b.debugDisposed, isTrue);
+    expect(c.debugDisposed, isFalse);
+    cache.dispose();
+  });
+
+  test('byte budget preserves live images even when they exceed the budget', () async {
+    final live = await _fakeRuntimeTilesetImage(const ui.Color(0xFFFF0000));
+    final unused = await _fakeRuntimeTilesetImage(const ui.Color(0xFF00FF00));
+    final cache = RuntimeTilesetImageSingleFlightCache(
+      loader: (paths, {transparentColorByTilesetId = const {}}) async => {
+        'live': live, 'unused': unused,
+      },
+    );
+    await cache.loadById({'live': '/tmp/live.png', 'unused': '/tmp/unused.png'});
+    cache.trimToBudget(maxBytes: 0, retainedImages: <RuntimeTilesetImage>{live});
+    expect(live.debugDisposed, isFalse);
+    expect(unused.debugDisposed, isTrue);
+    expect((await cache.loadById({'live': '/tmp/live.png'}))['live'], same(live));
+    cache.dispose();
+  });
+
   test(
       'detached image stays alive for its owner and same path loads a new generation',
       () async {

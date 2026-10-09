@@ -16,12 +16,15 @@ final class SmartTileCellActions {
   static const int maximumExplicitCellsPerGesture =
       smartTileMaximumCellsPerGesture;
   static const int maximumCellsPerGesture = maximumExplicitCellsPerGesture;
+  static const int maximumStrokesPerBatch = 4096;
+  static const int maximumCellsPerBatch = 65536;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
       'smart_tile.cell.paint',
       'Paint one atomic Smart Tile material gesture',
     ),
+    _batchDescriptor(),
     _descriptor(
       'smart_tile.cell.erase',
       'Erase one atomic Smart Tile material gesture',
@@ -35,6 +38,7 @@ final class SmartTileCellActions {
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     return switch (planning.request.actionId) {
       'smart_tile.cell.paint' => _mutate(planning, erase: false),
+      'smart_tile.cell.paint_batch' => _paintBatch(planning),
       'smart_tile.cell.erase' => _mutate(planning, erase: true),
       'smart_tile.corner.paint' => _mutateCorners(planning, erase: false),
       'smart_tile.corner.erase' => _mutateCorners(planning, erase: true),
@@ -46,6 +50,152 @@ final class SmartTileCellActions {
           },
         ),
     };
+  }
+
+  AuthoringMutationDraft _paintBatch(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const {'layerId', 'strokes'},
+    );
+    final operation = planning.request.actionId;
+    final layerId = context.parameters.string('layerId');
+    requireExistingNativeSmartTileProject(
+      planning.snapshot,
+      operation: operation,
+      layerId: layerId,
+    );
+    final layer = _layer(context.map, layerId);
+    final preset = _preset(context.manifest, layer.presetId);
+    final rawStrokes = context.parameters.list('strokes');
+    if (rawStrokes.isEmpty) {
+      throw invalidSemanticField(
+          'strokes', 'a non-empty list of paint strokes');
+    }
+    if (rawStrokes.length > maximumStrokesPerBatch) {
+      throw semanticFailure(
+        'smart_tile.cell.batch_too_large',
+        'The Smart Tile batch exceeds the bounded stroke limit.',
+        details: {
+          'strokeCount': rawStrokes.length,
+          'maximumStrokeCount': maximumStrokesPerBatch,
+        },
+      );
+    }
+    final ownership = <(int, int), String>{};
+    final strokes = <({String materialId, List<({int x, int y})> cells})>[];
+    var inputCellCount = 0;
+    for (var strokeIndex = 0; strokeIndex < rawStrokes.length; strokeIndex++) {
+      final raw = rawStrokes[strokeIndex];
+      if (raw is! Map || raw.keys.any((key) => key is! String)) {
+        throw invalidSemanticField(
+            'strokes[$strokeIndex]', 'a paint stroke object');
+      }
+      final parameters = SemanticParameters(
+        Map<String, Object?>.from(raw),
+        allowed: const {'materialId', 'cells'},
+      );
+      final materialId = parameters.string('materialId');
+      _requireAllowedMaterial(
+        context: context,
+        layer: layer,
+        preset: preset,
+        materialId: materialId,
+      );
+      final rawCells = parameters.list('cells');
+      inputCellCount += rawCells.length;
+      if (inputCellCount > maximumCellsPerBatch) {
+        throw semanticFailure(
+          'smart_tile.cell.batch_too_large',
+          'The Smart Tile batch exceeds the bounded total cell limit.',
+          details: {
+            'inputCellCount': inputCellCount,
+            'maximumTotalCellCount': maximumCellsPerBatch,
+          },
+        );
+      }
+      final parsedCells = _cells(
+        rawCells,
+        mapSize: context.map.size,
+        maximumCellCount: maximumCellsPerBatch,
+        deduplicate: true,
+      );
+      final cells = <({int x, int y})>[];
+      for (final cell in parsedCells) {
+        final position = (cell.x, cell.y);
+        final existing = ownership[position];
+        if (existing != null && existing != materialId) {
+          throw semanticFailure(
+            'smart_tile.cell.batch_conflict',
+            'Different materials claim the same cell in the Smart Tile batch.',
+            details: {
+              'strokeIndex': strokeIndex,
+              'x': cell.x,
+              'y': cell.y,
+              'firstMaterialId': existing,
+              'materialId': materialId,
+            },
+          );
+        }
+        if (existing != null) continue;
+        ownership[position] = materialId;
+        cells.add(cell);
+      }
+      if (cells.isNotEmpty) strokes.add((materialId: materialId, cells: cells));
+    }
+
+    var projected = context.map;
+    for (final stroke in strokes) {
+      projected = applySmartTileMapMaterialGesture(
+        projected,
+        layer: _layer(projected, layerId),
+        cells: [for (final cell in stroke.cells) GridPos(x: cell.x, y: cell.y)],
+        materialId: stroke.materialId,
+      );
+    }
+    final changedCellCount = ownership.keys.where((cell) {
+      for (var index = 0; index < context.map.layers.length; index++) {
+        final before = context.map.layers[index];
+        final after = projected.layers[index];
+        if (before is! SmartTileLayer || after is! SmartTileLayer) continue;
+        if (smartTileMaterialIdAt(before,
+                mapSize: context.map.size, x: cell.$1, y: cell.$2) !=
+            smartTileMaterialIdAt(after,
+                mapSize: context.map.size, x: cell.$1, y: cell.$2)) {
+          return true;
+        }
+      }
+      return false;
+    }).length;
+    return context.draft(
+      SemanticMapEdit(
+        map: projected,
+        layerId: layerId,
+        operation: operation,
+        changedCells: changedCellCount,
+        preview: {
+          'presetId': preset.id,
+          'usage': preset.usage.name,
+          'topology': preset.topology.name,
+          'fieldKind': _fieldKind(layer.field),
+          'strokeCount': rawStrokes.length,
+          'inputCellCount': inputCellCount,
+          'uniqueCellCount': ownership.length,
+          'materialIds': ownership.values.toSet().toList(),
+          'batchAtomicity': 'all_or_nothing',
+          'undoBoundary': 'batch',
+        },
+      ),
+      delta: context.map.spatialScene != null &&
+              layer.usage == SmartTileUsage.terrain
+          ? null
+          : MapMutationDelta.smartTileCells(
+              layerId: layerId,
+              cellIndices: {
+                for (final cell in ownership.keys)
+                  cell.$2 * context.map.size.width + cell.$1,
+              },
+            ),
+    );
   }
 
   AuthoringMutationDraft _mutateCorners(
@@ -234,6 +384,78 @@ final class SmartTileCellActions {
     );
   }
 }
+
+AuthoringActionDescriptor _batchDescriptor() => AuthoringActionDescriptor(
+      id: 'smart_tile.cell.paint_batch',
+      version: 1,
+      summary:
+          'Paint bounded material strokes on one layer in one atomic map mutation',
+      inputSchemaId: 'pokemap.authoring.smart_tile.cell.paint_batch.input.v1',
+      outputSchemaId: 'pokemap.authoring.smart_tile.cell.mutation.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const [
+        'map',
+        'smartTileLayer',
+        'smartTilePreset',
+        'smartTileMaterial'
+      ],
+      capabilityIds: const ['authoring.smart_tiles'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.atomic,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable,
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'batchAtomicity': 'all_or_nothing',
+        'undoBoundary': 'batch',
+        'maximumStrokeCount': SmartTileCellActions.maximumStrokesPerBatch,
+        'maximumTotalCellCount': SmartTileCellActions.maximumCellsPerBatch,
+        'sameMaterialDuplicates': 'deduplicate',
+        'differentMaterialConflicts': 'reject',
+        'supportedFieldKinds': ['cell', 'edge', 'corner', 'mixed'],
+        'inputSchema': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['mapId', 'layerId', 'strokes'],
+          'properties': {
+            'mapId': {'type': 'string', 'minLength': 1},
+            'layerId': {'type': 'string', 'minLength': 1},
+            'strokes': {
+              'type': 'array',
+              'minItems': 1,
+              'maxItems': SmartTileCellActions.maximumStrokesPerBatch,
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['materialId', 'cells'],
+                'properties': {
+                  'materialId': {'type': 'string', 'minLength': 1},
+                  'cells': {
+                    'type': 'array',
+                    'minItems': 1,
+                    'maxItems': SmartTileCellActions.maximumCellsPerBatch,
+                    'items': {
+                      'type': 'object',
+                      'additionalProperties': false,
+                      'required': ['x', 'y'],
+                      'properties': {
+                        'x': {'type': 'integer', 'minimum': 0},
+                        'y': {'type': 'integer', 'minimum': 0},
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    );
 
 AuthoringActionDescriptor _cornerDescriptor(String id, String summary) =>
     AuthoringActionDescriptor(
@@ -564,17 +786,19 @@ GridPos _selectionCoordinate(
 List<({int x, int y})> _cells(
   List<Object?> raw, {
   required GridSize mapSize,
+  int maximumCellCount = SmartTileCellActions.maximumExplicitCellsPerGesture,
+  bool deduplicate = false,
 }) {
   if (raw.isEmpty) {
     throw invalidSemanticField('cells', 'a non-empty list of coordinates');
   }
-  if (raw.length > SmartTileCellActions.maximumExplicitCellsPerGesture) {
+  if (raw.length > maximumCellCount) {
     throw semanticFailure(
       'smart_tile.cell.gesture_too_large',
       'The Smart Tile gesture exceeds the bounded cell limit.',
       details: <String, Object?>{
         'cellCount': raw.length,
-        'maximumCellCount': SmartTileCellActions.maximumExplicitCellsPerGesture,
+        'maximumCellCount': maximumCellCount,
       },
     );
   }
@@ -608,6 +832,7 @@ List<({int x, int y})> _cells(
       );
     }
     if (!seen.add((x, y))) {
+      if (deduplicate) continue;
       throw semanticFailure(
         'smart_tile.cell.duplicate',
         'A Smart Tile gesture contains the same coordinate more than once.',

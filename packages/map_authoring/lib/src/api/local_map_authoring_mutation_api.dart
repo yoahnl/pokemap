@@ -94,6 +94,7 @@ final class LocalMapAuthoringMutationApi
   late final AuthoringPerformanceObserver? _performanceObserver;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
   final Map<WorkspaceHandle, ProjectHandle> _projectsByWorkspace = {};
+  final Set<(ProjectHandle, String)> _modelBatchStagingPlans = {};
 
   @override
   AuthoringMutationDescription describeMutationContracts() =>
@@ -219,8 +220,16 @@ final class LocalMapAuthoringMutationApi
   Future<AuthoringMutationPlanResult> planMutation(
     ProjectHandle projectHandle,
     AuthoringRequest request,
-  ) =>
-      _session(projectHandle).planMutation(request);
+  ) async {
+    final result = await _session(projectHandle).planMutation(request);
+    if ({'model3d.import_batch', 'smart_tile.preset.draft.import'}
+            .contains(request.actionId) &&
+        result.applicable &&
+        !result.plan.appliedPayloadReleased) {
+      _modelBatchStagingPlans.add((projectHandle, result.planId));
+    }
+    return result;
+  }
 
   @override
   Future<Map<String, Object?>> plan(
@@ -257,7 +266,7 @@ final class LocalMapAuthoringMutationApi
       confirmationToken: confirmationToken,
       precondition: precondition,
     );
-    await _releasePresentationMediaStaging(result);
+    await _releasePresentationMediaStaging(projectHandle, result);
     return result;
   }
 
@@ -326,7 +335,7 @@ final class LocalMapAuthoringMutationApi
     required String operationId,
   }) async {
     final result = await _session(projectHandle).recoverMutation(operationId);
-    await _releasePresentationMediaStaging(result);
+    await _releasePresentationMediaStaging(projectHandle, result);
     return result;
   }
 
@@ -350,11 +359,24 @@ final class LocalMapAuthoringMutationApi
   }
 
   Future<void> _releasePresentationMediaStaging(
+    ProjectHandle projectHandle,
     AuthoringMutationResult result,
   ) async {
-    if (!{'presentationMedia.import', 'model3d.import'}
-        .contains(result.receipt.actionId)) {
+    if (!{
+      'presentationMedia.import',
+      'model3d.import',
+      'model3d.import_batch',
+      'smart_tile.preset.draft.import',
+    }.contains(result.receipt.actionId)) {
       return;
+    }
+    if ({'model3d.import_batch', 'smart_tile.preset.draft.import'}
+        .contains(result.receipt.actionId)) {
+      final planId = result.receipt.extensions['planId'];
+      if (planId is! String ||
+          !_modelBatchStagingPlans.remove((projectHandle, planId))) {
+        return;
+      }
     }
     for (final artifact in result.receipt.artifacts) {
       await artifacts.release(artifact.uri);

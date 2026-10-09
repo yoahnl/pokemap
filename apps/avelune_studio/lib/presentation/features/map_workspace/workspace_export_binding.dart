@@ -12,6 +12,9 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
     final projectPath = _controller.session.directoryPath;
     return StudioGameExportPage(
       controller: _gameExport!,
+      publicationAvailable:
+          _controller.project != null &&
+          _controller.project!.settings.dimension != ProjectDimension.threeD,
       prepare: _prepareGameExport,
       preparationFailure: () => _actions.exportPreparationFailure,
       hasPendingChanges: () => _actions.hasPendingChanges,

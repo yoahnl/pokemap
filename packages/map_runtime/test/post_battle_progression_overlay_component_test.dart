@@ -1,5 +1,3 @@
-import 'dart:ui' show Offset, Rect;
-
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
@@ -46,15 +44,13 @@ void main() {
       expect(completionCount, 1);
     });
 
-    test('publishes state without mounting Flame chrome in player mode',
-        () async {
+    test('publishes state without mounting Flame chrome', () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(
         resolveReward: _automaticResolution,
       );
       final overlay = PostBattleProgressionOverlayComponent(
         initialResult: await _begin(coordinator),
         viewportSize: Vector2(800, 600),
-        renderInFlame: false,
         onMoveLearningDecision: (_) => throw StateError('not expected'),
         onEvolutionDecision: (_) => throw StateError('not expected'),
         onCompleted: () {},
@@ -65,7 +61,6 @@ void main() {
 
       expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
       expect(overlay.children, isEmpty);
-      expect(overlay.containsLocalPoint(Vector2(20, 20)), isFalse);
     });
 
     test('uses exact move decisions and exposes four replacement labels',
@@ -266,191 +261,6 @@ void main() {
       await completion;
       expect(overlay.isCompleted, isTrue);
       expect(overlay.validateSelectedChoice(), isFalse);
-    });
-
-    test('keeps five replacement choices inside a 640x360 viewport and panel',
-        () async {
-      final coordinator = RuntimePostBattleDecisionCoordinator(
-        resolveReward: _pendingMoveResolution,
-      );
-      late final PostBattleProgressionOverlayComponent overlay;
-      overlay = PostBattleProgressionOverlayComponent(
-        initialResult: await _begin(
-          coordinator,
-          knownMoves: const <String>[
-            'tackle',
-            'growl',
-            'tail_whip',
-            'focus_energy',
-          ],
-        ),
-        viewportSize: Vector2(640, 360),
-        onMoveLearningDecision: (decision) {
-          return coordinator.resolveMoveLearning(
-            transaction: overlay.currentTransaction!,
-            decision: decision,
-          );
-        },
-        onEvolutionDecision: (_) => throw StateError('not expected'),
-        onCompleted: () {},
-      );
-      final game = FlameGame();
-      game.onGameResize(Vector2(640, 360));
-      await game.add(overlay);
-      await game.ready();
-
-      while (overlay.decisionLabels.length != 5) {
-        expect(overlay.validateSelectedChoice(), isTrue);
-      }
-
-      const viewport = Rect.fromLTWH(0, 0, 640, 360);
-      final panel = overlay.debugPanelRect;
-      expect(viewport.contains(panel.topLeft), isTrue);
-      expect(viewport.contains(panel.bottomRight), isTrue);
-      expect(overlay.debugDecisionHitBoxes, hasLength(5));
-      for (final hitBox in overlay.debugDecisionHitBoxes) {
-        expect(panel.contains(hitBox.topLeft), isTrue);
-        expect(panel.contains(hitBox.bottomRight), isTrue);
-        expect(viewport.contains(hitBox.topLeft), isTrue);
-        expect(viewport.contains(hitBox.bottomRight), isTrue);
-      }
-    });
-
-    test('fits the exact replacement prompt above five choices at 640x360',
-        () async {
-      final coordinator = RuntimePostBattleDecisionCoordinator(
-        resolveReward: _pendingMoveResolution,
-      );
-      late final PostBattleProgressionOverlayComponent overlay;
-      overlay = PostBattleProgressionOverlayComponent(
-        initialResult: await _begin(
-          coordinator,
-          knownMoves: const <String>[
-            'tackle',
-            'growl',
-            'tail_whip',
-            'focus_energy',
-          ],
-        ),
-        viewportSize: Vector2(640, 360),
-        onMoveLearningDecision: (decision) {
-          return coordinator.resolveMoveLearning(
-            transaction: overlay.currentTransaction!,
-            decision: decision,
-          );
-        },
-        onEvolutionDecision: (_) => throw StateError('not expected'),
-        onCompleted: () {},
-      );
-      final game = FlameGame();
-      game.onGameResize(Vector2(640, 360));
-      await game.add(overlay);
-      await game.ready();
-
-      while (overlay.decisionLabels.length != 5) {
-        expect(overlay.validateSelectedChoice(), isTrue);
-      }
-      expect(
-        overlay.currentMessageText,
-        'Choisissez une capacité à remplacer pour apprendre Quick attack.',
-      );
-      final message = overlay.debugMessageComponent!;
-      await message.redraw();
-      final renderedTextHeight = message.lineHeight * message.lines.length;
-
-      expect(message.lines.length, greaterThan(1));
-      expect(
-        renderedTextHeight,
-        lessThanOrEqualTo(overlay.debugMessageRect.height),
-        reason: 'messageSize=${message.size}, box=${overlay.debugMessageRect}, '
-            'maxWidth=${message.boxConfig.maxWidth}, '
-            'textWidth=${message.textRenderer.getLineMetrics(message.text).width}, '
-            'lineWidths=${message.lines.map((line) => message.textRenderer.getLineMetrics(line).width).toList()}, '
-            'wrapped lines: ${message.lines}',
-      );
-      expect(overlay.debugDecisionHitBoxes, hasLength(5));
-    });
-
-    test('ignores taps outside decision rows even at the same vertical offset',
-        () async {
-      final coordinator = RuntimePostBattleDecisionCoordinator(
-        resolveReward: _pendingMoveResolution,
-      );
-      var submissionCount = 0;
-      late final PostBattleProgressionOverlayComponent overlay;
-      overlay = PostBattleProgressionOverlayComponent(
-        initialResult: await _begin(
-          coordinator,
-          knownMoves: const <String>[
-            'tackle',
-            'growl',
-            'tail_whip',
-            'focus_energy',
-          ],
-        ),
-        viewportSize: Vector2(640, 360),
-        onMoveLearningDecision: (decision) {
-          submissionCount += 1;
-          return coordinator.resolveMoveLearning(
-            transaction: overlay.currentTransaction!,
-            decision: decision,
-          );
-        },
-        onEvolutionDecision: (_) => throw StateError('not expected'),
-        onCompleted: () {},
-      );
-      final game = FlameGame();
-      game.onGameResize(Vector2(640, 360));
-      await game.add(overlay);
-      await game.ready();
-
-      while (overlay.decisionLabels.length != 5) {
-        expect(overlay.validateSelectedChoice(), isTrue);
-      }
-      final submissionCountBeforeTap = submissionCount;
-      final firstRow = overlay.debugDecisionHitBoxes.first;
-      final outsidePanel = Offset(
-        overlay.debugPanelRect.left - 4,
-        firstRow.center.dy,
-      );
-
-      expect(overlay.debugTapAt(outsidePanel), isFalse);
-
-      expect(submissionCount, submissionCountBeforeTap);
-      expect(overlay.decisionLabels, hasLength(5));
-      expect(overlay.selectedDecisionIndex, 0);
-    });
-
-    test('wraps a long message inside the panel at 640x360', () async {
-      final overlay = PostBattleProgressionOverlayComponent(
-        initialResult: RuntimePostBattleCoordinatorResult.failure(
-          failure: RuntimePostBattleCoordinatorFailure(
-            code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
-            message:
-                'Cette récompense post-combat contient une explication assez '
-                'longue pour nécessiter plusieurs lignes dans une petite '
-                'fenêtre sans jamais sortir du panneau.',
-            originalState: _state(),
-          ),
-        ),
-        viewportSize: Vector2(640, 360),
-        onMoveLearningDecision: (_) => throw StateError('not expected'),
-        onEvolutionDecision: (_) => throw StateError('not expected'),
-        onCompleted: () {},
-      );
-      final game = FlameGame();
-      game.onGameResize(Vector2(640, 360));
-      await game.add(overlay);
-      await game.ready();
-
-      const viewport = Rect.fromLTWH(0, 0, 640, 360);
-      final panel = overlay.debugPanelRect;
-      final message = overlay.debugMessageRect;
-      expect(overlay.debugMessageComponent!.lines.length, greaterThan(1));
-      expect(panel.contains(message.topLeft), isTrue);
-      expect(panel.contains(message.bottomRight), isTrue);
-      expect(viewport.contains(message.topLeft), isTrue);
-      expect(viewport.contains(message.bottomRight), isTrue);
     });
   });
 }

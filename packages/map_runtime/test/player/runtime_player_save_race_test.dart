@@ -7,6 +7,97 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  for (final savedBefore in [false, true]) {
+    test('capture refusal restores pause and permits retry after previous save: '
+        '$savedBefore', () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await openHarnessPause(harness);
+      harness.adapter.checkpoint = testPlayerCheckpoint();
+      if (savedBefore) {
+        await harness.coordinator.dispatch(RuntimePlayerCommand(
+          action: RuntimePlayerAction.save,
+          snapshotRevision: harness.coordinator.snapshot.revision,
+        ));
+        expect(harness.coordinator.snapshot.saveReceipt, isNotNull);
+      }
+      final initialSnapshot = harness.coordinator.snapshot;
+      final attemptsBefore = harness.saves.commitAttempts.length;
+      final commitsBefore = harness.saves.commits.length;
+      final refusedCommand = RuntimePlayerCommand(
+        action: RuntimePlayerAction.save,
+        snapshotRevision: initialSnapshot.revision,
+      );
+      harness.adapter.checkpointLoader = () async =>
+          throw StateError('A spatial gameplay action is still in progress.');
+
+      final refused = await harness.coordinator.dispatch(refusedCommand)
+          .then<Object>((result) => result, onError: (Object error) => error);
+
+      final restored = harness.coordinator.snapshot;
+      expect(restored.phase, RuntimePlayerPhase.paused);
+      expect(restored.pauseSection, initialSnapshot.pauseSection);
+      expect(restored.activeSaveAddress, initialSnapshot.activeSaveAddress);
+      expect(restored.isActionEnabled(RuntimePlayerAction.save), isTrue);
+      expect(restored.isActionEnabled(RuntimePlayerAction.resume), isTrue);
+      expect(restored.saveReceipt, isNull);
+      expect(refused, isA<RuntimePlayerCommandResult>());
+      final result = refused as RuntimePlayerCommandResult;
+      expect(result.status, RuntimePlayerCommandStatus.failed);
+      expect(result.saveReceipt, isNull);
+      expect(result.safeMessage, isNotNull);
+      expect(harness.saves.commitAttempts, hasLength(attemptsBefore));
+      expect(harness.saves.commits, hasLength(commitsBefore));
+      expect(harness.adapter.disposeCalls, 0);
+      expect((await harness.coordinator.dispatch(refusedCommand)).status,
+          RuntimePlayerCommandStatus.stale);
+
+      harness.adapter.checkpointLoader = null;
+      final retried = await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.save,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+
+      expect(retried.status, RuntimePlayerCommandStatus.accepted);
+      expect(retried.saveReceipt?.address, initialSnapshot.activeSaveAddress);
+      expect(harness.coordinator.snapshot.saveReceipt, same(retried.saveReceipt));
+      expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);
+      expect(harness.coordinator.snapshot.failure, isNull);
+      expect(harness.saves.commitAttempts, hasLength(attemptsBefore + 1));
+      expect(harness.saves.commits, hasLength(commitsBefore + 1));
+    });
+  }
+
+  test('late capture refusal cannot restore pause after coordinator disposal',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    final capture = Completer<GameSessionCheckpoint?>();
+    harness.adapter.checkpointLoader = () => capture.future;
+    final save = harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.save,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    )).then<Object>((result) => result, onError: (Object error) => error);
+    await _waitUntil(() => harness.adapter.calls.contains('checkpoint'));
+    final snapshotBeforeDisposal = harness.coordinator.snapshot;
+    final disposal = harness.coordinator.dispose();
+    expect(harness.coordinator.isDisposed, isTrue);
+
+    capture.completeError(StateError('late capture refusal'));
+    final result = await save;
+    await disposal;
+
+    expect(result, isA<RuntimePlayerCommandResult>());
+    expect((result as RuntimePlayerCommandResult).status,
+        RuntimePlayerCommandStatus.cancelled);
+    expect(harness.coordinator.snapshot, same(snapshotBeforeDisposal));
+    expect(harness.saves.commitAttempts, isEmpty);
+    expect(harness.adapter.disposeCalls, 1);
+  });
+
   test('manual save rejects a missing checkpoint without issuing a receipt',
       () async {
     final harness = RuntimePlayerTestHarness();

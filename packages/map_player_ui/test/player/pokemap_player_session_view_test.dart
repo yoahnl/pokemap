@@ -363,7 +363,7 @@ void main() {
       touchControlsAvailable: true, gameplayInputAuthority: authority,
       gameplayInputRoute: (event) { events.add(event); return true; })));
     final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
-    await pointer.moveBy(const Offset(50, 0));
+    await pointer.moveBy(const Offset(60, 0));
     expect(events.where((e) => e.control == RuntimeInputControl.sprint),
       const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
     authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.dialogue);

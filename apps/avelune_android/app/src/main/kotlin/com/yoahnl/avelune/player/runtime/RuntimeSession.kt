@@ -42,6 +42,8 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
     )
     private val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.avelune.runtime/library")
     private val platform = MethodChannel(engine.dartExecutor.binaryMessenger, "com.yoahnl.avelune.player/android")
+    private val diagnostics = MethodChannel(engine.dartExecutor.binaryMessenger, "com.avelune.runtime/diagnostics")
+    private val settings = context.getSharedPreferences("avelune_settings", Context.MODE_PRIVATE)
     private val inputManager = context.getSystemService(InputManager::class.java)
     private val inputListeners = mutableSetOf<InputManager.InputDeviceListener>()
     private val ready = CompletableDeferred<Unit>()
@@ -61,6 +63,15 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
     val gameplayCompanion = RuntimeCompanionSession(context, engine, engineGroup, displays)
 
     init {
+        diagnostics.setMethodCallHandler { call, result ->
+            if (call.method == "processSample") {
+                runCatching { NativeProcessMetrics.read(context.applicationContext) }
+                    .onSuccess(result::success)
+                    .onFailure { result.error("metricsUnavailable", "Mesures du processus indisponibles.", null) }
+            } else {
+                result.notImplemented()
+            }
+        }
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "runtimeReady" -> {
@@ -127,6 +138,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
                 gameplayCompanion.startTransport()
                 if (stopJob?.isActive == true) return@launch
                 invoke("playGame", mapOf("gameId" to gameId))
+                diagnostics.invokeMethod("setEnabled", mapOf("enabled" to settings.getBoolean("showDebugInfo", false)))
             } catch (error: Exception) {
                 playbackError = error.message ?: "Le jeu n’a pas pu être lancé."
                 mutablePresentationFailure.value = playbackError
@@ -136,6 +148,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
 
     fun requestStop() {
         if (stopJob?.isActive == true) return
+        diagnostics.invokeMethod("setEnabled", mapOf("enabled" to false))
         pendingGameId = null
         gameplayCompanion.beginStop()
         mutableRecovery.value = RuntimeRecoveryState(isStopping = true)
@@ -178,6 +191,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         inputListeners.clear()
         channel.setMethodCallHandler(null)
         platform.setMethodCallHandler(null)
+        diagnostics.setMethodCallHandler(null)
         val cache = FlutterEngineCache.getInstance()
         if (cache.get(ENGINE_ID) === engine) cache.remove(ENGINE_ID)
         engine.destroy()

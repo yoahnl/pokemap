@@ -450,7 +450,7 @@ void main() {
         resolveReward: _failingResolution,
       ),
       runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
-    )..setPostBattleFlutterOverlayPreferred(true);
+    );
     game.onGameResize(Vector2(640, 480));
     await game.onLoad();
     await _waitForActivationDispatch(game);

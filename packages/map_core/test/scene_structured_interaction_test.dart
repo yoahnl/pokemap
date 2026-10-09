@@ -3,6 +3,30 @@ import 'package:test/test.dart';
 
 void main() {
   group('Scene structured interaction contracts', () {
+    test('text request preserves the proposed name through JSON', () {
+      final json = <String, dynamic>{
+        'kind': 'text',
+        'requestId': 'rival-name',
+        'revision': 1,
+        'prompt': {
+          'localizationKey': 'story.rivalName',
+          'fallbackText': 'Comment s’appelle ce garçon ?',
+        },
+        'constraints': {'minGraphemes': 1, 'maxGraphemes': 12},
+        'initialValue': 'Silver',
+      };
+
+      final request = SceneInteractionRequest.fromJson(json);
+
+      expect(request.toJson(), json);
+      expect(
+        request,
+        isNot(
+          SceneInteractionRequest.fromJson({...json, 'initialValue': 'Gold'}),
+        ),
+      );
+    });
+
     test('all request and result kinds round-trip through JSON', () {
       final prompt = SceneInteractionPrompt(
         localizationKey: 'intro.playerName',

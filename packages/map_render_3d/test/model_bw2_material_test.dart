@@ -120,26 +120,34 @@ void main() {
     },
   );
   test(
-    'runtime loader refuses BLEND instead of rendering an opaque approximation',
+    'runtime loader preserves translucent BLEND material and its alpha factor',
     () async {
-      await expectLater(
-        ModelByteLoader.load(
-          Uint8List.fromList(
-            coloredGlb(
-              edit: (j) {
-                j['materials'][0]['alphaMode'] = 'BLEND';
-              },
-            ),
+      final model = await ModelByteLoader.load(
+        Uint8List.fromList(
+          coloredGlb(
+            edit: (j) {
+              j['materials'][0]['alphaMode'] = 'BLEND';
+              j['materials'][0].remove('alphaCutoff');
+              j['materials'][0]['pbrMetallicRoughness'] = {
+                'baseColorFactor': [1, 1, 1, .387096763],
+              };
+            },
           ),
         ),
-        throwsFormatException,
       );
+      final material =
+          model.nodes.values.single.mesh!.surfaces.single.material
+              as SpatialPixelMaterial;
+      expect(material.alphaMode, Model3dAlphaMode.blend);
+      expect(material.albedoColor.a, closeTo(.387096763, .000001));
+      expect(material.cullMode, CullMode.backFace);
     },
   );
   for (final change in <String, void Function(Map<String, dynamic>)>{
     'oversized color count': (j) => j['accessors'][1]['count'] = 4,
     'normalized float color': (j) => j['accessors'][1]['normalized'] = true,
     'missing MASK cutoff': (j) => j['materials'][0].remove('alphaCutoff'),
+    'BLEND cutoff': (j) => j['materials'][0]['alphaMode'] = 'BLEND',
     'invalid double sided': (j) => j['materials'][0]['doubleSided'] = 'true',
   }.entries) {
     test('loader rejects ${change.key}', () async {

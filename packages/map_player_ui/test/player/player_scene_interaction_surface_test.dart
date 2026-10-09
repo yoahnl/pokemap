@@ -5,6 +5,45 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('text proposes a name and keeps edits until a new request',
+      (tester) async {
+    final results = <SceneInteractionResult>[];
+    SceneInteractionRequest request(int revision, String name) =>
+        SceneInteractionRequest.text(
+          requestId: 'rival-name',
+          revision: revision,
+          prompt: _prompt('Comment s’appelle ce garçon ?'),
+          initialValue: name,
+          constraints: SceneTextInputConstraints(
+            minGraphemes: 1,
+            maxGraphemes: 12,
+          ),
+        );
+
+    await tester.pumpWidget(_app(request: request(1, 'Silver'), results: results));
+    final field = find.byKey(
+      const ValueKey<String>('scene-interaction-text-field'),
+    );
+    expect(tester.widget<TextField>(field).controller!.text, 'Silver');
+
+    await tester.enterText(field, 'Yoahn');
+    await tester.pumpWidget(_app(request: request(1, 'Silver'), results: results));
+    expect(tester.widget<TextField>(field).controller!.text, 'Yoahn');
+
+    await tester.pumpWidget(_app(request: request(2, 'Gold'), results: results));
+    expect(tester.widget<TextField>(field).controller!.text, 'Gold');
+    expect(results, isEmpty);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('scene-interaction-text-submit')),
+    );
+    expect(
+      results.single,
+      isA<SceneTextSubmittedInteractionResult>()
+          .having((result) => result.value, 'value', 'Gold')
+          .having((result) => result.revision, 'revision', 2),
+    );
+  });
+
   testWidgets(
       'message, choice, confirmation and selection publish typed results',
       (tester) async {

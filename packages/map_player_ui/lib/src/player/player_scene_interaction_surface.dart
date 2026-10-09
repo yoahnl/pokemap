@@ -30,6 +30,7 @@ class PlayerSceneInteractionSurface extends StatefulWidget {
     this.onInputSourceChanged,
     this.allowCancellation = true,
     this.interactionEnabled = true,
+    this.errorMessage,
   });
 
   final SceneInteractionRequest request;
@@ -38,6 +39,7 @@ class PlayerSceneInteractionSurface extends StatefulWidget {
   final ValueChanged<PlayerInputSource>? onInputSourceChanged;
   final bool allowCancellation;
   final bool interactionEnabled;
+  final String? errorMessage;
 
   @override
   State<PlayerSceneInteractionSurface> createState() =>
@@ -57,10 +59,26 @@ class _PlayerSceneInteractionSurfaceState
   var _revealedGraphemes = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _initializeText();
+  }
+
+  void _initializeText() {
+    final request = widget.request;
+    final text =
+        request is SceneTextInteractionRequest ? request.initialValue : '';
+    _textController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  @override
   void didUpdateWidget(covariant PlayerSceneInteractionSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_sameRequest(oldWidget.request, widget.request)) {
-      _textController.clear();
+      _initializeText();
       _selectedOptionIds.clear();
       _validationIssue = null;
       _terminal = false;
@@ -85,6 +103,9 @@ class _PlayerSceneInteractionSurfaceState
       return _buildMessageDialogue(context, request);
     }
     final strings = PlayerSceneInteractionStrings.of(context);
+    final validationMessage = _validationIssue == null
+        ? widget.errorMessage
+        : strings.validation(_validationIssue!);
     final prompt = _resolvePrompt(request.prompt);
     return Actions(
       key: const ValueKey<String>('scene-interaction-actions'),
@@ -140,8 +161,8 @@ class _PlayerSceneInteractionSurfaceState
                                 ),
                                 const SizedBox(height: PlayerSpacing.md),
                                 _buildRequest(context, request, strings),
-                                if (_validationIssue
-                                    case final issue?) ...<Widget>[
+                                if (validationMessage
+                                    case final message?) ...<Widget>[
                                   const SizedBox(height: PlayerSpacing.sm),
                                   Semantics(
                                     key: const ValueKey<String>(
@@ -149,7 +170,7 @@ class _PlayerSceneInteractionSurfaceState
                                     ),
                                     liveRegion: true,
                                     child: Text(
-                                      strings.validation(issue),
+                                      message,
                                       style: TextStyle(
                                         color: context.playerColors.danger,
                                       ),

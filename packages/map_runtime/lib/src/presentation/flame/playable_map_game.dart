@@ -521,11 +521,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
   bool _sprintPressed = false;
+  int _movementContinuityEpoch = 0;
   TriggeredWarp? _pendingWarp;
   final PlacedElementWarpTraversalController
       _placedElementWarpTraversalController =
       PlacedElementWarpTraversalController();
   TriggeredConnection? _pendingConnection;
+  bool _preservingConnectionInput = false;
   BattleStartRequest? _pendingBattleRequest;
   Completer<SceneBattleRuntimeOutcomeResult>?
       _pendingSceneBattleOutcomeCompleter;
@@ -581,7 +583,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ValueNotifier<PostBattlePresentationSnapshot?>(null);
   PostBattlePresentationSnapshot? _pendingPostBattlePresentationSnapshot;
   bool _postBattlePresentationPostFrameFlushScheduled = false;
-  bool _preferPostBattleFlutterOverlay = false;
   WarpTransitionOverlayComponent? _warpTransitionOverlay;
   TextComponent? _notification;
   final ValueNotifier<RuntimeNotificationSnapshot?>
@@ -593,6 +594,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   int _runtimeNotificationRevision = 0;
   final List<OverworldActorComponent> _npcActors = [];
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
+  final Set<_LoadedPlayableMap> _retiringLoadedMaps = Set.identity();
+  Iterable<RuntimeTilesetImage> _playerRetainedImages = const [];
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
@@ -1246,7 +1249,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!_inFlightMapActivationDispatchIds.add(activation.activationId)) {
       return MapEnterProductionDispatchDuplicate(activation);
     }
-    if (_flowPhase == _RuntimeFlowPhase.overworld) {
+    if (_flowPhase == _RuntimeFlowPhase.overworld && !_preservingConnectionInput) {
       _clearPressedMovementControls();
     }
     NarrativeRuntimeActivityLease? dispatchLease;
@@ -1761,7 +1764,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   bool _showFpsOverlay = false;
-  bool _preferBattleFlutterCommandOverlay = false;
   TextComponent? _behaviorDebugOverlay;
   TextComponent? _fpsOverlay;
   double _fpsAccumulatorSeconds = 0.0;
@@ -1915,18 +1917,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _ensureFpsOverlay();
   }
 
-  /// Le host mobile peut préférer sortir le panneau de commandes battle en
-  /// vrai widget Flutter quand aucune manette n'est active.
-  ///
-  /// Frontière volontaire :
-  /// - le runtime ne détecte pas le hardware tout seul ;
-  /// - le host pousse seulement une préférence d'interaction ;
-  /// - l'overlay battle reste la seule surface concernée.
-  void setBattleFlutterCommandOverlayPreferred(bool preferred) {
-    _preferBattleFlutterCommandOverlay = preferred;
-    _battleOverlay?.setUseFlutterCommandOverlay(preferred);
-  }
-
   /// Applies a real reveal cadence to current and future dialogue overlays.
   ///
   /// The runtime default remains instant for backwards compatibility; the
@@ -1968,11 +1958,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   ValueListenable<RuntimeNotificationSnapshot?>
       get runtimeNotificationListenable => _runtimeNotificationNotifier;
-
-  void setPostBattleFlutterOverlayPreferred(bool preferred) {
-    _preferPostBattleFlutterOverlay = preferred;
-    _postBattleProgressionOverlay?.setRenderInFlame(!preferred);
-  }
 
   ValueListenable<PostBattlePresentationSnapshot?>
       get postBattlePresentationListenable => _postBattlePresentationNotifier;
@@ -2103,13 +2088,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingPostBattlePresentationSnapshot = null;
       _postBattlePresentationNotifier.value = pending;
     });
-  }
-
-  /// Compat historique : l'ancien seam mobile pilotait un faux scroll tactile
-  /// directement dans le panneau Flame. Le lot mobile Flutter redirige ce
-  /// toggle vers la nouvelle surcouche widget sans casser les appels existants.
-  void setBattleTouchListDragScrollPreferred(bool preferred) {
-    setBattleFlutterCommandOverlayPreferred(preferred);
   }
 
   ValueListenable<BattleCommandOverlaySnapshot?>
@@ -2500,6 +2478,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _setFlowPhase(_RuntimeFlowPhase phase) {
+    if (phase != _RuntimeFlowPhase.overworld &&
+        phase != _RuntimeFlowPhase.mapTransition) {
+      _preservingConnectionInput = false;
+    }
     final previousToken = _flowInputLock;
     _flowInputLock = null;
     if (previousToken != null) {
@@ -2523,6 +2505,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           surface: RuntimeInputSurface.dialogue,
         );
       case _RuntimeFlowPhase.mapTransition:
+        if (!_preservingConnectionInput) {
+          _flowInputLock = _inputLocks.acquire(
+            owner: RuntimeInputLockOwner.transition,
+            surface: RuntimeInputSurface.transition,
+          );
+        }
       case _RuntimeFlowPhase.battleTransition:
         _flowInputLock = _inputLocks.acquire(
           owner: RuntimeInputLockOwner.transition,
@@ -2536,6 +2524,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _publishInputAuthoritySnapshot();
     _syncRuntimeMusic();
+    if (phase == _RuntimeFlowPhase.overworld) _trimUnusedTilesetImages();
   }
 
   void _setCinematicInputLocked(bool locked) {
@@ -2570,12 +2559,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _setDerivedInputLock(
       RuntimeInputLockOwner.mapActivation,
       RuntimeInputSurface.blocked,
-      _blocksOverworldForMapActivationWork,
+      _blocksOverworldForMapActivationWork && !_preservingConnectionInput,
     );
     _setDerivedInputLock(
       RuntimeInputLockOwner.narrativeDispatch,
       RuntimeInputSurface.blocked,
-      _blocksOverworldForNarrativeDispatch,
+      _blocksOverworldForNarrativeDispatch && !_preservingConnectionInput,
     );
     _setDerivedInputLock(
       RuntimeInputLockOwner.checkpoint,
@@ -3867,6 +3856,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _publishOverworldInteractions();
     if (!_onLoadInProgress) {
       _tilesetImageCache.dispose();
+      unawaited(_borderRuntimeAssetCache.dispose());
       _battleVisualAssetCache.dispose();
       _battleFxBundleCache.dispose();
       unawaited(_battleSfxPlayer?.dispose());
@@ -4032,6 +4022,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileImages: images,
         mapOrigin: _originPixelsOf(rootMap),
       );
+      _playerRetainedImages = images.values;
       _playerSupportsRunning = _player.hasRunningAnimation;
       await world.add(_player);
       if (_isRemoved) return;
@@ -4062,6 +4053,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _onLoadInProgress = false;
       if (_isRemoved) {
         _tilesetImageCache.dispose();
+        unawaited(_borderRuntimeAssetCache.dispose());
+      } else {
+        _trimUnusedTilesetImages();
       }
     }
   }
@@ -4281,6 +4275,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (inputAuthority.context != RuntimeInputContext.overworld) {
       return true;
     }
+    if (_preservingConnectionInput) return true;
     if (!event.isPress || event.isRepeat) {
       return false;
     }
@@ -4360,9 +4355,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _runDetachedNarrativeTask(
           operation: 'mapEnter.connection',
           task: () async {
-            await _dispatchCompletedMapActivation(
-              pendingConnectionEntryAnimation.activation,
-            );
+            try {
+              await _dispatchCompletedMapActivation(
+                pendingConnectionEntryAnimation.activation,
+              );
+            } finally {
+              _preservingConnectionInput = false;
+              _publishInputAuthoritySnapshot();
+            }
           },
         );
       }
@@ -6396,6 +6396,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _clearPressedMovementControls() {
+    if (_pressedMovementControls.isNotEmpty || _sprintPressed) {
+      _movementContinuityEpoch++;
+    }
     _pressedMovementControls.clear();
     _lastMovementControl = null;
     _sprintPressed = false;
@@ -8096,7 +8099,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // du plan de fin. Le couper ici était prévu au ticket et avait été
           // oublié ; la vidéo de recette du 2026-08-24 le montre par-dessus
           // la boîte de dialogue.
-          outcomeBannerEnabled: false,
           session: _battleSession!,
           gameState: _battleRuntimeGameState,
           viewportSize: camera.viewport.size,
@@ -8133,8 +8135,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             }
             _setBattleCommandOverlaySnapshot(snapshot);
           },
-          preferTouchListDragScroll: false,
-          useFlutterCommandOverlay: _preferBattleFlutterCommandOverlay,
           allowMedicineReserveTargets: true,
           playerExperienceProgressByLineupIndex:
               playerExperienceProgressByLineupIndex,
@@ -8144,7 +8144,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         overlay.prepareIntroTrainerVisual(introTrainerImage);
       }
       camera.viewport.add(overlay);
-      overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
       _syncRuntimeMusic();
       // Recette du 2026-08-24 : le reveal exige un overlay entièrement chargé
@@ -8733,7 +8732,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       postBattleOverlay = PostBattleProgressionOverlayComponent(
         initialResult: result,
         viewportSize: camera.viewport.size,
-        renderInFlame: !_preferPostBattleFlutterOverlay,
         onPresentationSnapshotChanged: _setPostBattlePresentationSnapshot,
         onMoveLearningDecision: (decision) {
           final transaction = postBattleOverlay.currentTransaction;
@@ -10614,6 +10612,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return 'cancelled';
     }
     switch (request) {
+      case OpenTextInputService():
+        return _scenePortForPlayerService(
+          await controller.openTextInput(request: request),
+        );
       case OpenShopService(:final shopId):
         return _executeSceneOpenShopRequest(
           controller,
@@ -13173,6 +13175,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
+    _preservingConnectionInput = true;
     _setFlowPhase(_RuntimeFlowPhase.mapTransition);
     final activation = _createMapActivation(
       mapId: connection.targetMapId,
@@ -13181,7 +13184,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     var transitionCompleted = false;
     final connectionStopwatch = Stopwatch()..start();
     try {
-      _clearTransientUiState();
       final sourcePlayerScreenTopLeft = debugPlayerScreenTopLeft;
       final sourceCameraWorldTopLeft = debugCameraWorldTopLeft;
       debugPrint(
@@ -13266,8 +13268,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.startVisualStepFromWorldTopLeft(
         _world.player,
         fromWorldTopLeft: entryStartTopLeft,
+        durationSeconds: _sprintPressed
+            ? PlayerComponent.kRunStepSeconds
+            : PlayerComponent.kDefaultStepSeconds,
+        animationState: _sprintPressed
+            ? CharacterAnimationState.run
+            : CharacterAnimationState.walk,
       );
-      _configureCameraViewport();
       final continuityCameraWorldTopLeft = Vector2(
         entryStartTopLeft.x - sourcePlayerScreenTopLeft.x,
         entryStartTopLeft.y - sourcePlayerScreenTopLeft.y,
@@ -13292,7 +13299,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapId: target.bundle.map.id,
         initialCameraWorldTopLeft: continuityCameraWorldTopLeft,
         activation: activation,
-      );
+      )..holdInitialCameraFrame = false;
       connectionStopwatch.stop();
       debugPrint(
         '[perf][connection] total=${connectionStopwatch.elapsedMilliseconds}ms',
@@ -13304,6 +13311,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _showNotification('Le passage vers la carte voisine a échoué.');
     } finally {
       if (!transitionCompleted) {
+        _preservingConnectionInput = false;
         _setFlowPhase(_RuntimeFlowPhase.overworld);
       }
       if (transitionCompleted && _pendingConnectionEntryAnimation == null) {
@@ -13354,6 +13362,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _clearTransientUiState() {
+    _preservingConnectionInput = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled by transient UI reset.',
     );
@@ -13579,6 +13588,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (loaded == null) {
       return;
     }
+    _retiringLoadedMaps.add(loaded);
+    final removed = Future.wait<void>([
+      loaded.backgroundLayers.removed,
+      loaded.foregroundLayers.removed,
+      for (final row in loaded.actorOcclusionLayers.rows) row.removed,
+      for (final patch in loaded.occlusionPatches) patch.removed,
+      for (final actor in loaded.npcActors) actor.removed,
+    ]);
     loaded.backgroundLayers.removeFromParent();
     loaded.foregroundLayers.removeFromParent();
     loaded.actorOcclusionLayers.removeFromParent();
@@ -13590,6 +13607,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _npcActors.remove(actor);
     }
     _worldRuleProjectionCacheByMapId.remove(mapId);
+    unawaited(removed.then((_) {
+      _retiringLoadedMaps.remove(loaded);
+      _trimUnusedTilesetImages();
+    }));
   }
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
@@ -13861,6 +13882,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (identical(current, future)) {
         _loadMapFutureById.remove(targetMapId);
       }
+      _pruneLoadedMapsToActiveNeighborhood();
     }
   }
 
@@ -13998,6 +14020,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (identical(current, future)) {
           _prewarmedWarpTargetFutureByMapId.remove(normalizedTargetMapId);
         }
+        _trimUnusedTilesetImages();
       }
     }();
 
@@ -14255,6 +14278,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final id in toRemove) {
       _unmountLoadedMap(id);
     }
+    _runtimeBundleByMapId.removeWhere((id, _) =>
+        !keep.contains(id) && !_loadMapFutureById.containsKey(id) &&
+        !_runtimeBundleFutureByMapId.containsKey(id));
+    _trimUnusedTilesetImages();
+  }
+
+  void _trimUnusedTilesetImages() {
+    if (_isRemoved || _onLoadInProgress ||
+        _flowPhase == _RuntimeFlowPhase.mapTransition ||
+        _loadMapFutureById.isNotEmpty ||
+        _prewarmedWarpTargetFutureByMapId.isNotEmpty) {
+      return;
+    }
+    _tilesetImageCache.trimToBudget(
+      maxBytes: 64 * 1024 * 1024,
+      retainedImages: [
+        ..._playerRetainedImages,
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+          ...loaded.tileImagesById.values,
+      ],
+    );
+    _borderRuntimeAssetCache.trimToBudget(
+      maxBytes: 64 * 1024 * 1024,
+      retainedImages: [
+        for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps])
+          ...?loaded.backgroundLayers.borderAssets?.images,
+      ],
+    );
   }
 
   Vector2 _originPixels({

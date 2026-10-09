@@ -4,7 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import 'runtime_pokemon_summary.dart';
 
-enum RuntimeWorldServiceKind { shop, heal, pc }
+enum RuntimeWorldServiceKind { shop, heal, pc, textInput }
 
 /// Typed request emitted by an interaction in the running world.
 ///
@@ -68,6 +68,26 @@ final class OpenPcService extends RuntimeWorldServiceRequest {
 
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.pc;
+}
+
+final class OpenTextInputService extends RuntimeWorldServiceRequest {
+  OpenTextInputService({
+    required super.interactionId,
+    required String variableId,
+    required this.interaction,
+    super.requiredCapabilities,
+    super.availabilityCondition,
+  }) : variableId = variableId.trim() {
+    if (this.variableId.isEmpty) {
+      throw ArgumentError.value(variableId, 'variableId');
+    }
+  }
+
+  final String variableId;
+  final SceneTextInteractionRequest interaction;
+
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.textInput;
 }
 
 enum RuntimeWorldServiceStage {
@@ -410,6 +430,7 @@ final class RuntimeWorldServiceCommand {
     this.targetId,
     this.secondaryTargetId,
     this.quantity,
+    this.interactionResult,
   })  : assert(snapshotRevision >= 0),
         assert(quantity == null || quantity > 0);
 
@@ -418,6 +439,7 @@ final class RuntimeWorldServiceCommand {
   final String? targetId;
   final String? secondaryTargetId;
   final int? quantity;
+  final SceneInteractionResult? interactionResult;
 }
 
 enum RuntimeWorldServiceCommandStatus {

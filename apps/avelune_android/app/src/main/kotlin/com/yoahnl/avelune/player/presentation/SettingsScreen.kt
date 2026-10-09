@@ -87,7 +87,7 @@ fun SettingsScreen(
                         ),
                     ) {
                         SettingsIcon(Icons.Filled.MonitorHeart)
-                        SettingsLabels("Infos de debug", "Afficher les informations techniques", Modifier.weight(1f))
+                        SettingsLabels("Infos de debug", "FPS, latence de rendu, mémoire et CPU dans le jeu", Modifier.weight(1f))
                         Switch(
                             checked = showDebug,
                             onCheckedChange = null,

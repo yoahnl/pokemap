@@ -1572,7 +1572,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         samples.add(game.debugPlayerWorldTopLeft.x);
       }
-      expect(samples[1], samples[0]);
+      expect(samples[1], greaterThan(samples[0]));
       expect(samples[2], greaterThan(samples[1]));
       expect(samples[3], greaterThan(samples[2]));
 
@@ -1736,7 +1736,7 @@ void main() {
     });
 
     test(
-        'connection transition keeps input locked until visual entry step completes',
+        'connection transition preserves input authority during its entry step',
         () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_connection_input_lock_',
@@ -1786,6 +1786,7 @@ void main() {
 
       expect(game.debugFlowPhaseName, 'mapTransition');
       expect(game.debugIsPlayerStepping, isTrue);
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
 
       expect(
         game.handleRuntimeInputEvent(
@@ -1828,6 +1829,60 @@ void main() {
       );
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 0, y: 0));
     });
+
+    for (final interrupt in [false, true]) {
+    test(interrupt
+        ? 'connection does not revive held inputs after focus is lost'
+        : 'connection continues held running input into the next map', () async {
+      final root = await Directory.systemTemp.createTemp('runtime_connection_run_');
+      addTearDown(() => root.delete(recursive: true));
+      final runner = _runningBundle();
+      final projectFilePath = await _writeRuntimeProject(root,
+        maps: [_connectionSourceMap(), _targetMap(id: 'connection_target')],
+        settings: runner.manifest.settings.copyWith(tileWidth: 16, tileHeight: 16),
+        characters: runner.manifest.characters,
+        tilesets: const [ProjectTilesetEntry(id: 'runner', name: 'Runner',
+          relativePath: 'tilesets/runner.png')],
+      );
+      final source = await loadRuntimeMapBundle(projectFilePath: projectFilePath,
+        mapId: 'connection_source');
+      final game = _TestPlayableMapGame(
+        bundle: source.copyWith(tilesetAbsolutePathsById: runner.tilesetAbsolutePathsById),
+        projectFilePath: projectFilePath,
+        runtimeTilesetImageLoader: _runningImages,
+      );
+      addTearDown(game.onRemove);
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(game, () => game.debugIsMapLoaded('connection_target'));
+      final movementContinuity = game.overworldInteractionSnapshot.movementContinuityId;
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+      await _captureFirstTopLeftOnMap(game, targetMapId: 'connection_target');
+      expect(game.inputAuthoritySnapshot.sprintAccepted, isTrue);
+      expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+      if (interrupt) {
+        game.setExternalInputLock(RuntimeExternalInputLock.lifecycle, locked: true);
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+        game.setExternalInputLock(RuntimeExternalInputLock.lifecycle, locked: false);
+        await _pumpUntil(game, () => !game.debugIsPlayerStepping &&
+          game.debugFlowPhaseName == 'overworld');
+        expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 0, y: 0));
+        expect(game.inputAuthoritySnapshot.sprintAccepted, isFalse);
+      } else {
+        expect(game.overworldInteractionSnapshot.movementContinuityId, movementContinuity);
+        await _pumpUntil(game, () => game.gameStateSnapshot.playerPosition.x > 0);
+      }
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+      await _pumpUntil(game, () => !game.debugIsPlayerStepping);
+      final stopped = game.gameStateSnapshot.playerPosition;
+      for (var i = 0; i < 10; i++) {
+        game.update(.016);
+      }
+      expect(game.gameStateSnapshot.playerPosition, stopped);
+    });
+    }
 
     test(
         'connection preserves player screen position on first target-map frame',
@@ -2402,7 +2457,6 @@ void main() {
         saveData: _battleReadySaveData(mapId: 'battle_warm_map'),
       );
 
-      game.setBattleFlutterCommandOverlayPreferred(true);
       game.onGameResize(_testViewportSize);
       await game.onLoad();
 

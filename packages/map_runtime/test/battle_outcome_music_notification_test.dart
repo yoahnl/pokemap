@@ -3,12 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
-/// Recette du 2026-08-25 : « la musique de fin de combat s'est fait la malle ».
-///
-/// `onOutcomePresented` ne pilote PAS un affichage : c'est lui qui dit à
-/// l'hôte de basculer sur la musique de victoire. Il vivait pourtant derrière
-/// le garde `outcomeBannerEnabled`, donc couper le bandeau doublon de
-/// BETA-BAT-030 l'a coupé avec — silencieusement, et aucun test ne le tenait.
 const _weakStats = BattleStatsSnapshot(
   attack: 10,
   defense: 10,
@@ -55,7 +49,6 @@ BattleSession _winnableSession() {
 }
 
 Future<void> _playOutcome({
-  required bool outcomeBannerEnabled,
   required List<BattleOutcome> notified,
 }) async {
   final session = _winnableSession();
@@ -63,7 +56,6 @@ Future<void> _playOutcome({
     session: session,
     viewportSize: Vector2(960, 540),
     onPlayerChoice: (_) {},
-    outcomeBannerEnabled: outcomeBannerEnabled,
     onOutcomePresented: notified.add,
   );
   await overlay.onLoad();
@@ -81,23 +73,26 @@ Future<void> _playOutcome({
 
   overlay.updateState(finished);
   await overlay.waitForPendingVisualSync();
+  expect(notified, isEmpty);
   var guard = 0;
   while (overlay.isTurnPresentationActive && guard++ < 400) {
     overlay.updateTree(0.05);
     await Future<void>.delayed(Duration.zero);
   }
-  overlay.updateTree(0.05);
-  await Future<void>.delayed(Duration.zero);
+  for (var frame = 0; frame < 20; frame++) {
+    overlay.updateTree(0.05);
+    await Future<void>.delayed(Duration.zero);
+  }
+  overlay.onRemove();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-      'BETA-BAT-030 : l’issue est notifiée même quand le bandeau est coupé',
+  test('BETA-BAT-030 : l’issue présentée déclenche la musique de victoire',
       () async {
     final notified = <BattleOutcome>[];
-    await _playOutcome(outcomeBannerEnabled: false, notified: notified);
+    await _playOutcome(notified: notified);
 
     expect(
       notified.map((outcome) => outcome.isVictory),
@@ -107,18 +102,11 @@ void main() {
     );
   });
 
-  test('l’issue reste notifiée quand le bandeau est actif', () async {
-    final notified = <BattleOutcome>[];
-    await _playOutcome(outcomeBannerEnabled: true, notified: notified);
-
-    expect(notified, hasLength(1));
-  });
-
   test('l’issue n’est notifiée qu’une seule fois', () async {
     // Le tour est rejoué au-delà de sa fin : la notification ne doit pas se
     // répéter à chaque frame, sinon la musique redémarrerait sans cesse.
     final notified = <BattleOutcome>[];
-    await _playOutcome(outcomeBannerEnabled: false, notified: notified);
+    await _playOutcome(notified: notified);
     expect(notified, hasLength(1));
   });
 }

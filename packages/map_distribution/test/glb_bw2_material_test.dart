@@ -24,7 +24,7 @@ void main() {
   for (final change in <String, void Function(Map<String, dynamic>)>{
     'missing cutoff': (j) => j['materials'][0].remove('alphaCutoff'),
     'other cutoff': (j) => j['materials'][0]['alphaCutoff'] = .1,
-    'BLEND': (j) => j['materials'][0]['alphaMode'] = 'BLEND',
+    'BLEND cutoff': (j) => j['materials'][0]['alphaMode'] = 'BLEND',
     'invalid double sided': (j) => j['materials'][0]['doubleSided'] = 'true',
     'integer color': (j) => j['accessors'][1]['componentType'] = 5123,
     'normalized float': (j) => j['accessors'][1]['normalized'] = true,
@@ -50,6 +50,45 @@ void main() {
       expect(result.materials.single.toJson()['doubleSided'], true);
     }
   });
+  test(
+    'exports and inspects translucent BLEND materials without losing alpha',
+    () {
+      final bytes = coloredGlb(
+        edit: (j) {
+          j['materials'][0]['alphaMode'] = 'BLEND';
+          j['materials'][0].remove('alphaCutoff');
+          j['materials'][0]['pbrMetallicRoughness'] = {
+            'baseColorFactor': [1, 1, 1, .387096763],
+          };
+        },
+      );
+      final inspection = const GlbModel3dInspector().inspect(bytes);
+      final material = inspection.materials.single;
+      expect(material.alphaMode, Model3dAlphaMode.blend);
+      expect(Model3dMaterial.fromJson(material.toJson()), material);
+      final built = const GamePackageBuilder().build(
+        manifest: spatialManifest(),
+        payloadFiles: spatialPayload(modelBytes: bytes),
+      );
+      const GamePackageInspector().inspect(built.packageBytes);
+      final archive = ZipDecoder().decodeBytes(built.packageBytes);
+      final project = ProjectManifest.fromJson(
+        jsonDecode(
+          utf8.decode(
+            archive.findFile('project/project.json')!.content as List<int>,
+          ),
+        ) as Map<String, dynamic>,
+      );
+      expect(
+        project.models3d.single.inspection.materials.single.alphaMode,
+        Model3dAlphaMode.blend,
+      );
+      expect(
+        archive.findFile('project/assets/models3d/model.glb')!.content,
+        bytes,
+      );
+    },
+  );
   test(
       'exports and inspects MASK two sided metadata with its native model bytes',
       () {

@@ -61,7 +61,7 @@ final class Model3dBounds {
   Map<String, dynamic> toJson() => {'min': min.toJson(), 'max': max.toJson()};
 }
 
-enum Model3dAlphaMode { opaque, mask }
+enum Model3dAlphaMode { opaque, mask, blend }
 
 final class Model3dMaterial {
   Model3dMaterial({
@@ -117,6 +117,7 @@ final class Model3dMaterial {
       alphaMode: switch (json['alphaMode']) {
         null || 'opaque' => Model3dAlphaMode.opaque,
         'mask' => Model3dAlphaMode.mask,
+        'blend' => Model3dAlphaMode.blend,
         _ => throw const FormatException('Unsupported model alpha mode.'),
       },
       alphaCutoff: json['alphaCutoff'] == null

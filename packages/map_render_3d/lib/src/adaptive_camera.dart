@@ -13,12 +13,17 @@ class AdaptiveCamera3D extends CameraComponent3D {
     required double pitch,
     required double yaw,
     required double distance,
+    double viewportAspectRatio = 1,
   }) {
+    final aspect = viewportAspectRatio.isFinite && viewportAspectRatio > 0
+        ? viewportAspectRatio
+        : 1.0;
+    final framedDistance = distance / math.min(1.0, aspect);
     target.setFrom(center);
     position.setValues(
-      center.x + distance * math.cos(pitch) * math.sin(yaw),
-      center.y + distance * math.sin(pitch),
-      center.z + distance * math.cos(pitch) * math.cos(yaw),
+      center.x + framedDistance * math.cos(pitch) * math.sin(yaw),
+      center.y + framedDistance * math.sin(pitch),
+      center.z + framedDistance * math.cos(pitch) * math.cos(yaw),
     );
   }
 

@@ -94,7 +94,6 @@ void main() {
     );
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
-    overlay.setUseFlutterCommandOverlay(true);
 
     overlay.presentPostBattlePlan(
       const BattleAnimationPlan(
@@ -140,7 +139,6 @@ void main() {
     );
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
-    overlay.setUseFlutterCommandOverlay(true);
     await _pump(overlay, 0.1);
 
     expect(
@@ -193,7 +191,6 @@ void main() {
     );
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
-    overlay.setUseFlutterCommandOverlay(true);
     overlay.beginPostBattleGate();
 
     final chosen = <int>[];
@@ -308,7 +305,6 @@ void main() {
     );
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
-    overlay.setUseFlutterCommandOverlay(true);
 
     overlay.presentPostBattlePlan(
       const BattleAnimationPlan(

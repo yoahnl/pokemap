@@ -3,6 +3,16 @@ import XCTest
 
 @MainActor
 final class GameLibraryTests: XCTestCase {
+    func testNativeProcessMetricsReportMeasuredCounters() {
+        let sample = NativeProcessMetrics.read()
+        XCTAssertGreaterThan(sample["uptimeSeconds"] as? Double ?? 0, 0)
+        XCTAssertGreaterThanOrEqual(sample["cpuSeconds"] as? Double ?? -1, 0)
+        XCTAssertGreaterThan(sample["memoryBytes"] as? UInt64 ?? 0, 0)
+        XCTAssertEqual(sample["memoryKind"] as? String, "footprint")
+        XCTAssertNotNil(sample["thermalState"] as? String)
+        XCTAssertNotNil(sample["lowPowerMode"] as? Bool)
+    }
+
     func testLibraryStartsLoadingBeforeTheFirstResponse() {
         let useCase = LibraryUseCaseStub()
         let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)

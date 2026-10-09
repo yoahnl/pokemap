@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
@@ -6,6 +7,89 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('instance batch persists byte-identically through direct API and JSONL and undoes', () async {
+    final results = <List<int>>[];
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+      await f.executeAction('map3d.instance.upsert', {'mapId': 'first-map',
+        'instance': _batchInstance('keep').toJson()}, direct: direct);
+      final file = File('${f.root.path}/maps/first-map.json');
+      final beforeMap = await file.readAsBytes();
+      final beforeProject = await f.projectFile.readAsBytes();
+      final invalid = {'mapId': 'first-map', 'instances': [
+        _batchInstance('valid').toJson(),
+        {..._batchInstance('missing').toJson(), 'modelId': 'missing'},
+      ]};
+      if (direct) {
+        await expectLater(f.executeAction('map3d.instance.upsert_batch', invalid,
+          direct: true), throwsA(isA<MapAuthoringException>().having((error) => error.code,
+            'code', 'map3d.instance.model_not_found')));
+      } else {
+        final rejected = await f.planAction('map3d.instance.upsert_batch', invalid);
+        expect(rejected.status, AuthoringResultStatus.failure);
+        expect(rejected.error?.details['domainCode'], 'map3d.instance.model_not_found');
+      }
+      expect(await file.readAsBytes(), beforeMap);
+      expect(await f.projectFile.readAsBytes(), beforeProject);
+      await f.executeAction('map3d.instance.upsert_batch', {'mapId': 'first-map',
+        'instances': [_batchInstance('keep', x: 1.5).toJson(),
+          _batchInstance('new', x: 2.5).toJson()]}, direct: direct);
+      final snapshot = await f.snapshots.load(f.project);
+      final instances = snapshot.mapById('first-map')!.spatialScene!.instances;
+      expect(instances, [_batchInstance('keep', x: 1.5), _batchInstance('new', x: 2.5)]);
+      expect(await f.projectFile.readAsBytes(), beforeProject);
+      results.add(await file.readAsBytes());
+      final history = await f.request('history', {'projectHandle': f.project.value, 'limit': 1});
+      final entry = (history.data['entries'] as List).single as Map;
+      final undone = await f.request('undo', {'projectHandle': f.project.value,
+        'entryId': entry['entryId'], 'idempotencyKey': 'undo-instance-batch'});
+      expect(undone.status, AuthoringResultStatus.success, reason: undone.toJson().toString());
+      expect(await file.readAsBytes(), beforeMap);
+    }
+    expect(results[0], results[1]);
+  });
+
+  test('instance batch is discoverable and persisted through canonical CLI', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final process = await Process.start('dart',
+      ['run', 'bin/pokemap_authoring.dart', '--root', f.root.path]);
+    final errors = process.stderr.transform(utf8.decoder).join();
+    final lines = StreamIterator(process.stdout.transform(utf8.decoder)
+      .transform(const LineSplitter()));
+    var sequence = 0;
+    Future<Map<String, Object?>> send(String command, Map<String, Object?> args) async {
+      process.stdin.writeln(jsonEncode({'id': 'instance-cli-${sequence++}', 'command': command, 'args': args}));
+      await process.stdin.flush();
+      expect(await lines.moveNext().timeout(const Duration(seconds: 20)), isTrue);
+      final result = AuthoringResult.fromJson(jsonDecode(lines.current) as Map<String, dynamic>);
+      expect(result.status, AuthoringResultStatus.success, reason: result.toJson().toString());
+      return result.data;
+    }
+    try {
+      final described = await send('describe', {});
+      expect((described['mutationActions'] as List).where((action) => action['id'] == 'map3d.instance.upsert_batch'), hasLength(1));
+      final opened = await send('open', {'projectRoot': f.root.path});
+      final validation = await send('validate', {'projectHandle': opened['projectHandle']});
+      final plan = await send('plan', {'projectHandle': opened['projectHandle'],
+        'request': AuthoringRequest(requestId: 'instance-cli', actionId: 'map3d.instance.upsert_batch',
+          actionVersion: 1, workspaceHandle: opened['workspaceHandle'] as String,
+          expectedRevision: validation['snapshotRevision'] as String, idempotencyKey: 'instance-cli',
+          parameters: {'mapId': 'first-map', 'instances': [_batchInstance('first').toJson(), _batchInstance('second', x: 2.5).toJson()]}).toJson()});
+      await send('apply', {'projectHandle': opened['projectHandle'], 'planId': plan['planId'], 'operationId': 'instance-cli'});
+      final snapshot = await f.snapshots.load(f.project);
+      expect(snapshot.mapById('first-map')!.spatialScene!.instances.map((instance) => instance.id), ['first', 'second']);
+      await send('close', {'workspaceHandle': opened['workspaceHandle']});
+    } finally {
+      await process.stdin.close();
+      await lines.cancel();
+      expect(await process.exitCode.timeout(const Duration(seconds: 20), onTimeout: () { process.kill(); return -1; }), 0, reason: await errors);
+    }
+  });
+
   for (final direct in [false, true]) {
     test(
         'spatial actions persist and query with ${direct ? "direct API" : "JSONL"}',
@@ -191,6 +275,273 @@ void main() {
   }
 
   for (final direct in [false, true]) {
+    test(
+        'terrain physical height preserves anchors and undo through ${direct ? "direct API" : "JSONL"}',
+        () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      expect((await f.apply(await f.plan())).status,
+          AuthoringResultStatus.success);
+      final catalog = await f.request('describe');
+      final actions = (catalog.data['mutationActions'] as List).where(
+          (action) => action['id'] == 'map3d.terrain.configure_height');
+      expect(actions, hasLength(1));
+      final schema = actions.single['extensions']['inputSchema'] as Map;
+      expect(schema['required'], ['mapId', 'levelHeight']);
+      expect(schema['properties']['levelHeight'], {
+        'type': 'number',
+        'exclusiveMinimum': 0,
+        'maximum': 16,
+      });
+      await f.executeAction('map3d.terrain.configure_appearance', {
+        'mapId': 'first-map',
+        'cliffFrame': {'atlasId': 'cliff', 'column': 0, 'row': 0},
+      });
+      await f.executeAction('map3d.terrain.set_levels', {
+        'mapId': 'first-map',
+        'cells': [
+          {'x': 1, 'z': 2, 'level': 3},
+          {'x': 2, 'z': 0, 'level': 2},
+        ],
+      });
+      await f.executeAction('map3d.navigation.configure', {
+        'mapId': 'first-map',
+        'navigation': SpatialNavigationProfile(ramps: [
+          SpatialRamp(
+              id: 'stairs',
+              x: 2,
+              z: 1,
+              width: 1,
+              depth: 1,
+              lowLevel: 0,
+              highLevel: 2,
+              direction: SpatialRampDirection.north),
+        ]).toJson(),
+      });
+      final ground = SpatialModelInstance(
+          id: 'ground',
+          modelId: 'house',
+          position: Model3dVector3(x: 1.2, y: 3.5, z: 2.7),
+          rotationDegrees: 90,
+          scale: 1.25,
+          animationIndex: 0,
+          animationLoop: false,
+          animationSpeed: .5,
+          blocksMovement: false);
+      final ramp = SpatialModelInstance(
+          id: 'ramp',
+          modelId: 'house',
+          position: Model3dVector3(x: 2.4, y: 1.75, z: 1.25));
+      for (final instance in [ground, ramp]) {
+        await f.executeAction('map3d.instance.upsert', {
+          'mapId': 'first-map',
+          'instance': instance.toJson(),
+        });
+      }
+      final before = (await f.snapshots.load(f.project))
+          .mapById('first-map')!;
+      final file = File('${f.root.path}/maps/first-map.json');
+      final originalBytes = await file.readAsBytes();
+      final planned = await f.planAction('map3d.terrain.configure_height', {
+        'mapId': 'first-map',
+        'levelHeight': .5,
+      });
+      expect(planned.status, AuthoringResultStatus.success,
+          reason: planned.toJson().toString());
+      expect(await file.readAsBytes(), originalBytes);
+      if (direct) {
+        await f.executeAction('map3d.terrain.configure_height', {
+          'mapId': 'first-map',
+          'levelHeight': .5,
+        }, direct: true);
+      } else {
+        expect((await f.apply(planned)).status,
+            AuthoringResultStatus.success);
+      }
+      final after = (await f.snapshots.load(f.project))
+          .mapById('first-map')!;
+      final scene = after.spatialScene!;
+      expect(scene.levelHeight, .5);
+      expect(scene.heightAt(1, 2), 1.5);
+      expect(scene.worldHeightAt(2.4, 1.25), .75);
+      expect(scene.heightLevels, before.spatialScene!.heightLevels);
+      expect(scene.navigation, before.spatialScene!.navigation);
+      expect(scene.camera, before.spatialScene!.camera);
+      expect(scene.cliffFrame, before.spatialScene!.cliffFrame);
+      expect(scene.instances, [
+        ground.copyWith(
+            position: Model3dVector3(x: 1.2, y: 2, z: 2.7)),
+        ramp.copyWith(
+            position: Model3dVector3(x: 2.4, y: 1, z: 1.25)),
+      ]);
+      final query = await f.request('query', {
+        'projectHandle': f.project.value,
+        'request': AuthoringQueryRequest(
+                resourceKind: 'map',
+                operation: AuthoringQueryOperation.get,
+                ids: ['first-map'],
+                view: AuthoringQueryView.detail)
+            .toJson(),
+      });
+      expect(query.status, AuthoringResultStatus.success);
+      expect((query.data['items'] as List).single['spatialScene'],
+          scene.toJson());
+      final scaledBytes = await file.readAsBytes();
+      final invalidRampContact = await f.planAction('map3d.terrain.set_levels', {
+        'mapId': 'first-map',
+        'cells': [
+          {'x': 2, 'z': 0, 'level': 1},
+        ],
+      });
+      expect(invalidRampContact.status, AuthoringResultStatus.failure);
+      expect(invalidRampContact.error!.details['domainCode'],
+          'map3d.parameters_invalid');
+      expect(await file.readAsBytes(), scaledBytes);
+      final history = await f.request(
+          'history', {'projectHandle': f.project.value, 'limit': 1});
+      final entry = (history.data['entries'] as List).single as Map;
+      final undo = await f.request('undo', {
+        'projectHandle': f.project.value,
+        'entryId': entry['entryId'],
+        'idempotencyKey': 'undo-height',
+      });
+      expect(undo.status, AuthoringResultStatus.success);
+      expect((await f.snapshots.load(f.project)).mapById('first-map'), before);
+    });
+  }
+
+  test('repeated terrain height configuration keeps fractional offsets intact',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect((await f.apply(await f.plan())).status,
+        AuthoringResultStatus.success);
+    await f.executeAction('map3d.terrain.set_levels', {
+      'mapId': 'first-map',
+      'cells': [
+        {'x': 1, 'z': 1, 'level': 3},
+      ],
+    });
+    await f.executeAction('map3d.terrain.configure_height', {
+      'mapId': 'first-map',
+      'levelHeight': .5,
+    });
+    await f.executeAction('map3d.instance.upsert', {
+      'mapId': 'first-map',
+      'instance': SpatialModelInstance(
+              id: 'offset',
+              modelId: 'house',
+              position: Model3dVector3(x: 1.5, y: 1.502, z: 1.5))
+          .toJson(),
+    });
+    final file = File('${f.root.path}/maps/first-map.json');
+    final before = await file.readAsBytes();
+    final repeated = await f.planAction('map3d.terrain.configure_height', {
+      'mapId': 'first-map',
+      'levelHeight': .5,
+    });
+    expect(repeated.status, AuthoringResultStatus.failure);
+    expect(repeated.error!.details['domainCode'], 'map.no_change');
+    expect(await file.readAsBytes(), before);
+  });
+
+  test('terrain height accepts the upper limit and rejects non-finite input',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await f.executeAction('map3d.terrain.configure_height', {
+      'mapId': 'first-map',
+      'levelHeight': 16,
+    });
+    expect((await f.snapshots.load(f.project))
+        .mapById('first-map')!.spatialScene!.levelHeight, 16);
+    final file = File('${f.root.path}/maps/first-map.json');
+    final before = await file.readAsBytes();
+    final snapshot = await f.snapshots.load(f.project);
+    for (final value in [double.nan, double.infinity, double.negativeInfinity]) {
+      expect(
+          () => AuthoringRequest(
+              requestId: 'non-finite',
+              actionId: 'map3d.terrain.configure_height',
+              actionVersion: 1,
+              workspaceHandle: f.workspace.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'non-finite',
+              parameters: {'mapId': 'first-map', 'levelHeight': value}),
+          throwsArgumentError);
+      expect(await file.readAsBytes(), before);
+    }
+  });
+
+  test('terrain physical height persists through the real CLI', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    final process = await Process.start('dart', [
+      'bin/pokemap_authoring.dart',
+      '--root',
+      f.root.path,
+    ]);
+    final lines = StreamIterator<String>(
+        process.stdout.transform(utf8.decoder).transform(const LineSplitter()));
+    final errors = process.stderr.transform(utf8.decoder).join();
+    addTearDown(() async {
+      await process.stdin.close();
+      await process.exitCode.timeout(const Duration(seconds: 5),
+          onTimeout: () {
+        process.kill();
+        return process.exitCode;
+      });
+      await lines.cancel();
+    });
+    var sequence = 0;
+    Future<AuthoringResult> send(String command,
+        [Map<String, Object?> args = const {}]) async {
+      process.stdin.writeln(jsonEncode({
+        'id': 'height-cli-${sequence++}',
+        'command': command,
+        'args': args,
+      }));
+      await process.stdin.flush();
+      expect(await lines.moveNext(), isTrue);
+      final result = AuthoringResult.fromJson(
+          jsonDecode(lines.current) as Map<String, dynamic>);
+      expect(result.status, AuthoringResultStatus.success,
+          reason: result.toJson().toString());
+      return result;
+    }
+    final described = await send('describe');
+    expect(
+        (described.data['mutationActions'] as List)
+            .where((action) => action['id'] == 'map3d.terrain.configure_height'),
+        hasLength(1));
+    final opened = await send('open', {'projectRoot': f.root.path});
+    final snapshot = await f.snapshots.load(f.project);
+    final planned = await send('plan', {
+      'projectHandle': opened.data['projectHandle'],
+      'request': AuthoringRequest(
+              requestId: 'height-cli',
+              actionId: 'map3d.terrain.configure_height',
+              actionVersion: 1,
+              workspaceHandle: opened.data['workspaceHandle'] as String,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'height-cli',
+              parameters: {'mapId': 'first-map', 'levelHeight': .5})
+          .toJson(),
+    });
+    await send('apply', {
+      'projectHandle': opened.data['projectHandle'],
+      'planId': planned.data['planId'],
+      'operationId': 'height-cli',
+    });
+    expect((await f.snapshots.load(f.project))
+        .mapById('first-map')!.spatialScene!.levelHeight, .5);
+    await send('close', {'workspaceHandle': opened.data['workspaceHandle']});
+    await process.stdin.close();
+    expect(await process.exitCode, 0);
+    expect(await errors, isEmpty);
+  });
+
+  for (final direct in [false, true]) {
     for (final reference in ['scene', 'modelInteract']) {
       test(
           'referenced decor deletion is rejected without writes through ${direct ? "direct API" : "JSONL"} for $reference',
@@ -293,6 +644,16 @@ void main() {
     final file = File('${f.root.path}/maps/first-map.json');
     final before = await file.readAsBytes();
     final cases = <(String, Map<String, Object?>)>[
+      ('map3d.terrain.configure_height', {'mapId': 'first-map'}),
+      for (final value in [null, false, '0.5', 0, -.5, 16.01])
+        (
+          'map3d.terrain.configure_height',
+          {'mapId': 'first-map', 'levelHeight': value},
+        ),
+      (
+        'map3d.terrain.configure_height',
+        {'mapId': 'first-map', 'levelHeight': .5, 'extra': true},
+      ),
       ('map3d.terrain.configure_appearance', {'mapId': 'first-map'}),
       (
         'map3d.terrain.configure_appearance',
@@ -460,14 +821,25 @@ void main() {
     await File('${f.root.path}/maps/first-map.json')
         .writeAsString(jsonEncode(map.toJson()));
     final before = await f.projectFile.readAsBytes();
-    final result = await f.planAction('map3d.terrain.set_levels', {
-      'mapId': 'first-map',
-      'cells': [
-        {'x': 0, 'z': 0, 'level': 1}
-      ]
-    });
-    expect(result.status, AuthoringResultStatus.failure);
-    expect(await f.projectFile.readAsBytes(), before);
+    for (final (action, parameters) in [
+      (
+        'map3d.terrain.set_levels',
+        {
+          'mapId': 'first-map',
+          'cells': [
+            {'x': 0, 'z': 0, 'level': 1},
+          ],
+        },
+      ),
+      (
+        'map3d.terrain.configure_height',
+        {'mapId': 'first-map', 'levelHeight': .5},
+      ),
+    ]) {
+      final result = await f.planAction(action, parameters);
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(await f.projectFile.readAsBytes(), before);
+    }
   });
 
   test('map.create inherits 3D dimension and project camera', () async {
@@ -510,6 +882,11 @@ void main() {
     expect((await f.snapshots.load(f.project)).mapById('first-map'), before);
   });
 }
+
+SpatialModelInstance _batchInstance(String id, {num x = .5}) => SpatialModelInstance(
+  id: id, modelId: 'house', position: Model3dVector3(x: x, y: 0, z: .5),
+  animationIndex: 0, animationLoop: false, animationSpeed: .5, blocksMovement: false,
+);
 
 SceneAsset _modelScene() => SceneAsset(
     id: 'open',
@@ -681,6 +1058,32 @@ final class _Fixture {
       'operationId': lastOperation,
       if (token != null) 'confirmationToken': token,
     });
+  }
+
+  Future<void> executeAction(String action, Map<String, Object?> parameters,
+      {bool direct = false}) async {
+    if (direct) {
+      final snapshot = await snapshots.load(project);
+      final planned = await mutations.planMutation(
+          project,
+          AuthoringRequest(
+              requestId: 'direct-${sequence++}',
+              actionId: action,
+              actionVersion: 1,
+              workspaceHandle: workspace.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'direct-${sequence++}',
+              parameters: parameters));
+      await mutations.applyMutation(project,
+          planId: planned.planId, operationId: 'direct-${sequence++}');
+    } else {
+      final planned = await planAction(action, parameters);
+      expect(planned.status, AuthoringResultStatus.success,
+          reason: planned.toJson().toString());
+      final applied = await apply(planned);
+      expect(applied.status, AuthoringResultStatus.success,
+          reason: applied.toJson().toString());
+    }
   }
 
   Future<void> dispose() => root.parent.delete(recursive: true);

@@ -84,6 +84,27 @@ void main() {
       expect(component.position.x, closeTo(16, 0.0001));
     });
 
+    test('connection entry preserves the current running animation', () async {
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        tileImages: const {},
+        mapOrigin: Vector2.zero(),
+      );
+      await component.onLoad();
+      component.startStep(_stateAt(const GridPos(x: 1, y: 0)),
+        durationSeconds: PlayerComponent.kRunStepSeconds,
+        animationState: CharacterAnimationState.run);
+      component.startVisualStepFromWorldTopLeft(
+        _stateAt(const GridPos(x: 2, y: 0)),
+        fromWorldTopLeft: Vector2(16, 0),
+        durationSeconds: PlayerComponent.kRunStepSeconds,
+      );
+      expect(component.debugStepAnimationState, CharacterAnimationState.run);
+      component.update(.016);
+      expect(component.position.x, greaterThan(16));
+    });
+
     test('normal overworld walk step progresses on the first update', () async {
       final component = PlayerComponent(
         bundle: _bundle(),

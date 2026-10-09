@@ -377,7 +377,6 @@ void main() {
       );
       await overlay.onLoad();
       await overlay.waitForPendingVisualSync();
-      overlay.setUseFlutterCommandOverlay(true);
 
       overlay.startIntro();
       // Le premier temps du plan est l'attente du fondu : le runner joue,
@@ -410,7 +409,6 @@ void main() {
       );
       await overlay.onLoad();
       await overlay.waitForPendingVisualSync();
-      overlay.setUseFlutterCommandOverlay(true);
       overlay.startIntro();
 
       var sawHidden = false;

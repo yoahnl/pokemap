@@ -8,7 +8,6 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 // applyRuntimeDefeatRecoveryToGameState n'est volontairement pas exporte : c'est
 // un helper interne que PlayableMapGame appelle. Import cible plutot que
 // elargissement de la surface publique pour les besoins d'un test.
@@ -1161,11 +1160,13 @@ void main() {
       final overlay = game.debugBattleOverlayComponent;
       expect(overlay, isNotNull);
       final activeOverlay = overlay!;
-      for (var i = 0; i < 12 && !activeOverlay.commandPanelMounted; i++) {
+      for (var i = 0;
+          i < 12 && activeOverlay.currentCommandOverlaySnapshot == null;
+          i++) {
         game.update(0.05);
         await Future<void>.delayed(Duration.zero);
       }
-      expect(activeOverlay.commandPanelMounted, isTrue);
+      expect(activeOverlay.currentCommandOverlaySnapshot, isNotNull);
 
       expect(
         game.selectBattleRootEntry(BattleCommandRootAction.run.index),
@@ -1707,11 +1708,16 @@ void main() {
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
-          commandPanel.currentBagEntryLabels, const <String>['Poké Ball x2']);
-      expect(commandPanel.currentBagStatusLabels, const <String>['OK']);
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => '${entry.primaryLabel} ${entry.trailingLabel}')
+              .toList(),
+          const <String>['Poké Ball x2']);
+      expect(
+          overlay.currentCommandOverlaySnapshot!.entries
+              .map((entry) => entry.statusLabel ?? '')
+              .toList(),
+          const <String>['OK']);
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceCapture>());
     });
@@ -2216,11 +2222,13 @@ void main() {
       final overlay = game.debugBattleOverlayComponent;
       expect(overlay, isNotNull);
       final activeOverlay = overlay!;
-      for (var i = 0; i < 12 && !activeOverlay.commandPanelMounted; i++) {
+      for (var i = 0;
+          i < 12 && activeOverlay.currentCommandOverlaySnapshot == null;
+          i++) {
         game.update(0.05);
         await Future<void>.delayed(Duration.zero);
       }
-      expect(activeOverlay.commandPanelMounted, isTrue);
+      expect(activeOverlay.currentCommandOverlaySnapshot, isNotNull);
 
       expect(
         game.selectBattleRootEntry(BattleCommandRootAction.run.index),
@@ -2299,7 +2307,7 @@ void main() {
       // resize. Un overlay zombie qui republie ne doit plus avoir voix au
       // chapitre.
       expect(game.battleCommandOverlayListenable.value, isNull);
-      activeOverlay.setPreferTouchListDragScroll(true);
+      activeOverlay.onGameResize(Vector2(1024, 600));
       activeOverlay.updateTree(0.25);
       await Future<void>.delayed(Duration.zero);
       expect(

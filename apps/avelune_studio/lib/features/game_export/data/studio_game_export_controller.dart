@@ -268,7 +268,10 @@ final class StudioGameExportController implements StudioGameExportPort {
     } on GamePackageExportException catch (failure) {
       if (_valid(operation, isCurrentProject)) {
         error = [
-          failure.message,
+          failure.code == 'runtime3d.publication_unsupported'
+              ? 'L’export 3D est disponible en mode Test local. '
+                    'La publication attend la validation complète sur iOS et Android.'
+              : failure.message,
           if (failure.path != null) failure.path!,
         ].join(' · ');
         stage = StudioExportStage.failed;

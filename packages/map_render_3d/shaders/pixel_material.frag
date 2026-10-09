@@ -32,6 +32,8 @@ void main() {
     if (material.alphaMode == 0.0) {
         if (color.a < material.alphaCutoff) discard;
         outColor.rgb *= material.albedoColor.a * fragColor.a;
+    } else if (material.alphaMode == 3.0) {
+        outColor.rgb *= outColor.a;
     } else {
         if (material.alphaMode == 2.0 && outColor.a < material.alphaCutoff) discard;
         outColor.a = 1.0;

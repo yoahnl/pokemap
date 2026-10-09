@@ -45,6 +45,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       sessionId: _interactionSessionId,
       mapActivationId: _currentMapActivationId ?? '',
       mapId: _activeMapId,
+      movementContinuityId: '$_interactionSessionId:$_movementContinuityEpoch',
       primaryAction: primaryAction,
       tapAction: primaryAction ?? _resolveHiddenItemTapInteraction()?.action,
     );

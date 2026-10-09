@@ -948,7 +948,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final aspect = size.y > 0 ? size.x / size.y : 1.0;
     var distance =
         math.max(math.max(scene.width, scene.depth), maximumHeight) /
-        (2 * math.tan(math.pi / 9) * math.min(1.0, aspect)) *
+        (2 * math.tan(math.pi / 9)) *
         1.35 *
         control.zoom;
     if (control.view == SpatialEditorView.top) {
@@ -969,6 +969,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       pitch: pitch,
       yaw: yaw,
       distance: distance,
+      viewportAspectRatio: aspect,
     );
   }
 

@@ -7,10 +7,13 @@ import 'semantic_map_action_support.dart';
 
 final class SpatialMapActions {
   const SpatialMapActions();
+  static const int maximumInstancesPerBatch = 50;
   static const _fields = {
     'map3d.terrain.set_levels': 'cells',
+    'map3d.terrain.configure_height': 'levelHeight',
     'map3d.terrain.configure_appearance': 'cliffFrame',
     'map3d.instance.upsert': 'instance',
+    'map3d.instance.upsert_batch': 'instances',
     'map3d.instance.delete': 'instanceId',
     'map3d.camera.configure': 'camera',
     'map3d.navigation.configure': 'navigation',
@@ -22,9 +25,13 @@ final class SpatialMapActions {
         version: 1,
         summary: switch (entry.value) {
           'cells' => 'Set discrete terrain levels on a 3D map',
+          'levelHeight' =>
+            'Configure physical terrain level height and preserve instance offsets',
           'cliffFrame' =>
             'Configure or clear the repeated terrain cliff texture',
           'instance' => 'Place or replace a 3D model instance',
+          'instances' =>
+            'Place or replace bounded 3D instances atomically on one map',
           'instanceId' => 'Delete a 3D model instance',
           'navigation' => 'Configure spawn, ramps and exploration movement',
           _ => 'Configure a fixed 3D map camera',
@@ -34,13 +41,20 @@ final class SpatialMapActions {
         riskLevel: AuthoringRiskLevel.low,
         resourceKinds: const ['map'],
         requiredPermissions: const [AuthoringPermission.projectWrite],
-        guarantees: const [
+        guarantees: [
           AuthoringGuarantee.dryRun,
           AuthoringGuarantee.idempotent,
           AuthoringGuarantee.revisionChecked,
-          AuthoringGuarantee.undoable
+          AuthoringGuarantee.undoable,
+          if (entry.value == 'instances') AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'instances') ...{
+            'maximumInstanceCount': maximumInstancesPerBatch,
+            'batchAtomicity': 'all_or_nothing',
+            'undoBoundary': 'batch',
+            'duplicateInstanceIds': 'reject',
+          },
           'inputSchema': {
             'type': 'object',
             'additionalProperties': false,
@@ -96,6 +110,9 @@ final class SpatialMapActions {
     const operations = SpatialMapOperations();
     try {
       final after = switch (field) {
+        'instances' => _upsertInstances(context),
+        'levelHeight' =>
+          _configureTerrainHeight(context.map, context.parameters.value(field)),
         'cliffFrame' => operations.configureTerrainAppearance(context.map,
             cliffFrame: context.parameters.value(field) == null
                 ? null
@@ -146,10 +163,26 @@ final class SpatialMapActions {
       return context.draftMap(
           after: after,
           operation: action,
-          changedItems: field == 'cells'
-              ? _changedCells(context.map.spatialScene!, after.spatialScene!)
-              : 1,
-          preview: {'spatialScene': after.spatialScene!.toJson()});
+          changedItems: switch (field) {
+            'cells' =>
+              _changedCells(context.map.spatialScene!, after.spatialScene!),
+            'instances' =>
+              _changedInstances(context.map.spatialScene!, after.spatialScene!),
+            _ => 1,
+          },
+          preview: field == 'instances'
+              ? {
+                  'instanceIds': context.parameters
+                      .list(field)
+                      .map((item) => (item as Map)['id'])
+                      .toList(),
+                  'instanceCount': context.parameters.list(field).length,
+                  'changedInstanceCount': _changedInstances(
+                      context.map.spatialScene!, after.spatialScene!),
+                  'batchAtomicity': 'all_or_nothing',
+                  'undoBoundary': 'batch',
+                }
+              : {'spatialScene': after.spatialScene!.toJson()});
     } on FormatException catch (error) {
       throw semanticFailure('map3d.parameters_invalid', error.message);
     } on TypeError {
@@ -157,6 +190,124 @@ final class SpatialMapActions {
           'The spatial action parameters have invalid types or missing fields.');
     }
   }
+}
+
+MapData _upsertInstances(SemanticMapActionContext context) {
+  final raw = context.parameters.list('instances');
+  if (raw.isEmpty) {
+    throw const FormatException(
+        'An instance batch requires at least one instance.');
+  }
+  if (raw.length > SpatialMapActions.maximumInstancesPerBatch) {
+    throw semanticFailure('map3d.instance.batch_too_large',
+        'An instance batch supports at most fifty instances.',
+        details: {
+          'instanceCount': raw.length,
+          'maximumInstanceCount': SpatialMapActions.maximumInstancesPerBatch
+        });
+  }
+  final instances = <SpatialModelInstance>[];
+  final ids = <String>{};
+  final models = {
+    for (final model in context.manifest.models3d) model.id: model
+  };
+  for (final value in raw) {
+    final instance = SpatialModelInstance.fromJson(_object(value, {
+      'id',
+      'modelId',
+      'position',
+      'rotationDegrees',
+      'scale',
+      'animationIndex',
+      'animationLoop',
+      'animationSpeed',
+      'blocksMovement',
+    }));
+    if (!ids.add(instance.id)) {
+      throw semanticFailure('map3d.instance.batch_duplicate',
+          'An instance batch cannot repeat an instance identity.',
+          details: {'instanceId': instance.id});
+    }
+    final model = models[instance.modelId];
+    if (model == null) {
+      throw semanticFailure('map3d.instance.model_not_found',
+          'The instance source model does not exist in the project.',
+          details: {'instanceId': instance.id, 'modelId': instance.modelId});
+    }
+    if (instance.animationIndex != null &&
+        !model.inspection.animations
+            .any((clip) => clip.index == instance.animationIndex)) {
+      throw semanticFailure('map3d.instance.animation_invalid',
+          'The instance animation is absent from the inspected source model.',
+          details: {
+            'instanceId': instance.id,
+            'modelId': instance.modelId,
+            'animationIndex': instance.animationIndex
+          });
+    }
+    instances.add(instance);
+  }
+  final before = context.map.spatialScene!;
+  final replacements = {
+    for (final instance in instances) instance.id: instance
+  };
+  final existingIds = before.instances.map((instance) => instance.id).toSet();
+  final projected = context.map.copyWith(
+      spatialScene: before.copyWith(instances: [
+    for (final existing in before.instances)
+      replacements[existing.id] ?? existing,
+    for (final instance in instances)
+      if (!existingIds.contains(instance.id)) instance,
+  ]));
+  validateSpatialMapStructure(projected);
+  var after = context.map;
+  const operations = SpatialMapOperations();
+  for (final instance in instances) {
+    after = operations.upsertInstance(after, instance);
+  }
+  return after;
+}
+
+int _changedInstances(MapSpatialScene before, MapSpatialScene after) {
+  final existing = {
+    for (final instance in before.instances) instance.id: instance
+  };
+  return after.instances
+      .where((instance) => existing[instance.id] != instance)
+      .length;
+}
+
+MapData _configureTerrainHeight(MapData map, Object? value) {
+  if (value is! num || !value.isFinite || value <= 0 || value > 16) {
+    throw const FormatException(
+        'Terrain level height must be finite, greater than 0 and at most 16.');
+  }
+  validateSpatialMapStructure(map);
+  final before = map.spatialScene!;
+  if (value.toDouble() == before.levelHeight) return map;
+  final after = MapSpatialScene(
+    width: before.width,
+    depth: before.depth,
+    heightLevels: before.heightLevels,
+    levelHeight: value.toDouble(),
+    cliffFrame: before.cliffFrame,
+    instances: before.instances,
+    camera: before.camera,
+    navigation: before.navigation,
+  );
+  return map.copyWith(spatialScene: after.copyWith(
+    instances: before.instances.map((instance) {
+      final position = instance.position;
+      return instance.copyWith(
+          position: Model3dVector3(
+        x: position.x,
+        y: position.y +
+            (after.worldHeightAt(position.x, position.z) -
+                before.worldHeightAt(position.x, position.z)),
+        z: position.z,
+      ));
+    }),
+  ));
 }
 
 Map<String, dynamic> _object(Object? value, Set<String> allowed) {
@@ -175,6 +326,17 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'instances' => {
+          'type': 'array',
+          'minItems': 1,
+          'maxItems': SpatialMapActions.maximumInstancesPerBatch,
+          'items': _schema('instance'),
+        },
+      'levelHeight' => {
+          'type': 'number',
+          'exclusiveMinimum': 0,
+          'maximum': 16,
+        },
       'cliffFrame' => {
           'type': ['object', 'null'],
           'additionalProperties': false,

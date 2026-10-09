@@ -198,7 +198,12 @@ void main() {
         'Avelune',
       );
       await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      await pumpIo(tester, frames: 120);
+      final exportWait = Stopwatch()..start();
+      while (find.text('Paquet produit').evaluate().isEmpty &&
+          f.gameExport.error == null &&
+          exportWait.elapsed < const Duration(seconds: 60)) {
+        await pumpIo(tester, frames: 10);
+      }
       final page = tester.widget<StudioGameExportPage>(
         find.byType(StudioGameExportPage),
       );

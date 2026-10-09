@@ -392,13 +392,13 @@ final class _Inspection {
     final entries = _objects(json['materials'], 1024);
     for (final material in entries) {
       final mode = material['alphaMode'] ?? 'OPAQUE';
-      if (!['OPAQUE', 'MASK'].contains(mode) ||
+      if (!['OPAQUE', 'MASK', 'BLEND'].contains(mode) ||
           (mode == 'MASK' && material['alphaCutoff'] != .5) ||
-          (mode == 'OPAQUE' && material.containsKey('alphaCutoff')) ||
+          (mode != 'MASK' && material.containsKey('alphaCutoff')) ||
           (material.containsKey('doubleSided') &&
               material['doubleSided'] is! bool)) {
         throw const FormatException(
-            'Only OPAQUE or MASK with explicit alpha cutoff 0.5 and boolean doubleSided is supported.');
+            'OPAQUE and BLEND forbid alpha cutoff; MASK requires cutoff 0.5; doubleSided must be boolean.');
       }
       for (final key in [
         'normalTexture',
@@ -455,9 +455,11 @@ final class _Inspection {
         Model3dMaterial(
             index: i,
             name: _label(entries[i]['name'], 'Material ${i + 1}'),
-            alphaMode: entries[i]['alphaMode'] == 'MASK'
-                ? Model3dAlphaMode.mask
-                : Model3dAlphaMode.opaque,
+            alphaMode: switch (entries[i]['alphaMode']) {
+              'MASK' => Model3dAlphaMode.mask,
+              'BLEND' => Model3dAlphaMode.blend,
+              _ => Model3dAlphaMode.opaque,
+            },
             alphaCutoff: entries[i]['alphaMode'] == 'MASK' ? .5 : null,
             doubleSided: entries[i]['doubleSided'] as bool? ?? false)
     ];

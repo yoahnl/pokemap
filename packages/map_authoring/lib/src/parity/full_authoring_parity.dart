@@ -509,6 +509,36 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'map3d.instance.upsert_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/spatial_instance_batch_stdio.test.ts',
+    };
+  }
+  if (actionId == 'smart_tile.cell.paint_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/smart_tile_batch_stdio.test.ts',
+    };
+  }
+  if (actionId == 'model3d.import_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/model3d_import_batch_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/model3d_import_batch_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/model3d_batch_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('map3d.')) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
@@ -1159,6 +1189,12 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'map3d.instance.upsert_batch') {
+    return 'test/domains/maps/spatial_instance_batch_actions_test.dart';
+  }
+  if (actionId == 'smart_tile.cell.paint_batch') {
+    return 'test/domains/maps/smart_tile_cell_batch_actions_test.dart';
+  }
   for (final rule in _contractEvidenceRules) {
     if (rule.prefixes.any(actionId.startsWith)) return rule.testPath;
   }
@@ -1332,6 +1368,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['map3d.'],
     'test/domains/maps/spatial_map_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['model3d.import_batch'],
+    'test/domains/assets/model3d_import_batch_test.dart',
   ),
   _ContractEvidenceRule(
     ['model3d.'],

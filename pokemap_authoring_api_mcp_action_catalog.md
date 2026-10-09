@@ -1027,6 +1027,7 @@ smart_tile.animation.upsert
 smart_tile.atlas.upsert
 smart_tile.cell.erase
 smart_tile.cell.paint
+smart_tile.cell.paint_batch
 smart_tile.layer.change_preset
 smart_tile.layer.create
 smart_tile.layer.delete
@@ -1061,6 +1062,39 @@ quatre voisins (`seed`). Les listes `cells` explicites restent bornées à 4 096
 coordonnées, tandis qu’une sélection géométrique peut couvrir toute l’étendue de
 la map. Leur projection reste déterministe et conserve une seule
 transaction/annulation pour tout le geste.
+
+`smart_tile.cell.paint_batch` reçoit `{mapId, layerId, strokes}`, avec chaque
+stroke au format `{materialId, cells: [{x, y}]}`. Le lot porte sur une seule
+couche et accepte de 1 à 4 096 strokes, pour un total de 65 536 coordonnées
+entrantes au maximum. Les cellules répétées avec le même matériau sont
+dédupliquées ; une cellule revendiquée par deux matériaux différents est
+refusée. Toute entrée invalide refuse le lot entier avant projection. La
+projection réutilise les gestes Smart Tiles natifs, puis valide et sauvegarde
+une seule map avec une transaction/annulation pour tout le lot.
+
+Les lots de ressources et de placements 3D utilisent les contrats suivants :
+
+```text
+model3d.import_batch
+map3d.instance.upsert_batch
+```
+
+`model3d.import_batch` v1 reçoit `{models: [{modelId, name, artifactHandle}]}`.
+Le lot contient de 1 à 50 modèles et au maximum 64 Mio (67 108 864 octets) de
+GLB vérifiés, comptés pour chaque entrée même si plusieurs références partagent
+un blob. Les identités, les références opaques et tous les GLB sont vérifiés
+avant publication. Les ressources, le catalogue d'assets et le manifeste sont
+publiés avec leurs préimages et la récupération transactionnelle existante.
+La visibilité de plusieurs fichiers ne constitue pas une transaction atomique
+du projet entier.
+
+`map3d.instance.upsert_batch` v1 reçoit `{mapId, instances: [instance]}`, avec
+les mêmes champs de placement que `map3d.instance.upsert`. Le lot contient de
+1 à 50 instances sur une seule map 3D. Les identités doivent être distinctes,
+les modèles et les animations doivent exister et toutes les positions doivent
+être valides. Toute entrée invalide refuse le lot entier. La map est projetée
+et validée avant une seule écriture atomique et une seule annulation de lot ;
+les terrains, la caméra, la navigation et les autres instances sont conservés.
 
 Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
 sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou

@@ -6,6 +6,7 @@ import SwiftUI
 /// Splash, intro, title menu, saves and gameplay all live inside the runtime,
 /// so this view mounts it and stays out of the way.
 struct GamePlayerView: View {
+    @AppStorage("showDebugInfo") private var showDebug = false
     @ObservedObject var viewModel: GamePlayerViewModel
     let game: Game
     let onClose: () -> Void
@@ -26,7 +27,10 @@ struct GamePlayerView: View {
         .statusBarHidden()
         .task {
             await viewModel.start(game) { onClose() }
+            viewModel.setDebugEnabled(showDebug)
         }
+        .onChange(of: showDebug) { _, enabled in viewModel.setDebugEnabled(enabled) }
+        .onDisappear { viewModel.setDebugEnabled(false) }
     }
 
     private func errorOverlay(_ message: String) -> some View {

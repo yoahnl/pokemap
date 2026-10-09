@@ -65,18 +65,28 @@ extension _StudioGameExportContent on _StudioGameExportPageState {
           'Choisissez les validations prévues par le format du paquet.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        if (!widget.publicationAvailable) ...[
+          const SizedBox(height: 12),
+          const StudioNotice(
+            'L’export 3D est disponible en mode Test local. '
+            'La publication sera ouverte après validation complète sur iOS et Android, '
+            'y compris la reprise des sauvegardes après fermeture du jeu.',
+          ),
+        ],
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, bounds) {
             final cards = [
               StudioActionCard(
                 title: 'Publication',
-                subtitle: 'Paquet distribué dans Avelune Player',
+                subtitle: widget.publicationAvailable
+                    ? 'Paquet distribué dans Avelune Player'
+                    : 'Validation mobile en cours pour la 3D',
                 icon: Icons.rocket_launch_outlined,
                 tone: StudioTone.info,
                 selected: _publication,
                 compact: true,
-                onPressed: active
+                onPressed: active || !widget.publicationAvailable
                     ? null
                     : () => _edit(() => _publication = true),
               ),

@@ -88,7 +88,6 @@ void main() {
     );
     await overlay.onLoad();
     await overlay.waitForPendingVisualSync();
-    overlay.setUseFlutterCommandOverlay(true);
 
     final request = session.decisionRequest;
     expect(

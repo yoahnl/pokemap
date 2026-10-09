@@ -24,6 +24,7 @@ class StudioGameExportPage extends StatefulWidget {
     required this.hasPendingChanges,
     required this.isCurrentProject,
     required this.pickFile,
+    this.publicationAvailable = true,
     this.onBack,
   });
 
@@ -33,6 +34,7 @@ class StudioGameExportPage extends StatefulWidget {
   final bool Function() hasPendingChanges;
   final bool Function() isCurrentProject;
   final PickGameExportFile pickFile;
+  final bool publicationAvailable;
   final VoidCallback? onBack;
 
   @override
@@ -58,6 +60,7 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
   @override
   void initState() {
     super.initState();
+    _publication = widget.publicationAvailable;
     _subscription = widget.controller.changes.listen((_) => _changed());
     _load();
   }

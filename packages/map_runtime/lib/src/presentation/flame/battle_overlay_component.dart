@@ -6,7 +6,6 @@ import 'dart:ui' as ui show Image, instantiateImageCodec;
 import 'package:flutter/services.dart' show ByteData, rootBundle;
 
 import 'package:flame/components.dart';
-import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
@@ -17,7 +16,6 @@ import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
-import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
@@ -41,7 +39,6 @@ import 'battle_sdk_rmxp_animation_catalog.dart';
 import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
-import 'battle_scene_hud_component.dart';
 import 'battle_turn_animation_planner.dart';
 import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
@@ -506,7 +503,6 @@ class BattleOverlayComponent extends PositionComponent {
     this.playCry,
     this.onOutcomePresented,
     this.introEnabled = false,
-    this.outcomeBannerEnabled = true,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
@@ -515,8 +511,6 @@ class BattleOverlayComponent extends PositionComponent {
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
     BattleFxBundleCache? fxBundleCache,
-    bool preferTouchListDragScroll = false,
-    bool useFlutterCommandOverlay = false,
     bool allowMedicineReserveTargets = true,
     Map<int, double> playerExperienceProgressByLineupIndex = const {},
   })  : _session = session,
@@ -526,8 +520,6 @@ class BattleOverlayComponent extends PositionComponent {
         _moveCatalog = moveCatalog ??
             RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
         _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
-        _preferTouchListDragScroll = preferTouchListDragScroll,
-        _useFlutterCommandOverlay = useFlutterCommandOverlay,
         _allowMedicineReserveTargets = allowMedicineReserveTargets,
         _playerExperienceProgressByLineupIndex = Map<int, double>.unmodifiable(
           playerExperienceProgressByLineupIndex,
@@ -624,8 +616,6 @@ class BattleOverlayComponent extends PositionComponent {
 
   /// Échelle de texte demandée par le joueur, transmise au panneau de commande.
   final double textScale;
-  bool _preferTouchListDragScroll;
-  bool _useFlutterCommandOverlay;
   final bool _allowMedicineReserveTargets;
   bool _acceptsPlayerCommands = true;
 
@@ -633,18 +623,8 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSceneCombatantComponent? _enemyCombatant;
   BattleSceneCombatantComponent? _playerCombatant;
   BattleFxLayerComponent? _fxLayer;
-  BattleSceneHudComponent? _enemyHud;
-  BattleSceneHudComponent? _playerHud;
-  BattleCommandPanelComponent? _commandPanel;
   BattleDebugPanelComponent? _debugPanel;
-  TextComponent? _outcomeBanner;
 
-  /// Le texte du bandeau de fin, ou `null` quand il n'y en a pas.
-  ///
-  /// BETA-BAT-012 : exposé parce que le défaut portait précisément sur le
-  /// MOMENT où ce bandeau apparaît, et qu'aucun test ne pouvait le voir.
-  @visibleForTesting
-  String? get outcomeBannerText => _outcomeBanner?.text;
   Future<void>? _pendingVisualSync;
   // BETA-BAT-011 : le planner reçoit les MÊMES résolveurs que le HUD et le
   // menu. `late` parce qu'un initialiseur de champ ne peut pas lire `this`, et
@@ -654,11 +634,7 @@ class BattleOverlayComponent extends PositionComponent {
     speciesDisplayName: resolveSpeciesDisplayName,
     moveDisplayName: resolveMoveDisplayName,
     resolveCombatantBallItemId: resolveCombatantBallItemId,
-    // BETA-BAT-030 : un hôte qui coupe le bandeau d'issue présente la fin de
-    // combat DANS la scène (BETA-BAT-017) et joue déjà les messages du
-    // coordinator. Le plan de tour ne doit alors pas annoncer l'issue une
-    // seconde fois — la recette montrait trois annonces pour une fuite.
-    announcesOutcome: outcomeBannerEnabled,
+    announcesOutcome: false,
   );
   BattleAnimationRunner? _animationRunner;
   BattleSceneLayout? _sceneLayout;
@@ -692,16 +668,7 @@ class BattleOverlayComponent extends PositionComponent {
   void _handleShowTeamInfoStep() {
     if (_teamInfoRevealed) return;
     _teamInfoRevealed = true;
-    _applyTeamInfoVisibility();
     _syncPanelsOnly();
-  }
-
-  /// Le panneau Flame (hôte développeur) n'a pas d'animation de glissement :
-  /// il suit la même règle en visibilité, pour ne pas montrer des barres que
-  /// le shell joueur cache encore.
-  void _applyTeamInfoVisibility() {
-    _enemyHud?.isVisibleInScene = _teamInfoRevealed;
-    _playerHud?.isVisibleInScene = _teamInfoRevealed;
   }
 
   /// Les côtés dont la pose d'ENTRÉE doit survivre à la synchronisation —
@@ -729,9 +696,6 @@ class BattleOverlayComponent extends PositionComponent {
   final Map<String, Future<void>> _pendingBagIconPathsByItemId =
       <String, Future<void>>{};
 
-  @visibleForTesting
-  bool get commandPanelMounted => _commandPanel != null;
-
   bool get acceptsPlayerCommands => _acceptsPlayerCommands;
 
   /// BETA-BAT-017 : ferme les commandes sans éteindre l'UI de combat.
@@ -751,23 +715,9 @@ class BattleOverlayComponent extends PositionComponent {
   void lockForPostBattle() {
     if (!_acceptsPlayerCommands) return;
     _acceptsPlayerCommands = false;
-    _commandPanel?.removeFromParent();
-    _commandPanel = null;
     _currentCommandOverlaySnapshot = null;
     onCommandOverlaySnapshotChanged?.call(null);
   }
-
-  @visibleForTesting
-  bool get enemyHudMounted => _enemyHud != null;
-
-  @visibleForTesting
-  bool get playerHudMounted => _playerHud != null;
-
-  @visibleForTesting
-  BattleSceneHudComponent? get debugPlayerHud => _playerHud;
-
-  @visibleForTesting
-  BattleSceneHudComponent? get debugEnemyHud => _enemyHud;
 
   @visibleForTesting
   String? get debugCurrentAnimationMessage => _animationRunner?.currentMessage;
@@ -816,9 +766,6 @@ class BattleOverlayComponent extends PositionComponent {
       _playerCombatant?.currentVisualOffset;
 
   @visibleForTesting
-  bool get narrationPanelMounted => _commandPanel != null;
-
-  @visibleForTesting
   bool get debugPanelMounted => _debugPanel != null;
 
   @visibleForTesting
@@ -826,7 +773,6 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   String get currentPromptText =>
-      _commandPanel?.currentPromptText ??
       _currentCommandOverlaySnapshot?.prompt ??
       buildBattleDecisionPromptForSession(
         _session,
@@ -856,13 +802,6 @@ class BattleOverlayComponent extends PositionComponent {
   /// fin du plan, une seule fois, comme tout plan du runner.
   final bool introEnabled;
   BattleAnimationPlan? _pendingIntroPlan;
-
-  /// BETA-BAT-017 : quand l'hôte présente la fin de combat DANS la scène
-  /// (messages du coordinator joués par le runner), le bandeau flottant
-  /// « Victoire ! » ferait doublon — et il flasherait dans la fenêtre entre
-  /// la fin du dernier tour et le démarrage du plan de fin. L'hôte le coupe
-  /// au montage ; les harnais existants gardent l'ancien comportement.
-  final bool outcomeBannerEnabled;
 
   void startIntro() {
     if (_ballImagesDisposed) return;
@@ -1523,45 +1462,6 @@ class BattleOverlayComponent extends PositionComponent {
     await waitForPendingVisualSync();
   }
 
-  /// Le host garde la détection de plateforme/manette et pousse simplement une
-  /// préférence UX dans l'overlay.
-  ///
-  /// Cela évite de recréer une logique de hardware dans `map_runtime` tout en
-  /// gardant le panel battle tactile quand il n'y a pas de manette sur mobile.
-  void setPreferTouchListDragScroll(bool preferred) {
-    if (_preferTouchListDragScroll == preferred) {
-      return;
-    }
-    _preferTouchListDragScroll = preferred;
-    _commandPanel?.setPreferTouchListDragScroll(preferred);
-    _syncPanelsOnly();
-  }
-
-  /// Le host peut demander une chrome battle Flutter complète.
-  ///
-  /// Frontière volontaire :
-  /// - Flame garde le décor, les sprites et les flashes de hit ;
-  /// - Flutter reprend les HUDs et toute l'UI de décision ;
-  /// - aucun moteur battle parallèle n'est introduit ici.
-  void setUseFlutterCommandOverlay(bool preferred) {
-    if (_useFlutterCommandOverlay == preferred) {
-      return;
-    }
-    _useFlutterCommandOverlay = preferred;
-    if (preferred) {
-      _enemyHud?.removeFromParent();
-      _enemyHud = null;
-      _playerHud?.removeFromParent();
-      _playerHud = null;
-      _commandPanel?.removeFromParent();
-      _commandPanel = null;
-      _syncPanelsOnly();
-      return;
-    }
-    unawaited(_ensureFlameHudsMounted());
-    unawaited(_ensureCommandPanelMounted());
-  }
-
   @visibleForTesting
   BattleSceneLayout get currentSceneLayout =>
       _sceneLayout ??
@@ -1684,7 +1584,6 @@ class BattleOverlayComponent extends PositionComponent {
       // Parité `show_team_info` : les barres entrent APRÈS l'annonce.
       _teamInfoRevealed = false;
 
-      _applyTeamInfoVisibility();
       if (enemyUsesBall) {
         // Parité `enemy_sprites` : dans un combat de DRESSEUR, le Pokémon
         // adverse ne glisse pas — c'est le dresseur qui entre, puis sort en
@@ -1772,55 +1671,6 @@ class BattleOverlayComponent extends PositionComponent {
       onRmxpAnimation: _handleRmxpAnimationStep,
     );
 
-    if (!_useFlutterCommandOverlay) {
-      final enemyHudStopwatch = Stopwatch()..start();
-      _enemyHud = BattleSceneHudComponent(
-        position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
-        size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
-        ownerLabel: 'ENNEMI',
-        combatant: _session.state.enemy,
-        isPlayerSide: false,
-        initialGenderSymbol: _resolveCombatantGenderSymbol(
-          combatant: _session.state.enemy,
-          isPlayerSide: false,
-        ),
-        textScale: textScale,
-      );
-      await add(_enemyHud!);
-      enemyHudStopwatch.stop();
-      debugPrint(
-        '[perf][battle][real] overlay.enemyHud=${enemyHudStopwatch.elapsedMilliseconds}ms',
-      );
-
-      final playerHudStopwatch = Stopwatch()..start();
-      _playerHud = BattleSceneHudComponent(
-        position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
-        size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
-        ownerLabel: 'JOUEUR',
-        combatant: _session.state.player,
-        isPlayerSide: true,
-        initialGenderSymbol: _resolveCombatantGenderSymbol(
-          combatant: _session.state.player,
-          isPlayerSide: true,
-        ),
-        textScale: textScale,
-      );
-      await add(_playerHud!);
-      playerHudStopwatch.stop();
-      debugPrint(
-        '[perf][battle][real] overlay.playerHud=${playerHudStopwatch.elapsedMilliseconds}ms',
-      );
-    }
-
-    if (!_useFlutterCommandOverlay) {
-      final commandPanelStopwatch = Stopwatch()..start();
-      await _ensureCommandPanelMounted();
-      commandPanelStopwatch.stop();
-      debugPrint(
-        '[perf][battle][real] overlay.commandPanel=${commandPanelStopwatch.elapsedMilliseconds}ms',
-      );
-    }
-
     if (showDebugPanel) {
       final debugPanelStopwatch = Stopwatch()..start();
       _debugPanel = BattleDebugPanelComponent(
@@ -1847,82 +1697,6 @@ class BattleOverlayComponent extends PositionComponent {
     overlayStopwatch.stop();
     debugPrint(
       '[perf][battle][real] overlay.total=${overlayStopwatch.elapsedMilliseconds}ms',
-    );
-  }
-
-  Future<void> _ensureCommandPanelMounted() async {
-    if (_useFlutterCommandOverlay || _commandPanel != null) {
-      return;
-    }
-    final layout = currentSceneLayout;
-    final commandPanel = BattleCommandPanelComponent(
-      position: Vector2(
-        layout.commandPanelRect.left,
-        layout.commandPanelRect.top,
-      ),
-      size: Vector2(
-        layout.commandPanelRect.width,
-        layout.commandPanelRect.height,
-      ),
-      onChoiceSelected: _handleChoiceSelected,
-      onRootActionSelected: _handleRootActionSelected,
-      onPartyEntrySelected: _handlePartyEntrySelected,
-      onBagEntrySelected: _handleBagEntrySelected,
-      onMedicineTargetEntrySelected: _handleMedicineTargetEntrySelected,
-      onBackRequested: handleEscape,
-      onScrollUpRequested: moveSelectionUp,
-      onScrollDownRequested: moveSelectionDown,
-      bagItemIconResolver: bagItemIconResolver,
-      visualAssetCache: visualAssetCache,
-      layoutModeOverride: layout.commandPanelLayoutMode,
-      textScale: textScale,
-      preferTouchListDragScroll: _preferTouchListDragScroll,
-    );
-    _commandPanel = commandPanel;
-    await add(commandPanel);
-    _syncPanelsOnly();
-  }
-
-  Future<void> _ensureFlameHudsMounted() async {
-    if (_useFlutterCommandOverlay ||
-        (_enemyHud != null && _playerHud != null)) {
-      return;
-    }
-    final layout = currentSceneLayout;
-    if (_enemyHud == null) {
-      final enemyHud = BattleSceneHudComponent(
-        position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
-        size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
-        ownerLabel: 'ENNEMI',
-        combatant: _session.state.enemy,
-        isPlayerSide: false,
-        initialGenderSymbol: _resolveCombatantGenderSymbol(
-          combatant: _session.state.enemy,
-          isPlayerSide: false,
-        ),
-        textScale: textScale,
-      );
-      _enemyHud = enemyHud;
-      await add(enemyHud);
-    }
-    if (_playerHud == null) {
-      final playerHud = BattleSceneHudComponent(
-        position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
-        size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
-        ownerLabel: 'JOUEUR',
-        combatant: _session.state.player,
-        isPlayerSide: true,
-        initialGenderSymbol: _resolveCombatantGenderSymbol(
-          combatant: _session.state.player,
-          isPlayerSide: true,
-        ),
-        textScale: textScale,
-      );
-      _playerHud = playerHud;
-      await add(playerHud);
-    }
-    await _syncVisualState(
-      presentationGeneration: _presentationGeneration,
     );
   }
 
@@ -2013,28 +1787,9 @@ class BattleOverlayComponent extends PositionComponent {
       scenePlatformRect: layout.playerPlatformRect,
       sceneFootAnchor: layout.playerFootAnchor,
     );
-    _enemyHud?.updateBounds(
-      position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
-      size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
-    );
-    _playerHud?.updateBounds(
-      position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
-      size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
-    );
-    _commandPanel?.updateLayout(
-      position: Vector2(
-        layout.commandPanelRect.left,
-        layout.commandPanelRect.top,
-      ),
-      size: Vector2(
-        layout.commandPanelRect.width,
-        layout.commandPanelRect.height,
-      ),
-      modeOverride: layout.commandPanelLayoutMode,
-    );
     _debugPanel?.position = Vector2(size.x - 248, 32);
     _applyBattleCameraTransform();
-    _syncOutcomeBanner();
+    _notifyOutcomePresented();
     _syncPanelsOnly();
   }
 
@@ -2377,30 +2132,8 @@ class BattleOverlayComponent extends PositionComponent {
       combatant: displayedPlayerCombatant,
       preserveDisplayedCombatantSides: preserveDisplayedCombatantSides,
     );
-    _enemyHud?.sync(
-      combatant: displayedEnemyCombatant,
-      genderSymbol: _resolveCombatantGenderSymbol(
-        combatant: displayedEnemyCombatant,
-        isPlayerSide: false,
-      ),
-      startingDisplayedHp: _presentationStartingHpForSide(
-        side: BattleSideId.enemy,
-        previousSession: previousSession,
-      ),
-    );
-    _playerHud?.sync(
-      combatant: displayedPlayerCombatant,
-      genderSymbol: _resolveCombatantGenderSymbol(
-        combatant: displayedPlayerCombatant,
-        isPlayerSide: true,
-      ),
-      startingDisplayedHp: _presentationStartingHpForSide(
-        side: BattleSideId.player,
-        previousSession: previousSession,
-      ),
-    );
     _syncPanelsOnly();
-    _syncOutcomeBanner();
+    _notifyOutcomePresented();
   }
 
   void _restoreAliveCombatantPoseAfterSync({
@@ -2552,20 +2285,6 @@ class BattleOverlayComponent extends PositionComponent {
             partyNarration ??
             defaultNarration);
 
-    _commandPanel?.sync(
-      battleLabel: _titleForSession(),
-      prompt: resolvedPrompt,
-      narrationLines: resolvedNarration,
-      menuModel: menuModel,
-      partyMenuModel: partyMenuModel,
-      bagMenuModel: bagMenuModel,
-      medicineTargetMenuModel: medicineTargetMenuModel,
-      selectedPartyIndex: _selectedPartyIndex,
-      selectedBagIndex: _selectedBagIndex,
-      selectedMedicineTargetIndex: _selectedMedicineTargetIndex,
-      allowEmptyNarrationBody: isPresenting,
-      interactionsEnabled: !isPresenting,
-    );
     _publishCommandOverlaySnapshot(
       menuModel: menuModel,
       partyMenuModel: partyMenuModel,
@@ -2596,25 +2315,6 @@ class BattleOverlayComponent extends PositionComponent {
   void _publishPostBattleDecisionPresentation(
     _PostBattleDecisionRequest decision,
   ) {
-    final narrationLines = List<String>.unmodifiable(<String>[
-      for (var index = 0; index < decision.choices.length; index++)
-        '${index == _postBattleDecisionSelectedIndex ? '▶' : ' '} '
-            '${decision.choices[index]}',
-    ]);
-    _commandPanel?.sync(
-      battleLabel: _titleForSession(),
-      prompt: decision.prompt,
-      narrationLines: narrationLines,
-      menuModel: _currentMenuModel(),
-      partyMenuModel: _currentPartyMenuModel(),
-      bagMenuModel: _currentBagMenuModel(),
-      medicineTargetMenuModel: _currentMedicineTargetMenuModel(),
-      selectedPartyIndex: _selectedPartyIndex,
-      selectedBagIndex: _selectedBagIndex,
-      selectedMedicineTargetIndex: _selectedMedicineTargetIndex,
-      allowEmptyNarrationBody: false,
-      interactionsEnabled: false,
-    );
     final layout = currentSceneLayout;
     final snapshot = BattleCommandOverlaySnapshot(
       revision: ++_commandOverlayRevision,
@@ -2734,7 +2434,7 @@ class BattleOverlayComponent extends PositionComponent {
     final isHpTweenStep = presentationStep?.side == targetSide;
     final xpStep = isPlayerSide ? _animationRunner?.currentXpTweenStep : null;
     final heldHp = _presentationHeldHp[targetSide];
-    final koIsPresented = heldHp == null || heldHp <= 0;
+    final koIsPresented = !isHpTweenStep && (heldHp == null || heldHp <= 0);
     final statusLabel = combatant.isFainted && koIsPresented
         ? 'K.O.'
         : combatant.majorStatus?.id.name.toUpperCase();
@@ -3391,7 +3091,7 @@ class BattleOverlayComponent extends PositionComponent {
     return safeIndex;
   }
 
-  void _syncOutcomeBanner() {
+  void _notifyOutcomePresented() {
     final outcome = _session.state.outcome;
     // BETA-BAT-012 : deux horloges. L'issue est décidée dès que le tour est
     // CALCULÉ, bien avant d'être JOUÉ, et ce bandeau ne regardait que la
@@ -3405,66 +3105,10 @@ class BattleOverlayComponent extends PositionComponent {
     final outcomePresented = _session.state.isFinished &&
         outcome != null &&
         !_presentationPendingOrRunning;
-    // Recette du 2026-08-25 : « la musique de fin de combat s'est fait la
-    // malle ». Cette notification vivait DERRIÈRE le garde
-    // `outcomeBannerEnabled`, et couper le bandeau doublon (BETA-BAT-030) l'a
-    // donc coupée avec — alors qu'elle ne pilote pas un affichage mais la
-    // musique de victoire de l'hôte. Elle passe désormais quel que soit le
-    // sort du bandeau : une issue PRÉSENTÉE est un fait, pas une décoration.
     if (outcomePresented && !_outcomePresentedNotified) {
       _outcomePresentedNotified = true;
       onOutcomePresented?.call(outcome);
     }
-    if (!outcomeBannerEnabled) {
-      _outcomeBanner?.removeFromParent();
-      _outcomeBanner = null;
-      return;
-    }
-    if (!outcomePresented ||
-        !battleOutcomeIsAnnounced(
-          outcome,
-          isTrainerBattle: _session.setup.isTrainerBattle,
-        )) {
-      _outcomeBanner?.removeFromParent();
-      _outcomeBanner = null;
-      return;
-    }
-
-    final bannerText = _buildOutcomeHeadline(
-      outcome,
-      resolveSpeciesDisplayName,
-    );
-    final bannerColor = outcome.isVictory || outcome.isCaptured
-        ? const Color(0xFF8AE36A)
-        : const Color(0xFFFF8E75);
-
-    if (_outcomeBanner == null) {
-      _outcomeBanner = TextComponent(
-        text: bannerText,
-        position: Vector2(size.x / 2, size.y * 0.17),
-        anchor: Anchor.center,
-        textRenderer: TextPaint(
-          style: TextStyle(
-            color: bannerColor,
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        priority: 45,
-      );
-      add(_outcomeBanner!);
-      return;
-    }
-
-    _outcomeBanner!.text = bannerText;
-    _outcomeBanner!.position = Vector2(size.x / 2, size.y * 0.17);
-    _outcomeBanner!.textRenderer = TextPaint(
-      style: TextStyle(
-        color: bannerColor,
-        fontSize: 32,
-        fontWeight: FontWeight.w800,
-      ),
-    );
   }
 
   String _titleForSession() {
@@ -3913,11 +3557,6 @@ class BattleOverlayComponent extends PositionComponent {
 
   void _handleHudHpTweenStep(HudHpTweenStep step) {
     _presentationHeldHp[step.side] = step.toHp;
-    _hudForSide(step.side)?.animateDisplayedHp(
-      fromHp: step.fromHp,
-      toHp: step.toHp,
-      duration: step.durationMs / 1000,
-    );
   }
 
   void _handleHudXpTweenStep(HudXpTweenStep step) {
@@ -3947,10 +3586,6 @@ class BattleOverlayComponent extends PositionComponent {
 
   BattleSceneCombatantComponent? _combatantForSide(BattleSideId side) {
     return side == BattleSideId.player ? _playerCombatant : _enemyCombatant;
-  }
-
-  BattleSceneHudComponent? _hudForSide(BattleSideId side) {
-    return side == BattleSideId.player ? _playerHud : _enemyHud;
   }
 
   Rect? _combatantRenderedRectForSide(BattleSideId side) {
@@ -4132,13 +3767,6 @@ class BattleOverlayComponent extends PositionComponent {
         sceneCombatant.snapToBattlePose();
       }
     }
-    _hudForSide(side)?.sync(
-      combatant: combatant,
-      genderSymbol: _resolveCombatantGenderSymbol(
-        combatant: combatant,
-        isPlayerSide: side == BattleSideId.player,
-      ),
-    );
     _presentationLockedCombatantSides.remove(side);
     _syncPanelsOnly();
   }
@@ -4146,28 +3774,6 @@ class BattleOverlayComponent extends PositionComponent {
   bool _isCurrentPresentationGeneration(int presentationGeneration) {
     return !_ballImagesDisposed &&
         presentationGeneration == _presentationGeneration;
-  }
-
-  int? _presentationStartingHpForSide({
-    required BattleSideId side,
-    required BattleSession? previousSession,
-  }) {
-    if (previousSession == null ||
-        !_activeAnimationPlan.flattenedSteps
-            .whereType<HudHpTweenStep>()
-            .any((step) => step.side == side)) {
-      return null;
-    }
-    final previousCombatant = side == BattleSideId.player
-        ? previousSession.state.player
-        : previousSession.state.enemy;
-    final currentCombatant = side == BattleSideId.player
-        ? (_displayedPlayerCombatant ?? _session.state.player)
-        : (_displayedEnemyCombatant ?? _session.state.enemy);
-    if (!_isSameVisibleCombatant(previousCombatant, currentCombatant)) {
-      return null;
-    }
-    return previousCombatant.currentHp;
   }
 
   int _xpTweenRevisionFor(HudXpTweenStep targetStep) {
@@ -4192,14 +3798,6 @@ class BattleOverlayComponent extends PositionComponent {
       }
     }
     return 0;
-  }
-
-  bool _isSameVisibleCombatant(
-    BattleCombatant current,
-    BattleCombatant next,
-  ) {
-    return current.lineupIndex == next.lineupIndex &&
-        current.speciesId == next.speciesId;
   }
 }
 

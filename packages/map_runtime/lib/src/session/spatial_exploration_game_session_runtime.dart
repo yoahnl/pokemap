@@ -490,6 +490,12 @@ final class SpatialExplorationGameSessionRuntime
                 },
                 openWorldService: (request) async {
                   final result = await switch (request) {
+                    OpenTextInputService() =>
+                      Future<PlayerServiceRuntimeResult>.value(
+                        const PlayerServiceRuntimeResult.unavailable(
+                          'La saisie de texte en scène n’est pas disponible en 3D.',
+                        ),
+                      ),
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
                     OpenShopService(:final shopId) => openShop(

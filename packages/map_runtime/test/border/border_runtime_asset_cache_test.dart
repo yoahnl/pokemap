@@ -16,6 +16,88 @@ const _digest =
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('trimming evicts the least recently used unretained border image',
+      () async {
+    var loads = 0;
+    final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) async {
+      loads++;
+      return _runtimeImage();
+    });
+    addTearDown(cache.dispose);
+    final a = await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'a.png'));
+    final b = await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
+    expect(
+        await cache.loadFrame(
+            projectRoot: p.current, frame: _frame(fileName: 'a.png')),
+        same(a));
+    final c = await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'c.png'));
+    cache.trimToBudget(maxBytes: 8, retainedImages: [c]);
+    expect(a.isDisposed, isFalse);
+    expect(b.isDisposed, isTrue);
+    expect(c.isDisposed, isFalse);
+    final reloaded = await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
+    expect(reloaded, isNot(same(b)));
+    expect(reloaded.isDisposed, isFalse);
+    expect(loads, 4);
+  });
+
+  test('retained border images survive even when they exceed the budget',
+      () async {
+    final image = await _runtimeImage();
+    final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) async => image);
+    addTearDown(cache.dispose);
+    await cache.loadFrame(projectRoot: p.current, frame: _frame());
+    cache.trimToBudget(maxBytes: 0, retainedImages: [image]);
+    expect(image.isDisposed, isFalse);
+    cache.trimToBudget(maxBytes: 0, retainedImages: []);
+    expect(image.isDisposed, isTrue);
+  });
+
+  test('eviction removes every key sharing the same decoded image', () async {
+    var loads = 0;
+    final shared = await _runtimeImage();
+    final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) async {
+      loads++;
+      return loads <= 2 ? shared : await _runtimeImage();
+    });
+    addTearDown(cache.dispose);
+    await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'a.png'));
+    await cache.loadFrame(
+        projectRoot: p.current, frame: _frame(fileName: 'b.png'));
+    cache.trimToBudget(maxBytes: 0, retainedImages: []);
+    expect(shared.isDisposed, isTrue);
+    for (final name in ['a.png', 'b.png']) {
+      final image = await cache.loadFrame(
+          projectRoot: p.current, frame: _frame(fileName: name));
+      expect(image.isDisposed, isFalse);
+    }
+    expect(loads, 4);
+  });
+
+  test('trimming leaves in-flight loads alive until ownership is known',
+      () async {
+    final completer = Completer<RuntimeTilesetImage>();
+    final cache = BorderRuntimeAssetCache(
+        imageLoader: (absolutePath, {transparentColor}) => completer.future);
+    addTearDown(cache.dispose);
+    final pending = cache.loadFrame(projectRoot: p.current, frame: _frame());
+    cache.trimToBudget(maxBytes: 0, retainedImages: []);
+    final image = await _runtimeImage();
+    completer.complete(image);
+    expect(await pending, same(image));
+    expect(image.isDisposed, isFalse);
+    cache.trimToBudget(maxBytes: 0, retainedImages: []);
+    expect(image.isDisposed, isTrue);
+  });
+
   test('normalizes cache key path and ARGB to its low 24 RGB bits', () async {
     final calls = <({String path, String? rgb})>[];
     final image = await _runtimeImage();
@@ -244,6 +326,7 @@ void main() {
     );
     expect(paths[0], endsWith('frame_0000.png'));
     expect(paths[1], endsWith('frame_0001.png'));
+    expect(bundle.images, [image]);
   });
 }
 

@@ -35,7 +35,7 @@ final class GlbRendererLayout {
 
   Model3dMaterial _material(int index, Map<String, dynamic> raw) {
     if ((raw.containsKey('doubleSided') && raw['doubleSided'] is! bool) ||
-        ((raw['alphaMode'] ?? 'OPAQUE') == 'OPAQUE' &&
+        ((raw['alphaMode'] ?? 'OPAQUE') != 'MASK' &&
             raw['alphaCutoff'] != null)) {
       throw const FormatException(
         'Invalid doubleSided or opaque cutoff material.',
@@ -47,8 +47,9 @@ final class GlbRendererLayout {
       alphaMode: switch (raw['alphaMode']) {
         null || 'OPAQUE' => Model3dAlphaMode.opaque,
         'MASK' => Model3dAlphaMode.mask,
+        'BLEND' => Model3dAlphaMode.blend,
         _ => throw const FormatException(
-          'Only OPAQUE and MASK GLB materials are supported.',
+          'Only OPAQUE, MASK and BLEND GLB materials are supported.',
         ),
       },
       alphaCutoff: (raw['alphaCutoff'] as num?)?.toDouble(),
@@ -70,6 +71,8 @@ final class GlbRendererLayout {
             : json['materials'][materialIndex];
         final textureIndex =
             raw?['pbrMetallicRoughness']?['baseColorTexture']?['index'] as int?;
+        final colorFactor =
+            raw?['pbrMetallicRoughness']?['baseColorFactor'] as List?;
         final samplerIndex = textureIndex == null
             ? null
             : json['textures'][textureIndex]['sampler'] as int?;
@@ -84,7 +87,14 @@ final class GlbRendererLayout {
                 wrapS: sampler?['wrapS'] as int? ?? 10497,
                 wrapT: sampler?['wrapT'] as int? ?? 10497,
               )
-              ..albedoColor = source.albedoColor
+              ..albedoColor = colorFactor == null
+                  ? source.albedoColor
+                  : Color.from(
+                      red: (colorFactor[0] as num).toDouble(),
+                      green: (colorFactor[1] as num).toDouble(),
+                      blue: (colorFactor[2] as num).toDouble(),
+                      alpha: (colorFactor[3] as num).toDouble(),
+                    )
               ..cullMode = profile?.doubleSided == true
                   ? CullMode.none
                   : mirroredTransform

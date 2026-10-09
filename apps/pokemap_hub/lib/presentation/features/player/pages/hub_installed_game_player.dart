@@ -84,6 +84,14 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     }
     final spatial = owner._mountedSpatial;
     if (snapshot.phase == RuntimePlayerPhase.playing && spatial != null) {
+      final battle = spatial.battle?.battlePresentationListenable.value;
+      if (battle != null) {
+        return AveluneGameplayCompanionData(
+          mode: AveluneGameplayCompanionMode.battle,
+          battle: battle,
+          presentation: presentation,
+        );
+      }
       if (!spatial.inputAuthority.value.acceptsOverworldInput) {
         return AveluneGameplayCompanionData(
           mode: AveluneGameplayCompanionMode.blocked,
@@ -348,7 +356,10 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     AveluneGameplayCompanionSnapshot expected,
   ) {
     final game = owner._mountedGame;
-    final snapshot = game?.battleCommandOverlayListenable.value;
+    final spatialBattle = owner._mountedSpatial?.battle;
+    final snapshot =
+        game?.battleCommandOverlayListenable.value ??
+        spatialBattle?.battlePresentationListenable.value;
     if (expected.mode != AveluneGameplayCompanionMode.battle ||
         snapshot == null ||
         expected.battle == null ||
@@ -370,7 +381,9 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       _ => throw PlatformException(code: 'invalidIntent'),
     };
     if (!validateBattlePresentationCommand(snapshot, command).accepted ||
-        !game!.dispatchBattlePresentationCommand(command)) {
+        !(game?.dispatchBattlePresentationCommand(command) ??
+            spatialBattle?.dispatchBattlePresentationCommand(command) ??
+            false)) {
       throw PlatformException(code: 'unavailable');
     }
   }
@@ -686,7 +699,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       throw StateError('The player surface closed before the game mounted.');
     }
     game.setDialogueFlutterOverlayPreferred(true);
-    game.setBattleFlutterCommandOverlayPreferred(true);
     game.inputAuthorityListenable.addListener(_invalidateCompanion);
     game.battleCommandOverlayListenable.addListener(_invalidateCompanion);
     game.battleExitTransitionVisible.addListener(_invalidateCompanion);
@@ -713,6 +725,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final ready = Completer<void>();
     _spatialReady = ready;
     runtime.inputAuthority.addListener(_invalidateCompanion);
+    runtime.battle?.battlePresentationListenable.addListener(
+      _invalidateCompanion,
+    );
     setState(() => _mountedSpatial = runtime);
     _invalidateCompanion();
     await Future.any([ready.future, _mountWait.future]);
@@ -725,6 +740,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     SpatialExplorationGameSessionRuntime runtime,
   ) async {
     runtime.inputAuthority.removeListener(_invalidateCompanion);
+    runtime.battle?.battlePresentationListenable.removeListener(
+      _invalidateCompanion,
+    );
     if (!mounted || !identical(_mountedSpatial, runtime)) return;
     final ready = _spatialReady;
     if (ready != null && !ready.isCompleted) ready.complete();
@@ -1041,8 +1059,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       onDialogueCommand:
           _mountedGame?.dispatchDialoguePresentationCommand ??
           _mountedSpatial?.dispatchDialoguePresentationCommand,
-      battlePresentation: _mountedGame?.battleCommandOverlayListenable,
-      onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand,
+      battlePresentation:
+          _mountedGame?.battleCommandOverlayListenable ??
+          _mountedSpatial?.battle?.battlePresentationListenable,
+      onBattleCommand:
+          _mountedGame?.dispatchBattlePresentationCommand ??
+          _mountedSpatial?.battle?.dispatchBattlePresentationCommand,
       controlProfile: _controlProfile,
       onControlProfileChanged: _updateControlProfile,
       presentationFrame: presentationRuntime?.controller,

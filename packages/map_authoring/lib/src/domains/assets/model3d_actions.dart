@@ -20,14 +20,18 @@ final class Model3dActions {
   const Model3dActions({this.artifactStore, this.retainedBlobReader});
   final ArtifactStore? artifactStore;
   final RetainedAssetBlobReader? retainedBlobReader;
+  static const maximumModelCount = 50;
+  static const maximumTotalByteLength = 64 * 1024 * 1024;
 
   static final descriptors = [
-    for (final action in ['import', 'configure', 'delete'])
+    for (final action in ['import', 'import_batch', 'configure', 'delete'])
       AuthoringActionDescriptor(
         id: 'model3d.$action',
         version: 1,
         summary: switch (action) {
           'import' => 'Import an inspected standalone GLB model atomically',
+          'import_batch' =>
+            'Import 1 to 50 inspected GLB models in one recoverable publication',
           'configure' => 'Configure a model name, scale and pivot',
           _ => 'Delete an unused model and its owned source'
         },
@@ -46,54 +50,92 @@ final class Model3dActions {
         capabilityIds: const ['authoring.visual_library'],
         requiredPermissions: [
           AuthoringPermission.projectWrite,
-          if (action == 'import') AuthoringPermission.importRun
+          if (action.startsWith('import')) AuthoringPermission.importRun
         ],
-        guarantees: const [
+        guarantees: [
           AuthoringGuarantee.dryRun,
           AuthoringGuarantee.idempotent,
-          AuthoringGuarantee.atomic,
+          if (action != 'import_batch') AuthoringGuarantee.atomic,
           AuthoringGuarantee.revisionChecked,
           AuthoringGuarantee.undoable
         ],
         extensions: {
-          'inputSchema': {
-            'type': 'object',
-            'additionalProperties': false,
-            'required': [
-              'modelId',
-              if (action == 'import') ...['artifactHandle', 'name']
-            ],
-            'properties': {
-              'modelId': {
-                'type': 'string',
-                'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
-              },
-              if (action == 'import')
-                'artifactHandle': {'type': 'string', 'minLength': 1},
-              if (action != 'delete')
-                'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
-              if (action == 'configure') ...{
-                'scale': {
-                  'type': 'number',
-                  'exclusiveMinimum': 0,
-                  'maximum': 1000000
-                },
-                'pivot': {
-                  'type': 'object',
-                  'additionalProperties': false,
-                  'required': ['x', 'y', 'z'],
-                  'properties': {
-                    for (final axis in ['x', 'y', 'z']) axis: {'type': 'number'}
+          if (action == 'import_batch') ...{
+            'maximumModelCount': maximumModelCount,
+            'maximumTotalByteLength': maximumTotalByteLength,
+            'publicationSemantics': 'recoverable_cross_file',
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['models'],
+              'properties': {
+                'models': {
+                  'type': 'array',
+                  'minItems': 1,
+                  'maxItems': maximumModelCount,
+                  'items': {
+                    'type': 'object',
+                    'additionalProperties': false,
+                    'required': ['modelId', 'name', 'artifactHandle'],
+                    'properties': {
+                      'modelId': {
+                        'type': 'string',
+                        'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
+                      },
+                      'name': {
+                        'type': 'string',
+                        'minLength': 1,
+                        'maxLength': 256
+                      },
+                      'artifactHandle': {'type': 'string', 'minLength': 1}
+                    }
                   }
                 }
               }
             }
-          }
+          } else
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': [
+                'modelId',
+                if (action == 'import') ...['artifactHandle', 'name']
+              ],
+              'properties': {
+                'modelId': {
+                  'type': 'string',
+                  'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
+                },
+                if (action == 'import')
+                  'artifactHandle': {'type': 'string', 'minLength': 1},
+                if (action != 'delete')
+                  'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
+                if (action == 'configure') ...{
+                  'scale': {
+                    'type': 'number',
+                    'exclusiveMinimum': 0,
+                    'maximum': 1000000
+                  },
+                  'pivot': {
+                    'type': 'object',
+                    'additionalProperties': false,
+                    'required': ['x', 'y', 'z'],
+                    'properties': {
+                      for (final axis in ['x', 'y', 'z'])
+                        axis: {'type': 'number'}
+                    }
+                  }
+                }
+              }
+            }
         },
       ),
   ];
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
+    if (context.request.actionId == 'model3d.import_batch') {
+      return _importBatch(context);
+    }
     final parameters = VisualLibraryParameters(context.request.parameters);
     final action = context.request.actionId;
     parameters.allow(switch (action) {
@@ -214,6 +256,139 @@ final class Model3dActions {
         : null;
     return _compose(context, manifest,
         before: current, after: null, assetDraft: assetDraft);
+  }
+
+  Future<AuthoringMutationDraft> _importBatch(
+      AuthoringPlanningContext context) async {
+    final parameters = VisualLibraryParameters(context.request.parameters)
+      ..allow(const {'models'});
+    final inputs = parameters.objects('models');
+    if (inputs.isEmpty || inputs.length > maximumModelCount) {
+      throw const FormatException('Expected 1 to 50 model imports.');
+    }
+    final store = artifactStore;
+    if (store == null) {
+      throw const FormatException('An artifact store is required.');
+    }
+    final handles = {
+      for (final input in inputs)
+        if (input['artifactHandle'] is String) input['artifactHandle'] as String
+    };
+    try {
+      final identities =
+          context.snapshot.manifest.models3d.map((model) => model.id).toSet();
+      final artifacts = <String, ContentArtifactRef>{};
+      final entries = <({String id, String name, String handle})>[];
+      var byteLength = 0;
+      for (final input in inputs) {
+        final fields = VisualLibraryParameters(input)
+          ..allow(const {'modelId', 'name', 'artifactHandle'});
+        final id = fields.string('modelId');
+        if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
+            !identities.add(id)) {
+          throw const FormatException('Model identity is invalid or in use.');
+        }
+        final name = fields.string('name');
+        if (name.length > 256) {
+          throw const FormatException('Model name exceeds 256 characters.');
+        }
+        final handle = fields.string('artifactHandle');
+        final artifact = store.inspect(handle);
+        if (artifact == null) {
+          throw const FormatException('The staged model is unavailable.');
+        }
+        if (artifact.mediaType != 'model/gltf-binary') {
+          throw const FormatException('Model sources must be GLB artifacts.');
+        }
+        byteLength += artifact.byteLength;
+        if (byteLength > maximumTotalByteLength) {
+          throw const FormatException('Model batch exceeds 64 MiB.');
+        }
+        artifacts[handle] = artifact;
+        entries.add((id: id, name: name, handle: handle));
+      }
+      final assetDraft =
+          await _asset(context, context.snapshot, 'asset.import_batch', {
+        'entries': [
+          for (final entry in entries)
+            {
+              'artifactHandle': entry.handle,
+              'assetId': 'model3d_${entry.id}',
+              'logicalPath': 'assets/models3d/${entry.id}.glb'
+            }
+        ]
+      });
+      final payloads = {
+        for (final change in assetDraft.changeSet.changes)
+          change.storageKey: change.afterBytes
+      };
+      final inspections = <String, Model3dInspection>{};
+      final models = <ProjectModel3dEntry>[];
+      var actualByteLength = 0;
+      for (final entry in entries) {
+        final path = 'assets/models3d/${entry.id}.glb';
+        final bytes = payloads[path]!;
+        final artifact = artifacts[entry.handle]!;
+        actualByteLength += bytes.length;
+        if (actualByteLength > maximumTotalByteLength) {
+          throw const FormatException('Model batch exceeds 64 MiB.');
+        }
+        final actual =
+            ContentArtifactRef.fromBytes(bytes, mediaType: artifact.mediaType);
+        if (actual.digest != artifact.digest ||
+            actual.byteLength != artifact.byteLength) {
+          throw const FormatException('The staged model content changed.');
+        }
+        final inspection = inspections.putIfAbsent(
+            entry.handle, () => const GlbModel3dInspector().inspect(bytes));
+        models.add(ProjectModel3dEntry(
+            id: entry.id,
+            name: entry.name,
+            sourceAssetId: 'model3d_${entry.id}',
+            relativePath: path,
+            inspection: inspection));
+      }
+      final manifest = context.snapshot.manifest.copyWith(
+          models3d: [...context.snapshot.manifest.models3d, ...models]);
+      final projectDraft = buildVisualManifestDraft(context.snapshot, manifest,
+          operation: context.request.actionId,
+          path: '/models3d',
+          before: context.snapshot.manifest.models3d
+              .map((model) => model.toJson())
+              .toList(),
+          after: manifest.models3d.map((model) => model.toJson()).toList());
+      final result = AuthoringMutationDraft(
+          changeSet: AuthoringChangeSet(
+              changes: [
+                ...assetDraft.changeSet.changes,
+                ...projectDraft.changeSet.changes
+              ],
+              diff: AuthoringDiff([
+                ...assetDraft.changeSet.diff.entries,
+                ...projectDraft.changeSet.diff.entries
+              ])),
+          projectedProject: manifest,
+          preview: {
+            'operation': context.request.actionId,
+            'importedCount': models.length,
+            'modelIds': models.map((model) => model.id).toList(),
+            'totalByteLength': actualByteLength,
+            'publicationSemantics': 'recoverable_cross_file'
+          },
+          artifacts: assetDraft.artifacts,
+          referenceImpact: assetDraft.referenceImpact);
+      if (context.request.dryRun) {
+        for (final handle in handles) {
+          await store.release(handle);
+        }
+      }
+      return result;
+    } on Object {
+      for (final handle in handles) {
+        await store.release(handle);
+      }
+      rethrow;
+    }
   }
 
   Future<AuthoringMutationDraft> _asset(

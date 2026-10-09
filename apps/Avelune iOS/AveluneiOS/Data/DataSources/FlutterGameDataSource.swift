@@ -8,6 +8,7 @@ import Foundation
 @MainActor
 final class FlutterGameDataSource {
     private let channel: FlutterMethodChannel
+    private let diagnostics: FlutterMethodChannel
 
     var onPlayerExit: (() -> Void)?
 
@@ -16,6 +17,17 @@ final class FlutterGameDataSource {
             name: "com.avelune.runtime/library",
             binaryMessenger: engine.binaryMessenger
         )
+        diagnostics = FlutterMethodChannel(
+            name: "com.avelune.runtime/diagnostics",
+            binaryMessenger: engine.binaryMessenger
+        )
+        diagnostics.setMethodCallHandler { call, result in
+            if call.method == "processSample" {
+                result(NativeProcessMetrics.read())
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
         channel.setMethodCallHandler { [weak self] call, result in
             if call.method == "playerDidExit" {
                 self?.onPlayerExit?()
@@ -48,7 +60,12 @@ final class FlutterGameDataSource {
     }
 
     func stop() async throws {
+        setDebugEnabled(false)
         _ = try await invoke("stopGame", arguments: nil)
+    }
+
+    func setDebugEnabled(_ enabled: Bool) {
+        diagnostics.invokeMethod("setEnabled", arguments: ["enabled": enabled])
     }
 
     private func games(from payload: Any?) throws -> [Game] {

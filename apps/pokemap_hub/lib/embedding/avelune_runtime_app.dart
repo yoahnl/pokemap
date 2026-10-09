@@ -11,6 +11,8 @@ import 'avelune_library_bridge.dart';
 import 'avelune_gameplay_companion.dart';
 import 'avelune_surface_probe.dart';
 import 'avelune_surface_probe_app.dart';
+import 'avelune_debug_hud.dart';
+import 'avelune_runtime_diagnostics.dart';
 
 class AveluneRuntimeApp extends StatefulWidget {
   const AveluneRuntimeApp({super.key});
@@ -33,6 +35,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
     },
   );
   final _probe = AveluneSurfaceProbeController();
+  final _diagnostics = AveluneRuntimeDiagnostics();
   late final _probeBridge = AveluneSurfaceProbeBridge(
     _probe,
     canStart: () => _bridge.playing.value == null && _companion.value == null,
@@ -41,6 +44,8 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
   @override
   void initState() {
     super.initState();
+    _diagnostics.attach();
+    _bridge.playing.addListener(_updateDiagnosticsSession);
     _probeBridge.attach();
     _companionBridge.attach();
     _bridge.attach();
@@ -48,6 +53,8 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
 
   @override
   void dispose() {
+    _bridge.playing.removeListener(_updateDiagnosticsSession);
+    _diagnostics.dispose();
     unawaited(_companionBridge.stopOwnedSession());
     _probeBridge.detach();
     _companionBridge.detach();
@@ -56,6 +63,9 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
     _bridge.detach();
     super.dispose();
   }
+
+  void _updateDiagnosticsSession() =>
+      _diagnostics.setPlaying(_bridge.playing.value != null);
 
   @override
   Widget build(BuildContext context) {
@@ -75,43 +85,50 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
           }
           final game = _bridge.playing.value;
           if (game == null) return const SizedBox.expand();
-          return HubInstalledGamePlayer(
-            key: ValueKey<String>('${game.gameId}:${_bridge.playerGeneration}'),
-            controller: _playerController,
-            companionOwner: _companion,
-            onCompanionInput: _companionBridge.forwardInput,
-            beforePlayerStops: _companionBridge.stopOwnedSession,
-            supportRoot: _bridge.supportRoot,
-            saveRepositoryFactory:
-                (root, identity) =>
-                    HubSaveStore(supportRoot: root, identity: identity),
-            preferencesRepository: HubPreferencesStore(
-              supportRoot: _bridge.supportRoot,
-            ),
-            controlProfileRepository: HubControlProfileStore(
-              supportRoot: _bridge.supportRoot,
-            ),
-            launchResolver: _bridge.launchResolver,
-            game: game,
-            hostBranding: aveluneRuntimeSplashBranding,
-            splashLogo: AssetImage(
-              Platform.isAndroid
-                  ? 'assets/avelune/logo/avelune_symbol_android.png'
-                  : 'assets/avelune/logo/avelune_moon.png',
-              package: 'pokemap_hub',
-            ),
-            splashWordmark: const AssetImage(
-              'assets/avelune/logo/avelune_glass_wordmark.png',
-              package: 'pokemap_hub',
-            ),
-            diagnosticLogFile: File(
-              p.join(
-                _bridge.supportRoot.path,
-                'logs',
-                'avelune-${Platform.operatingSystem}-player.log',
+          return Stack(
+            children: [
+              HubInstalledGamePlayer(
+                key: ValueKey<String>(
+                  '${game.gameId}:${_bridge.playerGeneration}',
+                ),
+                controller: _playerController,
+                companionOwner: _companion,
+                onCompanionInput: _companionBridge.forwardInput,
+                beforePlayerStops: _companionBridge.stopOwnedSession,
+                supportRoot: _bridge.supportRoot,
+                saveRepositoryFactory:
+                    (root, identity) =>
+                        HubSaveStore(supportRoot: root, identity: identity),
+                preferencesRepository: HubPreferencesStore(
+                  supportRoot: _bridge.supportRoot,
+                ),
+                controlProfileRepository: HubControlProfileStore(
+                  supportRoot: _bridge.supportRoot,
+                ),
+                launchResolver: _bridge.launchResolver,
+                game: game,
+                hostBranding: aveluneRuntimeSplashBranding,
+                splashLogo: AssetImage(
+                  Platform.isAndroid
+                      ? 'assets/avelune/logo/avelune_symbol_android.png'
+                      : 'assets/avelune/logo/avelune_moon.png',
+                  package: 'pokemap_hub',
+                ),
+                splashWordmark: const AssetImage(
+                  'assets/avelune/logo/avelune_glass_wordmark.png',
+                  package: 'pokemap_hub',
+                ),
+                diagnosticLogFile: File(
+                  p.join(
+                    _bridge.supportRoot.path,
+                    'logs',
+                    'avelune-${Platform.operatingSystem}-player.log',
+                  ),
+                ),
+                onHubRequested: _bridge.requestExit,
               ),
-            ),
-            onHubRequested: _bridge.requestExit,
+              AveluneDebugHud(diagnostics: _diagnostics),
+            ],
           );
         },
       ),
