@@ -232,7 +232,7 @@ C'est le point d'entrée pour créer et modifier le contenu. Les dépendances in
 )
 ```
 
-Le host permet de sélectionner un dossier de projet contenant `project.json`. Le dépôt fournit notamment le projet [`selbrume`](selbrume/) et un scénario de référence décrit dans le [README du host](examples/playable_runtime_host/README.md).
+Le host permet de sélectionner un dossier de projet contenant `project.json`. Pour tester votre aventure, utiliser une copie de travail du projet créé ou ouvert dans Avelune Studio. Le [README du host](examples/playable_runtime_host/README.md) décrit ses options de lancement.
 
 ### 📱 Préparer Avelune iOS sur simulateur
 
@@ -264,7 +264,7 @@ Le premier script prépare le runtime embarqué. Le second exécute les tests Ko
 
 Pour découvrir Avelune, commencer par une petite boucle jouable plutôt que par une région entière.
 
-1. **Ouvrir un projet d'exemple ou préparer un projet dans l'éditeur.** Pour expérimenter avec Selbrume, travailler sur une copie du dossier et conserver ses ressources ensemble.
+1. **Créer ou ouvrir votre projet dans Avelune Studio.** Pour expérimenter, travailler sur une copie du dossier et conserver ses ressources ensemble.
 2. **Construire un lieu simple.** Préparer une carte, ses collisions, un point d'apparition et une sortie. Vérifier d'abord que le joueur peut se déplacer et quitter le lieu.
 3. **Ajouter une interaction.** Placer un personnage ou un événement, lui associer un dialogue et vérifier ses conditions d'activation.
 4. **Relier une mécanique.** Ajouter une rencontre, un combat, un objet ou un service selon les capacités configurées dans le projet.
@@ -303,7 +303,6 @@ avelune/
 │   └── gamepads_ios/
 ├── examples/
 │   └── playable_runtime_host/
-├── selbrume/
 ├── documentation/
 ├── tools/
 │   └── release/
@@ -383,7 +382,7 @@ Pour l'éditeur, les primitives d'interface et les couleurs passent par le desig
 
 Un projet local s'organise autour de `project.json`, de ses cartes et des ressources auxquelles ses données font référence. Déplacer uniquement le fichier JSON ne suffit pas lorsque le projet utilise des fichiers associés.
 
-L'arborescence exacte dépend du contenu et du schéma. Pour découvrir un exemple réel, parcourir [`selbrume`](selbrume/) plutôt que construire un fichier JSON minimal à partir d'un exemple incomplet.
+L'arborescence exacte dépend du contenu et du schéma. Créer ou ouvrir le projet dans Avelune Studio, puis conserver son dossier complet pour les tests et les échanges plutôt que construire un fichier JSON minimal à partir d'un exemple incomplet.
 
 ### État de la partie
 
@@ -546,20 +545,6 @@ Le parcours d'export de l'éditeur s'appuie sur les contrats de distribution. V�
 
 Les projets 3D peuvent actuellement être exportés pour un **test local** (`localTest`). Leur publication comme jeu distribué est encore refusée par les validations de distribution.
 
-### Construire une application Selbrume autonome
-
-Le [README du host](examples/playable_runtime_host/README.md) documente une commande dédiée :
-
-```bash
-(
-  cd examples/playable_runtime_host &&
-  flutter pub get &&
-  dart run tool/package_selbrume_macos.dart --project ../../selbrume --release
-)
-```
-
-Ce parcours embarque le projet dans les ressources de l'application et produit ses artefacts sous le dossier `build/mvp-release/` du host. La documentation de ce package MVP cible **Apple Silicon (`arm64`)**, avec signature ad hoc ; ce parcours n'équivaut pas à une distribution Developer ID notarisée.
-
 ### Distribuer Avelune
 
 Avelune utilise les hôtes natifs SwiftUI et Kotlin/Compose, avec leurs [scripts iOS](apps/Avelune%20iOS/tool/), [scripts Android](apps/avelune_android/tool/) et configurations propres. La [distribution Android](.github/workflows/avelune_android_release.yml) publie sur le canal de test interne Google Play. La [certification produit](.github/workflows/pokemap_product_certification.yml) reste un parcours manuel distinct des releases Studio.
@@ -602,8 +587,7 @@ Pour suivre les priorités, commencer par la [roadmap mécanique](pokemap_roadma
 | Suivre la complétude des mécaniques et leurs critères de validation | [Roadmap mécanique fangame](pokemap_roadmap_mecaniques_fangame.md) |
 | Examiner les opérations d'authoring et les contrats MCP | [Catalogue d'actions](pokemap_authoring_api_mcp_action_catalog.md) |
 | Configurer, utiliser et vérifier le serveur local | [Guide du serveur MCP Avelune](tools/pokemap_mcp/README.md) |
-| Lancer un projet, le golden slice ou le packaging Selbrume | [README du host](examples/playable_runtime_host/README.md) |
-| Explorer un projet de référence | [`selbrume/`](selbrume/) |
+| Lancer un projet ou le scénario de référence golden slice | [README du host](examples/playable_runtime_host/README.md) |
 | Retrouver les spécifications, audits et rapports | [`documentation/`](documentation/) |
 | Comprendre les contrôles et distributions automatisés | [Workflows GitHub Actions](.github/workflows/) |
 
@@ -663,7 +647,7 @@ L'objectif de l'éditeur est de rendre les parcours de création courants access
 
 ### Avelune est-il lui-même un jeu Pokémon terminé ?
 
-Non. C'est l'environnement de création et d'exécution. Les aventures, leurs données et leurs ressources constituent des projets distincts, comme le projet de référence Selbrume.
+Non. C'est l'environnement de création et d'exécution. Les aventures, leurs données et leurs ressources constituent des projets distincts que leurs auteurs créent avec Avelune Studio.
 
 <a id="licence"></a>
 
