@@ -19,6 +19,10 @@ final class SpatialGroundPlan {
   SpatialGroundPlan(MapData map, ProjectManifest project)
     : scene = map.spatialScene {
     final catalog = project.smartTileCatalog;
+    final materials = {
+      for (final material in catalog.materials) material.id: material,
+    };
+    final bridgeCells = <(int, int)>{};
     if (scene?.cliffFrame case final frame?) {
       _addFrame(frame, catalog);
       final atlas = catalog.atlases.firstWhere((a) => a.id == frame.atlasId);
@@ -43,6 +47,26 @@ final class SpatialGroundPlan {
           .firstOrNull;
       if (preset == null)
         throw StateError('Terrain absent : ${layer.presetId}');
+      final spatial = scene;
+      if (spatial != null && layer.usage == SmartTileUsage.path) {
+        for (var z = 0; z < spatial.depth; z++) {
+          for (var x = 0; x < spatial.width; x++) {
+            final material =
+                materials[smartTileMaterialIdAt(
+                  layer,
+                  mapSize: map.size,
+                  x: x,
+                  y: z,
+                )];
+            if (material == null || material.isEmpty) continue;
+            if (material.pathSurfaceKind == PathSurfaceKind.bridge) {
+              bridgeCells.add((x, z));
+            } else {
+              bridgeCells.remove((x, z));
+            }
+          }
+        }
+      }
       _plans.add(
         buildSmartTileLayerVisualPlan(
           map: map,
@@ -74,9 +98,11 @@ final class SpatialGroundPlan {
         }
       }
     }
+    this.bridgeCells = Set.unmodifiable(bridgeCells);
   }
 
   final MapSpatialScene? scene;
+  late final Set<(int, int)> bridgeCells;
   ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
   final _plans = <SmartTileLayerVisualPlan>[];
   final _opacities = <double>[];

@@ -8,6 +8,77 @@ import 'package:test/test.dart';
 
 void main() {
   group('native Smart Tile direct/JSONL parity', () {
+    test('material batch persists 217 materials identically through direct and JSONL', () async {
+      final direct = await _Harness.create('materials_direct', spatial: true);
+      final jsonl = await _Harness.create('materials_jsonl', spatial: true);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final beforeMap = await direct.mapBytes();
+      final beforeProject = await direct.projectBytes();
+      final materials = [
+        for (var index = 0; index < 217; index++)
+          {
+            'id': index == 0 ? 'grass' : 'boardwalk-$index',
+            'name': 'Boardwalk $index',
+            'connectionGroupId': 'wood',
+            'pathSurfaceKind': 'bridge',
+          },
+      ];
+      final invalid = {
+        'materials': [materials.first, materials.first],
+      };
+      await expectLater(
+        direct.planDirect(
+          actionId: 'smart_tile.material.upsert_batch',
+          parameters: invalid,
+          sequence: 'invalid-materials',
+        ),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.material.batch_duplicate',
+          ),
+        ),
+      );
+      final rejected = await jsonl.planJsonlFailure(
+        actionId: 'smart_tile.material.upsert_batch',
+        parameters: invalid,
+        sequence: 'invalid-materials',
+      );
+      expect(
+        rejected.error?.details['domainCode'],
+        'smart_tile.material.batch_duplicate',
+      );
+      expect(await direct.projectBytes(), beforeProject);
+      expect(await jsonl.projectBytes(), beforeProject);
+      final parameters = {'materials': materials};
+      await direct.applyDirectAction(
+        actionId: 'smart_tile.material.upsert_batch',
+        parameters: parameters,
+        sequence: 'materials',
+      );
+      await jsonl.applyJsonlAction(
+        actionId: 'smart_tile.material.upsert_batch',
+        parameters: parameters,
+        sequence: 'materials',
+      );
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), beforeMap);
+      expect(await jsonl.mapBytes(), beforeMap);
+      final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(await direct.projectBytes()))
+            as Map<String, dynamic>,
+      );
+      expect(manifest.smartTileCatalog.materials, hasLength(217));
+      expect(
+        manifest.smartTileCatalog.materials.every(
+          (material) => material.pathSurfaceKind == PathSurfaceKind.bridge,
+        ),
+        isTrue,
+      );
+    });
+
     for (final spatial in [false, true]) {
       test('paint batch is atomic through direct and JSONL with spatial=$spatial',
           () async {
@@ -58,61 +129,145 @@ void main() {
       });
     }
 
-    test('paint batch is discoverable and persisted by the canonical CLI',
+    for (final actionId in [
+      'smart_tile.cell.paint_batch',
+      'smart_tile.material.upsert_batch',
+    ]) {
+      test(
+        '$actionId is discoverable and persisted by the canonical CLI',
         () async {
-      final harness = await _Harness.create('batch_cli', spatial: true);
-      addTearDown(harness.dispose);
-      await harness.applyDirectFlow();
-      final process = await Process.start('dart',
-        ['run', 'bin/pokemap_authoring.dart', '--root', harness.root.path]);
-      final errors = process.stderr.transform(utf8.decoder).join();
-      final lines = StreamIterator(process.stdout.transform(utf8.decoder)
-        .transform(const LineSplitter()));
-      var requestIndex = 0;
-      Future<Map<String, Object?>> request(String command,
-          Map<String, Object?> arguments) async {
-        process.stdin.writeln(jsonEncode({
-          'id': 'cli-batch-${requestIndex++}', 'command': command, 'args': arguments,
-        }));
-        await process.stdin.flush();
-        expect(await lines.moveNext().timeout(const Duration(seconds: 20)), isTrue);
-        final result = AuthoringResult.fromJson(jsonDecode(lines.current)
-          as Map<String, dynamic>);
-        expect(result.status, AuthoringResultStatus.success,
-          reason: result.error?.toJson().toString());
-        return result.data;
-      }
-      try {
-        final description = await request('describe', {});
-        expect((description['mutationActions'] as List)
-          .whereType<Map>().map((item) => item['id']),
-          contains('smart_tile.cell.paint_batch'));
-        final opened = await request('open', {'projectRoot': harness.root.path});
-        final validation = await request('validate', {'projectHandle': opened['projectHandle']});
-        final plan = await request('plan', {
-          'projectHandle': opened['projectHandle'],
-          'request': _request(
-            workspaceHandle: opened['workspaceHandle'] as String,
-            revision: validation['snapshotRevision'] as String,
-            actionId: 'smart_tile.cell.paint_batch',
-            parameters: {'mapId': 'map', 'layerId': 'terrain',
-              'strokes': [{'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}]}]},
-            sequence: 'cli-batch',
-          ).toJson(),
-        });
-        await request('apply', {'projectHandle': opened['projectHandle'],
-          'planId': plan['planId'], 'operationId': 'operation-cli-batch'});
-        final painted = MapData.fromJson(jsonDecode(utf8.decode(await harness.mapBytes()))
-          as Map<String, dynamic>);
-        expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer), [1]);
-      } finally {
-        await process.stdin.close();
-        await lines.cancel();
-        final code = await process.exitCode.timeout(const Duration(seconds: 20),
-          onTimeout: () { process.kill(); return -1; });
-        expect(code, 0, reason: await errors);
-      }
-    });
+          final harness = await _Harness.create('batch_cli', spatial: true);
+          addTearDown(harness.dispose);
+          if (actionId == 'smart_tile.cell.paint_batch') {
+            await harness.applyDirectFlow();
+          }
+          final beforeMap = await harness.mapBytes();
+          final process = await Process.start('dart', [
+            'run',
+            'bin/pokemap_authoring.dart',
+            '--root',
+            harness.root.path,
+          ]);
+          final errors = process.stderr.transform(utf8.decoder).join();
+          final lines = StreamIterator(
+            process.stdout
+                .transform(utf8.decoder)
+                .transform(const LineSplitter()),
+          );
+          var requestIndex = 0;
+          Future<Map<String, Object?>> request(
+            String command,
+            Map<String, Object?> arguments,
+          ) async {
+            process.stdin.writeln(
+              jsonEncode({
+                'id': 'cli-batch-${requestIndex++}',
+                'command': command,
+                'args': arguments,
+              }),
+            );
+            await process.stdin.flush();
+            expect(
+              await lines.moveNext().timeout(const Duration(seconds: 20)),
+              isTrue,
+            );
+            final result = AuthoringResult.fromJson(
+              jsonDecode(lines.current) as Map<String, dynamic>,
+            );
+            expect(
+              result.status,
+              AuthoringResultStatus.success,
+              reason: result.error?.toJson().toString(),
+            );
+            return result.data;
+          }
+
+          try {
+            final description = await request('describe', {});
+            expect(
+              (description['mutationActions'] as List).whereType<Map>().map(
+                (item) => item['id'],
+              ),
+              contains(actionId),
+            );
+            final opened = await request('open', {
+              'projectRoot': harness.root.path,
+            });
+            final validation = await request('validate', {
+              'projectHandle': opened['projectHandle'],
+            });
+            final plan = await request('plan', {
+              'projectHandle': opened['projectHandle'],
+              'request': _request(
+                workspaceHandle: opened['workspaceHandle'] as String,
+                revision: validation['snapshotRevision'] as String,
+                actionId: actionId,
+                parameters: actionId == 'smart_tile.cell.paint_batch'
+                    ? {
+                        'mapId': 'map',
+                        'layerId': 'terrain',
+                        'strokes': [
+                          {
+                            'materialId': 'grass',
+                            'cells': [
+                              {'x': 0, 'y': 0},
+                            ],
+                          },
+                        ],
+                      }
+                    : {
+                        'materials': [
+                          {
+                            'id': 'grass',
+                            'name': 'Grass',
+                            'connectionGroupId': 'ground',
+                            'pathSurfaceKind': 'bridge',
+                          },
+                        ],
+                      },
+                sequence: 'cli-batch',
+              ).toJson(),
+            });
+            await request('apply', {
+              'projectHandle': opened['projectHandle'],
+              'planId': plan['planId'],
+              'operationId': 'operation-cli-batch',
+            });
+            if (actionId == 'smart_tile.cell.paint_batch') {
+              final painted = MapData.fromJson(
+                jsonDecode(utf8.decode(await harness.mapBytes()))
+                    as Map<String, dynamic>,
+              );
+              expect(
+                smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+                [1],
+              );
+            } else {
+              final manifest = ProjectManifest.fromJson(
+                jsonDecode(utf8.decode(await harness.projectBytes()))
+                    as Map<String, dynamic>,
+              );
+              expect(
+                manifest.smartTileCatalog.materials.single.pathSurfaceKind,
+                PathSurfaceKind.bridge,
+              );
+              expect(await harness.mapBytes(), beforeMap);
+            }
+          } finally {
+            await process.stdin.close();
+            await lines.cancel();
+            final code = await process.exitCode.timeout(
+              const Duration(seconds: 20),
+              onTimeout: () {
+                process.kill();
+                return -1;
+              },
+            );
+            expect(code, 0, reason: await errors);
+          }
+        },
+      );
+    }
 
     test(
         'flat 3D paint erase persists byte-identically through direct and JSONL',

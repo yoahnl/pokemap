@@ -7,6 +7,144 @@ import 'package:map_render_3d/src/spatial_ground.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 void main() {
+  test('bridge cells follow visible path materials and layer precedence', () {
+    const materialIds = ['road', 'bridge', 'empty'];
+    final catalog = ProjectSmartTileCatalog(
+      materials: const [
+        ProjectSmartTileMaterial(
+          id: 'road',
+          name: 'Road',
+          connectionGroupId: 'road',
+          pathSurfaceKind: PathSurfaceKind.road,
+        ),
+        ProjectSmartTileMaterial(
+          id: 'bridge',
+          name: 'Bridge',
+          connectionGroupId: 'bridge',
+          pathSurfaceKind: PathSurfaceKind.bridge,
+        ),
+        ProjectSmartTileMaterial(
+          id: 'empty',
+          name: 'Empty',
+          connectionGroupId: 'empty',
+          pathSurfaceKind: PathSurfaceKind.bridge,
+          isEmpty: true,
+        ),
+      ],
+      atlases: const [
+        ProjectSmartTileAtlas(
+          id: 'atlas',
+          name: 'Atlas',
+          tilesetId: 'tiles',
+          columns: 1,
+          rows: 1,
+        ),
+      ],
+      presets: [
+        ProjectSmartTilePreset(
+          id: 'path',
+          name: 'Path',
+          usage: SmartTileUsage.path,
+          topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          coveragePolicy: SmartTileCoveragePolicy.sparse,
+          coverageProfile: const SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
+          ),
+          transformPolicy: const SmartTileTransformPolicy(),
+          defaultMaterialId: 'road',
+          allowedMaterialIds: materialIds,
+          rules: [
+            for (final materialId in materialIds.take(2))
+              SmartTileRule(
+                id: materialId,
+                centerMatch: SmartTileSlotMatch.material(materialId),
+                candidates: const [
+                  SmartTileCandidate(
+                    id: 'frame',
+                    parts: [
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                            atlasId: 'atlas',
+                            column: 0,
+                            row: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ],
+    );
+    const bridgeLayer = SmartTileLayer(
+      id: 'bridge',
+      name: 'Bridge',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+      materialPalette: ['', 'road', 'bridge', 'empty'],
+      field: SmartTileField.cell(semanticCells: [2, 2, 0, 2]),
+    );
+    const roadLayer = SmartTileLayer(
+      id: 'road',
+      name: 'Road',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+      materialPalette: ['', 'bridge', 'empty', 'road'],
+      field: SmartTileField.cell(semanticCells: [0, 3, 1, 2]),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 2, height: 2),
+      spatialScene: MapSpatialScene(
+        width: 2,
+        depth: 2,
+        heightLevels: [3, 2, 1, 3],
+      ),
+      layers: [roadLayer, bridgeLayer],
+    );
+    final project = ProjectManifest(
+      name: 'Map',
+      version: ProjectVersion.v9,
+      maps: const [],
+      tilesets: const [],
+      smartTileCatalog: catalog,
+    );
+    Set<(int, int)> bridges(MapData value) {
+      return SpatialGroundPlan(value, project).bridgeCells;
+    }
+
+    expect(bridges(map), {(0, 0), (0, 1), (1, 1)});
+    expect(bridges(map.copyWith(layers: [bridgeLayer, roadLayer])), {
+      (0, 0),
+      (1, 0),
+      (0, 1),
+      (1, 1),
+    });
+    expect(
+      bridges(map.copyWith(properties: {'tileLayerOrder': 'bottom_to_top'})),
+      {(0, 0), (1, 0), (0, 1), (1, 1)},
+    );
+    for (final excluded in [
+      bridgeLayer.copyWith(isVisible: false),
+      bridgeLayer.copyWith(opacity: 0),
+      bridgeLayer.copyWith(usage: SmartTileUsage.terrain),
+    ]) {
+      expect(bridges(map.copyWith(layers: [excluded, roadLayer])), {(0, 1)});
+    }
+    expect(bridges(map.copyWith(layers: [])), isEmpty);
+    expect(
+      bridges(map.copyWith(spatialScene: null, version: ProjectVersion.v8)),
+      isEmpty,
+    );
+    expect(map.spatialScene!.heightLevels, [3, 2, 1, 3]);
+  });
+
   test('cliff-only ground plans preload their selected atlas frame', () {
     final scene = MapSpatialScene(
       width: 1,

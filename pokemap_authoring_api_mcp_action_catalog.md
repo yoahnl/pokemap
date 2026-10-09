@@ -1036,6 +1036,7 @@ smart_tile.layer.normalize
 smart_tile.layer.reconstruct
 smart_tile.layer.set_animation_activation
 smart_tile.material.upsert
+smart_tile.material.upsert_batch
 smart_tile.pattern.delete
 smart_tile.pattern.erase
 smart_tile.pattern.paint
@@ -1048,6 +1049,15 @@ smart_tile.preset.publish
 tileset.tiled.import
 tileset.tiled.wang_bundle.delete
 ```
+
+`smart_tile.material.upsert_batch` v1 reçoit `{materials: [...]}` avec 1 à 250
+documents natifs de matériau. Les identifiants répétés sont refusés ; chaque
+document utilise le même décodage strict que `smart_tile.material.upsert`.
+Le catalogue fusionné passe un seul préflight projet et produit une seule
+mutation atomique du manifeste, révisionnée et annulable en un lot. Les autres
+entrées du catalogue et les cartes sont conservées. Le diff porte uniquement
+sur les matériaux du lot et utilise la projection Smart Tile bornée existante.
+Le workflow éditeur unitaire reste inchangé.
 
 `smart_tile.preset.draft.import` v1 reçoit `{draftId, artifactHandle}`. L’artefact
 doit être un objet JSON UTF-8 de type `application/json`, limité à 8 MiB, dont

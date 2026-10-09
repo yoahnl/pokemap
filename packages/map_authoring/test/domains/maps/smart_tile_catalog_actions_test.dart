@@ -40,6 +40,7 @@ void main() {
           'smart_tile.animation.upsert',
           'smart_tile.atlas.upsert',
           'smart_tile.material.upsert',
+          'smart_tile.material.upsert_batch',
           'smart_tile.pattern.delete',
           'smart_tile.pattern.upsert',
           'smart_tile.preset.delete',
@@ -207,6 +208,128 @@ void main() {
         projectedManifest.smartTileCatalog.drafts,
         const <ProjectSmartTileAuthoringDraft>[_draft],
       );
+    });
+
+    test('material batch advertises its bounded atomic input', () {
+      final descriptor = SmartTileCatalogActions.descriptors.singleWhere(
+        (item) => item.id == 'smart_tile.material.upsert_batch',
+      );
+      expect(descriptor.extensions['maximumMaterialCount'], 250);
+      expect(descriptor.extensions['batchAtomicity'], 'all_or_nothing');
+      expect(descriptor.extensions['undoBoundary'], 'batch');
+      final schema = descriptor.extensions['inputSchema'] as Map;
+      final materials = (schema['properties'] as Map)['materials'] as Map;
+      expect(materials['minItems'], 1);
+      expect(materials['maxItems'], 250);
+    });
+
+    test('material batch updates one manifest and preserves the catalog', () {
+      final preset =
+          _preset().copyWith(status: SmartTilePresetStatus.published);
+      final fixture =
+          _fixture(preset: preset, patterns: [_pattern], drafts: [_draft]);
+      final materials = [
+        _material().copyWith(pathSurfaceKind: PathSurfaceKind.bridge),
+        const ProjectSmartTileMaterial(
+          id: 'boardwalk',
+          name: 'Boardwalk',
+          connectionGroupId: 'wood',
+          pathSurfaceKind: PathSurfaceKind.bridge,
+          editorColorArgb: 0xffaa7733,
+        ),
+      ];
+      final draft = const SmartTileCatalogActions().build(_context(
+        fixture,
+        actionId: 'smart_tile.material.upsert_batch',
+        parameters: {
+          'materials': [for (final material in materials) material.toJson()]
+        },
+      ));
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.changeSet.changes.single.resource.kind, 'project');
+      expect(draft.changeSet.changes.single.beforeBytes,
+          fixture.snapshot.resourceBytes('project'));
+      expect(draft.changeSet.diff.entries, hasLength(1));
+      expect(draft.changeSet.diff.entries.single.path,
+          '/smartTileCatalog/materials');
+      expect(draft.preview['materialCount'], 2);
+      expect(draft.preview['materialIds'], ['boardwalk', 'grass']);
+      expect(draft.preview['addedMaterialCount'], 1);
+      expect(draft.preview['updatedMaterialCount'], 1);
+      expect(draft.preview['projectWidePreflight'], 'passed');
+      final projected = ProjectManifest.fromJson(
+          jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+              as Map<String, dynamic>);
+      expect(projected.smartTileCatalog.materials, materials.reversed.toList());
+      expect(projected.smartTileCatalog.atlases,
+          fixture.manifest.smartTileCatalog.atlases);
+      expect(projected.smartTileCatalog.presets, [preset]);
+      expect(projected.smartTileCatalog.patterns, [_pattern]);
+      expect(projected.smartTileCatalog.drafts, [_draft]);
+      expect(projected.maps, fixture.manifest.maps);
+      expect(projected.version, fixture.manifest.version);
+    });
+
+    test('material batch rejects empty oversized duplicate and malformed input',
+        () {
+      final fixture = _fixture();
+      final material = _material().toJson();
+      for (final (materials, code) in <(List<Object?>, String)>[
+        ([], 'smart_tile.material.batch_invalid'),
+        (List.filled(251, material), 'smart_tile.material.batch_invalid'),
+        ([material, material], 'smart_tile.material.batch_duplicate'),
+        (
+          [
+            material,
+            {'id': 'broken'}
+          ],
+          'smart_tile.request_invalid'
+        ),
+        (
+          [
+            material,
+            {...material, 'id': 'broken', 'sortOrder': 1.5}
+          ],
+          'smart_tile.request_invalid'
+        ),
+        ([material, 'broken'], 'map.request_invalid'),
+      ]) {
+        expect(
+            () => const SmartTileCatalogActions().build(_context(
+                  fixture,
+                  actionId: 'smart_tile.material.upsert_batch',
+                  parameters: {'materials': materials},
+                )),
+            throwsA(isA<MapAuthoringException>()
+                .having((error) => error.code, 'code', code)));
+        expect(fixture.snapshot.manifest, fixture.manifest);
+      }
+    });
+
+    test('material batch accepts 250 materials and summarizes large diffs', () {
+      final fixture = _fixture();
+      final materials = [
+        for (var index = 0; index < 250; index++)
+          _material()
+              .copyWith(
+                  id: 'material-$index', name: 'Material $index ${'x' * 512}')
+              .toJson()
+      ];
+      final draft = const SmartTileCatalogActions().build(_context(
+        fixture,
+        actionId: 'smart_tile.material.upsert_batch',
+        parameters: {'materials': materials},
+      ));
+      expect(draft.preview['materialCount'], 250);
+      final summary = (draft.changeSet.diff.entries.single.after
+          as Map)['documentSummary'] as Map;
+      expect((summary['counts'] as Map)['materials'], 250);
+      expect(summary['byteLength'] as int, greaterThan(64 * 1024));
+      final projected = ProjectManifest.fromJson(
+          jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+              as Map<String, dynamic>);
+      expect(projected.smartTileCatalog.materials, hasLength(251));
+      expect(projected.smartTileCatalog.materials.first.name, 'Grass');
     });
 
     test('preserves a v7 manifest through a Smart Tile mutation', () {

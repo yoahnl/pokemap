@@ -679,6 +679,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           snapshot.edge,
           selectedCell: placement.active ? snapshot.selectedCell : null,
           paintedCells: groundPlan?.paintedCells,
+          bridgeCells: groundPlan?.bridgeCells ?? const {},
           cliffTexture: groundPlan?.cliff == null
               ? null
               : (
@@ -1435,6 +1436,7 @@ Iterable<Mesh> terrainMeshes(
   Color edge, {
   (int, int)? selectedCell,
   Set<(int, int)>? paintedCells,
+  Set<(int, int)> bridgeCells = const {},
   ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
 }) sync* {
   final groups =
@@ -1478,6 +1480,7 @@ Iterable<Mesh> terrainMeshes(
   }
 
   for (final face in spatialTerrainFaces(scene)) {
+    if (!face.isTop && bridgeCells.contains(face.cell)) continue;
     if (face.isTop &&
         paintedCells != null &&
         !paintedCells.contains(face.cell)) {

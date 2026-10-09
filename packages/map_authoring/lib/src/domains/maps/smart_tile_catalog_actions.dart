@@ -31,6 +31,7 @@ final class SmartTileCatalogActions {
 
   final ArtifactStore? artifactStore;
   static const maximumDraftArtifactBytes = 8 * 1024 * 1024;
+  static const maximumMaterialBatchCount = 250;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
@@ -65,6 +66,14 @@ final class SmartTileCatalogActions {
       _descriptor(
         'smart_tile.material.upsert',
         'Create or replace a canonical Smart Tile material',
+        resourceKinds: const <String>[
+          'project',
+          'smartTileMaterial',
+        ],
+      ),
+      _descriptor(
+        'smart_tile.material.upsert_batch',
+        'Create or replace a bounded batch of canonical Smart Tile materials atomically',
         resourceKinds: const <String>[
           'project',
           'smartTileMaterial',
@@ -154,6 +163,7 @@ final class SmartTileCatalogActions {
     return switch (planning.request.actionId) {
       'smart_tile.atlas.upsert' => _upsertAtlas(planning),
       'smart_tile.material.upsert' => _upsertMaterial(planning),
+      'smart_tile.material.upsert_batch' => _upsertMaterialBatch(planning),
       'smart_tile.animation.upsert' => _upsertAnimation(planning),
       'smart_tile.animation.delete' => _deleteAnimation(planning),
       'smart_tile.pattern.upsert' => _upsertPattern(planning),
@@ -238,6 +248,81 @@ final class SmartTileCatalogActions {
       path: '/smartTileCatalog/materials/${material.id}',
       before: before?.toJson(),
       after: material.toJson(),
+    );
+  }
+
+  AuthoringMutationDraft _upsertMaterialBatch(
+      AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'materials'},
+    );
+    final documents = parameters.list('materials');
+    if (documents.isEmpty || documents.length > maximumMaterialBatchCount) {
+      throw semanticFailure(
+        'smart_tile.material.batch_invalid',
+        'A Smart Tile material batch must contain between 1 and $maximumMaterialBatchCount materials.',
+        details: {
+          'materialCount': documents.length,
+          'maximumMaterialCount': maximumMaterialBatchCount,
+        },
+      );
+    }
+    final replacements = <String, ProjectSmartTileMaterial>{};
+    for (var index = 0; index < documents.length; index++) {
+      final document = documents[index];
+      final field = 'materials[$index]';
+      if (document is! Map || document.keys.any((key) => key is! String)) {
+        throw invalidSemanticField(field, 'a JSON object');
+      }
+      final material = _decode(
+        Map<String, Object?>.from(document),
+        field: field,
+        decode: ProjectSmartTileMaterial.fromJson,
+      );
+      if (replacements.containsKey(material.id)) {
+        throw semanticFailure(
+          'smart_tile.material.batch_duplicate',
+          'A Smart Tile material batch cannot repeat a material id.',
+          details: {'materialId': material.id, 'parameter': field},
+        );
+      }
+      replacements[material.id] = material;
+    }
+    final existing = planning.snapshot.manifest.smartTileCatalog;
+    final before = existing.materials
+        .where((material) => replacements.containsKey(material.id))
+        .toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    final after = replacements.values.toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    final merged = <String, ProjectSmartTileMaterial>{
+      for (final material in existing.materials) material.id: material,
+      ...replacements,
+    }.values.toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(
+        planning.snapshot.manifest,
+        _catalogWith(existing, materials: merged),
+      ),
+      operation: 'smart_tile.material.upsert_batch',
+      path: '/smartTileCatalog/materials',
+      before: {
+        'materials': [for (final material in before) material.toJson()]
+      },
+      after: {
+        'materials': [for (final material in after) material.toJson()]
+      },
+      preview: {
+        'materialCount': after.length,
+        'materialIds': [for (final material in after) material.id],
+        'addedMaterialCount': after.length - before.length,
+        'updatedMaterialCount': before.length,
+        'batchAtomicity': 'all_or_nothing',
+        'undoBoundary': 'batch',
+      },
     );
   }
 

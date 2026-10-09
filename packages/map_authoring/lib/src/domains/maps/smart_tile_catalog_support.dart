@@ -28,6 +28,29 @@ AuthoringActionDescriptor _descriptor(
       extensions: <String, Object?>{
         'catalogFormatVersion': ProjectSmartTileCatalog.currentFormatVersion,
         'projectWidePreflight': true,
+        if (id == 'smart_tile.material.upsert_batch') ...{
+          'maximumMaterialCount':
+              SmartTileCatalogActions.maximumMaterialBatchCount,
+          'batchAtomicity': 'all_or_nothing',
+          'undoBoundary': 'batch',
+          'duplicateMaterialIds': 'reject',
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'materials': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': SmartTileCatalogActions.maximumMaterialBatchCount,
+                'items': {
+                  'type': 'object',
+                  'required': ['id', 'name', 'connectionGroupId'],
+                },
+              },
+            },
+            'required': ['materials'],
+          },
+        },
         if (id == 'smart_tile.preset.delete' ||
             id == 'smart_tile.preset.draft.delete')
           'inputSchema': {

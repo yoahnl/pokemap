@@ -163,6 +163,43 @@ void main() {
       isTrue,
     );
   });
+  test('bridge cells keep tops and neighboring relief without solid walls', () {
+    final scene = MapSpatialScene(width: 3, depth: 1, heightLevels: [4, 0, 4]);
+    final meshes = terrainMeshes(
+      scene,
+      const Color(0xff125588),
+      const Color(0xff113344),
+      bridgeCells: {(0, 0)},
+    );
+    final surfaces = meshes.expand((mesh) => mesh.surfaces).toList();
+    final positions = [
+      for (final surface in surfaces)
+        for (var i = 0; i < surface.positions.length; i += 3)
+          Vector3.array(surface.positions, i),
+    ];
+    expect(
+      positions.where((point) => point.x < 1).every((point) => point.y == 4),
+      isTrue,
+    );
+    expect(positions.any((point) => point.x < 1 && point.y == 4), isTrue);
+    expect(positions.any((point) => point.x > 2 && point.y < 4), isTrue);
+    expect(scene.heightLevels, [4, 0, 4]);
+  });
+  test('bridge wall suppression preserves the painted top mask', () {
+    final meshes = terrainMeshes(
+      MapSpatialScene(width: 2, depth: 1, heightLevels: [4, 0]),
+      const Color(0xff125588),
+      const Color(0xff113344),
+      bridgeCells: {(0, 0)},
+      paintedCells: {},
+    );
+    final positions = [
+      for (final surface in meshes.expand((mesh) => mesh.surfaces))
+        for (var i = 0; i < surface.positions.length; i += 3)
+          Vector3.array(surface.positions, i),
+    ];
+    expect(positions.where((point) => point.x < 1), isEmpty);
+  });
   test('cell picking handles top, cliff faces, empty space and grid edges', () {
     final scene = MapSpatialScene(
       width: 2,

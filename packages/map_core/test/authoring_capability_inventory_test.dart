@@ -285,6 +285,7 @@ void main() {
           'smart_tile.layer.reconstruct',
           'smart_tile.layer.set_animation_activation',
           'smart_tile.material.upsert',
+          'smart_tile.material.upsert_batch',
           'smart_tile.pattern.delete',
           'smart_tile.pattern.erase',
           'smart_tile.pattern.paint',

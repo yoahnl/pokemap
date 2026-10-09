@@ -541,6 +541,16 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/spatial_instance_batch_stdio.test.ts',
     };
   }
+  if (actionId == 'smart_tile.material.upsert_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/smart_tile_material_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.cell.paint_batch') {
     return const {
       AuthoringTransport.directApi:

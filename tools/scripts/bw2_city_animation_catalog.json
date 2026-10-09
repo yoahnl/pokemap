@@ -1,0 +1,140 @@
+{
+  "cities": [
+    {
+      "id": "amaillide",
+      "sourceId": "587487"
+    },
+    {
+      "id": "ondes-sur-mer",
+      "sourceId": "587566"
+    },
+    {
+      "id": "arpentieres",
+      "sourceId": "587493"
+    },
+    {
+      "id": "vaguelone",
+      "sourceId": "587557"
+    },
+    {
+      "id": "papeloa",
+      "sourceId": "587491"
+    },
+    {
+      "id": "volucite-01",
+      "sourceId": "587458"
+    },
+    {
+      "id": "volucite-02",
+      "sourceId": "587459"
+    },
+    {
+      "id": "volucite-03",
+      "sourceId": "587460"
+    },
+    {
+      "id": "volucite-04",
+      "sourceId": "587461"
+    },
+    {
+      "id": "volucite-05",
+      "sourceId": "587462"
+    },
+    {
+      "id": "volucite-06",
+      "sourceId": "587463"
+    },
+    {
+      "id": "volucite-07",
+      "sourceId": "587464"
+    },
+    {
+      "id": "volucite-08",
+      "sourceId": "587465"
+    },
+    {
+      "id": "volucite-09",
+      "sourceId": "587466"
+    },
+    {
+      "id": "volucite-10",
+      "sourceId": "587467"
+    },
+    {
+      "id": "volucite-11",
+      "sourceId": "587468"
+    },
+    {
+      "id": "volucite-12",
+      "sourceId": "587470"
+    },
+    {
+      "id": "volucite-13",
+      "sourceId": "587471"
+    },
+    {
+      "id": "volucite-14",
+      "sourceId": "587472"
+    },
+    {
+      "id": "port-yoneuve",
+      "sourceId": "587480"
+    },
+    {
+      "id": "meanville-01",
+      "sourceId": "587503"
+    },
+    {
+      "id": "meanville-02",
+      "sourceId": "587504"
+    },
+    {
+      "id": "parsemille",
+      "sourceId": "587497"
+    },
+    {
+      "id": "janusia-noir2",
+      "sourceId": "587506"
+    },
+    {
+      "id": "janusia-blanc2",
+      "sourceId": "587507"
+    },
+    {
+      "id": "entrelasque",
+      "sourceId": "583951"
+    },
+    {
+      "id": "renouet",
+      "sourceId": "587505"
+    },
+    {
+      "id": "arabelle",
+      "sourceId": "583956"
+    },
+    {
+      "id": "ogoesse",
+      "sourceId": "587552"
+    },
+    {
+      "id": "maillard",
+      "sourceId": "587500"
+    },
+    {
+      "id": "flocombe",
+      "sourceId": "587492"
+    },
+    {
+      "id": "rotombourg",
+      "sourceId": "583957"
+    },
+    {
+      "id": "ville-noire",
+      "sourceId": "587457"
+    },
+    {
+      "id": "foret-blanche",
+      "sourceId": "587570"
+    }
+  ]
+}
