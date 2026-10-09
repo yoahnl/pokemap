@@ -51,3 +51,6 @@ packages/map_editor/test/**/failures/
 # Golden comparison artifacts produced by failing runs (any package/app)
 **/test/**/failures/
 /output/
+apps/hgss_render_lab/
+apps/pavonnay_3d_sources/
+apps/unys_3d_sources/
