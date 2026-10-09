@@ -88,6 +88,116 @@ void main() {
     expect(f.mutations.artifacts.list(), isEmpty);
   });
 
+  test('JSONL batch plans exclude existing models and unrelated large presets',
+      () async {
+    final inspection = const GlbModel3dInspector().inspect(triangleGlb());
+    final existing = [
+      for (var i = 0; i < 300; i++)
+        ProjectModel3dEntry(
+            id: 'existing-$i',
+            name: 'Existing $i',
+            sourceAssetId: 'model3d_existing-$i',
+            relativePath: 'assets/models3d/existing-$i.glb',
+            inspection: Model3dInspection(
+                bounds: inspection.bounds,
+                meshCount: 1,
+                triangleCount: 1,
+                diagnostics: ['existing inspection ' * 512]))
+    ];
+    final catalog = ProjectSmartTileCatalog(drafts: [
+      ProjectSmartTileAuthoringDraft(
+          id: 'unrelated-draft',
+          targetPresetId: 'unrelated-preset',
+          name: 'Unrelated large preset',
+          usage: SmartTileUsage.terrain,
+          lastStage: SmartTileAuthoringStage.image,
+          coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.explicit,
+              requiredScenarios: [
+                for (var i = 0; i < 5000; i++)
+                  SmartTileCoverageScenario(id: 'unrelated-scenario-$i')
+              ]))
+    ]);
+    final f = await _Fixture.create(
+        manifest: ProjectManifest(
+            name: 'Large library',
+            maps: [],
+            tilesets: [],
+            models3d: existing,
+            smartTileCatalog: catalog));
+    addTearDown(f.dispose);
+    final beforeBytes = await f.projectFile.readAsBytes();
+    final ids = [for (var i = 0; i < 50; i++) 'new-$i'];
+    final planned = await f.plan(await f.models(ids));
+    expect(planned.status, AuthoringResultStatus.success);
+    final wire = jsonEncode(planned.toJson());
+    expect(utf8.encode(wire).length, lessThan(512 * 1024));
+    expect(wire, isNot(contains('existing inspection')));
+    expect(wire, isNot(contains('unrelated-scenario')));
+    final diff = AuthoringDiff.fromJson(
+        ((planned.data['plan'] as Map)['changeSet'] as Map)['diff']);
+    final modelDiffs =
+        diff.entries.where((entry) => entry.resource.kind == 'project');
+    expect(modelDiffs.map((entry) => entry.path).toSet(),
+        ids.map((id) => '/models3d/$id').toSet());
+    expect(
+        modelDiffs
+            .every((entry) => entry.operation == AuthoringDiffOperation.add),
+        isTrue);
+    expect(await f.projectFile.readAsBytes(), beforeBytes);
+    expect((await f.apply(planned)).status, AuthoringResultStatus.success);
+    final after = await f.snapshot();
+    expect(after.manifest.models3d.take(existing.length), existing);
+    expect(
+        after.manifest.models3d.skip(existing.length).map((model) => model.id),
+        ids);
+    expect(after.manifest.smartTileCatalog, catalog);
+  });
+
+  test(
+      'large inspected models use bounded diffs with complete frozen postimages',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    final bytes = triangleGlb(edit: (json) {
+      json['materials'] = [
+        for (var i = 0; i < 500; i++) {'name': 'Material $i ${'x' * 240}'}
+      ];
+      json['meshes'][0]['primitives'][0]['material'] = 0;
+    });
+    final handle = await f.stage('many-materials', bytes: bytes);
+    final request = f.authoringRequest([_model('large', handle)],
+        expectedRevision: (await f.snapshot()).revision);
+    final planned = await f.mutations.planMutation(f.project, request);
+    expect(
+        utf8.encode(jsonEncode(planned.toJson())).length, lessThan(64 * 1024));
+    final modelDiff = planned.plan.changeSet.diff.entries
+        .singleWhere((entry) => entry.resource.kind == 'project');
+    final summary = (modelDiff.after as Map)['modelSummary'] as Map;
+    expect(summary['id'], 'large');
+    expect(summary['sourceAssetId'], 'model3d_large');
+    expect(summary['relativePath'], 'assets/models3d/large.glb');
+    expect(summary['fingerprintDomain'], 'model3d-entry.json');
+    expect((summary['inspection'] as Map)['materialCount'], 500);
+    final image = planned.plan.changeSet.changes
+        .singleWhere((change) => change.storageKey == 'project.json');
+    final fullModel =
+        (jsonDecode(utf8.decode(image.afterBytes!))['models3d'] as List).single;
+    expect((fullModel['inspection']['materials'] as List), hasLength(500));
+    expect(summary['byteLength'],
+        utf8.encode(canonicalAuthoringJson(fullModel)).length);
+    expect(
+        summary['fingerprint'],
+        computeAuthoringBytesFingerprint(
+            utf8.encode(canonicalAuthoringJson(fullModel)),
+            logicalName: 'model3d-entry.json'));
+    await f.mutations.applyMutation(f.project,
+        planId: planned.planId, operationId: 'large-bounded');
+    expect((await f.snapshot()).manifest.models3d.single.toJson(), fullModel);
+    expect(await File('${f.root.path}/assets/models3d/large.glb').readAsBytes(),
+        bytes);
+  });
+
   test('idempotent replay preserves another staging lease for the same blob',
       () async {
     final f = await _Fixture.create();
@@ -432,10 +542,32 @@ final class _Fixture {
   File get projectFile => File('${root.path}/project.json');
   Future<ProjectSnapshot> snapshot() => snapshots.load(project);
 
-  static Future<_Fixture> create({bool failAfterPromotion = false}) async {
+  static Future<_Fixture> create(
+      {bool failAfterPromotion = false, ProjectManifest? manifest}) async {
     final root = await Directory.systemTemp.createTemp('model3d-import-batch-');
     await File('${root.path}/project.json').writeAsString(jsonEncode(
-        ProjectManifest(name: 'Models', maps: [], tilesets: []).toJson()));
+        (manifest ?? ProjectManifest(name: 'Models', maps: [], tilesets: []))
+            .toJson()));
+    if (manifest?.models3d.isNotEmpty ?? false) {
+      final bytes = triangleGlb();
+      final artifact =
+          ContentArtifactRef.fromBytes(bytes, mediaType: 'model/gltf-binary');
+      final blob = File('${root.path}/${assetBlobStorageKey(artifact)}');
+      await blob.parent.create(recursive: true);
+      await blob.writeAsBytes(bytes);
+      final records = <AssetRecord>[];
+      for (final model in manifest!.models3d) {
+        final source = File('${root.path}/${model.relativePath}');
+        await source.parent.create(recursive: true);
+        await source.writeAsBytes(bytes);
+        records.add(AssetRecord(
+            id: model.sourceAssetId,
+            logicalPath: model.relativePath,
+            artifact: artifact));
+      }
+      await File('${root.path}/$assetCatalogStorageKey')
+          .writeAsString(jsonEncode(AssetCatalog(records: records).toJson()));
+    }
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);

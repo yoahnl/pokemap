@@ -1042,11 +1042,35 @@ smart_tile.pattern.paint
 smart_tile.pattern.upsert
 smart_tile.preset.delete
 smart_tile.preset.draft.delete
+smart_tile.preset.draft.import
 smart_tile.preset.draft.upsert
 smart_tile.preset.publish
 tileset.tiled.import
 tileset.tiled.wang_bundle.delete
 ```
+
+`smart_tile.preset.draft.import` v1 reçoit `{draftId, artifactHandle}`. L’artefact
+doit être un objet JSON UTF-8 de type `application/json`, limité à 8 MiB, dont
+l’identité et les octets sont vérifiés avant le préflight natif. Son identifiant
+doit correspondre à `draftId`. Les identifiants de tête (`draftId`, cible et
+source du preset) sont limités à 128 caractères. Une identité existante
+différente est refusée.
+Les atlas, matériaux, animations, règles et profils restent isolés dans le draft
+jusqu’à `smart_tile.preset.publish`. La limite de requête des transports reste
+inchangée. La mutation du manifeste est atomique, révisionnée et annulable ; le
+plan conserve les postimages nécessaires à la reprise. La lease de l’artefact
+est libérée une seule fois après application ou récupération réussie, et après
+un dry run. Les gros documents des diffs Smart Tile sont représentés par une
+empreinte qualifiée par son domaine, leur taille et leurs compteurs ; les chaînes
+du résumé sont limitées à 256 caractères Unicode et les champs tronqués sont
+signalés. Les données natives restent complètes.
+
+`smart_tile.layer.create` conserve la préimage exacte du manifeste lorsque
+le preset publié est déjà lié au catalogue. Un vrai changement de catalogue
+utilise la même projection de diff bornée à 64 KiB avant résumé ; les postimages
+et la reprise restent complètes. Les writers du manifeste normalisent les
+défauts neutres connus de tout le catalogue, y compris les ressources déjà
+présentes, tout en conservant les extensions inconnues et les valeurs non neutres.
 
 Les champs `cell`, `edge`, `corner` et `mixed` sont peignables par geste
 atomique avec `smart_tile.cell.paint` et `smart_tile.cell.erase`. Un geste Wang
@@ -1087,6 +1111,13 @@ avant publication. Les ressources, le catalogue d'assets et le manifeste sont
 publiés avec leurs préimages et la récupération transactionnelle existante.
 La visibilité de plusieurs fichiers ne constitue pas une transaction atomique
 du projet entier.
+
+Le diff du plan décrit seulement les modèles ajoutés, avec un effet `add` par
+identité. Une entrée dépassant 8 Kio devient un `modelSummary` : identités,
+propriétés, bornes et comptes de l'inspection, taille et empreinte de l'entrée
+complète dans le domaine `model3d-entry.json`. Les préimages et postimages
+transactionnelles restent complètes ; les modèles existants et les presets
+sans rapport ne sont pas répétés dans la réponse.
 
 `map3d.instance.upsert_batch` v1 reçoit `{mapId, instances: [instance]}`, avec
 les mêmes champs de placement que `map3d.instance.upsert`. Le lot contient de

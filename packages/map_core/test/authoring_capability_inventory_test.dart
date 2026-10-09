@@ -292,6 +292,7 @@ void main() {
           'smart_tile.preset.category.assign',
           'smart_tile.preset.delete',
           'smart_tile.preset.draft.delete',
+          'smart_tile.preset.draft.import',
           'smart_tile.preset.draft.upsert',
           'smart_tile.preset.publish',
         },

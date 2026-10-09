@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -434,6 +435,19 @@ String sniffArtifactMediaType(List<int> bytes) {
   if (_startsWith(bytes, const [0x00, 0x01, 0x00, 0x00]) ||
       _startsWith(bytes, const [0x4f, 0x54, 0x54, 0x4f])) {
     return 'font/ttf';
+  }
+  final first = bytes
+      .where((byte) => !const {0x09, 0x0a, 0x0d, 0x20}.contains(byte))
+      .firstOrNull;
+  if (first == 0x7b || first == 0x5b) {
+    try {
+      jsonDecode(utf8.decode(bytes));
+      return 'application/json';
+    } on FormatException {
+      return bytes.every(_isTextByte)
+          ? 'text/plain'
+          : 'application/octet-stream';
+    }
   }
   if (bytes.isNotEmpty && bytes.every(_isTextByte)) return 'text/plain';
   return 'application/octet-stream';

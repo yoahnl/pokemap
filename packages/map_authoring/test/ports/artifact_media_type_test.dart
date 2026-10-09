@@ -1,9 +1,25 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'recognizes valid UTF-8 JSON objects and arrays without accepting malformed text',
+      () {
+    for (final document in [
+      '{"name":"Ground"}',
+      ' \n {"name":"Étage"}',
+      '[1,2]'
+    ]) {
+      expect(sniffArtifactMediaType(utf8.encode(document)), 'application/json');
+    }
+    expect(sniffArtifactMediaType(utf8.encode('{broken')), 'text/plain');
+    expect(sniffArtifactMediaType(utf8.encode('plain text')), 'text/plain');
+    expect(
+        sniffArtifactMediaType([0x7b, 0xff, 0x7d]), 'application/octet-stream');
+  });
   test('sniffs every supported audio format from its signature', () {
     expect(sniffArtifactMediaType(<int>[0x4f, 0x67, 0x67, 0x53]), 'audio/ogg');
     expect(sniffArtifactMediaType(<int>[0xff, 0xfb, 0x94, 0xc4]), 'audio/mpeg');

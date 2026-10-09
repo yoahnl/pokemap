@@ -17,6 +17,7 @@ import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
+import 'smart_tile_diff_support.dart';
 import 'smart_tile_native_transition_guard.dart';
 import 'smart_tile_tiled_wang_projection.dart';
 
@@ -722,15 +723,15 @@ AuthoringMutationDraft _manifestDraft(
                   : AuthoringDiffOperation.replace,
           resource: project,
           path: path,
-          before: _smartTileDiffValue(before),
-          after: _smartTileDiffValue(after),
+          before: smartTileDiffValue(before),
+          after: smartTileDiffValue(after),
         ),
         if (removedDraft != null)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.remove,
             resource: project,
             path: '/smartTileCatalog/drafts/${removedDraft.id}',
-            before: _smartTileDiffValue(removedDraft.toJson()),
+            before: smartTileDiffValue(removedDraft.toJson()),
           ),
       ]),
     ),
@@ -796,15 +797,15 @@ AuthoringMutationDraft _manifestAndMapDraft(
                 : AuthoringDiffOperation.replace,
             resource: project,
             path: '/smartTileCatalog/presets/${presetAfter.id}',
-            before: _smartTileDiffValue(presetBefore?.toJson()),
-            after: _smartTileDiffValue(presetAfter.toJson()),
+            before: smartTileDiffValue(presetBefore?.toJson()),
+            after: smartTileDiffValue(presetAfter.toJson()),
           ),
         if (projectChanged && removedDraft != null)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.remove,
             resource: project,
             path: '/smartTileCatalog/drafts/${removedDraft.id}',
-            before: _smartTileDiffValue(removedDraft.toJson()),
+            before: smartTileDiffValue(removedDraft.toJson()),
           ),
         AuthoringDiffEntry(
           operation: AuthoringDiffOperation.add,

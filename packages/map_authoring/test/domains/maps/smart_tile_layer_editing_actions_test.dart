@@ -70,6 +70,25 @@ void main() {
       );
     });
 
+    test('binding a published preset preserves the exact project preimage', () {
+      final fixture = _fixture();
+      final created = const SmartTileLayerActions().build(_context(
+        fixture.snapshot,
+        actionId: 'smart_tile.layer.create',
+        parameters: const {
+          'mapId': 'map',
+          'presetId': 'grass',
+          'layerId': 'terrain',
+          'name': 'Terrain',
+        },
+      ));
+      expect(created.changeSet.changes.map((value) => value.resource.kind),
+          ['map']);
+      expect(created.changeSet.diff.entries.map((value) => value.path),
+          ['/layers/terrain']);
+      expect(created.preview['manifestChanged'], isFalse);
+    });
+
     test('deletes only Smart Tile layers through the canonical action', () {
       final source = _projectedMap(
         const SmartTileLayerActions().build(

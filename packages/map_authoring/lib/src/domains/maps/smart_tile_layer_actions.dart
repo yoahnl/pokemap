@@ -8,6 +8,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
+import 'smart_tile_diff_support.dart';
 import 'smart_tile_native_transition_guard.dart';
 
 /// Canonical Smart Tile maintenance actions shared by direct, JSONL, editor,
@@ -863,10 +864,15 @@ AuthoringActionDescriptor _smartTileLayerDescriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'semanticIds': true,
         'rawTilesetRequired': false,
         'projectWidePreflight': true,
+        if (id == 'smart_tile.layer.create') ...{
+          'diffProjection': 'semantic_catalog_binding',
+          'maximumInlineCatalogDiffByteLength':
+              maximumSmartTileInlineDiffByteLength,
+        },
       },
     );
 
@@ -879,10 +885,9 @@ AuthoringMutationDraft _creationDraft(
 }) {
   final mapAfter = encodeMapAuthoringDocument(map);
   final manifestBefore = context.planning.snapshot.resourceBytes('project');
-  final manifestAfter = encodeProjectAuthoringDocument(
-    context.planning.snapshot,
-    manifest,
-  );
+  final manifestAfter = manifest == context.manifest
+      ? manifestBefore
+      : encodeProjectAuthoringDocument(context.planning.snapshot, manifest);
   final manifestChanged = !_sameByteLists(manifestBefore, manifestAfter);
   final projectRevision =
       context.planning.snapshot.resourceFingerprints['project'];
@@ -931,8 +936,8 @@ AuthoringMutationDraft _creationDraft(
           revision: projectRevision,
         ),
         path: '/smartTileCatalog',
-        before: context.manifest.smartTileCatalog.toJson(),
-        after: manifest.smartTileCatalog.toJson(),
+        before: smartTileDiffValue(context.manifest.smartTileCatalog.toJson()),
+        after: smartTileDiffValue(manifest.smartTileCatalog.toJson()),
       ),
   ];
   return AuthoringMutationDraft(

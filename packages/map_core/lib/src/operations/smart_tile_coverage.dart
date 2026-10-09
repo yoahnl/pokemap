@@ -180,17 +180,19 @@ SmartTileCoverageReport analyzeSmartTileCoverage({
     return _report(diagnostics: diagnostics);
   }
 
+  final resolver = PreparedSmartTileResolver(
+    preset: preset,
+    materials: materialList,
+    mapId: 'smart_tile_coverage',
+    layerId: preset.id,
+  );
   final cases = <SmartTileCoverageCase>[];
   for (var index = 0; index < selected.length; index += 1) {
     final input = selected[index];
-    final resolution = resolveSmartTile(
-      preset: preset,
-      materials: materialList,
+    final resolution = resolver.resolve(
       context: input.context,
       x: index,
       y: 0,
-      mapId: 'smart_tile_coverage',
-      layerId: preset.id,
     );
     final status = _coverageStatus(
       resolution,

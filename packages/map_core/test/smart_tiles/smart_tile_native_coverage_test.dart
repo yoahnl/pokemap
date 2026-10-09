@@ -15,6 +15,58 @@ void main() {
       expect(report.isExact, isTrue);
     });
 
+    test('many distinct scenarios do not repeatedly scan source rules', () {
+      final materials = <ProjectSmartTileMaterial>[
+        for (var index = 0; index < 4; index++)
+          ProjectSmartTileMaterial(
+            id: 'material-$index',
+            name: 'Material $index',
+            connectionGroupId: 'material-$index',
+          ),
+      ];
+      final rules = _CountedRules(<SmartTileRule>[
+        for (final material in materials)
+          _visualRule(
+            id: material.id,
+            centerMatch: SmartTileSlotMatch.material(material.id),
+          ),
+      ]);
+      String edge(int pattern, int bit) => materials[(pattern >> bit) & 1].id;
+      final report = _analyze(
+        _simplePreset(rules: rules).copyWith(
+          topology: SmartTileTopology.cardinal4,
+          templateHint: SmartTileTemplateHint.free,
+          defaultMaterialId: materials.first.id,
+          allowedMaterialIds: materials.map((value) => value.id).toList(),
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.explicit,
+            requiredScenarios: <SmartTileCoverageScenario>[
+              for (var index = 0; index < 64; index++)
+                SmartTileCoverageScenario(
+                  id: 'scenario-$index',
+                  centerMaterialId: materials[index % 4].id,
+                  signature: SmartTileExactSignature(
+                    northEdge: edge(index ~/ 4, 0),
+                    eastEdge: edge(index ~/ 4, 1),
+                    southEdge: edge(index ~/ 4, 2),
+                    westEdge: edge(index ~/ 4, 3),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        materials: materials,
+      );
+
+      expect(report.cases, hasLength(64));
+      expect(report.exactCount, 64);
+      expect(report.diagnostics, isEmpty);
+      expect(rules.reads, lessThanOrEqualTo(rules.length * 4));
+      for (var index = 0; index < report.cases.length; index++) {
+        expect(report.cases[index].ruleIds, <String>[materials[index % 4].id]);
+      }
+    });
+
     test('coverage exposes fallback instead of counting it as exact', () {
       final report = _analyze(
         _simplePreset(
@@ -910,6 +962,29 @@ final class _GuardedMaterialIds extends ListBase<String> {
 
   @override
   void operator []=(int index, String value) =>
+      throw UnsupportedError('immutable');
+}
+
+final class _CountedRules extends ListBase<SmartTileRule> {
+  _CountedRules(this._rules);
+
+  final List<SmartTileRule> _rules;
+  int reads = 0;
+
+  @override
+  int get length => _rules.length;
+
+  @override
+  set length(int value) => throw UnsupportedError('immutable');
+
+  @override
+  SmartTileRule operator [](int index) {
+    reads++;
+    return _rules[index];
+  }
+
+  @override
+  void operator []=(int index, SmartTileRule value) =>
       throw UnsupportedError('immutable');
 }
 

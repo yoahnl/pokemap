@@ -659,6 +659,8 @@ final class ProjectSnapshotLoader {
     }
 
     final absentMenuAssetPaths = <String>[];
+    final modelSourceArtifacts = <String, ContentArtifactRef>{};
+    final modelBlobBytes = <ContentArtifactRef, ProjectResourceBytes>{};
     final assetCatalogReadTimer = profiler?.startStage();
     final assetCatalogBytes = await _readOptional(
       access,
@@ -736,6 +738,7 @@ final class ProjectSnapshotLoader {
                   'project.model3d_source_mismatch',
                   'A model source no longer matches its inspected asset.');
             }
+            modelSourceArtifacts['assetLogical:${record.id}'] = record.artifact;
           }
           resources.add(_LoadedProjectResource(
             relativePath: path,
@@ -785,6 +788,9 @@ final class ProjectSnapshotLoader {
           if (blobIdentity != null) {
             cache?.markAssetBlobCertified(blobIdentity);
           }
+        }
+        if (artifact.mediaType == 'model/gltf-binary') {
+          modelBlobBytes[artifact] = bytes;
         }
         resources.add(
           _LoadedProjectResource(
@@ -942,7 +948,10 @@ final class ProjectSnapshotLoader {
       itemCatalog: itemCatalog,
       resourceFingerprints: resourceFingerprints,
       ownedResourceBytes: {
-        for (final resource in resources) resource.identity: resource.bytes,
+        for (final resource in resources)
+          resource.identity:
+              modelBlobBytes[modelSourceArtifacts[resource.identity]] ??
+                  resource.bytes,
       },
       resourceStorageKeys: {
         for (final resource in resources)

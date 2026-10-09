@@ -44,6 +44,7 @@ void main() {
           'smart_tile.pattern.upsert',
           'smart_tile.preset.delete',
           'smart_tile.preset.draft.delete',
+          'smart_tile.preset.draft.import',
           'smart_tile.preset.draft.upsert',
           'smart_tile.preset.duplicate',
           'smart_tile.preset.publish',

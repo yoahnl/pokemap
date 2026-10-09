@@ -331,6 +331,7 @@ List<int> _encodeSmartTileManifest(
   ProjectSnapshot snapshot,
   ProjectManifest manifest,
 ) {
+  if (manifest == snapshot.manifest) return snapshot.resourceBytes('project');
   final merged = jsonDecode(
     utf8.decode(encodeResourceInformationDocument(snapshot, manifest)),
   ) as Map<String, dynamic>;
@@ -338,5 +339,5 @@ List<int> _encodeSmartTileManifest(
   if (catalog is Map<String, dynamic>) {
     catalog['formatVersion'] = manifest.smartTileCatalog.formatVersion;
   }
-  return utf8.encode(const JsonEncoder.withIndent('  ').convert(merged));
+  return utf8.encode(jsonEncode(merged));
 }

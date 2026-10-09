@@ -509,12 +509,21 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'smart_tile.preset.draft.import') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/smart_tile_draft_artifact_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/smart_tile_draft_artifact_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/smart_tile_draft_artifact_stdio.test.ts',
+    };
+  }
   if (actionId == 'map3d.instance.upsert_batch') {
     return const {
       AuthoringTransport.directApi:
           'test/domains/maps/spatial_map_actions_test.dart',
-      AuthoringTransport.cli:
-          'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_instance_batch_stdio.test.ts',
     };
@@ -541,13 +550,15 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   if (actionId.startsWith('map3d.')) {
     return const {
-      AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.directApi:
+          'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
     };
   }
   if (actionId.startsWith('model3d.')) {
     return const {
-      AuthoringTransport.directApi: 'test/domains/assets/model3d_actions_test.dart',
+      AuthoringTransport.directApi:
+          'test/domains/assets/model3d_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/assets/model3d_actions_test.dart',
     };
   }
@@ -1189,6 +1200,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'smart_tile.preset.draft.import') {
+    return 'test/domains/maps/smart_tile_draft_artifact_actions_test.dart';
+  }
   if (actionId == 'map3d.instance.upsert_batch') {
     return 'test/domains/maps/spatial_instance_batch_actions_test.dart';
   }

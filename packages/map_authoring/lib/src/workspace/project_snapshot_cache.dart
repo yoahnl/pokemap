@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import '../ports/project_file_reader.dart';
 import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
@@ -175,16 +177,9 @@ final class ProjectSnapshotCache {
       return ProjectSnapshotCacheAdmission.incompleteSnapshot;
     }
     final scope = scopes.single;
-    var authoringBytes = 0;
-    var assetBlobBytes = 0;
-    for (final identity in snapshot.resourceStorageKeys.keys) {
-      final length = snapshot.resourceBytes(identity).length;
-      if (identity.startsWith('assetBlob:')) {
-        assetBlobBytes += length;
-      } else {
-        authoringBytes += length;
-      }
-    }
+    final byteLengths = _residentResourceByteLengths(snapshot);
+    final authoringBytes = byteLengths.authoringBytes;
+    final assetBlobBytes = byteLengths.assetBlobBytes;
     final admission = budget.classify(
       authoringBytes: authoringBytes,
       assetBlobBytes: assetBlobBytes,
@@ -272,16 +267,9 @@ final class ProjectSnapshotCache {
         return _rejectAdoption();
       }
     }
-    var authoringBytes = 0;
-    var assetBlobBytes = 0;
-    for (final identity in projected.resourceStorageKeys.keys) {
-      final length = projected.resourceBytes(identity).length;
-      if (identity.startsWith('assetBlob:')) {
-        assetBlobBytes += length;
-      } else {
-        authoringBytes += length;
-      }
-    }
+    final byteLengths = _residentResourceByteLengths(projected);
+    final authoringBytes = byteLengths.authoringBytes;
+    final assetBlobBytes = byteLengths.assetBlobBytes;
     final candidate = _ProjectSnapshotCacheEntry(
       snapshot: projected,
       identities: Map.unmodifiable(identities),
@@ -409,6 +397,30 @@ final class ProjectSnapshotCache {
     final scope = _scopesByHandle[projectHandle];
     return scope == null ? null : _entries[scope];
   }
+}
+
+({int authoringBytes, int assetBlobBytes}) _residentResourceByteLengths(
+  ProjectSnapshot snapshot,
+) {
+  final assetBuffers = HashSet<List<int>>.identity();
+  for (final identity in snapshot.resourceStorageKeys.keys) {
+    if (identity.startsWith('assetBlob:')) {
+      assetBuffers.add(snapshot.resourceBytes(identity));
+    }
+  }
+  final accountedBuffers = HashSet<List<int>>.identity();
+  var authoringBytes = 0;
+  var assetBlobBytes = 0;
+  for (final identity in snapshot.resourceStorageKeys.keys) {
+    final bytes = snapshot.resourceBytes(identity);
+    if (!accountedBuffers.add(bytes)) continue;
+    if (assetBuffers.contains(bytes)) {
+      assetBlobBytes += bytes.length;
+    } else {
+      authoringBytes += bytes.length;
+    }
+  }
+  return (authoringBytes: authoringBytes, assetBlobBytes: assetBlobBytes);
 }
 
 final class _ProjectSnapshotCacheEntry {

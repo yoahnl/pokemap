@@ -1064,15 +1064,27 @@ final class ProjectSmartTileCatalog {
 
   bool get isNotEmpty => !isEmpty;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool compact = true}) => <String, Object?>{
         'formatVersion': formatVersion,
         'categories': categories.map((item) => item.toJson()).toList(),
         'atlases': atlases.map((item) => item.toJson()).toList(),
-        'materials': materials.map((item) => item.toJson()).toList(),
+        'materials': materials
+            .map((item) => compact
+                ? _compactSmartTileMaterialJson(item.toJson())
+                : item.toJson())
+            .toList(),
         'animations': animations.map((item) => item.toJson()).toList(),
-        'presets': presets.map((item) => item.toJson()).toList(),
+        'presets': presets
+            .map((item) => compact
+                ? _compactSmartTileOwnerJson(item.toJson())
+                : item.toJson())
+            .toList(),
         'patterns': patterns.map((item) => item.toJson()).toList(),
-        'drafts': drafts.map((item) => item.toJson()).toList(),
+        'drafts': drafts
+            .map((item) => compact
+                ? _compactSmartTileOwnerJson(item.toJson())
+                : item.toJson())
+            .toList(),
       };
 
   @override
@@ -1099,6 +1111,83 @@ final class ProjectSmartTileCatalog {
         Object.hashAll(patterns),
         Object.hashAll(drafts),
       );
+}
+
+Map<String, dynamic> _compactSmartTileMaterialJson(Map<String, dynamic> json) {
+  _omitSmartTileDefaults(json, const {
+    'categoryId': '',
+    'terrainType': null,
+    'pathSurfaceKind': null,
+    'isEmpty': false,
+    'sortOrder': 0,
+    'editorColorArgb': null,
+  });
+  return json;
+}
+
+Map<String, dynamic> _compactSmartTileOwnerJson(Map<String, dynamic> json) {
+  for (final rule in (json['rules'] as List).cast<Map<String, dynamic>>()) {
+    final signature = rule['signature'] as Map<String, dynamic>;
+    signature.removeWhere(
+      (key, value) =>
+          value is Map && value.length == 1 && value['kind'] == 'any',
+    );
+    if (signature.isEmpty) rule.remove('signature');
+    for (final candidate
+        in (rule['candidates'] as List).cast<Map<String, dynamic>>()) {
+      _omitSmartTileDefaults(candidate, const {'label': '', 'weight': 1});
+      for (final part
+          in (candidate['parts'] as List).cast<Map<String, dynamic>>()) {
+        _compactSmartTileVisualPartJson(part);
+      }
+    }
+  }
+  final profile = json['coverageProfile'] as Map<String, dynamic>;
+  _omitSmartTileDefaults(profile, const {'allowFallback': false});
+  for (final scenario
+      in (profile['requiredScenarios'] as List).cast<Map<String, dynamic>>()) {
+    final signature = scenario['signature'] as Map<String, dynamic>;
+    signature.removeWhere((key, value) => value == null);
+    if (signature.isEmpty) scenario.remove('signature');
+  }
+  return json;
+}
+
+void _compactSmartTileVisualPartJson(Map<String, dynamic> json) {
+  _omitSmartTileDefaults(json, const {
+    'channel': 'ground',
+    'frameSampling': 'full_frame',
+    'offsetUnit': 'pixel',
+    'offsetX': 0,
+    'offsetY': 0,
+    'footprintWidth': 1,
+    'footprintHeight': 1,
+    'anchorX': 0,
+    'anchorY': 0,
+    'drawOrder': 0,
+  });
+  final transform = json['transform'] as Map<String, dynamic>;
+  if (transform.length == 2 &&
+      transform['quarterTurns'] == 0 &&
+      transform['flipX'] == false) {
+    json.remove('transform');
+  }
+  final source = json['source'] as Map<String, dynamic>;
+  if (source['kind'] == 'frame') {
+    _omitSmartTileDefaults(source['frame'] as Map<String, dynamic>, const {
+      'columnSpan': 1,
+      'rowSpan': 1,
+    });
+  }
+}
+
+void _omitSmartTileDefaults(
+  Map<String, dynamic> json,
+  Map<String, Object?> defaults,
+) {
+  for (final entry in defaults.entries) {
+    if (json[entry.key] == entry.value) json.remove(entry.key);
+  }
 }
 
 bool _catalogJsonIsStrictlyEmpty(Map<String, dynamic> json) {

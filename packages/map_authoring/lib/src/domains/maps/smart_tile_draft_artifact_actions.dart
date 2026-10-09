@@ -39,7 +39,7 @@ AuthoringActionDescriptor _draftArtifactDescriptor() =>
           'additionalProperties': false,
           'required': ['draftId', 'artifactHandle'],
           'properties': {
-            'draftId': {'type': 'string', 'minLength': 1},
+            'draftId': {'type': 'string', 'minLength': 1, 'maxLength': 128},
             'artifactHandle': {'type': 'string', 'minLength': 1},
           },
         },
@@ -49,6 +49,10 @@ AuthoringActionDescriptor _draftArtifactDescriptor() =>
 extension SmartTileDraftArtifactActions on SmartTileCatalogActions {
   Future<AuthoringMutationDraft> importDraft(
       AuthoringPlanningContext planning) async {
+    if (planning.request.actionId != 'smart_tile.preset.draft.import') {
+      throw semanticFailure('smart_tile.action_unsupported',
+          'The requested action does not import a Smart Tile draft artifact.');
+    }
     if (planning.request.actionVersion != 1) {
       throw semanticFailure('smart_tile.action_version_unsupported',
           'The requested Smart Tile catalog action version is unsupported.');
@@ -56,6 +60,10 @@ extension SmartTileDraftArtifactActions on SmartTileCatalogActions {
     final parameters = SemanticParameters(planning.request.parameters,
         allowed: const {'draftId', 'artifactHandle'});
     final draftId = parameters.string('draftId');
+    if (draftId.runes.length > 128) {
+      throw semanticFailure('smart_tile.draft.identity_invalid',
+          'A draft import identity must not exceed 128 characters.');
+    }
     final handle = parameters.string('artifactHandle');
     final store = artifactStore;
     if (store == null) {
@@ -93,17 +101,45 @@ extension SmartTileDraftArtifactActions on SmartTileCatalogActions {
     }
     final draft = _decode(document,
         field: 'draft', decode: ProjectSmartTileAuthoringDraft.fromJson);
+    if (draft.targetPresetId.runes.length > 128 ||
+        (draft.sourcePresetId?.runes.length ?? 0) > 128) {
+      throw semanticFailure('smart_tile.draft.identity_invalid',
+          'Draft preset identities must not exceed 128 characters.');
+    }
     if (draft.id != draftId) {
       throw semanticFailure('smart_tile.draft.identity_mismatch',
           'The draft identity does not match the requested identity.');
     }
-    final current = _findById(
-        planning.snapshot.manifest.smartTileCatalog.drafts,
-        draftId,
-        (item) => item.id);
+    final catalog = planning.snapshot.manifest.smartTileCatalog;
+    final current = _findById(catalog.drafts, draftId, (item) => item.id);
     if (current != null && current != draft) {
       throw semanticFailure('smart_tile.draft.identity_conflict',
           'Draft import cannot replace a different existing draft.');
+    }
+    if (catalog.presets.any((value) => value.id == draft.targetPresetId)) {
+      throw semanticFailure('smart_tile.draft.target_conflict',
+          'Draft import cannot target an existing published preset.');
+    }
+    for (final (existing, incoming) in <(List<Object>, List<Object>)>[
+      (catalog.atlases, draft.atlases),
+      (catalog.materials, draft.materials),
+      (catalog.animations, draft.animations),
+    ]) {
+      final jsonExisting = {
+        for (final value in existing)
+          _smartTileDependencyJson(value)['id']:
+              _smartTileDependencyJson(value),
+      };
+      for (final value in incoming) {
+        final json = _smartTileDependencyJson(value);
+        final previous = jsonExisting[json['id']];
+        if (previous != null &&
+            canonicalAuthoringJson(previous) != canonicalAuthoringJson(json)) {
+          throw semanticFailure('smart_tile.draft.dependency_identity_conflict',
+              'Draft import cannot replace a different existing dependency.',
+              details: {'resourceId': json['id']});
+        }
+      }
     }
     final mutation = _storeDraft(planning, draft, artifacts: [
       AuthoringArtifactRef(
@@ -119,31 +155,9 @@ extension SmartTileDraftArtifactActions on SmartTileCatalogActions {
   }
 }
 
-Object? _smartTileDiffValue(Object? value) {
-  if (value is! Map) return value;
-  final bytes = utf8.encode(canonicalAuthoringJson(value));
-  if (bytes.length <= 64 * 1024) return value;
-  final coverageProfile = value['coverageProfile'];
-  return {
-    'documentSummary': {
-      for (final key in ['id', 'name', 'targetPresetId', 'sourcePresetId'])
-        if (value.containsKey(key)) key: value[key],
-      'sha256': computeAuthoringBytesFingerprint(bytes,
-          logicalName: 'smart-tile-document.json'),
-      'byteLength': bytes.length,
-      'counts': {
-        for (final key in [
-          'atlases',
-          'materials',
-          'animations',
-          'allowedMaterialIds',
-          'rules'
-        ])
-          if (value[key] is List) key: (value[key] as List).length,
-        if (coverageProfile is Map && coverageProfile['requiredScenarios'] is List)
-          'coverageScenarios':
-              (coverageProfile['requiredScenarios'] as List).length,
-      },
-    },
-  };
-}
+Map<String, Object?> _smartTileDependencyJson(Object value) => switch (value) {
+      ProjectSmartTileAtlas atlas => atlas.toJson(),
+      ProjectSmartTileMaterial material => material.toJson(),
+      ProjectSmartTileAnimation animation => animation.toJson(),
+      _ => throw StateError('Unknown Smart Tile draft dependency.'),
+    };

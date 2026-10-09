@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import { isDeepStrictEqual } from "node:util";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
@@ -39,7 +40,7 @@ function triangleGlb(external = false): Buffer {
   return output;
 }
 
-test("live MCP imports a bounded recoverable model batch and rejects a trailing invalid GLB", async () => {
+test("live MCP bounds batch plans with a large model library and unrelated presets", async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-model-batch-mcp-"));
   const transport = new StdioClientTransport({ command: process.execPath,
     args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"],
@@ -61,6 +62,8 @@ test("live MCP imports a bounded recoverable model batch and rejects a trailing 
     const extension = record(descriptor.extensions);
     assert.equal(extension.maximumModelCount, 50);
     assert.equal(extension.maximumTotalByteLength, 64 * 1024 * 1024);
+    assert.equal(extension.diffProjection, "batch_model_additions");
+    assert.equal(extension.maximumInlineModelDiffByteLength, 8 * 1024);
     assert.ok(!(descriptor.guarantees as string[]).includes("atomic"));
     const request = { name: "Model batch", folderName: "models", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
@@ -112,6 +115,74 @@ test("live MCP imports a bounded recoverable model batch and rejects a trailing 
       assert.deepEqual(await readFile(join(projectRoot, "assets", "models3d", `${id}.glb`)), validBytes);
     }
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
+    const manifest = JSON.parse((await readFile(manifestPath)).toString()) as JsonRecord;
+    const assetCatalogPath = join(projectRoot, "assets", ".pokemap-assets.json");
+    const assetCatalog = JSON.parse((await readFile(assetCatalogPath)).toString()) as JsonRecord;
+    const templateModel = record((manifest.models3d as JsonRecord[])[0]);
+    const templateAsset = (assetCatalog.records as JsonRecord[])
+      .find((asset) => asset.id === templateModel.sourceAssetId)!;
+    const existingModels = Array.from({ length: 300 }, (_, i) => ({
+      ...templateModel, id: `existing-${i}`, name: `Existing ${i}`,
+      sourceAssetId: `model3d_existing-${i}`,
+      relativePath: `assets/models3d/existing-${i}.glb`,
+      inspection: { ...record(templateModel.inspection),
+        diagnostics: ["existing inspection ".repeat(512)] },
+    }));
+    manifest.models3d = [...manifest.models3d as JsonRecord[], ...existingModels];
+    assetCatalog.records = [...assetCatalog.records as JsonRecord[],
+      ...existingModels.map((model) => ({ ...templateAsset,
+        id: model.sourceAssetId, logicalPath: model.relativePath }))];
+    manifest.smartTileCatalog = { formatVersion: 4,
+      categories: [], atlases: [], materials: [], animations: [], presets: [], patterns: [],
+      drafts: [{ id: "unrelated-draft", targetPresetId: "unrelated-preset",
+        sourcePresetId: null, name: "Unrelated large preset", categoryId: "",
+        usage: "terrain", lastStage: "image", guideId: null, sourceTilesetIds: [],
+        atlases: [], primaryAtlasId: null, materials: [], animations: [],
+        defaultMaterialId: null, allowedMaterialIds: [], topology: "uniform",
+        templateHint: "simple", boundaryPolicy: "empty", coveragePolicy: "complete",
+        coverageProfile: { mode: "explicit", allowFallback: false,
+          requiredScenarios: Array.from({ length: 5000 }, (_, i) => ({
+            id: `unrelated-scenario-${i}`, centerMaterialId: null, signature: {
+              northEdge: null, eastEdge: null, southEdge: null, westEdge: null,
+              northEastCorner: null, southEastCorner: null,
+              southWestCorner: null, northWestCorner: null } })) },
+        transformPolicy: { allowHFlip: false, allowVFlip: false,
+          allowQuarterTurns: false, preferUntransformed: true },
+        rules: [], fallbackRuleId: null, tags: [], sortOrder: 0, seedSalt: 0 }] };
+    for (const model of existingModels) {
+      await writeFile(join(projectRoot, model.relativePath), validBytes);
+    }
+    await writeFile(assetCatalogPath, JSON.stringify(assetCatalog));
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const largeBefore = await readFile(manifestPath);
+    const largeOpened = await call("pokemap_workspace", { operation: "open", projectRoot });
+    const largeValidation = await call("pokemap_validate", { projectHandle: largeOpened.projectHandle });
+    const largeHandle = await stage("large-shared", validBytes);
+    const ids = Array.from({ length: 50 }, (_, i) => `new-${i}`);
+    const largePlanned = await call("pokemap_plan", { projectHandle: largeOpened.projectHandle,
+      request: { requestId: "large-model-batch", actionId: "model3d.import_batch", actionVersion: 1,
+        workspaceHandle: largeOpened.workspaceHandle,
+        parameters: { models: ids.map((modelId) => ({
+          modelId, name: modelId, artifactHandle: largeHandle })) },
+        expectedRevision: largeValidation.snapshotRevision, idempotencyKey: "large-model-batch" } });
+    const projectedWire = JSON.stringify(largePlanned);
+    assert.ok(Buffer.byteLength(projectedWire) < 512 * 1024);
+    assert.ok(!projectedWire.includes("existing inspection"));
+    assert.ok(!projectedWire.includes("unrelated-scenario"));
+    const modelDiffs = (record(record(record(largePlanned.plan).changeSet).diff).entries as JsonRecord[])
+      .filter((entry) => record(entry.resource).kind === "project");
+    assert.deepEqual(modelDiffs.map((entry) => entry.path).sort(),
+      ids.map((id) => `/models3d/${id}`).sort());
+    assert.ok(modelDiffs.every((entry) => entry.operation === "add"));
+    assert.deepEqual(await readFile(manifestPath), largeBefore);
+    await call("pokemap_apply", { operation: "apply", projectHandle: largeOpened.projectHandle,
+      planId: largePlanned.planId, operationId: "large-model-batch-apply" });
+    const largeAfter = JSON.parse((await readFile(manifestPath)).toString()) as JsonRecord;
+    assert.deepEqual((largeAfter.models3d as JsonRecord[]).slice(0, 302), manifest.models3d);
+    assert.ok(isDeepStrictEqual(largeAfter.smartTileCatalog, manifest.smartTileCatalog),
+      "Unrelated preset data changed during the batch publication");
+    assert.deepEqual((largeAfter.models3d as JsonRecord[]).slice(302).map((model) => model.id), ids);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: largeOpened.workspaceHandle });
   } finally {
     await client.close();
     await transport.close();

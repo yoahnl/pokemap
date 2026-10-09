@@ -7,6 +7,7 @@ import '../../contracts/artifact_ref.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/authoring_request.dart';
 import '../../ports/artifact_store.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
@@ -22,6 +23,7 @@ final class Model3dActions {
   final RetainedAssetBlobReader? retainedBlobReader;
   static const maximumModelCount = 50;
   static const maximumTotalByteLength = 64 * 1024 * 1024;
+  static const maximumInlineModelDiffByteLength = 8 * 1024;
 
   static final descriptors = [
     for (final action in ['import', 'import_batch', 'configure', 'delete'])
@@ -64,6 +66,9 @@ final class Model3dActions {
             'maximumModelCount': maximumModelCount,
             'maximumTotalByteLength': maximumTotalByteLength,
             'publicationSemantics': 'recoverable_cross_file',
+            'diffProjection': 'batch_model_additions',
+            'maximumInlineModelDiffByteLength':
+                maximumInlineModelDiffByteLength,
             'inputSchema': {
               'type': 'object',
               'additionalProperties': false,
@@ -351,12 +356,7 @@ final class Model3dActions {
       final manifest = context.snapshot.manifest.copyWith(
           models3d: [...context.snapshot.manifest.models3d, ...models]);
       final projectDraft = buildVisualManifestDraft(context.snapshot, manifest,
-          operation: context.request.actionId,
-          path: '/models3d',
-          before: context.snapshot.manifest.models3d
-              .map((model) => model.toJson())
-              .toList(),
-          after: manifest.models3d.map((model) => model.toJson()).toList());
+          operation: context.request.actionId, path: '/models3d');
       final result = AuthoringMutationDraft(
           changeSet: AuthoringChangeSet(
               changes: [
@@ -365,13 +365,20 @@ final class Model3dActions {
               ],
               diff: AuthoringDiff([
                 ...assetDraft.changeSet.diff.entries,
-                ...projectDraft.changeSet.diff.entries
+                for (final model in models)
+                  AuthoringDiffEntry(
+                      operation: AuthoringDiffOperation.add,
+                      resource: projectDraft.changeSet.changes.single.resource,
+                      path: '/models3d/${model.id}',
+                      after: _modelBatchDiffValue(model))
               ])),
           projectedProject: manifest,
           preview: {
             'operation': context.request.actionId,
             'importedCount': models.length,
             'modelIds': models.map((model) => model.id).toList(),
+            'beforeModelCount': context.snapshot.manifest.models3d.length,
+            'afterModelCount': manifest.models3d.length,
             'totalByteLength': actualByteLength,
             'publicationSemantics': 'recoverable_cross_file'
           },
@@ -409,6 +416,37 @@ final class Model3dActions {
                   parameters: parameters),
               planId: context.planId,
               seed: context.seed));
+}
+
+Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
+  final value = model.toJson();
+  final bytes = utf8.encode(canonicalAuthoringJson(value));
+  if (bytes.length <= Model3dActions.maximumInlineModelDiffByteLength) {
+    return value;
+  }
+  final inspection = model.inspection;
+  return {
+    'modelSummary': {
+      'id': model.id,
+      'name': model.name,
+      'sourceAssetId': model.sourceAssetId,
+      'relativePath': model.relativePath,
+      'scale': model.scale,
+      'pivot': model.pivot.toJson(),
+      'inspection': {
+        'bounds': inspection.bounds.toJson(),
+        'meshCount': inspection.meshCount,
+        'triangleCount': inspection.triangleCount,
+        'materialCount': inspection.materials.length,
+        'animationCount': inspection.animations.length,
+        'diagnosticCount': inspection.diagnostics.length,
+      },
+      'fingerprintDomain': 'model3d-entry.json',
+      'fingerprint': computeAuthoringBytesFingerprint(bytes,
+          logicalName: 'model3d-entry.json'),
+      'byteLength': bytes.length,
+    },
+  };
 }
 
 AuthoringMutationDraft _compose(

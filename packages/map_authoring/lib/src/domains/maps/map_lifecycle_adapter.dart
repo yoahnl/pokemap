@@ -17,6 +17,7 @@ import '../../support/authoring_performance_observer.dart';
 import '../../workspace/project_snapshot.dart';
 import 'map_resize_dependencies.dart';
 import 'map_duplicate_codec_guard.dart';
+import 'smart_tile_catalog_document.dart';
 
 /// Pure map lifecycle adapter. It never receives a filesystem write port.
 final class MapLifecycleAdapter {
@@ -606,7 +607,14 @@ List<int> encodeProjectAuthoringDocument(
     }
   }
   next.addAll(encoded);
-  return utf8.encode(const JsonEncoder.withIndent('  ').convert(next));
+  if (manifest.smartTileCatalog.isNotEmpty ||
+      next.containsKey('smartTileCatalog')) {
+    next['smartTileCatalog'] = canonicalSmartTileCatalogDocument(
+        original['smartTileCatalog'],
+        snapshot.manifest.smartTileCatalog,
+        manifest.smartTileCatalog);
+  }
+  return utf8.encode(jsonEncode(next));
 }
 
 AuthoringResourceChange _manifestChange(

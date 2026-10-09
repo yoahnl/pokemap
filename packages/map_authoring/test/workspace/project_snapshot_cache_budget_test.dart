@@ -107,7 +107,77 @@ void main() {
       expect(cache.projectCount, 0);
       expect(cache.invalidations, 1);
     });
+
+    test('charges aliased binary buffers once to the asset budget', () {
+      final snapshot = _modelBufferSnapshot(shared: true);
+      final cache = ProjectSnapshotCache(
+        maximumBytes: 2,
+        maximumAssetBlobBytes: 4,
+      );
+
+      expect(
+        cache.store(snapshot: snapshot, identities: _identities(snapshot)),
+        ProjectSnapshotCacheAdmission.admitted,
+      );
+      expect(cache.storedAuthoringBytes, 2);
+      expect(cache.storedAssetBlobBytes, 4);
+      expect(cache.storedBytes, 6);
+      expect(snapshot.resourceByteLength, 10);
+    });
+
+    test('equal binary payloads in distinct buffers remain separately charged',
+        () {
+      final snapshot = _modelBufferSnapshot(shared: false);
+      final cache = ProjectSnapshotCache(
+        maximumBytes: 2,
+        maximumAssetBlobBytes: 4,
+      );
+
+      expect(
+        cache.store(snapshot: snapshot, identities: _identities(snapshot)),
+        ProjectSnapshotCacheAdmission.authoringBudgetExceeded,
+      );
+      expect(cache.projectCount, 0);
+      expect(cache.authoringBudgetRejections, 1);
+    });
   });
+}
+
+ProjectSnapshot _modelBufferSnapshot({required bool shared}) {
+  final handles = WorkspaceHandleStore();
+  final registered = handles.registerProject(
+    projectName: 'Buffer fixture',
+    initialFingerprint: 'fixture',
+    readBytes: (_) async => const [],
+  );
+  final access = handles.resolveProject(registered.projectHandle);
+  final blob = access.adoptResourceBytes(const [7, 8, 9, 10]);
+  final logical =
+      shared ? blob : access.adoptResourceBytes(const [7, 8, 9, 10]);
+  final snapshot = ProjectSnapshot(
+    projectHandle: registered.projectHandle,
+    revision: 'sha256:${'a' * 64}',
+    manifest:
+        const ProjectManifest(name: 'Buffer fixture', maps: [], tilesets: []),
+    maps: const [],
+    resourceFingerprints: {
+      'project': 'sha256:${'b' * 64}',
+      'assetLogical:model': 'sha256:${'c' * 64}',
+      'assetBlob:fixture': 'sha256:${'d' * 64}',
+    },
+    ownedResourceBytes: {
+      'project': access.adoptResourceBytes(const [1, 2]),
+      'assetLogical:model': logical,
+      'assetBlob:fixture': blob,
+    },
+    resourceStorageKeys: const {
+      'project': 'project.json',
+      'assetLogical:model': 'assets/models3d/model.glb',
+      'assetBlob:fixture': 'assets/.pokemap-store/fixture.blob',
+    },
+  );
+  handles.closeWorkspace(registered.workspaceHandle);
+  return snapshot;
 }
 
 ProjectSnapshot _snapshot({
