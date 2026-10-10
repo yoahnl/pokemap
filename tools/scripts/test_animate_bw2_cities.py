@@ -10,6 +10,7 @@ from unittest.mock import patch
 from bisect import bisect_right
 import sys
 import unittest
+import zipfile
 
 from PIL import Image
 
@@ -49,6 +50,67 @@ def fixture():
 
 
 class CityAnimationTests(unittest.TestCase):
+    def test_partial_source_catalog_does_not_pull_unselected_pavonnay_assets(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / '.pokemap/authoring/rom').mkdir(parents=True)
+            pavonnay = root / '.pokemap/authoring/pavonnay'
+            pavonnay.mkdir()
+            (pavonnay / 'assets_manifest.json').write_text(json.dumps({'source': {'assetId': 'unselected'}, 'models': []}))
+            sources = root / 'sources'
+            sources.mkdir()
+            (sources / 'manifest.json').write_text(json.dumps({'assets': []}))
+            contexts = city_converter.source_contexts(root, sources, {'cities': [], 'recipeRoot': '.pokemap/authoring/rom', 'includePavonnay': False})
+            self.assertEqual(contexts, [])
+
+    def test_selected_archive_member_preserves_exact_source_provenance(self):
+        from bw2_city_animation_sources import read_archive
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            with zipfile.ZipFile(root / 'bridge.zip', 'w') as archive:
+                archive.writestr('bridge.dae', b'bridge')
+                archive.writestr('access.dae', b'access')
+            digest = sha256((root / 'bridge.zip').read_bytes()).hexdigest()
+            record = {'id': 'bridge', 'name': 'Bridge', 'local_path': 'bridge.zip', 'page_url': 'https://example.test/bridge'}
+            with self.assertRaises(ValueError):
+                read_archive(root, record, digest)
+            data, textures, proof = read_archive(root, record, digest, 'access.dae')
+            self.assertEqual(data, b'access')
+            self.assertEqual(proof['member'], 'access.dae')
+            self.assertEqual(proof['memberSha256'], sha256(b'access').hexdigest())
+            with self.assertRaises(ValueError):
+                read_archive(root, record, digest, 'missing.dae')
+            with self.assertRaises(ValueError):
+                read_archive(root, record, '0'*64, 'access.dae')
+
+    def test_recipe_catalog_cannot_escape_project_authoring_root(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / '.pokemap/authoring').mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, 'inside the project authoring'):
+                city_converter.source_contexts(root, root / 'sources', {'recipeRoot': '../outside', 'cities': []})
+
+    def test_recipe_catalog_cannot_follow_symlink_outside_authoring_root(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            authoring = root / '.pokemap/authoring'
+            authoring.mkdir(parents=True)
+            outside = root / 'outside'
+            outside.mkdir()
+            (authoring / 'escape').symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, 'inside the project authoring'):
+                city_converter.source_contexts(root, root / 'sources', {'recipeRoot': '.pokemap/authoring/escape', 'cities': []})
+
+    def test_authoring_root_cannot_follow_symlink_outside_project(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder) / 'project'
+            (root / '.pokemap').mkdir(parents=True)
+            outside = Path(folder) / 'outside'
+            (outside / 'recipes').mkdir(parents=True)
+            (root / '.pokemap/authoring').symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, 'inside the project'):
+                city_converter.source_contexts(root, root / 'sources', {'recipeRoot': '.pokemap/authoring/recipes', 'cities': []})
+
     def test_synthetic_water_group_keeps_aliases_for_source_geometry_matching(self):
         context = {'materials': {
             'sea_mizu1_1': {'textures': ['sea.png'], 'groups': ['map_0301_24_4/terrain']},

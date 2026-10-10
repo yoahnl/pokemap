@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -34,14 +35,13 @@ class MapDecorTransformDraft {
     required this.project,
     required this.original,
     required Offset pointer,
-    required bool precise,
+    required this._precise,
     this.handle,
     this.lockRatio = false,
   }) : candidate = original,
        _base = original,
        _origin = pointer,
        _lastPointer = pointer,
-       _precise = precise,
        environmentOwnedIds = environmentOwnedMapPlacedElementIds(source),
        element = project.elements.firstWhere((e) => e.id == original.elementId),
        tileSize = PixelSize(

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-020 — recette du 2026-08-24 : « selon l'efficacité de l'attaque,
 // on doit marquer si c'est plus ou moins efficace et avoir un bruit d'impact
 // différent ». L'audit a montré que TOUTE la chaîne existe (chart de types,
@@ -80,7 +82,7 @@ Future<({List<String> seLog, Set<String> messages})> _playFirstTurn(
     onPlayerChoice: (_) {},
     playSfx: (name, {required volume, required pitch}) => seLog.add(name),
   );
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
 
   final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));

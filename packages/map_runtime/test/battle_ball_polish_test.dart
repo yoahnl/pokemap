@@ -5,6 +5,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_ball_flash_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-031 — recette du 2026-08-24 (vidéo « combat animation ») :
 // « pour la capture et la sortie de pokéball, tu as utilisé une technique un
 // peu drôle, tu as rendu tout petit les pokémons ! mais on le voit quand
@@ -60,7 +62,7 @@ Future<BattleOverlayComponent> _mount() async {
     viewportSize: Vector2(960, 540),
     onPlayerChoice: (_) {},
   );
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
   return overlay;
 }

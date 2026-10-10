@@ -96,6 +96,65 @@ void main() {
       );
     });
 
+    test('preserves interleaved generic and material ambiguity order', () {
+      final preset = _preset(
+        topology: SmartTileTopology.wangEdge4,
+        rules: const <SmartTileRule>[
+          SmartTileRule(
+            id: 'dirt-first',
+            centerMatch: SmartTileSlotMatch.material('dirt'),
+          ),
+          SmartTileRule(
+            id: 'water-only',
+            centerMatch: SmartTileSlotMatch.material('water'),
+          ),
+          SmartTileRule(
+            id: 'generic-middle',
+            centerMatch: SmartTileSlotMatch.any(),
+            signature: SmartTileSignature(
+              northEdge: SmartTileSlotMatch.material('water'),
+            ),
+          ),
+          SmartTileRule(
+            id: 'dirt-last',
+            centerMatch: SmartTileSlotMatch.material('dirt'),
+          ),
+        ],
+      );
+      final resolver = PreparedSmartTileResolver(
+        preset: preset,
+        materials: _materials,
+      );
+      final result = resolver.resolve(
+        context: const SmartTileCellContext(
+          centerMaterialId: 'dirt',
+          observed: SmartTileObservedSignature(
+            northEdge: SmartTileObservedSlot.inside(materialId: 'water'),
+          ),
+        ),
+        x: 0,
+        y: 0,
+      );
+
+      expect(result.status, SmartTileResolutionStatus.ambiguousRule);
+      expect(result.matchingRuleIds, [
+        'dirt-first',
+        'dirt-last',
+        'generic-middle',
+      ]);
+
+      final withoutCenter = resolver.resolve(
+        context: const SmartTileCellContext(
+          observed: SmartTileObservedSignature(
+            northEdge: SmartTileObservedSlot.inside(materialId: 'water'),
+          ),
+        ),
+        x: 0,
+        y: 0,
+      );
+      expect(withoutCenter.ruleId, 'generic-middle');
+    });
+
     test('matches explicit Wang materials independently of connection group',
         () {
       final preset = _preset(

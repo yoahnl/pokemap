@@ -11,6 +11,71 @@ import 'package:test/test.dart';
 /// double-read consistency check still rejects a mid-load write.
 void main() {
   group('snapshot fingerprint cache', () {
+    test('bounds identity metadata independently from decoded models', () {
+      final cache = ProjectSnapshotFingerprintCache(
+        maximumEntries: 1,
+        maximumIdentityEntries: 2,
+      );
+      final identities = List.generate(
+        3,
+        (index) => ProjectResourceIdentity(
+          scope: 'bounded-project',
+          relativePath: 'resources/$index',
+          byteLength: 16,
+          modifiedAtMicros: 1,
+        ),
+      );
+      for (final identity in identities) {
+        cache.storeResourceFingerprint(identity, identity.relativePath);
+        cache.markAssetBlobCertified(identity);
+        cache.storeDecoded(identity, identity.relativePath);
+      }
+      expect(cache.resourceFingerprint(identities.first), isNull);
+      expect(cache.isAssetBlobCertified(identities.first), isFalse);
+      expect(cache.resourceFingerprint(identities[1]), identities[1].relativePath);
+      expect(cache.isAssetBlobCertified(identities[1]), isTrue);
+      expect(cache.decoded<String>(identities[1]), isNull);
+      expect(cache.decoded<String>(identities.last), identities.last.relativePath);
+    });
+
+    test('retains large-project identities without retaining decoded generations',
+        () {
+      final cache = ProjectSnapshotFingerprintCache();
+      final identities = List.generate(
+        1200,
+        (index) => ProjectResourceIdentity(
+          scope: 'native-nb2',
+          relativePath: '.pokemap/blobs/$index',
+          byteLength: 32,
+          modifiedAtMicros: 1,
+        ),
+      );
+      for (final identity in identities) {
+        cache.storeResourceFingerprint(identity, identity.relativePath);
+        cache.markAssetBlobCertified(identity);
+        cache.storeDecoded(identity, identity.relativePath);
+        cache.storeRevision(identity.relativePath, identity.relativePath);
+      }
+      expect(
+        cache.resourceFingerprint(identities.first),
+        identities.first.relativePath,
+      );
+      expect(cache.isAssetBlobCertified(identities.first), isTrue);
+      expect(cache.decoded<String>(identities.first), isNull);
+      expect(cache.revision(identities.first.relativePath), isNull);
+      final changed = ProjectResourceIdentity(
+        scope: identities.first.scope,
+        relativePath: identities.first.relativePath,
+        byteLength: identities.first.byteLength,
+        modifiedAtMicros: 2,
+      );
+      expect(cache.resourceFingerprint(changed), isNull);
+      expect(cache.isAssetBlobCertified(changed), isFalse);
+      cache.clear();
+      expect(cache.resourceFingerprint(identities.last), isNull);
+      expect(cache.isAssetBlobCertified(identities.last), isFalse);
+    });
+
     test('reuses fingerprints while nothing on disk changed', () async {
       final harness = await _Harness.create();
       addTearDown(harness.dispose);

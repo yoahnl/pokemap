@@ -37,12 +37,10 @@ class MapLibraryRow {
 
 class MapLibraryTree {
   MapLibraryTree({
-    required List<ProjectMapGroup> groups,
-    required List<ProjectMapEntry> maps,
+    required this._groups,
+    required this._maps,
     String query = '',
-  }) : _groups = groups,
-       _maps = maps,
-       _query = query.trim().toLowerCase() {
+  }) : _query = query.trim().toLowerCase() {
     rows = List.unmodifiable(_build());
   }
 

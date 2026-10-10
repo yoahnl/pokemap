@@ -133,8 +133,8 @@ class NitroSources:
         return self.global_modes[material]
 
 
-def source_material_context(source_root, record):
-    data, _, provenance = read_archive(source_root, record, record['sha256'])
+def source_material_context(source_root, record, member=None):
+    data, _, provenance = read_archive(source_root, record, record['sha256'], member)
     tree = ET.fromstring(data)
     by_id = {node.get('id'): node for node in tree.iter() if node.get('id')}
     scene = by_id[tree.find('c:scene/c:instance_visual_scene', NAMESPACE).get('url')[1:]]
@@ -167,20 +167,28 @@ def source_material_context(source_root, record):
 
 def source_contexts(project, source_root, catalog):
     result = []
-    base = project / '.pokemap/authoring/unys-cities'
+    project = project.resolve()
+    authoring = (project / '.pokemap/authoring').resolve()
+    if not authoring.is_relative_to(project) or authoring == project:
+        raise ValueError('Animation authoring data must stay inside the project')
+    base = (project / catalog.get('recipeRoot', '.pokemap/authoring/unys-cities')).resolve()
+    if not base.is_relative_to(authoring) or base == authoring:
+        raise ValueError('Animation recipes must stay inside the project authoring directory')
     records = {record['id']: record for record in json.loads((source_root / 'manifest.json').read_text())['assets']}
     for city in catalog['cities']:
         folder = base / city['id']
+        if not folder.resolve().is_relative_to(base) or folder.resolve() == base:
+            raise ValueError('Animation recipe escapes its declared directory')
         if not (folder / 'assets_manifest.json').exists():
             continue
         manifest = json.loads((folder / 'assets_manifest.json').read_text())
-        materials, provenance = source_material_context(source_root, records[city['sourceId']])
+        materials, provenance = source_material_context(source_root, records[city['sourceId']], city.get('sourceMember'))
         result.append({'city': city['id'], 'mapId': 'unys-' + city['id'],
                        'models': {model['modelId']: model for model in manifest['models']},
                        'materials': materials, 'provenance': provenance,
                        'record': records[city['sourceId']], 'sourceRoot': source_root})
     folder = project / '.pokemap/authoring/pavonnay'
-    if (folder / 'assets_manifest.json').exists():
+    if catalog.get('includePavonnay', True) and (folder / 'assets_manifest.json').exists():
         manifest = json.loads((folder / 'assets_manifest.json').read_text())
         materials, provenance = source_material_context(source_root, records[manifest['source']['assetId']])
         models = {model['modelId']: model for model in manifest['models']}

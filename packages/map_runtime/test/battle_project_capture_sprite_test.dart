@@ -12,6 +12,8 @@ import 'package:map_runtime/src/presentation/flame/battle_ball_capture_component
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/load_flame_component.dart';
+
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   late Directory project;
@@ -184,7 +186,7 @@ void main() {
     addTearDown(() {
       if (!loadedPath.isCompleted) loadedPath.complete(null);
     });
-    final loading = overlay.onLoad();
+    final loading = loadFlameComponent(overlay);
     await requested.future;
 
     overlay.onRemove();
@@ -315,7 +317,7 @@ Future<BattleOverlayComponent> _mount(
     onOutcomePresented: onOutcomePresented,
   );
   addTearDown(overlay.onRemove);
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
   return overlay;
 }

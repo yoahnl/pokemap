@@ -13,6 +13,7 @@ import '../assets/project_media_store.dart';
 import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
+import 'runtime_static_terrain_projection.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -120,7 +121,7 @@ final class RuntimeProjectProjectionBuilder {
     this.maxWorkspaceEntries = 100000,
     this.maxPayloadEntries = 20000,
     this.maxFileBytes = 268435456,
-    this.maxJsonSourceBytes = 33554432,
+    this.maxJsonSourceBytes = 268435456,
     this.maxTotalPayloadBytes = 1073741824,
   });
 
@@ -142,7 +143,7 @@ final class RuntimeProjectProjectionBuilder {
       maxJsonSourceBytes: maxJsonSourceBytes,
       maxTotalPayloadBytes: maxTotalPayloadBytes,
     );
-    final authorFiles = await _AuthorProjectFileResolver.load(
+    var authorFiles = await _AuthorProjectFileResolver.load(
       projectRoot,
       budget,
     );
@@ -307,11 +308,52 @@ final class RuntimeProjectProjectionBuilder {
       compiledEntries.add(entry.copyWith(relativePath: runtimeRelativePath));
     }
 
-    final projectedProject = authorProject.copyWith(
+    var projectedProject = authorProject.copyWith(
       dialogues: compiledEntries,
       settings: authorProject.settings.copyWith(mistralApiKey: null),
       presentation: presentation,
     );
+
+    if (projectedProject.settings.dimension == ProjectDimension.threeD &&
+        projectedProject.smartTileCatalog.presets
+            .any((preset) => preset.rules.length >= 64)) {
+      final sourceMaps = <MapData>[];
+      for (final entry in projectedProject.maps) {
+        sourceMaps.add(MapData.fromJson(_decodeJsonObject(
+          await authorFiles.read(entry.relativePath, budget, jsonLike: true),
+          entry.relativePath,
+        )));
+      }
+      final terrain = await projectRuntimeStaticTerrain(
+        project: projectedProject,
+        maps: sourceMaps,
+        readAsset: (path) => authorFiles.read(path, budget),
+      );
+      projectedProject = terrain.project;
+      final virtualFiles = <String, List<int>>{
+        ...terrain.assets,
+        for (var index = 0; index < sourceMaps.length; index++)
+          if (terrain.maps[index] != sourceMaps[index])
+            projectedProject.maps[index].relativePath:
+                _encodeRuntimeJson(terrain.maps[index].toJson()),
+      };
+      final derivedRecords = <AssetRecord>[
+        for (final entry in terrain.assets.entries)
+          AssetRecord(
+            id: 'runtime-terrain-image-${p.basenameWithoutExtension(entry.key)}',
+            logicalPath: entry.key,
+            artifact: ContentArtifactRef.fromBytes(entry.value,
+                mediaType: 'image/png'),
+            usages: const ['tileset'],
+          ),
+      ];
+      authorFiles = _AuthorProjectFileResolver(
+        projectRoot,
+        AssetCatalog(
+            records: [...authorFiles.catalog.records, ...derivedRecords]),
+        virtualFiles: virtualFiles,
+      );
+    }
 
     final presentationPackage = await _preparePresentationPackage(
       authorProject,
@@ -1207,7 +1249,8 @@ final class _JsonScrubResult {
 }
 
 final class _AuthorProjectFileResolver {
-  const _AuthorProjectFileResolver(this.root, this.catalog);
+  const _AuthorProjectFileResolver(this.root, this.catalog,
+      {this.virtualFiles = const {}});
 
   static Future<_AuthorProjectFileResolver> load(
     Directory root,
@@ -1257,6 +1300,7 @@ final class _AuthorProjectFileResolver {
 
   final Directory root;
   final AssetCatalog catalog;
+  final Map<String, List<int>> virtualFiles;
 
   Future<ProjectMediaCatalog?> readProjectMediaCatalog(
     _ProjectionBudget budget,
@@ -1299,6 +1343,8 @@ final class _AuthorProjectFileResolver {
     final normalized = RuntimeProjectProjectionBuilder._normalizeRelative(
       relativePath,
     );
+    final projected = virtualFiles[normalized];
+    if (projected != null) return projected;
     final record = catalog.findByLogicalPath(normalized);
     final storagePath =
         record == null ? normalized : assetBlobStorageKey(record.artifact);

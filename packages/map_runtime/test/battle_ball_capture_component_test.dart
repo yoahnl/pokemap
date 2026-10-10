@@ -33,7 +33,7 @@ Future<({BattleBallCaptureComponent ball, List<BattleBallCaptureCue> cues})>
     onCue: cues.add,
   );
   final host = PositionComponent();
-  await host.add(ball);
+  host.add(ball);
   host.updateTree(0);
   return (ball: ball, cues: cues);
 }

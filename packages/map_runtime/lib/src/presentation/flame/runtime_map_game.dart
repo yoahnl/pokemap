@@ -27,7 +27,7 @@ class RuntimeMapGame extends FlameGame {
       ),
     );
     bundle = await prepareBorderRuntimeBundle(bundle);
-    await world.add(
+    world.add(
       MapLayersComponent(
         bundle: bundle,
         tileImagesByTilesetId: images,

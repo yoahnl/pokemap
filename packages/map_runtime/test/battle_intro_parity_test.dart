@@ -12,6 +12,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-027 — recette du 2026-08-24 (vidéo 18-09-39) : « les deux pokémons
 // sont déjà présents, PUIS il y a l'animation » et « lorsque l'on est face à
 // un dresseur, lui aussi lance une pokéball face à nous ».
@@ -303,7 +305,7 @@ void main() {
       if (trainerImage != null) {
         overlay.prepareIntroTrainerVisual(trainerImage);
       }
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       return overlay;
     }
@@ -375,7 +377,7 @@ void main() {
         introEnabled: true,
         onCommandOverlaySnapshotChanged: snapshots.add,
       );
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       overlay.startIntro();
@@ -407,7 +409,7 @@ void main() {
         introEnabled: true,
         onCommandOverlaySnapshotChanged: snapshots.add,
       );
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       overlay.startIntro();
 

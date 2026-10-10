@@ -163,7 +163,8 @@ final class SpatialBattlePresentation extends FlameGame {
       overlay.onGameResize(camera.viewport.size);
       unawaited(
         Future<void>.sync(() async {
-          await camera.viewport.add(overlay);
+          camera.viewport.add(overlay);
+          await overlay.loaded;
         }).then((_) {
           if (stopped ||
               (overlay != runtime.battleOverlay &&

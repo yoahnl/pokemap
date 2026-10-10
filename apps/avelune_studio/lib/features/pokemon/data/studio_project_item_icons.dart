@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
 final class StudioProjectItemIcons {
-  StudioProjectItemIcons({AssetBundle? bundle}) : _bundle = bundle;
+  StudioProjectItemIcons({this._bundle});
 
   static final shared = StudioProjectItemIcons();
   final AssetBundle? _bundle;

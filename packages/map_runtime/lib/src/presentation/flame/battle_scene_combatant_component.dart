@@ -196,7 +196,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       ),
       priority: 13,
     );
-    await add(_speciesText!);
+    add(_speciesText!);
 
     _monogramText = TextComponent(
       text: _speciesMonogram(_speciesLabel),
@@ -211,7 +211,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       ),
       priority: 13,
     );
-    await add(_monogramText!);
+    add(_monogramText!);
     await _syncSpriteImage();
   }
 

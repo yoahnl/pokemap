@@ -31,11 +31,9 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
     required this.session,
     required this.mapAdapter,
     ProjectFileReader? reader,
-    PokemonMovesSnapshotSource? movesSource,
-    PokemonExternalSourceRepository? externalSource,
-  }) : _reader = reader ?? const LocalProjectFileReader(),
-       _movesSource = movesSource,
-       _externalSource = externalSource;
+    this._movesSource,
+    this._externalSource,
+  }) : _reader = reader ?? const LocalProjectFileReader();
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;

@@ -37,7 +37,7 @@ class BattleDebugPanelComponent extends PositionComponent {
         ),
       ),
     );
-    await add(_titleText!);
+    add(_titleText!);
 
     _bodyText = TextComponent(
       text: '',
@@ -53,7 +53,7 @@ class BattleDebugPanelComponent extends PositionComponent {
       ),
       priority: 41,
     );
-    await add(_bodyText!);
+    add(_bodyText!);
   }
 
   void sync({

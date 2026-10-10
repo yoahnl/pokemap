@@ -13,6 +13,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/load_flame_component.dart';
+
 const String _tinyPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9tsAAAAASUVORK5CYII=';
 
@@ -309,7 +311,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(
           overlay.currentCommandOverlaySnapshot!.entries
@@ -368,7 +370,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -418,7 +420,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
       expect(
@@ -483,7 +485,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionDown();
       expect(
@@ -549,7 +551,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(
@@ -618,7 +620,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -698,7 +700,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -767,7 +769,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -820,7 +822,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -868,7 +870,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -916,7 +918,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(
           overlay.currentCommandOverlaySnapshot!.entries
@@ -975,7 +977,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionDown();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1075,7 +1077,7 @@ void main() {
         visualAssetCache: visualAssetCache,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1124,7 +1126,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.continueOnly);
       expect(
           overlay.currentCommandOverlaySnapshot!.entries

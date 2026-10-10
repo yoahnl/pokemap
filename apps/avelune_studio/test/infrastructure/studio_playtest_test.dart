@@ -154,7 +154,7 @@ void main() {
     await tester.tap(find.text('Retour à la carte'));
     expect(returned, isTrue);
     await tester.pumpWidget(const SizedBox());
-    expect(game.paused, isTrue);
+    expect(game.isPaused, isTrue);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );

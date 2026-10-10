@@ -12,10 +12,14 @@ import '../ports/project_file_reader.dart';
 /// everything coarser is caught. The double-read consistency check is
 /// untouched and still rejects a snapshot that observed a mid-load change.
 final class ProjectSnapshotFingerprintCache {
-  ProjectSnapshotFingerprintCache({this.maximumEntries = 512})
-      : assert(maximumEntries > 0);
+  ProjectSnapshotFingerprintCache({
+    this.maximumEntries = 512,
+    this.maximumIdentityEntries = 32768,
+  })  : assert(maximumEntries > 0),
+        assert(maximumIdentityEntries > 0);
 
   final int maximumEntries;
+  final int maximumIdentityEntries;
   final Map<ProjectResourceIdentity, String> _resourceFingerprints = {};
   final Map<String, String> _revisions = {};
   final Map<ProjectResourceIdentity, Object> _decoded = {};
@@ -38,7 +42,7 @@ final class ProjectSnapshotFingerprintCache {
     ProjectResourceIdentity identity,
     String fingerprint,
   ) {
-    if (_resourceFingerprints.length >= maximumEntries) {
+    if (_resourceFingerprints.length >= maximumIdentityEntries) {
       _resourceFingerprints.remove(_resourceFingerprints.keys.first);
     }
     _resourceFingerprints[identity] = fingerprint;
@@ -63,7 +67,7 @@ final class ProjectSnapshotFingerprintCache {
       _certifiedAssetBlobs.contains(identity);
 
   void markAssetBlobCertified(ProjectResourceIdentity identity) {
-    if (_certifiedAssetBlobs.length >= maximumEntries) {
+    if (_certifiedAssetBlobs.length >= maximumIdentityEntries) {
       _certifiedAssetBlobs.remove(_certifiedAssetBlobs.first);
     }
     _certifiedAssetBlobs.add(identity);

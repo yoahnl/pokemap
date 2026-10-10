@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
+import 'package:flame/game.dart' show FlameGame;
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -21,6 +22,9 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_compon
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_layer_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_rmxp_animation_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
+
+import 'support/load_flame_component.dart';
 
 String _hudSpeciesText(BattleCommandOverlayHudSnapshot hud) {
   final gender = hud.genderSymbol;
@@ -319,6 +323,98 @@ void _expectRectCloseTo(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('overlay initialization waits for its asynchronous backdrop', () async {
+    final imageRequested = Completer<void>();
+    final imageReady = Completer<ui.Image>();
+    final cache = BattleVisualAssetCache(
+      imageLoader: (_) {
+        if (!imageRequested.isCompleted) imageRequested.complete();
+        return imageReady.future;
+      },
+    );
+    final overlay = BattleOverlayComponent(
+      itemCapabilityResolver: _itemResolver,
+      session: _session(
+        player: _combatant(
+            speciesId: 'player', lineupIndex: 0, moves: [_waitingMove()]),
+        enemy: _combatant(
+            speciesId: 'enemy', lineupIndex: 0, moves: [_waitingMove()]),
+      ),
+      viewportSize: Vector2(960, 540),
+      backgroundSpec: const BattleBackgroundSpec.explicitImage(
+        fallbackKey: BattleBackgroundKey.fallbackField,
+        absolutePath: '/tmp/flame-lifecycle-backdrop.png',
+      ),
+      visualAssetCache: cache,
+      onPlayerChoice: (_) {},
+    );
+    final game = FlameGame();
+    game.add(overlay);
+    game.onGameResize(Vector2(960, 540));
+    var initialized = false;
+    final loading = overlay.onLoad().then((_) => initialized = true);
+    await imageRequested.future;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(initialized, isFalse);
+
+    imageReady.complete(await _fakeBattleFxImage());
+    await loading;
+    expect(initialized, isTrue);
+    expect(
+      overlay.children
+          .whereType<BattleSceneBackdropComponent>()
+          .single
+          .hasResolvedExplicitImage,
+      isTrue,
+    );
+    overlay.onRemove();
+    cache.dispose();
+  });
+
+  test('removing a loading overlay settles without orphan combatants', () async {
+    final imageRequested = Completer<void>();
+    final imageReady = Completer<ui.Image>();
+    final cache = BattleVisualAssetCache(
+      imageLoader: (_) {
+        if (!imageRequested.isCompleted) imageRequested.complete();
+        return imageReady.future;
+      },
+    );
+    final overlay = BattleOverlayComponent(
+      itemCapabilityResolver: _itemResolver,
+      session: _session(
+        player: _combatant(
+            speciesId: 'player', lineupIndex: 0, moves: [_waitingMove()]),
+        enemy: _combatant(
+            speciesId: 'enemy', lineupIndex: 0, moves: [_waitingMove()]),
+      ),
+      viewportSize: Vector2(960, 540),
+      backgroundSpec: const BattleBackgroundSpec.explicitImage(
+        fallbackKey: BattleBackgroundKey.fallbackField,
+        absolutePath: '/tmp/flame-cancelled-backdrop.png',
+      ),
+      visualAssetCache: cache,
+      onPlayerChoice: (_) {},
+    );
+    addTearDown(overlay.onRemove);
+    addTearDown(cache.dispose);
+    final game = FlameGame();
+    game.onGameResize(Vector2(960, 540));
+    game.add(overlay);
+    final loading = overlay.loaded;
+    await imageRequested.future.timeout(const Duration(seconds: 2));
+
+    overlay.removeFromParent();
+    expect(overlay.parent, isNull);
+    expect(overlay.isRemoved, isFalse);
+    imageReady.complete(await _fakeBattleFxImage());
+    await loading.timeout(const Duration(seconds: 2));
+
+    expect(overlay.isLoading, isFalse);
+    expect(overlay.children.whereType<BattleSceneCombatantComponent>(), isEmpty);
+  });
+
   test('removing a battle overlay releases its loaded stat sheets', () async {
     final overlay = BattleOverlayComponent(
       itemCapabilityResolver: _itemResolver,
@@ -331,7 +427,7 @@ void main() {
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     for (var i = 0; i < 100 && overlay.debugStatSheetCount < 2; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }
@@ -397,7 +493,7 @@ void main() {
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) => submitted += 1,
       );
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       overlay.lockForPostBattle();
@@ -812,7 +908,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(
         overlay.currentBackgroundKey,
@@ -841,7 +937,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(
         overlay.children.whereType<BattleSceneBackdropComponent>(),
@@ -876,7 +972,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final playerCombatant = overlay.children
           .whereType<BattleSceneCombatantComponent>()
@@ -937,7 +1033,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final rmxpViewport = overlay.currentRmxpAnimationViewportSize;
       expect(
@@ -971,7 +1067,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       overlay.updateState(
@@ -1020,7 +1116,7 @@ void main() {
           onPlayerChoice: (_) {},
         );
 
-        await overlay.onLoad();
+        await loadFlameComponent(overlay);
 
         return overlay.currentSceneLayout;
       }
@@ -1076,7 +1172,7 @@ void main() {
         playerExperienceProgressByLineupIndex: const <int, double>{0: 0.64},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       expect(overlay.currentCommandOverlaySnapshot, isNotNull);
       expect(
@@ -1135,7 +1231,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       expect(overlay.selectRootEntry(0), isTrue);
 
@@ -1175,7 +1271,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -1218,7 +1314,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final layout = overlay.currentSceneLayout;
 
@@ -1256,7 +1352,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       final initialLayout = overlay.currentSceneLayout;
 
       final nextSession = _session(
@@ -1310,7 +1406,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       expect(overlay.currentSceneLayout.isPortrait, isFalse);
 
       overlay.onGameResize(Vector2(390, 844));
@@ -1340,7 +1436,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final initialSnapshot = overlay.currentCommandOverlaySnapshot!;
@@ -1383,7 +1479,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final backdrop =
           overlay.children.whereType<BattleSceneBackdropComponent>().single;
@@ -1435,7 +1531,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(
         overlay.children.whereType<BattleDebugPanelComponent>(),
@@ -1465,7 +1561,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
@@ -1544,7 +1640,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1588,7 +1684,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1644,7 +1740,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1682,7 +1778,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1833,7 +1929,7 @@ void main() {
         },
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2000,7 +2096,7 @@ void main() {
         },
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2158,7 +2254,7 @@ void main() {
         },
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2319,7 +2415,7 @@ void main() {
         },
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2507,7 +2603,7 @@ void main() {
         },
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2590,7 +2686,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2643,7 +2739,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2695,7 +2791,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2737,7 +2833,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentCommandOverlaySnapshot!.canGoBack, isFalse);
       overlay.moveSelectionRight();
@@ -2776,7 +2872,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2838,7 +2934,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionDown();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -2906,7 +3002,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
       expect(overlay.handleEscape(), isFalse);
@@ -2980,7 +3076,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       expect(
           overlay.currentCommandOverlaySnapshot!.entries
               .singleWhere((entry) => entry.selected)
@@ -3019,7 +3115,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
       expect(overlay.currentCommandOverlaySnapshot!.narrationLines.join('\n'),
           isNot('Que doit faire sproutle ?'));
@@ -3049,7 +3145,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
       expect(
@@ -3086,7 +3182,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(overlay.currentPromptText, 'Que doit faire Grenousse ?');
       expect(
@@ -3119,7 +3215,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final nextSession =
           initialSession.applyChoice(const PlayerBattleChoiceFight(0));
@@ -3155,7 +3251,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       expect(_hudSpeciesText(overlay.currentCommandOverlaySnapshot!.playerHud),
           equals('sproutle ♀'));
@@ -3199,7 +3295,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       final switchedSession =
           initialSession.applyChoice(const PlayerBattleChoiceSwitch(0));
@@ -3261,7 +3357,7 @@ void main() {
         onOutcomePresented: presented.add,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
       overlay.updateState(afterTurn);
@@ -3317,7 +3413,7 @@ void main() {
         introEnabled: true,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       expect(
@@ -3381,7 +3477,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final initialEnemyCombatant = overlay.children
@@ -3481,7 +3577,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final switchedSession =
@@ -3517,7 +3613,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final afterTurn = initialSession.applyChoice(
@@ -3562,7 +3658,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final enemyCombatant = overlay.children
@@ -3598,7 +3694,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       final initialCommandPanelPosition =
           overlay.currentCommandOverlaySnapshot!.panelRect;
@@ -3664,7 +3760,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final delayedSession = initialSession.applyChoice(
@@ -3718,7 +3814,7 @@ void main() {
         onPlayerChoice: (_) {},
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       expect(overlay.hasWeatherAmbient, isTrue);
@@ -3753,7 +3849,7 @@ void main() {
     test('le HUD ennemi descend sous les insets fournis au montage', () async {
       const padding = EdgeInsets.only(top: 59, bottom: 34);
       final overlay = overlayWith(padding: padding);
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       expect(
@@ -3766,7 +3862,7 @@ void main() {
     test('setSafeAreaPadding recalcule la géométrie à chaud (rotation)',
         () async {
       final overlay = overlayWith(padding: EdgeInsets.zero);
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
       final topBefore = overlay.currentSceneLayout.enemyHudRect.top;
 

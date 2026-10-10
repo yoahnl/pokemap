@@ -4,6 +4,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
+import 'support/load_flame_component.dart';
+
 /// BETA-BAT-033 — recette du 2026-08-24 : « si on va être KO pendant le tour,
 /// au moment où l'on sélectionne une attaque, le moteur a déjà prédit le KO
 /// et demande déjà le pokémon de remplacement donc ça retire tout le
@@ -86,7 +88,7 @@ void main() {
       onPlayerChoice: (_) {},
       onCommandOverlaySnapshotChanged: snapshots.add,
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     final request = session.decisionRequest;

@@ -4,13 +4,13 @@ publish_to: none
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.9.0 <4.0.0'
+  sdk: '>=3.13.0 <4.0.0'
   flutter: '>=3.47.5'
 
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.38.0
+  flame: 2.0.0-dev.1
   file_selector: ^1.0.3
   flutter_joystick: ^0.2.2
   gamepads: ^0.1.10+1

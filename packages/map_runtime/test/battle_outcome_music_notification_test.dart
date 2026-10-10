@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
+import 'support/load_flame_component.dart';
+
 const _weakStats = BattleStatsSnapshot(
   attack: 10,
   defense: 10,
@@ -58,7 +60,7 @@ Future<void> _playOutcome({
     onPlayerChoice: (_) {},
     onOutcomePresented: notified.add,
   );
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
 
   final fight = session.decisionRequest.allowedChoices

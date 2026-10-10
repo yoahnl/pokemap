@@ -154,7 +154,7 @@ class EndpointSafeAnimationController<T> extends AnimationController<T> {
 
 final class _ModelAssetsCache extends AssetsCache {
   _ModelAssetsCache(this.delegate)
-    : super(prefix: delegate.prefix, bundle: delegate.bundle);
+    : super(bundle: delegate.bundle);
 
   final AssetsCache delegate;
   final Map<String, Uint8List> models = {};

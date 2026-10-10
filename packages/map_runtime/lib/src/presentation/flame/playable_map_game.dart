@@ -4024,7 +4024,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _playerRetainedImages = images.values;
       _playerSupportsRunning = _player.hasRunningAnimation;
-      await world.add(_player);
+      world.add(_player);
+      await _player.loaded;
       if (_isRemoved) return;
       onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.player);
       _syncGameStateFromWorld();
@@ -8761,7 +8762,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _postBattleProgressionOverlay = postBattleOverlay;
       final mounter = postBattleOverlayMounter;
       if (mounter == null) {
-        await camera.viewport.add(postBattleOverlay);
+        camera.viewport.add(postBattleOverlay);
+        await postBattleOverlay.loaded;
       } else {
         await mounter(postBattleOverlay);
       }
@@ -8911,7 +8913,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleExitCurtain = curtain;
     _battleExitTransitionVisible.value = true;
     try {
-      await camera.viewport.add(curtain);
+      camera.viewport.add(curtain);
+      await curtain.loaded;
       // Sous le fondu, le runner tient le verrou de commandes : un plan
       // d'attente couvre la descente au noir, et meurt avec l'overlay.
       overlay.presentPostBattlePlan(
@@ -13644,7 +13647,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
     );
     backgroundLayers.priority = overworldBackgroundRenderPriority;
-    await world.add(backgroundLayers);
+    world.add(backgroundLayers);
 
     final foregroundLayers = MapLayersComponent(
       bundle: preparedBundle,
@@ -13662,7 +13665,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
     );
     foregroundLayers.priority = overworldForegroundRenderPriority;
-    await world.add(foregroundLayers);
+    world.add(foregroundLayers);
 
     final actorOcclusionLayers = SmartTileActorOcclusionLayerCollection(
       bundle: preparedBundle,
@@ -13676,7 +13679,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ),
     );
     for (final row in actorOcclusionLayers.rows) {
-      await world.add(row);
+      world.add(row);
     }
 
     final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
@@ -13746,7 +13749,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           instruction.placedElementId, patch.localOcclusionPath);
       foregroundLayers.setPlacedElementOcclusionPath(
           instruction.placedElementId, patch.localOcclusionPath);
-      await world.add(patch);
+      world.add(patch);
     }
 
     final npcActors = <OverworldActorComponent>[];
@@ -13789,7 +13792,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcActors.add(actor);
       npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);
-      await world.add(actor);
+      world.add(actor);
       debugPrint(
         '[step_studio_trace] npc_mount_added map=${preparedBundle.map.id} entity=${entity.id}',
       );

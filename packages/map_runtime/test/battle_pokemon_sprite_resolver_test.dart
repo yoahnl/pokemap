@@ -11,6 +11,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 
+import 'support/load_flame_component.dart';
+
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
     attack: 60,
@@ -441,7 +443,7 @@ void main() {
       onPlayerChoice: (_) {},
     );
 
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     final initialPlayerCombatant = overlay.children

@@ -7,20 +7,38 @@ void main() {
     const mib = 1024 * 1024;
     const budget = ProjectSnapshotCacheBudget();
 
-    test('admits authoring data through the 64 MiB boundary', () {
+    test('admits authoring data through the 256 MiB boundary', () {
       expect(
         budget.classify(
-          authoringBytes: 64 * mib,
+          authoringBytes: 256 * mib,
           assetBlobBytes: 0,
         ),
         ProjectSnapshotCacheAdmission.admitted,
       );
       expect(
         budget.classify(
-          authoringBytes: 64 * mib + 1,
+          authoringBytes: 256 * mib + 1,
           assetBlobBytes: 0,
         ),
         ProjectSnapshotCacheAdmission.authoringBudgetExceeded,
+      );
+    });
+
+    test('admits the measured native NB2 project without raising blob limits', () {
+      final cache = ProjectSnapshotCache();
+      expect(
+        cache.budget.classify(
+          authoringBytes: 71852142,
+          assetBlobBytes: 108821639,
+        ),
+        ProjectSnapshotCacheAdmission.admitted,
+      );
+      expect(
+        cache.budget.classify(
+          authoringBytes: 71852142,
+          assetBlobBytes: 256 * mib + 1,
+        ),
+        ProjectSnapshotCacheAdmission.assetBudgetExceeded,
       );
     });
 

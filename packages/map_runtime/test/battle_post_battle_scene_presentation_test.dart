@@ -7,6 +7,8 @@ import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-017 : la fin de combat se joue DANS la scène, parité Platine.
 // La référence enchaîne, sans changer d'écran : « Victoire ! », « X a gagné
 // N points Exp. ! » pendant que la barre d'XP se remplit, « monte au N. Y ! »
@@ -92,7 +94,7 @@ void main() {
       onCommandOverlaySnapshotChanged: (s) => snapshot = s,
       playerExperienceProgressByLineupIndex: const <int, double>{0: 0.25},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     overlay.presentPostBattlePlan(
@@ -137,7 +139,7 @@ void main() {
       onCommandOverlaySnapshotChanged: (s) => snapshot = s,
       playerExperienceProgressByLineupIndex: const <int, double>{0: 0.25},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
     await _pump(overlay, 0.1);
 
@@ -189,7 +191,7 @@ void main() {
       onPlayerChoice: (_) {},
       onCommandOverlaySnapshotChanged: (s) => snapshot = s,
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
     overlay.beginPostBattleGate();
 
@@ -256,7 +258,7 @@ void main() {
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     // Fallback demandé : sans image préparée, le step est un no-op et le
@@ -303,7 +305,7 @@ void main() {
       onCommandOverlaySnapshotChanged: (s) => snapshot = s,
       playerExperienceProgressByLineupIndex: const <int, double>{0: 0.7},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     overlay.presentPostBattlePlan(

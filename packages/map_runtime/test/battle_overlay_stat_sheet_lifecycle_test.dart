@@ -9,6 +9,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
+import 'support/load_flame_component.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('late stat sheet bytes cannot restore images after overlay removal',
@@ -42,7 +44,7 @@ void main() {
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     for (var i = 0; i < 100 && pending.length < 2; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }

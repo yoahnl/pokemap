@@ -49,7 +49,7 @@ Future<void> main() async {
         'projectFilePath': resolvedPath,
         'gameCreated': current != null,
         'loaded': current?.isLoaded ?? false,
-        'paused': current?.paused,
+        'paused': current?.isPaused,
         'inputContext': current?.inputAuthoritySnapshot.context.name,
         'dialogueTextSpeed': current?.dialogueTextSpeed.name,
         'reducedMotion': current?.reducedMotion,

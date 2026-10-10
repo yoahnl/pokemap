@@ -1476,12 +1476,19 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    if (_ballImagesDisposed) return;
+    final loadingGame = findGame();
+    if (_ballImagesDisposed || loadingGame == null) return;
+    final loadingParent = parent;
+    bool isLoadingAttached() =>
+        !_ballImagesDisposed &&
+        identical(parent, loadingParent) &&
+        identical(findGame(), loadingGame);
     final overlayStopwatch = Stopwatch()..start();
     // Le catalogue d'animations RMXP est un asset binaire décodé
     // paresseusement : le charger ici garantit que toute la planification
     // d'animations du combat peut y accéder de façon synchrone.
     await BattleSdkRmxpAnimationCatalog.ensureLoaded();
+    if (!isLoadingAttached()) return;
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
       safePadding: _safeAreaPadding,
@@ -1495,7 +1502,9 @@ class BattleOverlayComponent extends PositionComponent {
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
     );
-    await add(_backdrop!);
+    add(_backdrop!);
+    await _backdrop!.loaded;
+    if (!isLoadingAttached()) return;
     backdropStopwatch.stop();
     debugPrint(
       '[perf][battle][real] overlay.backdrop=${backdropStopwatch.elapsedMilliseconds}ms',
@@ -1511,7 +1520,9 @@ class BattleOverlayComponent extends PositionComponent {
       speciesLabel: resolveSpeciesDisplayName(_session.state.enemy.speciesId),
       visualAssetCache: visualAssetCache,
     );
-    await add(_enemyCombatant!);
+    add(_enemyCombatant!);
+    await _enemyCombatant!.loaded;
+    if (!isLoadingAttached()) return;
     enemyCombatantStopwatch.stop();
     debugPrint(
       '[perf][battle][real] overlay.enemyCombatant=${enemyCombatantStopwatch.elapsedMilliseconds}ms',
@@ -1527,7 +1538,9 @@ class BattleOverlayComponent extends PositionComponent {
       speciesLabel: resolveSpeciesDisplayName(_session.state.player.speciesId),
       visualAssetCache: visualAssetCache,
     );
-    await add(_playerCombatant!);
+    add(_playerCombatant!);
+    await _playerCombatant!.loaded;
+    if (!isLoadingAttached()) return;
     playerCombatantStopwatch.stop();
     debugPrint(
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
@@ -1571,8 +1584,9 @@ class BattleOverlayComponent extends PositionComponent {
       // 360 px sur l'écran 320 de la référence = 1,125 largeur d'écran.
       final introSlideDistancePx = size.x * 1.125;
       final playerUsesBall = (await playerBallSheetFuture) != null;
+      if (!isLoadingAttached()) return;
       final enemyUsesBall = (await enemyBallSheetFuture) != null;
-      if (_ballImagesDisposed) return;
+      if (!isLoadingAttached()) return;
       // Recette du 2026-08-24 : ces poses doivent SURVIVRE à la sync qui
       // termine onLoad — d'où l'enregistrement des côtés retenus.
       // Parité `actor_sprites` / `enemy_sprites` de la référence, qui posent
@@ -1610,7 +1624,7 @@ class BattleOverlayComponent extends PositionComponent {
           priority: (_enemyCombatant?.priority ?? 10) + 1,
         )..holdOffscreen();
         _introTrainerSprite = sprite;
-        await add(sprite);
+        add(sprite);
       }
       _pendingIntroPlan = buildBattleIntroAnimationPlan(
         session: _session,
@@ -1626,7 +1640,7 @@ class BattleOverlayComponent extends PositionComponent {
       size: size.clone(),
       fxBundleCache: _fxBundleCache,
     );
-    await add(_fxLayer!);
+    add(_fxLayer!);
     _syncFieldAmbientState();
     _animationRunner = BattleAnimationRunner(
       onPresentationChanged: _handleAnimationPresentationChanged,
@@ -1677,7 +1691,9 @@ class BattleOverlayComponent extends PositionComponent {
         position: Vector2(size.x - 248, 32),
         size: Vector2(216, 148),
       );
-      await add(_debugPanel!);
+      add(_debugPanel!);
+      await _debugPanel!.loaded;
+      if (!isLoadingAttached()) return;
       debugPanelStopwatch.stop();
       debugPrint(
         '[perf][battle][real] overlay.debugPanel=${debugPanelStopwatch.elapsedMilliseconds}ms',
@@ -1690,6 +1706,7 @@ class BattleOverlayComponent extends PositionComponent {
       presentationGeneration: presentationGeneration,
     );
     await _pendingVisualSync;
+    if (!isLoadingAttached()) return;
     initialSyncStopwatch.stop();
     debugPrint(
       '[perf][battle][real] overlay.initialVisualSync=${initialSyncStopwatch.elapsedMilliseconds}ms',

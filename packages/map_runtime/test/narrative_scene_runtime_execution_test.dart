@@ -6,6 +6,140 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 
 void main() {
   group('executeNarrativeEventScene', () {
+    for (final giving in [true, false]) {
+      test('inventory condition observes buffered ${giving ? 'give' : 'take'}',
+          () async {
+        final initial = GameState(
+            saveId: 'inventory',
+            bag: Bag(
+                entries: giving
+                    ? const []
+                    : const [BagEntry(itemId: 'item_potion', quantity: 1)]));
+        final scene = _inventoryScene(giving: giving);
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+              eventId: 'inventory_event',
+              sceneId: scene.id,
+              executionId: 'inventory_execution',
+              gameState: initial),
+          project: ProjectManifest(
+              name: 'Inventory condition',
+              maps: const [],
+              tilesets: const [],
+              scenes: [scene]),
+          mapsById: const {},
+          currentGameState: () => initial,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (intent) => evaluateSceneInventoryCondition(
+                    source: intent.conditionSource!, gameState: initial)
+                ? 'true'
+                : 'false',
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+          ),
+        );
+        expect(result, isA<NarrativeSceneExecutionCompleted>());
+        final completed = result as NarrativeSceneExecutionCompleted;
+        expect(completed.qualifiedOutcomes.single.outcomeId,
+            giving ? 'present' : 'absent');
+        expect(
+            const GameStateMutations()
+                .itemQuantity(completed.updatedGameState, 'item_potion'),
+            giving ? 1 : 0);
+        expect(const GameStateMutations().itemQuantity(initial, 'item_potion'),
+            giving ? 0 : 1);
+      });
+    }
+
+    test('inventory condition rebases pending gifts on the latest host state',
+        () async {
+      const initial = GameState(saveId: 'inventory_host');
+      var host = initial;
+      final scene = _inventoryScene(giving: true, withDialogue: true);
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+            eventId: 'inventory_event',
+            sceneId: scene.id,
+            executionId: 'inventory_host_execution',
+            gameState: initial),
+        project: ProjectManifest(
+            name: 'Inventory host',
+            maps: const [],
+            tilesets: const [],
+            scenes: [
+              scene
+            ],
+            dialogues: const [
+              ProjectDialogueEntry(
+                  id: 'inventory_dialogue',
+                  name: 'Inventory',
+                  relativePath: 'dialogues/inventory.yarn')
+            ]),
+        mapsById: const {},
+        currentGameState: () => host,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (intent) => evaluateSceneInventoryCondition(
+                  source: intent.conditionSource!, gameState: host)
+              ? 'true'
+              : 'false',
+          showDialogue: (_) {
+            expect(const GameStateMutations().itemQuantity(host, 'item_potion'),
+                0);
+            host = const GameStateMutations().giveItem(host, 'item_potion', 2);
+            host = host.copyWith(
+                trainerProfile: host.trainerProfile.copyWith(money: 1234));
+            return 'completed';
+          },
+          startBattle: (_) => throw StateError('Unexpected battle'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final completed = result as NarrativeSceneExecutionCompleted;
+      expect(completed.qualifiedOutcomes.single.outcomeId, 'present');
+      expect(
+          const GameStateMutations()
+              .itemQuantity(completed.updatedGameState, 'item_potion'),
+          3);
+      expect(completed.updatedGameState.trainerProfile.money, 1234);
+      expect(const GameStateMutations().itemQuantity(host, 'item_potion'), 2);
+      expect(
+          const GameStateMutations().itemQuantity(initial, 'item_potion'), 0);
+    });
+
+    test('inventory projection never commits a scene that later fails',
+        () async {
+      const initial = GameState(saveId: 'inventory_rollback');
+      final scene = _inventoryScene(giving: true, rejectAfterCondition: true);
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+            eventId: 'inventory_event',
+            sceneId: scene.id,
+            executionId: 'inventory_rollback_execution',
+            gameState: initial),
+        project: ProjectManifest(
+            name: 'Inventory rollback',
+            maps: const [],
+            tilesets: const [],
+            scenes: [scene]),
+        mapsById: const {},
+        currentGameState: () => initial,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (intent) => evaluateSceneInventoryCondition(
+                  source: intent.conditionSource!, gameState: initial)
+              ? 'true'
+              : 'false',
+          showDialogue: (_) => throw StateError('Unexpected dialogue'),
+          startBattle: (_) => throw StateError('Unexpected battle'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionFailed>());
+      expect(
+          const GameStateMutations().itemQuantity(initial, 'item_potion'), 0);
+    });
+
     test('unique wild battle consumes one-shot only after victory or capture',
         () async {
       const state = GameState(saveId: 'save_unique');
@@ -522,6 +656,127 @@ void main() {
     });
   });
 }
+
+SceneAsset _inventoryScene(
+        {required bool giving,
+        bool withDialogue = false,
+        bool rejectAfterCondition = false}) =>
+    SceneAsset.fromJson({
+      'id': 'inventory_scene',
+      'name': 'Buffered inventory condition',
+      'declaredOutcomes': [
+        {'id': 'present', 'label': 'Present'},
+        {'id': 'absent', 'label': 'Absent'},
+      ],
+      'graph': {
+        'startNodeId': 'start',
+        'nodes': [
+          {'id': 'start', 'kind': 'start'},
+          {
+            'id': 'change',
+            'kind': 'action',
+            'payload': {
+              'kind': 'action',
+              'parameters': {},
+              'consequence': {
+                'kind': giving ? 'giveItem' : 'takeItem',
+                'itemId': 'item_potion',
+                'quantity': 1
+              }
+            }
+          },
+          if (withDialogue)
+            {
+              'id': 'dialogue',
+              'kind': 'yarnDialogue',
+              'payload': {
+                'kind': 'yarnDialogue',
+                'dialogueId': 'inventory_dialogue',
+                'yarnNodeName': 'Start'
+              }
+            },
+          if (rejectAfterCondition)
+            {
+              'id': 'reject',
+              'kind': 'action',
+              'payload': {
+                'kind': 'action',
+                'parameters': {},
+                'consequence': {
+                  'kind': 'takeItem',
+                  'itemId': 'item_potion',
+                  'quantity': 2
+                }
+              }
+            },
+          {
+            'id': 'condition',
+            'kind': 'condition',
+            'payload': {
+              'kind': 'condition',
+              'conditionSource': {
+                'sourceKind': 'inventoryItem',
+                'sourceId': 'item_potion',
+                'operator': 'isTrue',
+                'value': withDialogue ? '3' : '1',
+              }
+            }
+          },
+          for (final outcome in ['present', 'absent'])
+            {
+              'id': outcome,
+              'kind': 'end',
+              'payload': {'kind': 'end', 'sceneOutcomeId': outcome}
+            },
+        ],
+        'edges': [
+          {
+            'id': 'start-change',
+            'fromNodeId': 'start',
+            'fromPortId': 'completed',
+            'toNodeId': 'change',
+            'kind': 'default'
+          },
+          {
+            'id': 'change-condition',
+            'fromNodeId': 'change',
+            'fromPortId': 'completed',
+            'toNodeId': withDialogue ? 'dialogue' : 'condition',
+            'kind': 'default'
+          },
+          {
+            'id': 'condition-true',
+            'fromNodeId': 'condition',
+            'fromPortId': 'true',
+            'toNodeId': rejectAfterCondition ? 'reject' : 'present',
+            'kind': 'conditionTrue'
+          },
+          if (withDialogue)
+            {
+              'id': 'dialogue-condition',
+              'fromNodeId': 'dialogue',
+              'fromPortId': 'completed',
+              'toNodeId': 'condition',
+              'kind': 'default'
+            },
+          if (rejectAfterCondition)
+            {
+              'id': 'reject-present',
+              'fromNodeId': 'reject',
+              'fromPortId': 'completed',
+              'toNodeId': 'present',
+              'kind': 'default'
+            },
+          {
+            'id': 'condition-false',
+            'fromNodeId': 'condition',
+            'fromPortId': 'false',
+            'toNodeId': 'absent',
+            'kind': 'conditionFalse'
+          },
+        ],
+      },
+    });
 
 SceneAsset _railRewardScene() {
   return SceneAsset(

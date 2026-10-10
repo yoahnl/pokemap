@@ -22,7 +22,7 @@ void main() {
         onCompleted: () => completionCount += 1,
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       expect(overlay.messageSemanticKey, 'post-battle-message');
@@ -56,7 +56,7 @@ void main() {
         onCompleted: () {},
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
@@ -93,7 +93,7 @@ void main() {
         onCompleted: () {},
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       while (overlay.decisionLabels.isEmpty) {
@@ -149,7 +149,7 @@ void main() {
         onCompleted: () {},
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       while (overlay.decisionLabels.isEmpty) {
@@ -182,7 +182,7 @@ void main() {
         onCompleted: () => completed = true,
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       expect(overlay.currentMessageText, 'Données de progression manquantes.');
@@ -216,7 +216,7 @@ void main() {
         onCompleted: () => completed = true,
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
 
       while (overlay.decisionLabels.isEmpty) {
@@ -242,7 +242,7 @@ void main() {
         onCompleted: () => throw StateError('commit failed'),
       );
       final game = FlameGame();
-      await game.add(overlay);
+      game.add(overlay);
       await game.ready();
       final completion = expectLater(
         overlay.completionFuture,
