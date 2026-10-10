@@ -163,7 +163,7 @@ final class BattleFxLayerComponent extends PositionComponent {
       startOpacity: step.startOpacity,
       endOpacity: step.endOpacity,
     );
-    await add(component);
+    add(component);
   }
 
   Future<void> playSpriteSheetFx(
@@ -180,7 +180,7 @@ final class BattleFxLayerComponent extends PositionComponent {
         )
         .clone()
       ..add(Vector2(step.offsetX, step.offsetY));
-    await add(
+    add(
       BattleFxSpriteSheetComponent(
         image: image,
         anchorPosition: anchorPosition,
@@ -266,7 +266,7 @@ final class BattleFxLayerComponent extends PositionComponent {
           step.radiusPx * 0.18 * (i % 3 - 1),
           step.radiusPx * 0.12 * (i % 5 - 2),
         ));
-      await add(
+      add(
         BattleFxSpriteComponent(
           sprite: sprite,
           startPosition: startPosition,
@@ -298,7 +298,7 @@ final class BattleFxLayerComponent extends PositionComponent {
             defenderSide: step.defenderSide,
           )
           .clone();
-      await add(
+      add(
         BattleSdkParticleComponent(
           sprite: sprite,
           startPosition: anchorPosition.clone()
@@ -337,7 +337,7 @@ final class BattleFxLayerComponent extends PositionComponent {
       final startX = (spreadProgress - 0.5) * step.startAreaWidth;
       final driftDirection = i.isEven ? -1.0 : 1.0;
       final drift = driftDirection * step.driftX * (0.35 + spreadProgress);
-      await add(
+      add(
         BattleSdkParticleComponent(
           sprite: sprite,
           startPosition: anchorPosition.clone()
@@ -382,7 +382,7 @@ final class BattleFxLayerComponent extends PositionComponent {
         math.cos(angleRadians) * step.endRadiusPx,
         math.sin(angleRadians) * step.endRadiusPx,
       );
-      await add(
+      add(
         BattleSdkParticleComponent(
           sprite: sprite,
           startPosition: anchorPosition.clone()..add(startOffset),
@@ -412,7 +412,7 @@ final class BattleFxLayerComponent extends PositionComponent {
       attackerSide: step.attackerSide,
       defenderSide: step.defenderSide,
     );
-    await add(
+    add(
       BattleSdkParticleComponent(
         sprite: sprite,
         startPosition: anchorPosition.clone()
@@ -443,7 +443,7 @@ final class BattleFxLayerComponent extends PositionComponent {
       attackerSide: step.attackerSide,
       defenderSide: step.defenderSide,
     );
-    await add(
+    add(
       BattleSdkParticleComponent(
         sprite: sprite,
         startPosition: anchorPosition.clone()
@@ -512,7 +512,7 @@ final class BattleFxLayerComponent extends PositionComponent {
       attackerSide: step.attackerSide,
       defenderSide: step.defenderSide,
     );
-    await add(
+    add(
       BattleRmxpAnimationComponent(
         image: image,
         animation: animation,
@@ -557,7 +557,7 @@ final class BattleFxLayerComponent extends PositionComponent {
     for (var i = 0; i < count; i++) {
       final startX = ((i * 37.0) % (size.x + 80)) - 40;
       final startY = -24.0 - ((i * 19.0) % size.y);
-      await add(
+      add(
         BattleFxSpriteComponent(
           sprite: sprite,
           startPosition: Vector2(startX, startY),

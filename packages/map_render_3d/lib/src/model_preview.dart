@@ -176,8 +176,8 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
     final model = await ModelByteLoader.load(bytes);
     if (closed) return;
     component = _PreviewModelComponent(model: model);
-    await world.add(LightComponent.ambient(intensity: 0.85));
-    await world.add(component!);
+    world.add(LightComponent.ambient(intensity: 0.85));
+    world.add(component!);
     if (closed) return;
     controls.addListener(_sync);
     _sync();

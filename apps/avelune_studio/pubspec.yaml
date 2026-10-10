@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.3.25+325
 
 environment:
-  sdk: '>=3.9.0 <4.0.0'
+  sdk: '>=3.13.0 <4.0.0'
   flutter: '>=3.47.5'
 
 dependencies:
@@ -27,8 +27,8 @@ dependencies:
     path: ../../packages/map_runtime
   map_player_ui:
     path: ../../packages/map_player_ui
-  flame: ^1.38.0
-  flame_3d: 0.3.2
+  flame: 2.0.0-dev.1
+  flame_3d: 0.4.0-dev.1
   map_render_3d:
     path: ../../packages/map_render_3d
   path: ^1.9.1

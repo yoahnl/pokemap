@@ -223,7 +223,7 @@ class PlayerComponent extends PositionComponent {
       );
       _actor = actor;
       _layoutActor();
-      await add(actor);
+      add(actor);
     }
   }
 

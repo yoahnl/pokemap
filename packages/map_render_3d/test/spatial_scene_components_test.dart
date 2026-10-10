@@ -257,7 +257,7 @@ void main() {
       final game = await _mountedGame(tester);
       final rendered = <String>[];
       final actor = _SceneProbe('actor', rendered);
-      await game.world.add(actor);
+      game.world.add(actor);
       await tester.runAsync(game.ready);
       final scene = SpatialSceneComponents(game.world);
       final terrain = _SceneProbe('terrain', rendered);

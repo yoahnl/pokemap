@@ -19,6 +19,8 @@ import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/load_flame_component.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
@@ -443,7 +445,7 @@ void main() {
       request: _wild('not-mounted'),
     );
     await _ready(runtime);
-    await runtime.battleOverlay!.onLoad();
+    await loadFlameComponent(runtime.battleOverlay!);
     expect(runtime.battleOverlay!.isMounted, false);
     final displaySession = runtime.displaySession;
     expect(runtime.battlePresentationListenable.value, isNull);
@@ -880,17 +882,17 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
     expect(runtime.isPaused, true);
-    expect(game.paused, true);
+    expect(game.isPaused, true);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(runtime.isPaused, false);
-    expect(game.paused, false);
+    expect(game.isPaused, false);
     runtime.pause();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(runtime.isPaused, true);
-    expect(game.paused, true);
+    expect(game.isPaused, true);
     runtime.resume();
     await tester.pump();
     await tester.pumpWidget(const SizedBox.shrink());
