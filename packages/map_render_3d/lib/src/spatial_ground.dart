@@ -213,7 +213,25 @@ List<Vertex> spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
   MapSpatialScene? scene,
+}) => _spatialGroundVertices(geometry, height: height, scene: scene);
+
+List<Vertex> _spatialGroundVertices(
+  SmartTileSpriteGeometry geometry, {
+  double height = 0,
+  MapSpatialScene? scene,
+  ({SmartTileSourceRect sourceRect, Texture texture})? atlasFrame,
 }) {
+  Vector2 textureUv(Vector2 uv) {
+    final frame = atlasFrame;
+    if (frame == null) return uv;
+    return Vector2(
+      (frame.sourceRect.x + uv.x * frame.sourceRect.width) /
+          frame.texture.width,
+      (frame.sourceRect.y + uv.y * frame.sourceRect.height) /
+          frame.texture.height,
+    );
+  }
+
   final rect = geometry.destinationRect;
   final points =
       [
@@ -235,7 +253,7 @@ List<Vertex> spatialGroundVertices(
           height,
           geometry.visualBounds.top + points[index].y - top,
         ),
-        texCoord: uvs[index],
+        texCoord: scene == null ? textureUv(uvs[index]) : uvs[index],
       ),
   ];
   if (scene == null) return original;
@@ -260,7 +278,10 @@ List<Vertex> spatialGroundVertices(
       bottom: geometry.visualBounds.bottom,
     ))
       for (final point in patch.corners)
-        Vertex(position: point + Vector3(0, height, 0), texCoord: uvAt(point)),
+        Vertex(
+          position: point + Vector3(0, height, 0),
+          texCoord: textureUv(uvAt(point)),
+        ),
   ];
 }
 
@@ -270,13 +291,13 @@ Iterable<Mesh> spatialGroundMeshes(
   MapSpatialScene? scene,
 }) sync* {
   var mesh = Mesh();
-  (String, SmartTileSourceRect, double)? previous;
+  (String, double)? previous;
   List<Vertex> vertices = [];
   List<int> indices = [];
   SpatialPixelMaterial? material;
   var vertexCount = 0;
   void flushSurface() {
-    if (material != null) {
+    if (material != null && vertices.isNotEmpty) {
       mesh.addSurface(
         Surface(vertices: vertices, indices: indices, material: material!),
       );
@@ -303,27 +324,24 @@ Iterable<Mesh> spatialGroundMeshes(
         'Frame de terrain hors de son atlas : ${visual.tilesetId}',
       );
     }
-    final key = (visual.tilesetId, rect, item.opacity);
+    final key = (visual.tilesetId, item.opacity);
     if (key != previous) {
       flushSurface();
       previous = key;
       material = SpatialPixelMaterial(texture)
-        ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity)
-        ..uvRect.setValues(
-          rect.x / texture.width,
-          rect.y / texture.height,
-          rect.width / texture.width,
-          rect.height / texture.height,
-        );
+        ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
     }
-    final quads = spatialGroundVertices(
+    final quads = _spatialGroundVertices(
       visual.geometry,
       height: item.height,
       scene: scene,
+      atlasFrame: (sourceRect: rect, texture: texture),
     );
     for (var offset = 0; offset < quads.length; offset += 4) {
       final base = vertices.length;
-      vertices.addAll(quads.sublist(offset, offset + 4));
+      for (var corner = offset; corner < offset + 4; corner++) {
+        vertices.add(quads[corner]);
+      }
       indices.addAll([
         for (final index
             in scene == null && visual.transform.flipX
@@ -339,20 +357,8 @@ Iterable<Mesh> spatialGroundMeshes(
         vertexCount = 0;
         previous = key;
         material = SpatialPixelMaterial(texture)
-          ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity)
-          ..uvRect.setValues(
-            rect.x / texture.width,
-            rect.y / texture.height,
-            rect.width / texture.width,
-            rect.height / texture.height,
-          );
+          ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
       }
-    }
-    if (vertexCount >= 60000) {
-      flushSurface();
-      yield mesh;
-      mesh = Mesh();
-      vertexCount = 0;
     }
   }
   if (vertexCount > 0) {
