@@ -87,13 +87,14 @@ final class SpatialMapOperations {
       after.copyWith(
         instances: before.instances.map((instance) {
           final position = instance.position;
+          final heightDelta =
+              after.worldHeightAt(position.x, position.z) -
+              before.worldHeightAt(position.x, position.z);
+          if (heightDelta == 0) return instance;
           return instance.copyWith(
             position: Model3dVector3(
               x: position.x,
-              y:
-                  position.y +
-                  after.worldHeightAt(position.x, position.z) -
-                  before.worldHeightAt(position.x, position.z),
+              y: position.y + heightDelta,
               z: position.z,
             ),
           );

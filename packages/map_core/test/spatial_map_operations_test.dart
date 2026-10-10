@@ -107,6 +107,36 @@ void main() {
     );
   });
   test(
+    'collision changes preserve exact model heights on unchanged terrain',
+    () {
+      var before = map().copyWith(
+        spatialScene: MapSpatialScene(width: 3, depth: 4, levelHeight: .2),
+      );
+      before = ops.setLevels(before, [
+        const SpatialCellLevel(x: 1, z: 1, level: 1),
+      ]);
+      before = ops.upsertInstance(
+        before,
+        SpatialModelInstance(
+          id: 'tree',
+          modelId: 'oak',
+          position: Model3dVector3(x: 1.5, y: .5, z: 1.5),
+        ),
+      );
+      final after = ops.configureNavigation(
+        before,
+        SpatialNavigationProfile(
+          blockedAreas: [SpatialBlockedArea(x: 0, z: 0, width: 1, depth: 1)],
+        ),
+      );
+      expect(after.spatialScene!.instances, before.spatialScene!.instances);
+      expect(
+        ops.setLevels(before, []).spatialScene!.instances,
+        before.spatialScene!.instances,
+      );
+    },
+  );
+  test(
     'instances upsert by stable id, preserve order and delete explicitly',
     () {
       final tree = SpatialModelInstance(
