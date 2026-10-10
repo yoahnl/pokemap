@@ -6,8 +6,8 @@ import '../../features/project_session/domain/project_session.dart';
 final class ScopedProjectSessionAdapter implements ProjectSessionPort {
   const ScopedProjectSessionAdapter(
     this._delegate, {
-    MethodChannel channel = const MethodChannel('map_editor/file_access'),
-  }) : _channel = channel;
+    this._channel = const MethodChannel('map_editor/file_access'),
+  });
 
   final ProjectSessionPort _delegate;
   final MethodChannel _channel;

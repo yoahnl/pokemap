@@ -7,9 +7,8 @@ final class LocalResourceUsageAdapter implements ResourceUsagePort {
   LocalResourceUsageAdapter({
     required this.session,
     ProjectFileReader? reader,
-    ProjectSnapshotLoadProfileSink? profileSink,
-  }) : _reader = reader ?? const LocalProjectFileReader(),
-       _profileSink = profileSink;
+    this._profileSink,
+  }) : _reader = reader ?? const LocalProjectFileReader();
 
   final ProjectSession session;
   final ProjectFileReader _reader;

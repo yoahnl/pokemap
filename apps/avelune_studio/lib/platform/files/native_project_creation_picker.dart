@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 
 class NativeProjectCreationPicker {
   const NativeProjectCreationPicker({
-    MethodChannel channel = const MethodChannel('map_editor/file_access'),
-  }) : _channel = channel;
+    this._channel = const MethodChannel('map_editor/file_access'),
+  });
   final MethodChannel _channel;
 
   Future<String?> choose() => Platform.isMacOS

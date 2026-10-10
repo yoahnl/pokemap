@@ -8,10 +8,9 @@ import 'local_recent_projects_adapter.dart';
 final class LegacyRecentProjectsAdapter implements RecentProjectsPort {
   LegacyRecentProjectsAdapter(
     this.filePath, {
-    required Future<String?> Function() resolveLegacyManifest,
+    required this._resolveLegacyManifest,
     DateTime Function()? clock,
   }) : _local = LocalRecentProjectsAdapter(filePath),
-       _resolveLegacyManifest = resolveLegacyManifest,
        _clock = clock ?? DateTime.now;
 
   final String filePath;
