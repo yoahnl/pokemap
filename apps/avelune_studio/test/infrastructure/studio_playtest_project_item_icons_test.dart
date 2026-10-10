@@ -153,7 +153,7 @@ void main() {
       );
     });
     await tester.pumpWidget(const SizedBox());
-    expect(game.paused, isTrue);
+    expect(game.isPaused, isTrue);
     expect(tester.takeException(), isNull);
   });
 

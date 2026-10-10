@@ -6,6 +6,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
+import 'support/load_flame_component.dart';
+
 /// Recette du 2026-08-25 : « la pokéball que l'on lance pour attraper un
 /// pokémon sauvage est trop petite ».
 ///
@@ -52,7 +54,7 @@ Future<BattleOverlayComponent> _overlay(Vector2 viewport) async {
     viewportSize: viewport,
     onPlayerChoice: (_) {},
   );
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
   return overlay;
 }

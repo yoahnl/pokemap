@@ -17,7 +17,7 @@ enum ProjectSnapshotCacheAdmission {
 
 final class ProjectSnapshotCacheBudget {
   const ProjectSnapshotCacheBudget({
-    this.maximumAuthoringBytes = 64 << 20,
+    this.maximumAuthoringBytes = 256 << 20,
     this.maximumAssetBlobBytes = 256 << 20,
   });
 
@@ -42,7 +42,7 @@ final class ProjectSnapshotCacheBudget {
 final class ProjectSnapshotCache {
   ProjectSnapshotCache({
     this.maximumProjects = 2,
-    this.maximumBytes = 64 << 20,
+    this.maximumBytes = 256 << 20,
     this.maximumAssetBlobBytes = 256 << 20,
   }) {
     if (maximumProjects <= 0) {

@@ -6,6 +6,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_bundle_cache.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-018 : le premier usage d'une capacité décodait ses planches à la
 // demande et gelait la scène ~3 s. La préchauffe se joue sous le noir de la
 // pré-transition : les planches d'animation ET les sons des capacités des
@@ -80,7 +82,7 @@ void main() {
       onPlayerChoice: (_) {},
       fxBundleCache: cache,
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     await overlay.precacheBattleMoveEffects();
@@ -101,7 +103,7 @@ void main() {
       viewportSize: Vector2(960, 540),
       onPlayerChoice: (_) {},
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     final seNames = await overlay.collectBattleSeNames();

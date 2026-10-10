@@ -79,7 +79,29 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   final consumedUniqueTableIds = <String>{};
   final execution = await SceneRuntimeExecutor(
     callbacks: SceneRuntimeHostCallbacks(
-      evaluateCondition: callbacks.evaluateCondition,
+      evaluateCondition: (intent) {
+        final source = intent.conditionSource;
+        if (source?.sourceKind != SceneConditionSourceKind.inventoryItem ||
+            pendingConsequences.isEmpty) {
+          return callbacks.evaluateCondition(intent);
+        }
+        final projected = writer.applyAll(
+          currentGameState(),
+          pendingConsequences,
+          pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+          railProgressionOperationIds: pendingRailProgressionOperationIds,
+        );
+        if (!projected.success) {
+          throw StateError(
+              projected.message ?? 'Scene inventory projection failed.');
+        }
+        return evaluateSceneInventoryCondition(
+          source: source!,
+          gameState: projected.gameState,
+        )
+            ? 'true'
+            : 'false';
+      },
       showDialogue: callbacks.showDialogue,
       startBattle: (intent) async {
         final uniqueTable = project.encounterTables.any(

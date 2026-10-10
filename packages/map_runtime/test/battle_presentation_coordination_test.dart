@@ -9,6 +9,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
+import 'support/load_flame_component.dart';
+
 // Recette du 2026-08-23 (vidéo 18-58-46) : « soucis de coordination entre les
 // attaques, le résultat visuel sur la barre, le moment où l'on est mort et
 // les sons ». La sonde a prouvé que le moteur est déjà à l'heure (hit avec le
@@ -77,7 +79,7 @@ Future<BattleOverlayComponent> _mountFatalTurn({
         ? null
         : (name, {required volume, required pitch}) => seLog.add(name),
   );
-  await overlay.onLoad();
+  await loadFlameComponent(overlay);
   await overlay.waitForPendingVisualSync();
   final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
   expect(afterTurn.state.outcome?.type, BattleOutcomeType.defeat);
@@ -195,7 +197,7 @@ void main() {
       introEnabled: true,
       onCommandOverlaySnapshotChanged: snapshots.add,
     );
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     expect(
@@ -262,7 +264,7 @@ void main() {
       playSfx: (name, {required volume, required pitch}) => seLog.add(name),
     );
     addTearDown(overlay.onRemove);
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
 
     expect(
@@ -379,7 +381,7 @@ void main() {
       },
     );
     addTearDown(overlay.onRemove);
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
     // La planche de Ball se charge en fond (chemin sans intro) : lui laisser
     // ses tours d'event loop avant de pousser le tour de capture.
@@ -492,7 +494,7 @@ void main() {
       },
     );
     addTearDown(overlay.onRemove);
-    await overlay.onLoad();
+    await loadFlameComponent(overlay);
     await overlay.waitForPendingVisualSync();
     for (var i = 0; i < 20; i++) {
       await Future<void>.delayed(Duration.zero);

@@ -19,6 +19,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/load_flame_component.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -1550,7 +1552,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
@@ -1704,7 +1706,7 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
 
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
 
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);

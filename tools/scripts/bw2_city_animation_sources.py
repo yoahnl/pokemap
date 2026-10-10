@@ -66,7 +66,7 @@ def triangulate(vertices, validate=False):
             yield triangle
 
 
-def read_archive(source_root, record, expected):
+def read_archive(source_root, record, expected, member=None):
     path = source_root / record['local_path']
     data = path.read_bytes()
     if sha256(data) != expected:
@@ -76,10 +76,13 @@ def read_archive(source_root, record, expected):
         if len(set(members)) != len(members) or any(Path(name).name != name for name in members):
             raise ValueError('Only archives with unique flat members are supported')
         dae = [name for name in members if name.lower().endswith('.dae')]
-        if len(dae) != 1:
+        if member is not None and member not in dae:
+            raise ValueError('Selected COLLADA source member is missing')
+        if member is None and len(dae) != 1:
             raise ValueError('Expected one COLLADA model per archive')
+        selected = member or dae[0]
         textures = {name: archive.read(name) for name in members if name.lower().endswith('.png')}
-        return archive.read(dae[0]), textures, {'assetId': record['id'], 'title': record['name'], 'archive': record['local_path'], 'archiveSha256': expected, 'sourceUrl': record['page_url'], 'member': dae[0], 'memberSha256': sha256(archive.read(dae[0])), 'textures': [{'member': name, 'sha256': sha256(value)} for name, value in sorted(textures.items())]}
+        return archive.read(selected), textures, {'assetId': record['id'], 'title': record['name'], 'archive': record['local_path'], 'archiveSha256': expected, 'sourceUrl': record['page_url'], 'member': selected, 'memberSha256': sha256(archive.read(selected)), 'textures': [{'member': name, 'sha256': sha256(value)} for name, value in sorted(textures.items())]}
 
 
 @dataclass

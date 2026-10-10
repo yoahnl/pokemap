@@ -10,6 +10,8 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_stat_aura_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
 
+import 'support/load_flame_component.dart';
+
 // BETA-BAT-021 — recette du 2026-08-24 : « le pokémon du joueur a
 // intimidation… il y a une animation pour montrer que son attaque est
 // descendu ». Le moteur résolvait déjà les étages ; rien ne les portait
@@ -348,7 +350,7 @@ void main() {
         onPlayerChoice: (_) {},
         playSfx: (name, {required volume, required pitch}) => seLog.add(name),
       );
-      await overlay.onLoad();
+      await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
 
       final afterTurn = _session().withRuntimeDisplayState(

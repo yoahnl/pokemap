@@ -77,7 +77,7 @@ void main() {
       ]);
       expect(models[0].nodes.values.single.name, 'Maison');
       expect(models[1].nodes.values.single.name, 'Arbre');
-      expect(await Flame.assets.readFile('ordinary.txt'), 'ordinary');
+      expect(await Flame.assets.readFile('assets/ordinary.txt'), 'ordinary');
       expect(bundle.keys, ['assets/ordinary.txt']);
       expect(Flame.assets.cacheCount, 1);
     },
@@ -89,12 +89,12 @@ void main() {
       final original = Flame.assets;
       Flame.assets = AssetsCache(bundle: _Bundle());
       addTearDown(() => Flame.assets = original);
-      await Flame.assets.readFile('ordinary.txt');
+      await Flame.assets.readFile('assets/ordinary.txt');
       await expectLater(
         ModelByteLoader.load(Uint8List.fromList([0, 1])),
         throwsA(anything),
       );
-      expect(Flame.assets.fromCache<String>('ordinary.txt'), 'ordinary');
+      expect(Flame.assets.fromCache<String>('assets/ordinary.txt'), 'ordinary');
       expect(Flame.assets.cacheCount, 1);
     },
   );
