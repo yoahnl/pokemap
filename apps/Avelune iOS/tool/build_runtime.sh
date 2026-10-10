@@ -20,6 +20,7 @@ esac
 
 cd "$ROOT/flutter_runtime"
 flutter pub get
+python3 "$ROOT/tool/patch_flutter_gpu.py"
 
 # The tool rsyncs into <mode>/Frameworks without creating the parent first.
 rm -rf "$OUTPUT"

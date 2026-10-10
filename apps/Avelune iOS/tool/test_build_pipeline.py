@@ -6,9 +6,13 @@ import subprocess
 import tempfile
 import unittest
 
+import patch_flutter_gpu
+from test_flutter_gpu_host_buffer import original_sdk_sources
+
 
 SOURCE_ROOT = pathlib.Path(__file__).resolve().parents[1]
 STUB = r'''#!/usr/bin/env python3
+import importlib.util
 import json
 import os
 import pathlib
@@ -18,12 +22,27 @@ command = pathlib.Path(sys.argv[0]).name
 arguments = sys.argv[1:]
 if command == "pipeline_stub":
     command = arguments.pop(0)
+gpu_patch_ready = None
+if command == "flutter" and arguments[:2] == ["build", "swift-package"]:
+    spec = importlib.util.spec_from_file_location("gpu_patch", os.environ["GPU_PATCH_TOOL"])
+    patch = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(patch)
+    directory = pathlib.Path(os.environ["GPU_BUFFER_SOURCE"]).parent
+    gpu_patch_ready = all(
+        (source := (directory / name).read_text()) == transform(source)
+        for name, transform in [
+            ("buffer.dart", patch.patch_source),
+            ("command_buffer.dart", patch.patch_command_source),
+            ("render_pass.dart", patch.patch_render_pass_source),
+        ]
+    )
 event = {
     "command": command,
     "arguments": arguments,
     "configuration": os.environ.get("CONFIGURATION"),
     "mode": os.environ.get("FLUTTER_BUILD_MODE"),
     "output": os.environ.get("FLUTTER_SWIFT_PACKAGE_OUTPUT"),
+    "gpu_patch_ready": gpu_patch_ready,
 }
 with open(os.environ["PIPELINE_LOG"], "a") as log:
     log.write(json.dumps(event) + "\n")
@@ -63,12 +82,16 @@ class BuildPipelineTest(unittest.TestCase):
         self.tool = self.root / "tool"
         self.tool.mkdir(parents=True)
         (self.root / "flutter_runtime").mkdir()
-        for name in ["build_runtime.sh", "build_ios.sh", "patch_swift_package.py"]:
+        for name in ["build_runtime.sh", "build_ios.sh", "patch_swift_package.py", "patch_flutter_gpu.py"]:
             source = SOURCE_ROOT / "tool" / name
             if source.exists():
                 shutil.copy2(source, self.tool / name)
         self.bin = pathlib.Path(self.directory.name) / "bin"
         self.bin.mkdir()
+        self.gpu_buffer = self.bin / "cache/pkg/flutter_gpu/lib/src/buffer.dart"
+        self.gpu_buffer.parent.mkdir(parents=True)
+        for name, source in original_sdk_sources().items():
+            self.gpu_buffer.with_name(name).write_text(source)
         for command in ["flutter", "xcodegen", "xcodebuild", "pipeline_stub"]:
             stub = self.bin / command
             stub.write_text(STUB)
@@ -78,6 +101,8 @@ class BuildPipelineTest(unittest.TestCase):
             **os.environ,
             "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
             "PIPELINE_LOG": str(self.log),
+            "GPU_PATCH_TOOL": str(self.tool / "patch_flutter_gpu.py"),
+            "GPU_BUFFER_SOURCE": str(self.gpu_buffer),
         }
         self.environment.pop("CONFIGURATION", None)
         self.environment.pop("FLUTTER_BUILD_MODE", None)
@@ -128,6 +153,32 @@ class BuildPipelineTest(unittest.TestCase):
         prebuild = prebuilds[0]
         self.assertEqual(prebuild["configuration"], "Release")
         self.assertEqual(prebuild["mode"], "release")
+
+    def test_runtime_applies_gpu_patch_before_compilation(self):
+        result = self.run_script("build_runtime.sh")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("HostBuffer block reuse", result.stdout)
+        compilation = next(event for event in self.events() if event["arguments"][:2] == ["build", "swift-package"])
+        self.assertTrue(compilation["gpu_patch_ready"])
+        self.assertEqual(
+            self.gpu_buffer.read_text(),
+            patch_flutter_gpu.patch_source(self.gpu_buffer.read_text()),
+        )
+        self.assertIn(
+            patch_flutter_gpu.COMMAND_MEMORY_PRESSURE,
+            self.gpu_buffer.with_name("command_buffer.dart").read_text(),
+        )
+        self.assertIn(
+            "_commandBuffer._recordDraw();",
+            self.gpu_buffer.with_name("render_pass.dart").read_text(),
+        )
+
+    def test_runtime_stops_before_compilation_if_gpu_patch_cannot_be_applied(self):
+        self.gpu_buffer.write_text("unsupported Flutter GPU allocator")
+        result = self.run_script("build_runtime.sh")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("could not be identified", result.stderr)
+        self.assertEqual([event["arguments"] for event in self.events()], [["pub", "get"]])
 
     def test_runtime_rejects_unsupported_configuration_before_building(self):
         for configuration in ["Profile", "Debug-Custom", ""]:
