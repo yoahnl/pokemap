@@ -149,14 +149,22 @@ final class PreparedSmartTileResolver {
       }
     }
     final explicitCenterMaterialIds = <String>{};
+    final materialRuleIndices = <String, List<int>>{};
+    final generalRuleIndices = <int>[];
     final explicitSignatureMaterialIds = <Set<String>>[
       for (var index = 0; index < 8; index += 1) <String>{},
     ];
-    for (final rule in primaryRules) {
+    for (var index = 0; index < primaryRules.length; index += 1) {
+      final rule = primaryRules[index];
       final centerMatch = rule.rule.centerMatch;
       if (centerMatch.kind == SmartTileMatchKind.material &&
           centerMatch.materialId != null) {
         explicitCenterMaterialIds.add(centerMatch.materialId!);
+        materialRuleIndices
+            .putIfAbsent(centerMatch.materialId!, () => <int>[])
+            .add(index);
+      } else {
+        generalRuleIndices.add(index);
       }
       for (final signature in rule.signatures) {
         for (final constraint in signature.constraints) {
@@ -173,6 +181,11 @@ final class PreparedSmartTileResolver {
       materials: materialMap,
       invalidRule: _firstInvalidRule(preset),
       primaryRules: List<_PreparedSmartTileRule>.unmodifiable(primaryRules),
+      materialRuleIndices: Map<String, List<int>>.unmodifiable({
+        for (final entry in materialRuleIndices.entries)
+          entry.key: List<int>.unmodifiable(entry.value),
+      }),
+      generalRuleIndices: List<int>.unmodifiable(generalRuleIndices),
       fallbackRule: fallbackRule,
       hashPrefix: hashPrefix,
       explicitCenterMaterialIds:
@@ -191,6 +204,8 @@ final class PreparedSmartTileResolver {
     required Map<String, ProjectSmartTileMaterial> materials,
     required _InvalidRule? invalidRule,
     required List<_PreparedSmartTileRule> primaryRules,
+    required Map<String, List<int>> materialRuleIndices,
+    required List<int> generalRuleIndices,
     required _PreparedSmartTileRule? fallbackRule,
     required int hashPrefix,
     required Set<String> explicitCenterMaterialIds,
@@ -198,6 +213,8 @@ final class PreparedSmartTileResolver {
   })  : _materials = materials,
         _invalidRule = invalidRule,
         _primaryRules = primaryRules,
+        _materialRuleIndices = materialRuleIndices,
+        _generalRuleIndices = generalRuleIndices,
         _fallbackRule = fallbackRule,
         _hashPrefix = hashPrefix,
         _explicitCenterMaterialIds = explicitCenterMaterialIds,
@@ -207,6 +224,8 @@ final class PreparedSmartTileResolver {
   final Map<String, ProjectSmartTileMaterial> _materials;
   final _InvalidRule? _invalidRule;
   final List<_PreparedSmartTileRule> _primaryRules;
+  final Map<String, List<int>> _materialRuleIndices;
+  final List<int> _generalRuleIndices;
   final _PreparedSmartTileRule? _fallbackRule;
   final int _hashPrefix;
   final Set<String> _explicitCenterMaterialIds;
@@ -241,7 +260,7 @@ final class PreparedSmartTileResolver {
     );
 
     final matches = <_PreparedMatchedRule>[];
-    for (final preparedRule in _primaryRules) {
+    for (final preparedRule in _rulesForCenter(context.centerMaterialId)) {
       List<SmartTileSpriteTransform>? transformedMatches;
       var specificity = 0;
       for (final preparedSignature in preparedRule.signatures) {
@@ -322,6 +341,22 @@ final class PreparedSmartTileResolver {
       x: x,
       y: y,
     );
+  }
+
+  Iterable<_PreparedSmartTileRule> _rulesForCenter(String? materialId) sync* {
+    final exact = _materialRuleIndices[materialId] ?? const <int>[];
+    var generalIndex = 0;
+    var exactIndex = 0;
+    while (generalIndex < _generalRuleIndices.length ||
+        exactIndex < exact.length) {
+      if (exactIndex >= exact.length ||
+          generalIndex < _generalRuleIndices.length &&
+              _generalRuleIndices[generalIndex] < exact[exactIndex]) {
+        yield _primaryRules[_generalRuleIndices[generalIndex++]];
+      } else {
+        yield _primaryRules[exact[exactIndex++]];
+      }
+    }
   }
 
   bool _hasPreparedIntent(SmartTileCellContext context) {
