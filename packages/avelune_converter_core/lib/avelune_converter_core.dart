@@ -1,5 +1,7 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -14,3 +16,5 @@ part 'src/jobs.dart';
 part 'src/ports.dart';
 part 'src/inventory.dart';
 part 'src/source_unicode_case_folding.dart';
+part 'src/marshal_decoder.dart';
+part 'src/bounded_zlib.dart';

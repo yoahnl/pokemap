@@ -1,0 +1,208 @@
+{
+  "lot": "AC-03",
+  "verdict": "PASS",
+  "baseHead": "0da2e532d227d91c4fed869883a55968e1e4fba9",
+  "headBeforeCommit": "0da2e532d227d91c4fed869883a55968e1e4fba9",
+  "branch": "main",
+  "files": [
+    {
+      "path": "packages/avelune_converter_core/lib/avelune_converter_core.dart",
+      "sha256": "a5fc651072fd1e29cdc2aa296321035c754b81f29dd412ab7fc062295ce52734",
+      "bytes": 553,
+      "lines": 20
+    },
+    {
+      "path": "packages/avelune_converter_core/lib/src/marshal_decoder.dart",
+      "sha256": "1ca1d264c02349dc65ab9b2f428008929430a163f0ff92c47df1f1c061359561",
+      "bytes": 28850,
+      "lines": 939
+    },
+    {
+      "path": "packages/avelune_converter_core/lib/src/bounded_zlib.dart",
+      "sha256": "5f7ad04ee1080afb8fed60e5e065501bc9b2e07eca3f5188ad4c483bafff6b09",
+      "bytes": 14076,
+      "lines": 572
+    },
+    {
+      "path": "packages/avelune_converter_core/test/marshal_decoder_test.dart",
+      "sha256": "b82ec6ba45ceb2ef8282f7eb169061116353d7aa1e50cb8094af9380f95fc7f0",
+      "bytes": 34737,
+      "lines": 995
+    },
+    {
+      "path": "packages/avelune_converter_core/test/bounded_zlib_test.dart",
+      "sha256": "6b04146f2a216fc25dbed056ea59fc8561ade38507cf0751a301b79db59bb278",
+      "bytes": 19450,
+      "lines": 557
+    },
+    {
+      "path": "tools/avelune_converter_cli/test/native_decoder_corpus_test.dart",
+      "sha256": "9f656a5f8c76cdf0651b5afdb6f06bfadc75e013b243876046cd06eb684d8230",
+      "bytes": 6781,
+      "lines": 171
+    },
+    {
+      "path": "documentation/reports/converter/AC-03/03_marshal_table_decoder.md",
+      "sha256": "97a1d8c82b8c791f3e16e282a47f342cafad0de5de1a1904f9783258fdbb1d3f",
+      "bytes": 13880,
+      "lines": 99
+    },
+    {
+      "path": "documentation/reports/converter/AC-03/commands.json",
+      "sha256": "c03faae7f3e55d67b1a2980ba47b28ddcbc57de30c44a3a01056a2aa6a16b6a0",
+      "bytes": 709671,
+      "lines": 2126
+    }
+  ],
+  "selfHash": "Excluded: this index refers to other immutable files and does not recursively hash itself.",
+  "statusBeforeCommit": " M apps/avelune_studio/dev/spatial_frame_recorder.dart\n M apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart\n M apps/avelune_studio/lib/features/map_workspace/application/map_border_drawing_draft.dart\n M apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart\n M apps/avelune_studio/lib/features/map_workspace/application/spatial_model_editing_commands.dart\n M apps/avelune_studio/lib/features/resources/application/environment_draft.dart\n M apps/avelune_studio/lib/features/resources/data/border_resource_sources.dart\n M apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart\n M apps/avelune_studio/lib/features/resources/data/local_resource_mutation.dart\n M apps/avelune_studio/lib/features/resources/domain/resource_port.dart\n M apps/avelune_studio/lib/features/terrains/application/terrain_brush.dart\n M apps/avelune_studio/lib/features/terrains/application/terrain_draft_controller.dart\n M apps/avelune_studio/lib/features/terrains/domain/terrain_draft_compatibility.dart\n M apps/avelune_studio/lib/platform/playtest/studio_playtest_view.dart\n M apps/avelune_studio/lib/platform/playtest/studio_spatial_playtest.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_border_tool_panel.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay_editing.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_stroke.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_tool_panel.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_border.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_gestures.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_render.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_palette_dock.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_palette_dock_header.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_tool_strip_actions.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/spatial_map_editor.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/spatial_map_editor_guidance.dart\n M apps/avelune_studio/lib/presentation/features/map_workspace/spatial_terrain_controls.dart\n M apps/avelune_studio/lib/presentation/features/resources/border_creation_dialog.dart\n M apps/avelune_studio/lib/presentation/features/resources/border_pattern_panel.dart\n M apps/avelune_studio/lib/presentation/features/resources/border_source_panel.dart\n M apps/avelune_studio/lib/presentation/features/resources/environment_decor_picker.dart\n M apps/avelune_studio/lib/presentation/features/resources/environment_editor_palette.dart\n M apps/avelune_studio/lib/presentation/features/resources/environment_editor_screen.dart\n M apps/avelune_studio/lib/presentation/features/resources/environment_library.dart\n M apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_catalog.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_creation_buttons.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_family_tree.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_filter_button.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_library_bindings.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_library_header.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_navigation_terrain.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_terrain_preview.dart\n M apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart\n M apps/avelune_studio/lib/presentation/features/terrains/terrain_editor_screen.dart\n M apps/avelune_studio/lib/presentation/features/terrains/terrain_pattern_panel.dart\n M apps/avelune_studio/lib/presentation/features/terrains/terrain_scratch_view.dart\n M apps/avelune_studio/lib/presentation/features/terrains/terrain_source_panel.dart\n M apps/avelune_studio/lib/presentation/features/terrains/terrain_trial_panel.dart\n M apps/avelune_studio/test/application/environment_draft_test.dart\n M apps/avelune_studio/test/map_workspace/spatial_relief_tools_test.dart\n M apps/avelune_studio/test/presentation/border_pattern_panel_test.dart\n M apps/avelune_studio/test/presentation/map_workspace_resource_families_test.dart\n M apps/avelune_studio/test/presentation/resource_family_catalog_test.dart\n M apps/avelune_studio/test/presentation/resource_family_widgets_test.dart\n M apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart\n M apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart\n M apps/avelune_studio/test/resource_io/resource_library_host_test.dart\n M apps/pokemap_hub/lib/core/config/avelune_host_compatibility.dart\n M apps/pokemap_hub/test/platform/avelune_host_compatibility_test.dart\n M packages/avelune_converter_core/lib/avelune_converter_core.dart\n M packages/map_authoring/lib/map_authoring_editing.dart\n M packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart\n M packages/map_authoring/lib/src/domains/assets/model3d_actions.dart\n M packages/map_authoring/lib/src/domains/assets/resource_library_actions.dart\n M packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart\n M packages/map_authoring/lib/src/domains/distribution/runtime_static_terrain_projection.dart\n M packages/map_authoring/lib/src/domains/maps/border_actions.dart\n M packages/map_authoring/lib/src/domains/maps/border_catalog_actions.dart\n M packages/map_authoring/lib/src/domains/maps/environment_actions.dart\n M packages/map_authoring/lib/src/domains/maps/environment_preset_actions.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_actions.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_catalog_support.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_cell_actions.dart\n M packages/map_authoring/lib/src/domains/maps/smart_tile_pattern_actions.dart\n M packages/map_authoring/lib/src/domains/maps/spatial_map_actions.dart\n M packages/map_authoring/lib/src/editing/environment_area_editing.dart\n M packages/map_authoring/lib/src/editing/environment_editing.dart\n M packages/map_authoring/lib/src/editing/environment_editing_models.dart\n M packages/map_authoring/lib/src/editing/environment_generation_editing.dart\n M packages/map_authoring/lib/src/editing/environment_generation_support.dart\n M packages/map_authoring/lib/src/editing/environment_mask_editing.dart\n M packages/map_authoring/lib/src/editing/environment_placement_editing.dart\n M packages/map_authoring/lib/src/parity/full_authoring_parity.dart\n M packages/map_authoring/lib/src/references/resource_library_scope_guard.dart\n M packages/map_authoring/lib/src/references/resource_usage_walk.dart\n M packages/map_authoring/test/domains/assets/model3d_actions_test.dart\n M packages/map_authoring/test/domains/assets/resource_library_actions_test.dart\n M packages/map_authoring/test/domains/distribution/runtime_static_terrain_projection_test.dart\n M packages/map_authoring/test/domains/distribution/spatial_game_package_export_test.dart\n M packages/map_authoring/test/domains/maps/smart_tile_cell_actions_test.dart\n M packages/map_authoring/test/domains/maps/spatial_map_actions_test.dart\n M packages/map_authoring/test/tooling/jsonl_border_catalog_flow_test.dart\n M packages/map_authoring/test/tooling/jsonl_resource_library_flow_test.dart\n M packages/map_authoring/test/tooling/jsonl_smart_tile_native_flow_test.dart\n M packages/map_core/lib/map_core_domain.dart\n M packages/map_core/lib/src/models/border_blueprint.dart\n M packages/map_core/lib/src/models/border_catalog.dart\n M packages/map_core/lib/src/models/border_feature.dart\n M packages/map_core/lib/src/models/border_layer.dart\n M packages/map_core/lib/src/models/border_materialization.dart\n M packages/map_core/lib/src/models/border_resolution.dart\n M packages/map_core/lib/src/models/environment.dart\n M packages/map_core/lib/src/models/map_data.dart\n M packages/map_core/lib/src/models/map_spatial_scene.dart\n M packages/map_core/lib/src/models/project_model3d.dart\n M packages/map_core/lib/src/models/resource_library_catalog.dart\n M packages/map_core/lib/src/models/smart_tile.dart\n M packages/map_core/lib/src/models/smart_tile.freezed.dart\n M packages/map_core/lib/src/models/smart_tile.g.dart\n M packages/map_core/lib/src/models/spatial_navigation.dart\n M packages/map_core/lib/src/operations/border_blueprint_json_codec.dart\n M packages/map_core/lib/src/operations/border_catalog_operations.dart\n M packages/map_core/lib/src/operations/border_feature_json_codec.dart\n M packages/map_core/lib/src/operations/border_feature_update_operations.dart\n M packages/map_core/lib/src/operations/border_format_version.dart\n M packages/map_core/lib/src/operations/border_geometry_json_codec.dart\n M packages/map_core/lib/src/operations/border_layer_content_json_codec.dart\n M packages/map_core/lib/src/operations/border_layer_operations.dart\n M packages/map_core/lib/src/operations/border_materialization_json_codec.dart\n M packages/map_core/lib/src/operations/border_publication_readiness.dart\n M packages/map_core/lib/src/operations/border_relink_operations.dart\n M packages/map_core/lib/src/operations/border_resize.dart\n M packages/map_core/lib/src/operations/border_resolver.dart\n M packages/map_core/lib/src/operations/environment_authoring_diagnostics.dart\n M packages/map_core/lib/src/operations/environment_layer_content_json_codec.dart\n M packages/map_core/lib/src/operations/environment_layer_usage_diagnostics.dart\n M packages/map_core/lib/src/operations/environment_preset_diagnostics.dart\n M packages/map_core/lib/src/operations/environment_preset_json_codec.dart\n M packages/map_core/lib/src/operations/map_layers.dart\n M packages/map_core/lib/src/operations/project_border_catalog_json_codec.dart\n M packages/map_core/lib/src/operations/smart_tile_authoring_draft_compiler.dart\n M packages/map_core/lib/src/operations/smart_tile_catalog_validation.dart\n M packages/map_core/lib/src/operations/smart_tile_coverage.dart\n M packages/map_core/lib/src/operations/smart_tile_layer_operations.dart\n M packages/map_core/lib/src/operations/smart_tile_layer_visual_resolver.dart\n M packages/map_core/lib/src/operations/smart_tile_pattern_operations.dart\n M packages/map_core/lib/src/operations/smart_tile_reconstruction.dart\n M packages/map_core/lib/src/operations/spatial_map_operations.dart\n M packages/map_core/lib/src/validation/border_validation.dart\n M packages/map_core/lib/src/validation/validators.dart\n M packages/map_core/test/authoring_capability_inventory_test.dart\n M packages/map_core/test/border/border_catalog_test.dart\n M packages/map_core/test/border/border_format_version_test.dart\n M packages/map_core/test/border/border_layer_content_json_codec_test.dart\n M packages/map_core/test/border/border_layer_content_test.dart\n M packages/map_core/test/border/border_layer_integration_test.dart\n M packages/map_core/test/border/border_manifest_integration_test.dart\n M packages/map_core/test/border/project_border_catalog_json_codec_test.dart\n M packages/map_core/test/environment_authoring_diagnostics_test.dart\n M packages/map_core/test/map_spatial_scene_test.dart\n M packages/map_core/test/project_model3d_test.dart\n M packages/map_core/test/resource_library_catalog_test.dart\n M packages/map_core/test/smart_tiles/smart_tile_authoring_draft_compiler_test.dart\n M packages/map_core/test/smart_tiles/smart_tile_layer_operations_test.dart\n M packages/map_core/test/smart_tiles/smart_tile_pattern_test.dart\n M packages/map_core/test/spatial_map_operations_test.dart\n M packages/map_core/test/spatial_navigation_test.dart\n M packages/map_core/test/spatial_terrain_appearance_test.dart\n M packages/map_distribution/lib/src/game_package_project_validator.dart\n M packages/map_distribution/test/game_package_spatial_test.dart\n M packages/map_editor/lib/src/features/border_map_editing/presentation/border_diagnostic_presentation.dart\n M packages/map_editor/lib/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart\n M packages/map_editor/test/border_map_editing/border_diagnostic_presentation_test.dart\n M packages/map_gameplay/lib/src/spatial_model_geometry.dart\n M packages/map_gameplay/lib/src/spatial_movement_controller.dart\n M packages/map_gameplay/test/spatial_movement_controller_test.dart\n M packages/map_render_3d/lib/src/spatial_ground.dart\n M packages/map_render_3d/lib/src/spatial_pixel_material.dart\n M packages/map_render_3d/lib/src/spatial_scene_view.dart\n M packages/map_render_3d/lib/src/spatial_terrain_geometry.dart\n M packages/map_render_3d/test/spatial_relief_geometry_test.dart\n M packages/map_runtime/lib/src/application/runtime_manifest_tilesets.dart\n M packages/map_runtime/lib/src/application/runtime_map_bundle.dart\n M packages/map_runtime/lib/src/border/border_runtime_readiness.dart\n M packages/map_runtime/lib/src/presentation/flame/smart_tile_animation_activation_controller.dart\n M packages/map_runtime/test/border/border_runtime_readiness_test.dart\n M pokemap_authoring_api_mcp_action_catalog.md\n M tools/pokemap_mcp/src/authoring_client.ts\n M tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts\n M tools/pokemap_mcp/test/mutation_server.test.ts\n M tools/pokemap_mcp/test/resource_library_stdio.test.ts\n M tools/pokemap_mcp/test/spatial_authoring.test.ts\n?? apps/avelune_studio/lib/features/map_workspace/application/spatial_ramp_editing_commands.dart\n?? apps/avelune_studio/lib/features/terrains/domain/terrain_spatial_draft.dart\n?? apps/avelune_studio/lib/features/terrains/domain/terrain_spatial_preview_map.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_patterns.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/spatial_border_gesture.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/spatial_environment_gesture.dart\n?? apps/avelune_studio/lib/presentation/features/map_workspace/spatial_ramp_editor.dart\n?? apps/avelune_studio/lib/presentation/features/resources/model_collision_controls.dart\n?? apps/avelune_studio/lib/presentation/features/resources/resource_source_list.dart\n?? apps/avelune_studio/lib/presentation/features/terrains/terrain_model_part_controls.dart\n?? apps/avelune_studio/lib/presentation/features/terrains/terrain_spatial_preview.dart\n?? apps/avelune_studio/test/application/spatial_border_commands_test.dart\n?? apps/avelune_studio/test/application/spatial_environment_commands_test.dart\n?? apps/avelune_studio/test/application/spatial_ramp_editing_commands_test.dart\n?? apps/avelune_studio/test/application/spatial_terrain_draft_test.dart\n?? apps/avelune_studio/test/map_workspace/spatial_environment_gesture_test.dart\n?? apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart\n?? apps/avelune_studio/test/presentation/border_stroke_erase_editor_test.dart\n?? apps/avelune_studio/test/presentation/map_canvas_patterns_test.dart\n?? apps/avelune_studio/test/presentation/model_collision_controls_test.dart\n?? apps/avelune_studio/test/presentation/spatial_border_editor_test.dart\n?? apps/avelune_studio/test/presentation/spatial_border_layout_test.dart\n?? apps/avelune_studio/test/presentation/spatial_environment_editor_test.dart\n?? apps/avelune_studio/test/presentation/spatial_ramp_editor_test.dart\n?? apps/avelune_studio/test/presentation/spatial_terrain_editor_test.dart\n?? apps/avelune_studio/test/resource_io/spatial_border_resource_adapter_test.dart\n?? apps/avelune_studio/test/support/spatial_border_fixture.dart\n?? apps/avelune_studio/test/support/spatial_environment_fixture.dart\n?? apps/avelune_studio/test/support/spatial_ramp_fixture.dart\n?? documentation/reports/converter/AC-03/03_marshal_table_decoder.md\n?? documentation/reports/converter/AC-03/commands.json\n?? documentation/reports/converter/AC-03/index.json\n?? packages/avelune_converter_core/lib/src/bounded_zlib.dart\n?? packages/avelune_converter_core/lib/src/marshal_decoder.dart\n?? packages/avelune_converter_core/test/bounded_zlib_test.dart\n?? packages/avelune_converter_core/test/marshal_decoder_test.dart\n?? packages/map_authoring/test/domains/maps/border_spatial_actions_test.dart\n?? packages/map_authoring/test/domains/maps/border_spatial_behavior_actions_test.dart\n?? packages/map_authoring/test/domains/maps/border_stroke_erase_actions_test.dart\n?? packages/map_authoring/test/domains/maps/environment_spatial_actions_test.dart\n?? packages/map_authoring/test/domains/maps/spatial_ramp_precision_actions_test.dart\n?? packages/map_authoring/test/tooling/jsonl_border_spatial_behavior_test.dart\n?? packages/map_core/lib/src/operations/environment_spatial_ownership.dart\n?? packages/map_core/lib/src/operations/spatial_border_resolution.dart\n?? packages/map_core/lib/src/operations/spatial_smart_tile_models.dart\n?? packages/map_core/test/border/spatial_border_behavior_test.dart\n?? packages/map_core/test/border/spatial_border_resolution_test.dart\n?? packages/map_core/test/environment_spatial_contract_test.dart\n?? packages/map_core/test/smart_tiles/smart_tile_model3d_source_test.dart\n?? packages/map_gameplay/test/spatial_smart_tile_offset_geometry_test.dart\n?? packages/map_render_3d/test/spatial_pixel_material_test.dart\n?? packages/map_runtime/test/runtime_spatial_smart_tile_projection_test.dart\n?? tools/avelune_converter_cli/test/native_decoder_corpus_test.dart\n?? tools/nb2_modular_assets/.gitignore\n?? tools/nb2_modular_assets/build_cliff_borders.py\n?? tools/nb2_modular_assets/build_complete_relief.py\n?? tools/nb2_modular_assets/build_detail_units.py\n?? tools/nb2_modular_assets/build_fence_units.py\n?? tools/nb2_modular_assets/build_geometry_crosswalk.py\n?? tools/nb2_modular_assets/build_pavonnay_water_recipe.py\n?? tools/nb2_modular_assets/build_semantic_tiles.py\n?? tools/nb2_modular_assets/build_stair_units.py\n?? tools/nb2_modular_assets/build_water_tiles.py\n?? tools/nb2_modular_assets/extract_units.py\n?? tools/nb2_modular_assets/test_extract_units.py\n?? tools/pokemap_mcp/test/authoring_client.test.ts\n?? tools/pokemap_mcp/test/border_spatial_stdio.test.ts\n?? tools/pokemap_mcp/test/border_stroke_erase_stdio.test.ts\n?? tools/pokemap_mcp/test/environment_spatial_stdio.test.ts\n?? tools/pokemap_mcp/test/spatial_ramp_precision_stdio.test.ts\n",
+  "initialForeignDirtyPaths": 257,
+  "foreignContentComparison": {
+    "checked": 257,
+    "changed": []
+  },
+  "sourceUnchanged": {
+    "metadataBefore": "e8d978ec0c595a62d359051af11e0c20dd4d0a2bba4f191dfffa45cac441e2cd",
+    "metadataAfter": "e8d978ec0c595a62d359051af11e0c20dd4d0a2bba4f191dfffa45cac441e2cd"
+  },
+  "verification": {
+    "core": {
+      "success": 498,
+      "exitCode": 0,
+      "elapsedSeconds": 19.798
+    },
+    "adapter": {
+      "success": 26,
+      "exitCode": 0
+    },
+    "cli": {
+      "success": 22,
+      "skipped": 2,
+      "exitCode": 0
+    },
+    "marshal": {
+      "success": 115,
+      "exitCode": 0
+    },
+    "zlib": {
+      "success": 38,
+      "exitCode": 0
+    },
+    "analyses": "All three No issues found!",
+    "aotProbe": {
+      "cycle": true,
+      "maxFiniteExact": true,
+      "tableCells": 18,
+      "zlibByte": 65
+    },
+    "corpus": {
+      "marshalFiles": 423,
+      "maps": 383,
+      "nodes": 1100535,
+      "tables": 1046,
+      "tableCells": 1915140,
+      "compressedScripts": 402,
+      "decompressedScriptBytes": 5316166,
+      "classes": {
+        "Color": 15,
+        "GameData::Ability": 310,
+        "GameData::BerryPlant": 67,
+        "GameData::Encounter": 135,
+        "GameData::Item": 1062,
+        "GameData::MapMetadata": 311,
+        "GameData::Metadata": 1,
+        "GameData::Move": 885,
+        "GameData::PhoneMessage": 1,
+        "GameData::PlayerMetadata": 2,
+        "GameData::Ribbon": 167,
+        "GameData::Species": 1457,
+        "GameData::SpeciesMetrics": 1289,
+        "GameData::TownMap": 2001,
+        "GameData::Trainer": 613,
+        "GameData::TrainerType": 287,
+        "GameData::Type": 20,
+        "RPG::Actor": 1,
+        "RPG::Animation": 30,
+        "RPG::Animation::Frame": 358,
+        "RPG::Animation::Timing": 13,
+        "RPG::Armor": 1,
+        "RPG::AudioFile": 2744,
+        "RPG::Class": 1,
+        "RPG::CommonEvent": 10,
+        "RPG::Enemy": 1,
+        "RPG::Enemy::Action": 1,
+        "RPG::Event": 3941,
+        "RPG::Event::Page": 5936,
+        "RPG::Event::Page::Condition": 5936,
+        "RPG::Event::Page::Graphic": 5936,
+        "RPG::EventCommand": 59322,
+        "RPG::Item": 1,
+        "RPG::Map": 383,
+        "RPG::MapInfo": 383,
+        "RPG::MoveCommand": 42714,
+        "RPG::MoveRoute": 9650,
+        "RPG::Skill": 1,
+        "RPG::State": 1,
+        "RPG::System": 1,
+        "RPG::System::TestBattler": 1,
+        "RPG::System::Words": 1,
+        "RPG::Tileset": 100,
+        "RPG::Troop": 1,
+        "RPG::Troop::Page": 1,
+        "RPG::Troop::Page::Condition": 1,
+        "RPG::Weapon": 1,
+        "Table": 1046,
+        "Tone": 1956
+      },
+      "kinds": {
+        "object": 146079,
+        "symbol": 31082,
+        "integer": 417195,
+        "boolean": 183896,
+        "string": 107255,
+        "array": 184642,
+        "userDefined": 3017,
+        "hash": 6100,
+        "nil": 21269
+      },
+      "encodingDiagnostics": {
+        "marshal.invalid_text": 567
+      },
+      "staticVersionDeclarations": [],
+      "quotaRefusals": [
+        {
+          "sourcePath": "Data/PkmnAnimations.rxdata",
+          "bytes": 14807403,
+          "code": "marshal.quota.locations",
+          "byteOffset": 401075,
+          "graphPath": "$.ivar[0].value[74].ivar[0].value[15][5][17]"
+        }
+      ]
+    },
+    "critique": {
+      "verdict": "PASS",
+      "agent": "test_validation",
+      "marshalSha": "ce4301a53c9f92d8f8d4c6913f2ee54e1156e7d19f9a1d632ca376f838931e6e",
+      "zlibSha": "5f7ad04ee1080afb8fed60e5e065501bc9b2e07eca3f5188ad4c483bafff6b09",
+      "scope": "Static read-only independent critique; execution receipts supplied by root and runtime_contracts",
+      "closedFindings": [
+        "historical Ruby 1.8 float suffix",
+        "quota before symbol/object payload allocation",
+        "integer pow overflow fixed with 2.0 bases",
+        "empty distance tree with HDIST > 1"
+      ],
+      "remaining": []
+    },
+    "format": "5 files +1 CLI file, zero changes, exit 0",
+    "markdownHygiene": "1 new report explicitly bounded by requested lot Evidence Pack, exit 0",
+    "gitDiffCheck": "exit 0"
+  },
+  "notionTicket": "https://app.notion.com/p/3f6197a7bfa581e8bdb3ee6e97995333",
+  "nextLot": "AC-04",
+  "knownLimits": [
+    "PkmnAnimations.rxdata rejected safely by location quota",
+    "Unsupported/invalid text retains bytes and diagnostics",
+    "No source execution, no IR/native writer/Studio/Player proof yet",
+    "No RSS measurements or exhaustive RFC certification"
+  ]
+}
