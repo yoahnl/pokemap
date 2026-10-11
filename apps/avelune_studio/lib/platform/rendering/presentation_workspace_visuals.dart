@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
+
 import '../../features/presentations/application/presentation_preview_transport.dart';
 import '../../features/presentations/domain/presentation_port.dart';
 import '../../presentation/features/presentations/presentation_workspace_visuals.dart';
@@ -174,6 +176,7 @@ class StudioPresentationVisuals extends ChangeNotifier
     final asset = transport?.asset;
     if (_closed || transport == null || asset == null) return;
     mediaPublishes++;
+    _content?.showFrame(asset, transport.frame, portrait: _portrait);
     _sink?.synchronize(
       asset: asset,
       frame: transport.frame,

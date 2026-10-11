@@ -1,4 +1,5 @@
 import 'package:map_authoring/map_authoring.dart';
+
 import '../../project_session/domain/project_session.dart';
 
 class LocalPresentationConnection {
@@ -12,6 +13,27 @@ class LocalPresentationConnection {
   final OpenedProject opened;
   final ProjectSnapshotLoader snapshots;
   final LocalMapAuthoringMutationApi api;
+
+  static Future<ProjectSnapshot> readDraft(ProjectSession session) async {
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [session.directoryPath],
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore();
+    final opened = await ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    ).openProject(session.directoryPath);
+    try {
+      return await ProjectSnapshotLoader(handles: handles)
+          .loadPresentationDraft(opened.projectHandle);
+    } finally {
+      handles.closeWorkspace(opened.workspaceHandle);
+    }
+  }
+
   static Future<LocalPresentationConnection> open(
     ProjectSession session,
     ArtifactStore artifacts,

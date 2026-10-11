@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as path;
+
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
@@ -71,40 +73,22 @@ class LocalPresentationAdapter implements PresentationPort {
   Future<PresentationSourceSnapshot> load(String id) =>
       mapAdapter.withResourceMutation(() async {
         await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-        final connection = await LocalPresentationConnection.open(
-          session,
-          artifacts,
-          faultInjector,
-        );
-        try {
-          final snapshot = await connection.read();
-          return _source(snapshot, id) ??
-              (throw const PresentationFailure(
-                'Cette présentation est absente du projet.',
-              ));
-        } finally {
-          await connection.close();
-        }
+        final snapshot = await LocalPresentationConnection.readDraft(session);
+        return _source(snapshot, id) ??
+            (throw const PresentationFailure(
+              'Cette présentation est absente du projet.',
+            ));
       });
   @override
   Future<PresentationDraftProjection> prepare(ProjectManifest project) =>
       mapAdapter.withResourceMutation(() async {
-        final connection = await LocalPresentationConnection.open(
-          session,
-          artifacts,
-          faultInjector,
-        );
-        try {
-          final snapshot = await connection.read();
-          if (snapshot.manifest.version != ProjectVersion.v8) {
-            throw const PresentationFailure(
-              'Les présentations nécessitent un projet v8.',
-            );
-          }
-          return LocalPresentationProjection(snapshot, project);
-        } finally {
-          await connection.close();
+        final snapshot = await LocalPresentationConnection.readDraft(session);
+        if (snapshot.manifest.version != ProjectVersion.v8) {
+          throw const PresentationFailure(
+            'Les présentations nécessitent un projet v8.',
+          );
         }
+        return LocalPresentationProjection(snapshot, project);
       });
   PresentationSourceSnapshot? _source(ProjectSnapshot snapshot, String id) {
     final asset = snapshot.manifest.presentationCinematics

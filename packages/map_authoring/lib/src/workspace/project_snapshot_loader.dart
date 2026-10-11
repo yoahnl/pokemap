@@ -234,6 +234,87 @@ final class ProjectSnapshotLoader {
     _handles.requireActiveProject(projectHandle);
   }
 
+  Future<ProjectSnapshot> loadPresentationDraft(
+      ProjectHandle projectHandle) async {
+    final access = _handles.resolveProject(projectHandle);
+    final manifestBytes = await access.readResourceBytes('project.json');
+    final manifest = await _decodeExecutor.decodeManifest(manifestBytes.bytes);
+    final resources = <_LoadedProjectResource>[
+      _LoadedProjectResource(
+        relativePath: 'project.json',
+        identity: 'project',
+        bytes: manifestBytes,
+      ),
+    ];
+    final absentPaths = <String>[];
+    for (final (path, identity) in [
+      (assetCatalogStorageKey, assetCatalogResourceIdentity),
+      (projectMediaCatalogStorageKey, projectMediaCatalogResourceIdentity),
+    ]) {
+      final bytes = await _readOptional(access, path);
+      if (bytes == null) {
+        absentPaths.add(path);
+        continue;
+      }
+      if (identity == assetCatalogResourceIdentity) {
+        await _decodeExecutor.decodeAssetCatalog(bytes.bytes);
+      } else {
+        await _decodeExecutor.decodeProjectMediaCatalog(bytes.bytes);
+      }
+      resources.add(_LoadedProjectResource(
+        relativePath: path,
+        identity: identity,
+        bytes: bytes,
+      ));
+    }
+    resources
+        .sort((left, right) => left.relativePath.compareTo(right.relativePath));
+    final matches = await _matchSecondObservations(access, resources);
+    if (matches.contains(false)) {
+      throw const ProjectSnapshotException(
+        'project.changed_during_snapshot',
+        'A presentation source changed while its draft was loading.',
+      );
+    }
+    for (final path in absentPaths) {
+      if (await _readOptional(access, path) != null) {
+        throw const ProjectSnapshotException(
+          'project.changed_during_snapshot',
+          'A presentation catalog appeared while its draft was loading.',
+        );
+      }
+    }
+    final fingerprints = <String, String>{};
+    final revision = NarrativeProjectFingerprintBuilder();
+    for (final resource in resources) {
+      final fingerprint = await _decodeExecutor.fingerprintResource(
+        resource.bytes.typedBytes,
+        relativePath: resource.relativePath,
+      );
+      fingerprints[resource.identity] = fingerprint;
+      final bytes = utf8.encode(fingerprint);
+      revision
+        ..startEntry(
+            relativePath: resource.relativePath, byteLength: bytes.length)
+        ..addBytes(bytes)
+        ..endEntry();
+    }
+    return ProjectSnapshot(
+      projectHandle: projectHandle,
+      revision: revision.close(),
+      manifest: manifest,
+      maps: const [],
+      resourceFingerprints: fingerprints,
+      ownedResourceBytes: {
+        for (final resource in resources) resource.identity: resource.bytes,
+      },
+      resourceStorageKeys: {
+        for (final resource in resources)
+          resource.identity: resource.relativePath,
+      },
+    );
+  }
+
   Future<List<int>?> readRetainedAssetBlob(
     ProjectHandle projectHandle,
     ContentArtifactRef artifact,

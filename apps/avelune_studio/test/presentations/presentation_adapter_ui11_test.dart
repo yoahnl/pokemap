@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:avelune_studio/features/presentations/data/local_presentation_adapter.dart';
 import 'package:avelune_studio/features/presentations/domain/presentation_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import '../support/cinematic_adapter_fixture.dart';
 
@@ -20,6 +21,58 @@ void main() {
     id: 'intro',
     title: title,
     durationUs: 12000000,
+  );
+  test(
+    'opening and preparing do not read unrelated maps or asset blobs',
+    () async {
+      final project = (await f.readManifest()).copyWith(
+        maps: const [
+          ProjectMapEntry(
+            id: 'unavailable',
+            name: 'Carte indisponible',
+            relativePath: 'maps/unavailable.json',
+          ),
+        ],
+        presentationCinematics: [asset('Introduction')],
+      );
+      await f.writeManifest(project);
+      await f.maps.loadProject(f.session);
+      final catalog = f.file(assetCatalogStorageKey);
+      await catalog.parent.create(recursive: true);
+      await catalog.writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: [
+              AssetRecord(
+                id: 'unavailable',
+                logicalPath: 'assets/unavailable.png',
+                artifact: ContentArtifactRef.fromBytes([
+                  1,
+                  2,
+                  3,
+                ], mediaType: 'image/png'),
+              ),
+            ],
+          ).toJson(),
+        ),
+      );
+
+      final opened = await port.load('intro');
+      final prepared = await port.prepare(project);
+
+      expect(opened.asset, asset('Introduction'));
+      expect(opened.projection.manifest, project);
+      expect(prepared.manifest, project);
+      expect(
+        f.file('.pokemap/authoring/idempotency.jsonl').existsSync(),
+        isFalse,
+      );
+      await expectLater(
+        port.publish(asset: asset('Publication refusée'), base: opened),
+        throwsA(isA<WorkspaceAccessException>()),
+      );
+      expect(await f.readManifest(), project);
+    },
   );
   test(
     'mapless final document and classification are published and independently reopened',

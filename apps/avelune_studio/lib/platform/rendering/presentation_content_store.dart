@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
@@ -45,6 +46,26 @@ class PresentationContentStore implements PresentationFrameContentPort {
       }
     }
     return false;
+  }
+
+  void showFrame(
+    PresentationCinematicAsset asset,
+    PresentationFrame? frame, {
+    required bool portrait,
+  }) {
+    final clips = {
+      for (final track in asset.tracks)
+        for (final clip in track.clips)
+          if (clip is PresentationVisualClip) clip.id: clip,
+    };
+    _activeIds = {
+      for (final visual in frame?.visuals ?? <PresentationVisualFrameClip>[])
+        if (clips[visual.clipId] case final clip?)
+          (portrait ? clip.portraitResourceId : clip.landscapeResourceId) ??
+              clip.resourceId,
+      for (final caption in frame?.captions ?? <PresentationCaptionFrameClip>[])
+        caption.captionId,
+    };
   }
 
   Future<void> prepare(
