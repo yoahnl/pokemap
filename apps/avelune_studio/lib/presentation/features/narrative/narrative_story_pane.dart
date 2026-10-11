@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../../features/narrative/application/narrative_overview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
@@ -37,6 +38,7 @@ class NarrativeStoryPane extends StatefulWidget {
     this.onVerification,
     this.onDialogues,
     this.onCinematics,
+    this.onPresentations,
     this.onEvents,
     this.onProgression,
     this.onOpenScene,
@@ -60,7 +62,8 @@ class NarrativeStoryPane extends StatefulWidget {
       onProgression,
       onEvents,
       onDialogues,
-      onCinematics;
+      onCinematics,
+      onPresentations;
   final Future<String?> Function(String)? onOpenScene;
   final StoryWorkspaceController? storyOwner;
   final SceneWorkspaceController? sceneOwner;
@@ -178,8 +181,7 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
                   child: StudioSearchField(
                     controller: state.search,
                     label: 'Rechercher dans Histoire',
-                    hint:
-                        'Histoires, chapitres, étapes, interactions, cartes et sources connues',
+                    hint: 'Histoires, chapitres, étapes, interactions, cartes et sources connues',
                     onChanged: (_) => refresh(),
                   ),
                 ),

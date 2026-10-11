@@ -46,6 +46,8 @@ extension _NarrativeStoryPaneOverview on _NarrativeStoryPaneState {
                 ? null
                 : _createEvent,
             onProgression: widget.onProgression,
+            onCinematics: widget.onCinematics,
+            onPresentations: widget.onPresentations,
             onScenes: widget.onScenes,
             onEvents: widget.onEvents,
             onVerification: widget.onVerification,

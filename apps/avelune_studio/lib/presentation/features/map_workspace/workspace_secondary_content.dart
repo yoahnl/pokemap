@@ -3,12 +3,16 @@ import '../../../features/scenes/domain/scene_presentation_creation_request.dart
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../cinematics/cinematic_workspace_page.dart';
 import '../cinematics/cinematic_view_state.dart';
+
 import 'package:flutter/material.dart';
+
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../dialogues/dialogue_workspace_page.dart';
 import '../dialogues/dialogue_view_state.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
+
 import 'package:map_core/map_core_domain.dart';
+
 import '../events/event_workspace_page.dart';
 import '../events/event_view_state.dart';
 import '../events/event_map_loader.dart';
@@ -219,6 +223,7 @@ Widget? workspaceSecondaryContent({
     return NarrativeStoryPane(
       onDialogues: dialogues == null ? null : onDialogues,
       onCinematics: cinematics == null ? null : onCinematics,
+      onPresentations: presentations == null ? null : onPresentations,
       controller: narrative,
       viewState: storyViewState,
       onOpen: onOpenInteraction,

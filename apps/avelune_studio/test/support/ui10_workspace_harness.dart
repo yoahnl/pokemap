@@ -1,8 +1,10 @@
 import 'package:avelune_studio/features/cinematics/data/local_cinematic_adapter.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_workspace_page.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_action_card.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'capture_m3_widget.dart';
 import 'm2_ui_fixture.dart';
 import 'ui08_workspace_harness.dart';
@@ -52,15 +54,9 @@ class Ui10WorkspaceHarness {
       ),
     );
     await pumpIo(tester, frames: 8);
-    if (find.text('Voir tous les documents').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Voir tous les documents').first);
-      await tester.pumpAndSettle();
-    }
-    if (find.text('Cinématiques sur carte').evaluate().isEmpty) {
-      await tester.tap(find.byTooltip('Actions Histoire'));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Cinématiques sur carte').first);
+    await tester.tap(
+      find.widgetWithText(StudioActionCard, 'Cinématiques sur carte'),
+    );
     await pumpIo(tester, frames: 15);
     await tester.tap(
       find.byKey(const ValueKey('cinematic-library-$ui10CinematicId')),

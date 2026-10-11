@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/narrative/application/narrative_overview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
@@ -34,6 +35,8 @@ class NarrativeOverviewLanding extends StatelessWidget {
     required this.onCreateStory,
     required this.onCreateScene,
     required this.onCreateEvent,
+    this.onCinematics,
+    this.onPresentations,
     required this.onProgression,
     required this.onScenes,
     required this.onEvents,
@@ -69,6 +72,7 @@ class NarrativeOverviewLanding extends StatelessWidget {
   final VoidCallback onLibrary;
   final VoidCallback? onCreateStory;
   final VoidCallback? onCreateScene, onCreateEvent;
+  final VoidCallback? onCinematics, onPresentations;
   final VoidCallback? onProgression, onScenes, onEvents, onVerification;
   final ValueChanged<String> onOpenStory;
   final void Function(String storyId, String stepId) onOpenStep;
@@ -217,7 +221,7 @@ class NarrativeOverviewLanding extends StatelessWidget {
   Widget _actions(BuildContext context, double width) {
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     final columns = !largeText && width >= 880
-        ? 4
+        ? 3
         : width >= 530
         ? 2
         : 1;
@@ -254,6 +258,26 @@ class NarrativeOverviewLanding extends StatelessWidget {
             icon: Icons.bolt_outlined,
             tone: StudioTone.warning,
             onPressed: onCreateEvent,
+          ),
+        ),
+        SizedBox(
+          width: itemWidth,
+          child: StudioActionCard(
+            title: 'Cinématiques sur carte',
+            subtitle: 'Mettre vos acteurs en scène',
+            icon: Icons.movie_outlined,
+            tone: StudioTone.feature,
+            onPressed: onCinematics,
+          ),
+        ),
+        SizedBox(
+          width: itemWidth,
+          child: StudioActionCard(
+            title: 'Cinématiques de présentation',
+            subtitle: 'Composer une séquence visuelle',
+            icon: Icons.video_library_outlined,
+            tone: StudioTone.feature,
+            onPressed: onPresentations,
           ),
         ),
         SizedBox(
