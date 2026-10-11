@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "assetCandidate",
+  "exampleOnly": true,
+  "candidateId": "candidate-house-01",
+  "revision": 1,
+  "logicalProjectNamespace": "synthetic-rmxp-01",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sources": [
+    {
+      "fileId": "image-outside",
+      "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "pixelWidth": 256,
+      "pixelHeight": 256
+    }
+  ],
+  "name": "Maison de démonstration",
+  "category": "building",
+  "state": "needsReview",
+  "parts": [
+    {
+      "partId": "part-01",
+      "sourceFileId": "image-outside",
+      "sourceRect": {
+        "x": 0,
+        "y": 0,
+        "width": 96,
+        "height": 96
+      },
+      "destinationOffset": {
+        "x": 0,
+        "y": 0
+      },
+      "sourceLayer": 1,
+      "sourcePriority": 0,
+      "quarterTurns": 0,
+      "reflected": false,
+      "locator": {
+        "file": "Data/Map001.rxdata",
+        "mapId": 1,
+        "eventId": null,
+        "pageIndex": null,
+        "commandIndex": null,
+        "tileId": 384,
+        "line": null
+      }
+    }
+  ],
+  "canvasSize": {
+    "width": 96,
+    "height": 96
+  },
+  "anchor": {
+    "unit": "pixel",
+    "x": 48,
+    "y": 96,
+    "convention": "bottomCenter"
+  },
+  "integrationMode": "libraryOnly",
+  "outputMode": "sharedAtlas",
+  "evidence": [
+    {
+      "type": "human",
+      "summary": "Exemple de géométrie pour le contrat, aucune reconnaissance réelle.",
+      "reference": "fixture:synth-house"
+    }
+  ],
+  "uncertainties": [
+    "À vérifier sur une vraie source avant utilisation."
+  ],
+  "approvedRevision": null
+}

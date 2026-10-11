@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "sourceMapIr",
+  "exampleOnly": true,
+  "logicalProjectNamespace": "synthetic-rmxp-01",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sourceProfileId": "rmxp-standard-audit-required",
+  "map": {
+    "sourceMapId": 1,
+    "sourceFileId": "file-map-001",
+    "name": "Carte synthétique 3 × 2",
+    "width": 3,
+    "height": 2,
+    "tileWidth": 32,
+    "tileHeight": 32,
+    "sourceTilesetId": 1,
+    "layers": [
+      {
+        "sourceZ": 0,
+        "cells": [
+          384,
+          385,
+          386,
+          387,
+          388,
+          389
+        ]
+      },
+      {
+        "sourceZ": 1,
+        "cells": [
+          0,
+          0,
+          390,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "sourceZ": 2,
+        "cells": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "events": [],
+    "unknownDataRefs": []
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "visionResponse",
+  "exampleOnly": true,
+  "requestId": "vision-request-demo",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "inputRevision": 1,
+  "suggestions": [
+    {
+      "suggestionId": "suggestion-01",
+      "candidateIds": [
+        "candidate-house-01"
+      ],
+      "sourceRegionIds": [
+        "region-house-01"
+      ],
+      "proposedName": "Maison au toit corail",
+      "category": "building",
+      "tags": [
+        "extérieur"
+      ],
+      "evidenceSummary": "Proposition fictive sur une région déjà identifiée.",
+      "uncertainties": [
+        "Les limites doivent être validées par l’utilisateur."
+      ],
+      "confidenceLabel": "unknown"
+    }
+  ]
+}

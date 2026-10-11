@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "conversionPlan",
+  "exampleOnly": true,
+  "planId": "plan-demo",
+  "state": "draft",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "targetProfileHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "rulesHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "decisionsHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "decisionRevision": 1,
+  "converterVersion": "spec-1.0",
+  "logicalProjectNamespace": "synthetic-rmxp-01",
+  "requestedMode": "study",
+  "selectedSourceMapIds": [
+    1
+  ],
+  "dependencySourceMapIds": [],
+  "outputPolicy": {
+    "destinationFolderName": "synthetic-study",
+    "destinationMustBeNew": true,
+    "offline": true,
+    "assetOutputMode": "sharedAtlas"
+  },
+  "operations": [
+    {
+      "operationId": "op-01",
+      "domain": "maps",
+      "sourceEntityIds": [
+        "source-map-1"
+      ],
+      "targetEntityIds": [
+        "target-map-1"
+      ],
+      "targetActionId": null,
+      "status": "blocked",
+      "evidenceRefs": []
+    }
+  ],
+  "findings": [
+    {
+      "diagnosticId": "diag-01",
+      "code": "TARGET_CAPABILITY_UNVERIFIED",
+      "severity": "error",
+      "cause": "ambiguous",
+      "family": "maps",
+      "sourceLocator": {
+        "file": "Data/Map001.rxdata",
+        "mapId": 1,
+        "eventId": null,
+        "pageIndex": null,
+        "commandIndex": null,
+        "tileId": 384,
+        "line": null
+      },
+      "message": "Exemple : aucune preuve d’écriture native disponible pour ce plan de démonstration.",
+      "disposition": "unresolved",
+      "blocksStudy": true,
+      "blocksPlayableSlice": true,
+      "acceptedByDecisionId": null
+    }
+  ],
+  "approvedByHuman": false
+}

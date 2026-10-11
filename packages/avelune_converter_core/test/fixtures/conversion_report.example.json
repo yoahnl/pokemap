@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "conversionReport",
+  "exampleOnly": true,
+  "reportId": "report-demo",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "planId": "plan-demo",
+  "scope": "study",
+  "state": "planned",
+  "checks": {
+    "nativeLoad": "notRun",
+    "nativeSaveReload": "notRun",
+    "visualParity": "notRun",
+    "gameplayTrace": "notRun",
+    "sourceUnchanged": "notRun"
+  },
+  "coverage": [
+    {
+      "family": "maps",
+      "observed": 1,
+      "extracted": 1,
+      "adapted": 0,
+      "preservedOnly": 0,
+      "excluded": 0,
+      "unverified": 1
+    }
+  ],
+  "findings": [
+    {
+      "diagnosticId": "diag-01",
+      "code": "TARGET_CAPABILITY_UNVERIFIED",
+      "severity": "error",
+      "cause": "ambiguous",
+      "family": "maps",
+      "sourceLocator": {
+        "file": "Data/Map001.rxdata",
+        "mapId": 1,
+        "eventId": null,
+        "pageIndex": null,
+        "commandIndex": null,
+        "tileId": 384,
+        "line": null
+      },
+      "message": "Exemple : aucune preuve d’écriture native disponible pour ce plan de démonstration.",
+      "disposition": "unresolved",
+      "blocksStudy": true,
+      "blocksPlayableSlice": true,
+      "acceptedByDecisionId": null
+    }
+  ],
+  "artifacts": [],
+  "aiUsage": {
+    "requestCount": 0,
+    "usageStatus": "notUsed",
+    "estimatedCost": null,
+    "currency": null
+  }
+}

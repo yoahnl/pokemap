@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "targetCapabilities",
+  "exampleOnly": true,
+  "profileId": "avelune-2d-audit-required",
+  "repository": "yoahnl/pokemap",
+  "revision": "e445219017080d2c039bf2dc8c3dcedd3157c071",
+  "capabilities": [
+    {
+      "capabilityId": "native.project.loadSaveReload",
+      "status": "unverified",
+      "scope": "Projet 2D synthétique écrit par le convertisseur.",
+      "evidence": [],
+      "limitations": [
+        "Le kit a lu des contrats mais n’a pas exécuté de conversion."
+      ]
+    },
+    {
+      "capabilityId": "rmxp.directionalPassability",
+      "status": "unverified",
+      "scope": "Comparaison des déplacements XP et Avelune.",
+      "evidence": [],
+      "limitations": [
+        "La présence d’une CollisionLayer booléenne ne prouve pas cette capacité."
+      ]
+    }
+  ]
+}

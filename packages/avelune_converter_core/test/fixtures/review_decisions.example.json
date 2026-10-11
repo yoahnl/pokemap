@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "reviewDecisions",
+  "exampleOnly": true,
+  "sessionId": "session-demo",
+  "sourceSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "revision": 1,
+  "decisions": [
+    {
+      "decisionId": "decision-01",
+      "candidateId": "candidate-house-01",
+      "candidateRevision": 1,
+      "action": "keepLiteral",
+      "humanConfirmed": true,
+      "replacementCandidateIds": [],
+      "note": "Exemple : les placements source sont conservés."
+    }
+  ]
+}
