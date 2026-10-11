@@ -1,0 +1,478 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "targetCapabilities",
+  "exampleOnly": false,
+  "profileId": "ac00-2d-v8-worktree-20261011",
+  "repository": "/Users/karim/Project/pokemonProject",
+  "revision": "edb8a9aa079837653717b58da7dbad8926e40691",
+  "capabilities": [
+    {
+      "capabilityId": "native.project.empty_2d_32",
+      "status": "supported",
+      "scope": "Créer un projet empty 2D v8 en taille 32 via le bootstrap natif existant.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "Suite création empty/playable et relecture, replay 60 tests authoring verts.",
+          "reference": "evidence/commands.json#ac00.test.authoring"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Empty 2D écrit uniquement project.json et désactive newGame.",
+          "reference": "packages/map_authoring/lib/src/workspace/project_creation_kit.dart:19-106"
+        }
+      ],
+      "limitations": [
+        "Aucun projet généré par un Converter dans AC-00.",
+        "Demander tileSize 32 explicitement ; défaut 16.",
+        "Un échec après réservation peut laisser un residualPath récupérable."
+      ]
+    },
+    {
+      "capabilityId": "native.project.readonly_open",
+      "status": "supported",
+      "scope": "Ouvrir le manifeste via ProjectOpenService sans écriture, handles opaques et racine autorisée.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "project_open_service_test et suites de bootstrap relancés, exit 0.",
+          "reference": "evidence/commands.json#ac00.test.authoring"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Open ne sauvegarde pas de migration.",
+          "reference": "packages/map_authoring/lib/src/workspace/project_open_service.dart:36-111"
+        }
+      ],
+      "limitations": [
+        "Open seul ne valide pas toutes les cartes ; snapshot strict requis."
+      ]
+    },
+    {
+      "capabilityId": "native.map.lifecycle",
+      "status": "supported",
+      "scope": "Créer et sauvegarder une carte native via plan/apply, validateurs et codecs existants.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "map_lifecycle_contract_test, map_lifecycle_transaction_test et JSONL bootstrap passent.",
+          "reference": "evidence/commands.json#ac00.test.authoring"
+        },
+        {
+          "type": "test",
+          "summary": "Deux tests du serveur MCP réel/packagé passent après build.",
+          "reference": "evidence/commands.json#ac00.test.mcp"
+        }
+      ],
+      "limitations": [
+        "Transactions récupérables par mutation ; aucune atomicité de job Converter entier prouvée.",
+        "La relecture d'une carte produite par le futur writer reste non effectuée."
+      ]
+    },
+    {
+      "capabilityId": "native.tiles.palette_cells",
+      "status": "supported",
+      "scope": "Codec natif TileLayer palette/cells avec 0 vide et index palette 1-based.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "tile_layer_palette_test roundtrip multi-tileset/D4 et références invalides, replay exit 0.",
+          "reference": "evidence/commands.json#ac00.test.core.correct"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Résolution native palette[n-1] et consommation row-major.",
+          "reference": "packages/map_core/lib/src/models/map_layer.dart:282-286 ; packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:1029-1033"
+        }
+      ],
+      "limitations": [
+        "localTileId est zéro-based, distinct de la cellule palette.",
+        "Table source x/y/z doit être normalisée ; aucun parseur exécuté."
+      ]
+    },
+    {
+      "capabilityId": "native.tiles.regular_atlas",
+      "status": "supported",
+      "scope": "Modèle, codec et résolveur d'atlas régulier avec marges, spacing et offsets.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "project_tileset_source_test et project_tileset_visual_resolver_test passent, 23 tests core en tout.",
+          "reference": "evidence/commands.json#ac00.test.core.correct ; evidence/commands.json#ac00.test.visual_core"
+        }
+      ],
+      "limitations": [
+        "Échelle source et destination explicites ; aucune conversion XP qualifiée."
+      ]
+    },
+    {
+      "capabilityId": "native.tiles.image_collection_codec",
+      "status": "supported",
+      "scope": "Sérialiser/résoudre des pages, IDs sparse et rectangles pixels de collections d'images.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "Source collection, liens invalides et ancrage bottom-left testés par suites core relancées.",
+          "reference": "evidence/commands.json#ac00.test.core.correct ; evidence/commands.json#ac00.test.visual_core"
+        }
+      ],
+      "limitations": [
+        "Les rectangles collection sont en pixels ; les sourceRect d'éléments d'atlas sont en cellules.",
+        "Ce support ne démontre pas element.upsert depuis une collection."
+      ]
+    },
+    {
+      "capabilityId": "native.assets.image_import",
+      "status": "supported",
+      "scope": "Importer une image par artifacts et catalogue natif, avec plan/apply et relecture.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "tileset_image_import_test JSONL staging, import et relecture, replay assets 30 tests verts.",
+          "reference": "evidence/commands.json#ac00.test.assets"
+        },
+        {
+          "type": "codeRead",
+          "summary": "artifactHandle et logicalPath passent par asset.import.",
+          "reference": "packages/map_authoring/lib/src/domains/assets/asset_actions.dart:398-417"
+        }
+      ],
+      "limitations": [
+        "Pas de copie manuelle PNG puis manifeste inventé.",
+        "Catalogue de chaque page collection requis."
+      ]
+    },
+    {
+      "capabilityId": "native.elements.regular_atlas",
+      "status": "supported",
+      "scope": "Authoring de définitions d'éléments avec frames issues d'un atlas régulier validé.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "element_definition_actions_test et element_definition_transaction_test relancés, exit 0.",
+          "reference": "evidence/commands.json#ac00.test.assets"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Frames validées contre les atlas réguliers.",
+          "reference": "packages/map_authoring/lib/src/domains/assets/element_actions.dart:148-173"
+        }
+      ],
+      "limitations": [
+        "Les frames sont temporelles, pas des composants simultanés.",
+        "Un import purement visuel doit décider applyCollision explicitement."
+      ]
+    },
+    {
+      "capabilityId": "native.elements.image_collection_source",
+      "status": "unsupported",
+      "scope": "Route ElementActions.upsert actuelle pour une frame uniquement issue d'une imageCollection.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "API exige Map<String, ProjectRegularAtlasTilesetSource> et validateFrame atlas.",
+          "reference": "packages/map_authoring/lib/src/domains/assets/element_actions.dart:148-173 ; packages/map_authoring/lib/src/domains/assets/tileset_actions.dart:234-265"
+        }
+      ],
+      "limitations": [
+        "Conserver les tiles littérales ou matérialiser un atlas régulier contrôlé ; collection comme tiles reste native."
+      ]
+    },
+    {
+      "capabilityId": "native.elements.simultaneous_disjoint_parts",
+      "status": "unsupported",
+      "scope": "Composition graphique simultanée arbitraire directement dans une unique ProjectElementEntry.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Définition par liste de frames, sans arbre de parties simultanées.",
+          "reference": "packages/map_core/lib/src/models/project_manifest.dart:977-994"
+        }
+      ],
+      "limitations": [
+        "Conserver plusieurs placements ou une image locale contrôlée ; aucune carte entière aplatie.",
+        "Une composition à priorités multiples nécessite plusieurs contrats qualifiés."
+      ]
+    },
+    {
+      "capabilityId": "native.elements.collision_execution",
+      "status": "supported",
+      "scope": "Le gameplay consomme le profil de collision d'un élément placé quand applyCollision est actif.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "placed_elements_collision_test relancé dans la sélection gameplay, 32 tests verts.",
+          "reference": "evidence/commands.json#agentValidation.gameplay"
+        }
+      ],
+      "limitations": [
+        "Ne prouve pas les passages directionnels ou un mapping Essentials.",
+        "Les cellules legacy non normalisées peuvent trop bloquer ; le test décrit cette limite."
+      ]
+    },
+    {
+      "capabilityId": "native.render.background_foreground",
+      "status": "supported",
+      "scope": "Le composant partagé peint des calques background/foreground et des frames d'éléments selon leurs contrats.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "11 tests runtime render passes et placed-element rendering passent.",
+          "reference": "evidence/commands.json#agentValidation.runtime"
+        }
+      ],
+      "limitations": [
+        "Pas de certification de profondeur XP multi-niveaux.",
+        "Une frame one-shot peinte n'est pas une preuve de toute sa chronologie."
+      ]
+    },
+    {
+      "capabilityId": "native.tiles.animation_timeline_resolver",
+      "status": "supported",
+      "scope": "Le résolveur calcule une frame d'atlas à partir des durées et du temps fourni.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "project_tileset_visual_resolver_test timelines d'animation, replay 6 tests verts.",
+          "reference": "evidence/commands.json#ac00.test.visual_core"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Durées cumulées et cycle modulo.",
+          "reference": "packages/map_core/lib/src/operations/project_tileset_visual_resolver.dart:147-156"
+        }
+      ],
+      "limitations": [
+        "Ni reconstruction des variantes RMXP ni animation visible dans le Studio courant certifiée."
+      ]
+    },
+    {
+      "capabilityId": "native.studio.current_2d_canvas",
+      "status": "partial",
+      "scope": "Le Studio courant charge les références et peint via RuntimeAuthoringMapRenderer partagé.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "MapWorkspace canvas -> StudioMapVisual -> renderer partagé avec characters.",
+          "reference": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas_render.dart:117-126 ; apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart:10-24,268-283"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Collecte cells/palette et assets de toutes les frames.",
+          "reference": "apps/avelune_studio/lib/platform/rendering/studio_resource_index.dart:87-104,134-149"
+        }
+      ],
+      "limitations": [
+        "Inspection du chemin de production ; test Studio courant non rejoué et aucune acceptation visible.",
+        "Ancien map_editor n'est pas utilisé comme preuve du Studio actuel."
+      ]
+    },
+    {
+      "capabilityId": "native.studio.visible_tile_animation",
+      "status": "unverified",
+      "scope": "Progression temporelle visible d'animations de tiles dans le canvas du Studio courant.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Chemin inspecté initialise/recrée le renderer avec update(0) ; aucun ticker dt>0 trouvé dans ce périmètre.",
+          "reference": "apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart:79-83,114-118,157-161"
+        }
+      ],
+      "limitations": [
+        "Charger toutes les frames et appeler frameAt ne prouve pas une animation qui avance.",
+        "Aucune correction de cette limite pendant AC-00."
+      ]
+    },
+    {
+      "capabilityId": "native.render.xp_actor_decor_priorities",
+      "status": "unverified",
+      "scope": "Équivalence entre priorités source, calques littéraux et tri des décors par rapport aux acteurs.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "ObjectLayer background, marqueurs foreground, profondeur acteurs distincte.",
+          "reference": "packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:628-631,1659-1688 ; packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart:4538-4541"
+        }
+      ],
+      "limitations": [
+        "Sans corpus/profil source ni trace comparative, aucune parité XP même partielle n'a été démontrée.",
+        "Mapping explicite et comparaisons pixels/mouvement requis.",
+        "visualOrder ou nom de layer ne préserve pas toute priorité source."
+      ]
+    },
+    {
+      "capabilityId": "native.collision.directional_bits",
+      "status": "unsupported",
+      "scope": "Représentation des passages directionnels XP par CollisionLayer/VisualTileProperty et le cache statique audités.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Collision booléenne et passable ; cache sans masque directionnel.",
+          "reference": "packages/map_core/lib/src/models/map_layer.dart:112-119 ; packages/map_core/lib/src/models/project_tileset_source.dart:9-14 ; packages/map_gameplay/lib/src/gameplay_world_state.dart:819-858"
+        }
+      ],
+      "limitations": [
+        "Approche directionnelle de warp distincte.",
+        "Aucune approximation silencieuse ; issue de compatibilité pour un mode fidèle."
+      ]
+    },
+    {
+      "capabilityId": "native.events.first_matching_page",
+      "status": "supported",
+      "scope": "Le résolveur natif de pages V1 retourne la première page dont la condition est satisfaite.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "EventPageResolver / flag / séquence pages dans script_system_integration_test relancé.",
+          "reference": "evidence/commands.json#agentValidation.gameplay"
+        },
+        {
+          "type": "codeRead",
+          "summary": "Parcours i=0 vers length.",
+          "reference": "packages/map_gameplay/lib/src/event_page_resolver.dart:28-39"
+        }
+      ],
+      "limitations": [
+        "Ne certifie pas l'ordre des pages du profil source à identifier.",
+        "pageNumber ne pilote pas la priorité ; writer V1/V2 à décider."
+      ]
+    },
+    {
+      "capabilityId": "native.events.flags",
+      "status": "supported",
+      "scope": "Conditions et mutations de flags natifs couvertes par la suite de scripts exécutée.",
+      "evidence": [
+        {
+          "type": "test",
+          "summary": "32 tests gameplay dont flags, conditions et changements de pages passent ; aucune assertion variable dans la sélection.",
+          "reference": "evidence/commands.json#agentValidation.gameplay"
+        }
+      ],
+      "limitations": [
+        "Pas de preuve de conversion des self-switches ni save/reload d'un projet converti.",
+        "Les mutations/conditions de variables ont seulement été inspectées, pas testées par cette sélection."
+      ]
+    },
+    {
+      "capabilityId": "native.events.variables",
+      "status": "unverified",
+      "scope": "Évaluation et mutations de variables natives observées dans le code ; validation fraîche de leur comportement non effectuée.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Les consommateurs de conditions/mutations de variables sont présents.",
+          "reference": "packages/map_gameplay/lib/src/script_condition_evaluator.dart:248-288 ; packages/map_runtime/lib/src/application/script_command_executor.dart:28-53"
+        }
+      ],
+      "limitations": [
+        "La sélection script_system_integration_test exécutée couvre flags/pages, sans assertion variable/setVar.",
+        "Aucune conversion ou persistance source de variables validée."
+      ]
+    },
+    {
+      "capabilityId": "converter.events.canonical_v2_mapping",
+      "status": "unverified",
+      "scope": "Mapping des pages/commandes source vers l'API narrative Event V2 canonique.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Actions V2 exposées tandis que Player consomme encore des pages V1.",
+          "reference": "packages/map_authoring/lib/src/domains/narrative/event_actions.dart:15-22 ; packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart:9994-10020"
+        }
+      ],
+      "limitations": [
+        "Pas d'écriture V1 brute pour contourner un choix de mapping manquant.",
+        "page.message est une notification ; dialogue/choix demandent openDialogue/Scene."
+      ]
+    },
+    {
+      "capabilityId": "converter.events.self_switch_mapping",
+      "status": "unverified",
+      "scope": "Mapping source map/event/lettre vers un état natif persistant distinct.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Variables/flags/facts consommés, aucun self-switch source dédié constaté.",
+          "reference": "packages/map_gameplay/lib/src/script_condition_evaluator.dart:114-159,248-288"
+        }
+      ],
+      "limitations": [
+        "Noms uniques et save/reload à tester ; aucune parité déjà certifiée."
+      ]
+    },
+    {
+      "capabilityId": "converter.terrain.essentials_actions",
+      "status": "unverified",
+      "scope": "Mapping général terrain/field actions du profil Essentials vers des effets exécutés.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Surf via zones movement/runtime existe ; vocabulaire de tags ne suffit pas.",
+          "reference": "packages/map_gameplay/lib/src/gameplay_world_state.dart:968-1003 ; packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart:12291-12327"
+        }
+      ],
+      "limitations": [
+        "Pas de profil source fourni ; aucune promesse générique Cut/Strength/ledge/jump/etc."
+      ]
+    },
+    {
+      "capabilityId": "converter.warps_connections.traversal",
+      "status": "unverified",
+      "scope": "Parcours aller/retour et persistance de warps/connexions issus d'une conversion.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Modèles et actions cible présents.",
+          "reference": "packages/map_core/lib/src/models/map_data.dart:489-537 ; packages/map_authoring/lib/src/domains/maps/warp_connection_actions.dart:68-107"
+        }
+      ],
+      "limitations": [
+        "Arrivée, facing/approche, collision, non-retrigger et save/reload source à démontrer."
+      ]
+    },
+    {
+      "capabilityId": "converter.source.rmxp_profile_decoder",
+      "status": "unverified",
+      "scope": "Décodeur Marshal/Table data-only et profil Essentials réel.",
+      "evidence": [],
+      "limitations": [
+        "Aucun corpus source sélectionné ; aucun parser adopté ou licence évaluée.",
+        "AC-03 doit vérifier tags, cycles, quotas et absence de callbacks/exécution Ruby."
+      ]
+    },
+    {
+      "capabilityId": "converter.native_writer_reopen_modify",
+      "status": "unverified",
+      "scope": "Projet produit par le Converter, ouvert, modifié/sauvegardé nativement puis rouvert.",
+      "evidence": [],
+      "limitations": [
+        "Converter/writer non implémenté ; tests natifs existants ne constituent pas un golden converti."
+      ]
+    },
+    {
+      "capabilityId": "converter.visual_gameplay_acceptance",
+      "status": "unverified",
+      "scope": "Fidélité source/Studio/Player, animations, événements, collisions et parcours sur appareil.",
+      "evidence": [],
+      "limitations": [
+        "Aucune conversion source ni revue visible ni appareil ; gates données/native/visuel/gameplay séparés."
+      ]
+    },
+    {
+      "capabilityId": "converter.ui.public_design_system",
+      "status": "partial",
+      "scope": "Réutiliser les primitives Studio depuis une application indépendante sans importer l'application entière.",
+      "evidence": [
+        {
+          "type": "codeRead",
+          "summary": "Tokens/widgets Studio internes et absence de package DS public dédié dans les manifests consultés.",
+          "reference": "apps/avelune_studio/lib/presentation/theme/studio_tokens.dart:3-12,59 ; apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_button.dart:1-5"
+        }
+      ],
+      "limitations": [
+        "Extraction minimale à cadrer avant AC-09 ; aucun import map_editor/src ni copie du thème.",
+        "N'empêche pas AC-01 core Dart pur."
+      ]
+    }
+  ]
+}
