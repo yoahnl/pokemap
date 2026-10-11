@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
 import 'map_creation_tools.dart';
+import '../resources/resource_catalog.dart';
 import 'map_workspace_panels.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -21,6 +22,7 @@ class MapWorkspacePaletteColumn extends StatelessWidget {
     required this.onRefresh,
     required this.onResources,
     this.onClose,
+    this.onPickResource,
   });
   final double width;
   final ProjectManifest project;
@@ -33,6 +35,7 @@ class MapWorkspacePaletteColumn extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onResources;
   final VoidCallback? onClose;
+  final ValueChanged<ResourceItem>? onPickResource;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -78,6 +81,12 @@ class MapWorkspacePaletteColumn extends StatelessWidget {
                 onClose?.call();
                 onResources();
               },
+              onPickResource: onPickResource == null
+                  ? null
+                  : (item) {
+                      onPickResource!(item);
+                      onClose?.call();
+                    },
             ),
           ),
         ],

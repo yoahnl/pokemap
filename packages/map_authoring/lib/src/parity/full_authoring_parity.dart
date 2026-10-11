@@ -509,6 +509,19 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('resource.family.') ||
+      actionId == 'resource.classify') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_resource_library_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_resource_library_flow_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/resource_library_host_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_library_stdio.test.ts',
+    };
+  }
   if (actionId == 'model3d.source.replace' ||
       actionId == 'model3d.source.replace_batch') {
     return {
@@ -1128,7 +1141,8 @@ AuthoringResourceParity _resourceParity(
         derived || sandbox,
       AuthoringParityCapability.references => derived || sandbox,
       AuthoringParityCapability.visualization => !visual,
-      AuthoringParityCapability.runtime => kind == 'smartTileDraft',
+      AuthoringParityCapability.runtime => kind == 'smartTileDraft' ||
+          _resourceLibraryMetadataKinds.contains(kind),
       _ => false,
     };
     if (notApplicable) {
@@ -1214,6 +1228,10 @@ String _notApplicableReason(
     return 'smartTileDraft is authoring-only; runtime resolution deliberately '
         'reads published presets and never draft state.';
   }
+  if (_resourceLibraryMetadataKinds.contains(kind) &&
+      capability == AuthoringParityCapability.runtime) {
+    return '$kind organizes authoring resources; runtime consumption belongs to the referenced definition. Map scope is enforced before canonical mutation and source export.';
+  }
   if (kind == 'gamePackage') {
     return 'gamePackage is a derived, content-addressed release artifact. It '
         'is built and inspected by the release gate, never mutated in-place.';
@@ -1246,6 +1264,8 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(['resource.family.', 'resource.classify'],
+      'test/domains/assets/resource_library_actions_test.dart'),
   _ContractEvidenceRule(
     ['tileset.source.replace', 'tileset.remove'],
     'test/domains/assets/resource_source_transaction_test.dart',
@@ -1515,6 +1535,9 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
 
 const _semanticOwners = <String, String>{
   'project': 'project',
+  'resourceLibraryCatalog': 'project',
+  'resourceFamily': 'project',
+  'resourceLibraryEntry': 'project',
   'projectSettings': 'project',
   'projectPokemonConfig': 'project',
   'pokemonRuleset': 'project',
@@ -1602,6 +1625,12 @@ const _semanticOwners = <String, String>{
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  ..._resourceLibraryMetadataKinds,
+  'element',
+  'model3d',
+  'environmentPreset',
+  'character',
+  'tileset',
   'borderBlueprint',
   'borderSnapshot',
   'characterStudioCatalog',
@@ -1627,6 +1656,12 @@ const _requiredDirectReadResourceKinds = <String>{
   'regionalMap',
   'regionalMapRegion',
   'regionalMapPoi',
+};
+
+const _resourceLibraryMetadataKinds = <String>{
+  'resourceLibraryCatalog',
+  'resourceFamily',
+  'resourceLibraryEntry',
 };
 
 const _visualResources = <String>{

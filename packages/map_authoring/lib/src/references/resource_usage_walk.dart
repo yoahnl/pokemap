@@ -29,6 +29,7 @@ const _referenceFields = {
   'element': {
     'elementId',
     'sourceElementId',
+    'visualElementId',
     'capElementId',
     'straightElementId',
     'cornerElementId'
@@ -38,7 +39,8 @@ const _referenceFields = {
     'smartTilePresetId',
     'terrainPresetId',
     'sourcePresetId',
-    'targetPresetId'
+    'targetPresetId',
+    'sourceSmartTilePresetId'
   },
   'smartTileDraft': {'draftId', 'sourceDraftId'},
   'smartTileMaterial': {
@@ -50,7 +52,17 @@ const _referenceFields = {
   'smartTileAtlas': {'atlasId', 'primaryAtlasId'},
   'smartTileAnimation': {'animationId'},
   'smartTilePattern': {'patternId'},
-  'character': {'characterId', 'characterKey', 'speakerCharacterId'},
+  'character': {
+    'characterId',
+    'characterKey',
+    'speakerCharacterId',
+    'defaultPlayerCharacterId'
+  },
+  'model3d': {'modelId'},
+  'dialogue': {'dialogueId'},
+  'script': {'scriptId'},
+  'scene': {'sceneId'},
+  'environmentPreset': {'environmentPresetId'},
   'border': {'blueprintId', 'borderBlueprintId'},
   'borderSnapshot': {'snapshotId', 'visualSnapshotId'},
   'cinematicMedia': {

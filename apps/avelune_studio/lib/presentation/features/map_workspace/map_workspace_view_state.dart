@@ -1,7 +1,10 @@
 import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+
+import '../resources/resource_catalog.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
@@ -106,8 +109,8 @@ class MapWorkspaceViewState {
   bool revealPalette = false;
   bool revealInspector = false;
   String paletteTab = 'Décors';
-  String decorCategoryId = '';
-  String terrainCategoryId = '';
+  final resourceFilters = ResourceCatalogFilterState();
+  String? _resourceMapId;
   final paletteScrollOffsets = <String, double>{};
   String? paletteAtlasId;
   final paletteAtlasTransforms = <String, TransformationController>{};
@@ -192,10 +195,58 @@ class MapWorkspaceViewState {
     tool = character == null ? StudioMapTool.select : StudioMapTool.character;
   }
 
-  void reconcileResources(ProjectManifest project) {
+  List<ResourceItem> paletteResources(
+    ProjectManifest project,
+    String mapId, {
+    bool applyFilters = true,
+  }) {
+    final kinds = switch (paletteTab) {
+      'Décors' => const {'element', 'model3d'},
+      'Terrains' => const {'smartTilePreset'},
+      'Tuiles' => const {'tileset'},
+      'Personnages' => const {'character'},
+      'Bordures' => const {'borderBlueprint'},
+      'Environnements' => const {'environmentPreset'},
+      _ => const <String>{},
+    };
+    final filters = applyFilters
+        ? resourceFilters.copy()
+        : ResourceCatalogFilterState();
+    filters.usage = ResourceCatalogUsage.all;
+    return filterResourceCatalog(
+      project,
+      resourceCatalog(project)
+          .where((item) => kinds.contains(item.canonicalKind))
+          .toList(),
+      filters,
+      activeMapId: mapId,
+      forMapPicker: true,
+    );
+  }
+
+  void reconcileResources(
+    ProjectManifest project, {
+    String? mapId,
+    MapData? map,
+  }) {
+    resourceFilters.usage = ResourceCatalogUsage.all;
+    final activeMapId = mapId ?? _resourceMapId;
+    final available = filterResourceCatalog(
+      project,
+      resourceCatalog(project),
+      ResourceCatalogFilterState(),
+      activeMapId: activeMapId,
+      forMapPicker: true,
+    ).map((item) => item.identity).toSet();
+    bool has(String kind, String id) => available.contains('$kind:$id');
+    if (mapId != null && _resourceMapId != null && _resourceMapId != mapId) {
+      environment = null;
+      borderDraft = null;
+    }
+    _resourceMapId = activeMapId;
     if (model3d != null) {
       model3d = project.models3d
-          .where((item) => item.id == model3d!.id)
+          .where((item) => item.id == model3d!.id && has('model3d', item.id))
           .firstOrNull;
       if (model3d == null && tool == StudioMapTool.place) {
         tool = StudioMapTool.select;
@@ -203,7 +254,7 @@ class MapWorkspaceViewState {
     }
     if (brush != null) {
       brush = project.elements
-          .where((item) => item.id == brush!.id)
+          .where((item) => item.id == brush!.id && has('element', item.id))
           .firstOrNull;
       if (brush == null &&
           (tool == StudioMapTool.place || tool == StudioMapTool.paint)) {
@@ -212,7 +263,9 @@ class MapWorkspaceViewState {
     }
     if (terrain != null) {
       terrain = project.smartTileCatalog.presets
-          .where((item) => item.id == terrain!.id)
+          .where(
+            (item) => item.id == terrain!.id && has('smartTilePreset', item.id),
+          )
           .firstOrNull;
       if (terrain == null && tool == StudioMapTool.terrain) {
         tool = StudioMapTool.select;
@@ -220,11 +273,41 @@ class MapWorkspaceViewState {
     }
     if (character != null) {
       character = project.characters
-          .where((item) => item.id == character!.id)
+          .where(
+            (item) => item.id == character!.id && has('character', item.id),
+          )
           .firstOrNull;
       if (character == null && tool == StudioMapTool.character) {
         tool = StudioMapTool.select;
       }
+    }
+    if (tile != null && !has('tileset', tile!.tilesetId)) {
+      tile = null;
+      if (tool == StudioMapTool.paint) tool = StudioMapTool.select;
+    }
+    if (paletteAtlasId != null && !has('tileset', paletteAtlasId!)) {
+      paletteAtlasId = null;
+    }
+    if (borderBlueprintId != null &&
+        !has('borderBlueprint', borderBlueprintId!)) {
+      borderBlueprintId = null;
+      borderDraft = null;
+      if (tool == StudioMapTool.border) tool = StudioMapTool.select;
+    }
+    if (environment != null && map != null) {
+      final session = environment!;
+      final area = map.layers
+          .whereType<EnvironmentLayer>()
+          .where((layer) => layer.id == session.layerId)
+          .expand((layer) => layer.content.areas)
+          .where((area) => area.id == session.areaId)
+          .firstOrNull;
+      if (area == null || !has('environmentPreset', area.presetId)) {
+        environment = null;
+      }
+    }
+    if (environment == null && tool == StudioMapTool.environment) {
+      tool = StudioMapTool.select;
     }
   }
 

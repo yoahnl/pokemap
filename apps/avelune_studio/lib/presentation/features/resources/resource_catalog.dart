@@ -2,6 +2,14 @@ import 'package:map_core/map_core.dart';
 
 enum ResourceKind { decors, terrains, images }
 
+extension ResourceKindCanonicalKind on ResourceKind {
+  String get canonicalKind => switch (this) {
+    ResourceKind.decors => 'element',
+    ResourceKind.terrains => 'smartTilePreset',
+    ResourceKind.images => 'tileset',
+  };
+}
+
 enum ResourceLibraryFamily {
   decors,
   terrains,
@@ -12,6 +20,58 @@ enum ResourceLibraryFamily {
 }
 
 enum ResourceSort { nameAscending, nameDescending }
+
+enum ResourceCatalogScope { all, project, map }
+
+enum ResourceCatalogUsage { all, place, paint, trace, scatter }
+
+const unclassifiedResourceFamily = '__unclassified__';
+
+final _catalogIndexes = Expando<Map<String, ResourceLibraryEntry>>();
+
+ResourceLibraryEntry? _catalogEntry(
+  ResourceLibraryCatalog catalog,
+  String identity,
+) {
+  final index = _catalogIndexes[catalog] ??= Map.unmodifiable({
+    for (final entry in catalog.entries) entry.identity: entry,
+  });
+  return index[identity];
+}
+
+class ResourceCatalogFilterState {
+  ResourceCatalogFilterState({
+    this.familyId = '',
+    this.scope = ResourceCatalogScope.all,
+    this.usage = ResourceCatalogUsage.all,
+    this.query = '',
+  });
+  String familyId;
+  ResourceCatalogScope scope;
+  ResourceCatalogUsage usage;
+  String query;
+
+  ResourceCatalogFilterState copy() => ResourceCatalogFilterState(
+    familyId: familyId,
+    scope: scope,
+    usage: usage,
+    query: query,
+  );
+
+  void copyFrom(ResourceCatalogFilterState value) {
+    familyId = value.familyId;
+    scope = value.scope;
+    usage = value.usage;
+    query = value.query;
+  }
+
+  void reset() {
+    familyId = '';
+    scope = ResourceCatalogScope.all;
+    usage = ResourceCatalogUsage.all;
+    query = '';
+  }
+}
 
 const uncategorizedResourceCategory = '__uncategorized__';
 
@@ -24,6 +84,9 @@ class ResourceItem {
     this.model3d,
     this.terrain,
     this.tileset,
+    this.border,
+    this.environment,
+    this.character,
     this.category = '',
     this.tags = const [],
   });
@@ -34,12 +97,61 @@ class ResourceItem {
   final ProjectModel3dEntry? model3d;
   final ProjectSmartTilePreset? terrain;
   final ProjectTilesetEntry? tileset;
+  final BorderBlueprintRecord? border;
+  final EnvironmentPreset? environment;
+  final ProjectCharacterEntry? character;
   final String category;
   final List<String> tags;
-  String get identity => '${kind.name}:$id';
+  String get canonicalKind => switch (this) {
+    ResourceItem(model3d: _?) => 'model3d',
+    ResourceItem(element: _?) => 'element',
+    ResourceItem(terrain: _?) => 'smartTilePreset',
+    ResourceItem(tileset: _?) => 'tileset',
+    ResourceItem(border: _?) => 'borderBlueprint',
+    ResourceItem(environment: _?) => 'environmentPreset',
+    ResourceItem(character: _?) => 'character',
+    _ => kind.canonicalKind,
+  };
+  String get identity => '$canonicalKind:$id';
+  Set<ResourceCatalogUsage> get usages => switch (canonicalKind) {
+    'element' => {ResourceCatalogUsage.place, ResourceCatalogUsage.scatter},
+    'model3d' || 'character' => {ResourceCatalogUsage.place},
+    'smartTilePreset' || 'tileset' => {ResourceCatalogUsage.paint},
+    'borderBlueprint' => {ResourceCatalogUsage.trace},
+    'environmentPreset' => {ResourceCatalogUsage.scatter},
+    _ => {},
+  };
+  String get typeLabel => switch (canonicalKind) {
+    'element' => 'Décor',
+    'model3d' => 'Modèle 3D',
+    'smartTilePreset' => 'Terrain automatique',
+    'tileset' => 'Image et tuiles',
+    'borderBlueprint' => 'Bordure',
+    'environmentPreset' => 'Environnement',
+    'character' => 'Personnage',
+    _ => switch (kind) {
+      ResourceKind.decors => 'Décor',
+      ResourceKind.terrains => 'Terrain automatique',
+      ResourceKind.images => 'Image et tuiles',
+    },
+  };
+
+  bool compatibleWith(ProjectDimension dimension) => switch (canonicalKind) {
+    'model3d' => dimension == ProjectDimension.threeD,
+    'element' ||
+    'borderBlueprint' ||
+    'environmentPreset' ||
+    'tileset' => dimension == ProjectDimension.twoD,
+    _ => true,
+  };
+
+  ResourceLibraryEntry? metadata(ProjectManifest project) =>
+      _catalogEntry(project.resourceLibraryCatalog, identity);
 }
 
 class ResourceLibraryState {
+  final filters = ResourceCatalogFilterState();
+  bool atelierVisible = false;
   ResourceLibraryFamily family = ResourceLibraryFamily.decors;
   ResourceKind _kind = ResourceKind.decors;
   ResourceKind get kind => _kind;
@@ -53,6 +165,7 @@ class ResourceLibraryState {
   }
 
   void selectFamily(ResourceLibraryFamily value) {
+    atelierVisible = true;
     family = value;
     final resourceKind = switch (value) {
       ResourceLibraryFamily.decors => ResourceKind.decors,
@@ -62,20 +175,26 @@ class ResourceLibraryState {
     };
     if (resourceKind != null) _kind = resourceKind;
     category = '';
+    filters.familyId = '';
+    filters.usage = ResourceCatalogUsage.all;
   }
 
-  String query = '';
+  String get query => filters.query;
+  set query(String value) => filters.query = value;
   String category = '';
   String? _selectedId;
   ResourceKind _selectedKind = ResourceKind.decors;
+  String? _selectedCanonicalKind;
   String? get selectedId => _selectedId;
   set selectedId(String? value) {
     _selectedId = value;
     _selectedKind = kind;
+    _selectedCanonicalKind = null;
   }
 
-  String? get selectedIdentity =>
-      _selectedId == null ? null : '${_selectedKind.name}:$_selectedId';
+  String? get selectedIdentity => _selectedId == null
+      ? null
+      : '${_selectedCanonicalKind ?? _selectedKind.canonicalKind}:$_selectedId';
   ResourceSort sort = ResourceSort.nameAscending;
   bool grid = true;
   bool revealPending = false;
@@ -114,42 +233,48 @@ class ResourceLibraryState {
 
   ResourceItem? reconcileSelection(List<ResourceItem> visible) {
     final selected = visible
-        .where((item) => item.identity == selectedIdentity && item.kind == kind)
+        .where((item) => item.identity == selectedIdentity)
         .firstOrNull;
-    final result =
-        selected ?? visible.where((item) => item.kind == kind).firstOrNull;
-    selectedId = result?.id;
+    final result = selected ?? visible.firstOrNull;
+    select(result);
     return result;
+  }
+
+  void select(ResourceItem? item) {
+    _selectedId = item?.id;
+    _selectedKind = item?.kind ?? kind;
+    _selectedCanonicalKind = item?.canonicalKind;
   }
 
   void reveal(ResourceItem item) {
     kind = item.kind;
     if (!matchesQuery(item)) query = '';
     if (!matchesCategory(item)) category = '';
-    selectedId = item.id;
+    filters.familyId = '';
+    filters.scope = ResourceCatalogScope.all;
+    filters.usage = ResourceCatalogUsage.all;
+    select(item);
     revealPending = true;
   }
 }
 
 List<ResourceItem> resourceCatalog(ProjectManifest manifest) => [
-  if (manifest.settings.dimension == ProjectDimension.threeD)
-    for (final model in manifest.models3d)
-      ResourceItem(
-        id: model.id,
-        name: model.name,
-        kind: ResourceKind.decors,
-        model3d: model,
-      ),
-  if (manifest.settings.dimension == ProjectDimension.twoD)
-    for (final e in manifest.elements)
-      ResourceItem(
-        id: e.id,
-        name: e.name,
-        kind: ResourceKind.decors,
-        element: e,
-        category: e.categoryId,
-        tags: e.tags,
-      ),
+  for (final model in manifest.models3d)
+    ResourceItem(
+      id: model.id,
+      name: model.name,
+      kind: ResourceKind.decors,
+      model3d: model,
+    ),
+  for (final e in manifest.elements)
+    ResourceItem(
+      id: e.id,
+      name: e.name,
+      kind: ResourceKind.decors,
+      element: e,
+      category: e.categoryId,
+      tags: e.tags,
+    ),
   for (final t in manifest.smartTileCatalog.presets)
     ResourceItem(
       id: t.id,
@@ -167,7 +292,95 @@ List<ResourceItem> resourceCatalog(ProjectManifest manifest) => [
       tileset: t,
       category: t.folderId ?? '',
     ),
+  for (final border in manifest.borderCatalog.records)
+    ResourceItem(
+      id: border.id,
+      name: border.draft.definition.name,
+      kind: ResourceKind.decors,
+      border: border,
+    ),
+  for (final environment in manifest.environmentPresets)
+    ResourceItem(
+      id: environment.id,
+      name: environment.name,
+      kind: ResourceKind.decors,
+      environment: environment,
+      category: environment.categoryId ?? '',
+    ),
+  for (final character in manifest.characters)
+    ResourceItem(
+      id: character.id,
+      name: character.name,
+      kind: ResourceKind.decors,
+      character: character,
+      tags: character.tags,
+    ),
 ];
+
+List<ResourceItem> filterResourceCatalog(
+  ProjectManifest manifest,
+  Iterable<ResourceItem> items,
+  ResourceCatalogFilterState filters, {
+  String? activeMapId,
+  bool forMapPicker = false,
+}) {
+  final catalog = manifest.resourceLibraryCatalog;
+  final descendants =
+      filters.familyId.isEmpty ||
+          filters.familyId == unclassifiedResourceFamily ||
+          !catalog.effectiveFamilies.any(
+            (family) => family.id == filters.familyId,
+          )
+      ? const <String>{}
+      : catalog.descendantFamilyIds(filters.familyId);
+  final query = filters.query.trim().toLowerCase();
+  return items.where((item) {
+    final entry = item.metadata(manifest);
+    final mapId = entry?.mapId;
+    if (forMapPicker &&
+        (!item.compatibleWith(manifest.settings.dimension) ||
+            (mapId != null && mapId != activeMapId))) {
+      return false;
+    }
+    if (filters.scope == ResourceCatalogScope.project && mapId != null) {
+      return false;
+    }
+    if (filters.scope == ResourceCatalogScope.map &&
+        (mapId == null || (forMapPicker && mapId != activeMapId))) {
+      return false;
+    }
+    if (filters.familyId == unclassifiedResourceFamily) {
+      if (entry?.familyId != null) return false;
+    } else if (filters.familyId.isNotEmpty &&
+        !descendants.contains(entry?.familyId)) {
+      return false;
+    }
+    if (!forMapPicker &&
+        filters.usage != ResourceCatalogUsage.all &&
+        !item.usages.contains(filters.usage)) {
+      return false;
+    }
+    return query.isEmpty ||
+        '${item.name} ${item.tags.join(' ')}'.toLowerCase().contains(query);
+  }).toList();
+}
+
+String resourceCatalogFamilyLabel(ProjectManifest project, ResourceItem item) {
+  final id = item.metadata(project)?.familyId;
+  if (id == null) return 'Sans famille';
+  return project.resourceLibraryCatalog.effectiveFamilies
+          .where((family) => family.id == id)
+          .firstOrNull
+          ?.name ??
+      'Famille introuvable';
+}
+
+String resourceCatalogScopeLabel(ProjectManifest project, ResourceItem item) {
+  final mapId = item.metadata(project)?.mapId;
+  if (mapId == null) return 'Projet';
+  final name = project.maps.where((map) => map.id == mapId).firstOrNull?.name;
+  return name == null ? 'Carte introuvable' : 'Carte : $name';
+}
 
 Map<String, String> resourceCategories(
   ProjectManifest manifest,

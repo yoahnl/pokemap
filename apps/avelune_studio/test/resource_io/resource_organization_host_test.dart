@@ -24,7 +24,7 @@ void main() {
       await host.tap('resource-management-save');
       await tester.tap(find.text('Retour aux ressources').last);
       await pumpIo(tester, frames: 4);
-      await host.action('images:atelier', 'Déplacer vers…');
+      await host.action('tileset:atelier', 'Déplacer vers…');
       await host.choose('resource-move-destination', 'Forêt d’été');
       await host.tap('resource-management-save');
       expect((await host.reopen()).tilesets.single.folderId, id);
@@ -37,7 +37,7 @@ void main() {
       await host.fixture.capture(tester, 'uwu3-folder-occupied');
       await tester.tap(find.text('Retour aux ressources').last);
       await pumpIo(tester, frames: 4);
-      await host.action('images:atelier', 'Déplacer vers…');
+      await host.action('tileset:atelier', 'Déplacer vers…');
       await host.choose('resource-move-destination', 'Sans dossier');
       await host.tap('resource-management-save');
       await host.tap('resource-manage-containers');

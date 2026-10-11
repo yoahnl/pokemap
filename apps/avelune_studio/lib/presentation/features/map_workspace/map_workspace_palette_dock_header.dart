@@ -13,11 +13,13 @@ class MapWorkspacePaletteDockHeader extends StatelessWidget {
     required this.onResize,
     required this.onOpenFullPalette,
     this.compact = false,
+    this.spatial = false,
   });
 
   final String kind;
   final bool collapsed;
   final bool compact;
+  final bool spatial;
   final ValueChanged<String> onKindChanged;
   final VoidCallback onToggle;
   final ValueChanged<double> onResize;
@@ -35,10 +37,12 @@ class MapWorkspacePaletteDockHeader extends StatelessWidget {
           initialValue: kind,
           onSelected: onKindChanged,
           itemBuilder: (_) => [
-            for (final value in const [
+            for (final value in [
               'Décors',
               'Terrains',
-              'Tuiles',
+              if (!spatial) 'Tuiles',
+              if (!spatial) 'Bordures',
+              if (!spatial) 'Environnements',
               'Personnages',
               'Passages',
             ])

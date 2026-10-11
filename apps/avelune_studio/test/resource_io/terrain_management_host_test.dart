@@ -15,7 +15,7 @@ void main() {
     final before = await host.reopen();
     final preset = before.smartTileCatalog.presets.single;
     await host.family(ResourceKind.terrains);
-    await host.action('terrains:${preset.id}', 'Renommer le terrain…');
+    await host.action('smartTilePreset:${preset.id}', 'Renommer le terrain…');
     await host.enter('resource-terrain-name', 'Sentier des étoiles');
     await host.tap('resource-management-save');
     final after = await host.reopen();
@@ -53,7 +53,7 @@ void main() {
     final before = await host.reopen();
     final preset = before.smartTileCatalog.presets.single;
     await host.family(ResourceKind.terrains);
-    await host.action('terrains:${preset.id}', 'Dupliquer le terrain…');
+    await host.action('smartTilePreset:${preset.id}', 'Dupliquer le terrain…');
     expect(find.textContaining('Version publiée'), findsWidgets);
     await host.enter('resource-terrain-name', 'Chemin indépendant');
     await host.tap('resource-management-save');
@@ -93,7 +93,7 @@ void main() {
     final before = await host.reopen();
     await host.family(ResourceKind.terrains);
     await host.action(
-      'terrains:${before.smartTileCatalog.presets.single.id}',
+      'smartTilePreset:${before.smartTileCatalog.presets.single.id}',
       'Supprimer le terrain…',
     );
     await pumpIo(tester, frames: 20);

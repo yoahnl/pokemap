@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/environment_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -34,6 +35,13 @@ class MapEnvironmentToolPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final commands = EnvironmentEditingCommands(document, project);
+    final hasAvailablePreset = project.environmentPresets.any(
+      (preset) => project.resourceLibraryCatalog.availableForMap(
+        'environmentPreset',
+        preset.id,
+        document.current.id,
+      ),
+    );
     final entries = commands.areas;
     final session = view.environment;
     final selected = session == null ? null : commands.area(session);
@@ -87,12 +95,13 @@ class MapEnvironmentToolPanel extends StatelessWidget {
                 label: 'Nouvelle zone',
                 icon: Icons.add,
                 secondary: true,
-                onPressed: project.environmentPresets.isEmpty
+                onPressed: !hasAvailablePreset
                     ? null
                     : () async {
                         final preset = await chooseEnvironmentPreset(
                           context,
                           project,
+                          mapId: document.current.id,
                         );
                         if (context.mounted && preset != null) {
                           run(() => view.environment = commands.create(preset));
@@ -207,8 +216,9 @@ class MapEnvironmentToolPanel extends StatelessWidget {
 
 Future<EnvironmentPreset?> chooseEnvironmentPreset(
   BuildContext context,
-  ProjectManifest project,
-) => showDialog<EnvironmentPreset>(
+  ProjectManifest project, {
+  String? mapId,
+}) => showDialog<EnvironmentPreset>(
   context: context,
   builder: (context) => AlertDialog(
     title: const Text('Choisir un environnement'),
@@ -218,14 +228,20 @@ Future<EnvironmentPreset?> chooseEnvironmentPreset(
       child: ListView(
         children: [
           for (final preset in project.environmentPresets)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: StudioButton(
-                label: preset.name,
-                secondary: true,
-                onPressed: () => Navigator.pop(context, preset),
+            if (mapId == null ||
+                project.resourceLibraryCatalog.availableForMap(
+                  'environmentPreset',
+                  preset.id,
+                  mapId,
+                ))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: StudioButton(
+                  label: preset.name,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(context, preset),
+                ),
               ),
-            ),
         ],
       ),
     ),

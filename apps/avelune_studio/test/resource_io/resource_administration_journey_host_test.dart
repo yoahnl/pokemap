@@ -81,7 +81,7 @@ void main() {
         await WidgetResourcePort.serial(tester, originalFile.readAsBytes),
         before,
       );
-      await host.action('images:${imported.id}', 'Remplacer l’image source…');
+      await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
       expect(host.navigation.error, contains('tileset.candidate_geometry'));
       expect(find.textContaining('tileset.candidate_geometry'), findsWidgets);
       expect(
@@ -89,7 +89,7 @@ void main() {
         before,
       );
       expect(host.navigation.pendingReceipt, isNull);
-      await host.action('images:${imported.id}', 'Remplacer l’image source…');
+      await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
       expect(
         find.byKey(const ValueKey('resource-replacement-confirm')),
         findsOneWidget,
@@ -166,9 +166,9 @@ void main() {
       );
       expect(element.tilesetId, imported.id);
       expect(original.controller.active!.current, beforeSave);
-      expect(host.navigation.library.selectedIdentity, 'decors:${element.id}');
+      expect(host.navigation.library.selectedIdentity, 'element:${element.id}');
       await tester.tap(
-        find.byKey(ValueKey('resource-card-decors:${element.id}')),
+        find.byKey(ValueKey('resource-card-element:${element.id}')),
       );
       await pumpIo(tester);
       await host.tap('resource-use');
@@ -209,7 +209,7 @@ void main() {
       );
       await host.family(ResourceKind.images);
       await host.action(
-        'images:${imported.id}',
+        'tileset:${imported.id}',
         'Voir les usages dans le projet',
       );
       await host.tap('resource-usage-analyze');
@@ -229,7 +229,7 @@ void main() {
       );
       await host.fixture.capture(tester, 'uwu3-journey-closed-map-usages');
       await tapResourceAdministrationText(tester, 'Retour aux ressources');
-      await host.action('images:${imported.id}', 'Modifier les informations');
+      await host.action('tileset:${imported.id}', 'Modifier les informations');
       await host.enter('resource-information-name', 'Planche du jardin');
       await host.tap('resource-management-save');
       await host.tap('resource-manage-containers');
@@ -241,7 +241,7 @@ void main() {
       await host.enter('resource-container-name', 'Végétation');
       await host.tap('resource-management-save');
       await tapResourceAdministrationText(tester, 'Retour aux ressources');
-      await host.action('images:${imported.id}', 'Déplacer vers…');
+      await host.action('tileset:${imported.id}', 'Déplacer vers…');
       await host.choose('resource-move-destination', 'Végétation');
       await host.tap('resource-management-save');
       await host.tap('resource-manage-containers');

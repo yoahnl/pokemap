@@ -24,6 +24,7 @@ import '../domains/assets/tileset_image_import_actions.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../domains/assets/visual_organization_actions.dart';
 import '../domains/assets/resource_information_actions.dart';
+import '../domains/assets/resource_library_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
@@ -52,6 +53,7 @@ import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
 import '../domains/assets/resource_source_actions.dart';
 import '../support/authoring_performance_observer.dart';
+import '../references/resource_library_scope_guard.dart';
 import '../domains/maps/border_actions.dart';
 import '../domains/maps/border_catalog_actions.dart';
 import '../domains/maps/collision_actions.dart';
@@ -184,6 +186,10 @@ final class MapMutationDispatcher {
     const storylines = StorylineActions();
     const railJourneys = RailJourneyActions();
     return MapMutationDispatcher([
+      for (final descriptor in ResourceLibraryActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor,
+            build: const ResourceLibraryActions().build),
       for (final descriptor in SpatialMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const SpatialMapActions().build),
@@ -492,8 +498,20 @@ final class MapMutationDispatcher {
   AuthoringActionDescriptor descriptor(String actionId) =>
       _registration(actionId).descriptor;
 
-  FutureOr<AuthoringMutationDraft> build(AuthoringPlanningContext context) =>
-      _registration(context.request.actionId).build(context);
+  FutureOr<AuthoringMutationDraft> build(AuthoringPlanningContext context) {
+    final result = _registration(context.request.actionId).build(context);
+    if (context.request.actionId.startsWith('resource.family.') ||
+        context.request.actionId == 'resource.classify' ||
+        MapLifecycleActions.descriptors
+            .any((descriptor) => descriptor.id == context.request.actionId)) {
+      return result;
+    }
+    if (result is Future<AuthoringMutationDraft>) {
+      return result
+          .then((draft) => guardResourceLibraryMutation(context, draft));
+    }
+    return guardResourceLibraryMutation(context, result);
+  }
 
   MapMutationActionRegistration _registration(String actionId) {
     final registration = _registrations[actionId];

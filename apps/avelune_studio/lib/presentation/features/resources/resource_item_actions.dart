@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'resource_catalog.dart';
@@ -35,9 +36,15 @@ class ResourceItemActions extends StatelessWidget {
         ),
       if (item.tileset != null && onInformation != null)
         ('Modifier les informations', Icons.edit_outlined, onInformation!),
-      if (onMove != null)
+      if (onMove != null &&
+          (item.tileset != null ||
+              item.element != null ||
+              item.terrain != null))
         ('Déplacer vers…', Icons.drive_file_move_outlined, onMove!),
-      if (onUsages != null)
+      if (onUsages != null &&
+          (item.tileset != null ||
+              item.element != null ||
+              item.terrain != null))
         (
           'Voir les usages dans le projet',
           Icons.account_tree_outlined,

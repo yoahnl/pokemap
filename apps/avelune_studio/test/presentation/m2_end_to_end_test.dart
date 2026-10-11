@@ -130,10 +130,10 @@ void main() {
     final savedDecor = f.controller.project!.elements.singleWhere(
       (element) => element.name == 'Bosquet M2',
     );
-    expect(navigation.library.selectedIdentity, 'decors:${savedDecor.id}');
+    expect(navigation.library.selectedIdentity, 'element:${savedDecor.id}');
     expect(original.current, beforeSave);
     await tester.tap(
-      find.byKey(ValueKey('resource-card-decors:${savedDecor.id}')),
+      find.byKey(ValueKey('resource-card-element:${savedDecor.id}')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('resource-use')));

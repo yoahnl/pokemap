@@ -20,7 +20,7 @@ void main() {
           textScale: scale,
         );
         await host.family(ResourceKind.images);
-        await host.action('images:atelier', 'Modifier les informations');
+        await host.action('tileset:atelier', 'Modifier les informations');
         await host.enter('resource-information-name', 'Planche à $scale');
         expect(
           find.byKey(const ValueKey('resource-management-save')),
@@ -42,7 +42,7 @@ void main() {
         await host.tap('resource-management-save');
         await tester.tap(find.text('Retour aux ressources').last);
         await pumpIo(tester, frames: 6);
-        await host.action('images:atelier', 'Voir les usages dans le projet');
+        await host.action('tileset:atelier', 'Voir les usages dans le projet');
         await host.tap('resource-usage-analyze');
         await host.fixture.capture(tester, 'uwu3-usages-${size.width.toInt()}');
         expect(

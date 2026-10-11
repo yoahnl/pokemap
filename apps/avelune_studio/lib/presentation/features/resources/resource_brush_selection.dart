@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+
 import '../map_workspace/map_workspace_view_state.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
@@ -23,10 +24,15 @@ Future<bool> useResourceOnMap({
         title: const Text('Choisir une carte'),
         children: [
           for (final entry in workspace.project!.maps)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, entry),
-              child: Text(entry.name),
-            ),
+            if (workspace.project!.resourceLibraryCatalog.availableForMap(
+              item.canonicalKind,
+              item.id,
+              entry.id,
+            ))
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, entry),
+                child: Text(entry.name),
+              ),
         ],
       ),
     );
@@ -35,6 +41,14 @@ Future<bool> useResourceOnMap({
   }
   if (!context.mounted || view() == null) return false;
   final target = workspace.active;
+  if (target == null ||
+      !workspace.project!.resourceLibraryCatalog.availableForMap(
+        item.canonicalKind,
+        item.id,
+        target.current.id,
+      )) {
+    return false;
+  }
   final state = view()!;
   if (item.tileset != null) {
     final tile = await chooseResourceTile(context, item.tileset!, visuals);
@@ -56,6 +70,21 @@ Future<bool> useResourceOnMap({
     state.brush = null;
     state.model3d = null;
     state.tool = StudioMapTool.terrain;
+  } else if (item.border != null) {
+    state.paletteTab = 'Bordures';
+    state.revealPalette = true;
+    state.borderBlueprintId = item.id;
+    state.borderDraft = null;
+    state.brush = null;
+    state.model3d = null;
+    state.tile = null;
+    state.terrain = null;
+    state.tool = StudioMapTool.border;
+  } else if (item.character != null) {
+    state.prepareCharacterPlacement();
+    state.character = item.character;
+    state.tool = StudioMapTool.character;
+    return true;
   } else {
     state.paletteTab = 'Décors';
     state.revealPalette = true;

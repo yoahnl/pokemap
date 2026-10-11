@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../characters/character_palette.dart';
 import '../resources/resource_catalog.dart';
+import '../resources/resource_family_tree.dart';
+import '../resources/resource_filter_button.dart';
 import '../resources/resource_preview.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import 'map_palette_grid.dart';
@@ -14,6 +17,7 @@ import 'map_tile_palette.dart';
 import 'map_warp_palette.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'map_workspace_palette_dock_filters.dart';
 
 class MapWorkspacePalette extends StatefulWidget {
   const MapWorkspacePalette({
@@ -26,6 +30,7 @@ class MapWorkspacePalette extends StatefulWidget {
     required this.search,
     this.onResources,
     this.onTileset,
+    this.onPickResource,
     this.width = 240,
     this.compactContent = false,
   });
@@ -37,6 +42,7 @@ class MapWorkspacePalette extends StatefulWidget {
   final TextEditingController search;
   final VoidCallback? onResources;
   final ValueChanged<ProjectTilesetEntry>? onTileset;
+  final ValueChanged<ResourceItem>? onPickResource;
   final double width;
   final bool compactContent;
   @override
@@ -45,11 +51,7 @@ class MapWorkspacePalette extends StatefulWidget {
 
 class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   String get kind => widget.view.paletteTab;
-  ProjectManifest? _project;
-  MapData? _map;
-  String? _query;
-  List<ResourceItem> elements = [];
-  List<ProjectSmartTilePreset> terrains = [];
+  List<ResourceItem> items = [];
   List<ProjectTilesetEntry> sources = [];
   List<TileLayerPaletteEntry> tiles = [];
 
@@ -68,21 +70,12 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   void _refresh() {
     final project = widget.project;
     final map = widget.document.current;
-    final query = widget.search.text.toLowerCase();
-    if (identical(project, _project) &&
-        identical(map, _map) &&
-        query == _query) {
-      return;
-    }
-    bool matches(String name) => name.toLowerCase().contains(query);
-    elements = resourceCatalog(project)
-        .where((e) => e.kind == ResourceKind.decors)
-        .where((e) => matches('${e.name} ${e.tags.join(' ')}'))
-        .toList();
-    terrains = project.smartTileCatalog.presets
-        .where((e) => matches(e.name))
-        .toList();
-    sources = project.tilesets.where((e) => matches(e.name)).toList();
+    widget.view.reconcileResources(project, mapId: map.id, map: map);
+    widget.view.resourceFilters.query = kind == 'Personnages'
+        ? ''
+        : widget.search.text;
+    items = widget.view.paletteResources(project, map.id);
+    sources = items.map((item) => item.tileset).nonNulls.toList();
     final ids = sources.map((e) => e.id).toSet();
     tiles = map.layers
         .whereType<TileLayer>()
@@ -90,16 +83,15 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         .toSet()
         .where((tile) => ids.contains(tile.tilesetId))
         .toList();
-    _project = project;
-    _map = map;
-    _query = query;
   }
 
   Widget catalog() {
     final view = widget.view;
     if (kind == 'Personnages') {
       return CharacterPalette(
-        project: widget.project,
+        project: widget.project.copyWith(
+          characters: items.map((item) => item.character).nonNulls.toList(),
+        ),
         visuals: widget.visuals,
         compact: widget.compactContent,
         selectedId: view.character?.id,
@@ -108,6 +100,12 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         onScrollChanged: (offset) => view.characterScrollOffset = offset,
         onQueryChanged: (query) => view.characterQuery = query,
         onPick: (character) {
+          if (widget.onPickResource != null) {
+            widget.onPickResource!(
+              items.firstWhere((item) => item.id == character.id),
+            );
+            return;
+          }
           view.character = character;
           view.brush = null;
           view.model3d = null;
@@ -146,7 +144,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         onAtlasChanged: () => setState(() {}),
       );
     }
-    final count = kind == 'Décors' ? elements.length : terrains.length;
+    final count = items.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -157,67 +155,57 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         const SizedBox(height: 8),
         Expanded(
           child: count == 0
-              ? const Text('Aucune ressource ne correspond à la recherche.')
+              ? const Text('Aucune ressource ne correspond aux filtres.')
               : MapPaletteGrid(
-                  key: ValueKey(
-                    kind == 'Décors' ? 'decor-palette' : 'terrain-palette',
-                  ),
+                  key: ValueKey(switch (kind) {
+                    'Décors' => 'decor-palette',
+                    'Terrains' => 'terrain-palette',
+                    _ => '$kind-palette',
+                  }),
                   offset: view.paletteScrollOffsets[kind] ?? 0,
                   onScroll: (offset) =>
                       view.paletteScrollOffsets[kind] = offset,
                   columns: widget.width >= 300 ? 3 : 2,
                   count: count,
                   itemBuilder: (context, i) {
-                    if (kind == 'Décors') {
-                      final e = elements[i];
-                      return StudioPaletteCard(
-                        key: ValueKey('decor-${e.id}'),
-                        name: e.name,
-                        preview: resourcePreview(
-                          e,
-                          widget.project,
-                          widget.visuals,
-                          size: 72,
-                        ),
-                        selected:
-                            view.tool == StudioMapTool.place &&
-                            (view.brush?.id == e.id ||
-                                view.model3d?.id == e.id),
-                        onTap: () {
-                          view.brush = e.element;
-                          view.model3d = e.model3d;
-                          view.tile = null;
-                          view.terrain = null;
-                          view.character = null;
-                          view.tool = StudioMapTool.place;
-                          widget.onChanged();
-                        },
-                      );
-                    }
-                    final t = terrains[i];
+                    final e = items[i];
                     return StudioPaletteCard(
-                      key: ValueKey('terrain-${t.id}'),
-                      name: t.name,
+                      key: ValueKey(
+                        '${switch (e.canonicalKind) {
+                          'smartTilePreset' => 'terrain',
+                          'borderBlueprint' => 'border',
+                          'environmentPreset' => 'environment',
+                          _ => 'decor',
+                        }}-${e.id}',
+                      ),
+                      name: e.name,
                       preview: resourcePreview(
-                        ResourceItem(
-                          id: t.id,
-                          name: t.name,
-                          kind: ResourceKind.terrains,
-                          terrain: t,
-                        ),
+                        e,
                         widget.project,
                         widget.visuals,
                         size: 72,
                       ),
-                      selected: view.terrain?.id == t.id,
+                      selected: switch (e.canonicalKind) {
+                        'element' => view.brush?.id == e.id,
+                        'model3d' => view.model3d?.id == e.id,
+                        'smartTilePreset' => view.terrain?.id == e.id,
+                        'borderBlueprint' => view.borderBlueprintId == e.id,
+                        _ => false,
+                      },
                       onTap: () {
-                        view.terrain = t;
-                        view.brush = null;
-                        view.model3d = null;
-                        view.model3d = null;
+                        if (widget.onPickResource != null) {
+                          widget.onPickResource!(e);
+                          return;
+                        }
+                        if (e.border != null || e.environment != null) return;
+                        view.brush = e.element;
+                        view.model3d = e.model3d;
                         view.tile = null;
+                        view.terrain = e.terrain;
                         view.character = null;
-                        view.tool = StudioMapTool.terrain;
+                        view.tool = e.terrain == null
+                            ? StudioMapTool.place
+                            : StudioMapTool.terrain;
                         widget.onChanged();
                       },
                     );
@@ -231,7 +219,24 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   @override
   Widget build(BuildContext context) {
     final view = widget.view;
+    _refresh();
     if (widget.compactContent) return catalog();
+    final map = widget.document.current;
+    final resources = view.paletteResources(
+      widget.project,
+      map.id,
+      applyFilters: false,
+    );
+    final tree = ResourceFamilyTree(
+      widget.project,
+      resources,
+      activeMapId: map.id,
+      forMapPicker: true,
+    );
+    void filtersChanged() {
+      setState(() {});
+    }
+
     return StudioSidebar(
       width: widget.width,
       child: Column(
@@ -240,10 +245,12 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
           Text('Palette', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           StudioPaletteTabs(
-            items: const [
+            items: [
               'Décors',
               'Terrains',
-              'Tuiles',
+              if (map.spatialScene == null) 'Tuiles',
+              if (map.spatialScene == null) 'Bordures',
+              if (map.spatialScene == null) 'Environnements',
               'Personnages',
               'Passages',
             ],
@@ -254,6 +261,36 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
             }),
           ),
           const SizedBox(height: 8),
+          if (kind != 'Passages') ...[
+            MapWorkspacePaletteDockFilters(
+              tree: tree,
+              filters: view.resourceFilters,
+              search: widget.search,
+              activeMapName: map.name,
+              showSearch: false,
+              countResults: (draft, _) => filterResourceCatalog(
+                widget.project,
+                resources,
+                kind == 'Personnages'
+                    ? (draft.copy()..query = view.characterQuery)
+                    : draft,
+                activeMapId: map.id,
+                forMapPicker: true,
+              ).length,
+              onChanged: filtersChanged,
+            ),
+            ResourceFilterTags(
+              filters: view.resourceFilters,
+              activeMapName: map.name,
+              forMapPicker: true,
+              familyLabel: tree.nodes
+                  .where((node) => node.id == view.resourceFilters.familyId)
+                  .firstOrNull
+                  ?.name,
+              onChanged: filtersChanged,
+            ),
+            const SizedBox(height: 8),
+          ],
           if (kind != 'Personnages' && kind != 'Passages') ...[
             StudioSearchField(
               controller: widget.search,

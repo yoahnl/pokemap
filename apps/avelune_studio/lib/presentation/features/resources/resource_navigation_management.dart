@@ -59,6 +59,16 @@ extension ResourceNavigationManagement on ResourceNavigation {
     if (pendingReceipt != null) {
       return 'Relisez la publication précédente avant une nouvelle modification.';
     }
+    if (actionId == 'resource.classify' && parameters['mapId'] != null) {
+      final entry = workspace.project!.resourceLibraryCatalog.entryFor(
+        parameters['resourceKind'] as String,
+        parameters['resourceId'] as String,
+      );
+      if (parameters['mapId'] != entry?.mapId && usageDraftOwners.isNotEmpty) {
+        return 'Enregistrez ou annulez les brouillons avant de réserver cette '
+            'ressource à une carte : ${usageDraftOwners.join(', ')}.';
+      }
+    }
     if (actionId == 'environment.preset.delete') {
       final id = parameters['presetId'];
       final owners = [

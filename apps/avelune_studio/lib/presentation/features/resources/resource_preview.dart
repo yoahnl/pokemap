@@ -1,9 +1,14 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+
 import '../../shared/widgets/feedback/studio_notice.dart';
+
 import 'package:map_core/map_core.dart';
+
 import '../map_workspace/map_workspace_visuals.dart';
+import '../characters/character_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import 'resource_terrain_preview.dart';
 
@@ -21,6 +26,26 @@ Widget resourcePreview(
     );
   }
   if (item.element != null) return visuals.thumbnail(item.element!, size: size);
+  final previewElementId =
+      item.border?.draft.definition.primitives.firstOrNull?.sourceElementId ??
+      item.environment?.palette.firstOrNull?.elementId;
+  if (previewElementId != null) {
+    final element = project.elements
+        .where((element) => element.id == previewElementId)
+        .firstOrNull;
+    if (element != null) return visuals.thumbnail(element, size: size);
+  }
+  if (item.character case final character?) {
+    return visuals is CharacterWorkspaceVisuals
+        ? (visuals as CharacterWorkspaceVisuals).characterThumbnail(
+            character,
+            size: size,
+          )
+        : SizedBox.square(
+            dimension: size,
+            child: const Icon(Icons.person_outline),
+          );
+  }
   if (item.tileset != null) {
     if (visuals is ResourceWorkspaceVisuals) {
       return SizedBox(
@@ -100,6 +125,25 @@ int resourceOpenMapUsage(ResourceItem item, Iterable<MapData> maps) {
       count += map.layers
           .whereType<TileLayer>()
           .where((l) => l.palette.any((t) => t.tilesetId == item.id))
+          .length;
+    }
+    if (item.border != null) {
+      count += map.layers
+          .whereType<BorderLayer>()
+          .expand((layer) => layer.content.features)
+          .where((feature) => feature.blueprintId == item.id)
+          .length;
+    }
+    if (item.environment != null) {
+      count += map.layers
+          .whereType<EnvironmentLayer>()
+          .expand((layer) => layer.content.areas)
+          .where((area) => area.presetId == item.id)
+          .length;
+    }
+    if (item.character != null) {
+      count += map.entities
+          .where((entity) => entity.npc?.characterId == item.id)
           .length;
     }
   }

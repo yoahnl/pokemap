@@ -14,8 +14,7 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
     final project = _controller.project;
     if (resources == null || resources.busy || project == null) return;
     if (resources.environments[preset.id]?.dirty == true) {
-      resources.error =
-          'Enregistrez ou annulez la préparation de cet environnement avant de dessiner sa zone.';
+      resources.error = 'Enregistrez ou annulez la préparation de cet environnement avant de dessiner sa zone.';
       resources.changed();
       return;
     }
@@ -30,11 +29,16 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
             child: ListView(
               children: [
                 for (final entry in project.maps)
-                  StudioButton(
-                    label: entry.name,
-                    secondary: true,
-                    onPressed: () => Navigator.pop(context, entry),
-                  ),
+                  if (project.resourceLibraryCatalog.availableForMap(
+                    'environmentPreset',
+                    preset.id,
+                    entry.id,
+                  ))
+                    StudioButton(
+                      label: entry.name,
+                      secondary: true,
+                      onPressed: () => Navigator.pop(context, entry),
+                    ),
               ],
             ),
           ),
@@ -69,6 +73,16 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
         .where((entry) => entry.id == preset.id)
         .firstOrNull;
     if (selected == null) return;
+    if (!current.resourceLibraryCatalog.availableForMap(
+      'environmentPreset',
+      selected.id,
+      document.current.id,
+    )) {
+      resources.setImportError(
+        'Cet environnement est propre à une autre carte.',
+      );
+      return;
+    }
     try {
       view.environment = EnvironmentEditingCommands(
         document,

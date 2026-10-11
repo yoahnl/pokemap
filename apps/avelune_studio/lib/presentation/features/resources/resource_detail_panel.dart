@@ -30,6 +30,8 @@ class ResourceDetailPanel extends StatelessWidget {
     this.onReplace,
     this.onRemove,
     this.onDuplicate,
+    this.onClassify,
+    this.activeMapId,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -43,6 +45,8 @@ class ResourceDetailPanel extends StatelessWidget {
   final bool canEditTerrain;
   final ValueChanged<ResourceItem>? onInformation, onMove, onUsages;
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
+  final ValueChanged<ResourceItem>? onClassify;
+  final String? activeMapId;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +59,21 @@ class ResourceDetailPanel extends StatelessWidget {
       );
     }
     final theme = Theme.of(context);
+    final metadata = entry.metadata(project);
+    final mapAvailable =
+        activeMapId == null ||
+        metadata?.mapId == null ||
+        metadata?.mapId == activeMapId;
+    final compatible = entry.compatibleWith(project.settings.dimension);
+    final prepared =
+        entry.border == null ||
+        (entry.border!.latestPublished != null && !entry.border!.isDeprecated);
+    final usable =
+        canUse &&
+        project.maps.isNotEmpty &&
+        mapAvailable &&
+        compatible &&
+        prepared;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -69,13 +88,24 @@ class ResourceDetailPanel extends StatelessWidget {
                 const SizedBox(height: 16),
                 SelectableText(entry.name, style: theme.textTheme.titleLarge),
                 const SizedBox(height: 8),
-                StudioBadge(switch (entry.kind) {
-                  ResourceKind.decors => 'Décor',
-                  ResourceKind.terrains => 'Terrain automatique',
-                  ResourceKind.images => 'Image et tuiles',
-                }),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    StudioBadge(entry.typeLabel),
+                    StudioBadge(resourceCatalogScopeLabel(project, entry)),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 ..._metadata(context, entry),
+                if (onClassify != null)
+                  StudioButton(
+                    key: const ValueKey('resource-classify'),
+                    label: 'Modifier la famille et la disponibilité',
+                    icon: Icons.folder_outlined,
+                    secondary: true,
+                    onPressed: () => onClassify!(entry),
+                  ),
                 const SizedBox(height: 12),
                 ..._preparation(entry),
                 const SizedBox(height: 12),
@@ -110,10 +140,16 @@ class ResourceDetailPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!canUse || project.maps.isEmpty) ...[
+              if (!usable) ...[
                 Text(
                   project.maps.isEmpty
                       ? 'Ce projet ne contient aucune carte. Les ressources restent consultables.'
+                      : !compatible
+                      ? 'Cette ressource ne se place pas dans un projet ${project.settings.dimension == ProjectDimension.threeD ? "3D" : "2D"}.'
+                      : !mapAvailable
+                      ? 'Cette ressource est réservée à « ${project.maps.where((map) => map.id == metadata?.mapId).firstOrNull?.name ?? "sa carte"} ».'
+                      : !prepared
+                      ? 'Préparez et publiez cette bordure dans son atelier avant de la tracer.'
                       : 'L’utilisation sur la carte est momentanément indisponible.',
                   style: theme.textTheme.bodySmall,
                 ),
@@ -125,9 +161,7 @@ class ResourceDetailPanel extends StatelessWidget {
                     ? 'Choisir une carte'
                     : 'Utiliser sur « $targetMapName »',
                 icon: Icons.map_outlined,
-                onPressed: canUse && project.maps.isNotEmpty
-                    ? () => onUse(entry)
-                    : null,
+                onPressed: usable ? () => onUse(entry) : null,
               ),
             ],
           ),
@@ -140,7 +174,7 @@ class ResourceDetailPanel extends StatelessWidget {
     final frame = entry.element?.frames.firstOrNull;
     final sourceId = frame != null && frame.tilesetId.isNotEmpty
         ? frame.tilesetId
-        : entry.element?.tilesetId;
+        : entry.element?.tilesetId ?? entry.character?.tilesetId;
     final tileset =
         entry.tileset ??
         project.tilesets.where((value) => value.id == sourceId).firstOrNull;
@@ -174,6 +208,10 @@ class ResourceDetailPanel extends StatelessWidget {
         if (terrainAtlases.contains(atlas.id)) atlas.tilesetId,
     };
     final rows = <(String, String)>[
+      ('Famille', resourceCatalogFamilyLabel(project, entry)),
+      ('Portée', resourceCatalogScopeLabel(project, entry)),
+      if (entry.border != null) ('Aperçu', 'Une pièce de la bordure'),
+      if (entry.environment != null) ('Aperçu', 'Un décor de la palette'),
       if (tileset != null) ('Source', tileset.name),
       if (terrainSources.isNotEmpty)
         (
@@ -242,6 +280,16 @@ class ResourceDetailPanel extends StatelessWidget {
     if (entry.element != null)
       StudioButton(
         label: 'Modifier le décor',
+        icon: Icons.edit_outlined,
+        secondary: true,
+        onPressed: () => onEdit(entry),
+      ),
+    if (entry.model3d != null ||
+        entry.border != null ||
+        entry.environment != null ||
+        entry.character != null)
+      StudioButton(
+        label: 'Ouvrir l’atelier',
         icon: Icons.edit_outlined,
         secondary: true,
         onPressed: () => onEdit(entry),

@@ -24,7 +24,15 @@ class MapBorderToolPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final models = MapBorderEditingCommands.publishedLines(project);
+    final models = MapBorderEditingCommands.publishedLines(project)
+        .where(
+          (model) => project.resourceLibraryCatalog.availableForMap(
+            'borderBlueprint',
+            model.id,
+            document.current.id,
+          ),
+        )
+        .toList();
     final selected = models.any((item) => item.id == view.borderBlueprintId)
         ? view.borderBlueprintId
         : null;

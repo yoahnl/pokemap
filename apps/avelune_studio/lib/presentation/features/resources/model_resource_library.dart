@@ -16,10 +16,8 @@ import 'resource_navigation.dart';
 import 'model_animation_controls.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
-  'renderer.missing_material_magenta' =>
-    'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
-  'bounds.static_scene_only' =>
-    'Les dimensions affichées correspondent à la pose de repos ; l’animation peut dépasser ce cadre.',
+  'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
+  'bounds.static_scene_only' => 'Les dimensions affichées correspondent à la pose de repos ; l’animation peut dépasser ce cadre.',
   'bounds.bind_pose_only' =>
     'Les dimensions correspondent à la pose initiale du squelette.',
   'renderer.ignored_color_0' =>
@@ -34,8 +32,7 @@ String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.ignored_metallicFactor' ||
   'renderer.ignored_roughnessFactor' =>
     'L’aspect métallique et la rugosité ne sont pas reproduits par cet aperçu.',
-  _ =>
-    'Ce modèle contient une propriété visuelle que cet aperçu ne reproduit pas.',
+  _ => 'Ce modèle contient une propriété visuelle que cet aperçu ne reproduit pas.',
 };
 
 Future<void> importStudioModel(
@@ -192,7 +189,8 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
       );
     }
     final models = n.workspace.project!.models3d;
-    var selected = models.where((m) => m.id == selectedId).firstOrNull;
+    final preferred = selectedId ?? n.library.selectedId;
+    var selected = models.where((m) => m.id == preferred).firstOrNull;
     if (selected == null && models.isNotEmpty) {
       selected = models.first;
       select(selected);
@@ -259,9 +257,9 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                       controller: controls,
                       minimum: [box.min.x, box.min.y, box.min.z],
                       maximum: [box.max.x, box.max.y, box.max.z],
-                      background: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerLowest,
+                      background: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerLowest,
                       loadingBuilder: (_) =>
                           const Center(child: CircularProgressIndicator()),
                       errorBuilder: (_, failure) => StudioNotice(

@@ -2,8 +2,8 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_category_filter.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_category_tree.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_family_tree_view.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_family_tree.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -13,32 +13,36 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets('quick categories and full tree keep the chosen category', (
+  testWidgets('quick families and full tree keep the chosen family', (
     tester,
   ) async {
     final project = workspaceProject.copyWith(
-      elementCategories: const [
-        ProjectElementCategory(id: 'buildings', name: 'Bâtiments'),
-        ProjectElementCategory(
-          id: 'houses',
-          name: 'Maisons',
-          parentCategoryId: 'buildings',
-        ),
-        ProjectElementCategory(id: 'nature', name: 'Nature'),
-      ],
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: [
+          ResourceFamily(id: 'houses', name: 'Maisons', parentId: 'buildings'),
+        ],
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'house',
+            familyId: 'houses',
+          ),
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'tree',
+            familyId: 'trees',
+          ),
+        ],
+      ),
       elements: [
         workspaceElement.copyWith(id: 'house', categoryId: 'houses'),
         workspaceElement.copyWith(id: 'tree', categoryId: 'nature'),
       ],
     );
-    final tree = ResourceCategoryTree(
-      project,
-      ResourceKind.decors,
-      resourceCatalog(project),
-    );
+    final tree = ResourceFamilyTree(project, resourceCatalog(project));
     final search = TextEditingController();
     addTearDown(search.dispose);
-    var selected = '';
+    final filters = ResourceCatalogFilterState();
     var searches = 0;
     await tester.pumpWidget(
       MaterialApp(
@@ -48,10 +52,9 @@ void main() {
               width: 900,
               child: MapWorkspacePaletteDockFilters(
                 tree: tree,
-                selected: selected,
+                filters: filters,
                 search: search,
-                onCategoryChanged: (value) => rebuild(() => selected = value),
-                onSearchChanged: () => searches++,
+                onChanged: () => rebuild(() => searches++),
               ),
             ),
           ),
@@ -63,17 +66,19 @@ void main() {
     expect(find.byKey(const ValueKey('resource-quick-houses')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('resource-quick-houses')));
     await tester.pump();
-    expect(selected, 'houses');
+    expect(filters.familyId, 'houses');
 
-    await tester.tap(find.text('Catégories'));
+    await tester.tap(find.text('Familles'));
     await tester.pumpAndSettle();
-    expect(find.byType(ResourceCategoryFilter), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('resource-category-nature')));
+    expect(find.byType(ResourceFamilyTreeView), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('resource-nature-family-trees')),
+    );
     await tester.pumpAndSettle();
-    expect(selected, 'nature');
-    expect(find.byType(ResourceCategoryFilter), findsNothing);
+    expect(filters.familyId, 'trees');
+    expect(find.byType(ResourceFamilyTreeView), findsNothing);
     expect(
-      tester.getTopLeft(find.byKey(const ValueKey('resource-quick-nature'))).dx,
+      tester.getTopLeft(find.byKey(const ValueKey('resource-quick-trees'))).dx,
       lessThan(
         tester
             .getTopLeft(find.byKey(const ValueKey('resource-quick-houses')))
@@ -86,22 +91,32 @@ void main() {
     await tester.enterText(find.byType(TextField), 'arbre');
     await tester.pump();
     expect(search.text, 'arbre');
-    expect(searches, 1);
+    expect(searches, 3);
     await tester.tap(find.byTooltip('Masquer la recherche'));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
     expect(search.text, isEmpty);
-    expect(searches, 2);
+    expect(searches, 4);
   });
 
   testWidgets('the map dock filters real cards and clears a hidden search', (
     tester,
   ) async {
     final project = workspaceProject.copyWith(
-      elementCategories: const [
-        ProjectElementCategory(id: 'houses', name: 'Maisons'),
-        ProjectElementCategory(id: 'nature', name: 'Nature'),
-      ],
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'house',
+            familyId: 'buildings',
+          ),
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'tree',
+            familyId: 'trees',
+          ),
+        ],
+      ),
       elements: [
         workspaceElement.copyWith(
           id: 'house',
@@ -146,9 +161,9 @@ void main() {
     );
     expect(find.byKey(const ValueKey('decor-house')), findsOneWidget);
     expect(find.byKey(const ValueKey('decor-tree')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('resource-quick-nature')));
+    await tester.tap(find.byKey(const ValueKey('resource-quick-trees')));
     await tester.pump();
-    expect(view.decorCategoryId, 'nature');
+    expect(view.resourceFilters.familyId, 'trees');
     expect(find.byKey(const ValueKey('decor-house')), findsNothing);
     expect(find.byKey(const ValueKey('decor-tree')), findsOneWidget);
 
@@ -156,7 +171,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'maison');
     await tester.pump();
-    expect(find.text('Aucune ressource dans cette catégorie.'), findsOneWidget);
+    expect(
+      find.text('Aucune ressource ne correspond aux filtres.'),
+      findsOneWidget,
+    );
     await tester.tap(find.byTooltip('Masquer la recherche'));
     await tester.pumpAndSettle();
     expect(search.text, isEmpty);

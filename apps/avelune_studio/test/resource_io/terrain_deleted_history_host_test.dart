@@ -31,7 +31,7 @@ void main() {
       await tester.tap(find.byTooltip('Ressources').first);
       await pumpIo(tester);
       await host.family(ResourceKind.terrains);
-      await host.action('terrains:path-draft', 'Supprimer le terrain…');
+      await host.action('smartTilePreset:path-draft', 'Supprimer le terrain…');
       await host.tap('resource-terrain-confirm');
       await host.tap('resource-management-save');
       final reopened = await host.reopen();

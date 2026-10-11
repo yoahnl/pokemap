@@ -20,7 +20,7 @@ void main() {
       );
       final mapBefore = host.fixture.controller.active!.current;
       await host.family(ResourceKind.images);
-      await host.action('images:atelier', 'Modifier les informations');
+      await host.action('tileset:atelier', 'Modifier les informations');
       expect(before.tilesets.single.source, isNull);
       expect(find.text('160 × 64 px'), findsOneWidget);
       expect(find.text('Grille du projet : 16 × 16 px'), findsOneWidget);
@@ -59,10 +59,10 @@ void main() {
       await host.family(ResourceKind.images);
       final file = File('${host.fixture.directory.path}/project.json');
       final before = await tester.runAsync(file.readAsString);
-      await host.action('images:atelier', 'Modifier les informations');
+      await host.action('tileset:atelier', 'Modifier les informations');
       await host.tap('resource-management-save');
       expect(await tester.runAsync(file.readAsString), before);
-      await host.action('images:atelier', 'Modifier les informations');
+      await host.action('tileset:atelier', 'Modifier les informations');
       await host.enter('resource-information-name', 'Brouillon précieux');
       await host.tap('resource-management-cancel');
       await tester.tap(find.text('Rester').last);
@@ -88,7 +88,7 @@ void main() {
   ) async {
     final host = await UwUResourceHost.open(tester);
     await host.family(ResourceKind.images);
-    await host.action('images:atelier', 'Modifier les informations');
+    await host.action('tileset:atelier', 'Modifier les informations');
     await host.enter('resource-information-name', 'Mon titre concurrent');
     final file = File('${host.fixture.directory.path}/project.json');
     await tester.runAsync(() async {
@@ -125,7 +125,7 @@ void main() {
     final host = await UwUResourceHost.open(tester, noMaps: true);
     expect(host.fixture.controller.active, isNull);
     await host.family(ResourceKind.images);
-    await host.action('images:atelier', 'Modifier les informations');
+    await host.action('tileset:atelier', 'Modifier les informations');
     await host.enter('resource-information-name', 'Planche sans carte');
     await host.tap('resource-management-save');
     expect((await host.reopen()).tilesets.single.name, 'Planche sans carte');

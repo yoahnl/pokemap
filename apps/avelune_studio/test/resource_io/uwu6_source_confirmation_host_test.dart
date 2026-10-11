@@ -23,12 +23,12 @@ void main() {
         '${host.fixture.directory.path}/assets/.pokemap-assets.json',
       );
       final pixels = (await tester.runAsync(source.readAsBytes))!;
-      await host.action('decors:tree', 'Supprimer la définition…');
+      await host.action('element:tree', 'Supprimer la définition…');
       await host.tap('resource-removal-confirm');
       await host.tap('resource-management-save');
       await host.family(ResourceKind.images);
       final before = (await tester.runAsync(catalog.readAsBytes))!;
-      await host.action('images:${sheet.id}', 'Supprimer la planche…');
+      await host.action('tileset:${sheet.id}', 'Supprimer la planche…');
       final choice = find.byKey(const ValueKey('resource-removal-source'));
       final confirmation = find.byKey(
         const ValueKey('resource-removal-confirm'),

@@ -8,12 +8,14 @@ class StudioPageHeader extends StatelessWidget {
     this.actions = const [],
     this.alignActionsToEnd = false,
     this.prominent = false,
+    this.compact = false,
   });
   final String title;
   final String? description;
   final List<Widget> actions;
   final bool alignActionsToEnd;
   final bool prominent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -37,8 +39,9 @@ class StudioPageHeader extends StatelessWidget {
           ],
         );
         final buttons = Wrap(spacing: 8, runSpacing: 8, children: actions);
-        if (constraints.maxWidth < 900 ||
-            MediaQuery.textScalerOf(context).scale(14) > 20) {
+        if (!compact &&
+            (constraints.maxWidth < 900 ||
+                MediaQuery.textScalerOf(context).scale(14) > 20)) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

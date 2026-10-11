@@ -22,7 +22,7 @@ void main() {
         'uwu5-host-border-library-${size.width.toInt()}',
       );
       expect(
-        find.byKey(const ValueKey('resource-card-decors:tree')),
+        find.byKey(const ValueKey('resource-card-element:tree')),
         findsNothing,
       );
       expect(find.text('Rechercher une bordure'), findsOneWidget);

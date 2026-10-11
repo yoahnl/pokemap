@@ -22,11 +22,87 @@ List<ResourceUsageDocument> resourceUsageDocuments(
   ProjectSnapshot snapshot,
   List<String> issues,
 ) {
+  final result =
+      resourceDefinitionUsageDocuments(snapshot.manifest, snapshot.maps);
+  if (snapshot.maps.length != snapshot.manifest.maps.length) {
+    issues.add('resource.usages.maps_incomplete');
+  }
+  if (snapshot.manifest.pokemon.enabled && !snapshot.pokemonInventoryComplete) {
+    issues.add('asset.inventory_unavailable');
+  }
+  for (final identity in snapshot.resourceFingerprints.keys) {
+    if (!identity.startsWith('pokemonMedia:') &&
+        !identity.startsWith('dialogueSource:') &&
+        identity != 'projectMediaCatalog') {
+      continue;
+    }
+    try {
+      if (identity.startsWith('dialogueSource:')) {
+        final id = identity.substring('dialogueSource:'.length);
+        final entry = snapshot.manifest.dialogues
+            .where((entry) => entry.id == id)
+            .firstOrNull;
+        if (entry == null) throw const FormatException('Owner unavailable.');
+        final compiled = const DialogueAuthoringCompiler().compile(
+            entry: entry,
+            source: utf8.decode(snapshot.resourceBytes(identity)));
+        if (!compiled.canPublish) {
+          issues.add('resource.usages.dialogue_invalid:$id');
+        }
+        if (compiled.document != null) {
+          result.add(ResourceUsageDocument('dialogueSource', id, entry.name,
+              entry.relativePath, compiled.document!.toJson()));
+        }
+        continue;
+      }
+      final raw = jsonDecode(utf8.decode(snapshot.resourceBytes(identity)));
+      if (raw is! Map) throw const FormatException('Document expected.');
+      final json = Map<String, dynamic>.from(raw);
+      if (identity == projectMediaCatalogResourceIdentity) {
+        final catalog =
+            decodeProjectMediaCatalogBytes(snapshot.resourceBytes(identity));
+        for (final entry in catalog.entries) {
+          result.add(ResourceUsageDocument(
+              'media',
+              entry.id,
+              entry.label,
+              projectMediaCatalogStorageKey,
+              Map<String, dynamic>.from(entry.toJson())));
+        }
+        continue;
+      }
+      if (identity.startsWith('pokemonMedia:')) {
+        final document = PokemonMediaFile.fromJson(json);
+        if (document.speciesId.isEmpty ||
+            document.defaultFormId.isEmpty ||
+            json['variants'] is! Map) {
+          throw const FormatException('Incomplete Pokemon media document.');
+        }
+      }
+      final split = identity.indexOf(':');
+      final kind = split < 0 ? identity : identity.substring(0, split);
+      final id = split < 0 ? identity : identity.substring(split + 1);
+      result.add(ResourceUsageDocument(kind, id, '$kind · $id',
+          snapshot.resourceStorageKeys[identity] ?? identity, json));
+    } on Object {
+      issues.add('resource.usages.document_invalid:$identity');
+    }
+  }
+  issues.addAll(snapshot.loadDiagnostics.map(
+      (entry) => '${entry.code}:${entry.resourceKind}:${entry.resourceId}'));
+  return result;
+}
+
+List<ResourceUsageDocument> resourceDefinitionUsageDocuments(
+  ProjectManifest manifest,
+  Iterable<MapData> maps,
+) {
   final result = <ResourceUsageDocument>[];
-  final project = Map<String, dynamic>.from(snapshot.manifest.toJson());
+  final project = Map<String, dynamic>.from(manifest.toJson());
   const sections = {
     'tilesets': 'tileset',
     'elements': 'element',
+    'models3d': 'model3d',
     'characters': 'character',
     'scenes': 'scene',
     'presentationCinematics': 'presentationCinematic',
@@ -85,68 +161,10 @@ List<ResourceUsageDocument> resourceUsageDocuments(
         'borderCatalog.visualSnapshots');
   }
   result.add(ResourceUsageDocument(
-      'project', 'project', snapshot.manifest.name, 'project', project));
-  for (final map in snapshot.maps) {
+      'project', 'project', manifest.name, 'project', project));
+  for (final map in maps) {
     result.add(ResourceUsageDocument(
         'map', map.id, map.name, 'map:${map.id}', map.toJson()));
   }
-  if (snapshot.maps.length != snapshot.manifest.maps.length) {
-    issues.add('resource.usages.maps_incomplete');
-  }
-  if (snapshot.manifest.pokemon.enabled && !snapshot.pokemonInventoryComplete) {
-    issues.add('asset.inventory_unavailable');
-  }
-  for (final identity in snapshot.resourceFingerprints.keys) {
-    if (!identity.startsWith('pokemonMedia:') &&
-        !identity.startsWith('dialogueSource:') &&
-        identity != 'projectMediaCatalog') {
-      continue;
-    }
-    try {
-      if (identity.startsWith('dialogueSource:')) {
-        final id = identity.substring('dialogueSource:'.length);
-        final entry = snapshot.manifest.dialogues
-            .where((entry) => entry.id == id)
-            .firstOrNull;
-        if (entry == null) throw const FormatException('Owner unavailable.');
-        final compiled = const DialogueAuthoringCompiler().compile(
-            entry: entry,
-            source: utf8.decode(snapshot.resourceBytes(identity)));
-        if (!compiled.canPublish) {
-          issues.add('resource.usages.dialogue_invalid:$id');
-        }
-        if (compiled.document != null) {
-          result.add(ResourceUsageDocument('dialogueSource', id, entry.name,
-              entry.relativePath, compiled.document!.toJson()));
-        }
-        continue;
-      }
-      final raw = jsonDecode(utf8.decode(snapshot.resourceBytes(identity)));
-      if (raw is! Map) throw const FormatException('Document expected.');
-      final json = Map<String, dynamic>.from(raw);
-      if (identity == projectMediaCatalogResourceIdentity) {
-        decodeProjectMediaCatalogBytes(snapshot.resourceBytes(identity));
-        add('media', json['entries'], projectMediaCatalogStorageKey);
-        continue;
-      }
-      if (identity.startsWith('pokemonMedia:')) {
-        final document = PokemonMediaFile.fromJson(json);
-        if (document.speciesId.isEmpty ||
-            document.defaultFormId.isEmpty ||
-            json['variants'] is! Map) {
-          throw const FormatException('Incomplete Pokemon media document.');
-        }
-      }
-      final split = identity.indexOf(':');
-      final kind = split < 0 ? identity : identity.substring(0, split);
-      final id = split < 0 ? identity : identity.substring(split + 1);
-      result.add(ResourceUsageDocument(kind, id, '$kind · $id',
-          snapshot.resourceStorageKeys[identity] ?? identity, json));
-    } on Object {
-      issues.add('resource.usages.document_invalid:$identity');
-    }
-  }
-  issues.addAll(snapshot.loadDiagnostics.map(
-      (entry) => '${entry.code}:${entry.resourceKind}:${entry.resourceId}'));
   return result;
 }

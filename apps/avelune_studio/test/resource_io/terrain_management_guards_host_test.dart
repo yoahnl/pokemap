@@ -12,7 +12,7 @@ void main() {
     final file = File('${host.fixture.directory.path}/project.json');
     final bytes = (await WidgetResourcePort.serial(tester, file.readAsBytes))!;
     await host.family(ResourceKind.terrains);
-    await host.action('terrains:path-draft', 'Renommer le terrain…');
+    await host.action('smartTilePreset:path-draft', 'Renommer le terrain…');
     await host.enter('resource-terrain-name', '  Chemin des essais  ');
     await host.tap('resource-management-save');
     expect(await WidgetResourcePort.serial(tester, file.readAsBytes), bytes);
@@ -24,7 +24,7 @@ void main() {
   ) async {
     final host = await openUwU5TerrainHost(tester);
     await host.family(ResourceKind.terrains);
-    await host.action('terrains:path-draft', 'Renommer le terrain…');
+    await host.action('smartTilePreset:path-draft', 'Renommer le terrain…');
     await host.enter('resource-terrain-name', 'Ma saisie préservée');
     await WidgetResourcePort.serial(
       tester,
@@ -111,7 +111,7 @@ void main() {
       final before = await host.reopen();
       await host.family(ResourceKind.terrains);
       expect(find.textContaining('préparation avancée'), findsWidgets);
-      await host.action('terrains:path-draft', 'Renommer le terrain…');
+      await host.action('smartTilePreset:path-draft', 'Renommer le terrain…');
       await host.enter('resource-terrain-name', 'Terrain avancé renommé');
       await host.tap('resource-management-save');
       final after = await host.reopen();
@@ -133,7 +133,7 @@ void main() {
     final host = await openUwU5TerrainHost(tester);
     final before = await host.reopen();
     await host.family(ResourceKind.terrains);
-    await host.action('terrains:path-draft', 'Modifier les raccords');
+    await host.action('smartTilePreset:path-draft', 'Modifier les raccords');
     await pumpIo(tester);
     await host.enter('terrain-name', 'Brouillon uniquement local');
     await tester.tap(find.text('Ressources › Terrains').last);

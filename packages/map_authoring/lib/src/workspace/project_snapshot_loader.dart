@@ -333,6 +333,12 @@ final class ProjectSnapshotLoader {
       _fingerprintCache?.storeDecoded(manifestIdentity, manifest);
     }
     final entries = _validatedMapEntries(manifest.maps);
+    try {
+      validateResourceLibraryTargets(manifest);
+    } on ArgumentError catch (error) {
+      throw ProjectSnapshotException(
+          'resource_library.invalid', error.message.toString());
+    }
     final resources = <_LoadedProjectResource>[
       _LoadedProjectResource(
         relativePath: 'project.json',

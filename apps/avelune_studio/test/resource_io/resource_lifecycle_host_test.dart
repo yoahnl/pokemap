@@ -14,7 +14,7 @@ void main() {
     final host = await openUwU4ResourceHost(tester);
     final before = host.fixture.controller.project!;
     final source = before.elements.first;
-    await host.action('decors:${source.id}', 'Dupliquer la définition…');
+    await host.action('element:${source.id}', 'Dupliquer la définition…');
     expect(find.text('${source.name} — copie'), findsOneWidget);
     expect(find.textContaining('les instances déjà posées'), findsOneWidget);
     await host.enter('resource-duplicate-name', 'Copie indépendante');
@@ -46,7 +46,7 @@ void main() {
     final host = await openUwU4ResourceHost(tester, placed: true);
     final before = host.fixture.controller.project!;
     final source = before.elements.first;
-    await host.action('decors:${source.id}', 'Supprimer la définition…');
+    await host.action('element:${source.id}', 'Supprimer la définition…');
     await pumpIo(tester, frames: 20);
     expect(find.textContaining('Définition de décor'), findsWidgets);
     expect(
@@ -74,7 +74,7 @@ void main() {
     await host.family(ResourceKind.images);
     final imported = host.fixture.controller.project!.tilesets.single;
     final before = host.fixture.controller.active!.current;
-    await host.action('images:${imported.id}', 'Remplacer l’image source…');
+    await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
     await pumpIo(tester, frames: 6);
     expect(host.navigation.error, isNull);
     expect(host.fixture.controller.active!.current, before);
@@ -91,7 +91,7 @@ void main() {
     final host = await openUwU4ResourceHost(tester);
     final before = await host.reopen();
     final map = host.fixture.controller.active!.current;
-    await host.action('decors:tree', 'Supprimer la définition…');
+    await host.action('element:tree', 'Supprimer la définition…');
     await host.tap('resource-removal-confirm');
     await host.tap('resource-management-save');
     expect((await host.reopen()).elements, isEmpty);
@@ -99,7 +99,7 @@ void main() {
     expect(host.fixture.controller.active!.current, map);
     await host.family(ResourceKind.images);
     await host.action(
-      'images:${before.tilesets.single.id}',
+      'tileset:${before.tilesets.single.id}',
       'Supprimer la planche…',
     );
     expect(
@@ -133,13 +133,13 @@ void main() {
       );
       await tester.tap(find.text('Retour aux ressources').last);
       await pumpIo(tester, frames: 4);
-      await host.action('decors:tree', 'Dupliquer la définition…');
+      await host.action('element:tree', 'Dupliquer la définition…');
       expect(find.text('Enregistrer et dupliquer'), findsOneWidget);
       await tester.tap(find.text('Annuler').last);
       await pumpIo(tester);
       expect(host.navigation.decorDraftFor('tree')!.name, 'Arbre à copier');
       expect((await host.reopen()).elements.single.name, source.name);
-      await host.action('decors:tree', 'Dupliquer la définition…');
+      await host.action('element:tree', 'Dupliquer la définition…');
       await tester.tap(find.text('Enregistrer et dupliquer').last);
       await pumpIo(tester);
       expect(find.text('Arbre à copier — copie'), findsOneWidget);

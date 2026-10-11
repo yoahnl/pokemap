@@ -61,7 +61,7 @@ void main() {
       await saving;
       expect(uses, 0);
       expect(navigation.page, ResourcePage.library);
-      expect(navigation.library.selectedIdentity, 'decors:tree');
+      expect(navigation.library.selectedIdentity, 'element:tree');
       expect(workspace.project!.elements.single.name, 'Arbre enregistré');
       expect(navigation.dirty, isFalse);
     },
@@ -131,7 +131,7 @@ void main() {
       expect(visible.single.element, workspaceElement);
       expect(
         navigation.library.reconcileSelection(visible)!.identity,
-        'decors:tree',
+        'element:tree',
       );
       expect(navigation.library.query, 'arbre');
       expect(navigation.library.category, '');

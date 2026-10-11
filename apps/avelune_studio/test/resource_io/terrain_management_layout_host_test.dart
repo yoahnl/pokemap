@@ -26,13 +26,13 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(
-        find.byKey(const ValueKey('resource-card-terrains:path-draft')),
+        find.byKey(const ValueKey('resource-card-smartTilePreset:path-draft')),
         findsOneWidget,
       );
       expect(
         tester
             .getSize(
-              find.byKey(const ValueKey('resource-card-terrains:path-draft')),
+              find.byKey(const ValueKey('resource-card-smartTilePreset:path-draft')),
             )
             .height,
         greaterThan(40),

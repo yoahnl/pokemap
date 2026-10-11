@@ -2,6 +2,10 @@ part of 'map_workspace_screen.dart';
 
 extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   Future<void> _useResource(ResourceItem item) async {
+    if (item.environment case final preset?) {
+      await _drawEnvironment(preset);
+      return;
+    }
     final used = await useResourceOnMap(
       context: context,
       workspace: _controller,

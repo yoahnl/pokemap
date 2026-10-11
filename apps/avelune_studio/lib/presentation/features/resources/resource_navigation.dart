@@ -7,8 +7,11 @@ import 'package:avelune_studio/features/terrains/application/terrain_draft_contr
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+
 import '../characters/character_studio_controller.dart';
+
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+
 import 'resource_catalog.dart';
 import 'resource_terrain_management.dart';
 import 'resource_border_management.dart';
@@ -213,6 +216,23 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   }
 
   void edit(ResourceItem item) {
+    if (item.model3d != null) {
+      library.selectFamily(ResourceLibraryFamily.models3d);
+      showLibrary(item);
+      return;
+    }
+    if (item.environment case final preset?) {
+      openEnvironment(preset);
+      return;
+    }
+    if (item.character != null) {
+      openCharacters(item.id);
+      return;
+    }
+    if (item.border != null) {
+      openBorders();
+      return;
+    }
     final project = workspace.project!;
     final tileset =
         item.tileset ??

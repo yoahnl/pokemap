@@ -4,6 +4,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+
 import 'resource_navigation.dart';
 import 'model_resource_library.dart';
 import 'resource_library_screen.dart';
@@ -14,14 +15,18 @@ import 'environment_library.dart';
 import 'resource_catalog.dart';
 import 'resource_border_lifecycle.dart';
 import 'resource_character_lifecycle.dart';
+
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+
 import '../characters/character_studio_page.dart';
 import 'resource_character_portrait_import.dart';
 import 'resource_character_animation_import.dart';
 import 'resource_management_bindings.dart';
+import 'resource_library_bindings.dart';
 import 'resource_reconciliation_notice.dart';
 import 'resource_lifecycle_bindings.dart';
 import 'resource_terrain_lifecycle.dart';
+
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 part 'resource_workspace_actions.dart';
 
@@ -141,6 +146,9 @@ class ResourceWorkspacePane extends StatelessWidget {
               visuals: visuals,
               state: n.library,
               targetMapName: n.workspace.active?.current.name,
+              activeMapId: n.workspace.active?.current.id,
+              onManageFamilies: () => manageResourceFamilies(context, n),
+              onClassify: (item) => classifyResource(context, n, item),
               canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,

@@ -33,11 +33,19 @@ void main() {
         ),
       ),
     );
+    expect(find.text('Toutes les ressources'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('resource-filter-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('resource-import')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
+    await tester.pumpAndSettle();
     expect(find.text('Poser un objet'), findsOneWidget);
     expect(find.text('Peindre le sol'), findsOneWidget);
     expect(find.text('Tracer un contour'), findsOneWidget);
     expect(find.text('Répartir des décors'), findsOneWidget);
-    expect(find.text('Créer un décor'), findsOneWidget);
+    expect(find.text('Créer un décor'), findsNothing);
     expect(find.text('Créer une bordure'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('resource-family-borders')));
     await tester.pumpAndSettle();
@@ -46,6 +54,8 @@ void main() {
     await tester.tap(find.text('Créer une bordure'));
     expect(borders, 1);
     expect(imports, 0);
+    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('resource-family-images')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Importer une image'));

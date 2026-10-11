@@ -87,6 +87,50 @@ void main() {
           catalog.toJson()['summary'], containsPair('catalogComplete', false));
     });
 
+    test('resource library metadata is readable and has no runtime surface',
+        () {
+      for (final kind in [
+        'resourceLibraryCatalog',
+        'resourceFamily',
+        'resourceLibraryEntry',
+        'element',
+        'model3d',
+        'environmentPreset',
+        'character',
+        'tileset'
+      ]) {
+        final canonical = AuthoringFullParityCatalog.canonical();
+        final resource = canonical.resources
+            .singleWhere((entry) => entry.resourceKind == kind);
+        expect(resource.cells[AuthoringParityCapability.read]!.status,
+            AuthoringParityStatus.supported,
+            reason: kind);
+        final readable = canonicalQueryableResourceKindIds.toSet()
+          ..remove(kind);
+        final refused = AuthoringFullParityCatalog.canonical(
+            queryableResourceKinds: readable);
+        expect(
+            refused.resources
+                .singleWhere((entry) => entry.resourceKind == kind)
+                .cells[AuthoringParityCapability.read]!
+                .status,
+            AuthoringParityStatus.missing,
+            reason: kind);
+        if (kind.startsWith('resource')) {
+          expect(resource.cells[AuthoringParityCapability.runtime]!.status,
+              AuthoringParityStatus.notApplicable,
+              reason: kind);
+          expect(
+              resource.cells[AuthoringParityCapability.runtime]!.justification,
+              isNotEmpty);
+          expect(
+              resource.cells[AuthoringParityCapability.visualization]!.status,
+              AuthoringParityStatus.notApplicable,
+              reason: kind);
+        }
+      }
+    });
+
     test('separates declared, adapter, contract, and end-to-end evidence', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       final descriptors = AuthoringMutationDispatcher.canonical().descriptors;
@@ -756,6 +800,9 @@ const Set<String> _characterStudioActionIds = <String>{
 };
 
 final Set<String> _approvedResourceKinds = {
+  'resourceLibraryCatalog',
+  'resourceFamily',
+  'resourceLibraryEntry',
   'project',
   'projectSettings',
   'projectPokemonConfig',

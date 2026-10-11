@@ -20,7 +20,7 @@ void main() {
         wrapUsages: (port) => retained = _RetainedUsagePort(port),
       );
       await host.family(ResourceKind.images);
-      await host.action('images:atelier', 'Voir les usages dans le projet');
+      await host.action('tileset:atelier', 'Voir les usages dans le projet');
       await host.tap('resource-usage-analyze');
       expect(retained.reached.isCompleted, isTrue);
       expect(find.text('Analyse en cours'), findsOneWidget);
@@ -62,7 +62,7 @@ void main() {
       wrapUsages: (port) => observed = _ObservedUsagePort(port),
     );
     await host.family(ResourceKind.images);
-    await host.action('images:atelier', 'Voir les usages dans le projet');
+    await host.action('tileset:atelier', 'Voir les usages dans le projet');
     await host.tap('resource-usage-analyze');
     final report = tester
         .widget<ResourceUsageResults>(find.byType(ResourceUsageResults))
@@ -86,7 +86,7 @@ void main() {
       wrapUsages: (port) => observed = _ObservedUsagePort(port),
     );
     await host.family(ResourceKind.images);
-    await host.action('images:atelier', 'Voir les usages dans le projet');
+    await host.action('tileset:atelier', 'Voir les usages dans le projet');
     await host.tap('resource-usage-analyze');
     expect(observed.verifications, 1);
     final document = host.fixture.controller.active!;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
+
 import '../map_workspace/map_workspace_visuals.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_resource_card.dart';
@@ -55,17 +56,7 @@ class ResourceCatalogView extends StatelessWidget {
   );
 
   String metadata(ResourceItem item) {
-    final categories = {
-      for (final c in project.elementCategories) c.id: c.name,
-    };
-    return switch (item.kind) {
-      ResourceKind.decors => categories[item.category] ?? 'Décor',
-      ResourceKind.terrains => '${item.terrain!.rules.length} raccords',
-      ResourceKind.images =>
-        item.tileset!.source is ProjectRegularAtlasTilesetSource
-            ? '${(item.tileset!.source as ProjectRegularAtlasTilesetSource).pixelWidth} × ${(item.tileset!.source as ProjectRegularAtlasTilesetSource).pixelHeight} px'
-            : 'Image et tuiles',
-    };
+    return '${resourceCatalogFamilyLabel(project, item)} · ${resourceCatalogScopeLabel(project, item)}';
   }
 
   @override
@@ -77,7 +68,7 @@ class ResourceCatalogView extends StatelessWidget {
             : 'Aucune ressource correspondante.',
         description: catalogEmpty
             ? 'Importez une image pour préparer vos ressources.'
-            : 'Changez la recherche ou les catégories.',
+            : 'Changez la recherche, la famille ou les filtres.',
       );
     }
     if (grid) {

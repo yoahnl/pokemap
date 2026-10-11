@@ -8,8 +8,11 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
 import '../../contracts/artifact_ref.dart';
+import '../../references/resource_library_scope_guard.dart';
+import '../../references/resource_usage_documents.dart';
 import '../assets/asset_store.dart';
 import '../assets/project_media_store.dart';
+import '../assets/tileset_actions.dart';
 import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
@@ -164,6 +167,40 @@ final class RuntimeProjectProjectionBuilder {
     final authorProject = ProjectManifest.fromJson(
       (projectScrub.value as Map).cast<String, dynamic>(),
     );
+    try {
+      validateResourceLibraryTargets(authorProject);
+    } on ArgumentError catch (error) {
+      throw GamePackageExportException(
+          code: 'resource_library.invalid',
+          path: 'project.json',
+          message:
+              'The resource library contains an unknown resource or map scope.',
+          cause: error);
+    }
+    final hasLocalResources = authorProject.resourceLibraryCatalog.entries
+        .any((entry) => entry.mapId != null);
+    final sourceMaps = <String, MapData>{};
+    final sourceMapFiles = <String, List<int>>{};
+    if (hasLocalResources) {
+      for (final entry in authorProject.maps) {
+        final bytes =
+            await authorFiles.read(entry.relativePath, budget, jsonLike: true);
+        final map =
+            MapData.fromJson(_decodeJsonObject(bytes, entry.relativePath));
+        if (map.id != entry.id || sourceMaps.containsKey(map.id)) {
+          throw GamePackageExportException(
+              code: 'resource_library.usage_incomplete',
+              path: entry.relativePath,
+              message:
+                  'Resource scope needs maps with matching unique identities.');
+        }
+        sourceMaps[map.id] = map;
+        sourceMapFiles[_normalizeRelative(entry.relativePath)] = bytes;
+      }
+    }
+    final libraryDocuments = hasLocalResources
+        ? resourceDefinitionUsageDocuments(authorProject, sourceMaps.values)
+        : <ResourceUsageDocument>[];
     final regionalMapTargets = {
       for (final point in authorProject.regionalMap?.pointsOfInterest ??
           const <ProjectRegionPointOfInterest>[])
@@ -172,9 +209,11 @@ final class RuntimeProjectProjectionBuilder {
     final regionalMaps = <MapData>[];
     for (final entry in authorProject.maps
         .where((map) => regionalMapTargets.contains(map.id))) {
-      regionalMaps.add(MapData.fromJson(_decodeJsonObject(
-          await authorFiles.read(entry.relativePath, budget, jsonLike: true),
-          entry.relativePath)));
+      regionalMaps.add(sourceMaps[entry.id] ??
+          MapData.fromJson(_decodeJsonObject(
+              await authorFiles.read(entry.relativePath, budget,
+                  jsonLike: true),
+              entry.relativePath)));
     }
     final regionalDiagnostics = const RegionalMapAuthoringGate().inspect(
         project: authorProject,
@@ -306,6 +345,87 @@ final class RuntimeProjectProjectionBuilder {
         const RuntimeDialogueDocumentCodec().encodeUtf8(document),
       );
       compiledEntries.add(entry.copyWith(relativePath: runtimeRelativePath));
+      if (hasLocalResources) {
+        libraryDocuments.add(ResourceUsageDocument(
+            'dialogue', entry.id, entry.name, sourcePath, document.toJson()));
+      }
+    }
+
+    if (hasLocalResources) {
+      final media = await authorFiles.readProjectMediaCatalog(budget);
+      for (final entry in media?.entries ?? const <ProjectMediaAsset>[]) {
+        libraryDocuments.add(ResourceUsageDocument(
+            'media',
+            entry.id,
+            entry.label,
+            projectMediaCatalogStorageKey,
+            Map<String, dynamic>.from(entry.toJson())));
+      }
+      if (authorProject.pokemon.enabled) {
+        final directory = Directory(authorFiles
+            ._fileWithinRoot(authorProject.pokemon.mediaDir,
+                logicalPath: authorProject.pokemon.mediaDir)
+            .path);
+        final type =
+            await FileSystemEntity.type(directory.path, followLinks: false);
+        if (type != FileSystemEntityType.notFound &&
+            type != FileSystemEntityType.directory) {
+          throw GamePackageExportException(
+              code: 'resource_library.usage_incomplete',
+              path: authorProject.pokemon.mediaDir,
+              message: 'Resource scope needs a safe Pokemon media inventory.');
+        }
+        if (type == FileSystemEntityType.directory) {
+          await for (final file
+              in directory.list(recursive: true, followLinks: false)) {
+            budget.visitWorkspaceEntry();
+            final fileType =
+                await FileSystemEntity.type(file.path, followLinks: false);
+            if (fileType == FileSystemEntityType.link) {
+              throw GamePackageExportException(
+                  code: 'resource_library.usage_incomplete',
+                  path: authorProject.pokemon.mediaDir,
+                  message:
+                      'Resource scope needs a safe Pokemon media inventory.');
+            }
+            if (fileType != FileSystemEntityType.file ||
+                !file.path.toLowerCase().endsWith('.json')) {
+              continue;
+            }
+            final relative = _normalizeRelative(
+                p.relative(file.path, from: projectRoot.path));
+            final json = _decodeJsonObject(
+                await authorFiles.read(relative, budget, jsonLike: true),
+                relative);
+            final document = PokemonMediaFile.fromJson(json);
+            if (document.speciesId.isEmpty ||
+                document.defaultFormId.isEmpty ||
+                json['variants'] is! Map) {
+              throw GamePackageExportException(
+                  code: 'resource_library.usage_incomplete',
+                  path: relative,
+                  message:
+                      'Resource scope needs valid Pokemon media documents.');
+            }
+            libraryDocuments.add(ResourceUsageDocument('pokemonMedia',
+                document.speciesId, document.speciesId, relative, json));
+          }
+        }
+      }
+      try {
+        validateResourceLibraryScopeIndex(
+            authorProject,
+            ResourceLibraryUsageIndex.fromDocuments(
+                maps: sourceMaps.values, documents: libraryDocuments));
+      } on VisualLibraryException catch (error) {
+        throw GamePackageExportException(
+            code: error.code,
+            path: 'project.json',
+            message: error.message,
+            cause: error);
+      }
+      authorFiles = _AuthorProjectFileResolver(projectRoot, authorFiles.catalog,
+          virtualFiles: {...authorFiles.virtualFiles, ...sourceMapFiles});
     }
 
     var projectedProject = authorProject.copyWith(
@@ -317,23 +437,26 @@ final class RuntimeProjectProjectionBuilder {
     if (projectedProject.settings.dimension == ProjectDimension.threeD &&
         projectedProject.smartTileCatalog.presets
             .any((preset) => preset.rules.length >= 64)) {
-      final sourceMaps = <MapData>[];
+      final terrainMaps = <MapData>[];
       for (final entry in projectedProject.maps) {
-        sourceMaps.add(MapData.fromJson(_decodeJsonObject(
-          await authorFiles.read(entry.relativePath, budget, jsonLike: true),
-          entry.relativePath,
-        )));
+        terrainMaps.add(sourceMaps[entry.id] ??
+            MapData.fromJson(_decodeJsonObject(
+              await authorFiles.read(entry.relativePath, budget,
+                  jsonLike: true),
+              entry.relativePath,
+            )));
       }
       final terrain = await projectRuntimeStaticTerrain(
         project: projectedProject,
-        maps: sourceMaps,
+        maps: terrainMaps,
         readAsset: (path) => authorFiles.read(path, budget),
       );
       projectedProject = terrain.project;
       final virtualFiles = <String, List<int>>{
+        ...authorFiles.virtualFiles,
         ...terrain.assets,
-        for (var index = 0; index < sourceMaps.length; index++)
-          if (terrain.maps[index] != sourceMaps[index])
+        for (var index = 0; index < terrainMaps.length; index++)
+          if (terrain.maps[index] != terrainMaps[index])
             projectedProject.maps[index].relativePath:
                 _encodeRuntimeJson(terrain.maps[index].toJson()),
       };

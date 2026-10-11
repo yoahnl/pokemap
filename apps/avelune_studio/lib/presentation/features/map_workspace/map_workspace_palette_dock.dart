@@ -4,7 +4,8 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import '../resources/resource_catalog.dart';
-import '../resources/resource_category_tree.dart';
+import '../resources/resource_family_tree.dart';
+import '../resources/resource_filter_button.dart';
 import '../resources/resource_preview.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import 'map_workspace_view_state.dart';
@@ -26,6 +27,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
     required this.onOpenFullPalette,
     this.maxHeight = 330,
     this.compact = false,
+    this.onPickResource,
   });
 
   final ProjectManifest project;
@@ -38,6 +40,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
   final VoidCallback onOpenFullPalette;
   final double maxHeight;
   final bool compact;
+  final ValueChanged<ResourceItem>? onPickResource;
 
   @override
   State<MapWorkspacePaletteDock> createState() =>
@@ -51,28 +54,23 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
   @override
   Widget build(BuildContext context) {
     final kind = widget.view.paletteTab;
-    final resourceKind = kind == 'Terrains'
-        ? ResourceKind.terrains
-        : ResourceKind.decors;
-    final items = resourceCatalog(widget.project);
-    final tree = ResourceCategoryTree(widget.project, resourceKind, items);
-    final selectedCategory = resourceKind == ResourceKind.decors
-        ? widget.view.decorCategoryId
-        : widget.view.terrainCategoryId;
-    final allowed = tree.idsFor(selectedCategory);
-    final query = widget.search.text.trim().toLowerCase();
-    final visible = items.where((item) {
-      if (item.kind != resourceKind) return false;
-      if (selectedCategory == uncategorizedResourceCategory) {
-        if (item.category.isNotEmpty) return false;
-      } else if (selectedCategory.isNotEmpty &&
-          !allowed.contains(item.category)) {
-        return false;
-      }
-      return '${item.name} ${item.tags.join(' ')}'.toLowerCase().contains(
-        query,
-      );
-    }).toList();
+    final map = widget.document.current;
+    widget.view.reconcileResources(widget.project, mapId: map.id, map: map);
+    widget.view.resourceFilters.query = kind == 'Personnages'
+        ? ''
+        : widget.search.text;
+    final items = widget.view.paletteResources(
+      widget.project,
+      map.id,
+      applyFilters: false,
+    );
+    final tree = ResourceFamilyTree(
+      widget.project,
+      items,
+      activeMapId: map.id,
+      forMapPicker: true,
+    );
+    final visible = widget.view.paletteResources(widget.project, map.id);
     final preferredHeight = _height ?? (widget.compact ? 184.0 : 270.0);
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
     return Container(
@@ -92,6 +90,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
           MapWorkspacePaletteDockHeader(
             kind: kind,
             compact: widget.compact,
+            spatial: map.spatialScene != null,
             collapsed: _collapsed,
             onKindChanged: (value) {
               widget.view.paletteTab = value;
@@ -108,6 +107,43 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             onOpenFullPalette: widget.onResources,
           ),
           if (!_collapsed) const SizedBox(height: 6),
+          if (!_collapsed && kind != 'Passages')
+            MapWorkspacePaletteDockFilters(
+              tree: tree,
+              filters: widget.view.resourceFilters,
+              search: widget.search,
+              activeMapName: map.name,
+              showSearch: kind != 'Personnages',
+              countResults: (draft, _) => filterResourceCatalog(
+                widget.project,
+                items,
+                kind == 'Personnages'
+                    ? (draft.copy()..query = widget.view.characterQuery)
+                    : draft,
+                activeMapId: map.id,
+                forMapPicker: true,
+              ).length,
+              onChanged: () {
+                setState(() {});
+                widget.onChanged();
+              },
+            ),
+          if (!_collapsed && kind != 'Passages')
+            ResourceFilterTags(
+              filters: widget.view.resourceFilters,
+              activeMapName: map.name,
+              forMapPicker: true,
+              familyLabel: tree.nodes
+                  .where(
+                    (node) => node.id == widget.view.resourceFilters.familyId,
+                  )
+                  .firstOrNull
+                  ?.name,
+              onChanged: () {
+                setState(() {});
+                widget.onChanged();
+              },
+            ),
           if (!_collapsed && detailed && kind != 'Tuiles')
             Expanded(
               child: Column(
@@ -123,6 +159,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                       search: widget.search,
                       onChanged: widget.onChanged,
                       onResources: widget.onResources,
+                      onPickResource: widget.onPickResource,
                     ),
                   ),
                   if (kind == 'Personnages' && widget.view.character == null)
@@ -149,25 +186,11 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             Expanded(
               child: Column(
                 children: [
-                  MapWorkspacePaletteDockFilters(
-                    tree: tree,
-                    selected: selectedCategory,
-                    search: widget.search,
-                    onCategoryChanged: (value) {
-                      if (resourceKind == ResourceKind.decors) {
-                        widget.view.decorCategoryId = value;
-                      } else {
-                        widget.view.terrainCategoryId = value;
-                      }
-                      setState(() {});
-                    },
-                    onSearchChanged: () => setState(() {}),
-                  ),
                   Expanded(
                     child: visible.isEmpty
                         ? Center(
                             child: Text(
-                              'Aucune ressource dans cette catégorie.',
+                              'Aucune ressource ne correspond aux filtres.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           )
@@ -178,7 +201,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                   .clamp(1, 2);
                               return GridView.builder(
                                 key: ValueKey(
-                                  'dock-$kind-$selectedCategory-$rows',
+                                  'dock-$kind-${widget.view.resourceFilters.familyId}-$rows',
                                 ),
                                 scrollDirection: Axis.horizontal,
                                 gridDelegate:
@@ -217,6 +240,10 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                         ? widget.view.brush?.id == item.id
                                         : widget.view.terrain?.id == item.id,
                                     onTap: () {
+                                      if (widget.onPickResource != null) {
+                                        widget.onPickResource!(item);
+                                        return;
+                                      }
                                       final view = widget.view;
                                       view.brush = item.element;
                                       view.model3d = item.model3d;

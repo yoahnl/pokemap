@@ -129,6 +129,20 @@ final class AuthoringResourceKindRegistry {
 
   factory AuthoringResourceKindRegistry.canonical() {
     return AuthoringResourceKindRegistry([
+      for (final kind in [
+        'resourceLibraryCatalog',
+        'resourceFamily',
+        'resourceLibraryEntry',
+        'element',
+        'environmentPreset',
+        'character'
+      ])
+        AuthoringResourceKindDescriptor(
+            id: kind,
+            version: 1,
+            displayName: kind,
+            summary:
+                'Shared resource library classification, typed identity and map availability'),
       AuthoringResourceKindDescriptor(
         id: 'project',
         version: 1,
@@ -619,6 +633,13 @@ final class AuthoringResourceKindRegistry {
           displayName: '3D model',
           summary: 'Inspected project-owned GLB model and authoring transform'),
     ], queryableResourceKindIds: const {
+      'resourceLibraryCatalog',
+      'resourceFamily',
+      'resourceLibraryEntry',
+      'element',
+      'environmentPreset',
+      'character',
+      'tileset',
       'model3d',
       'asset',
       'resourceUsage',

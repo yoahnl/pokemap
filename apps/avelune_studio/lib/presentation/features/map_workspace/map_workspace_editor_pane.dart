@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import 'map_library_navigator.dart';
+import '../resources/resource_catalog.dart';
 import 'map_workspace_compact_navigator.dart';
 import 'map_workspace_canvas.dart';
 import 'map_workspace_palette_dock.dart';
@@ -38,6 +39,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
     required this.onChanged,
     required this.onMoreTools,
     required this.onResources,
+    this.onPickResource,
     this.onEnvironments,
     this.onBorders,
     required this.onZoneDrawn,
@@ -56,6 +58,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
   final ValueChanged<ProjectMapEntry> onActivate;
   final OrganizeMapLibrary? onOrganizeMaps;
   final VoidCallback onToolChanged, onChanged, onMoreTools, onResources;
+  final ValueChanged<ResourceItem>? onPickResource;
   final VoidCallback? onEnvironments, onBorders;
   final ValueChanged<MapRect>? onZoneDrawn;
   final void Function(GridPos, Offset)? onContextMenu;
@@ -183,6 +186,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                 ),
                 if (widget.showPaletteDock)
                   MapWorkspacePaletteDock(
+                    onPickResource: widget.onPickResource,
                     project: widget.project,
                     document: widget.document,
                     visuals: widget.visuals,

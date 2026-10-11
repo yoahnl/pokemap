@@ -4,6 +4,8 @@ import '../../transactions/authoring_plan.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_lifecycle_analysis.dart';
 import 'map_metadata_actions.dart';
+import '../../references/resource_library_scope_guard.dart';
+import '../assets/tileset_actions.dart';
 
 /// Canonical lifecycle action family registered by the map mutation API.
 final class MapLifecycleActions {
@@ -24,6 +26,12 @@ final class MapLifecycleActions {
       return MapLifecycleAnalysis(
           canApply: false,
           noChange: error.code == 'map.no_change',
+          errorCode: error.code,
+          message: error.message,
+          details: error.details);
+    } on VisualLibraryException catch (error) {
+      return MapLifecycleAnalysis(
+          canApply: false,
           errorCode: error.code,
           message: error.message,
           details: error.details);
@@ -71,7 +79,7 @@ final class MapLifecycleActions {
         details: {'actionVersion': context.request.actionVersion},
       );
     }
-    return switch (context.request.actionId) {
+    final draft = switch (context.request.actionId) {
       'map.create' => _adapter.create(context),
       'map.delete_apply' => _adapter.delete(context),
       'map.duplicate' => _adapter.duplicate(context),
@@ -85,6 +93,7 @@ final class MapLifecycleActions {
           details: {'actionId': context.request.actionId},
         ),
     };
+    return guardResourceLibraryMutation(context, draft);
   }
 }
 

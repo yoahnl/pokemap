@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../workspace/project_snapshot.dart';
-import '../maps/smart_tile_catalog_document.dart';
 
 List<int> encodeResourceInformationDocument(
     ProjectSnapshot snapshot, ProjectManifest manifest) {
@@ -14,13 +13,6 @@ List<int> encodeResourceInformationDocument(
   final merged = Map<String, Object?>.from(
       _mergeChanged(original, snapshot.manifest.toJson(), manifest.toJson())
           as Map);
-  if (manifest.smartTileCatalog.isNotEmpty ||
-      merged.containsKey('smartTileCatalog')) {
-    merged['smartTileCatalog'] = canonicalSmartTileCatalogDocument(
-        original['smartTileCatalog'],
-        snapshot.manifest.smartTileCatalog,
-        manifest.smartTileCatalog);
-  }
   return utf8.encode(jsonEncode(merged));
 }
 

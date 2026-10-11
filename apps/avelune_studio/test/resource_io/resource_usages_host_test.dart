@@ -21,7 +21,7 @@ void main() {
         host.fixture.controller.documents.containsKey('clairiere'),
         isFalse,
       );
-      await host.action('images:atelier', 'Voir les usages dans le projet');
+      await host.action('tileset:atelier', 'Voir les usages dans le projet');
       expect(find.text('Non analysé'), findsOneWidget);
       expect(
         tester
@@ -58,7 +58,7 @@ void main() {
       expect(host.fixture.controller.active!.current.id, 'clairiere');
       await tester.tap(find.byTooltip('Ressources').first);
       await pumpIo(tester, frames: 6);
-      expect(host.navigation.library.selectedIdentity, 'images:atelier');
+      expect(host.navigation.library.selectedIdentity, 'tileset:atelier');
     },
   );
 
@@ -75,7 +75,7 @@ void main() {
       expect(document.dirty, isTrue);
       final undo = document.undoCount;
       await host.family(ResourceKind.images);
-      await host.action('images:atelier', 'Voir les usages dans le projet');
+      await host.action('tileset:atelier', 'Voir les usages dans le projet');
       await host.tap('resource-usage-analyze');
       expect(find.text('Analyse incomplète'), findsOneWidget);
       expect(find.textContaining('Brouillons non analysés'), findsOneWidget);
@@ -90,7 +90,7 @@ void main() {
   ) async {
     final host = await UwUResourceHost.open(tester);
     await host.family(ResourceKind.images);
-    await host.action('images:atelier', 'Voir les usages dans le projet');
+    await host.action('tileset:atelier', 'Voir les usages dans le projet');
     await host.tap('resource-usage-analyze');
     final result = tester.widget<ResourceUsageResults>(
       find.byType(ResourceUsageResults),

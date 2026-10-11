@@ -12,6 +12,8 @@ export 'src/api/authoring_mutation_api.dart';
 export 'src/api/authoring_mutation_contracts.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
 export 'src/application/map_mutation_dispatcher.dart';
+export 'src/domains/assets/resource_library_actions.dart';
+export 'src/references/resource_library_scope_guard.dart';
 export 'src/application/playtest_player_state_service.dart';
 export 'src/architecture/package_boundaries.dart';
 export 'src/contracts/action_descriptor.dart';

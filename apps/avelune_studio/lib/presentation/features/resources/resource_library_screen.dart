@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../map_workspace/map_workspace_visuals.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -16,6 +17,9 @@ import 'resource_terrain_actions.dart';
 import 'resource_border_draft_bar.dart';
 import 'resource_creation_buttons.dart';
 import 'resource_family_navigation.dart';
+import 'resource_family_tree.dart';
+import 'resource_family_tree_view.dart';
+import 'resource_filter_button.dart';
 part 'resource_library_layout.dart';
 part 'resource_library_header.dart';
 
@@ -54,6 +58,9 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.modelLibrary,
     this.onImportModel,
     this.onCreateEnvironment,
+    this.onManageFamilies,
+    this.onClassify,
+    this.activeMapId,
   });
   final ProjectManifest project;
   final List<MapData> openMaps;
@@ -85,6 +92,9 @@ class ResourceLibraryScreen extends StatefulWidget {
   final Widget? modelLibrary;
   final VoidCallback? onImportModel;
   final VoidCallback? onCreateEnvironment;
+  final VoidCallback? onManageFamilies;
+  final ValueChanged<ResourceItem>? onClassify;
+  final String? activeMapId;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
 }
@@ -104,12 +114,19 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   }
 
   void remember() => state.offset = scroll.offset;
-  void select(ResourceItem item) => setState(() => state.selectedId = item.id);
+  void select(ResourceItem item) => setState(() => state.select(item));
   @override
   void didUpdateWidget(ResourceLibraryScreen old) {
     super.didUpdateWidget(old);
     if (!identical(old.project, widget.project)) {
       items = resourceCatalog(widget.project);
+      if (state.filters.familyId.isNotEmpty &&
+          state.filters.familyId != unclassifiedResourceFamily &&
+          !widget.project.resourceLibraryCatalog.effectiveFamilies.any(
+            (family) => family.id == state.filters.familyId,
+          )) {
+        state.filters.familyId = '';
+      }
     }
     if (search.text != state.query) search.text = state.query;
   }
@@ -122,6 +139,28 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
 
   void changeFamily(ResourceLibraryFamily family) =>
       change(() => state.selectFamily(family));
+
+  void changeNatureFamily(String id) => change(() {
+    state.filters.familyId = id;
+    state.atelierVisible = false;
+  });
+
+  Widget natureFamilies(ResourceFamilyTree tree, {VoidCallback? close}) =>
+      ResourceFamilyTreeView(
+        tree: tree,
+        selectedFamilyId: state.filters.familyId,
+        onChanged: (id) {
+          changeNatureFamily(id);
+          close?.call();
+        },
+      );
+
+  void showAteliers() => showWorkspaceCompactPanel(
+    context,
+    title: 'Ateliers de préparation',
+    closeLabel: 'Retour aux ressources',
+    builder: (context, refresh, close) => families(close: close),
+  );
 
   Widget families({VoidCallback? close}) => ResourceFamilyNavigation(
     selected: state.family,
@@ -162,6 +201,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                 terrainPattern: true,
               ),
         targetMapName: widget.targetMapName,
+        activeMapId: widget.activeMapId,
         canUse: widget.canUse && widget.project.maps.isNotEmpty,
         onInformation: widget.onInformation == null
             ? null
@@ -201,6 +241,12 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
               },
         canEditTerrain:
             item != null && (widget.canEditTerrain?.call(item) ?? false),
+        onClassify: widget.onClassify == null
+            ? null
+            : (item) {
+                close?.call();
+                widget.onClassify!(item);
+              },
         onUse: (item) {
           close?.call();
           widget.onUse(item);

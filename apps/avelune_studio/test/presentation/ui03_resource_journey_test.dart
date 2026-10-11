@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ import 'package:avelune_studio/presentation/features/resources/atlas_selection_v
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resource_card.dart';
+
 import '../support/m2_ui_fixture.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/ui03_resource_fixture.dart';
@@ -40,10 +42,16 @@ void main() {
     Future<void> chooseCategory(String id) async {
       final target = find.byKey(ValueKey('resource-category-$id'));
       if (target.evaluate().isEmpty) {
-        await tester.tap(find.text('Filtres'));
+        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
         await tester.pumpAndSettle();
       }
       await tester.tap(target);
+      if (find
+          .byKey(const ValueKey('resource-filter-apply'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+      }
       await tester.pumpAndSettle();
     }
 

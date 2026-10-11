@@ -23,6 +23,7 @@ import 'presentation_cinematic_asset.dart';
 import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
 import 'cinematic_library_catalog.dart';
+import 'resource_library_catalog.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
@@ -112,6 +113,18 @@ Map<String, Object?>? _cinematicLibraryCatalogToJson(
 ) {
   return catalog.isEmpty ? null : catalog.toJson();
 }
+
+ResourceLibraryCatalog _resourceLibraryCatalogFromJson(Object? json) {
+  if (json == null) return const ResourceLibraryCatalog.empty();
+  if (json is! Map) {
+    throw const FormatException('resourceLibraryCatalog: expected object');
+  }
+  return ResourceLibraryCatalog.fromJson(Map<String, Object?>.from(json));
+}
+
+Map<String, Object?>? _resourceLibraryCatalogToJson(
+  ResourceLibraryCatalog catalog,
+) => catalog.isEmpty ? null : catalog.toJson();
 
 List<Map<String, dynamic>>? _characterPortraitsToJson(
   List<CharacterPortraitVariant> portraits,
@@ -383,6 +396,13 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectModel3dEntry> models3d,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
+    @Default(ResourceLibraryCatalog.empty())
+    @JsonKey(
+      fromJson: _resourceLibraryCatalogFromJson,
+      toJson: _resourceLibraryCatalogToJson,
+      includeIfNull: false,
+    )
+    ResourceLibraryCatalog resourceLibraryCatalog,
     @Default([])
     @JsonKey(
       name: 'environmentPresets',

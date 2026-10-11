@@ -11,7 +11,7 @@ void main() {
     tester,
   ) async {
     final host = await openUwU4ResourceHost(tester);
-    await host.action('decors:tree', 'Supprimer la définition…');
+    await host.action('element:tree', 'Supprimer la définition…');
     await host.tap('resource-removal-confirm');
     await host.tap('resource-management-save');
     final before = await host.reopen();
@@ -26,7 +26,7 @@ void main() {
     ))!;
     await host.family(ResourceKind.images);
     await host.action(
-      'images:${before.tilesets.single.id}',
+      'tileset:${before.tilesets.single.id}',
       'Supprimer la planche…',
     );
     await host.tap('resource-removal-source');
@@ -57,12 +57,12 @@ void main() {
       '${host.fixture.directory.path}/assets/.pokemap-assets.json',
     );
     final catalogBytes = (await tester.runAsync(catalogFile.readAsBytes))!;
-    await host.action('decors:tree', 'Supprimer la définition…');
+    await host.action('element:tree', 'Supprimer la définition…');
     await host.tap('resource-removal-confirm');
     await host.tap('resource-management-save');
     await host.family(ResourceKind.images);
     await host.action(
-      'images:${before.tilesets.single.id}',
+      'tileset:${before.tilesets.single.id}',
       'Supprimer la planche…',
     );
     final source = find.byKey(const ValueKey('resource-removal-source'));
@@ -102,12 +102,12 @@ void main() {
           jsonDecode((await tester.runAsync(catalogFile.readAsString))!)
               as Map<String, dynamic>;
       expect(catalog['records'], hasLength(1));
-      await host.action('decors:tree', 'Supprimer la définition…');
+      await host.action('element:tree', 'Supprimer la définition…');
       await host.tap('resource-removal-confirm');
       await host.tap('resource-management-save');
       await host.family(ResourceKind.images);
       await host.action(
-        'images:${before.tilesets.single.id}',
+        'tileset:${before.tilesets.single.id}',
         'Supprimer la planche…',
       );
       await host.tap('resource-removal-source');

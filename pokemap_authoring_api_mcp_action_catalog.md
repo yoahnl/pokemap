@@ -445,6 +445,9 @@ projectPokemonConfig
 projectNewGameConfig
 projectPresentationProfile
 projectPresentationPreset
+resourceLibraryCatalog
+resourceFamily
+resourceLibraryEntry
 mapGroup
 map
 mapLayer
@@ -1166,6 +1169,42 @@ de décors restent hiérarchiques ; les catégories Smart Tiles restent plates.
 Les suppressions de conteneurs occupés sont refusées. Le déplacement d'un
 preset ne publie pas son brouillon de préparation. Ces commandes traversent
 le dispatcher canonique et les transactions revisionnées communes.
+
+Le classement transversal des ressources est indépendant de ces catégories
+métier et utilise les quatre actions canoniques suivantes :
+
+```text
+resource.family.create
+resource.family.update
+resource.family.delete
+resource.classify
+```
+
+`resource.family.create` reçoit `{familyId, name, parentId?}` ;
+`resource.family.update` reçoit les mêmes champs, avec conservation du parent
+si `parentId` est absent et retour à la racine s'il vaut `null`.
+`resource.family.delete` reçoit `{familyId}` et refuse les familles prédéfinies,
+les familles ayant des enfants et celles contenant des ressources classées.
+`resource.classify` reçoit `{resourceKind, resourceId, familyId?, mapId?}`.
+Un champ absent conserve la valeur ; `null` retire la famille ou rétablit la
+disponibilité projet. Les identités typées acceptées sont `element`, `model3d`,
+`smartTilePreset`, `tileset`, `borderBlueprint`, `environmentPreset` et
+`character`. Une identité, une famille ou une carte inconnue refuse le plan.
+
+Les trois lectures via `pokemap_query` sont `resourceLibraryCatalog` (id
+`resource-library`, catalogue et familles effectives), `resourceFamily`
+(familles prédéfinies et personnalisées, descendants) et
+`resourceLibraryEntry` (id composé `resourceKind:resourceId`, classement et
+portée explicites). Elles supportent `list`, `get`, `batch_get`, `search` et
+`summary`. Les définitions des sept types classables restent accessibles via
+leur propre `resourceKind`. Familles et classements sont des métadonnées
+d'auteur ; leur rendu et leur exécution runtime sont `NOT_APPLICABLE`.
+
+Une portée locale est contrôlée sur les usages sauvegardés directs et
+indirects, dans la préparation, les mutations canoniques et l'export source
+avant projection runtime. Copier ou supprimer une carte portant des ressources
+locales exige leur promotion préalable ou leur suppression explicite ; aucune
+promotion silencieuse ni copie physique automatique des sources n'est faite.
 
 Le remplacement compatible d’une source utilise `tileset.source.replace`
 avec un artifact figé. Les dimensions et la grille restent identiques ; les

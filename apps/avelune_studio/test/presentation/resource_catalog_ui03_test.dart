@@ -53,7 +53,7 @@ void main() {
       expect(state.reconcileSelection(state.visibleItems(_items))!.id, 'oak-b');
       state.category = 'nature';
       expect(state.reconcileSelection(state.visibleItems(_items))!.id, 'birch');
-      expect(state.selectedIdentity, 'decors:birch');
+      expect(state.selectedIdentity, 'element:birch');
       state.query = 'absent';
       expect(state.reconcileSelection(state.visibleItems(_items)), isNull);
       expect(state.selectedId, isNull);
@@ -65,7 +65,7 @@ void main() {
     state.kind = ResourceKind.images;
     final selection = state.reconcileSelection(state.visibleItems(_items));
     expect(selection!.id, 'atlas');
-    expect(state.selectedIdentity, 'images:atlas');
+    expect(state.selectedIdentity, 'tileset:atlas');
     expect(_items[1].identity, isNot(_items[3].identity));
   });
 

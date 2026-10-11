@@ -657,6 +657,67 @@ List<_QueryRecord> _records(
   AuthoringQueryRequest request,
 ) {
   switch (request.resourceKind) {
+    case 'resourceLibraryCatalog':
+      final catalog = snapshot.manifest.resourceLibraryCatalog;
+      final record = <String, Object?>{
+        'id': 'resource-library',
+        'name': 'Resource library',
+        ...catalog.toJson(),
+        'effectiveFamilies': [
+          for (final family in catalog.effectiveFamilies) family.toJson()
+        ]
+      };
+      return [_QueryRecord(summary: record, detail: record)];
+    case 'resourceFamily':
+      return [
+        for (final family
+            in snapshot.manifest.resourceLibraryCatalog.effectiveFamilies)
+          _QueryRecord(summary: family.toJson(), detail: {
+            ...family.toJson(),
+            'predefined': ResourceLibraryCatalog.predefinedFamilies
+                .any((entry) => entry.id == family.id),
+            'descendantFamilyIds': snapshot.manifest.resourceLibraryCatalog
+                .descendantFamilyIds(family.id)
+                .toList()
+              ..sort(),
+          })
+      ];
+    case 'resourceLibraryEntry':
+      return [
+        for (final entry in snapshot.manifest.resourceLibraryCatalog.entries)
+          _QueryRecord(summary: {
+            'id': entry.identity,
+            'name': entry.resourceId,
+            ...entry.toJson(),
+            'scope': entry.mapId == null ? 'project' : 'map'
+          }, detail: {
+            'id': entry.identity,
+            'name': entry.resourceId,
+            ...entry.toJson(),
+            'scope': entry.mapId == null ? 'project' : 'map'
+          })
+      ];
+    case 'element':
+    case 'environmentPreset':
+    case 'character':
+    case 'tileset':
+      final values = switch (request.resourceKind) {
+        'element' => [
+            for (final value in snapshot.manifest.elements) value.toJson()
+          ],
+        'environmentPreset' =>
+          encodeEnvironmentPresets(snapshot.manifest.environmentPresets),
+        'character' => [
+            for (final value in snapshot.manifest.characters) value.toJson()
+          ],
+        _ => [for (final value in snapshot.manifest.tilesets) value.toJson()],
+      };
+      return [
+        for (final value in values)
+          _QueryRecord(
+              summary: Map<String, Object?>.from(value),
+              detail: Map<String, Object?>.from(value))
+      ];
     case 'model3d':
       return [
         for (final model in snapshot.manifest.models3d)

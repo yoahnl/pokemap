@@ -121,6 +121,72 @@ void main() {
         (await fixture.read()).smartTileCatalog.presets.single.categoryId, '');
   });
 
+  test('smart tile information changes preserve minimal raw drafts and rules',
+      () async {
+    final fixture =
+        await ResourceInformationFixture.create(smartInformationFixture());
+    addTearDown(fixture.dispose);
+    final path = File('${fixture.root.path}/project.json');
+    final original =
+        jsonDecode(await path.readAsString()) as Map<String, dynamic>;
+    final catalog = original['smartTileCatalog'] as Map<String, dynamic>;
+    catalog['drafts'] = [
+      {
+        'id': 'editing',
+        'targetPresetId': 'ground',
+        'sourcePresetId': 'ground',
+        'name': 'Mon brouillon non publié',
+        'categoryId': 'shared',
+        'usage': 'terrain',
+        'lastStage': 'usage',
+        'extensionData': {'authored': 'préservé'}
+      }
+    ];
+    await path.writeAsString(jsonEncode(original));
+    final draftBytes = jsonEncode(catalog['drafts']);
+    final ruleBytes = jsonEncode((catalog['presets'] as List).single['rules']);
+    for (final operation in [
+      (
+        'smart_tile.category.upsert',
+        {
+          'category': {'id': 'other', 'name': 'Autres'}
+        }
+      ),
+      (
+        'smart_tile.preset.category.assign',
+        {'presetId': 'ground', 'categoryId': 'other'}
+      ),
+      (
+        'smart_tile.category.upsert',
+        {
+          'category': {'id': 'empty', 'name': 'Vide'}
+        }
+      ),
+    ]) {
+      await fixture.mutate(operation.$1, operation.$2);
+      final raw = (jsonDecode(await path.readAsString())
+          as Map)['smartTileCatalog'] as Map;
+      expect(jsonEncode(raw['drafts']), draftBytes);
+      expect(jsonEncode((raw['presets'] as List).single['rules']), ruleBytes);
+    }
+    final deletion = await fixture
+        .plan('smart_tile.category.delete', {'categoryId': 'empty'});
+    final confirmed = await fixture.command('confirm',
+        {'projectHandle': fixture.project, 'planId': deletion.data['planId']});
+    final applied = await fixture.command('apply', {
+      'projectHandle': fixture.project,
+      'planId': deletion.data['planId'],
+      'operationId': 'delete-empty-preserve-raw',
+      'confirmationToken': confirmed.data['confirmationToken']
+    });
+    expect(applied.status, AuthoringResultStatus.success);
+    final raw = (jsonDecode(await path.readAsString())
+        as Map)['smartTileCatalog'] as Map;
+    expect(jsonEncode(raw['drafts']), draftBytes);
+    expect(jsonEncode((raw['presets'] as List).single['rules']), ruleBytes);
+    expect((raw['presets'] as List).single['categoryId'], 'other');
+  });
+
   test('pure preview shares dispatcher payload and creates no filesystem state',
       () {
     final snapshot = catalogSnapshot(const [], project: informationFixture());

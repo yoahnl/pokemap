@@ -11,8 +11,7 @@ Future<void> selectResourceFamily(
 ) async {
   final target = find.byKey(ValueKey('resource-family-${family.name}'));
   if (target.evaluate().isEmpty) {
-    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
-    await pumpIo(tester, frames: 6);
+    await _openAteliers(tester);
   }
   await _revealFamilyControl(tester, target);
   await tester.tap(target);
@@ -20,14 +19,26 @@ Future<void> selectResourceFamily(
 }
 
 Future<void> openResourceCharacters(WidgetTester tester) async {
-  final target = find.text('Personnages');
+  final target = find.descendant(
+    of: find.byType(ResourceFamilyNavigation),
+    matching: find.text('Personnages'),
+  );
   if (target.evaluate().isEmpty) {
-    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
-    await pumpIo(tester, frames: 6);
+    await _openAteliers(tester);
   }
   await _revealFamilyControl(tester, target);
   await tester.tap(target);
   await pumpIo(tester, frames: 8);
+}
+
+Future<void> _openAteliers(WidgetTester tester) async {
+  final chooser = find.byKey(const ValueKey('resource-family-chooser'));
+  if (chooser.evaluate().isEmpty) {
+    await tester.tap(find.text('Actions').first);
+    await pumpIo(tester, frames: 6);
+  }
+  await tester.tap(chooser);
+  await pumpIo(tester, frames: 6);
 }
 
 Future<void> _revealFamilyControl(WidgetTester tester, Finder target) async {

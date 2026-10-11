@@ -258,6 +258,15 @@ void main() {
       expect(actionIds, contains('action.map.apply_operations'));
       expect(actionIds, contains('action.playtest.start'));
       expect(actionIds, contains('action.presentation.preset.export'));
+      expect(
+        actionIds,
+        containsAll([
+          'action.resource.family.create',
+          'action.resource.family.update',
+          'action.resource.family.delete',
+          'action.resource.classify',
+        ]),
+      );
     });
 
     test('catalog certifies Smart Tiles and contains no legacy paint actions',

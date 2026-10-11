@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+
 import '../../shared/widgets/layout/studio_application_frame.dart';
+
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+
 import 'map_workspace_view_state.dart';
+import '../resources/resource_catalog.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
 import 'map_workspace_palette_column.dart';
@@ -37,6 +41,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onTest,
     required this.onClose,
     required this.onResources,
+    this.onPickResource,
     this.onEnvironments,
     this.onBorders,
     required this.onMap,
@@ -71,6 +76,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final int generation;
   final VoidCallback onPalette, onInspector, onChanged, onToolChanged;
   final VoidCallback onClose, onResources, onMap, onExport, onPokemon;
+  final ValueChanged<ResourceItem>? onPickResource;
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
   final bool exportActive;
@@ -106,6 +112,7 @@ class MapWorkspaceLayout extends StatelessWidget {
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapWorkspacePaletteColumn(
+          onPickResource: onPickResource,
           width: close == null ? paletteWidth : 360,
           project: project,
           document: doc,
@@ -157,10 +164,12 @@ class MapWorkspaceLayout extends StatelessWidget {
             close?.call();
             onEditInteraction?.call(entity);
           },
-          onEventSource: onEventSource == null ? null : (source) {
-            close?.call();
-            onEventSource!(source);
-          },
+          onEventSource: onEventSource == null
+              ? null
+              : (source) {
+                  close?.call();
+                  onEventSource!(source);
+                },
           onOpenMap: mapLibraryOpenAction(project, onActivate, close),
           onLinkMaps: onLinkMaps,
           onUnlinkMaps: onUnlinkMaps,
@@ -265,6 +274,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           onOrganize: onOrganizeMaps,
                         )
                       : MapWorkspaceEditorPane(
+                          onPickResource: onPickResource,
                           controller: controller,
                           document: doc,
                           project: project,
