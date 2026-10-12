@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-06",
+  "applicationPath": "apps/avelune_converter",
+  "auditInitialHead": "010297e9808c8e6c0a4e1b003eb4702adc78d9c9",
+  "gateTechnical": "PASS",
+  "humanReview": "pending",
+  "notionTicket": "https://app.notion.com/p/3f7197a7bfa58139aa70da74c57612c4",
+  "postBetaGrandDomain": "3bf197a7-bfa5-81bb-b13a-df367721992f",
+  "gateBeta": false,
+  "scope": "Ordinary XP tiles in native editable study maps; no autotiles, native event execution, gameplay priority, or publication certification.",
+  "productionFiles": [
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/literal_tile_composer.dart",
+      "sha256": "5d3ba67354a8d00a31b5757020336578fceb0959cf255b842b23bb0d5cb69c61",
+      "lines": 969,
+      "declarations": [
+        {
+          "line": 8,
+          "text": "enum LiteralDependencyDisposition { include, excludeStudy, block }"
+        },
+        {
+          "line": 10,
+          "text": "enum LiteralDependencyKind { staticTransfer, dynamicTransfer, invalidTransfer }"
+        },
+        {
+          "line": 38,
+          "text": "Sha256Hash literalSelectionHash("
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/native_project_writer.dart",
+      "sha256": "f64bfca2ae4a295cd0145c4cc9e20bd1beb3282d9c358fbc5b6f1b596b65fe4e",
+      "lines": 1361,
+      "declarations": [
+        {
+          "line": 269,
+          "text": "enum NativeWriteStage {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/literal_tile_composer_test.dart",
+      "sha256": "786078095b1f09c70bba890fec5b17e2d58453a13d1806ff2f084facd034f87c",
+      "lines": 1162,
+      "declarations": [
+        {
+          "line": 125,
+          "text": "void main() {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart",
+      "sha256": "77ea036b64e154fbdf86c13019a1c1a55cdd7e7da8eef755f5b1a888a127432a",
+      "lines": 403,
+      "declarations": [
+        {
+          "line": 9,
+          "text": "Sha256Hash literalFixtureHash(List<int> bytes) =>"
+        },
+        {
+          "line": 12,
+          "text": "List<int> literalFixtureAtlas({bool alternate = false}) {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/native_project_writer_test.dart",
+      "sha256": "aab404fc513a0ee8f81f85228f67a210679d31b0011306d565913f0db5793893",
+      "lines": 911,
+      "declarations": [
+        {
+          "line": 17,
+          "text": "void main() {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/support/native_writer_fixture.dart",
+      "sha256": "b39fd016de2cc4b85ef605d824820779aaf128abd60d96c2b36456a09fb64d0a",
+      "lines": 519,
+      "declarations": [
+        {
+          "line": 11,
+          "text": "Sha256Hash nativeFixtureHash(List<int> bytes) =>"
+        },
+        {
+          "line": 14,
+          "text": "List<int> nativeFixturePngWithIdat(List<int> original, List<int> idat) => ["
+        },
+        {
+          "line": 45,
+          "text": "NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,"
+        },
+        {
+          "line": 159,
+          "text": "NativeProjectDraft copyNativeFixtureDraft(NativeProjectDraft draft,"
+        },
+        {
+          "line": 186,
+          "text": "NativeMutation copyNativeFixtureMutation(NativeMutation mutation,"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/tool/literal_tile_probe.dart",
+      "sha256": "5a0c977774c200738a75b50d88d850273b15e3f079fe07746ae548426504057b",
+      "lines": 126,
+      "declarations": [
+        {
+          "line": 11,
+          "text": "Future<void> main(List<String> arguments) async {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/tool/literal_tile_source_probe.dart",
+      "sha256": "54fe7b47aa248168bbaab392caa60f661c8724584bba32bb20516cd4ebd99e65",
+      "lines": 170,
+      "declarations": [
+        {
+          "line": 7,
+          "text": "Future<void> main(List<String> arguments) async {"
+        }
+      ]
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart",
+      "sha256": "e8dc7ac6a7d76305ba1c7f5777ce12edac40b5761ec0392e4271b997f72957d1",
+      "lines": 4,
+      "declarations": []
+    }
+  ],
+  "nativeAot": {
+    "verified": true,
+    "published": false,
+    "sourceUnchanged": true,
+    "projectPath": "/Users/karim/Project/pokemonProject/.dart_tool/avelune_converter_ac06/ac06-original-qualification-2DLR67/.avelune-converter-stage-tM0X2h/converted-literal-fixture",
+    "playableCertified": false,
+    "humanProductionApproval": false,
+    "sourceSnapshotHash": "855ade33ae3f0adc80840343568aeb0231941632a5a4542a1b16ad6808a9da7c",
+    "compositionHash": "7622b9e7bde397ad4d82b1d40e5ecdd849d0330027a0f2e05fd69f52f9876517",
+    "controlledQualificationFixture": true
+  },
+  "sourceInspection": {
+    "mapCount": 383,
+    "ordinaryOnlyMapCount": 266,
+    "autotileMapCount": 117,
+    "reservedTileMapCount": 0,
+    "blockingSourceDiagnostics": 33,
+    "sourceUnchanged": true,
+    "snapshotHash": "5bc0f5dd57e70951cb86fe7c71114e983827251830b2b11f23ef2dab48f1c8de",
+    "profileState": "requiresConfirmation",
+    "humanProductionApproval": false,
+    "nativeDraftWritten": false
+  },
+  "route9ReadOnlyPreview": {
+    "sourceUnchanged": true,
+    "canPlan": true,
+    "blockingDiagnostics": 0,
+    "map": {
+      "sourceMapId": 98,
+      "name": "Route 9",
+      "sourceTilesetId": 1,
+      "width": 72,
+      "height": 61,
+      "sourceZ": [
+        0,
+        1,
+        2
+      ],
+      "eventCount": 16,
+      "staticTransferTargets": [],
+      "unresolvedTransferCommands": 0,
+      "cellCounts": {
+        "empty": 5009,
+        "reserved": 0,
+        "autotile": 0,
+        "regular": 8167
+      },
+      "uniqueTileIds": 70,
+      "maxSourceTileId": 1681,
+      "regularOnly": true
+    },
+    "preview": {
+      "compositionHash": "0d39d601f3247a4fe9f626b62d4da9a8059e37f7a1eaf1db0ef5fe0598f1aa36",
+      "draftPrepared": true,
+      "playableCertified": false,
+      "mapIds": {
+        "98": "map_4899e6511510c4ef476708c3f5439b07d83d955bac016c6c8447023a"
+      },
+      "tilesetIds": {
+        "1": "tileset_a8a9695cd8b1853a2042162b0c5d56a1f797f5a6fc93fcf9cfae047b"
+      },
+      "dependencies": [],
+      "diagnostics": [
+        {
+          "code": "literal.profile.requiresConfirmation",
+          "blocksPlanning": false,
+          "locator": {},
+          "message": "Source profile remains an unconfirmed study observation"
+        },
+        {
+          "code": "literal.events.deferred",
+          "blocksPlanning": false,
+          "locator": {
+            "file": "Data/Map098.rxdata",
+            "mapId": 98
+          },
+          "message": "Original event data is preserved; native event conversion is deferred"
+        },
+        {
+          "code": "literal.gameplay.deferred",
+          "blocksPlanning": false,
+          "locator": {},
+          "message": "Source passages, priorities and terrain tags are preserved without gameplay certification"
+        }
+      ],
+      "cropCount": 69,
+      "layerCount": 3
+    }
+  },
+  "mcpProof": {
+    "action": "map.apply_operations",
+    "operation": "region.paint",
+    "sourceMapId": 1,
+    "x": 2,
+    "y": 2,
+    "sourceZ": 2,
+    "nativeLocalTileId": 8,
+    "applied": true,
+    "reopenedEqual": true,
+    "structureValid": true,
+    "referencesValid": true,
+    "capabilityCertificationRequested": false,
+    "liveMutationActions": 397,
+    "liveResourceKinds": 60,
+    "workspaceClosed": true,
+    "globalCertification": "PARTIAL: AC-05 MCP conformance failures remain outside this lot; focused semantic paint and reload succeeded."
+  },
+  "studioUiProof": {
+    "validationId": "AC-06.TIL-03",
+    "verdict": "pass",
+    "uiObserved": true,
+    "sourceUnchanged": true,
+    "originalNativeProjectUnchanged": true,
+    "foreignDebugAppUnchanged": true,
+    "trackedBuildInputsUnchanged": true,
+    "freshReopenMapExact": true,
+    "freshReopenFlutterErrorCount": 0,
+    "savedRevision": "sha256:d1b178a90be5dc992fe84b8beee5aacb7adfa0f21240834dad81631c132dadce",
+    "reopenedRevision": "sha256:d1b178a90be5dc992fe84b8beee5aacb7adfa0f21240834dad81631c132dadce",
+    "networkClaim": "No pub resolution (--no-pub); first isolated build reported cached Sparkle SwiftPM fetch, not certified offline.",
+    "nativeEdit": {
+      "mapId": "map_51895182cb827a8d28714c7f319f0f01ea83262bfc538b4413136142",
+      "sourceZ": 2,
+      "cell": [
+        1,
+        1
+      ],
+      "beforePaletteCell": 0,
+      "afterPaletteCell": 3,
+      "selectedLocalTileId": 8,
+      "nativeMapOnlyOneCellChanged": true
+    },
+    "savedNativeMap": {
+      "path": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor.ac06qualification/Data/Documents/avelune-converter-ac06-qualification-2d2e2f74-2b7a-442c-8477-060f851ada7b/project/maps/map_51895182cb827a8d28714c7f319f0f01ea83262bfc538b4413136142.json",
+      "byteLength": 3887,
+      "sha256": "d1b178a90be5dc992fe84b8beee5aacb7adfa0f21240834dad81631c132dadce"
+    },
+    "screenshots": [
+      {
+        "path": "/private/tmp/avelune-converter-ac06-runtime-contracts-20261012/ui-1-005-0.png",
+        "byteLength": 69301,
+        "sha256": "5d9dfbd58385fd1740a0887f68f4a5e692812a7223ff113ff265da8ee94503d2",
+        "role": "beforePaint",
+        "dimensions": [
+          1000,
+          720
+        ],
+        "centerSampleCoordinates": [
+          560,
+          355
+        ],
+        "centerSampleRgba": [
+          19,
+          207,
+          55,
+          255
+        ],
+        "origin": "realRunningStudioMarionetteScreenshot"
+      },
+      {
+        "path": "/private/tmp/avelune-converter-ac06-runtime-contracts-20261012/ui-1-015-0.png",
+        "byteLength": 71195,
+        "sha256": "8c340e103076c134793926a75680c527d3eae7b2682a8ccc44f8844a2aa94713",
+        "role": "paintedDirty",
+        "dimensions": [
+          1000,
+          720
+        ],
+        "centerSampleCoordinates": [
+          560,
+          355
+        ],
+        "centerSampleRgba": [
+          23,
+          61,
+          223,
+          255
+        ],
+        "origin": "realRunningStudioMarionetteScreenshot"
+      },
+      {
+        "path": "/private/tmp/avelune-converter-ac06-runtime-contracts-20261012/ui-1-017-0.png",
+        "byteLength": 70187,
+        "sha256": "9b7bd17ec958834fafb4e4d310f63312bcae89890b4784896aeab98e3195d00c",
+        "role": "saved",
+        "dimensions": [
+          1000,
+          720
+        ],
+        "centerSampleCoordinates": [
+          560,
+          355
+        ],
+        "centerSampleRgba": [
+          23,
+          61,
+          223,
+          255
+        ],
+        "origin": "realRunningStudioMarionetteScreenshot"
+      },
+      {
+        "path": "/private/tmp/avelune-converter-ac06-runtime-contracts-20261012/ui-2-021-0.png",
+        "byteLength": 69300,
+        "sha256": "f796eb0af38c1158e27249d838221241697a722fdaeb7929b105c7f309975b27",
+        "role": "freshReopened",
+        "dimensions": [
+          1000,
+          720
+        ],
+        "centerSampleCoordinates": [
+          560,
+          355
+        ],
+        "centerSampleRgba": [
+          23,
+          61,
+          223,
+          255
+        ],
+        "origin": "realRunningStudioMarionetteScreenshot"
+      }
+    ],
+    "automationErrors": [
+      {
+        "cause": "Palette auto-closed on tile selection; stale Return-to-map key was then absent.",
+        "effect": "One Marionette tap extension error, no mutation; refreshed elements and proceeded with canvas gesture.",
+        "preservedInRawLogs": true
+      }
+    ],
+    "setupCorrections": [
+      "First build: global PRODUCT_NAME caused plugin output collisions, failed before app launch.",
+      "Second launch: boot text reader needed raw flutter log support; owned app stopped and reader fixed before UI drive."
+    ],
+    "limits": [
+      "Opaque RGB regular tile composition and edit/save/reopen only; alpha UI blending not qualified.",
+      "No Player, gameplay, autotile, production publication or full source-engine parity claim.",
+      "Screenshots and receipts retained in the owned local temporary evidence directory."
+    ],
+    "receiptPath": "/private/tmp/avelune-converter-ac06-runtime-contracts-20261012/qualification-receipt.json",
+    "receiptSha256": "97eb98073558a3fb2682685073c46cc913b30fee730298ddd7308402080c083d",
+    "rootIndependentMapDiff": [
+      {
+        "path": "/layers/0/cells/4",
+        "before": 0,
+        "after": 3
+      }
+    ],
+    "savedMapHashMatches": true,
+    "survivingOwnedProcesses": [],
+    "cleanupSignals": [],
+    "protectedProcessesUnchanged": true
+  },
+  "preservation": {
+    "foreignChecked": 257,
+    "foreignChanged": [],
+    "targetChecked": 15,
+    "targetChanged": [],
+    "staged": []
+  },
+  "status": "implementationVerifiedAwaitingCommitAndHumanReview"
+}

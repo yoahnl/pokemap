@@ -47,7 +47,10 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
     bool offline = true,
     bool exampleOnly = false,
     bool approved = true,
-    String state = 'ready'}) {
+    String state = 'ready',
+    String requestedMode = 'study',
+    List<int>? selectedSourceMapIds,
+    List<int> dependencySourceMapIds = const []}) {
   final snapshot = draft.source.snapshot;
   final capabilities = TargetCapabilities.fromJson({
     'schemaVersion': '1.0',
@@ -60,16 +63,19 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
       {
         'capabilityId': 'native.project.loadSaveReload',
         'status': 'supported',
-        'scope': 'Controlled original 3x3 native writer fixture only',
+        'scope':
+            'Controlled original native writer and literal tile fixtures only',
         'evidence': [
           {
             'type': 'test',
             'summary':
-                'Synthetic admission context for the native writer harness',
+                'Synthetic admission context for controlled original writer and literal tile qualification fixtures',
             'reference': 'fixture:original-native-writer-v1',
           }
         ],
-        'limitations': ['Harness context does not certify a production source'],
+        'limitations': [
+          'Controlled qualification fixtures only; no production approval or gameplay certification'
+        ],
       }
     ],
   });
@@ -82,7 +88,8 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
     'revision': 1,
     'decisions': <Object?>[],
   });
-  final rulesHash = canonicalHashOf({'fixtureRules': 'literal-two-tiles-v1'});
+  final rulesHash = canonicalHashOf(
+      {'fixtureRules': 'controlled-original-native-literal-fixtures-v1'});
   final plan = ConversionPlan.fromJson({
     'schemaVersion': '1.0',
     'kind': 'conversionPlan',
@@ -96,9 +103,10 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
     'decisionRevision': 1,
     'converterVersion': 'original-harness-v1',
     'logicalProjectNamespace': snapshot.logicalProjectNamespace.value,
-    'requestedMode': 'study',
-    'selectedSourceMapIds': draft.source.selectedSourceMapIds,
-    'dependencySourceMapIds': <int>[],
+    'requestedMode': requestedMode,
+    'selectedSourceMapIds':
+        selectedSourceMapIds ?? draft.source.selectedSourceMapIds,
+    'dependencySourceMapIds': dependencySourceMapIds,
     'outputPolicy': {
       'destinationFolderName': draft.folderName,
       'destinationMustBeNew': true,
@@ -156,6 +164,7 @@ NativeProjectDraft copyNativeFixtureDraft(NativeProjectDraft draft,
         Map<int, String>? mapIds,
         List<NativeArtifact>? artifacts,
         List<NativeMutation>? mutations,
+        Map<String, Object?>? compositionEvidence,
         int? defaultMapWidth,
         int? defaultMapHeight,
         NativeWriteLimits limits = const NativeWriteLimits()}) =>
@@ -168,6 +177,7 @@ NativeProjectDraft copyNativeFixtureDraft(NativeProjectDraft draft,
       mapIds: mapIds ?? draft.mapIds,
       artifacts: artifacts ?? draft.artifacts,
       mutations: mutations ?? draft.mutations,
+      compositionEvidence: compositionEvidence ?? draft.compositionEvidence,
       defaultMapWidth: defaultMapWidth ?? draft.defaultMapWidth,
       defaultMapHeight: defaultMapHeight ?? draft.defaultMapHeight,
       limits: limits,

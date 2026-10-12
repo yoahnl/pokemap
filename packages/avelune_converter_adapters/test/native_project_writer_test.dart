@@ -696,7 +696,9 @@ void main() {
         fixture.draft.mutations.last
       ],
     );
-    await refuseBeforeStage(draft);
+    await refuseBeforeStage(draft,
+        limits: NativeWriteLimits(
+            maxTotalArtifactBytes: fixture.atlasBytes.length));
   });
 
   test('malformed PNG and invalid palette map cannot return verified success',

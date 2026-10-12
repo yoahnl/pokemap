@@ -31,6 +31,8 @@ final class NativeWriteLimits {
   final int maxMapCells;
   final ContractLimits jsonLimits;
 
+  void validate() => _validate();
+
   void _validate() {
     final values = [
       (maxArtifacts, 256),
@@ -154,6 +156,7 @@ final class NativeProjectDraft {
     required Map<int, String> mapIds,
     required List<NativeArtifact> artifacts,
     required List<NativeMutation> mutations,
+    Map<String, Object?> compositionEvidence = const {},
     String? sourceRootPath,
     int defaultMapWidth = 3,
     int defaultMapHeight = 3,
@@ -182,6 +185,9 @@ final class NativeProjectDraft {
           'A complete plannable normalized source is required');
     }
     final normalizedHash = source.canonicalHash;
+    canonicalJsonOf(compositionEvidence, limits: limits.jsonLimits);
+    final frozenComposition =
+        _freezeNativeJson(compositionEvidence) as Map<String, Object?>;
     final binding = {
       'kind': 'nativeProjectDraft',
       'version': 1,
@@ -195,6 +201,7 @@ final class NativeProjectDraft {
       'defaultMapWidth': defaultMapWidth,
       'defaultMapHeight': defaultMapHeight,
       'normalizedSourceHash': normalizedHash.value,
+      'compositionEvidence': frozenComposition,
       'mapIds': {
         for (final entry in mapIds.entries) '${entry.key}': entry.value
       },
@@ -221,6 +228,7 @@ final class NativeProjectDraft {
         List.unmodifiable(artifacts),
         List.unmodifiable(mutations),
         normalizedHash,
+        frozenComposition,
         hash,
         _freezeNativeJson(binding) as Map<String, Object?>);
   }
@@ -237,6 +245,7 @@ final class NativeProjectDraft {
       this.artifacts,
       this.mutations,
       this.normalizedSourceHash,
+      this.compositionEvidence,
       this.canonicalHash,
       this._binding);
 
@@ -251,6 +260,7 @@ final class NativeProjectDraft {
   final List<NativeArtifact> artifacts;
   final List<NativeMutation> mutations;
   final Sha256Hash normalizedSourceHash;
+  final Map<String, Object?> compositionEvidence;
   final Sha256Hash canonicalHash;
   final Map<String, Object?> _binding;
   String get bindingEvidence => 'native-draft-sha256:${canonicalHash.value}';
@@ -578,6 +588,7 @@ _PreparedNativeDraft _prepareNativeDraft(
     throw const NativeWriteException('native.maps.binding',
         'Native map identities differ from the approved source selection');
   }
+  _verifyLiteralCompositionBinding(plan, draft, limits);
   final planned = plan.operations
       .where((operation) => operation.status == OperationStatus.planned)
       .toList();
@@ -636,6 +647,28 @@ _PreparedNativeDraft _prepareNativeDraft(
     artifacts[artifact.handle] = artifact;
     dimensions[artifact.handle] = size;
   }
+  var importBytes = 0;
+  var importPixels = 0;
+  for (final mutation in draft.mutations) {
+    if (mutation.actionId != 'tileset.import_image') continue;
+    final handle = mutation.parameters['artifactHandle'];
+    final artifact = artifacts[handle];
+    final size = dimensions[handle];
+    if (artifact == null || size == null) {
+      throw const NativeWriteException('native.tileset.invalid',
+          'An imported atlas must name an admitted artifact');
+    }
+    importBytes += artifact.bytes.length;
+    importPixels += size.$1 * size.$2;
+    if (importBytes > limits.maxTotalArtifactBytes) {
+      throw const NativeWriteException('native.quota.artifact',
+          'Aggregate logical image import byte budget exceeded');
+    }
+    if (importPixels > limits.maxImagePixels) {
+      throw const NativeWriteException('native.quota.image',
+          'Aggregate logical image import pixel budget exceeded');
+    }
+  }
   for (final artifact in draft.artifacts) {
     _pngDimensions(artifact.bytes, limits);
   }
@@ -679,7 +712,6 @@ _PreparedNativeDraft _prepareNativeDraft(
             !RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(id) ||
             tilesets.keys.any((key) => key.toLowerCase() == id.toLowerCase()) ||
             artifact == null ||
-            usedArtifacts.contains(handle) ||
             parameters['tileWidth'] != 32 ||
             parameters['tileHeight'] != 32 ||
             !_targetIds(mutation.targetEntityIds, {id, 'image_$id'})) {
@@ -801,8 +833,144 @@ _PreparedNativeDraft _prepareNativeDraft(
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
+  _verifyLiteralCompositionContents(draft, maps, limits);
   return _PreparedNativeDraft(bootstrap, manifest, maps, tilesets);
 }
+
+void _verifyLiteralCompositionBinding(
+    ConversionPlan plan, NativeProjectDraft draft, NativeWriteLimits limits) {
+  final evidence = draft.compositionEvidence;
+  if (evidence.isEmpty) return;
+  final raw = evidence['composition'];
+  if (evidence['kind'] == 'literalTileComposition' &&
+      (plan.requestedMode != ConversionMode.study ||
+          raw is! Map<String, Object?> ||
+          raw['playableCertified'] != false)) {
+    throw const NativeWriteException('native.composition.mode',
+        'Literal tile composition v1 is an uncertified study staging project');
+  }
+  if (evidence['kind'] != 'literalTileComposition' ||
+      evidence['version'] != 1 ||
+      raw is! Map<String, Object?> ||
+      raw['kind'] != 'literalTileComposition' ||
+      raw['version'] != 1 ||
+      evidence['compositionHash'] !=
+          canonicalHashOf(raw, limits: limits.jsonLimits).value ||
+      raw['sourceSnapshotHash'] != plan.sourceSnapshotHash.value ||
+      raw['logicalProjectNamespace'] != plan.logicalProjectNamespace.value ||
+      raw['normalizedSourceHash'] != draft.normalizedSourceHash.value ||
+      raw['sourceArchiveHash'] != draft.source.archive.canonicalHash.value) {
+    throw const NativeWriteException('native.composition.evidence',
+        'Literal composition evidence must bind the exact normalized source');
+  }
+  final selected = _literalEvidenceIds(raw['selectedSourceMapIds']);
+  final included = _literalEvidenceIds(raw['includedSourceMapIds']);
+  if (selected == null ||
+      selected.isEmpty ||
+      included == null ||
+      !_sameIntegerIds(selected, plan.selectedSourceMapIds) ||
+      !_sameIntegerIds(included, plan.dependencySourceMapIds) ||
+      selected.any(included.contains)) {
+    throw const NativeWriteException('native.composition.selection',
+        'The approved primary selection and additional dependencies must match literal evidence');
+  }
+  final expectedSelection = canonicalHashOf({
+    'kind': 'literalSelection',
+    'version': 1,
+    'sourceSnapshotHash': plan.sourceSnapshotHash.value,
+    'logicalProjectNamespace': plan.logicalProjectNamespace.value,
+    'selectedSourceMapIds': selected.toList()..sort(),
+  });
+  final decisions = raw['decisions'];
+  if (raw['selectionHash'] != expectedSelection.value || decisions is! List) {
+    throw const NativeWriteException('native.composition.decisions',
+        'Literal decisions require the exact source selection receipt');
+  }
+  final explicitlyIncluded = <int>{};
+  for (final decision in decisions) {
+    if (decision is! Map ||
+        decision['sourceSnapshotHash'] != plan.sourceSnapshotHash.value ||
+        decision['selectionHash'] != expectedSelection.value ||
+        decision['targetSourceMapId'] is! int ||
+        (decision['targetSourceMapId'] as int) <= 0 ||
+        decision['locator'] is! Map ||
+        !const {'include', 'excludeStudy', 'block'}
+            .contains(decision['decision']) ||
+        decision['decision'] == 'block') {
+      throw const NativeWriteException('native.composition.decisions',
+          'Literal dependency decisions must be bound and nonblocking');
+    }
+    if (decision['decision'] == 'include') {
+      explicitlyIncluded.add(decision['targetSourceMapId'] as int);
+    }
+  }
+  if (!explicitlyIncluded.containsAll(included)) {
+    throw const NativeWriteException('native.composition.decisions',
+        'Every additional source map requires an explicit inclusion decision');
+  }
+}
+
+void _verifyLiteralCompositionContents(NativeProjectDraft draft,
+    Map<String, MapData> maps, NativeWriteLimits limits) {
+  if (draft.compositionEvidence.isEmpty) return;
+  final composition =
+      draft.compositionEvidence['composition'] as Map<String, Object?>;
+  final mapIds = {
+    for (final entry in draft.mapIds.entries) '${entry.key}': entry.value,
+  };
+  final tilesetIds = <String, String>{};
+  for (final mutation in draft.mutations) {
+    if (mutation.actionId != 'tileset.import_image') continue;
+    final identities = draft.source.tilesets
+        .where((entry) => mutation.sourceEntityIds.contains(entry.identity));
+    if (identities.length != 1) {
+      throw const NativeWriteException('native.composition.contents',
+          'A literal import must bind one exact normalized tileset identity');
+    }
+    final sourceId = '${identities.single.sourceTilesetId}';
+    if (tilesetIds.containsKey(sourceId)) {
+      throw const NativeWriteException('native.composition.contents',
+          'Literal tileset mapping must account for each source identity once');
+    }
+    tilesetIds[sourceId] = mutation.parameters['tilesetId'] as String;
+  }
+  final mapHashes = {
+    for (final entry in draft.mapIds.entries)
+      '${entry.key}': canonicalHashOf(maps[entry.value]!.toJson(),
+              limits: limits.jsonLimits)
+          .value,
+  };
+  final artifacts = [
+    for (final artifact in draft.artifacts)
+      {'handle': artifact.handle, 'rawSha256': artifact.rawSha256.value},
+  ]..sort((a, b) => a['handle']!.compareTo(b['handle']!));
+  if (canonicalJsonOf(composition['mapIds'], limits: limits.jsonLimits) !=
+          canonicalJsonOf(mapIds, limits: limits.jsonLimits) ||
+      canonicalJsonOf(composition['tilesetIds'], limits: limits.jsonLimits) !=
+          canonicalJsonOf(tilesetIds, limits: limits.jsonLimits) ||
+      canonicalJsonOf(composition['nativeMapHashes'],
+              limits: limits.jsonLimits) !=
+          canonicalJsonOf(mapHashes, limits: limits.jsonLimits) ||
+      canonicalJsonOf(composition['artifacts'], limits: limits.jsonLimits) !=
+          canonicalJsonOf(artifacts, limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.composition.contents',
+        'Literal provenance must describe the exact native maps and artifact bytes');
+  }
+}
+
+List<int>? _literalEvidenceIds(Object? value) {
+  if (value is! List || value.length > 2048) return null;
+  final ids = <int>[];
+  for (final id in value) {
+    if (id is! int || id <= 0 || id > 2147483647) return null;
+    ids.add(id);
+  }
+  if (ids.toSet().length != ids.length) return null;
+  return ids;
+}
+
+bool _sameIntegerIds(List<int> left, List<int> right) =>
+    left.length == right.length && left.toSet().containsAll(right);
 
 void _requireMapBinding(
     NativeProjectDraft draft, NativeMutation mutation, String id) {
@@ -1006,7 +1174,24 @@ final class _NativeSession {
   return (width, height);
 }
 
-(int, int) _pngDimensions(List<int> bytes, NativeWriteLimits limits) {
+final class NativePngValidator {
+  const NativePngValidator();
+
+  (int, int) headerDimensions(List<int> bytes,
+      {NativeWriteLimits limits = const NativeWriteLimits()}) {
+    limits._validate();
+    return _pngHeaderDimensions(bytes, limits);
+  }
+
+  (int, int) validate(List<int> bytes,
+      {NativeWriteLimits limits = const NativeWriteLimits()}) {
+    limits._validate();
+    return _pngDimensions(bytes, limits, decodePixels: false);
+  }
+}
+
+(int, int) _pngDimensions(List<int> bytes, NativeWriteLimits limits,
+    {bool decodePixels = true}) {
   final (width, height) = _pngHeaderDimensions(bytes, limits);
   final bits = bytes[24];
   final channels =
@@ -1119,10 +1304,27 @@ final class _NativeSession {
     throw const NativeWriteException('native.png.scanlines',
         'PNG decoded scanline length differs from its geometry');
   }
-  final decoded = image.decodePng(Uint8List.fromList(bytes));
-  if (decoded == null || decoded.width != width || decoded.height != height) {
-    throw const NativeWriteException(
-        'native.png.decode', 'PNG pixels cannot be loaded');
+  var scanlineOffset = 0;
+  for (final pass in passes) {
+    final w = width <= pass.$1 ? 0 : (width - pass.$1 + pass.$3 - 1) ~/ pass.$3;
+    final h =
+        height <= pass.$2 ? 0 : (height - pass.$2 + pass.$4 - 1) ~/ pass.$4;
+    if (w == 0 || h == 0) continue;
+    final rowBytes = ((w * channels * bits + 7) ~/ 8) + 1;
+    for (var y = 0; y < h; y++) {
+      if (inflated[scanlineOffset] > 4) {
+        throw const NativeWriteException(
+            'native.png.filter', 'PNG scanline uses an invalid filter');
+      }
+      scanlineOffset += rowBytes;
+    }
+  }
+  if (decodePixels) {
+    final decoded = image.decodePng(Uint8List.fromList(bytes));
+    if (decoded == null || decoded.width != width || decoded.height != height) {
+      throw const NativeWriteException(
+          'native.png.decode', 'PNG pixels cannot be loaded');
+    }
   }
   return (width, height);
 }
