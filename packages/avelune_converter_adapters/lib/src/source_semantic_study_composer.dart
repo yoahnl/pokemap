@@ -240,7 +240,7 @@ final class SourceSemanticWitnessFiles implements SourceFilePort {
     final largestChunk =
         entry.byteLength < chunkSize ? entry.byteLength : chunkSize;
     if (_reservedArtifactCount + artifactCount > limits.maxArtifacts ||
-        entry.byteLength > limits.maxArtifactBytes ||
+        (png && entry.byteLength > limits.maxArtifactBytes) ||
         (!png &&
             (((largestChunk + 2) ~/ 3) * 4 + 256 > limits.maxArtifactBytes ||
                 ((largestChunk + 2) ~/ 3) * 4 >

@@ -24,3 +24,4 @@ part 'src/source_archive.dart';
 part 'src/source_normalization.dart';
 part 'src/source_semantics.dart';
 part 'src/source_events.dart';
+part 'src/source_pbs.dart';

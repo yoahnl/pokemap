@@ -22,3 +22,5 @@ export 'src/source_event_study_composer.dart';
 export 'src/source_event_arrival_validation.dart';
 export 'src/source_event_item_bindings.dart';
 export 'src/source_pickup_feedback_binding.dart';
+export 'src/source_catalog_projection.dart';
+export 'src/source_catalog_study_composer.dart';

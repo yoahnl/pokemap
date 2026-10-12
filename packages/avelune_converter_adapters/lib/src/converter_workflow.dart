@@ -9,6 +9,7 @@ import 'approved_asset_library.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
+import 'source_catalog_study_composer.dart';
 import 'local_asset_proposer.dart';
 import 'macos_source_tree.dart';
 import 'native_project_writer.dart';
@@ -109,7 +110,7 @@ final class ConverterStudySettings {
     AssetReviewSession? reviewSession,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
-    NativeWriteLimits writeLimits = const NativeWriteLimits(),
+    NativeWriteLimits writeLimits = sourceCatalogStudyWriteLimits,
   }) {
     writeLimits.validate();
     _validateNormalizationLimits(normalizationLimits);
@@ -806,7 +807,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac13-study-v1';
+const _converterVersion = 'avelune-converter-ac14-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1217,8 +1218,16 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 files: files,
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
-        final draft = _mergeAssetLibrary(
-            events?.draft ?? semantic ?? composition.draft, library,
+        final preceding = events?.draft ?? semantic ?? composition.draft;
+        final catalogs = preceding == null
+            ? null
+            : await const SourceCatalogStudyComposer().compose(
+                source: normalized,
+                base: preceding,
+                files: files,
+                limits: settings.writeLimits,
+                cancellation: relay.cancellation);
+        final draft = _mergeAssetLibrary(catalogs?.draft ?? preceding, library,
             limits: settings.writeLimits);
         relay.finish(
             done: composition.crops
@@ -1538,6 +1547,9 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'requestedMode': 'study',
       'events': 'qualified-static-native-or-whole-event-quarantine',
       'gameplayMetadata': 'sourceArchiveOnly',
+      'catalogs':
+          'essentials21.1-bounded-data-and-explicit-native-capabilities',
+      'battleAuthority': 'aveluneNative',
       'publication': false,
     });
 
@@ -1620,15 +1632,22 @@ const _nativeStudyActions = [
   'pokemon.catalog.write',
   'pokemon.configuration.set_enabled',
   'item.create',
+  'pokemon.species.write',
+  'pokemon.documents.write',
+  'pokemon.learnset.write',
+  'pokemon.evolution.write',
+  'pokemon.media.write',
+  'campaign.encounter_table.upsert',
+  'campaign.trainer.upsert',
 ];
 
 TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac13-v1',
+      'profileId': 'avelune-converter-native-study-ac14-v1',
       'repository': 'yoahnl/pokemap',
-      'revision': '0ec7e5b7f74e8e71bb49429ebea9cfed232dc25f',
+      'revision': '71c34d61430b7ead5b45f2d05eb7e07e39a06cdd',
       'capabilities': [
         for (final action in _nativeStudyActions)
           {
@@ -1774,6 +1793,23 @@ ConversionPlan? _previewPlan(
           family: 'events',
           locator: _planLocator(
               normalized, Map<String, Object?>.from(event['locator'] as Map)));
+    }
+  }
+  final catalogEvidence = draft.compositionEvidence['sourceCatalogs'];
+  if (catalogEvidence is Map) {
+    add(
+        'workflow.catalogs.summary',
+        'Selected source catalogs use stable native identities. Data import, media resolution and runtime readiness remain separate; battles use Avelune rules.',
+        false,
+        family: 'catalogs',
+        disposition: 'adapted');
+    for (final raw in (catalogEvidence['diagnostics'] as List).cast<Map>()) {
+      add(raw['code'] as String, raw['message'] as String, false,
+          family: 'catalogs',
+          locator: raw['locator'] is Map
+              ? _planLocator(
+                  normalized, Map<String, Object?>.from(raw['locator'] as Map))
+              : null);
     }
   }
   add(

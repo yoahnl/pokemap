@@ -19,6 +19,8 @@ import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_event_arrival_validation.dart';
+import 'source_catalog_study_composer.dart';
+import 'source_catalog_projection.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -253,7 +255,7 @@ final class NativeMutation {
         'dialogue' ||
         'scene' =>
           OperationDomain.events,
-        'item' || 'pokemon' => OperationDomain.catalogs,
+        'item' || 'pokemon' || 'campaign' => OperationDomain.catalogs,
         _ => OperationDomain.assets,
       };
 
@@ -677,6 +679,7 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.items',
             'Fresh item catalog differs from the exact source bindings');
       }
+      await _verifyNativeCatalogs(session, prepared, limits, cancellation);
       for (final entry in prepared.audio.entries) {
         final bytes = await session.readCompanion(
             prepared.catalog.require(entry.key).logicalPath, entry.value,
@@ -724,6 +727,7 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.changed',
             'Native staging project changed after verification');
       }
+      await _verifyNativeCatalogs(session, prepared, limits, cancellation);
       for (final entry in {...prepared.companions, ...prepared.audio}.entries) {
         _checkCancelled(cancellation);
         await session.readCompanion(
@@ -765,7 +769,8 @@ final class _PreparedNativeDraft {
       this.catalog,
       this.dialogueSources,
       this.audio,
-      this.itemCatalog);
+      this.itemCatalog,
+      this.pokemonDocuments);
   final ProjectManifest bootstrap;
   final ProjectManifest manifest;
   final Map<String, MapData> maps;
@@ -775,6 +780,7 @@ final class _PreparedNativeDraft {
   final Map<String, String> dialogueSources;
   final Map<String, NativeArtifact> audio;
   final ProjectItemCatalog? itemCatalog;
+  final List<SourceCatalogDocument> pokemonDocuments;
 }
 
 ({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
@@ -972,7 +978,20 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'item.create',
           'scene.dialogue.audioMedia.import',
         }.contains(mutation.actionId);
-    if (!ordinary && !library && !semantic && !event) {
+    final catalogs = draft.compositionEvidence.containsKey('sourceCatalogs') &&
+        const {
+          'asset.import',
+          'pokemon.configuration.set_enabled',
+          'pokemon.catalog.write',
+          'pokemon.species.write',
+          'pokemon.documents.write',
+          'pokemon.learnset.write',
+          'pokemon.evolution.write',
+          'pokemon.media.write',
+          'campaign.encounter_table.upsert',
+          'campaign.trainer.upsert',
+        }.contains(mutation.actionId);
+    if (!ordinary && !library && !semantic && !event && !catalogs) {
       throw const NativeWriteException('native.action.unsupported',
           'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
@@ -1377,6 +1396,23 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         maps[map.id] = map;
       case 'pokemon.catalog.write':
       case 'pokemon.configuration.set_enabled':
+        semantics.requireOperation(mutation);
+        if (semantics.events == null && semantics.catalogs == null) {
+          throw const NativeWriteException('native.catalogs.binding',
+              'Catalog mutations require exact regenerated source projection');
+        }
+      case 'pokemon.species.write':
+      case 'pokemon.documents.write':
+      case 'pokemon.learnset.write':
+      case 'pokemon.evolution.write':
+      case 'pokemon.media.write':
+      case 'campaign.encounter_table.upsert':
+      case 'campaign.trainer.upsert':
+        semantics.requireOperation(mutation);
+        if (semantics.catalogs == null) {
+          throw const NativeWriteException('native.catalogs.binding',
+              'Catalog documents require their exact regenerated source projection');
+        }
       case 'item.create':
       case 'fact.create':
       case 'fact.update':
@@ -1410,6 +1446,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   tilesetEntries.sort((left, right) => left.id.compareTo(right.id));
   elements.sort((left, right) => left.id.compareTo(right.id));
   final projectedEvents = semantics.events?.projection;
+  final projectedCatalogs = semantics.catalogs?.projection;
   if (projectedEvents != null) {
     maps
       ..clear()
@@ -1422,8 +1459,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       elements: elements,
       elementCategories: categories,
       characters: characters,
-      pokemon: bootstrap.pokemon
-          .copyWith(enabled: projectedEvents?.itemCatalog != null),
+      pokemon: bootstrap.pokemon.copyWith(
+          enabled: projectedEvents?.itemCatalog != null ||
+              projectedCatalogs?.mergedItemCatalog != null ||
+              (projectedCatalogs?.documents.isNotEmpty ?? false)),
+      encounterTables: projectedCatalogs?.encounterTables ?? const [],
+      trainers: projectedCatalogs?.trainers ?? const [],
       cinematicMediaAssets: mediaAssets,
       facts: projectedEvents?.facts ?? const [],
       worldRules: projectedEvents?.worldRules ?? const [],
@@ -1432,6 +1473,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       scenes: projectedEvents?.scenes ?? const [],
       settings: bootstrap.settings
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
+  if (projectedCatalogs != null) {
+    _validateCatalogReferences(projectedCatalogs, manifest);
+  }
   ProjectValidator.validate(manifest, maps: maps.values);
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
@@ -1466,7 +1510,147 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       AssetCatalog(records: assetRecords),
       projectedEvents?.dialogueSources ?? const {},
       audio,
-      projectedEvents?.itemCatalog);
+      projectedCatalogs?.mergedItemCatalog ?? projectedEvents?.itemCatalog,
+      projectedCatalogs?.documents ?? const []);
+}
+
+void _validateCatalogReferences(
+    SourceCatalogProjection projection, ProjectManifest manifest) {
+  final documents = projection.documents;
+  final species = <String, PokemonSpeciesFile>{
+    for (final document in documents
+        .where((entry) => entry.kind == SourceCatalogDocumentKind.species))
+      document.document['id'] as String: PokemonSpeciesFile.fromJson(
+          Map<String, dynamic>.from(document.document))
+  };
+  final catalogs = <String, Set<String>>{};
+  for (final document in documents
+      .where((entry) => entry.kind == SourceCatalogDocumentKind.catalog)) {
+    if (document.document['catalog'] == null) continue;
+    final value = PokemonCatalogFile.fromJson(
+        Map<String, dynamic>.from(document.document));
+    catalogs[value.catalog] = value.entries
+        .map((entry) => (entry['id'] ?? entry['slug']) as String)
+        .toSet();
+  }
+  final itemIds =
+      projection.mergedItemCatalog?.entries.map((entry) => entry.id).toSet() ??
+          <String>{};
+  void require(String family, String? value) {
+    if (value == null) return;
+    final present = switch (family) {
+      'species' => species.containsKey(value),
+      'items' => itemIds.contains(value),
+      _ => catalogs[family]?.contains(value) ?? false,
+    };
+    if (!present) {
+      throw NativeWriteException('native.catalogs.reference',
+          'A projected $family reference has no exact native definition: $value');
+    }
+  }
+
+  void form(String speciesId, String? formId) {
+    require('species', speciesId);
+    if (formId == null) return;
+    final owner = species[speciesId]!;
+    final declared =
+        owner.forms.formId == formId || owner.forms.otherForms.contains(formId);
+    final exists = species.values.any((entry) =>
+        entry.forms.baseFormId == owner.forms.baseFormId &&
+        entry.forms.formId == formId);
+    if (!declared || !exists) {
+      throw const NativeWriteException('native.catalogs.form',
+          'A projected form must belong to its exact species definition');
+    }
+  }
+
+  for (final table in manifest.encounterTables) {
+    if (table.chancePerStep != 0.0) {
+      throw const NativeWriteException('native.catalogs.activation',
+          'Imported encounter data requires separate native runtime qualification');
+    }
+    for (final entry in table.entries) {
+      require('species', entry.speciesId);
+      final overrides = entry.pokemonOverrides;
+      require('natures', overrides?.natureId);
+      require('abilities', overrides?.abilityId);
+      for (final move in overrides?.knownMoveIds ?? <String>[]) {
+        require('moves', move);
+      }
+    }
+  }
+  for (final trainer in manifest.trainers) {
+    if (trainer.team.isEmpty) {
+      throw const NativeWriteException('native.catalogs.trainer',
+          'A projected trainer cannot have an empty native team');
+    }
+    for (final entry in trainer.team) {
+      form(entry.speciesId, entry.formId);
+      require('items', entry.heldItemId);
+      require('abilities', entry.abilityId);
+      for (final move in entry.moves) {
+        require('moves', move);
+      }
+    }
+  }
+}
+
+Future<void> _verifyNativeCatalogs(
+    _NativeSession session,
+    _PreparedNativeDraft prepared,
+    NativeWriteLimits limits,
+    ScanCancellation? cancellation) async {
+  if (prepared.pokemonDocuments.isEmpty) return;
+  final access = session.handles.resolveProject(session.project);
+  final expectedPaths = <String>{};
+  for (final document in prepared.pokemonDocuments) {
+    _checkCancelled(cancellation);
+    expectedPaths.add(document.relativePath);
+    final before = await access.readResourceIdentity(document.relativePath);
+    final bytes = await access.readBytes(document.relativePath);
+    final after = await access.readResourceIdentity(document.relativePath);
+    if (before == null ||
+        before != after ||
+        bytes.length != before.byteLength ||
+        canonicalJsonOf(jsonDecode(utf8.decode(bytes)),
+                limits: limits.jsonLimits) !=
+            canonicalJsonOf(document.document, limits: limits.jsonLimits)) {
+      throw const NativeWriteException('native.verify.pokemon_document',
+          'Fresh native Pokemon data differs from its source-bound projection');
+    }
+  }
+  for (final directory in [
+    prepared.manifest.pokemon.speciesDir,
+    prepared.manifest.pokemon.learnsetsDir,
+    prepared.manifest.pokemon.evolutionsDir,
+    prepared.manifest.pokemon.mediaDir
+  ]) {
+    final expected =
+        expectedPaths.where((value) => value.startsWith('$directory/')).toSet();
+    Set<String> actual;
+    try {
+      final listed = await access.listFiles(directory);
+      if (listed == null) {
+        throw const NativeWriteException('native.verify.pokemon_inventory',
+            'Native Pokemon data requires an exact available directory inventory');
+      }
+      actual = listed.where((value) => value.endsWith('.json')).toSet();
+    } on WorkspaceAccessException catch (error) {
+      if (error.code != 'workspace.directory_missing') rethrow;
+      actual = {};
+    }
+    if (expected.length != actual.length || !expected.containsAll(actual)) {
+      throw const NativeWriteException('native.verify.pokemon_inventory',
+          'Fresh Pokemon document inventory must equal its complete projection');
+    }
+  }
+  final validation = await AuthoringReadApi(
+          openService: session.opener, snapshotLoader: session.snapshots)
+      .validateProject(session.project);
+  if (!validation.valid) {
+    throw NativeWriteException('native.verify.pokemon_coherence',
+        canonicalJsonOf(validation.toJson(), limits: limits.jsonLimits));
+  }
 }
 
 final class _VerifiedAssetLibrary {
@@ -1489,7 +1673,7 @@ final class _WitnessSourceFiles implements SourceFilePort {
 final class _VerifiedSourceSemantics {
   const _VerifiedSourceSemantics(this.verified, this.operationIds,
       this.regeneratedOperationIds, this.artifactHandles, this.witnessHandles,
-      {this.events});
+      {this.events, this.catalogs});
 
   final bool verified;
   final Set<ConverterId> operationIds;
@@ -1497,6 +1681,7 @@ final class _VerifiedSourceSemantics {
   final Set<String> artifactHandles;
   final Set<String> witnessHandles;
   final SourceEventStudyComposition? events;
+  final SourceCatalogStudyComposition? catalogs;
 
   void requireOperation(NativeMutation mutation) {
     if (!verified || !operationIds.contains(mutation.operationId)) {
@@ -1512,7 +1697,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     ScanCancellation? cancellation) async {
   final raw = draft.compositionEvidence['sourceSemantics'];
   if (raw == null) {
-    if (draft.compositionEvidence.containsKey('sourceEvents')) {
+    if (draft.compositionEvidence.containsKey('sourceEvents') ||
+        draft.compositionEvidence.containsKey('sourceCatalogs')) {
       throw const NativeWriteException('native.events.binding',
           'Event conversion requires preceding qualified source semantics');
     }
@@ -1538,6 +1724,15 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   var decodedByteBudget = 0;
   var witnessReferenceCount = 0;
   final eventRaw = draft.compositionEvidence['sourceEvents'];
+  final catalogRaw = draft.compositionEvidence['sourceCatalogs'];
+  if (catalogRaw != null &&
+      (catalogRaw is! Map<String, Object?> ||
+          catalogRaw['kind'] != 'sourceCatalogStudy' ||
+          catalogRaw['version'] != 1 ||
+          catalogRaw['witnesses'] is! List)) {
+    throw const NativeWriteException('native.catalogs.evidence',
+        'Source catalogs require exact bounded witness evidence');
+  }
   if (eventRaw != null &&
       (eventRaw is! Map<String, Object?> ||
           eventRaw['kind'] != 'sourceEventStudy' ||
@@ -1549,9 +1744,10 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   final witnessRows = <String, Object?>{};
   final suppliedRows = [
     ...raw['witnesses'] as List,
-    if (eventRaw is Map<String, Object?>) ...eventRaw['witnesses'] as List
+    if (eventRaw is Map<String, Object?>) ...eventRaw['witnesses'] as List,
+    if (catalogRaw is Map<String, Object?>) ...catalogRaw['witnesses'] as List,
   ];
-  if (suppliedRows.length > limits.maxArtifacts * 2) {
+  if (suppliedRows.length > limits.maxArtifacts * 3) {
     throw const NativeWriteException('native.semantics.witness_quota',
         'Combined semantic witness envelopes exceed the bounded input budget');
   }
@@ -1593,7 +1789,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
         : row['chunks'] is List
             ? (row['chunks'] as List).length
             : 0;
-    if (entry.byteLength > limits.maxArtifactBytes ||
+    if ((row['encoding'] == 'png' &&
+            entry.byteLength > limits.maxArtifactBytes) ||
         decodedByteBudget + entry.byteLength > limits.maxTotalArtifactBytes ||
         witnessReferenceCount + referenceCount > limits.maxArtifacts) {
       throw const NativeWriteException('native.semantics.witness_quota',
@@ -1674,6 +1871,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   _checkCancelled(cancellation);
   final NativeProjectDraft expected;
   SourceEventStudyComposition? eventComposition;
+  SourceCatalogStudyComposition? catalogComposition;
   try {
     final composition = draft.compositionEvidence['composition'] as Map;
     final base = await const LiteralTileComposer().compose(
@@ -1711,7 +1909,19 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
         throw const FormatException('Missing source event draft');
       }
     }
-    expected = eventComposition?.draft ?? regenerated;
+    final preceding = eventComposition?.draft ?? regenerated;
+    if (catalogRaw != null) {
+      catalogComposition = await const SourceCatalogStudyComposer().compose(
+          source: draft.source,
+          base: preceding,
+          files: _WitnessSourceFiles(files),
+          limits: limits,
+          cancellation: cancellation);
+      if (catalogComposition == null) {
+        throw const FormatException('Missing source catalog draft');
+      }
+    }
+    expected = catalogComposition?.draft ?? preceding;
   } catch (_) {
     _checkCancelled(cancellation);
     throw const NativeWriteException('native.semantics.regeneration',
@@ -1759,13 +1969,19 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
             as Map)['operationIds'] as List)
         .cast<String>());
   }
+  if (catalogComposition != null) {
+    semanticIds.addAll(((expected.compositionEvidence['sourceCatalogs']
+            as Map)['operationIds'] as List)
+        .cast<String>());
+  }
   return _VerifiedSourceSemantics(
       true,
       semanticIds.map(ConverterId.new).toSet(),
       expectedIds,
       expected.artifacts.map((artifact) => artifact.handle).toSet(),
       witnessHandles,
-      events: eventComposition);
+      events: eventComposition,
+      catalogs: catalogComposition);
 }
 
 Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
@@ -2412,7 +2628,10 @@ final class _NativeSession {
       LocalMapAuthoringMutationApi? mutations;
       if (mutable) {
         mutations = LocalMapAuthoringMutationApi(
-            policy: policy, snapshotLoader: snapshots);
+            policy: policy,
+            snapshotLoader: snapshots,
+            authorizationLimits:
+                const AuthoringSecurityLimits(maxOperationsPerWindow: null));
         await mutations.attachProject(
             projectRootPath: root,
             workspaceHandle: opened.workspaceHandle,

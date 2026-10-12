@@ -225,7 +225,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       sourceScanPolicy: _state.source?.policy ?? previous?.sourceScanPolicy,
       normalizationLimits:
           previous?.normalizationLimits ?? const SourceNormalizationLimits(),
-      writeLimits: previous?.writeLimits ?? const NativeWriteLimits(),
+      writeLimits: previous?.writeLimits ?? sourceCatalogStudyWriteLimits,
       profileAcknowledgement: snapshot == null || keepAcknowledgement
           ? previousAcknowledgement
           : LocalReviewProfileAcknowledgement(
@@ -592,7 +592,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           const SourceNormalizationLimits(),
       writeLimits:
           _storedReview?.resumeSettings.writeLimits ??
-          const NativeWriteLimits(),
+          sourceCatalogStudyWriteLimits,
     );
   }
 
@@ -1338,7 +1338,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         limits:
             prepared?.settings.writeLimits ??
             _storedReview?.resumeSettings.writeLimits ??
-            const NativeWriteLimits(),
+            sourceCatalogStudyWriteLimits,
         outputMode: _assetOutputMode,
         enabled:
             !_busy &&
