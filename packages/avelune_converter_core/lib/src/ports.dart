@@ -22,5 +22,5 @@ abstract interface class SessionStoragePort {
 }
 
 abstract interface class VisionPort {
-  Future<VisionResponse> suggest(VisionRequestContext request);
+  Future<VisionResponse> suggest(VisionRequest request, {ScanCancellation? cancellation});
 }

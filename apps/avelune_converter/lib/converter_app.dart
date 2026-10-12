@@ -13,6 +13,8 @@ import 'package:path/path.dart' as path;
 import 'desktop_services.dart';
 import 'asset_review_panel.dart';
 import 'map_comparison.dart';
+import 'vision_desktop_services.dart';
+import 'vision_panel.dart';
 
 class ConverterApp extends StatelessWidget {
   const ConverterApp({
@@ -23,6 +25,8 @@ class ConverterApp extends StatelessWidget {
     this.initialSourcePath = '',
     this.initialParentPath = '',
     this.sessionStore,
+    this.visionVault,
+    this.visionClientFactory = openConverterVisionClient,
   });
 
   final ConverterWorkflow? workflow;
@@ -31,6 +35,8 @@ class ConverterApp extends StatelessWidget {
   final String initialSourcePath;
   final String initialParentPath;
   final LocalReviewSessionStore? sessionStore;
+  final VisionSecretVault? visionVault;
+  final ConverterVisionClientFactory visionClientFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,8 @@ class ConverterApp extends StatelessWidget {
         initialSourcePath: initialSourcePath,
         initialParentPath: initialParentPath,
         sessionStore: sessionStore,
+        visionVault: visionVault,
+        visionClientFactory: visionClientFactory,
       ),
     );
   }
@@ -73,6 +81,8 @@ class ConverterWindow extends StatefulWidget {
     required this.initialSourcePath,
     required this.initialParentPath,
     this.sessionStore,
+    this.visionVault,
+    this.visionClientFactory = openConverterVisionClient,
   });
 
   final ConverterWorkflow? workflow;
@@ -81,6 +91,8 @@ class ConverterWindow extends StatefulWidget {
   final String initialSourcePath;
   final String initialParentPath;
   final LocalReviewSessionStore? sessionStore;
+  final VisionSecretVault? visionVault;
+  final ConverterVisionClientFactory visionClientFactory;
 
   @override
   State<ConverterWindow> createState() => _ConverterWindowState();
@@ -1231,6 +1243,28 @@ class _ConverterWindowState extends State<ConverterWindow> {
         const SizedBox(height: 24),
         _assetReviewPanel(prepared),
         const SizedBox(height: 24),
+        if (_reviewSession case final session?) ...[
+          ConverterVisionPanel(
+            session: session,
+            enabled:
+                !_busy &&
+                _reviewSourceVerified &&
+                !_unappliedDrafts &&
+                _sourceRoot == _state.source?.rootPath,
+            vault: widget.visionVault,
+            clientFactory: widget.visionClientFactory,
+            sourceFiles: _visionSourceFiles,
+            verifySource: _verifyVisionSource,
+            excludedRoots: () async => [
+              if (_sourceRoot.isNotEmpty) _sourceRoot,
+              if (_parent.text.trim().isNotEmpty &&
+                  _validFolder(_folder.text.trim()))
+                path.join(_parent.text.trim(), _folder.text.trim()),
+            ],
+            onSessionChanged: _acceptReviewSession,
+          ),
+          const SizedBox(height: 24),
+        ],
         for (final tileset
             in prepared?.normalizedSource.tilesets ?? <NormalizedTileset>[])
           Padding(
@@ -1326,6 +1360,42 @@ class _ConverterWindowState extends State<ConverterWindow> {
         availableSources: prepared?.assetProposals?.sourceImages ?? const [],
         onModeChanged: _changeAssetOutputMode,
       );
+
+  Future<SourceFilePort> _visionSourceFiles() async {
+    final source = _state.source;
+    final snapshot = _state.snapshot;
+    if (_busy ||
+        !_reviewSourceVerified ||
+        _unappliedDrafts ||
+        source == null ||
+        snapshot == null ||
+        _sourceRoot != source.rootPath) {
+      throw const VisionAssistanceException('vision.stale');
+    }
+    return ConverterVisionSourceFiles(source, snapshot);
+  }
+
+  Future<bool> _verifyVisionSource() async {
+    final source = _state.source;
+    final snapshot = _state.snapshot;
+    if (_busy ||
+        !_reviewSourceVerified ||
+        _unappliedDrafts ||
+        source == null ||
+        snapshot == null ||
+        _sourceRoot != source.rootPath) {
+      return false;
+    }
+    final verified = await verifyConverterVisionSource(source, snapshot);
+    return mounted &&
+        verified &&
+        !_busy &&
+        _reviewSourceVerified &&
+        !_unappliedDrafts &&
+        _sourceRoot == source.rootPath &&
+        _state.source?.canonicalHash == source.canonicalHash &&
+        _state.snapshot?.canonicalHash == snapshot.canonicalHash;
+  }
 
   Widget _verificationPage() {
     final prepared = _prepared;

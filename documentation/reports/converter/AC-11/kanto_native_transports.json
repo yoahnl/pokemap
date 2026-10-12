@@ -1,0 +1,528 @@
+{
+  "kind": "realKantoRoute9FinalCopiesReadOnlyTransports",
+  "status": "passed",
+  "readonly": true,
+  "baseAC10SHA": "549b75273aa4925241b9e46d18be0148df16f15b",
+  "scope": {
+    "selectedSourceMaps": [
+      98
+    ],
+    "availableSourceMaps": 383,
+    "outsideScopeMaps": 382,
+    "gameplayCertified": false,
+    "fullAC15Certified": false
+  },
+  "projects": {
+    "original": {
+      "root": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - ouverture Studio 20261012/Conversion originale",
+      "snapshotRevision": "sha256:f9222dc5fed36e82ddf8b88cccf50b549435c5107dba0a9ccfcf3a5ee1ef3960",
+      "strictNativeReadPassed": true,
+      "nativeLoadDiagnostics": [],
+      "nativeFileCount": 20,
+      "nativeFilesUnchanged": true,
+      "nativeManifestHash": "dc4036b24e822fbe0d320a77c0919e014349cd8d593920a7a3ff80201db4885e",
+      "nativeFileHashes": {
+        ".pokemap/authoring/audit.jsonl": "a115c24197533eebf51920d3a5d0ccaa85f4f20a71751c52efd8c3d2b6cfce58",
+        ".pokemap/authoring/audit.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/blobs/6e1423202d73423d20c051c154c26e4a86f6be79bd00b6be00e4c7a66330e9d4.blob": "8663e3f9270f53cb0192ea9e37de9c7a619bb96b45770c27a15180e66617bd9f",
+        ".pokemap/authoring/blobs/8196b77a10eac60a0859721084fe03ef3db450dce5c29bf0d3e228bf5a45fd57.blob": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        ".pokemap/authoring/blobs/9b03ac5a8bb06f0855bd0fb208fd1eb0bc4b698ad8046cf5120b47ffd749172f.blob": "5458c05cc1de713043cef479369f29129c8a6da437d44656cd98cb6c1683ebbc",
+        ".pokemap/authoring/blobs/9c0f3abbb4755f4f3ce10fb39def20f369606e169f92702e9511f0c85f5663a7.blob": "f5a73d64f9d10e1f1dcd7c6c152847785a1963969e8b89b879b5bb899d20c9d8",
+        ".pokemap/authoring/blobs/ac1a15b17ad6bfaf15562818cf141153919f049329561c947104ec21c6652c16.blob": "6e5f7bce404e6c249dc9a752782b1787bd61b0f99158e6ddf1f89cc8c94c6661",
+        ".pokemap/authoring/blobs/c4246cefcde2073c8b840e771c14918c4d76a2d1b269071aac8bff4a5d104f5a.blob": "ec8fc6d15e70af7f547ea39c619281fea7bfa23d15094eecdae615ae072853a5",
+        ".pokemap/authoring/blobs/d6d10a422e0e3de2057b80908f5f84db6d37e904953b17ab07c27297ae929781.blob": "b4549698ed733453d0570fdc53552bd841c93cb73b661ce5dc1f4035bb01be3d",
+        ".pokemap/authoring/blobs.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/history.jsonl": "0a160c2a1f35be4cfc28f7ceaa27f693d8376889b5b03ced50f4e9f3999895d0",
+        ".pokemap/authoring/history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/idempotency.jsonl": "3ba44e646bee213be236f34b4697321aca87ac1f181a2b8087fce5a2c1d1295d",
+        ".pokemap/authoring/idempotency.jsonl.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/transactions/write.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "assets/.pokemap-assets.json": "5458c05cc1de713043cef479369f29129c8a6da437d44656cd98cb6c1683ebbc",
+        "assets/.pokemap-store/e939eae57deff78ca17b697d2499b59dea8f4e042b534325909fbbcc040e84f1.blob": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "assets/studio/tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6.png": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "maps/map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47.json": "8663e3f9270f53cb0192ea9e37de9c7a619bb96b45770c27a15180e66617bd9f",
+        "project.json": "6e5f7bce404e6c249dc9a752782b1787bd61b0f99158e6ddf1f89cc8c94c6661"
+      },
+      "mapProof": {
+        "id": "map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47",
+        "name": "Route 9",
+        "size": {
+          "width": 72,
+          "height": 61
+        },
+        "modelCanonicalHash": "85cb7b2bbf91e70f80fa97caa55977de2be5d40220c3a1a7a004f3e6e7492e17",
+        "rawFileSha256": "8663e3f9270f53cb0192ea9e37de9c7a619bb96b45770c27a15180e66617bd9f",
+        "layerIndex": 1,
+        "layerName": "Source Z 1",
+        "cellIndex": 3285,
+        "x": 45,
+        "y": 45,
+        "cellValue": 44
+      },
+      "pngProof": {
+        "assetId": "image_tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6",
+        "sha256": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "rgbaSha256": "30abc083db04f6304bfb2b78aa6e2fbaf8d8e3684ee6642407614c7fb88db551",
+        "width": 256,
+        "height": 16192
+      },
+      "canonicalRecordHashes": {
+        "project": {
+          "project": "2aeb5dea73fe8ffeb01620c2acb1e61d9690530eb1dcd09f953c33599fc50fd4"
+        },
+        "map": {
+          "map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47": "fa846dd36d18d50e9581a8b4b589600dc22f42ef96129134b60e677bb960e5fc"
+        },
+        "element": {},
+        "elementCategory": {},
+        "tileset": {
+          "tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6": "79811812d73a3a3dcce1818beb39e65615b388dcdc2014a4a9fa847524f55425"
+        },
+        "asset": {
+          "image_tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6": "152e1ca7ca1853fdfc6e82a9ddb9f67bfb42f9de3ee43f0caa9094c9c14f2232"
+        }
+      },
+      "resourceCounts": {
+        "project": 1,
+        "map": 1,
+        "element": 0,
+        "elementCategory": 0,
+        "tileset": 1,
+        "asset": 1
+      },
+      "validation": {
+        "capabilityCertification": {
+          "providedCapabilityCount": 0,
+          "requested": false,
+          "requiredCapabilityCount": 0,
+          "status": "not_requested",
+          "valid": null
+        },
+        "capabilityTruth": {
+          "capabilities": [],
+          "issues": [
+            {
+              "capabilityId": "*",
+              "code": "noPromotedCapabilities",
+              "message": "A capability truth gate requires at least one promoted capability."
+            }
+          ],
+          "schemaVersion": 1,
+          "status": "fail"
+        },
+        "pokemonCatalog": {
+          "canExport": true,
+          "canPlaytest": true,
+          "diagnostics": [],
+          "errorCount": 0,
+          "warningCount": 0
+        },
+        "references": {
+          "diagnostics": [],
+          "edgeCount": 0,
+          "hasErrors": false,
+          "nodeCount": 1,
+          "valid": true
+        },
+        "snapshotRevision": "sha256:f9222dc5fed36e82ddf8b88cccf50b549435c5107dba0a9ccfcf3a5ee1ef3960",
+        "structure": {
+          "diagnostics": [],
+          "valid": true
+        },
+        "valid": true
+      },
+      "transportQueryCalls": {
+        "directApi": 6,
+        "jsonl": 6,
+        "mcp": 6
+      }
+    },
+    "edited": {
+      "root": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - ouverture Studio 20261012/Projet modifie dans Studio",
+      "snapshotRevision": "sha256:2bf98840a0d131717a54ab7e36c13ac644f5d0b1660615ed9fe388ce922bba63",
+      "strictNativeReadPassed": true,
+      "nativeLoadDiagnostics": [],
+      "nativeFileCount": 22,
+      "nativeFilesUnchanged": true,
+      "nativeManifestHash": "326ba1d3365f55c7ef320d56b91df00e597ccc67c47596b6d5c068aedd87f4e6",
+      "nativeFileHashes": {
+        ".pokemap/authoring/audit.jsonl": "bfa2bc05e757cc257700fc2cf25823c024274cfaef2e541d78ba399816d15438",
+        ".pokemap/authoring/audit.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/blobs/4395d7968a08edba8994724ee067dc8e2d34f7c13feba705b619d87c0e79f998.blob": "bab68363e1ba296f3d8ff5805bb5ead3201a2b73161f24c2e05120308e7d943a",
+        ".pokemap/authoring/blobs/6e1423202d73423d20c051c154c26e4a86f6be79bd00b6be00e4c7a66330e9d4.blob": "8663e3f9270f53cb0192ea9e37de9c7a619bb96b45770c27a15180e66617bd9f",
+        ".pokemap/authoring/blobs/8196b77a10eac60a0859721084fe03ef3db450dce5c29bf0d3e228bf5a45fd57.blob": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        ".pokemap/authoring/blobs/9b03ac5a8bb06f0855bd0fb208fd1eb0bc4b698ad8046cf5120b47ffd749172f.blob": "5458c05cc1de713043cef479369f29129c8a6da437d44656cd98cb6c1683ebbc",
+        ".pokemap/authoring/blobs/9c0f3abbb4755f4f3ce10fb39def20f369606e169f92702e9511f0c85f5663a7.blob": "f5a73d64f9d10e1f1dcd7c6c152847785a1963969e8b89b879b5bb899d20c9d8",
+        ".pokemap/authoring/blobs/ac1a15b17ad6bfaf15562818cf141153919f049329561c947104ec21c6652c16.blob": "6e5f7bce404e6c249dc9a752782b1787bd61b0f99158e6ddf1f89cc8c94c6661",
+        ".pokemap/authoring/blobs/c4246cefcde2073c8b840e771c14918c4d76a2d1b269071aac8bff4a5d104f5a.blob": "ec8fc6d15e70af7f547ea39c619281fea7bfa23d15094eecdae615ae072853a5",
+        ".pokemap/authoring/blobs/d6d10a422e0e3de2057b80908f5f84db6d37e904953b17ab07c27297ae929781.blob": "b4549698ed733453d0570fdc53552bd841c93cb73b661ce5dc1f4035bb01be3d",
+        ".pokemap/authoring/blobs/d76aa009c0014dd49742a8141a56da222d3531f57f3bd7e5aba65c76534bc986.blob": "62c99db8beeb42b7297112c9547667968e93158b5591fd2d98084b43d66d9485",
+        ".pokemap/authoring/blobs.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/history.jsonl": "2ab760785049d60e3788a9961cd6f633028ddf5d151d8ccd1ace5922d5de46ad",
+        ".pokemap/authoring/history.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/idempotency.jsonl": "999aed595cc0511c9162039008b9262a81ba9d8547d142755e6b5e7926e3eed1",
+        ".pokemap/authoring/idempotency.jsonl.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".pokemap/authoring/transactions/write.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "assets/.pokemap-assets.json": "5458c05cc1de713043cef479369f29129c8a6da437d44656cd98cb6c1683ebbc",
+        "assets/.pokemap-store/e939eae57deff78ca17b697d2499b59dea8f4e042b534325909fbbcc040e84f1.blob": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "assets/studio/tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6.png": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "maps/map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47.json": "23c1af57e040c813084241238435a911d02ff4fa8588cd2de7ec47ca4833565f",
+        "project.json": "62c99db8beeb42b7297112c9547667968e93158b5591fd2d98084b43d66d9485"
+      },
+      "mapProof": {
+        "id": "map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47",
+        "name": "Route 9 — modifiée dans Studio",
+        "size": {
+          "width": 72,
+          "height": 61
+        },
+        "modelCanonicalHash": "1374db01f8bba117d873bd3d64dc0f471e32f70b156e38ad1d33537b6bc15ba7",
+        "rawFileSha256": "23c1af57e040c813084241238435a911d02ff4fa8588cd2de7ec47ca4833565f",
+        "layerIndex": 1,
+        "layerName": "Source Z 1",
+        "cellIndex": 3285,
+        "x": 45,
+        "y": 45,
+        "cellValue": 0
+      },
+      "pngProof": {
+        "assetId": "image_tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6",
+        "sha256": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81",
+        "rgbaSha256": "30abc083db04f6304bfb2b78aa6e2fbaf8d8e3684ee6642407614c7fb88db551",
+        "width": 256,
+        "height": 16192
+      },
+      "canonicalRecordHashes": {
+        "project": {
+          "project": "6e267a4bc3ddef7b02b25e1603cab4ca69009cea8a392e962373192ddae5a30b"
+        },
+        "map": {
+          "map_d5c92840cc419116c1e2bede1a87985282238b987f5171904dfd9a47": "d612454d7b4ae80a490eb0c0e1d1ba9aa1e3407200d0de07f15b17bc237597c8"
+        },
+        "element": {},
+        "elementCategory": {},
+        "tileset": {
+          "tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6": "79811812d73a3a3dcce1818beb39e65615b388dcdc2014a4a9fa847524f55425"
+        },
+        "asset": {
+          "image_tileset_8d2e234a9edd8e5ed68ccf266c4dd869f72413aa13e06cb9e20727f6": "152e1ca7ca1853fdfc6e82a9ddb9f67bfb42f9de3ee43f0caa9094c9c14f2232"
+        }
+      },
+      "resourceCounts": {
+        "project": 1,
+        "map": 1,
+        "element": 0,
+        "elementCategory": 0,
+        "tileset": 1,
+        "asset": 1
+      },
+      "validation": {
+        "capabilityCertification": {
+          "providedCapabilityCount": 0,
+          "requested": false,
+          "requiredCapabilityCount": 0,
+          "status": "not_requested",
+          "valid": null
+        },
+        "capabilityTruth": {
+          "capabilities": [],
+          "issues": [
+            {
+              "capabilityId": "*",
+              "code": "noPromotedCapabilities",
+              "message": "A capability truth gate requires at least one promoted capability."
+            }
+          ],
+          "schemaVersion": 1,
+          "status": "fail"
+        },
+        "pokemonCatalog": {
+          "canExport": true,
+          "canPlaytest": true,
+          "diagnostics": [],
+          "errorCount": 0,
+          "warningCount": 0
+        },
+        "references": {
+          "diagnostics": [],
+          "edgeCount": 0,
+          "hasErrors": false,
+          "nodeCount": 1,
+          "valid": true
+        },
+        "snapshotRevision": "sha256:2bf98840a0d131717a54ab7e36c13ac644f5d0b1660615ed9fe388ce922bba63",
+        "structure": {
+          "diagnostics": [],
+          "valid": true
+        },
+        "valid": true
+      },
+      "transportQueryCalls": {
+        "directApi": 6,
+        "jsonl": 6,
+        "mcp": 6
+      }
+    }
+  },
+  "exactMapDiffs": [
+    {
+      "path": "/layers/1/cells/3285",
+      "before": 44,
+      "after": 0
+    },
+    {
+      "path": "/name",
+      "before": "Route 9",
+      "after": "Route 9 — modifiée dans Studio"
+    }
+  ],
+  "nativePNGsIdentical": true,
+  "allTransportRecordsIdentical": true,
+  "sourceWitnessesExact": true,
+  "sourceWitnessesUnchanged": true,
+  "sourceWitnessCount": 2,
+  "sourceFileHashes": {
+    "Data/Map098.rxdata": "b6761d596c30bf7fc7119cbc422ac9a01e910a77c0a4a3da597eb8e4be59b620",
+    "Graphics/Tilesets/FRLG_Outside.png": "fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81"
+  },
+  "priorFullSourceAttestation": {
+    "path": "/private/tmp/avelune-converter-kanto-route9-612n57o9/route9-final.json",
+    "sha256": "fc2d0aba7372598e12c059380dc149112a110851c98b59a79b418e4ea9958af9",
+    "fullSnapshotHash": "5bc0f5dd57e70951cb86fe7c71114e983827251830b2b11f23ef2dab48f1c8de",
+    "entryCount": 24273,
+    "sourceUnchanged": true,
+    "scope": "Full source rescanned by the preceding canonical conversion; current read-only qualification rechecks Map098 and FRLG_Outside witnesses only"
+  },
+  "sourceRubyExecuted": 0,
+  "secretsInTransportRecords": 0,
+  "rootStudioJourneyVerification": {
+    "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - ouverture Studio 20261012/verification.json",
+    "sha256": "a9032b42db335a7abdae7ea4e052215039ce20cec1a529d6a3043ddacc9eba9e"
+  },
+  "frozenSoftwarePinsVerified": 108,
+  "mcpBinSha256": "ea8d735de103a8c0fb7fe182ad2ffa83333082dfd673ad8d385999651e565ffc",
+  "packageConfigSha256": "6f3bbdc44c0d3ed2a88be8898486a6f1601aef83a3a82bc8b781dde4431dbd91",
+  "directRunnerPid": 7241,
+  "jsonlRunnerPid": 7361,
+  "liveMcpCatalogHash": "93f263e48ae35192dde318744dc6cad6e5d21cb0d202d0ea9fe041a6f3fce4eb",
+  "actionContracts": [
+    {
+      "capabilityIds": [
+        "authoring.visual_library"
+      ],
+      "guarantees": [
+        "atomic",
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "tileset.import_image",
+      "inputSchemaId": "pokemap.authoring.tileset.import_image.input.v1",
+      "outputSchemaId": "pokemap.authoring.visual_library.mutation.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "asset",
+        "assetBlob",
+        "assetCatalog",
+        "project",
+        "tileset"
+      ],
+      "riskLevel": "medium",
+      "summary": "Atomically import a staged PNG asset and its canonical regular tileset",
+      "version": 1
+    },
+    {
+      "capabilityIds": [
+        "authoring.visual_library"
+      ],
+      "guarantees": [
+        "atomic",
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "tileset.upsert",
+      "inputSchemaId": "pokemap.authoring.tileset.upsert.input.v1",
+      "outputSchemaId": "pokemap.authoring.visual_library.mutation.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "asset",
+        "project"
+      ],
+      "riskLevel": "medium",
+      "summary": "Create or replace a validated canonical tileset",
+      "version": 1
+    },
+    {
+      "capabilityIds": [],
+      "extensions": {
+        "multiFileGuarantee": "recoverable"
+      },
+      "guarantees": [
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "map.create",
+      "inputSchemaId": "schema.map.create.input.v1",
+      "outputSchemaId": "schema.map.mutation.output.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "map",
+        "project"
+      ],
+      "riskLevel": "medium",
+      "summary": "Create a complete map",
+      "version": 1
+    },
+    {
+      "capabilityIds": [],
+      "extensions": {
+        "multiFileGuarantee": "recoverable"
+      },
+      "guarantees": [
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "map.save",
+      "inputSchemaId": "schema.map.save.input.v1",
+      "outputSchemaId": "schema.map.mutation.output.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "map",
+        "project"
+      ],
+      "riskLevel": "medium",
+      "summary": "Save a complete validated map",
+      "version": 1
+    },
+    {
+      "capabilityIds": [
+        "authoring.visual_library"
+      ],
+      "extensions": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "category": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "name": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parentCategoryId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sortOrder": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "category"
+          ],
+          "type": "object"
+        }
+      },
+      "guarantees": [
+        "atomic",
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "element_category.upsert",
+      "inputSchemaId": "pokemap.authoring.element_category.upsert.input.v1",
+      "outputSchemaId": "pokemap.authoring.visual_library.mutation.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "elementCategory",
+        "project"
+      ],
+      "riskLevel": "medium",
+      "summary": "Create or replace one visual element category",
+      "version": 1
+    },
+    {
+      "capabilityIds": [
+        "authoring.visual_library"
+      ],
+      "guarantees": [
+        "atomic",
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "element.upsert",
+      "inputSchemaId": "pokemap.authoring.element.upsert.input.v1",
+      "outputSchemaId": "pokemap.authoring.visual_library.mutation.v1",
+      "requiredPermissions": [
+        "project.write"
+      ],
+      "resourceKinds": [
+        "asset",
+        "project"
+      ],
+      "riskLevel": "medium",
+      "summary": "Create or replace one validated visual element",
+      "version": 1
+    },
+    {
+      "capabilityIds": [
+        "authoring.assets"
+      ],
+      "guarantees": [
+        "atomic",
+        "dry_run",
+        "idempotent",
+        "revision_checked",
+        "undoable"
+      ],
+      "id": "asset.import",
+      "inputSchemaId": "pokemap.authoring.asset.import.input.v1",
+      "outputSchemaId": "pokemap.authoring.asset.mutation.v1",
+      "requiredPermissions": [
+        "asset.write",
+        "project.write"
+      ],
+      "resourceKinds": [
+        "asset",
+        "assetBlob",
+        "assetCatalog"
+      ],
+      "riskLevel": "low",
+      "summary": "Import one inspected artifact",
+      "version": 1
+    }
+  ]
+}

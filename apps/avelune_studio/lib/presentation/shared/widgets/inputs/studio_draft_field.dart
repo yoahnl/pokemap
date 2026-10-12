@@ -11,6 +11,7 @@ class StudioDraftField extends StatefulWidget {
     this.errorText,
     this.helperText,
     this.keyboardType,
+    this.obscureText = false,
   });
   final String value, label;
   final ValueChanged<String> onChanged;
@@ -19,6 +20,7 @@ class StudioDraftField extends StatefulWidget {
   final String? errorText;
   final String? helperText;
   final TextInputType? keyboardType;
+  final bool obscureText;
   @override
   State<StudioDraftField> createState() => _StudioDraftFieldState();
 }
@@ -51,6 +53,10 @@ class _StudioDraftFieldState extends State<StudioDraftField> {
     onChanged: widget.onChanged,
     enabled: widget.enabled,
     keyboardType: widget.keyboardType,
+    obscureText: widget.obscureText,
+    autocorrect: !widget.obscureText,
+    enableSuggestions: !widget.obscureText,
+    enableIMEPersonalizedLearning: !widget.obscureText,
     minLines: widget.lines,
     maxLines: widget.lines == 1 ? 1 : null,
     decoration: InputDecoration(

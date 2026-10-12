@@ -249,11 +249,13 @@ final class AssetReviewConflict {
 final class AssetReviewFrame {
   AssetReviewFrame._(
       {required List<AssetCandidate> candidates,
+      required List<VisionReviewProposal> visionProposals,
       required this.outputMode,
       required Map<ConverterId, ReviewDecision> decisions,
       required Map<ConverterId, Sha256Hash> approvedCandidateHashes,
       required Map<ConverterId, List<SourcePlacementClaim>> placementClaims})
       : candidates = List.unmodifiable(candidates),
+        visionProposals = List.unmodifiable(visionProposals),
         decisions = Map.unmodifiable(decisions),
         approvedCandidateHashes = Map.unmodifiable(approvedCandidateHashes),
         placementClaims = Map.unmodifiable({
@@ -261,6 +263,7 @@ final class AssetReviewFrame {
             entry.key: List<SourcePlacementClaim>.unmodifiable(entry.value)
         });
   final List<AssetCandidate> candidates;
+  final List<VisionReviewProposal> visionProposals;
   final AssetOutputMode outputMode;
   final Map<ConverterId, ReviewDecision> decisions;
   final Map<ConverterId, Sha256Hash> approvedCandidateHashes;
@@ -269,6 +272,7 @@ final class AssetReviewFrame {
   Map<String, Object?> _json() => {
         'candidateHashes':
             candidates.map((c) => c.canonicalHash.value).toList(),
+        'visionProposals': visionProposals.map((p) => p.toJson()).toList(),
         'outputMode': outputMode.name,
         'decisions': [
           for (final c in candidates)
@@ -338,6 +342,7 @@ final class AssetReviewSession {
       frames: [
         AssetReviewFrame._(
             candidates: candidates,
+            visionProposals: const [],
             outputMode: outputMode,
             decisions: const {},
             approvedCandidateHashes: const {},
@@ -371,7 +376,7 @@ final class AssetReviewSession {
       'revision'
     });
     _reviewRequire(
-        json['schemaVersion'] == '1.0' && json['kind'] == 'assetReviewSession',
+        json['schemaVersion'] == '1.1' && json['kind'] == 'assetReviewSession',
         'review.document.version',
         'Unsupported review document');
     final sessionId = ConverterId(_reviewString(json['sessionId']));
@@ -406,6 +411,7 @@ final class AssetReviewSession {
       final value = _reviewObject(raw);
       _reviewKeys(value, const {
         'candidateHashes',
+        'visionProposals',
         'outputMode',
         'decisions',
         'approvedCandidateHashes',
@@ -444,6 +450,9 @@ final class AssetReviewSession {
       _unique(decisions.map((d) => d.candidateId), r'$.frame.decisions');
       frames.add(AssetReviewFrame._(
         candidates: candidates,
+        visionProposals: _reviewList(value['visionProposals'])
+            .map(VisionReviewProposal._fromJson)
+            .toList(),
         outputMode: _reviewOutputMode(value['outputMode']),
         decisions: {for (final d in decisions) d.candidateId: d},
         approvedCandidateHashes:
@@ -547,7 +556,7 @@ final class AssetReviewSession {
   }
 
   Map<String, Object?> _json() => {
-        'schemaVersion': '1.0',
+        'schemaVersion': '1.1',
         'kind': 'assetReviewSession',
         'sessionId': sessionId.value,
         'logicalProjectNamespace': logicalProjectNamespace.value,
@@ -592,6 +601,7 @@ final class AssetReviewSession {
         'Review requires a bounded source map selection');
     _unique(selectedSourceMapIds, r'$.selectedSourceMapIds');
     final versions = <Sha256Hash>{};
+    final knownCandidates = <Sha256Hash, AssetCandidate>{};
     var partCount = 0;
     var claimCount = 0;
     var decisionCount = 0;
@@ -605,6 +615,7 @@ final class AssetReviewSession {
       _reviewRequire(decisionCount <= limits.maxTotalDecisions,
           'review.decisions.quota', 'Decision history budget exceeded');
       for (final candidate in frame.candidates) {
+        knownCandidates[candidate.canonicalHash] = candidate;
         _reviewRequire(
             !candidate.exampleOnly &&
                 candidate.logicalProjectNamespace == logicalProjectNamespace &&
@@ -651,6 +662,18 @@ final class AssetReviewSession {
               'review.state.decision',
               'Reviewed state lacks its current decision');
         }
+      }
+      _reviewRequire(frame.visionProposals.length <= 128,
+          'vision.proposals.quota', 'Pending AI proposal budget exceeded');
+      _unique(frame.visionProposals.map((p) => p.proposalId),
+          r'$.frame.visionProposals');
+      for (final proposal in frame.visionProposals) {
+        _reviewRequire(
+            proposal.sourceSnapshotHash == sourceSnapshotHash &&
+                proposal.candidateHashes.entries.every((entry) =>
+                    knownCandidates[entry.value]?.candidateId == entry.key),
+            'vision.proposal.context',
+            'Pending AI proposal references another snapshot or unknown candidate version');
       }
       _reviewRequire(
           frame.approvedCandidateHashes.keys.every(candidates.containsKey) &&
@@ -717,6 +740,113 @@ final class AssetReviewSession {
 
   void _expect(Sha256Hash expected) => _reviewRequire(expected == canonicalHash,
       'review.session.stale', 'Review document changed before this command');
+  AssetReviewSession importVisionSuggestions(
+      {required VisionResponse response,
+      required VisionRequest request,
+      required VisionLiveContext live,
+      required List<SourceImage> verifiedSources,
+      required Sha256Hash expectedSessionHash}) {
+    _expect(expectedSessionHash);
+    validateVisionResult(response, request, live);
+    _reviewRequire(
+        request.material.expectedSessionHash == canonicalHash &&
+            request.context.sourceSnapshotHash == sourceSnapshotHash &&
+            request.context.inputRevision == revision,
+        'vision.import.context',
+        'Response belongs to another exact review revision');
+    for (final entry in request.material.candidateHashes.entries) {
+      _candidate(entry.key, entry.value);
+    }
+    final sources =
+        _visionSelectedSources(request.material.toJson(), verifiedSources);
+    _reviewRequire(
+        frame.visionProposals.length + response.suggestions.length <=
+            request.material.limits.maxProposals,
+        'vision.proposals.quota',
+        'Pending AI proposal budget exceeded');
+    if (response.suggestions.isEmpty) return this;
+    _canAppend();
+    final proposals = [
+      ...frame.visionProposals,
+      for (final suggestion in response.suggestions)
+        VisionReviewProposal._create(suggestion, request.material, sources),
+    ];
+    _unique(proposals.map((p) => p.proposalId), r'$.visionProposals');
+    return _withVisionProposals(proposals);
+  }
+
+  AssetReviewSession applyVisionMetadata(
+      {required ConverterId proposalId,
+      required Sha256Hash expectedSessionHash,
+      required bool humanConfirmed}) {
+    _expect(expectedSessionHash);
+    _reviewRequire(humanConfirmed, 'vision.application.human',
+        'Metadata requires an explicit human decision');
+    final proposal = _visionProposal(proposalId);
+    final suggestion = proposal.suggestion;
+    _reviewRequire(
+        suggestion.candidateIds.length == 1,
+        'vision.application.group',
+        'Grouping proposals require a separate human union with explicit geometry');
+    final id = suggestion.candidateIds.single;
+    final candidate = _candidate(id, proposal.candidateHashes[id]!);
+    _canAppend();
+    final next = _changed(candidate, {
+      'name': _reviewName(suggestion.proposedName),
+      'category': suggestion.category.name,
+      'evidence': [
+        ...candidate.evidence.map((e) => e.toJson()),
+        {
+          'type': 'aiSuggestion',
+          'summary': suggestion.evidenceSummary,
+          'reference':
+              'vision:${proposal.provider}:${proposal.model}:${proposal.materialHash.value}:${suggestion.suggestionId.value}'
+        },
+      ],
+      'uncertainties': [
+        ...{...candidate.uncertainties, ...suggestion.uncertainties}
+      ],
+    });
+    return _replace(
+        next,
+        candidate.category == suggestion.category
+            ? ReviewAction.rename
+            : ReviewAction.reclassify,
+        visionProposals: frame.visionProposals
+            .where((p) => p.proposalId != proposalId)
+            .toList());
+  }
+
+  AssetReviewSession removeVisionProposal(
+      {required ConverterId proposalId,
+      required Sha256Hash expectedSessionHash,
+      required bool humanConfirmed}) {
+    _expect(expectedSessionHash);
+    _reviewRequire(humanConfirmed, 'vision.discard.human',
+        'Discard requires an explicit human decision');
+    _visionProposal(proposalId);
+    return _withVisionProposals(frame.visionProposals
+        .where((p) => p.proposalId != proposalId)
+        .toList());
+  }
+
+  VisionReviewProposal _visionProposal(ConverterId id) {
+    final matches = frame.visionProposals.where((p) => p.proposalId == id);
+    _reviewRequire(matches.length == 1, 'vision.proposal.missing',
+        'Pending proposal no longer exists');
+    return matches.single;
+  }
+
+  AssetReviewSession _withVisionProposals(
+          List<VisionReviewProposal> proposals) =>
+      _append(AssetReviewFrame._(
+        candidates: frame.candidates,
+        visionProposals: proposals,
+        outputMode: outputMode,
+        decisions: frame.decisions,
+        approvedCandidateHashes: frame.approvedCandidateHashes,
+        placementClaims: frame.placementClaims,
+      ));
   AssetCandidate _candidate(ConverterId id, Sha256Hash hash) {
     final matches = activeCandidates.where((c) => c.candidateId == id);
     _reviewRequire(matches.length == 1 && matches.single.canonicalHash == hash,
@@ -792,7 +922,8 @@ final class AssetReviewSession {
   }
 
   AssetReviewSession _replace(AssetCandidate candidate, ReviewAction action,
-      {List<SourcePlacementClaim>? claims}) {
+      {List<SourcePlacementClaim>? claims,
+      List<VisionReviewProposal>? visionProposals}) {
     final approved = {...frame.approvedCandidateHashes}
       ..remove(candidate.candidateId);
     if (candidate.state == CandidateState.approved) {
@@ -807,6 +938,7 @@ final class AssetReviewSession {
         for (final old in frame.candidates)
           old.candidateId == candidate.candidateId ? candidate : old
       ],
+      visionProposals: visionProposals ?? frame.visionProposals,
       outputMode: outputMode,
       decisions: {
         ...frame.decisions,
@@ -954,6 +1086,7 @@ final class AssetReviewSession {
     _validateReviewClaims(candidate, placementClaims, sourceMaps);
     return _append(AssetReviewFrame._(
         candidates: [...frame.candidates, candidate],
+        visionProposals: frame.visionProposals,
         outputMode: outputMode,
         decisions: frame.decisions,
         approvedCandidateHashes: frame.approvedCandidateHashes,
@@ -993,6 +1126,7 @@ final class AssetReviewSession {
     }
     return _append(AssetReviewFrame._(
         candidates: candidates,
+        visionProposals: frame.visionProposals,
         outputMode: outputMode,
         decisions: decisions,
         approvedCandidateHashes: const {},
@@ -1265,6 +1399,7 @@ final class AssetReviewSession {
     candidates.addAll(children);
     return _append(AssetReviewFrame._(
         candidates: candidates,
+        visionProposals: frame.visionProposals,
         outputMode: outputMode,
         decisions: decisions,
         approvedCandidateHashes: approvals,

@@ -1,0 +1,1853 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-11",
+  "executions": [
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-20261012.json",
+      "receiptSha256": "c2ff8752fb5235483713cb2fa3e124e5335fce11a9ac07e4cc75e02a3f8d4994",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "analyze",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_crop_verifier.dart",
+        "lib/src/vision_http_transport.dart",
+        "lib/src/vision_local_store.dart",
+        "lib/src/vision_runtime.dart",
+        "lib/src/vision_support.dart",
+        "lib/avelune_converter_adapters.dart",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "test/vision_http_transport_test.dart",
+        "test/vision_local_store_test.dart",
+        "test/support/vision_test_fixture.dart",
+        "test/support/vision_ledger_worker.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 4.104,
+      "runnerPid": 80843,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-20261012.log",
+      "logSha256": "29daf3bb4166c474b6dac750216f5d2de401fdbb2a8da4b309d57daee41e5dd8",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "7a1bb4d6f61e6af8f6338f92c0ed607c17e2185a295e4a501750ecfa389ee322",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "65bb708581a205bbb7b1036509c08192efd0bf120cc4ae305fcbaae313948cfb",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "7a1bb4d6f61e6af8f6338f92c0ed607c17e2185a295e4a501750ecfa389ee322",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "65bb708581a205bbb7b1036509c08192efd0bf120cc4ae305fcbaae313948cfb",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "5 issues found."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-final-20261012.json",
+      "receiptSha256": "9a8f941d6354aedcec9542e541024c7761455810482bcae8eeb5ed27bafad3a9",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "analyze",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_crop_verifier.dart",
+        "lib/src/vision_http_transport.dart",
+        "lib/src/vision_local_store.dart",
+        "lib/src/vision_runtime.dart",
+        "lib/src/vision_support.dart",
+        "lib/avelune_converter_adapters.dart",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "test/vision_http_transport_test.dart",
+        "test/vision_local_store_test.dart",
+        "test/support/vision_test_fixture.dart",
+        "test/support/vision_ledger_worker.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 2.935,
+      "runnerPid": 81142,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-final-20261012.log",
+      "logSha256": "0051c496f1bb2df0454fb5ef6ef57e8e275299f5137f9dd1e9a041aa9c77d071",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "f7e8b30dd3ce74ac7ef3730abfbb22d45c29a58f7a68407885ac2bf3d9cee894",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "9192fc520420f84b0e5c919c83e25608c8040b55687b95d104bcba9e19926ebc",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "f7e8b30dd3ce74ac7ef3730abfbb22d45c29a58f7a68407885ac2bf3d9cee894",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "9192fc520420f84b0e5c919c83e25608c8040b55687b95d104bcba9e19926ebc",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-final-root-20261012.json",
+      "receiptSha256": "f0b5511d8b04e06b73ebdb003c32bba17017552d4e2648386f649ecb29dc5f6e",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 3.497,
+      "runnerPid": 90370,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-analyze-final-root-20261012.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-format-20261012.json",
+      "receiptSha256": "86007b82d0c1043d3badac1f9a19638c7c4f43086dbc1db5c2697913adaad0b1",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "format",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_crop_verifier.dart",
+        "lib/src/vision_http_transport.dart",
+        "lib/src/vision_local_store.dart",
+        "lib/src/vision_runtime.dart",
+        "lib/src/vision_support.dart",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "test/vision_http_transport_test.dart",
+        "test/vision_local_store_test.dart",
+        "test/support/vision_test_fixture.dart",
+        "test/support/vision_ledger_worker.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 0.688,
+      "runnerPid": 78357,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-format-20261012.log",
+      "logSha256": "44339ab7ee2dddc4a2a4cfa3912a859700f9e4136f4bb255f02b9767daf2728f",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-format-final-20261012.json",
+      "receiptSha256": "bbf20d42fa45d087c5f02bb9c9a18c3c6eac63620c60b4a5fdbfd2439f44f0d4",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "format",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_local_store.dart",
+        "test/vision_assistance_service_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 0.676,
+      "runnerPid": 81126,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-format-final-20261012.log",
+      "logSha256": "a8665628d3d8dc8a51632550dfb214cf87c098912f4250420d0df700431790e6",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-full-final-20261012.json",
+      "receiptSha256": "007ac139f62f65d0d5281f945e720a58f63d0ffc72a0a91f94956cb15d591b05",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 55.519,
+      "runnerPid": 88569,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-full-final-20261012.log",
+      "logSha256": "0154bdfdd7c3678b97c9ef75e56731a70459a3183cf82556a12ec22f5da4de29",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180"
+      },
+      "finalResultLines": [
+        "00:52 +424 ~8: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-green-20261012.json",
+      "receiptSha256": "94b5c41667d07514a57966433a862a20f521d68ab13bfcb73287eda0161b4cb5",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_local_store_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "test/vision_http_transport_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 14.463,
+      "runnerPid": 79424,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-green-20261012.log",
+      "logSha256": "62ac8c216317dc9f6c6b3d666da6c40efa879e3fd43a6c2b30fb90fab52f8be4",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "7a1bb4d6f61e6af8f6338f92c0ed607c17e2185a295e4a501750ecfa389ee322",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "65bb708581a205bbb7b1036509c08192efd0bf120cc4ae305fcbaae313948cfb",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_http_transport.dart": "ca0cdf9f49d7b7fb585ab05de514aa4b47bbbc2dd7bd57d051fcc096573713b0",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6716dd9f54e0a4340f03846112560f3d2225beb1ea4aaa4fcc947152be8735c1",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "3850f94900b2cae700a17f426349bc29867bfd7d0a4ebde688a79008368fda95",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_support.dart": "812d8e70d78138faad7b96f02f99ef6bc2325e4b02b435933dd921b143e7ad9b",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "7a1bb4d6f61e6af8f6338f92c0ed607c17e2185a295e4a501750ecfa389ee322",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "65bb708581a205bbb7b1036509c08192efd0bf120cc4ae305fcbaae313948cfb",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_http_transport.dart": "ca0cdf9f49d7b7fb585ab05de514aa4b47bbbc2dd7bd57d051fcc096573713b0",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6716dd9f54e0a4340f03846112560f3d2225beb1ea4aaa4fcc947152be8735c1",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "3850f94900b2cae700a17f426349bc29867bfd7d0a4ebde688a79008368fda95",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_support.dart": "812d8e70d78138faad7b96f02f99ef6bc2325e4b02b435933dd921b143e7ad9b",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:12 +43: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-adapters-red-20261012.json",
+      "receiptSha256": "c7bc6041d80994c12c8cac082a9fd669e4026ba21801f71a9f912a9bbe88b8b4",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_local_store_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "test/vision_http_transport_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 23.537,
+      "runnerPid": 70363,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-adapters-red-20261012.log",
+      "logSha256": "a537f1fd0560f5058cdee85826d62163272b249d0d449a5f68b938ea249d0763",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "fce57dd44d0b187581f1366c0336d59d3d8ba39bd5cd3f68a42c10dca5e00972",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "bef44cefbe557e975106d60df1cd73a0de58e88fc1ccee188471e961f589d68c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_http_transport.dart": "5c92c5b1fa1e395c9ed543e6581778173e4945f44a9b4957150e46f0d133b06d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "2791cd5fdafaa76a136fb30253ee5585bed430f973f8f5165b11fba67eb588da",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "fce57dd44d0b187581f1366c0336d59d3d8ba39bd5cd3f68a42c10dca5e00972",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_local_store.dart": "bef44cefbe557e975106d60df1cd73a0de58e88fc1ccee188471e961f589d68c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_http_transport.dart": "5c92c5b1fa1e395c9ed543e6581778173e4945f44a9b4957150e46f0d133b06d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "2791cd5fdafaa76a136fb30253ee5585bed430f973f8f5165b11fba67eb588da",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350"
+      },
+      "finalResultLines": [
+        "00:12 +0 -42: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-app-analyze-final-20261012.json",
+      "receiptSha256": "295b077bc626e645a038f744722f2029e285e650055c81e1069b4218a628e185",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 7.501,
+      "runnerPid": 91389,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-app-analyze-final-20261012.log",
+      "logSha256": "0a75c569c9944826e74c70d4733cb2ebd9cdb93f5299a97276d0e5ab9b75aa29",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": [
+        "10 issues found. (ran in 6.2s)"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-app-analyze-final-v2-20261012.json",
+      "receiptSha256": "51ab6a769fcb6742890a38bd39d723a1cdd99dd05bd08effbca2af12b72a41ff",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 7.441,
+      "runnerPid": 91690,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-app-analyze-final-v2-20261012.log",
+      "logSha256": "f9781b2cc016007a22fcfa144024c53700cbaab5619be6e8723b2a50b8479bfd",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": [
+        "No issues found! (ran in 6.2s)"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-app-focused-final-v2-20261012.json",
+      "receiptSha256": "9cbf398b681ba7ac4df7837679cb24e695e3957279765801268f51233a6ec2bd",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/vision_panel_test.dart",
+        "test/vision_desktop_services_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 7.963,
+      "runnerPid": 91808,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-app-focused-final-v2-20261012.log",
+      "logSha256": "6494ebdd4d46029e6f621c9d2d21698830fd92e2f489070924c4ebea0cfb4eac",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "f7638e31cb4d82412a56557cd5fb6768dcd152bf5ea93005ab7c79d7f82bd02f",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "bb43a8b2c58be5fed5993ef212a8bd3112ee3dca3e51e7f351151bd3137bb422"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "f7638e31cb4d82412a56557cd5fb6768dcd152bf5ea93005ab7c79d7f82bd02f",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "bb43a8b2c58be5fed5993ef212a8bd3112ee3dca3e51e7f351151bd3137bb422"
+      },
+      "finalResultLines": [
+        "00:03 +8: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-app-focused-green-20261012.json",
+      "receiptSha256": "487895406373e7137cee4ad0da119698e6775160ef647026a20a8cb7097232f7",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/vision_preview_test.dart",
+        "test/vision_panel_test.dart",
+        "test/vision_desktop_services_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 8.215,
+      "runnerPid": 87952,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-app-focused-green-20261012.log",
+      "logSha256": "b580467b65f206003a95a4cedbfdd7070824de2931bdf0e81191e4e6aee375d5",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f2da81ff474f6843e15afe28b35706d606f224d1a9b38377c9ace89068866afa",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "283e496d2a50c820fcaca38759a56a8f2b957164ff80939c6b6018d553d6f462",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "1ecffe4633c4319362f79b927849694f0ea5f3cf21b33950e317f2d696b1654d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "4b665af4fc68ccfd8180da81cfb88b9e77dfaf1638e136a4ec7caba006f1beaf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "ca9c8702abb4d2c130ea5f4201103980a3996c819b0e6f9648d47212ad99b9ca",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_desktop_services_test.dart": "888d701f4be6d42bf4932b8725e69c31bc72fbd8163072ddec5b7015b8646a47"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f2da81ff474f6843e15afe28b35706d606f224d1a9b38377c9ace89068866afa",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "283e496d2a50c820fcaca38759a56a8f2b957164ff80939c6b6018d553d6f462",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "1ecffe4633c4319362f79b927849694f0ea5f3cf21b33950e317f2d696b1654d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "4b665af4fc68ccfd8180da81cfb88b9e77dfaf1638e136a4ec7caba006f1beaf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "ca9c8702abb4d2c130ea5f4201103980a3996c819b0e6f9648d47212ad99b9ca",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_desktop_services_test.dart": "888d701f4be6d42bf4932b8725e69c31bc72fbd8163072ddec5b7015b8646a47"
+      },
+      "finalResultLines": [
+        "00:04 +32: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-app-full-final-20261012.json",
+      "receiptSha256": "92045c2ce3cfcf1fb49ea91a56db39645369947d2ee725c9ed565774c0018187",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 68.364,
+      "runnerPid": 89838,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-app-full-final-20261012.log",
+      "logSha256": "ccb056d7fff4028d5588664da564a0850489e052d46526d6d26d4239738aeeb7",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "0ec4afdf1afe2026f5c01dd7a870041801fc2fc89d2fa59f8a12f02e08b87fa6",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "1ecffe4633c4319362f79b927849694f0ea5f3cf21b33950e317f2d696b1654d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f2da81ff474f6843e15afe28b35706d606f224d1a9b38377c9ace89068866afa",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "ca9c8702abb4d2c130ea5f4201103980a3996c819b0e6f9648d47212ad99b9ca"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "0ec4afdf1afe2026f5c01dd7a870041801fc2fc89d2fa59f8a12f02e08b87fa6",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "1ecffe4633c4319362f79b927849694f0ea5f3cf21b33950e317f2d696b1654d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f2da81ff474f6843e15afe28b35706d606f224d1a9b38377c9ace89068866afa",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "ca9c8702abb4d2c130ea5f4201103980a3996c819b0e6f9648d47212ad99b9ca"
+      },
+      "finalResultLines": [
+        "01:04 +80: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-analyze-20261012.json",
+      "receiptSha256": "8b88f8696002a2743f2455010d3a4cd2023798869ff324032631cbc53397ca8a",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "analyze",
+        "lib",
+        "test/vision_assistance_test.dart",
+        "test/asset_review_session_test.dart",
+        "test/admission_test.dart",
+        "test/contracts_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 1.811,
+      "runnerPid": 72158,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-analyze-20261012.log",
+      "logSha256": "95bf2defbdb9139113b8624074f2372aacb25ce8292ad65d6cd8b1a809812216",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-analyze-final-20261012.json",
+      "receiptSha256": "ce655ff1ad10dba098448be2d06ad5ccc7e002b39380ae518ffd71f203d3727a",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 1.233,
+      "runnerPid": 90240,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-analyze-final-20261012.log",
+      "logSha256": "c6a2cb5518842c34bdacf71808a7fbc9d7651465f2e93d850cdf75d014aacd85",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-format-20261012.json",
+      "receiptSha256": "5c88b901cc66838227c7d490c7fa903556eafe68c678a8b58bed8d8cd146c902",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "format",
+        "lib/src/vision_assistance.dart",
+        "lib/src/asset_review_session.dart",
+        "test/vision_assistance_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 0.671,
+      "runnerPid": 71258,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-format-20261012.log",
+      "logSha256": "24da66ce3964ce918038e1c51fea13dd9f292845c866cb451f2cd0e4d212cc3b",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-full-final-20261012.json",
+      "receiptSha256": "263ccb430ca9bbd25a225f7bee5ee9c8cc04151f76fa97f60a1e0275afbab1e7",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 17.602,
+      "runnerPid": 88154,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-full-final-20261012.log",
+      "logSha256": "05353ccaa18700cdfe409bdbd0c84366866062d8023c5f5594dfb3d3dbaa0cd2",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "finalResultLines": [
+        "00:15 +632: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-green-first-20261012.json",
+      "receiptSha256": "e570c5a87fea1e4f7e99f8fd21f921fc9cecc892b03ae5f63d2036aa34e84119",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/vision_assistance_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 1.84,
+      "runnerPid": 71184,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-green-first-20261012.log",
+      "logSha256": "063bc6f38dcdb6cef17b805a8faf2f0a57ae306c4298fa0febc56c933936e806",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "0d9ac13ed2cfcdf32f880338f1ced12262a70c640585da4fb1b068fe03d45413",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "83cb38092e34beeeff24a2a2d6fd678d573f7b14b93c2ceee560412fc258c384",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "6b30bf2edf576c019fd13ddc057dc72a9b02e6188f332988b31fb8eb8046fc63"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "0d9ac13ed2cfcdf32f880338f1ced12262a70c640585da4fb1b068fe03d45413",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "83cb38092e34beeeff24a2a2d6fd678d573f7b14b93c2ceee560412fc258c384",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "6b30bf2edf576c019fd13ddc057dc72a9b02e6188f332988b31fb8eb8046fc63"
+      },
+      "finalResultLines": [
+        "00:00 +39: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-green-targeted-20261012.json",
+      "receiptSha256": "c4c5076988986276be0e0f5cfb64b4e9f309b0a586f241e31b0176cce1218021",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/vision_assistance_test.dart",
+        "test/asset_review_session_test.dart",
+        "test/admission_test.dart",
+        "test/contracts_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 2.358,
+      "runnerPid": 72093,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-green-targeted-20261012.log",
+      "logSha256": "77c350b0afca94c7beea73764df1e1baca3255cf92049d857082183c671fc288",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "fb5b4352c061b929fce344d2e65ef0b96e724f67a8ff7784b0945147ef98fe93",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "12ed54d48f57d5f53f20b26d4f804e01e454005dec8d900f221dc635a7771ef9"
+      },
+      "finalResultLines": [
+        "00:01 +111: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-guards-red-20261012.json",
+      "receiptSha256": "e2d72b96651b6bd01f3131ee683fcb42bc8c3505bd27c87bf9d052dc6bd4e800",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "--name",
+        "material context|request cannot|import quota|one invalid|import validates|persisted AI|duplicate import",
+        "test/vision_assistance_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 5.849,
+      "runnerPid": 70125,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-guards-red-20261012.log",
+      "logSha256": "c29d3ab341c401c9245647b2cc0315e44ea460d80c48541307f56ac06ef0a527",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/avelune_converter_core.dart": "b55c15b979d5388813ddb5f315ce0f485c3956728ca112586f775808c16727c3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "39c67bc19bc7a0051b9318da6e068308d92a8e0e5a2527ae28f99c6edc606975",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "6b30bf2edf576c019fd13ddc057dc72a9b02e6188f332988b31fb8eb8046fc63"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/avelune_converter_core.dart": "b55c15b979d5388813ddb5f315ce0f485c3956728ca112586f775808c16727c3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "39c67bc19bc7a0051b9318da6e068308d92a8e0e5a2527ae28f99c6edc606975",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "6b30bf2edf576c019fd13ddc057dc72a9b02e6188f332988b31fb8eb8046fc63"
+      },
+      "finalResultLines": [
+        "00:00 +0 -7: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-core-red-20261012.json",
+      "receiptSha256": "d8e03c5b1e100cea39c90c0c61fa304e18f1162d518e69223bfbe998a2d3b596",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/vision_assistance_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 5.223,
+      "runnerPid": 63735,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-core-red-20261012.log",
+      "logSha256": "a028366764d78ac004de7965632ac1cc4ddc801521e9c708c5238192a53a07c1",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/avelune_converter_core.dart": "b55c15b979d5388813ddb5f315ce0f485c3956728ca112586f775808c16727c3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "39c67bc19bc7a0051b9318da6e068308d92a8e0e5a2527ae28f99c6edc606975",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "ff9c8f45190093cdd5db0caf53a07fe5f874699bcaee58e77259354e9ef36836"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/avelune_converter_core.dart": "b55c15b979d5388813ddb5f315ce0f485c3956728ca112586f775808c16727c3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/ports.dart": "b2437fd3f37409048cb96f460cc25d7625dc2b44ad018c4936a7a1848d114350",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "39c67bc19bc7a0051b9318da6e068308d92a8e0e5a2527ae28f99c6edc606975",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/lib/src/vision_assistance.dart": "fc4a944dad4f679317d0208bc8559b6ba564b0e1fe9dd4174dc85d96568a67ee",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core/test/vision_assistance_test.dart": "ff9c8f45190093cdd5db0caf53a07fe5f874699bcaee58e77259354e9ef36836"
+      },
+      "finalResultLines": [
+        "00:00 +1 -31: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-decoded-secret-analyze-20261012.json",
+      "receiptSha256": "b8ffa76891cbdfb3b952eb61823d5113790bd117ad712c343676a5ba793bc88c",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "analyze",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_runtime.dart",
+        "test/vision_assistance_service_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 3.561,
+      "runnerPid": 83169,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-decoded-secret-analyze-20261012.log",
+      "logSha256": "eedd44374fef3a8e60108a9bb97cce40ed8458aa33ac0165ca3c81705e2e1fdf",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9"
+      },
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-decoded-secret-format-20261012.json",
+      "receiptSha256": "7e3bed75153df3f11784b5614cb44820404af02639fd823d6707c6f1b0cfb90e",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "format",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_runtime.dart",
+        "test/vision_assistance_service_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 0.701,
+      "runnerPid": 82756,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-decoded-secret-format-20261012.log",
+      "logSha256": "261d4157ab1983bfdb2e6dac6c1891316f03376db752e4230c554c2fa978214c",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-decoded-secret-green-20261012.json",
+      "receiptSha256": "66c38976c8b5324a3ad6760c5eb4465d30b2339f13e6dfa889e967fbb43acbc4",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 4.771,
+      "runnerPid": 82787,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-decoded-secret-green-20261012.log",
+      "logSha256": "104405ee1f3f7d7935440254edd037ef3c55f5d3b4c44ba6e0ee4c353ca887a6",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:01 +23: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-decoded-secret-red-20261012.json",
+      "receiptSha256": "fa49e95e9c39e1adfb41633595bc4b123bc8aa0dca0eaeed9536eb05fb7e698c",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "--name",
+        "Unicode escaped|decoded key punctuation",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 1.789,
+      "runnerPid": 82538,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-decoded-secret-red-20261012.log",
+      "logSha256": "0716416d22d10cf5a527a392db08381dded6cec7674262cf4c482bfb7af57c26",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "f7e8b30dd3ce74ac7ef3730abfbb22d45c29a58f7a68407885ac2bf3d9cee894",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "f7e8b30dd3ce74ac7ef3730abfbb22d45c29a58f7a68407885ac2bf3d9cee894",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:00 +0 -2: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-mcp-baseline-existing-failure-20261012.json",
+      "receiptSha256": "4efe0ee8425b98c3cb37edfa05f597cc3b8ef04236895ac08b127a357433de28",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-concurrency=1",
+        "test/config.test.ts",
+        "test/protocol_compatibility.test.ts"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 1.835,
+      "runnerPid": 8725,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-mcp-baseline-existing-failure-20261012.log",
+      "logSha256": "234ee983997461e60a3c06d05caad7e53b963f5c472d2bbadb6c4323a7f75e4e",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp/src/index.ts": "3802ca9e1b44644bbcd0fd62c9a5002879f4173348ad5a1c755d6487df327ac3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp/test/protocol_compatibility.test.ts": "73a254e8a2af5d3e34d89d43854865ed9882a4fc745d0f87a68e5992a96061ba"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp/src/index.ts": "3802ca9e1b44644bbcd0fd62c9a5002879f4173348ad5a1c755d6487df327ac3",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp/test/protocol_compatibility.test.ts": "73a254e8a2af5d3e34d89d43854865ed9882a4fc745d0f87a68e5992a96061ba"
+      },
+      "finalResultLines": [
+        "ℹ tests 8",
+        "ℹ pass 7",
+        "ℹ fail 1"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-mcp-build-20261012.json",
+      "receiptSha256": "8a6191526e7ec301059042de3d920a5f0153fdbf7a9a4daabf6c3ab05f2b426a",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/tools/pokemap_mcp",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 1.287,
+      "runnerPid": 7128,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-mcp-build-20261012.log",
+      "logSha256": "627a16613be7704d2b4572a60c3a60c65e6811d680aa85f8a3573bf8375ecd88",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-mcp-check-20261012.json",
+      "receiptSha256": "db11cbce2f29ccb761156e34201fde21d262c965bc1e7de70a64b0f8774211a6",
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/tools/pokemap_mcp",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 1.304,
+      "runnerPid": 6928,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-mcp-check-20261012.log",
+      "logSha256": "7ad59dca3cb8e6445397c9e867326ddeac3b0ef771b0a5278fb8beb66f69ab0b",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-mcp-focused-test-20261012.json",
+      "receiptSha256": "7644c453d4685f19ced8d1bf5303222fb859255aae0cde710a60a5a16de21296",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-concurrency=1",
+        "test/config.test.ts",
+        "test/protocol_compatibility.test.ts"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/tools/pokemap_mcp",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 1.883,
+      "runnerPid": 7573,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-mcp-focused-test-20261012.log",
+      "logSha256": "5539236b63da724cbb45683f789a0df537c741e705da0e391c11d6dff8c78e32",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": [
+        "ℹ tests 8",
+        "ℹ pass 7",
+        "ℹ fail 1"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-native-keychain-run-20261012.json",
+      "receiptSha256": "87e50da1ebc7dc7c8340bbbb785de8299b78f96df6cd219255d6c68a69162fa5",
+      "command": [
+        "flutter",
+        "run",
+        "--no-pub",
+        "-d",
+        "macos",
+        "-t",
+        "dev/keychain_qualification_main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 12.025,
+      "runnerPid": 73580,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-native-keychain-run-20261012.log",
+      "logSha256": "28f184c7c88c7809910a09dd6f0aab0eb3f2aa093e375e0d2262d9cb595612d8",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/keychain_qualification_main.dart": "97aef49bd44d55c540abe8b65b1847bf58b4a6b18ebbb9d88f1bf3ffce700622",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/DebugProfile.entitlements": "5a9621fe8a85d8c76966442f29b1286ebf066194a703fd1f418b3892fa296375",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Release.entitlements": "d3dcf28bbd8c4589addd4e9259d7406544e896f90d359038e833e7f54cdaa129",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "95fb962dc7c9357dc07fcfc385f083fb0b2cf6ed70ed7cb384c6faf0405cb3e2"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/keychain_qualification_main.dart": "97aef49bd44d55c540abe8b65b1847bf58b4a6b18ebbb9d88f1bf3ffce700622",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/DebugProfile.entitlements": "5a9621fe8a85d8c76966442f29b1286ebf066194a703fd1f418b3892fa296375",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Release.entitlements": "d3dcf28bbd8c4589addd4e9259d7406544e896f90d359038e833e7f54cdaa129",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "95fb962dc7c9357dc07fcfc385f083fb0b2cf6ed70ed7cb384c6faf0405cb3e2"
+      },
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-native-keychain-run-v2-20261012.json",
+      "receiptSha256": "07f72a377a9d79848804dd74b61eb62ebd274af92074c57a07dd335ba4ef88ff",
+      "command": [
+        "flutter",
+        "run",
+        "--no-pub",
+        "-d",
+        "macos",
+        "-t",
+        "dev/keychain_qualification_main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 132.049,
+      "runnerPid": 74680,
+      "confirmedSurvivors": [],
+      "signals": [
+        {
+          "pid": 74913,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 74913,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 13:42:31 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 74914,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 74914,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 13:42:31 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 75304,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 75304,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 13:42:51 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        }
+      ],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-native-keychain-run-v2-20261012.log",
+      "logSha256": "d429de598e0c94797f6c6ac51700699001c1482f0682a827b5636a79d2316af8",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/keychain_qualification_main.dart": "97aef49bd44d55c540abe8b65b1847bf58b4a6b18ebbb9d88f1bf3ffce700622",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/DebugProfile.entitlements": "5a9621fe8a85d8c76966442f29b1286ebf066194a703fd1f418b3892fa296375",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Release.entitlements": "d3dcf28bbd8c4589addd4e9259d7406544e896f90d359038e833e7f54cdaa129",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "95fb962dc7c9357dc07fcfc385f083fb0b2cf6ed70ed7cb384c6faf0405cb3e2"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/keychain_qualification_main.dart": "97aef49bd44d55c540abe8b65b1847bf58b4a6b18ebbb9d88f1bf3ffce700622",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/DebugProfile.entitlements": "5a9621fe8a85d8c76966442f29b1286ebf066194a703fd1f418b3892fa296375",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Release.entitlements": "d3dcf28bbd8c4589addd4e9259d7406544e896f90d359038e833e7f54cdaa129",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "95fb962dc7c9357dc07fcfc385f083fb0b2cf6ed70ed7cb384c6faf0405cb3e2"
+      },
+      "finalResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter Keychain QA.app"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-native-pubget-20261012.json",
+      "receiptSha256": "a66d326179029dbb09fb33e63a30241b8252a14e365fbc8ad476cb207b0285fc",
+      "command": [
+        "flutter",
+        "pub",
+        "get",
+        "--offline",
+        "--enforce-lockfile"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 2.397,
+      "runnerPid": 73775,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-native-pubget-20261012.log",
+      "logSha256": "994369d5997c0f6cc2b62658a8ed1c82fcdda79c9de13db8fa0c48fc55f42c50",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/pubspec.yaml": "e741bb41126813d96e055a2e46578fbf8e9e360a954620fc90ca7c0dd8ff8938",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/pubspec.lock": "f2c16bacd1b327f1cd23a86d1d857f7e66877150a621b1d4b97dfaa682b40480"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/pubspec.yaml": "e741bb41126813d96e055a2e46578fbf8e9e360a954620fc90ca7c0dd8ff8938",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/pubspec.lock": "f2c16bacd1b327f1cd23a86d1d857f7e66877150a621b1d4b97dfaa682b40480"
+      },
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-native-transports-final-20261012.json",
+      "receiptSha256": "5b4ef0e8e6818749efe56f0a227ee3a94f912b9546db04bb38d6e61384406189",
+      "command": [
+        "node",
+        "transports_read.mjs",
+        "config.json"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 26.276,
+      "runnerPid": 7239,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-native-transports-final-20261012.log",
+      "logSha256": "ce79eb9f480c083bea3faa5a479e46dc47826ba6cab4f4e112cf439c0c5f2765",
+      "fileHashesBefore": {
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/config.json": "9924a4d07fa82daa8f19b995fa2f0e70f8b24cf513154fd8beb5778b9f645b42",
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/software-pins.json": "74fd3ea3ed40ebb007b02f8d8c85d1341e0ffc6ec87884f00fc61492f82e6760",
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/transports_read.mjs": "8a5741ba4248678090794148a8390e50b1720844b489aee7ffeb9cec5e0d26f9"
+      },
+      "fileHashesAfter": {
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/config.json": "9924a4d07fa82daa8f19b995fa2f0e70f8b24cf513154fd8beb5778b9f645b42",
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/software-pins.json": "74fd3ea3ed40ebb007b02f8d8c85d1341e0ffc6ec87884f00fc61492f82e6760",
+        "/private/tmp/avelune-converter-ac11-native-transports-fcueqcor/transports_read.mjs": "8a5741ba4248678090794148a8390e50b1720844b489aee7ffeb9cec5e0d26f9"
+      },
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-native-ui-run-20261012.json",
+      "receiptSha256": "9e693954217965d4c3283fb6c27fa66e211098705368b87ba544d8207f62fbdf",
+      "command": [
+        "flutter",
+        "run",
+        "--no-pub",
+        "-d",
+        "macos",
+        "-t",
+        "dev/vision_qualification_main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 565.649,
+      "runnerPid": 92917,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-native-ui-run-20261012.log",
+      "logSha256": "6a82308902ec3e6a8edf8cab537181df766707bf264a743bb58e3b0f390097c5",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "5c4a3d93524e6142e08758b4422dbf6eb8ec14896842b443d4e12ddab0cfeb48",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "f7638e31cb4d82412a56557cd5fb6768dcd152bf5ea93005ab7c79d7f82bd02f",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/vision_qualification_main.dart": "8a3666ba595d5c362b99b2974ac01b0f892acb8e3e150eb24150d5e512b507a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "102bbcff25c7d689cc528c68a5907c404ada6ccd0e9f9929e575d6c1a8237fa4"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "5c4a3d93524e6142e08758b4422dbf6eb8ec14896842b443d4e12ddab0cfeb48",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "f7638e31cb4d82412a56557cd5fb6768dcd152bf5ea93005ab7c79d7f82bd02f",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/dev/vision_qualification_main.dart": "8a3666ba595d5c362b99b2974ac01b0f892acb8e3e150eb24150d5e512b507a9",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "102bbcff25c7d689cc528c68a5907c404ada6ccd0e9f9929e575d6c1a8237fa4"
+      },
+      "finalResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter Vision QA.app"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-panel-preview-red-20261012.json",
+      "receiptSha256": "3f541ebd12a093b76f9cfbcfe2fd9c3bc7975a8e6795eec274da5d44261f299e",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_panel_test.dart",
+        "test/vision_preview_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 0.819,
+      "runnerPid": 73136,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-panel-preview-red-20261012.log",
+      "logSha256": "ecb2a488ad4df35c9d9e3b6cd9cd5a78e5318d76ef63ed6d7fe7168a20b7c13d",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "84a90a7aafb5a054331bc19c6dfc1e9a6b749b9e22048d52f115bdaeddc9313c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "0e3168b2cc9cb279aa42f862e2e2b4044e2806cc6a11c78ff295808d486fe0f8",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "75e8b4ea610a151d144c681ab8026848097014a3ebaf274f9c9719743a3d5f0e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "ec3ecf4094c0e4f2958923e68a705acc3008cddb306d15867a534885689a4e5a"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "84a90a7aafb5a054331bc19c6dfc1e9a6b749b9e22048d52f115bdaeddc9313c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "0e3168b2cc9cb279aa42f862e2e2b4044e2806cc6a11c78ff295808d486fe0f8",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "75e8b4ea610a151d144c681ab8026848097014a3ebaf274f9c9719743a3d5f0e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "ec3ecf4094c0e4f2958923e68a705acc3008cddb306d15867a534885689a4e5a"
+      },
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-panel-preview-red-v2-20261012.json",
+      "receiptSha256": "6f1d5904fb610c07e27965dda6252a5659b7a19c223a952f8a6ee379b5452826",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_panel_test.dart",
+        "test/vision_preview_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 16.753,
+      "runnerPid": 73203,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-panel-preview-red-v2-20261012.log",
+      "logSha256": "601a6f72064493fa6987a4efb36a1980ae665ff3d37ae61e2f31873b6f272a5f",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "84a90a7aafb5a054331bc19c6dfc1e9a6b749b9e22048d52f115bdaeddc9313c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "0e3168b2cc9cb279aa42f862e2e2b4044e2806cc6a11c78ff295808d486fe0f8",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "75e8b4ea610a151d144c681ab8026848097014a3ebaf274f9c9719743a3d5f0e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "ec3ecf4094c0e4f2958923e68a705acc3008cddb306d15867a534885689a4e5a",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/.dart_tool/package_config.json": "6f3bbdc44c0d3ed2a88be8898486a6f1601aef83a3a82bc8b781dde4431dbd91",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/.dart_tool/package_graph.json": "6262e8d1d2735a5ddd834e5629ae303918dd6f1584c490216282610dec6baadf"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "84a90a7aafb5a054331bc19c6dfc1e9a6b749b9e22048d52f115bdaeddc9313c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_desktop_services.dart": "9ae7475e86c21148813dfee9c121536e3f605ccc3172f4a4bfb302855b28747e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "0e3168b2cc9cb279aa42f862e2e2b4044e2806cc6a11c78ff295808d486fe0f8",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "75e8b4ea610a151d144c681ab8026848097014a3ebaf274f9c9719743a3d5f0e",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "ec3ecf4094c0e4f2958923e68a705acc3008cddb306d15867a534885689a4e5a",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/.dart_tool/package_config.json": "6f3bbdc44c0d3ed2a88be8898486a6f1601aef83a3a82bc8b781dde4431dbd91",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/.dart_tool/package_graph.json": "6262e8d1d2735a5ddd834e5629ae303918dd6f1584c490216282610dec6baadf"
+      },
+      "finalResultLines": [
+        "00:03 +0 -22: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-panel-recovery-red-20261012.json",
+      "receiptSha256": "9a4e9a5dce1a5977be6f3c9f4e34722204ecde3f6133ad4b52fc9000bee0dd56",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/vision_panel_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 8.945,
+      "runnerPid": 85139,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-panel-recovery-red-20261012.log",
+      "logSha256": "7d41206ebe7a6d20f1ee0a7adbd7592f6226f3db15e8ef0195fab5634bd89f93",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "176ebdb9b7029744c17a07dbd42f2bab6df235f937b082965b945791e325a206",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "b2882836ca17798139309f21f1908b25f4d17673bfbf9fccb4179b8a52e1de43"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_panel.dart": "176ebdb9b7029744c17a07dbd42f2bab6df235f937b082965b945791e325a206",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_panel_test.dart": "b2882836ca17798139309f21f1908b25f4d17673bfbf9fccb4179b8a52e1de43"
+      },
+      "finalResultLines": [
+        "00:05 +3 -2: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-png-metadata-analyze-20261012.json",
+      "receiptSha256": "aff5a0a0c5e6ef4091099c27ebe1e93f3717989c7c4f2cdaaad8768c1ec2b7d8",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "analyze",
+        "lib/src/vision_crop_verifier.dart",
+        "lib/src/vision_assistance_service.dart",
+        "lib/src/vision_runtime.dart",
+        "test/vision_assistance_service_test.dart",
+        "test/support/vision_test_fixture.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 2.922,
+      "runnerPid": 84393,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-png-metadata-analyze-20261012.log",
+      "logSha256": "e1f097bfb5138d015a603657d2b7e9daf02746ec375353659c536e1c61c520c7",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_runtime.dart": "451c5bd3756f34095ad01a643043444aa82779eed1b7c63ab3623eb456eb52a9"
+      },
+      "finalResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-png-metadata-format-20261012.json",
+      "receiptSha256": "238bded3701a74c8011166b0fd3546bbb2a2d0b83ad4fa209bcbd0277a8288e6",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "format",
+        "lib/src/vision_crop_verifier.dart",
+        "test/vision_assistance_service_test.dart",
+        "test/support/vision_test_fixture.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 0.691,
+      "runnerPid": 84119,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-png-metadata-format-20261012.log",
+      "logSha256": "a891c7b6f187988b239617aa211ed5443da0a34d36b7373bd34d999b89d50b2f",
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-png-metadata-green-20261012.json",
+      "receiptSha256": "e5c589b81b2ab94962aa23468ef6bd52f91e691effa6139282c718773f0edb0a",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "test/vision_crop_verifier_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 3.505,
+      "runnerPid": 84135,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-png-metadata-green-20261012.log",
+      "logSha256": "1f40225fe7e821a5c906d0a7a3b0f69e3b05b85b0f964ca553e83ea748e1040d",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6bddba7dd583301fe2e277a11d1ed304ed3b7c05186cb0c2093de5660f30e180",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_assistance_service.dart": "999a1c6431a926e43b4ef27ee2f2026061039543b3e84aa4bc80c18241d739bf",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:01 +28: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-png-metadata-red-20261012.json",
+      "receiptSha256": "43b3b60c84eeee3246f453a68e560bb7666168330acc48f2c3d51e5d34196731",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "--plain-name",
+        "opaque PNG text",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 2.401,
+      "runnerPid": 83265,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-png-metadata-red-20261012.log",
+      "logSha256": "5d0a6fb25c012713cdf75939ececc9191ae1d0700b1cda99761de79269550c7e",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6716dd9f54e0a4340f03846112560f3d2225beb1ea4aaa4fcc947152be8735c1",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/lib/src/vision_crop_verifier.dart": "6716dd9f54e0a4340f03846112560f3d2225beb1ea4aaa4fcc947152be8735c1",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-predispatch-release-red-20261012.json",
+      "receiptSha256": "88ce499a3400886df6ffa0fc65093cda32fcd2074adab0c69e016f0110f079d2",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "test/vision_assistance_service_test.dart",
+        "--plain-name",
+        "known predispatch guard failure",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 2.359,
+      "runnerPid": 78302,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-predispatch-release-red-20261012.log",
+      "logSha256": "1d88f39b0d30593cbc5dae1b66d7631c9cd247589a270b26c60564661ecdd67d",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/packages/avelune_converter_adapters/../avelune_converter_core/lib/src/vision_assistance.dart": "2c0850ae7a0ff0ac57a51cbdec3bf49929d4f5549a5900b0da80448fb208c9cd"
+      },
+      "finalResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-preview-indexed-depth-red-20261012.json",
+      "receiptSha256": "f9d3c911211e356da4da671676ad00bd78425919d29be6f26e7b0101fec703d1",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/vision_preview_test.dart",
+        "--name",
+        "indexed PNG|sixteen-bit",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 3.531,
+      "runnerPid": 87557,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-preview-indexed-depth-red-20261012.log",
+      "logSha256": "ab58e320ec93f9cddd3baf6a5a208b371c2658675605df02e9278322f2a0aef2",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f6eb96b42a31e6a22bb150e7ed474550b436693f9dc141c99e60843e5250b463",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "324f42caf987b177ddbc9fdbfecec3014b28169a6f27edbe6e98311c356f046c"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "f6eb96b42a31e6a22bb150e7ed474550b436693f9dc141c99e60843e5250b463",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "324f42caf987b177ddbc9fdbfecec3014b28169a6f27edbe6e98311c356f046c"
+      },
+      "finalResultLines": [
+        "00:00 +0 -2: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-preview-png-crc-red-20261012.json",
+      "receiptSha256": "cdfcb302df42afdd675a78097bdb7c9b47af7ec23f0a5b48eefa7dd8979779fb",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--name",
+        "corrupt PNG CRC",
+        "test/vision_preview_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 3.479,
+      "runnerPid": 81549,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-preview-png-crc-red-20261012.log",
+      "logSha256": "18c8730b88aa35d8d9e2905f7cb3043c61600e256fee298dbba1b118ea26441d",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "a23e51acd07171f0ca73ca83a8b92f5e415c4d072ec83fafdcceab47ccb4de6c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "b2e4156523be64ad23e45bf98a225aea10efa3aa15d0b6ca8ed410f6e80b86ab"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "a23e51acd07171f0ca73ca83a8b92f5e415c4d072ec83fafdcceab47ccb4de6c",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "b2e4156523be64ad23e45bf98a225aea10efa3aa15d0b6ca8ed410f6e80b86ab"
+      },
+      "finalResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-preview-region-prompt-red-20261012.json",
+      "receiptSha256": "bbe8afa0cc6f9235bf152acc9900129058bd8c52c7dfc89c48bfba0fdff77458",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--name",
+        "two local candidates sharing part:0|region identity hashes|default prompt version",
+        "test/vision_preview_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 4.047,
+      "runnerPid": 75832,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-preview-region-prompt-red-20261012.log",
+      "logSha256": "4f29d07a29fb237591559843a0b26ad9a736e1faa98c04ee66efb6f34dfd3cf9",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "a254f356964d6572a7177cc4167b22431a716dcf5cc548baf8da3ad7d613c69a",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "5747573a07a0e3c4fc503b67d7d8f30a55b0475f85cce0d618ca304ca062fa71"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "a254f356964d6572a7177cc4167b22431a716dcf5cc548baf8da3ad7d613c69a",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "5747573a07a0e3c4fc503b67d7d8f30a55b0475f85cce0d618ca304ca062fa71"
+      },
+      "finalResultLines": [
+        "00:00 +0 -3: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-preview-text-metadata-red-20261012.json",
+      "receiptSha256": "8efb5df9fead5dfa1358874152a7c6d080fb2859ebddbc63b93eeb2bbb8237ac",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/vision_preview_test.dart",
+        "--plain-name",
+        "preview crop strips source PNG text metadata and preserves exact RGBA",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 3.729,
+      "runnerPid": 84985,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-preview-text-metadata-red-20261012.log",
+      "logSha256": "d842f03639cc1985c7ab89b7859b1cc29137cca747b37c5fc857c460697a15bb",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "19bfabf128e8472e230b3baa3a632835bff1488b9b80b0aea251755f83471996",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "d750f68b80154f01cdfde91fcd6200712597a88d6ab4058f3568f8c6924e18a4"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/vision_preview.dart": "19bfabf128e8472e230b3baa3a632835bff1488b9b80b0aea251755f83471996",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/test/vision_preview_test.dart": "d750f68b80154f01cdfde91fcd6200712597a88d6ab4058f3568f8c6924e18a4"
+      },
+      "finalResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-production-build-final-20261012.json",
+      "receiptSha256": "120745e6b23af6de7c249cd3874183bc2b14f5a7c892d14ab571f7111521b886",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "lib/main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 32.696,
+      "runnerPid": 91927,
+      "confirmedSurvivors": [],
+      "signals": [
+        {
+          "pid": 92399,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 92399,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 14:13:32 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 92400,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 92400,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 14:13:32 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        }
+      ],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-production-build-final-20261012.log",
+      "logSha256": "a5e7f0ee43f625bc8bab5ea20b2c3c91a2d8d5a7e2c62b4f0efc5946edfa0f14",
+      "fileHashesBefore": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/main.dart": "c00bd58f868b6b57ed3fe17d19ca7afda1dccf33311306497ab10e0157387a2d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "5c4a3d93524e6142e08758b4422dbf6eb8ec14896842b443d4e12ddab0cfeb48",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "087e30a4b108d2423dae130a2bb39ea4ee8a80cbb9a1bfd0fb1754a19f81afaf"
+      },
+      "fileHashesAfter": {
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/main.dart": "c00bd58f868b6b57ed3fe17d19ca7afda1dccf33311306497ab10e0157387a2d",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/lib/converter_app.dart": "5c4a3d93524e6142e08758b4422dbf6eb8ec14896842b443d4e12ddab0cfeb48",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/MainFlutterWindow.swift": "e2cc7a43c1a3e7f3edd1e4dc3fbf6034892fbbc7b1bdbf5fc3a7259638604f99",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac11-qualified-178svt0e/repository/apps/avelune_converter/macos/Runner/Configs/AppInfo.xcconfig": "087e30a4b108d2423dae130a2bb39ea4ee8a80cbb9a1bfd0fb1754a19f81afaf"
+      },
+      "finalResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter.app"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-vault-green-20261012.json",
+      "receiptSha256": "24c07534c4222799196d947eb4b263948be030917d5506041a7a92a2fe98adb4",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_desktop_services_test.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 1.812,
+      "runnerPid": 66867,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-vault-green-20261012.log",
+      "logSha256": "60be05b3be8bf408f131ba3270ae8aefa1f7eb604442563e9112b7ee842d9aed",
+      "fileHashesBefore": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "563cbd05b801e46f1e29c1e5b3cb9d1e008800d309ce271d86cc9612fa7dee28",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/interface-package/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611"
+      },
+      "fileHashesAfter": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "563cbd05b801e46f1e29c1e5b3cb9d1e008800d309ce271d86cc9612fa7dee28",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/interface-package/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611"
+      },
+      "finalResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-vault-green-v2-20261012.json",
+      "receiptSha256": "e430fcbd41aa3f998e39d6b01e5d0a3a49e1678a3e9a87e356c6207c38167be1",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_desktop_services_test.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 2.405,
+      "runnerPid": 68339,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-vault-green-v2-20261012.log",
+      "logSha256": "7b7cdc99db3bcb4d2a73df33fa9a6deaed704a6c126bc7b7ae085d1d7e2c55fc",
+      "fileHashesBefore": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "563cbd05b801e46f1e29c1e5b3cb9d1e008800d309ce271d86cc9612fa7dee28",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/interface-package/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/.dart_tool/package_config.json": "d7d5a050672801c8d440d2520fb14c7cba1b99783db890de166d15f38dbae3ee"
+      },
+      "fileHashesAfter": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "563cbd05b801e46f1e29c1e5b3cb9d1e008800d309ce271d86cc9612fa7dee28",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/interface-package/lib/src/vision_support.dart": "dad14a231a8b40f3525b7baa0ecf89d44bc34a83e9e69b2d0b15e7ef67feb611",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/.dart_tool/package_config.json": "d7d5a050672801c8d440d2520fb14c7cba1b99783db890de166d15f38dbae3ee"
+      },
+      "finalResultLines": [
+        "00:00 +3: All tests passed!"
+      ]
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-vault-red-20261012.json",
+      "receiptSha256": "c555142cf5069e3b6e846c55a314df5265b2acc59c48eafc39cb174d671b6be9",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_desktop_services_test.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 0.728,
+      "runnerPid": 64125,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-vault-red-20261012.log",
+      "logSha256": "75d903a433c83e553aae03fc711154e10415db72e11ea494aa1ef52c53e81acb",
+      "fileHashesBefore": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "c8e24d7be0796f177fcaa3e549413d871b2c5622f1c9dac41a729ac184dc4d8a",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda"
+      },
+      "fileHashesAfter": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "c8e24d7be0796f177fcaa3e549413d871b2c5622f1c9dac41a729ac184dc4d8a",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda"
+      },
+      "finalResultLines": []
+    },
+    {
+      "receiptPath": "/private/tmp/avelune-converter-ac11-vault-red-v2-20261012.json",
+      "receiptSha256": "f80f3267521f67c00b171be13ba925c569022e614dce9d7cf7a34bba00b122c0",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "test/vision_desktop_services_test.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc",
+      "exitCode": 1,
+      "timedOut": false,
+      "elapsedSeconds": 9.153,
+      "runnerPid": 64910,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac11-vault-red-v2-20261012.log",
+      "logSha256": "b280f490b5b750b6fec3de4b678ed2fefd3a7d1bbd9736059fa170e35c2a92d0",
+      "fileHashesBefore": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "c8e24d7be0796f177fcaa3e549413d871b2c5622f1c9dac41a729ac184dc4d8a",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/.dart_tool/package_graph.json": "9882ebb7a5f3635e5d2bc4eca9d4126f398e755b28a4bad662b8034a0dafd4fc"
+      },
+      "fileHashesAfter": {
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/lib/vision_desktop_services.dart": "c8e24d7be0796f177fcaa3e549413d871b2c5622f1c9dac41a729ac184dc4d8a",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/test/vision_desktop_services_test.dart": "d352ef3fb3da01d7bacb03d28017f5a6337f8246efd98e29d9c3ce2864a15dda",
+        "/private/tmp/avelune-converter-ac11-vault-tests-oq6gfiwc/.dart_tool/package_graph.json": "9882ebb7a5f3635e5d2bc4eca9d4126f398e755b28a4bad662b8034a0dafd4fc"
+      },
+      "finalResultLines": [
+        "00:00 +0 -3: Some tests failed."
+      ]
+    },
+    {
+      "command": [
+        "bash",
+        "tools/scripts/check_markdown_hygiene.sh"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 3.034,
+      "runnerPid": 11694,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "fileHashesBefore": {},
+      "fileHashesAfter": {},
+      "logPath": "/private/tmp/avelune-converter-ac11-markdown-hygiene-20261012.log",
+      "logSha256": "2b53e499d56f6d90647d31732f5e9f8334f251f95d482d393afec42e994b333d",
+      "receiptPath": "/private/tmp/avelune-converter-ac11-markdown-hygiene-20261012.json",
+      "receiptSha256": "5573d4d2624f73efda36119a2cfad1100bdc511f9c0f177291bdc2351838b28b"
+    }
+  ],
+  "readOnlyFinalChecks": {
+    "gitDiffCheckOwned": {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "<40 owned paths>"
+      ],
+      "exitCode": 0
+    },
+    "gitDiffCheckWholeTree": {
+      "exitCode": 2,
+      "outsideScopeFile": "packages/map_core/lib/src/models/smart_tile.freezed.dart",
+      "trailingWhitespaceLocations": 21,
+      "notModifiedByThisLot": true
+    },
+    "ac11SourcePins": {
+      "count": 29,
+      "hostMatchesQualifiedSnapshot": true
+    },
+    "ac10FrozenPins": {
+      "count": 84,
+      "unchanged": true
+    },
+    "proofFiles": {
+      "count": 8,
+      "sha256Verified": true
+    },
+    "foreignPaths": 261,
+    "indexEmpty": true
+  }
+}

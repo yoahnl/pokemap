@@ -8,3 +8,8 @@ export 'src/local_asset_proposer.dart';
 export 'src/approved_asset_library.dart';
 export 'src/local_review_session_store.dart';
 export 'src/review_session_resumer.dart';
+export 'src/vision_support.dart';
+export 'src/vision_local_store.dart';
+export 'src/vision_http_transport.dart';
+export 'src/vision_crop_verifier.dart';
+export 'src/vision_assistance_service.dart';
