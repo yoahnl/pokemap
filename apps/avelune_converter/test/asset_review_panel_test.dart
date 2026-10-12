@@ -23,18 +23,51 @@ Future<void> _loaded(WidgetTester tester) async {
 
 void main() {
   late OriginalAssetFixture fixture;
-  setUp(() async => fixture = await OriginalAssetFixture.create());
+  late AssetReviewSession session;
+  late List<AssetReviewSession> changes;
+  setUp(() async {
+    fixture = await OriginalAssetFixture.create();
+    changes = [];
+  });
 
   Future<void> pump(
     WidgetTester tester, {
     required AssetCandidate proposal,
-    List<AssetCandidate> reviewed = const [],
     List<NativeArtifact>? artifacts,
     bool enabled = true,
-    required ValueChanged<ConverterAssetReview> onReview,
-    ValueChanged<ConverterId>? onEditing,
+    String? initialName,
+    AssetCategory? initialCategory,
+    bool approved = false,
   }) async {
-    tester.view.physicalSize = const Size(1280, 900);
+    session = AssetReviewSession.create(
+      sessionId: ConverterId('source-preview-session'),
+      logicalProjectNamespace: proposal.logicalProjectNamespace,
+      sourceSnapshotHash: proposal.sourceSnapshotHash,
+      selectedSourceMapIds: const [1, 8, 12],
+      outputMode: proposal.outputMode,
+      proposalGenerationHash: canonicalHashOf('original-source-preview'),
+      candidates: [proposal],
+    );
+    if (initialName != null || initialCategory != null) {
+      session = session.editMetadata(
+        candidateId: proposal.candidateId,
+        expectedCandidateHash: proposal.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: initialName,
+        category: initialCategory,
+      );
+    }
+    if (approved) {
+      final candidate = session.activeCandidates.single;
+      session = session.decide(
+        candidateId: candidate.candidateId,
+        expectedCandidateHash: candidate.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        action: ReviewAction.approve,
+        humanConfirmed: true,
+      );
+    }
+    tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -42,17 +75,23 @@ void main() {
       MaterialApp(
         theme: studioTheme(),
         home: Scaffold(
-          body: SingleChildScrollView(
-            child: ConverterAssetReviewPanel(
-              proposals: [proposal],
-              reviewedCandidates: reviewed,
+          body: StatefulBuilder(
+            builder: (context, setState) => ConverterAssetReviewPanel(
               artifacts: artifacts ?? [NativeArtifact(bytes: fixture.pngBytes)],
               limits: const NativeWriteLimits(),
-              outputMode: proposal.outputMode,
+              sourceFilePaths: {
+                proposal.sources.single.fileId: OriginalAssetFixture.imagePath,
+              },
+              availableSources: proposal.sources,
+              outputMode: session.outputMode,
               onModeChanged: (_) {},
-              onReview: onReview,
-              onEditing: onEditing ?? (_) {},
+              session: session,
               enabled: enabled,
+              onSessionChanged: (next, expectedPreviousHash) {
+                expect(expectedPreviousHash, session.canonicalHash);
+                changes.add(next);
+                setState(() => session = next);
+              },
             ),
           ),
         ),
@@ -61,56 +100,61 @@ void main() {
     await _loaded(tester);
   }
 
-  Finder approve(AssetCandidate candidate) =>
-      find.byKey(ValueKey('approve-asset-${candidate.candidateId.value}'));
-  Finder keep(AssetCandidate candidate) =>
-      find.byKey(ValueKey('keep-asset-${candidate.candidateId.value}'));
+  Finder field(String key) => find.descendant(
+    of: find.byKey(ValueKey(key)),
+    matching: find.byType(TextField),
+  );
+  Finder approve() => find.byKey(const ValueKey('asset-review-approve'));
+  Finder keep() => find.byKey(const ValueKey('asset-review-keep'));
 
   testWidgets(
-    'classification and human review unlock the exact source proposal',
+    'classification and human review approve the exact corrected source version',
     (tester) async {
       final proposal = fixture.treeCandidate();
-      final reviews = <ConverterAssetReview>[];
-      final edits = <ConverterId>[];
-      await pump(
-        tester,
-        proposal: proposal,
-        onReview: reviews.add,
-        onEditing: edits.add,
-      );
-      expect(tester.widget<StudioButton>(approve(proposal)).onPressed, isNull);
+      await pump(tester, proposal: proposal);
+      expect(tester.widget<StudioButton>(approve()).onPressed, isNull);
       expect(
         find.byWidgetPredicate(
           (w) => w is CustomPaint && w.painter is AssetProposalPainter,
         ),
-        findsOneWidget,
+        findsNWidgets(2),
       );
-      expect(find.text('À vérifier'), findsOneWidget);
-      final name = find.descendant(
-        of: find.byKey(ValueKey('asset-name-${proposal.candidateId.value}')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(name, 'Arbre de Kanto');
+      await tester.enterText(field('asset-review-name'), 'Arbre de Kanto');
       tester
           .widget<StudioSelect>(
-            find.byKey(
-              ValueKey('asset-category-${proposal.candidateId.value}'),
-            ),
+            find.byKey(const ValueKey('asset-review-category')),
           )
           .onChanged!('nature');
       await tester.pump();
-      await tester.ensureVisible(approve(proposal));
-      await tester.tap(approve(proposal));
+      expect(changes, isEmpty);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('asset-apply-metadata')),
+      );
+      await tester.tap(find.byKey(const ValueKey('asset-apply-metadata')));
       await tester.pump();
-      expect(reviews, hasLength(1));
-      expect(reviews.single.name, 'Arbre de Kanto');
-      expect(reviews.single.category, AssetCategory.nature);
-      expect(reviews.single.proposalHash, proposal.canonicalHash);
-      expect(reviews.single.action, ReviewAction.approve);
-      expect(edits, [proposal.candidateId, proposal.candidateId]);
+      final corrected = session.activeCandidates.single;
+      expect(corrected.name, 'Arbre de Kanto');
+      expect(corrected.category, AssetCategory.nature);
+      expect(corrected.state, CandidateState.needsReview);
+      await tester.ensureVisible(approve());
+      await tester.tap(approve());
+      await tester.pump();
+      final approved = session.activeCandidates.single;
+      expect(changes, hasLength(2));
+      expect(approved.name, 'Arbre de Kanto');
+      expect(approved.category, AssetCategory.nature);
+      expect(approved.state, CandidateState.approved);
       expect(
-        reviews.single.applyTo(proposal).parts.map((p) => p.toJson()).toList(),
+        session.frame.approvedCandidateHashes[approved.candidateId],
+        approved.canonicalHash,
+      );
+      expect(
+        approved.parts.map((p) => p.toJson()).toList(),
         proposal.parts.map((p) => p.toJson()).toList(),
+      );
+      expect(
+        approved.sources.map((s) => s.toJson()).toList(),
+        proposal.sources.map((s) => s.toJson()).toList(),
       );
       expect(tester.takeException(), isNull);
     },
@@ -120,40 +164,50 @@ void main() {
     tester,
   ) async {
     final proposal = fixture.ambiguousCandidate();
-    final reviews = <ConverterAssetReview>[];
-    await pump(tester, proposal: proposal, onReview: reviews.add);
-    await tester.ensureVisible(keep(proposal));
-    await tester.tap(keep(proposal));
+    await pump(tester, proposal: proposal);
+    await tester.ensureVisible(keep());
+    await tester.tap(keep());
     await tester.pump();
-    expect(reviews.single.action, ReviewAction.keepLiteral);
-    expect(reviews.single.category, AssetCategory.unclassified);
-    expect(reviews.single.applyTo(proposal).approvedRevision, isNull);
+    expect(changes, hasLength(1));
+    final current = session.activeCandidates.single;
+    expect(current.state, CandidateState.keepLiteral);
+    expect(current.category, AssetCategory.unclassified);
+    expect(current.approvedRevision, isNull);
+    expect(
+      current.parts.map((p) => p.toJson()).toList(),
+      proposal.parts.map((p) => p.toJson()).toList(),
+    );
+    expect(
+      session.activeDecisions.decisions.single.action,
+      ReviewAction.keepLiteral,
+    );
     expect(tester.takeException(), isNull);
   });
 
   testWidgets(
     'renewing an approved review preserves its human name and category',
     (tester) async {
-      final proposal = fixture.treeCandidate();
-      final original = ConverterAssetReview(
-        candidateId: proposal.candidateId,
-        proposalHash: proposal.canonicalHash,
-        name: 'Mon arbre',
-        category: AssetCategory.nature,
-        action: ReviewAction.approve,
-        humanConfirmed: true,
-      );
-      final reviews = <ConverterAssetReview>[];
       await pump(
         tester,
-        proposal: proposal,
-        reviewed: [original.applyTo(proposal)],
-        onReview: reviews.add,
+        proposal: fixture.treeCandidate(),
+        initialName: 'Mon arbre',
+        initialCategory: AssetCategory.nature,
+        approved: true,
       );
-      await tester.ensureVisible(approve(proposal));
-      await tester.tap(approve(proposal));
-      expect(reviews.single.name, 'Mon arbre');
-      expect(reviews.single.category, AssetCategory.nature);
+      final before = session.activeCandidates.single;
+      await tester.ensureVisible(approve());
+      await tester.tap(approve());
+      await tester.pump();
+      expect(changes, hasLength(1));
+      final current = session.activeCandidates.single;
+      expect(current.name, 'Mon arbre');
+      expect(current.category, AssetCategory.nature);
+      expect(current.revision, before.revision + 1);
+      expect(current.approvedRevision, current.revision);
+      expect(
+        session.frame.approvedCandidateHashes[current.candidateId],
+        current.canonicalHash,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -161,53 +215,38 @@ void main() {
   testWidgets('missing original pixels block approval with visible feedback', (
     tester,
   ) async {
-    final proposal = fixture.treeCandidate();
-    final reviews = <ConverterAssetReview>[];
     await pump(
       tester,
-      proposal: proposal,
+      proposal: fixture.treeCandidate(),
       artifacts: [],
-      onReview: reviews.add,
+      initialCategory: AssetCategory.nature,
     );
-    tester
-        .widget<StudioSelect>(
-          find.byKey(ValueKey('asset-category-${proposal.candidateId.value}')),
-        )
-        .onChanged!('nature');
-    await tester.pump();
     expect(
       find.text(
         'L’aperçu source est indisponible. L’approbation de ces objets est bloquée.',
       ),
       findsOneWidget,
     );
-    expect(tester.widget<StudioButton>(approve(proposal)).onPressed, isNull);
-    expect(reviews, isEmpty);
+    expect(tester.widget<StudioButton>(approve()).onPressed, isNull);
+    expect(changes, isEmpty);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('busy review exposes no interactive approval or edits', (
     tester,
   ) async {
-    final proposal = fixture.treeCandidate();
-    await pump(
-      tester,
-      proposal: proposal,
-      enabled: false,
-      onReview: (_) => fail('Unexpected approval'),
-    );
-    expect(tester.widget<StudioButton>(approve(proposal)).onPressed, isNull);
-    expect(tester.widget<StudioButton>(keep(proposal)).onPressed, isNull);
+    await pump(tester, proposal: fixture.treeCandidate(), enabled: false);
+    expect(tester.widget<StudioButton>(approve()).onPressed, isNull);
+    expect(tester.widget<StudioButton>(keep()).onPressed, isNull);
     expect(
       tester
           .widget<StudioSelect>(
-            find.byKey(
-              ValueKey('asset-category-${proposal.candidateId.value}'),
-            ),
+            find.byKey(const ValueKey('asset-review-category')),
           )
           .onChanged,
       isNull,
     );
+    expect(changes, isEmpty);
     expect(tester.takeException(), isNull);
   });
 

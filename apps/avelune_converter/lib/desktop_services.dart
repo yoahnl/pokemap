@@ -1,11 +1,21 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 enum ConverterPathKind { sourceFolder, sourceProject, destinationParent }
 
 typedef ConverterPathPicker = Future<String?> Function(ConverterPathKind kind);
 typedef ConverterFolderOpener = Future<void> Function(String directory);
+
+Future<LocalReviewSessionStore> openConverterReviewSessionStore() async {
+  final support = await getApplicationSupportDirectory();
+  return LocalReviewSessionStore(
+    rootPath: path.join(support.path, 'review-sessions'),
+  );
+}
 
 Future<String?> pickConverterPath(ConverterPathKind kind) async {
   if (kind == ConverterPathKind.sourceProject) {

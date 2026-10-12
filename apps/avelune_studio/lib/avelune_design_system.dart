@@ -7,6 +7,7 @@ export 'presentation/shared/widgets/inputs/studio_draft_field.dart';
 export 'presentation/shared/widgets/inputs/studio_path_field.dart';
 export 'presentation/shared/widgets/inputs/studio_search_field.dart';
 export 'presentation/shared/widgets/inputs/studio_select.dart';
+export 'presentation/shared/widgets/buttons/studio_tool.dart';
 export 'presentation/shared/widgets/inputs/studio_toggle_row.dart';
 export 'presentation/shared/widgets/layout/studio_page_header.dart';
 export 'presentation/shared/widgets/layout/studio_panel.dart';

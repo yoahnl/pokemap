@@ -6,3 +6,5 @@ export 'src/literal_autotile_composer.dart';
 export 'src/converter_workflow.dart';
 export 'src/local_asset_proposer.dart';
 export 'src/approved_asset_library.dart';
+export 'src/local_review_session_store.dart';
+export 'src/review_session_resumer.dart';

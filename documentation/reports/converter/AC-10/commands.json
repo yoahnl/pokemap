@@ -1,0 +1,2289 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-10",
+  "status": "TO REVIEW",
+  "commands": [
+    {
+      "evidenceKey": "avelune-converter-ac10-adapter-claims-source-analyze-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/local_asset_proposer.dart",
+        "test/local_asset_placement_claims_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.354,
+      "runnerPid": 63724,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-analyze-20261012-01.log",
+      "logSha256": "073251fda2bccea8bb55da05b7ed1526599a1fd0e2b86a36c9879a75f3d2a23f",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-analyze-20261012-01.json",
+      "receiptSha256": "3f442e8c0bd3259a63812a9f205cb1dc81be35e3e0e586969dda77ca14ccee08",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-adapter-claims-source-green-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/local_asset_placement_claims_test.dart",
+        "test/local_asset_proposer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 8.997,
+      "runnerPid": 63472,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-green-20261012-01.log",
+      "logSha256": "885db66ad3c828818f27801898cdfb85114359a1fadca3af1a1119b86b0d237e",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-green-20261012-01.json",
+      "receiptSha256": "2249ad17d9c0e7e65b6df53546b317cba9f38434310c002ef55c1e3e3d464f7a",
+      "lastResultLines": [
+        "00:06 +27: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-adapter-claims-source-red-20261012-01",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/local_asset_placement_claims_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 5.659,
+      "runnerPid": 59771,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-red-20261012-01.log",
+      "logSha256": "3069add04bb27508d440637dcbb63d396b49a88ab709eded31a56815a36cc222",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-adapter-claims-source-red-20261012-01.json",
+      "receiptSha256": "cd0b9a47850e5c14641f485f0d151bba4ae51e516f7d8d7e0567fccb1da8b69d",
+      "lastResultLines": [
+        "00:02 +0 -11: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-adapters-final-analyze-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 4.604,
+      "runnerPid": 91933,
+      "observedProcessCount": 3,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-adapters-final-analyze-20261012.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-adapters-final-analyze-20261012.json",
+      "receiptSha256": "5392491cddcbcd6ad97f7645c718a16e9831a38211c39e8f54a0da4ff83b3173",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-adapters-final-suite-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 83.445,
+      "runnerPid": 90149,
+      "observedProcessCount": 13,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-adapters-final-suite-20261012.log",
+      "logSha256": "36c2c1ebcf59ea65d5f0c63cf71984d235b5a726ef05118be2f39eed696458eb",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-adapters-final-suite-20261012.json",
+      "receiptSha256": "c49afa1906cce17f30180ea255ca0cc65dab1d5ec730d3a58748601a42f88dda",
+      "lastResultLines": [
+        "01:20 +375 ~8: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-app-final-analyze-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 6.866,
+      "runnerPid": 10492,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-app-final-analyze-20261012.log",
+      "logSha256": "bc4e4a42e5728873b660dce9c3e971f3367b9ae2063a6126d8f6adef710dca09",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-app-final-analyze-20261012.json",
+      "receiptSha256": "ae2c00181fa72d1e166a14f596eed169a3ac3ba800dd14c02786649182de1c84",
+      "lastResultLines": [
+        "11 issues found. (ran in 5.6s)"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-app-final-analyze-green-20261012-02",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 7.006,
+      "runnerPid": 11028,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-app-final-analyze-green-20261012-02.log",
+      "logSha256": "32e1797c70d3fdee82846013fd8464ee43c422204dda42461e61aa5b8be7ed82",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-app-final-analyze-green-20261012-02.json",
+      "receiptSha256": "35bddddd9142579b6d15673d84732511e920a5075cf9c9e387683d811bd72dcc",
+      "lastResultLines": [
+        "No issues found! (ran in 5.7s)"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-app-final-suite-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 65.275,
+      "runnerPid": 88093,
+      "observedProcessCount": 8,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-app-final-suite-20261012.log",
+      "logSha256": "94d7f0d225a499079a750f20e775bd7520493dab6b95e178d64122d81b81242d",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-app-final-suite-20261012.json",
+      "receiptSha256": "2bebf0d0965334c49ae76d79594ed710c921cc4b88c99af3e317c9ada20f5e77",
+      "lastResultLines": [
+        "01:01 +45 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-app-final-suite-green-20261012-02",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 59.338,
+      "runnerPid": 8525,
+      "observedProcessCount": 9,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-app-final-suite-green-20261012-02.log",
+      "logSha256": "1b96247ad018900c59bd256aba989573714f7dfdc26c1330ba72e77ad1281002",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-app-final-suite-green-20261012-02.json",
+      "receiptSha256": "6682324e43017825b5b4bc1c997f71db953fa8fb7a40df5a914fadacde38ba5e",
+      "lastResultLines": [
+        "00:55 +48: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-claims-source-format-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/asset_review_session.dart",
+        "lib/src/models.dart",
+        "test/asset_review_session_test.dart",
+        "test/source_image_test.dart",
+        "../avelune_converter_adapters/lib/src/local_asset_proposer.dart",
+        "../avelune_converter_adapters/test/local_asset_placement_claims_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 0.665,
+      "runnerPid": 63603,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-claims-source-format-20261012-01.log",
+      "logSha256": "15aa7b3a4fa970367ad946142ef1f54b7d4ce7a33ff66963ea848a5dec603bb7",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-claims-source-format-20261012-01.json",
+      "receiptSha256": "1aec9f08ffd17feee534ccc1ee36c6e96276db8cfff110329c83424092cb2bc4",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-analyze-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.749,
+      "runnerPid": 37640,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-analyze-1791791928345.log",
+      "logSha256": "4ea47fb11fca167015eb6cc638a0ddac06fc7195647e5f26790a280dabb6eef0",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-analyze-1791791928345.json",
+      "receiptSha256": "5de750cf85db16f6a226c4600823ad8b2751a56e2ee2e7b65a98988eec0340c8",
+      "lastResultLines": [
+        "2 issues found."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-analyze-final-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.178,
+      "runnerPid": 38415,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-analyze-final-1791791928345.log",
+      "logSha256": "c6a2cb5518842c34bdacf71808a7fbc9d7651465f2e93d850cdf75d014aacd85",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-analyze-final-1791791928345.json",
+      "receiptSha256": "b87e7a042b90139457eef111679f17334379cc16910c6e38920330576bcc6269",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-claims-source-analyze-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.209,
+      "runnerPid": 63674,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-claims-source-analyze-20261012-01.log",
+      "logSha256": "c6a2cb5518842c34bdacf71808a7fbc9d7651465f2e93d850cdf75d014aacd85",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-claims-source-analyze-20261012-01.json",
+      "receiptSha256": "118b09c9202029597ce59d5b701bba70b1953495ea2e591e641048ae20f4d1cc",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-claims-source-green-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "test/source_image_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.799,
+      "runnerPid": 63419,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-claims-source-green-20261012-01.log",
+      "logSha256": "ad1b7d2a81da47c3aaf502d9d8d2e8079ffe353b9302ede43a32d4d8fdafe7c2",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-claims-source-green-20261012-01.json",
+      "receiptSha256": "049d464804cfe63fcc6b53ca7c79b17fe2e56003674eaece03ec6e4c797143be",
+      "lastResultLines": [
+        "00:00 +26: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-claims-source-red-20261012-01",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "test/source_image_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 1,
+      "elapsedSeconds": 1.764,
+      "runnerPid": 59672,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-claims-source-red-20261012-01.log",
+      "logSha256": "a29791a8fb3c9ff91d9ce88448d7a60829296723fcfb9dbcc9e246818201aa94",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-claims-source-red-20261012-01.json",
+      "receiptSha256": "9bbd6cb3cde6f72d3bcb1522e26b41cd029146785a2ed86604bf504662d474fe",
+      "lastResultLines": [
+        "00:00 +22 -4: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-final-format-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/asset_review_session.dart",
+        "test/asset_review_session_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 0.641,
+      "runnerPid": 36620,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-final-format-1791791928345.log",
+      "logSha256": "71296479ab8e04be38d113c3049c86d74b4e16a7a20519c3933b53c8cbc22b73",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-final-format-1791791928345.json",
+      "receiptSha256": "cc234eb2802cb88b2aed19f964d84ee602f08a6fa25b79c4b0725743a370b6e2",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-final-suite-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 20.698,
+      "runnerPid": 73484,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-final-suite-20261012.log",
+      "logSha256": "0d0f31e6f1266210eeddc74a15be68211c53838302e5871c212de8b8935552c2",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-final-suite-20261012.json",
+      "receiptSha256": "2ece177ae848855b03332e661041320d1633c24e49765aa2c1d5368427833aad",
+      "lastResultLines": [
+        "00:19 +593: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-first-green-attempt-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.18,
+      "runnerPid": 35394,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-first-green-attempt-1791791928345.log",
+      "logSha256": "d8b8502bc308db760fe0e72469c033650acb6b6990a4bdcb988d7f4bf7a66f5d",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-first-green-attempt-1791791928345.json",
+      "receiptSha256": "9977ccaa0b50187b3c4db403583d708109611ea87342a7f9cf3fd44b5813228b",
+      "lastResultLines": [
+        "00:00 +14: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-format-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/asset_review_session.dart",
+        "test/asset_review_session_test.dart",
+        "lib/avelune_converter_core.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 0.637,
+      "runnerPid": 35249,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-format-1791791928345.log",
+      "logSha256": "183e20fe51dc2efbe4fb09f7ee0cdc7f56c12cb8d4f6c1bf981d90c1876df023",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-format-1791791928345.json",
+      "receiptSha256": "a7f03a9c3d6bf6bab4b2392d780d8a11a4ed150f948de140d8534e9a9030e5e0",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-functional-red-1791791928345",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 1,
+      "elapsedSeconds": 1.181,
+      "runnerPid": 33090,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-functional-red-1791791928345.log",
+      "logSha256": "e5428a4a97018bfdedccd4724df1a6254332a3006951cd0540036d0e0ab06ade",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-functional-red-1791791928345.json",
+      "receiptSha256": "af99a1dff19ecea99bd09bc7f8df8ba0eabbe49e3163942197ca732267fa1aa3",
+      "lastResultLines": [
+        "00:00 +0 -14: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-strengthened-functional-red-1791791928345",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 1,
+      "elapsedSeconds": 1.187,
+      "runnerPid": 36040,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-strengthened-functional-red-1791791928345.log",
+      "logSha256": "6b4b4e2130d79067615d1ea306f00bbac51fbf84298ed360239a0c2f13135e6c",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-strengthened-functional-red-1791791928345.json",
+      "receiptSha256": "b29c6f4be5ed4efb2f50e9a20ec2321737347545841f085813510c02b8535181",
+      "lastResultLines": [
+        "00:00 +14 -3: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-strengthened-green-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.728,
+      "runnerPid": 36290,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-strengthened-green-1791791928345.log",
+      "logSha256": "a074cd8c3e7b2cbfd65426de51bc19ee7b217ef6fe7dda0bfe919a90bd33c506",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-strengthened-green-1791791928345.json",
+      "receiptSha256": "7b36ee03961715236dad56ed9429f734919da214b9e2223ae7515b3624484e56",
+      "lastResultLines": [
+        "00:00 +17: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-core-suite-1791791928345",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 21.54,
+      "runnerPid": 37358,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-suite-1791791928345.log",
+      "logSha256": "dbb4dd0e3401f56cabae78a44b208d7d045e0f1e7b89fb72f80b4ca3f4e6c0d2",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-suite-1791791928345.json",
+      "receiptSha256": "140d01c133f4fc69b1ce90635112e0bfd0b6578df58ccdfd26131a5004b89f5c",
+      "lastResultLines": [
+        "00:20 +586: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-mcp-npm-build-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp",
+      "exitCode": 0,
+      "elapsedSeconds": 1.939,
+      "runnerPid": 15018,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-mcp-npm-build-20261012-01.log",
+      "logSha256": "627a16613be7704d2b4572a60c3a60c65e6811d680aa85f8a3573bf8375ecd88",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-mcp-npm-build-20261012-01.json",
+      "receiptSha256": "c52c88cdb727f5cab79adda6484ce19f204501857e3bea8ec209685a3f341dd6",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-mcp-npm-check-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp",
+      "exitCode": 0,
+      "elapsedSeconds": 1.293,
+      "runnerPid": 15513,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-mcp-npm-check-20261012-01.log",
+      "logSha256": "7ad59dca3cb8e6445397c9e867326ddeac3b0ef771b0a5278fb8beb66f69ab0b",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-mcp-npm-check-20261012-01.json",
+      "receiptSha256": "9cafb4eb3a414308a16422e300526b4a4babe2a512545676fcb480d2053fc898",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-mcp-npm-ci-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp",
+      "exitCode": 0,
+      "elapsedSeconds": 1.263,
+      "runnerPid": 14671,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-mcp-npm-ci-20261012-01.log",
+      "logSha256": "35e2dc0ea2b14ae7b4584e794529461e338133af3e30d0101a323f3c29b39483",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-mcp-npm-ci-20261012-01.json",
+      "receiptSha256": "dbac1bf2166cc118dbb86916e29fd9e9db2cc00d6ccbaf5c6e96aaebe2a842da",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-production-main-build-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "lib/main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 42.108,
+      "runnerPid": 11542,
+      "observedProcessCount": 117,
+      "confirmedSurvivors": [],
+      "signals": [
+        {
+          "pid": 11927,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 11927,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 11:58:35 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 11928,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 11928,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 11:58:35 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 13284,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 13284,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 11:58:57 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        }
+      ],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-production-main-build-20261012.log",
+      "logSha256": "d56db0df027c9ed23233778b8f2d4cec05025f4be731d5a2c277f321e73f4714",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-production-main-build-20261012.json",
+      "receiptSha256": "17851d8716f4ccdd442fcabce59836c03b69b5c7c89870c0db1f125a5b6ac08e",
+      "lastResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter.app"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-destination-green16-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 8.406,
+      "runnerPid": 72430,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-destination-green16-20261012.log",
+      "logSha256": "f56a857f974abcd9ecc731dab4d9668c6073babf6598246bffc560f50279a982",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-destination-green16-20261012.json",
+      "receiptSha256": "e4391bf65ff3f7238702b4827c778f81c4a55f244b1a276dd3199ad17f8e5b0b",
+      "lastResultLines": [
+        "00:06 +16: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-destination-red-20261012",
+      "verdict": "RED_FUNCTIONAL_EXPECTED",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--plain-name",
+        "AC-10 resumes include and exclude after an explicit new destination choice",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 4.557,
+      "runnerPid": 70180,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-destination-red-20261012.log",
+      "logSha256": "cbfcff4cbd6f63cd8076002d852e7e49266e46dd0def6bbe26a0ca688437a38c",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-destination-red-20261012.json",
+      "receiptSha256": "cc41162e6b9e24eb6b4bcffc63725efe4c37044a134c5400d1edcbfe1b907530",
+      "lastResultLines": [
+        "00:02 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-final-analyze-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.213,
+      "runnerPid": 72614,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-final-analyze-20261012.log",
+      "logSha256": "435983fcffebf5bff1b81b8b28950f8f71238c655b151758ff0b6783b63651c5",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-final-analyze-20261012.json",
+      "receiptSha256": "ac159daf6df94d36bb4f33ab5a276eb617ba551ecd6fe469562727085cb06458",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-final-format-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.677,
+      "runnerPid": 72565,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-final-format-20261012.log",
+      "logSha256": "565b014811adbe60b603575624da99d0daaab1b3b467f408cc125ac9a8b29163",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-final-format-20261012.json",
+      "receiptSha256": "35d308c95a99c125d4b7b3391be4490a25d1fd2792c1aa10d8452d7005dd77a0",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-first-green-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 9.081,
+      "runnerPid": 64002,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-first-green-20261012.log",
+      "logSha256": "db13d6fb3d6961ad0b11a9dbb5cea1f21f584d03463b4280181ec5ac8c8f091f",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-first-green-20261012.json",
+      "receiptSha256": "b4c20bdea299f7fffd847c4514eec9e22d4a84c7920cf59153364d47679bcbb4",
+      "lastResultLines": [
+        "00:07 +15: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-red-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 1.786,
+      "runnerPid": 61097,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-red-20261012.log",
+      "logSha256": "e1d0bd88b8fc4eb53b1f3d4929c689d51dd8fc5a9f780a70abf557e65b4b7bf3",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-red-20261012.json",
+      "receiptSha256": "b3235cee683e0c005beb08db27601f069b04ddc1a0efafbb8cf23b799247ff8f",
+      "lastResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-red-functional-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 7.428,
+      "runnerPid": 61208,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-red-functional-20261012.log",
+      "logSha256": "c03896947d72e6bbde914c8643148d652f32874e31b6a462ea6ce57da19698e6",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-red-functional-20261012.json",
+      "receiptSha256": "4bc1556381614c772cfedc664d0f73a42c30a02a60ca329d7a858d9e8f6b66a3",
+      "lastResultLines": [
+        "00:05 +0 -16: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-resumer-red-functional15-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/review_session_resumer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.799,
+      "runnerPid": 61520,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-resumer-red-functional15-20261012.log",
+      "logSha256": "0d6ac1f8385dc8fb2ca889809fdf041887052840e7505b709ad69ae4fed56588",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-resumer-red-functional15-20261012.json",
+      "receiptSha256": "a6c63f76dcd27dae0d597bbaec9119efa5d27a1c16912e15a78ef68ebf8f4194",
+      "lastResultLines": [
+        "00:05 +0 -15: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-review-session-migration-analyze-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/converter_workflow.dart",
+        "test/converter_asset_workflow_test.dart",
+        "test/asset_review_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.788,
+      "runnerPid": 68077,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-review-session-migration-analyze-20261012-01.log",
+      "logSha256": "a5cca9ce284a237f390062ed7cec80bf979f31105106730e89ff94716e8292af",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-review-session-migration-analyze-20261012-01.json",
+      "receiptSha256": "9c4f7398037b0b92444277c15f3515e4b1a2589890ef28a64aa1e10ed8c35f6a",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-review-session-migration-format-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/converter_workflow.dart",
+        "test/converter_asset_workflow_test.dart",
+        "test/asset_review_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.677,
+      "runnerPid": 67832,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-review-session-migration-format-20261012-01.log",
+      "logSha256": "154df88389ee48489245fb56b69c6801a71af816c89446e057d666b9f3e4b303",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-review-session-migration-format-20261012-01.json",
+      "receiptSha256": "34ceb7dd4f28c93b925a63ac429651be739a4d168f358bf42e2f63247d06930a",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-review-session-migration-green-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "test/asset_review_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 10.084,
+      "runnerPid": 67112,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-review-session-migration-green-20261012-01.log",
+      "logSha256": "3df32cf436702c7b69fa54c34cb3c68bb5811fe37e0df0819f97b51920a49859",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-review-session-migration-green-20261012-01.json",
+      "receiptSha256": "d986b097ad403d430d473c22635269991a86f65c9c9cd86f74af74754f94530b",
+      "lastResultLines": [
+        "00:08 +19: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-review-session-migration-red-20261012-01",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "test/asset_review_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.819,
+      "runnerPid": 66842,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-review-session-migration-red-20261012-01.log",
+      "logSha256": "84e7b97fb85d3b1a04ea10019067bc6fc4befe4960ef82d49f1c346ed766bc9f",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-review-session-migration-red-20261012-01.json",
+      "receiptSha256": "6be4e4e99a717d780b0331d4ad6627765e6d43bb15d6dcd31ab1db4aa256d36a",
+      "lastResultLines": [
+        "00:04 +8 -11: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-active-review-red-20261012",
+      "verdict": "RED_FUNCTIONAL_EXPECTED",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/converter_session_lifecycle_test.dart",
+        "--plain-name",
+        "AC-10 revalidating the source keeps the active unsaved correction in the plan"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 17.004,
+      "runnerPid": 6743,
+      "observedProcessCount": 3,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-active-review-red-20261012.log",
+      "logSha256": "e255c78ac41b40f3fd402a83cd932010b962bc75dc96968d595216b074bf49e0",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-active-review-red-20261012.json",
+      "receiptSha256": "7b5dd64f003711860c5a827b8876cfcb6b42cce47e97fd2b8471fb36bee1d934",
+      "lastResultLines": [
+        "00:09 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-context-loading-functional-red-20261012",
+      "verdict": "RED_FUNCTIONAL_EXPECTED",
+      "command": [
+        "flutter",
+        "test",
+        "test/converter_session_lifecycle_test.dart",
+        "--name",
+        "invalid saved context|loading saved reviews",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 11.277,
+      "runnerPid": 72868,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-context-loading-functional-red-20261012.log",
+      "logSha256": "ece288aed626a3fbe624356f9ed8a41832023cc8b46e51252de37f948ba777c5",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-context-loading-functional-red-20261012.json",
+      "receiptSha256": "996c1944d3106dbebe5ca634e2b7cc580fa64e54cf4e23fb186db61c8c229802",
+      "lastResultLines": [
+        "00:07 +0 -2: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-lifecycle-and-empty-manual-red-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/converter_session_lifecycle_test.dart",
+        "test/asset_review_session_panel_test.dart",
+        "--name",
+        "saves and reloads|unsaved close|failed save|without any detected proposal",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 15.302,
+      "runnerPid": 59000,
+      "observedProcessCount": 5,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-and-empty-manual-red-20261012.log",
+      "logSha256": "25e5301b6a94823ab5bb4f85c299560bc4a82f8974cc117feaf1350a8b3ebb9a",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-and-empty-manual-red-20261012.json",
+      "receiptSha256": "d9625739d94df66ae6a875da17c9f99ecfd9782f7fd6ea6b4eb30b495c6ad65d",
+      "lastResultLines": [
+        "00:09 +0 -4: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-lifecycle-and-guards-first-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "flutter",
+        "test",
+        "test/converter_session_lifecycle_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 99.212,
+      "runnerPid": 71484,
+      "observedProcessCount": 9,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-and-guards-first-20261012.log",
+      "logSha256": "d498c1c8e7aca6395d883e5628b2c959021b1c06698f8fea3f7b345059db86a0",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-and-guards-first-20261012.json",
+      "receiptSha256": "3b045ec81114672ab75536d7d936aff6c0db2bece156ea89a3d1a229bacbd80c",
+      "lastResultLines": [
+        "01:32 +1 -4: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-lifecycle-final5-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/converter_session_lifecycle_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 20.414,
+      "runnerPid": 87504,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-final5-20261012.log",
+      "logSha256": "ebf7a56e2fda042a10130bfab45956f45a3fd675f1b5435c9646fc802c473ac6",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-lifecycle-final5-20261012.json",
+      "receiptSha256": "40284062d02a76959f39eeceaa0cc2aa07c47c333890e083bf14f05c6df0a604",
+      "lastResultLines": [
+        "00:14 +5: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-save-clock-diagnostic-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "flutter",
+        "test",
+        "test/converter_session_lifecycle_test.dart",
+        "--plain-name",
+        "AC-10 saves and reloads a real review in a fresh workflow",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 10.636,
+      "runnerPid": 72752,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-save-clock-diagnostic-20261012.log",
+      "logSha256": "ca96ccffe6b6fc624cb7cf15bb68e72fd810f3bdb6b0fa4943268aa0193cfcca",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-save-clock-diagnostic-20261012.json",
+      "receiptSha256": "26e0bc58a302d6e3baa159c7d6f6c9d47f46dfae64d70c65310d82073d8d6e09",
+      "lastResultLines": [
+        "00:06 +1: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-snapshot-pubget-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.177,
+      "runnerPid": 44208,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-snapshot-pubget-20261012.log",
+      "logSha256": "17da7b29823bf5b12575e16f775ea3bc69aac9163190e835a2ce8835f27f6604",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-snapshot-pubget-20261012.json",
+      "receiptSha256": "b15f7c5fba63ff42d7801c62c09c9ac915e40d7b680d7803661fb8a7f062a4a8",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-workflow-first-green-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--name",
+        "AC-10",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.263,
+      "runnerPid": 55439,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-workflow-first-green-20261012.log",
+      "logSha256": "e31d35e849503a6bb36fb008271bd224408b98a24440dccabc6a1a6f537b3a51",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-workflow-first-green-20261012.json",
+      "receiptSha256": "80b60e04c1fab71fda35a35cf0b8100792f3c2fac78fc0e1fd4eaba2828c8339",
+      "lastResultLines": [
+        "00:04 +6 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-workflow-functional-red-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--name",
+        "AC-10",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 7.782,
+      "runnerPid": 44270,
+      "observedProcessCount": 3,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-workflow-functional-red-20261012.log",
+      "logSha256": "232d3b989cb6ed9bc357b5ef30e4cb38e35a876a26591e27434a5d4d597d5148",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-workflow-functional-red-20261012.json",
+      "receiptSha256": "8da0d4aea7702d9d12db7f1f0aa0d2ccbc30e0994f83d8522984574a513e85fe",
+      "lastResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-workflow-functional-red-fixed-20261012",
+      "verdict": "RED_FUNCTIONAL_EXPECTED",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--name",
+        "AC-10",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.336,
+      "runnerPid": 44395,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-workflow-functional-red-fixed-20261012.log",
+      "logSha256": "19ed8f4b91d506cfb9b70bf418a3b532384fe0ce313f34b956210854ba80ba31",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-workflow-functional-red-fixed-20261012.json",
+      "receiptSha256": "df5c1c99ef43dab202604dc76316d1280a86cb33be0a36ce12846723ab3792cf",
+      "lastResultLines": [
+        "00:04 +0 -7: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-root-workflow-second-green-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--name",
+        "AC-10",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 7.307,
+      "runnerPid": 55677,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-root-workflow-second-green-20261012.log",
+      "logSha256": "352ab02247e7ad5f4711ebbbd05cbc27869d84428322fdc1f90b03c1e2e38a93",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-root-workflow-second-green-20261012.json",
+      "receiptSha256": "9e7b765a869591fe26476bb00df6cd698f8c5182762db3b7e68fd3fb2cc87e3b",
+      "lastResultLines": [
+        "00:05 +7: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-shared-claim-union-analyze-20261012-01",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.221,
+      "runnerPid": 73388,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-analyze-20261012-01.log",
+      "logSha256": "c6a2cb5518842c34bdacf71808a7fbc9d7651465f2e93d850cdf75d014aacd85",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-analyze-20261012-01.json",
+      "receiptSha256": "9feffd85f34839904c1854fc8d6ab773b4ab084f9032e4f95e7826804defffd1",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-shared-claim-union-format-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/asset_review_session.dart",
+        "test/asset_review_session_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 0.684,
+      "runnerPid": 73344,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-format-20261012-01.log",
+      "logSha256": "0e104d685c9fa91aa904fc604a2ec8d9de0b3282ec4474efc02cfc3ce00aae00",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-format-20261012-01.json",
+      "receiptSha256": "d0621b154403c1fc853e114a94ca2c836dde70623cdaad941e10c7a30db0b937",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-shared-claim-union-green-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 0,
+      "elapsedSeconds": 1.216,
+      "runnerPid": 73294,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-green-20261012-01.log",
+      "logSha256": "13444706bc16c8792244134a11da406152ac8a5f24bfcd8325bfc1412a1fc30e",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-green-20261012-01.json",
+      "receiptSha256": "d08e98bec2e369ff32045508a923b9da3945ff47e067889d6e6f65d62c6df681",
+      "lastResultLines": [
+        "00:00 +23: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-shared-claim-union-red-20261012-01",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_session_test.dart",
+        "--plain-name",
+        "REV-03 union preserves separate part links to the same source placement through split and restore",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_core",
+      "exitCode": 1,
+      "elapsedSeconds": 1.236,
+      "runnerPid": 73206,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-red-20261012-01.log",
+      "logSha256": "a1893304153c201c6904c87c212324a513ca97189a8439629c909a515ff89991",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-shared-claim-union-red-20261012-01.json",
+      "receiptSha256": "163b7a62eb81589f1e21c5003a51f11eaefb76a6ffe2c09d6d1dbf632d818afa",
+      "lastResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-aggregate-red-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/local_review_session_store_test.dart",
+        "--name",
+        "aggregate byte budget",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 3.928,
+      "runnerPid": 39455,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-aggregate-red-20261012.log",
+      "logSha256": "726ea08837bf0e513aafe75cac1387713c219536089ecd505ded6acffee96d0e",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-aggregate-red-20261012.json",
+      "receiptSha256": "fb723f99073921b7d0f3596d6a5fdbe326efd84664fa8af0a1cf6772a280b742",
+      "lastResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-first-green-attempt-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/local_review_session_store_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 1.75,
+      "runnerPid": 43057,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-first-green-attempt-20261012.log",
+      "logSha256": "66fc7ec27579a6573559d94938fb87586e5e4a5da25c1920457c805f8d64a429",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-first-green-attempt-20261012.json",
+      "receiptSha256": "1d404dabd56f50e9ef562b0a3fea8c5c8c8476a163ce1f5cebe68b8e8552e681",
+      "lastResultLines": [
+        "00:00 +0 -1: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-formatted-green-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/local_review_session_store_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 15.898,
+      "runnerPid": 65571,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-formatted-green-20261012.log",
+      "logSha256": "175bb4f0d6fdd39b9efa9c65dc9fb8f34b92ce551be04a9ae69b3560d8e3ee7c",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-formatted-green-20261012.json",
+      "receiptSha256": "0bff78d107a1f6ed6bd723b820c570f0a1d6421f82000b6e3bc84ab4223fd09e",
+      "lastResultLines": [
+        "00:13 +26: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-red-initial-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "test",
+        "test/local_review_session_store_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.162,
+      "runnerPid": 38688,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-red-initial-20261012.log",
+      "logSha256": "ba0d43827f0c81536f4f92ca62d9515e73c6385e5803595f7f6c72c028772d4a",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-red-initial-20261012.json",
+      "receiptSha256": "a36696da7f47a8ca7252dfcf4448b5ac0237afdf79298628f46672af25648d58",
+      "lastResultLines": [
+        "00:01 +0 -25: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-resumer-analyze-20261012",
+      "verdict": "FAILED_RECORDED_NOT_FINAL_PROOF",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/local_review_session_store.dart",
+        "test/local_review_session_store_test.dart",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 2,
+      "elapsedSeconds": 1.772,
+      "runnerPid": 64557,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-resumer-analyze-20261012.log",
+      "logSha256": "a8c6f4a17e4f318b7e29ebabe90b7e01938fb270b00be8a217f1305384fb971f",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-resumer-analyze-20261012.json",
+      "receiptSha256": "fb6d763ed6c0eb62f633ec1f750e6aa60e29816a3547b9f1718fe019f9dd7b03",
+      "lastResultLines": [
+        "5 issues found."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-resumer-analyze2-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/local_review_session_store.dart",
+        "test/local_review_session_store_test.dart",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.805,
+      "runnerPid": 65483,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-resumer-analyze2-20261012.log",
+      "logSha256": "fd9cb661afb727eb7e657c930c777a6b7e5f385e379561c178b1e93cc5edc20b",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-resumer-analyze2-20261012.json",
+      "receiptSha256": "678d53e5061892e4c644c36a56dc70a2c7b7f10de89ec24a3850125edb1687b9",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-resumer-format-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/local_review_session_store.dart",
+        "test/local_review_session_store_test.dart",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.655,
+      "runnerPid": 64466,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-resumer-format-20261012.log",
+      "logSha256": "319da909ab0f5565ca3bf856abf3e5765d32839df8800497a3f8dc8885d78ac0",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-resumer-format-20261012.json",
+      "receiptSha256": "ed6bc5e9cdb3d2dff63db6265982c4e026b23bb7440d3ceee70cc021ca82b0a0",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-resumer-format2-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "format",
+        "lib/src/local_review_session_store.dart",
+        "test/local_review_session_store_test.dart",
+        "lib/src/review_session_resumer.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.658,
+      "runnerPid": 65424,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-resumer-format2-20261012.log",
+      "logSha256": "2ccd718946510ed38922cb26bb8228cb8dafcdca1f087a96261014eea7cc9a01",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-resumer-format2-20261012.json",
+      "receiptSha256": "c5059dd101818d5ef5dd57d701469e2497a034f90cad4436c63d0a184e79ad39",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-storage-second-green-attempt-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "test",
+        "test/local_review_session_store_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 15.558,
+      "runnerPid": 43151,
+      "observedProcessCount": 5,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-storage-second-green-attempt-20261012.log",
+      "logSha256": "6635a4b74048ffd850c6bc1d573d37565332df3cb951cab6b49fc08b30a8d262",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-storage-second-green-attempt-20261012.json",
+      "receiptSha256": "8467d68df83c4e578b26d2ffc051d43fc55d4a33db59299c1c3bdf3db6f670f3",
+      "lastResultLines": [
+        "00:13 +26: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-transports-configure-20261012-01",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "python3",
+        "configure.py",
+        "--snapshot",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository",
+        "--mcp-tool-root",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/tools/pokemap_mcp",
+        "--package-config",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter/.dart_tool/package_config.json",
+        "--output-root",
+        "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/output/.avelune-converter-stage-Mn8CDq/avelune-study",
+        "--expected",
+        "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/transport-oracle-final.json",
+        "--source-root",
+        "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/source"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-transports-yvne5y0r",
+      "exitCode": 0,
+      "elapsedSeconds": 0.674,
+      "runnerPid": 37095,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-transports-configure-20261012-01.log",
+      "logSha256": "c2d51b36707b22be13753a830fa45ed086f5cfa6678b84f6d4e5f5b1ee3da62c",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-transports-configure-20261012-01.json",
+      "receiptSha256": "cde8d914da022ab64949c7abee21fd8b8709284ff738303a55d68fffe1d08892",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-transports-run-20261012-01",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "node",
+        "transports_read.mjs",
+        "config.json"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-transports-yvne5y0r",
+      "exitCode": 0,
+      "elapsedSeconds": 25.063,
+      "runnerPid": 37155,
+      "observedProcessCount": 5,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-transports-run-20261012-01.log",
+      "logSha256": "c9496869c968b8f43a1462a0a82ab2b47fe2e0a317cf4e55ade6d86a1df937db",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-transports-run-20261012-01.json",
+      "receiptSha256": "b647587400e107c3e944db748972f823dc36b5c7a14448f3dd4e875c85e8547d",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "pubget-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "flutter",
+        "pub",
+        "get"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 1.229,
+      "runnerPid": 87984,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/pubget-20261012.log",
+      "logSha256": "50391ada9c89d3af1406df1a635b398126eaf24203a3497ae4cfc51845781eef",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/pubget-20261012.json",
+      "receiptSha256": "b53373e89bb343e251002fccab2136ca3b4035a456b3165eae8fb27f49f97d8d",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "fixture-setup-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "dart",
+        "--packages=.dart_tool/package_config.json",
+        "../../packages/avelune_converter_adapters/tool/ac10_create_qa_fixture.dart",
+        "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d",
+        "e2495cd0-3dc8-43a8-8376-cec70d232e5d"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 12.267,
+      "runnerPid": 89708,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/fixture-setup-20261012.log",
+      "logSha256": "38bba88830a95caca7c8315d09a71daeecd407a8487ad36f8df0569757c02673",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/fixture-setup-20261012.json",
+      "receiptSha256": "bf266ded39820f9f5454d7136c3b61ca2699e6b81dc56b7e63aac227de5992c6",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "native-first-launch-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "flutter",
+        "run",
+        "-d",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "dev/ac10_qualification_main.dart",
+        "--dart-define=AVELUNE_AC10_SOURCE_ROOT=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/source",
+        "--dart-define=AVELUNE_AC10_OUTPUT_PARENT=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/output",
+        "--dart-define=AVELUNE_AC10_FIXTURE_MANIFEST=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/fixture-manifest.json",
+        "--dart-define=AVELUNE_AC10_QUALIFICATION_NONCE=e2495cd0-3dc8-43a8-8376-cec70d232e5d"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 709.667,
+      "runnerPid": 16020,
+      "observedProcessCount": 137,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-first-launch-20261012.log",
+      "logSha256": "fe75ef9a2aab77f858bf141b8ece9ce190d4923607e400a9e18c4a7fc408d1d3",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-first-launch-20261012.json",
+      "receiptSha256": "2853fa93b3bf70dca8f183c16fa937400a437ac02570c88e264a61de5f8438e1",
+      "lastResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter AC10 QA.app"
+      ]
+    },
+    {
+      "evidenceKey": "native-second-launch-20261012",
+      "verdict": "PASS_FINAL",
+      "command": [
+        "flutter",
+        "run",
+        "-d",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "dev/ac10_qualification_main.dart",
+        "--dart-define=AVELUNE_AC10_SOURCE_ROOT=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/source",
+        "--dart-define=AVELUNE_AC10_OUTPUT_PARENT=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/output",
+        "--dart-define=AVELUNE_AC10_FIXTURE_MANIFEST=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/fixture-manifest.json",
+        "--dart-define=AVELUNE_AC10_QUALIFICATION_NONCE=e2495cd0-3dc8-43a8-8376-cec70d232e5d"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 403.584,
+      "runnerPid": 29794,
+      "observedProcessCount": 38,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-second-launch-20261012.log",
+      "logSha256": "c21338b2ad75484614adeec684ad22017f04f7a98d6ae79aede40e5cc07ec86f",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-second-launch-20261012.json",
+      "receiptSha256": "570f255f201e2c15f2ee2536d0a6f462831dc184759f25288835fed04158c32a",
+      "lastResultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter AC10 QA.app"
+      ]
+    },
+    {
+      "evidenceKey": "core-full-analyze-final-20261012",
+      "verdict": "SETUP_FAILURE_MISSING_PACKAGE_CONFIG",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_core",
+      "exitCode": 3,
+      "elapsedSeconds": 1.231,
+      "runnerPid": 37434,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-core-full-analyze-final-20261012.log",
+      "logSha256": "49cabb23dbfc624445afc4360291bac39d43c7ad4bd2776a7293abbdbdf21557",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-core-full-analyze-final-20261012.json",
+      "receiptSha256": "356d2ec2802bcfa442fe10271806e0f43c125a465ca42d4414c9b5e4ba9ab035",
+      "lastResultLines": [
+        "2669 issues found."
+      ],
+      "interpretation": "Snapshot lacked .dart_tool/package_config.json: unresolved package/test/lints URIs. This is not the valid final core analysis; shared-claim-union-analyze is the full configured exit-0 proof."
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-quota-create-red-v2-20261012",
+      "verdict": "RED_FUNCTIONAL_GLOBAL_QUOTA",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/local_review_session_store_test.dart",
+        "--name",
+        "different session IDs cannot concurrently exceed the store quota|two processes creating different IDs keep the global store quota"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 15.808,
+      "runnerPid": 40243,
+      "observedProcessCount": 4,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-quota-create-red-v2-20261012.log",
+      "logSha256": "e3212dcf3d327b24d2b62703f5f42d2603445e3cd17f2fb4cf5dff3980c9162c",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-quota-create-red-v2-20261012.json",
+      "receiptSha256": "a943db5fb003f335354cc8c82379aa17f504962bec8ab17bf322dd1ae2b2e526",
+      "lastResultLines": [
+        "00:01 +0 -1: different session IDs cannot concurrently exceed the store quota [E]",
+        "  Expected: <1>",
+        "    Actual: <2>",
+        "00:01 +0 -1: two processes creating different IDs keep the global store quota",
+        "00:13 +0 -2: two processes creating different IDs keep the global store quota [E]",
+        "  Expected: <1>",
+        "    Actual: <2>",
+        "00:13 +0 -2: Some tests failed."
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-quota-create-green-20261012",
+      "verdict": "PASS_FINAL_QUOTA_STORE28_RESUMER16",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1",
+        "test/local_review_session_store_test.dart",
+        "test/review_session_resumer_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 44.65,
+      "runnerPid": 40642,
+      "observedProcessCount": 7,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-quota-create-green-20261012.log",
+      "logSha256": "188773d92dda58332637b4686bec64d46bc1682dcbc2a0c7adcfb5f92f2bf15d",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-quota-create-green-20261012.json",
+      "receiptSha256": "3f32a6d60b6ca71e38e83e673f5d9510d3b74daf33bf5fbf02894f91f0252131",
+      "lastResultLines": [
+        "00:41 +37: test/review_session_resumer_test.dart: AC-10 rejects a foreign dependency targetSourceMapId without losing saved review",
+        "00:41 +38: test/review_session_resumer_test.dart: AC-10 rejects a missing profile acknowledgement without resetting review",
+        "00:41 +39: test/review_session_resumer_test.dart: AC-10 rejects a foreign profile acknowledgement without resetting review",
+        "00:41 +40: test/review_session_resumer_test.dart: AC-10 rejects changed source bytes and leaves the stored document exact",
+        "00:42 +41: test/review_session_resumer_test.dart: AC-10 retains a readable session when the source becomes inaccessible",
+        "00:42 +42: test/review_session_resumer_test.dart: AC-10 asks for a new destination after it is created and retains review",
+        "00:42 +43: test/review_session_resumer_test.dart: AC-10 resumes include and exclude after an explicit new destination choice",
+        "00:42 +44: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-quota-create-analyze-20261012",
+      "verdict": "PASS_FINAL_QUOTA_ANALYZE",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "analyze",
+        "lib/src/local_review_session_store.dart",
+        "test/local_review_session_store_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 4.116,
+      "runnerPid": 43547,
+      "observedProcessCount": 2,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-quota-create-analyze-20261012.log",
+      "logSha256": "e7b1b3d0af1128eabb245c1feedf0a5b3373fd0ec3ac93f52cadfb27e4f21482",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-quota-create-analyze-20261012.json",
+      "receiptSha256": "2feeeb265bf31c53ee39beea480a18af9de49f4f8bf830ba07a4a9906e93d635",
+      "lastResultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-quota-create-format-20261012",
+      "verdict": "PASS_RECORDED",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "format",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters/lib/src/local_review_session_store.dart",
+        "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters/test/local_review_session_store_test.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.69,
+      "runnerPid": 42792,
+      "observedProcessCount": 1,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": false,
+      "logPath": "/private/tmp/avelune-converter-ac10-quota-create-format-20261012.log",
+      "logSha256": "e25bd6470ea1ad55c1580b3d14da703e9f49323860d3a8985a0865080f2855f8",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-quota-create-format-20261012.json",
+      "receiptSha256": "57107205935f3c5373c3a6349537abf1ffa865a89d4b43ad4e84bb14ae162f4e",
+      "lastResultLines": []
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-production-main-build-post-quota-20261012",
+      "verdict": "PASS_FINAL_POST_QUOTA_BUILD",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "lib/main.dart"
+      ],
+      "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac10-qualified-snapshot-bp9fpwst/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 21.392,
+      "runnerPid": 44740,
+      "observedProcessCount": 34,
+      "confirmedSurvivors": [],
+      "signals": [
+        {
+          "pid": 44884,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 44884,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 12:38:22 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 44885,
+          "signal": "SIGTERM",
+          "reason": "leftover owned test descendant",
+          "verifiedIdentity": {
+            "pid": 44885,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 12:38:22 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        }
+      ],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-production-main-build-post-quota-20261012.log",
+      "logSha256": "15b0c3df3912899cb2fa68f3365f5516fc964fc650a05233dcf778db4e0a88e6",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-production-main-build-post-quota-20261012.json",
+      "receiptSha256": "ba1e7cece72f4202d06d5eea933c7c3ab4d24eb82daab8f03d2735ea6b8bd927",
+      "lastResultLines": [
+        "Building macOS application...                                   ",
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter.app"
+      ]
+    },
+    {
+      "evidenceKey": "avelune-converter-ac10-markdown-hygiene-20261012",
+      "verdict": "PASS_FINAL_MARKDOWN_HYGIENE",
+      "command": [
+        "bash",
+        "tools/scripts/check_markdown_hygiene.sh"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject",
+      "exitCode": 0,
+      "elapsedSeconds": 2.354,
+      "runnerPid": 45128,
+      "observedProcessCount": 11,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "protectedUnchanged": true,
+      "pinsUnchanged": true,
+      "logPath": "/private/tmp/avelune-converter-ac10-markdown-hygiene-20261012.log",
+      "logSha256": "2b53e499d56f6d90647d31732f5e9f8334f251f95d482d393afec42e994b333d",
+      "receiptPath": "/private/tmp/avelune-converter-ac10-markdown-hygiene-20261012.json",
+      "receiptSha256": "fd427d72f7e8046c161ba085742b028f7c24428ed283e75a6342fad96b901d9a",
+      "lastResultLines": [
+        "Markdown hygiene: 1 new Markdown file(s), all in canonical locations."
+      ]
+    }
+  ],
+  "finalReceipts": {
+    "core": "avelune-converter-ac10-core-final-suite-20261012.json",
+    "coreAnalyze": "avelune-converter-ac10-shared-claim-union-analyze-20261012-01.json",
+    "adapters": "avelune-converter-ac10-adapters-final-suite-20261012.json",
+    "adaptersAnalyze": "avelune-converter-ac10-adapters-final-analyze-20261012.json",
+    "app": "avelune-converter-ac10-app-final-suite-green-20261012-02.json",
+    "appAnalyze": "avelune-converter-ac10-app-final-analyze-green-20261012-02.json",
+    "productionBuild": "avelune-converter-ac10-production-main-build-post-quota-20261012.json",
+    "transport": "avelune-converter-ac10-transports-run-20261012-01.json",
+    "lateQuotaAndResumer": "avelune-converter-ac10-quota-create-green-20261012.json",
+    "lateQuotaAnalyze": "avelune-converter-ac10-quota-create-analyze-20261012.json",
+    "markdownHygiene": "avelune-converter-ac10-markdown-hygiene-20261012.json"
+  },
+  "nativeUiQualification": {
+    "status": "PASS_BOUNDED",
+    "sourceUnchanged": true,
+    "originalMapIds": [
+      1,
+      8,
+      12,
+      20,
+      21
+    ],
+    "nativeMapCount": 5,
+    "libraryObjectCount": 1,
+    "resourceCount": 3,
+    "sessionBeforeCloseHash": "a1dc38437131a184040cca72f59579a7a4e37952dfa3824cdb6dbb297473d859",
+    "sessionAfterFreshLaunchHash": "a1dc38437131a184040cca72f59579a7a4e37952dfa3824cdb6dbb297473d859",
+    "finalSessionHash": "1bb2b22ef784de41e4a1e054e4e4b9004dff3ade3c70fde593218f5eaf223505",
+    "storedRevision": 2,
+    "storedEnvelopeHash": "38f261f23b7ef06912e3067ee9ce8fc8194f293a9225a83d5c7c214b20a0a733",
+    "sourceSnapshotHash": "a25846d9c2b8afae34c3e4d14a83d0f92e6d22d0b9b3e8d55b02f8d67660dcf4",
+    "resultProjectPath": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/output/.avelune-converter-stage-Mn8CDq/avelune-study",
+    "resultNativeRevision": "sha256:0311c4c55d66108e84ed40c00677acc867dfdc2fe40486e21b9afdb1e236de13",
+    "resultPreparationHash": "0bb34c3570ae9f931b59c78c164d9dc29b4e2a85fe31dfebb31d43161d6cbd7c",
+    "resultApprovedPlanHash": "c96722cc51f930de55080930c04630ffdd5fe7cc593bd6969946dd77931eee1c",
+    "mapHashes": {
+      "map_0df70b1015776c0d92feeb9372a2e1c55e006792925d1b7fd37bdf6b": "adc6acc762fc7117376811b0d4ee2e6c135ae421d6dbce50de943cfbe70e0601",
+      "map_76fa2dc8408bbb472f563166e65f20ecdc2e7555311bfd23e1849ca6": "149cc936b35bcb709807929e9a98140040ab256e2c53e509d69a003e1bef2d76",
+      "map_bd00486dbf3f19655a34d36f535f35aa1cf11016ad47222edfb29106": "c68e4ed0f3c7446cea3f7380c4df1e2c6e08d086c8b377abf7c5d3490603cbfd",
+      "map_b2dca822452d0915d0d00f5f3df3f9296019a842e47a199ae4582fb8": "b7e6cb6be6281a5dbab1bce2a11692f0275f569eaaf80e7b0971bee0affce5bd",
+      "map_bea71ed49c0ee6932043295ef3a0626824377f063159cb60fb6b2bf0": "a68e1b099d021e8e3e1c491b3c01a3a9a74ae3d422438399a8b6e7c27fea330b"
+    },
+    "assetHashes": {
+      "image_tileset_cb31b2d84c614322b4f77d2186364620fe571dca76d2b33279fbc72c": "aac47ae179a3a1f0f8790385b2977a08ad7bf7983008eb6690b0c385eac79df1",
+      "image_library_atlas_9487cc8abe81dcae67284294": "7edb953e25ab6beb7e7f3510edad8a0dd8e6e700816d7ef7fccda2b570dc65b2",
+      "library_metadata_9487cc8abe81dcae67284294": "ccf13ee57c59a2aa343561829296ad6760f035591dd5e9b8c9159af2cabf629e"
+    },
+    "nativeUnionSplitObserved": false,
+    "actualRedCloseObserved": false,
+    "published": false,
+    "playableCertified": false,
+    "qualificationRelationToQuotaFix": "Actual UI lifecycle preceded the late global quota correction; final store28/resumer16 targeted tests, targeted store analysis and production main rebuild qualify that correction separately."
+  },
+  "parity": {
+    "status": "PASS_BOUNDED",
+    "receipt": {
+      "path": "/private/tmp/avelune-converter-ac10-transports-yvne5y0r/transports-final.json",
+      "sha256": "ea12d26e4ee123ee0bdf05cd7a1e453e49e877789e1581a4eb3258310b87755d"
+    },
+    "queriesPerTransport": {
+      "directApi": 13,
+      "jsonl": 13,
+      "mcp": 13
+    },
+    "liveMcpCatalogHash": "93f263e48ae35192dde318744dc6cad6e5d21cb0d202d0ea9fe041a6f3fce4eb",
+    "actionContractCount": 7,
+    "nativeFileCount": 47,
+    "nativeFilesUnchanged": true,
+    "sourceWitnessCount": 9,
+    "sourceWitnessesUnchanged": true,
+    "secretsInTransportRecords": 0,
+    "revision": "sha256:0311c4c55d66108e84ed40c00677acc867dfdc2fe40486e21b9afdb1e236de13"
+  },
+  "logRetention": "Receipts and logs are retained at exact local TEMP paths; commands classify non-final failures without treating them as green evidence.",
+  "markdownHygiene": {
+    "status": "PASS",
+    "exitCode": 0,
+    "elapsedSeconds": 2.354,
+    "newMarkdownFiles": 1,
+    "canonicalLocations": true,
+    "receiptPath": "/private/tmp/avelune-converter-ac10-markdown-hygiene-20261012.json"
+  },
+  "gateTechnical": "PASS_BOUNDED"
+}

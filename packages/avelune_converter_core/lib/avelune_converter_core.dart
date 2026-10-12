@@ -13,6 +13,7 @@ part 'src/models.dart';
 part 'src/domain_validation.dart';
 part 'src/admission.dart';
 part 'src/jobs.dart';
+part 'src/asset_review_session.dart';
 part 'src/ports.dart';
 part 'src/inventory.dart';
 part 'src/source_unicode_case_folding.dart';

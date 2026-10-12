@@ -10,6 +10,9 @@ class StudioReviewDialog extends StatelessWidget {
     required this.confirmLabel,
     required this.onConfirmed,
     required this.onCancelled,
+    this.cancelLabel = 'Annuler',
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   });
 
   final String title;
@@ -17,13 +20,22 @@ class StudioReviewDialog extends StatelessWidget {
   final String confirmLabel;
   final VoidCallback? onConfirmed;
   final VoidCallback onCancelled;
+  final String cancelLabel;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(title),
     content: SizedBox(width: 600, child: SingleChildScrollView(child: content)),
     actions: [
-      StudioButton(label: 'Annuler', secondary: true, onPressed: onCancelled),
+      StudioButton(label: cancelLabel, secondary: true, onPressed: onCancelled),
+      if (secondaryActionLabel case final label?)
+        StudioButton(
+          label: label,
+          secondary: true,
+          onPressed: onSecondaryAction,
+        ),
       StudioButton(
         key: const ValueKey('confirm-reviewed-plan'),
         label: confirmLabel,

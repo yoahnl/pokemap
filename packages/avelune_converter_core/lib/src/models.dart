@@ -261,6 +261,20 @@ final class AssetCandidate extends ConverterDocument {
 final class SourceImage extends _JsonRecord {
   SourceImage._(super.json);
 
+  factory SourceImage.fromJson(Object? input,
+      {ContractLimits limits = const ContractLimits()}) {
+    final json = _freezeJson(input, limits);
+    if (json is! Map<String, Object?>) {
+      throw ContractError('shape.object', r'$', 'Expected an object');
+    }
+    final candidateSchema = _contractSchemas['assetCandidate'] as Map;
+    final properties = candidateSchema['properties'] as Map;
+    final sources = properties['sources'] as Map;
+    _validateShape(
+        json, (sources['items'] as Map).cast<String, Object?>(), r'$');
+    return SourceImage._(json);
+  }
+
   ConverterId get fileId => ConverterId(_json['fileId'] as String);
 
   Sha256Hash get contentHash => Sha256Hash(_json['contentHash'] as String);

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
@@ -14,28 +13,50 @@ void main() {
     proposal = AssetCandidate.fromJson({...json, 'exampleOnly': false});
   });
 
-  ConverterAssetReview review({
+  AssetReviewSession seed() => AssetReviewSession.create(
+      sessionId: ConverterId('exact-asset-review'),
+      logicalProjectNamespace: proposal.logicalProjectNamespace,
+      sourceSnapshotHash: proposal.sourceSnapshotHash,
+      selectedSourceMapIds: [1],
+      outputMode: proposal.outputMode,
+      proposalGenerationHash: Sha256Hash('c' * 64),
+      candidates: [proposal]);
+
+  AssetReviewSession review({
     Sha256Hash? hash,
     AssetCategory category = AssetCategory.nature,
     ReviewAction action = ReviewAction.approve,
     bool confirmed = true,
     String name = 'Arbre original',
-  }) =>
-      ConverterAssetReview(
-          candidateId: proposal.candidateId,
-          proposalHash: hash ?? proposal.canonicalHash,
-          name: name,
-          category: category,
-          action: action,
-          humanConfirmed: confirmed);
+  }) {
+    final initial = seed();
+    final named = initial.editMetadata(
+        candidateId: proposal.candidateId,
+        expectedCandidateHash: hash ?? proposal.canonicalHash,
+        expectedSessionHash: initial.canonicalHash,
+        name: name,
+        category: category);
+    final current = named.activeCandidates.single;
+    return named.decide(
+        candidateId: current.candidateId,
+        expectedCandidateHash: current.canonicalHash,
+        expectedSessionHash: named.canonicalHash,
+        action: action,
+        humanConfirmed: confirmed);
+  }
 
-  test('review approves the exact proposal geometry and current revision', () {
-    final approved = review().applyTo(proposal);
+  test('review approves exact geometry and records its current revision', () {
+    final session = review();
+    final approved = session.activeCandidates.single;
     expect(approved.name, 'Arbre original');
     expect(approved.category, AssetCategory.nature);
     expect(approved.state, CandidateState.approved);
-    expect(approved.revision, proposal.revision + 1);
+    expect(approved.revision, proposal.revision + 2);
     expect(approved.approvedRevision, approved.revision);
+    expect(session.approvedCandidateHashes,
+        {approved.candidateId: approved.canonicalHash});
+    expect(
+        session.activeDecisions.decisions.single.action, ReviewAction.approve);
     for (final key in [
       'sources',
       'parts',
@@ -54,45 +75,57 @@ void main() {
 
   test('keep literal records the decision without approving a library asset',
       () {
-    final kept = review(
-            action: ReviewAction.keepLiteral,
-            category: AssetCategory.unclassified)
-        .applyTo(proposal);
+    final session = review(
+        action: ReviewAction.keepLiteral, category: AssetCategory.unclassified);
+    final kept = session.activeCandidates.single;
     expect(kept.state, CandidateState.keepLiteral);
     expect(kept.approvedRevision, isNull);
     expect(kept.integrationMode, IntegrationMode.libraryOnly);
+    expect(session.approvedCandidateHashes, isEmpty);
+    expect(session.activeDecisions.decisions.single.action,
+        ReviewAction.keepLiteral);
   });
 
   test('stale or foreign proposals cannot reuse a human decision', () {
-    final stale = review(hash: Sha256Hash('0' * 64));
+    expect(() => review(hash: Sha256Hash('0' * 64)),
+        throwsA(isA<ContractError>()));
+    final initial = seed();
     expect(
-        () => stale.applyTo(proposal),
-        throwsA(isA<ConverterWorkflowFailure>().having(
-            (value) => value.code, 'code', 'workflow.asset_review.stale')));
-    final foreign = AssetCandidate.fromJson({
-      ...proposal.toJson(),
-      'candidateId': 'foreign-candidate',
-    });
-    expect(() => review().applyTo(foreign),
-        throwsA(isA<ConverterWorkflowFailure>()));
+        () => initial.decide(
+            candidateId: ConverterId('foreign-candidate'),
+            expectedCandidateHash: proposal.canonicalHash,
+            expectedSessionHash: initial.canonicalHash,
+            action: ReviewAction.approve,
+            humanConfirmed: true),
+        throwsA(isA<ContractError>()));
+    expect(
+        () => initial.decide(
+            candidateId: proposal.candidateId,
+            expectedCandidateHash: proposal.canonicalHash,
+            expectedSessionHash: Sha256Hash('0' * 64),
+            action: ReviewAction.approve,
+            humanConfirmed: true),
+        throwsA(isA<ContractError>()));
   });
 
   test('review requires explicit confirmation and classification', () {
-    expect(() => review(confirmed: false),
-        throwsA(isA<ConverterWorkflowFailure>()));
+    expect(() => review(confirmed: false), throwsA(isA<ContractError>()));
     expect(() => review(category: AssetCategory.unclassified),
-        throwsA(isA<ConverterWorkflowFailure>()));
-    expect(() => review(name: '  '), throwsA(isA<ConverterWorkflowFailure>()));
+        throwsA(isA<ContractError>()));
+    expect(() => review(name: '  '), throwsA(isA<ContractError>()));
     expect(() => review(action: ReviewAction.supersede),
-        throwsA(isA<ConverterWorkflowFailure>()));
+        throwsA(isA<ContractError>()));
   });
 
-  test('name and category changes produce a different reviewed hash', () {
-    final tree = review().applyTo(proposal);
-    final building = review(category: AssetCategory.building, name: 'Maison')
-        .applyTo(proposal);
+  test(
+      'name and category changes produce different candidate and session hashes',
+      () {
+    final tree = review();
+    final building = review(category: AssetCategory.building, name: 'Maison');
+    expect(tree.activeCandidates.single.canonicalHash,
+        isNot(building.activeCandidates.single.canonicalHash));
     expect(tree.canonicalHash, isNot(building.canonicalHash));
-    expect(review().canonicalHash,
-        isNot(review(category: AssetCategory.building).canonicalHash));
+    expect(tree.activeDecisions.canonicalHash,
+        isNot(building.activeDecisions.canonicalHash));
   });
 }

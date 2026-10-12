@@ -94,83 +94,6 @@ final class SourceStudyAcknowledgement {
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
 }
 
-final class ConverterAssetReview {
-  factory ConverterAssetReview({
-    required ConverterId candidateId,
-    required Sha256Hash proposalHash,
-    required String name,
-    required AssetCategory category,
-    required ReviewAction action,
-    required bool humanConfirmed,
-  }) {
-    if (!humanConfirmed ||
-        (action != ReviewAction.approve &&
-            action != ReviewAction.keepLiteral) ||
-        name.trim().isEmpty ||
-        name.length > 256 ||
-        name.contains('\u0000') ||
-        (action == ReviewAction.approve &&
-            category == AssetCategory.unclassified)) {
-      throw const ConverterWorkflowFailure('workflow.asset_review.invalid',
-          'Choose a name, a category and an explicit human review decision.');
-    }
-    return ConverterAssetReview._(
-        candidateId, proposalHash, name.trim(), category, action);
-  }
-
-  const ConverterAssetReview._(this.candidateId, this.proposalHash, this.name,
-      this.category, this.action);
-
-  final ConverterId candidateId;
-  final Sha256Hash proposalHash;
-  final String name;
-  final AssetCategory category;
-  final ReviewAction action;
-
-  Map<String, Object?> toJson() => {
-        'kind': 'converterAssetReview',
-        'version': 1,
-        'candidateId': candidateId.value,
-        'proposalHash': proposalHash.value,
-        'name': name,
-        'category': category.name,
-        'action': action.name,
-        'humanConfirmed': true,
-      };
-
-  Sha256Hash get canonicalHash => canonicalHashOf(toJson());
-
-  AssetCandidate applyTo(AssetCandidate proposal) {
-    if (proposal.candidateId != candidateId ||
-        proposal.canonicalHash != proposalHash ||
-        proposal.state != CandidateState.needsReview ||
-        proposal.integrationMode != IntegrationMode.libraryOnly ||
-        proposal.exampleOnly) {
-      throw const ConverterWorkflowFailure('workflow.asset_review.stale',
-          'Review the current exact local proposal before exporting it.');
-    }
-    final revision = proposal.revision + 1;
-    return AssetCandidate.fromJson({
-      ...proposal.toJson(),
-      'revision': revision,
-      'name': name,
-      'category': category.name,
-      'state': action == ReviewAction.approve ? 'approved' : 'keepLiteral',
-      'approvedRevision': action == ReviewAction.approve ? revision : null,
-      'evidence': [
-        ...proposal.toJson()['evidence'] as List,
-        {
-          'type': 'human',
-          'summary': action == ReviewAction.approve
-              ? 'Human review approved this exact local library proposal.'
-              : 'Human review retained the literal map representation.',
-          'reference': 'asset-review-sha256:${canonicalHash.value}',
-        },
-      ],
-    });
-  }
-}
-
 final class ConverterStudySettings {
   factory ConverterStudySettings({
     required String projectName,
@@ -181,7 +104,7 @@ final class ConverterStudySettings {
     List<LiteralDependencyDecision> dependencyDecisions = const [],
     bool allowFirstFrameAutotiles = false,
     AssetOutputMode assetOutputMode = AssetOutputMode.sharedAtlas,
-    List<ConverterAssetReview> assetReviews = const [],
+    AssetReviewSession? reviewSession,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
     NativeWriteLimits writeLimits = const NativeWriteLimits(),
@@ -208,8 +131,7 @@ final class ConverterStudySettings {
     if (selectedSourceMapIds.isEmpty ||
         selectedSourceMapIds.length > writeLimits.maxMutations ||
         selectedSourceMapIds.length > normalizationLimits.maxMaps ||
-        dependencyDecisions.length > writeLimits.maxMutations ||
-        assetReviews.length > writeLimits.maxMutations) {
+        dependencyDecisions.length > writeLimits.maxMutations) {
       throw const ConverterWorkflowFailure('workflow.quota.selection',
           'Selection or dependency budget exceeded.');
     }
@@ -222,17 +144,19 @@ final class ConverterStudySettings {
     }
     canonicalJsonOf(dependencyDecisions.map((value) => value.toJson()).toList(),
         limits: writeLimits.jsonLimits);
-    if (assetOutputMode == AssetOutputMode.packedObjects ||
-        assetReviews.map((review) => review.candidateId).toSet().length !=
-            assetReviews.length) {
-      throw const ConverterWorkflowFailure('workflow.asset_review.invalid',
-          'Choose a supported output mode and one review per candidate.');
+    if (assetOutputMode == AssetOutputMode.packedObjects) {
+      throw const ConverterWorkflowFailure('workflow.asset_output.invalid',
+          'Choose a supported asset output mode.');
     }
-    canonicalJsonOf(assetReviews.map((value) => value.toJson()).toList(),
-        limits: writeLimits.jsonLimits);
-    final reviews = assetReviews.toList()
-      ..sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
     final ids = selected.toList()..sort();
+    if (reviewSession != null &&
+        (reviewSession.outputMode != assetOutputMode ||
+            canonicalJsonOf(
+                    reviewSession.selectedSourceMapIds.toList()..sort()) !=
+                canonicalJsonOf(ids))) {
+      throw const ConverterWorkflowFailure('workflow.review_session.stale',
+          'The review session and the selected study context differ.');
+    }
     final decisions = dependencyDecisions.toList()
       ..sort((a, b) => a.canonicalHash.value.compareTo(b.canonicalHash.value));
     return ConverterStudySettings._(
@@ -244,7 +168,7 @@ final class ConverterStudySettings {
         List.unmodifiable(decisions),
         allowFirstFrameAutotiles,
         assetOutputMode,
-        List.unmodifiable(reviews),
+        reviewSession,
         normalizationLimits,
         writeLimits);
   }
@@ -258,7 +182,7 @@ final class ConverterStudySettings {
       this.dependencyDecisions,
       this.allowFirstFrameAutotiles,
       this.assetOutputMode,
-      this.assetReviews,
+      this.reviewSession,
       this.normalizationLimits,
       this.writeLimits);
 
@@ -270,7 +194,7 @@ final class ConverterStudySettings {
   final List<LiteralDependencyDecision> dependencyDecisions;
   final bool allowFirstFrameAutotiles;
   final AssetOutputMode assetOutputMode;
-  final List<ConverterAssetReview> assetReviews;
+  final AssetReviewSession? reviewSession;
   final SourceNormalizationLimits normalizationLimits;
   final NativeWriteLimits writeLimits;
 
@@ -286,7 +210,7 @@ final class ConverterStudySettings {
             dependencyDecisions.map((value) => value.toJson()).toList(),
         'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
         'assetOutputMode': assetOutputMode.name,
-        'assetReviews': assetReviews.map((review) => review.toJson()).toList(),
+        'reviewSession': reviewSession?.toJson(),
         'normalizationLimits': _normalizationLimitsJson(normalizationLimits),
         'writeLimits': _writeLimitsJson(writeLimits),
       };
@@ -314,6 +238,7 @@ final class PreparedStudy {
     required this.previewPlan,
     required this.targetCapabilities,
     required this.canApprove,
+    this.reviewSession,
   });
 
   final int sessionRevision;
@@ -333,6 +258,7 @@ final class PreparedStudy {
   final ConversionPlan? previewPlan;
   final TargetCapabilities targetCapabilities;
   final bool canApprove;
+  final AssetReviewSession? reviewSession;
 }
 
 final class StudyApproval {
@@ -1161,7 +1087,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 source: normalized,
                 files: files,
                 literal: composition,
-                outputMode: settings.assetOutputMode,
+                outputMode: settings.reviewSession?.frames.first.outputMode ??
+                    settings.assetOutputMode,
                 limits: LocalAssetProposalLimits(
                     maxSourceImages:
                         settings.writeLimits.maxArtifacts.clamp(1, 32),
@@ -1190,21 +1117,70 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 'Local recognition exceeded its budget; no partial proposals were retained. Literal map conversion remains available.'));
           }
         }
-        final reviews = {
-          for (final review in settings.assetReviews)
-            review.candidateId: review,
-        };
-        final candidates = <AssetCandidate>[
-          for (final proposal in proposals?.candidates ?? <AssetCandidate>[])
-            reviews[proposal.candidateId]?.applyTo(proposal) ?? proposal,
-        ];
-        final candidateIds = candidates.map((c) => c.candidateId).toSet();
-        if (!reviews.keys.every(candidateIds.contains)) {
-          throw const ConverterWorkflowFailure('workflow.asset_review.stale',
-              'A review refers to a missing or changed source proposal.');
+        AssetReviewSession? reviewSession;
+        if (proposals != null) {
+          final seedMode = settings.reviewSession?.frames.first.outputMode ??
+              settings.assetOutputMode;
+          final generationHash = _reviewProposalGenerationHash(
+              proposals, settings.selectedSourceMapIds, seedMode);
+          final supplied = settings.reviewSession;
+          if (supplied != null) {
+            if (supplied.sourceSnapshotHash != snapshot.canonicalHash ||
+                supplied.logicalProjectNamespace !=
+                    snapshot.logicalProjectNamespace ||
+                supplied.proposalGenerationHash != generationHash ||
+                canonicalHashOf({
+                      for (final c in proposals.candidates)
+                        c.candidateId.value: c.canonicalHash.value
+                    }) !=
+                    canonicalHashOf({
+                      for (final e in supplied.baseProposalHashes.entries)
+                        e.key.value: e.value.value
+                    })) {
+              throw const ConverterWorkflowFailure(
+                  'workflow.review_session.stale',
+                  'The stored review seed does not match the fresh source proposals.');
+            }
+            supplied.validatePlacements(normalized.maps);
+            for (final candidate in supplied.activeCandidates) {
+              const LocalAssetProposer().validatePlacementClaims(
+                  source: normalized,
+                  literal: composition,
+                  candidate: candidate,
+                  claims:
+                      supplied.frame.placementClaims[candidate.candidateId] ??
+                          const []);
+            }
+            reviewSession = supplied;
+          } else {
+            reviewSession = AssetReviewSession.create(
+                sessionId: ConverterId(
+                    '${request.sessionId.value}.review${request.revision}'),
+                logicalProjectNamespace: snapshot.logicalProjectNamespace,
+                sourceSnapshotHash: snapshot.canonicalHash,
+                selectedSourceMapIds: settings.selectedSourceMapIds,
+                outputMode: settings.assetOutputMode,
+                proposalGenerationHash: generationHash,
+                candidates: proposals.candidates,
+                placementClaims: proposals.placementClaims,
+                sourceMaps: normalized.maps);
+          }
+        } else if (settings.reviewSession != null) {
+          throw const ConverterWorkflowFailure('workflow.review_session.stale',
+              'The fresh proposal generation is unavailable for review attestation.');
         }
-        final decisions = _assetReviewDecisions(request.sessionId,
-            request.revision, snapshot.canonicalHash, candidates, reviews);
+        final candidates =
+            reviewSession?.activeCandidates ?? const <AssetCandidate>[];
+        final decisions = ReviewDecisions.fromJson({
+          'schemaVersion': '1.0',
+          'kind': 'reviewDecisions',
+          'exampleOnly': false,
+          'sessionId': request.sessionId.value,
+          'sourceSnapshotHash': snapshot.canonicalHash.value,
+          'revision': request.revision,
+          'decisions': reviewSession?.activeDecisions.toJson()['decisions'] ??
+              const <Object?>[],
+        });
         final approvedCandidateHashes = <ConverterId, Sha256Hash>{
           for (final candidate in candidates)
             if (candidate.state == CandidateState.approved)
@@ -1280,6 +1256,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 nativeDraft: draft,
                 previewPlan: plan,
                 targetCapabilities: capabilities,
+                reviewSession: reviewSession,
                 canApprove: normalized.canPlan &&
                     draft != null &&
                     settings.profileAcknowledgement.humanConfirmed &&
@@ -1544,33 +1521,23 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'publication': false,
     });
 
-ReviewDecisions _assetReviewDecisions(
-        ConverterId sessionId,
-        int revision,
-        Sha256Hash snapshotHash,
-        List<AssetCandidate> candidates,
-        Map<ConverterId, ConverterAssetReview> reviews) =>
-    ReviewDecisions.fromJson({
-      'schemaVersion': '1.0',
-      'kind': 'reviewDecisions',
-      'exampleOnly': false,
-      'sessionId': sessionId.value,
-      'sourceSnapshotHash': snapshotHash.value,
-      'revision': revision,
-      'decisions': [
-        for (final candidate in candidates)
-          if (reviews[candidate.candidateId] case final review?)
-            {
-              'decisionId': 'review-${review.canonicalHash.value}',
-              'candidateId': candidate.candidateId.value,
-              'candidateRevision': candidate.revision,
-              'action': review.action.name,
-              'humanConfirmed': true,
-              'replacementCandidateIds': <String>[],
-              'note':
-                  'Explicit local library review; literal placements retained.',
-            },
-      ],
+Sha256Hash _reviewProposalGenerationHash(LocalAssetProposalSet proposals,
+        List<int> selectedSourceMapIds, AssetOutputMode seedMode) =>
+    canonicalHashOf({
+      'kind': 'reviewProposalGeneration',
+      'version': 1,
+      'sourceSnapshotHash': proposals.sourceSnapshotHash.value,
+      'normalizedSourceHash': proposals.normalizedSourceHash.value,
+      'selectedSourceMapIds': selectedSourceMapIds,
+      'outputMode': seedMode.name,
+      'candidateHashes':
+          proposals.candidates.map((c) => c.canonicalHash.value).toList(),
+      'placementClaims': {
+        for (final e in proposals.placementClaims.entries)
+          e.key.value: e.value.map((claim) => claim.toJson()).toList(),
+      },
+      'sourceImages': proposals.sourceImages.map((s) => s.toJson()).toList(),
+      'diagnostics': proposals.diagnostics.map((d) => d.toJson()).toList(),
     });
 
 NativeProjectDraft? _mergeAssetLibrary(

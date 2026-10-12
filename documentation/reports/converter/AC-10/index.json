@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-10",
+  "lotName": "Revue humaine et reprise de session",
+  "applicationPath": "apps/avelune_converter",
+  "auditInitialHead": "1813ed8abdb55386aff0409a4fdc67727d9262af",
+  "branch": "main",
+  "status": "TO REVIEW",
+  "gateTechnical": "PASS_BOUNDED",
+  "humanReview": "pending",
+  "postCommitGit": null,
+  "notionTicket": "https://app.notion.com/p/3f7197a7bfa58117b862c0613c6eb6df",
+  "notionSynchronization": "pending postcommit synchronization by root",
+  "gateBeta": false,
+  "scope": "Canvas/inspector, manual source cells, metadata/geometry, union/split, exact review approvals, undo/redo, immutable history, placement conflicts, bounded private local storage, exact source revalidation and native quit/relaunch; no source writes or Ruby execution.",
+  "sourceFiles": [
+    {
+      "path": "apps/avelune_converter/lib/asset_review_panel.dart",
+      "sha256": "adf7aa99f0541b29db1f563bc26b3d31eedd6e5110a5c42c6889cc0b30700239",
+      "lines": 2112,
+      "frozenManifestHash": "adf7aa99f0541b29db1f563bc26b3d31eedd6e5110a5c42c6889cc0b30700239"
+    },
+    {
+      "path": "apps/avelune_converter/lib/converter_app.dart",
+      "sha256": "e71fc9aedeb55bbc8b7364f12f66eaca1b528d91f87319db4dd6d12a53ee6d71",
+      "lines": 1835,
+      "frozenManifestHash": "e71fc9aedeb55bbc8b7364f12f66eaca1b528d91f87319db4dd6d12a53ee6d71"
+    },
+    {
+      "path": "apps/avelune_converter/lib/desktop_services.dart",
+      "sha256": "84bfcde352c8f10503a4fd9ff938b139f6e9cf6ceda820e1d7cdfac3679abfeb",
+      "lines": 41,
+      "frozenManifestHash": "84bfcde352c8f10503a4fd9ff938b139f6e9cf6ceda820e1d7cdfac3679abfeb"
+    },
+    {
+      "path": "apps/avelune_converter/pubspec.lock",
+      "sha256": "f2c16bacd1b327f1cd23a86d1d857f7e66877150a621b1d4b97dfaa682b40480",
+      "lines": 1040,
+      "frozenManifestHash": "f2c16bacd1b327f1cd23a86d1d857f7e66877150a621b1d4b97dfaa682b40480"
+    },
+    {
+      "path": "apps/avelune_converter/pubspec.yaml",
+      "sha256": "e741bb41126813d96e055a2e46578fbf8e9e360a954620fc90ca7c0dd8ff8938",
+      "lines": 37,
+      "frozenManifestHash": "e741bb41126813d96e055a2e46578fbf8e9e360a954620fc90ca7c0dd8ff8938"
+    },
+    {
+      "path": "apps/avelune_converter/test/asset_review_panel_test.dart",
+      "sha256": "6ff26c04674e9c1787f99c842ea3496b68c4f5518065b411e7649442ffa8c8a8",
+      "lines": 289,
+      "frozenManifestHash": "6ff26c04674e9c1787f99c842ea3496b68c4f5518065b411e7649442ffa8c8a8"
+    },
+    {
+      "path": "apps/avelune_studio/lib/avelune_design_system.dart",
+      "sha256": "202a4635fa7adbdb195099cbf156195899e96f0104e93dd6e3da91f23bbe81ae",
+      "lines": 20,
+      "frozenManifestHash": "202a4635fa7adbdb195099cbf156195899e96f0104e93dd6e3da91f23bbe81ae"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/shared/widgets/dialogs/studio_review_dialog.dart",
+      "sha256": "5da7b43056938bba929ddf8ae8eeebc29dd0bdeea3d75a15ef9da6a0441a4517",
+      "lines": 46,
+      "frozenManifestHash": "5da7b43056938bba929ddf8ae8eeebc29dd0bdeea3d75a15ef9da6a0441a4517"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart",
+      "sha256": "f478f93d02ca953a39fb0fcb182c697d034c4dfed4c1d2051240b3df53c34538",
+      "lines": 10,
+      "frozenManifestHash": "f478f93d02ca953a39fb0fcb182c697d034c4dfed4c1d2051240b3df53c34538"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/converter_workflow.dart",
+      "sha256": "bfdad5449d7c6bbf0d77eb4beaed0a706f1f65ca897f8ba9c780f5f18dc07317",
+      "lines": 1830,
+      "frozenManifestHash": "bfdad5449d7c6bbf0d77eb4beaed0a706f1f65ca897f8ba9c780f5f18dc07317"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/local_asset_proposer.dart",
+      "sha256": "f5f814388c45542b778833a581762440e0a3b67a3591ce9c44d5c23877368d77",
+      "lines": 1011,
+      "frozenManifestHash": "f5f814388c45542b778833a581762440e0a3b67a3591ce9c44d5c23877368d77"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/asset_review_test.dart",
+      "sha256": "b23fabe5b60fb20da360a813c1ea0644bdd1aa101e4fe181468565c3a16e698c",
+      "lines": 131,
+      "frozenManifestHash": "b23fabe5b60fb20da360a813c1ea0644bdd1aa101e4fe181468565c3a16e698c"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart",
+      "sha256": "09c513f20cce9fc215638874f648e18770e1b281baa40e44842ea4761ff22ac1",
+      "lines": 575,
+      "frozenManifestHash": "09c513f20cce9fc215638874f648e18770e1b281baa40e44842ea4761ff22ac1"
+    },
+    {
+      "path": "packages/avelune_converter_core/lib/avelune_converter_core.dart",
+      "sha256": "365850c7f6fbf708632e37ce2cba1b4fe1038e2b3b68cbfaae2986f472993477",
+      "lines": 23,
+      "frozenManifestHash": "365850c7f6fbf708632e37ce2cba1b4fe1038e2b3b68cbfaae2986f472993477"
+    },
+    {
+      "path": "packages/avelune_converter_core/lib/src/models.dart",
+      "sha256": "1d2693a16142a9960a6d41b4e6fb54fa4ef5077758c19bdef1eaa8cfa05fae24",
+      "lines": 797,
+      "frozenManifestHash": "1d2693a16142a9960a6d41b4e6fb54fa4ef5077758c19bdef1eaa8cfa05fae24"
+    },
+    {
+      "path": "apps/avelune_converter/lib/asset_review_canvas.dart",
+      "sha256": "fd201ac3d08689e7a3380215027f309e9b160d2476dc2b75967e1a9a0613f811",
+      "lines": 420,
+      "frozenManifestHash": "fd201ac3d08689e7a3380215027f309e9b160d2476dc2b75967e1a9a0613f811"
+    },
+    {
+      "path": "apps/avelune_converter/test/asset_review_canvas_test.dart",
+      "sha256": "c785874a4ae2858ce2333e616ff66b31d89e7366f140e6d4c72ae714d86d1cc4",
+      "lines": 147,
+      "frozenManifestHash": "c785874a4ae2858ce2333e616ff66b31d89e7366f140e6d4c72ae714d86d1cc4"
+    },
+    {
+      "path": "apps/avelune_converter/test/asset_review_session_panel_test.dart",
+      "sha256": "a10f2502c5fdb7ccfa5f9f76c14958d6a073cf2a98e8061ed8ce4e8aed8b85f8",
+      "lines": 861,
+      "frozenManifestHash": "a10f2502c5fdb7ccfa5f9f76c14958d6a073cf2a98e8061ed8ce4e8aed8b85f8"
+    },
+    {
+      "path": "apps/avelune_converter/test/converter_session_lifecycle_test.dart",
+      "sha256": "c169acc0c31ea367db184d12eaeef0bffa65edf7560d51d53c891e69bd2db95f",
+      "lines": 396,
+      "frozenManifestHash": "c169acc0c31ea367db184d12eaeef0bffa65edf7560d51d53c891e69bd2db95f"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/studio_review_dialog_test.dart",
+      "sha256": "e538b4cfaf78cbc06c02429a64462ca8ab44e0fe16fc875a1be9a17a67eafda5",
+      "lines": 33,
+      "frozenManifestHash": "e538b4cfaf78cbc06c02429a64462ca8ab44e0fe16fc875a1be9a17a67eafda5"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/local_review_session_store.dart",
+      "sha256": "831e36f317064198647e1b692226ebe1b5dcf56816a0b4e741742e91734ffcf7",
+      "lines": 1061,
+      "frozenManifestHash": "831e36f317064198647e1b692226ebe1b5dcf56816a0b4e741742e91734ffcf7"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/lib/src/review_session_resumer.dart",
+      "sha256": "e2959483716fc9ce7167af7ec9a0450bb8cb0b7da341f454b0cda4657e73ac0a",
+      "lines": 130,
+      "frozenManifestHash": "e2959483716fc9ce7167af7ec9a0450bb8cb0b7da341f454b0cda4657e73ac0a"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/local_asset_placement_claims_test.dart",
+      "sha256": "d5be947581bdd2eef5bc8833a12ff7311641e1eee014ad38abee4043e0113c8d",
+      "lines": 437,
+      "frozenManifestHash": "d5be947581bdd2eef5bc8833a12ff7311641e1eee014ad38abee4043e0113c8d"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/local_review_session_store_test.dart",
+      "sha256": "0ced396163427812147b4020b4facc283c9cf3714c05160155b7574a059c3868",
+      "lines": 938,
+      "frozenManifestHash": "0ced396163427812147b4020b4facc283c9cf3714c05160155b7574a059c3868"
+    },
+    {
+      "path": "packages/avelune_converter_adapters/test/review_session_resumer_test.dart",
+      "sha256": "77afc708e56aa15cdf204ca6593f85fe6a71a555510801d6ba4f4d2c60597957",
+      "lines": 572,
+      "frozenManifestHash": "77afc708e56aa15cdf204ca6593f85fe6a71a555510801d6ba4f4d2c60597957"
+    },
+    {
+      "path": "packages/avelune_converter_core/lib/src/asset_review_session.dart",
+      "sha256": "4baa4899f3a0593bae5473abef24086a34d2b3f2ecb2f2e6c308a0e87c04cb75",
+      "lines": 1359,
+      "frozenManifestHash": "4baa4899f3a0593bae5473abef24086a34d2b3f2ecb2f2e6c308a0e87c04cb75"
+    },
+    {
+      "path": "packages/avelune_converter_core/test/asset_review_session_test.dart",
+      "sha256": "b6b8c0d3bd9ed6a43a8effc5b0b8431b48f73550298626186b6fdeefa16dd705",
+      "lines": 886,
+      "frozenManifestHash": "b6b8c0d3bd9ed6a43a8effc5b0b8431b48f73550298626186b6fdeefa16dd705"
+    },
+    {
+      "path": "packages/avelune_converter_core/test/source_image_test.dart",
+      "sha256": "1e58cded7fd49cd64b8b0f4c0716d795ab3b029f226721c90ab0e8899be2b021",
+      "lines": 74,
+      "frozenManifestHash": "1e58cded7fd49cd64b8b0f4c0716d795ab3b029f226721c90ab0e8899be2b021"
+    }
+  ],
+  "proofs": {
+    "avelune-converter-ac10-core-final-suite-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-core-final-suite-20261012.json",
+      "sha256": "2ece177ae848855b03332e661041320d1633c24e49765aa2c1d5368427833aad"
+    },
+    "avelune-converter-ac10-shared-claim-union-analyze-20261012-01.json": {
+      "path": "/private/tmp/avelune-converter-ac10-shared-claim-union-analyze-20261012-01.json",
+      "sha256": "9feffd85f34839904c1854fc8d6ab773b4ab084f9032e4f95e7826804defffd1"
+    },
+    "avelune-converter-ac10-adapters-final-suite-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-adapters-final-suite-20261012.json",
+      "sha256": "c49afa1906cce17f30180ea255ca0cc65dab1d5ec730d3a58748601a42f88dda"
+    },
+    "avelune-converter-ac10-adapters-final-analyze-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-adapters-final-analyze-20261012.json",
+      "sha256": "5392491cddcbcd6ad97f7645c718a16e9831a38211c39e8f54a0da4ff83b3173"
+    },
+    "avelune-converter-ac10-app-final-suite-green-20261012-02.json": {
+      "path": "/private/tmp/avelune-converter-ac10-app-final-suite-green-20261012-02.json",
+      "sha256": "6682324e43017825b5b4bc1c997f71db953fa8fb7a40df5a914fadacde38ba5e"
+    },
+    "avelune-converter-ac10-app-final-analyze-green-20261012-02.json": {
+      "path": "/private/tmp/avelune-converter-ac10-app-final-analyze-green-20261012-02.json",
+      "sha256": "35bddddd9142579b6d15673d84732511e920a5075cf9c9e387683d811bd72dcc"
+    },
+    "avelune-converter-ac10-production-main-build-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-production-main-build-20261012.json",
+      "sha256": "17851d8716f4ccdd442fcabce59836c03b69b5c7c89870c0db1f125a5b6ac08e"
+    },
+    "avelune-converter-ac10-transports-run-20261012-01.json": {
+      "path": "/private/tmp/avelune-converter-ac10-transports-run-20261012-01.json",
+      "sha256": "b647587400e107c3e944db748972f823dc36b5c7a14448f3dd4e875c85e8547d"
+    },
+    "native-observations-first-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-observations-first-20261012.json",
+      "sha256": "19ec72e1aeb174641a170bbecfe50318873fd4ea4df7684e295f3e0c5ba6757c"
+    },
+    "native-final-output-probe-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-final-output-probe-20261012.json",
+      "sha256": "d497ffcc92a1a31d774e56e9bf79f9e5bcd3240634cbd2977fd242fc265cd2ed"
+    },
+    "native-first-launch-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-first-launch-20261012.json",
+      "sha256": "2853fa93b3bf70dca8f183c16fa937400a437ac02570c88e264a61de5f8438e1"
+    },
+    "native-second-launch-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-second-launch-20261012.json",
+      "sha256": "570f255f201e2c15f2ee2536d0a6f462831dc184759f25288835fed04158c32a"
+    },
+    "native-export-20261012.png": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/native-export-20261012.png",
+      "sha256": "7800c9dd52e217832f09ec742b5d234d8070447eb6fcbb8b6fdf952d475d0d0a"
+    },
+    "qualification-manifest.json": {
+      "path": "/private/tmp/avelune-converter-ac10-macos-qa-storage-seodj1z5/qualification-manifest.json",
+      "sha256": "3eb90476b0ed28d4e153f5c4ee825ae1a3e0181ccf5786c19c5604f297c20faf"
+    },
+    "transports-final.json": {
+      "path": "/private/tmp/avelune-converter-ac10-transports-yvne5y0r/transports-final.json",
+      "sha256": "ea12d26e4ee123ee0bdf05cd7a1e453e49e877789e1581a4eb3258310b87755d"
+    },
+    "avelune-converter-ac10-precommit-guard-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-precommit-guard-20261012.json",
+      "sha256": "4c4fa442e4f5d15baf4ecabde41e22178cc22ca554b758b97ccbde2dd9eb145b"
+    },
+    "avelune-converter-ac10-quota-create-red-v2-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-quota-create-red-v2-20261012.json",
+      "sha256": "a943db5fb003f335354cc8c82379aa17f504962bec8ab17bf322dd1ae2b2e526"
+    },
+    "avelune-converter-ac10-quota-create-green-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-quota-create-green-20261012.json",
+      "sha256": "3f32a6d60b6ca71e38e83e673f5d9510d3b74daf33bf5fbf02894f91f0252131"
+    },
+    "avelune-converter-ac10-quota-create-analyze-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-quota-create-analyze-20261012.json",
+      "sha256": "2feeeb265bf31c53ee39beea480a18af9de49f4f8bf830ba07a4a9906e93d635"
+    },
+    "avelune-converter-ac10-final-owned-manifest-after-quota-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-final-owned-manifest-after-quota-20261012.json",
+      "sha256": "8a018dc7f22dcb59c38927ed076d076d9b5f8ffa8ccf4d00287109c99672395b"
+    },
+    "avelune-converter-ac10-core-full-analyze-final-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-core-full-analyze-final-20261012.json",
+      "sha256": "356d2ec2802bcfa442fe10271806e0f43c125a465ca42d4414c9b5e4ba9ab035"
+    },
+    "avelune-converter-ac10-production-main-build-post-quota-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-production-main-build-post-quota-20261012.json",
+      "sha256": "ba1e7cece72f4202d06d5eea933c7c3ab4d24eb82daab8f03d2735ea6b8bd927"
+    },
+    "avelune-converter-ac10-markdown-hygiene-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-markdown-hygiene-20261012.json",
+      "sha256": "fd427d72f7e8046c161ba085742b028f7c24428ed283e75a6342fad96b901d9a"
+    },
+    "avelune-converter-ac10-root-prestage-20261012.json": {
+      "path": "/private/tmp/avelune-converter-ac10-root-prestage-20261012.json",
+      "sha256": "2b4179333e36756a6be5adb2bc75d64bbd8b89a9d619feabec4d5295a8f69e22"
+    }
+  },
+  "testTotals": {
+    "corePassed": 593,
+    "adaptersPassed": 375,
+    "adaptersSkipped": 8,
+    "appPassed": 48,
+    "lateStoreQuotaAndResumer": {
+      "passed": 44,
+      "store": 28,
+      "resumer": 16,
+      "elapsedSeconds": 44.65,
+      "relationToFullAdaptersSuite": "Final targeted run adds two global quota tests after the full 375 plus8 skipped adapter suite."
+    }
+  },
+  "analysis": {
+    "core": "PASS_FULL",
+    "adapters": "PASS_FULL",
+    "app": "PASS_FULL",
+    "lateStoreQuota": "PASS_TARGETED: final source and test, exit0,4.116s"
+  },
+  "productionBuild": "PASS_MAIN_ENTRYPOINT_POST_QUOTA: exit0,21.392s; two owned ibtoold terminated after identity verification; zero final survivors",
+  "nativeUiProof": {
+    "status": "PASS_BOUNDED",
+    "sourceUnchanged": true,
+    "originalMapIds": [
+      1,
+      8,
+      12,
+      20,
+      21
+    ],
+    "nativeMapCount": 5,
+    "libraryObjectCount": 1,
+    "resourceCount": 3,
+    "sessionBeforeCloseHash": "a1dc38437131a184040cca72f59579a7a4e37952dfa3824cdb6dbb297473d859",
+    "sessionAfterFreshLaunchHash": "a1dc38437131a184040cca72f59579a7a4e37952dfa3824cdb6dbb297473d859",
+    "finalSessionHash": "1bb2b22ef784de41e4a1e054e4e4b9004dff3ade3c70fde593218f5eaf223505",
+    "storedRevision": 2,
+    "storedEnvelopeHash": "38f261f23b7ef06912e3067ee9ce8fc8194f293a9225a83d5c7c214b20a0a733",
+    "sourceSnapshotHash": "a25846d9c2b8afae34c3e4d14a83d0f92e6d22d0b9b3e8d55b02f8d67660dcf4",
+    "resultProjectPath": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac10qualification/Data/Documents/ac10-qa-e2495cd0-3dc8-43a8-8376-cec70d232e5d/output/.avelune-converter-stage-Mn8CDq/avelune-study",
+    "resultNativeRevision": "sha256:0311c4c55d66108e84ed40c00677acc867dfdc2fe40486e21b9afdb1e236de13",
+    "resultPreparationHash": "0bb34c3570ae9f931b59c78c164d9dc29b4e2a85fe31dfebb31d43161d6cbd7c",
+    "resultApprovedPlanHash": "c96722cc51f930de55080930c04630ffdd5fe7cc593bd6969946dd77931eee1c",
+    "mapHashes": {
+      "map_0df70b1015776c0d92feeb9372a2e1c55e006792925d1b7fd37bdf6b": "adc6acc762fc7117376811b0d4ee2e6c135ae421d6dbce50de943cfbe70e0601",
+      "map_76fa2dc8408bbb472f563166e65f20ecdc2e7555311bfd23e1849ca6": "149cc936b35bcb709807929e9a98140040ab256e2c53e509d69a003e1bef2d76",
+      "map_bd00486dbf3f19655a34d36f535f35aa1cf11016ad47222edfb29106": "c68e4ed0f3c7446cea3f7380c4df1e2c6e08d086c8b377abf7c5d3490603cbfd",
+      "map_b2dca822452d0915d0d00f5f3df3f9296019a842e47a199ae4582fb8": "b7e6cb6be6281a5dbab1bce2a11692f0275f569eaaf80e7b0971bee0affce5bd",
+      "map_bea71ed49c0ee6932043295ef3a0626824377f063159cb60fb6b2bf0": "a68e1b099d021e8e3e1c491b3c01a3a9a74ae3d422438399a8b6e7c27fea330b"
+    },
+    "assetHashes": {
+      "image_tileset_cb31b2d84c614322b4f77d2186364620fe571dca76d2b33279fbc72c": "aac47ae179a3a1f0f8790385b2977a08ad7bf7983008eb6690b0c385eac79df1",
+      "image_library_atlas_9487cc8abe81dcae67284294": "7edb953e25ab6beb7e7f3510edad8a0dd8e6e700816d7ef7fccda2b570dc65b2",
+      "library_metadata_9487cc8abe81dcae67284294": "ccf13ee57c59a2aa343561829296ad6760f035591dd5e9b8c9159af2cabf629e"
+    },
+    "nativeUnionSplitObserved": false,
+    "actualRedCloseObserved": false,
+    "published": false,
+    "playableCertified": false,
+    "qualificationRelationToQuotaFix": "Actual UI lifecycle preceded the late global quota correction; final store28/resumer16 targeted tests, targeted store analysis and production main rebuild qualify that correction separately."
+  },
+  "parityProof": {
+    "status": "PASS_BOUNDED",
+    "receipt": {
+      "path": "/private/tmp/avelune-converter-ac10-transports-yvne5y0r/transports-final.json",
+      "sha256": "ea12d26e4ee123ee0bdf05cd7a1e453e49e877789e1581a4eb3258310b87755d"
+    },
+    "queriesPerTransport": {
+      "directApi": 13,
+      "jsonl": 13,
+      "mcp": 13
+    },
+    "liveMcpCatalogHash": "93f263e48ae35192dde318744dc6cad6e5d21cb0d202d0ea9fe041a6f3fce4eb",
+    "actionContractCount": 7,
+    "nativeFileCount": 47,
+    "nativeFilesUnchanged": true,
+    "sourceWitnessCount": 9,
+    "sourceWitnessesUnchanged": true,
+    "secretsInTransportRecords": 0,
+    "revision": "sha256:0311c4c55d66108e84ed40c00677acc867dfdc2fe40486e21b9afdb1e236de13"
+  },
+  "preservation": {
+    "initialForeignCount": 260,
+    "finalForeignCount": 261,
+    "concurrentForeignChanges": [
+      "apps/avelune_studio/lib/features/terrains/application/terrain_brush.dart",
+      "apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_stroke.dart",
+      "packages/map_authoring/lib/src/domains/maps/smart_tile_cell_actions.dart",
+      "packages/map_authoring/test/tooling/jsonl_smart_tile_native_flow_test.dart",
+      "packages/map_core/lib/src/operations/smart_tile_layer_operations.dart",
+      "packages/map_core/test/smart_tiles/smart_tile_layer_operations_test.dart",
+      "tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts",
+      "packages/map_core/test/smart_tiles/smart_tile_model3d_source_test.dart"
+    ],
+    "additionalConcurrentForeignPaths": [
+      "apps/avelune_studio/test/map_workspace/spatial_terrain_painting_test.dart"
+    ],
+    "ownedSourceCount": 28,
+    "evidenceDeliverableCount": 3,
+    "indexBeforeEvidence": [],
+    "removedForeignPaths": [],
+    "frozenPinCount": 84,
+    "protectedPids": [
+      35037,
+      6272,
+      82303,
+      61161,
+      28620
+    ],
+    "precommitOnly": true,
+    "finalPrestageGuard": {
+      "path": "/private/tmp/avelune-converter-ac10-root-prestage-20261012.json",
+      "head": "1813ed8abdb55386aff0409a4fdc67727d9262af",
+      "branch": "main",
+      "ownedDeliverablePaths": 31,
+      "foreignPaths": 261,
+      "indexEmpty": true
+    }
+  },
+  "subagentVerdicts": {
+    "auditArchitecture": "PASS_BOUNDED: complete signed AC-10 scope; no replacement target model or legacy bridge",
+    "implementationCore": "PASS: immutable AssetReviewSession, source IR claims, exact union/shared-claim deduplication and history",
+    "implementationStorage": "PASS: typed whitelist/CAS/private IO/rebind; late global quota serialized by store-wide lock, same-isolate and two-process different-ID tests GREEN28 plus resumer16",
+    "implementationUi": "PASS_BOUNDED: metadata/geometry/manual cells/union/split/undo/redo, invalid draft preservation, 1280 and long-name layout fix",
+    "tests": "PASS_BOUNDED: RED/GREEN receipts; 593 core,375 adapters plus8 skips,48 app",
+    "buildValidation": "PASS_BOUNDED: production main build and actual macOS quit/relaunch/export; external permission and hard quit limitations retained",
+    "finalCritique": "PASS_BOUNDED: concrete context/loading/destination/active S1 and shared-claim/overflow/global-quota P2s fixed and qualified; native workflow preceded the final quota fix",
+    "transportParity": "PASS_BOUNDED: 13 queries per direct/JSONL/MCP and live describe7 actions on exact exported native revision"
+  },
+  "knownLimits": [
+    "Marionette get_logs returned Server error; not a clean-runtime-log certification",
+    "Marionette nested inspector scroll failed; CUA inspector and toolbar modal were used",
+    "Second CUA window action returned noWindowsAvailable; native application menu still worked",
+    "Actual red window close was not observed; actual Quit/Stay/SaveClose and final Quit were observed",
+    "Native union/split were not exercised; core and widget tests cover them",
+    "Force quit bypasses the confirmation and retains only the last durable save",
+    "External source grants are not restored by bookmarks; exact folder re-selection may be required",
+    "No cross-isolate store lock guarantee; same-isolate and two-process scope proved",
+    "Flush/temp/rename publication is scoped to tested local filesystem, without universal FD atomic promise",
+    "Library-only output; no native placement substitution, collision/gameplay certification or Kanto final qualification"
+  ],
+  "rootFinalizationPending": [
+    "Notion ticket synchronization",
+    "scoped commit and postcommit Git evidence",
+    "final delivery status after human review"
+  ],
+  "markdownHygiene": {
+    "status": "PASS",
+    "exitCode": 0,
+    "elapsedSeconds": 2.354,
+    "newMarkdownFiles": 1,
+    "canonicalLocations": true,
+    "receiptPath": "/private/tmp/avelune-converter-ac10-markdown-hygiene-20261012.json"
+  },
+  "commitRecord": {
+    "location": "canonical Notion AC-10 ticket and final delivery chat",
+    "selfReferenceInEvidencePack": false
+  }
+}

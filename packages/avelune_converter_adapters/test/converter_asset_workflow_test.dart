@@ -13,6 +13,241 @@ void main() {
   setUp(() async => harness = await _AssetWorkflow.create());
   tearDown(() async => harness.close());
 
+  test('AC-10 initial preparation creates an exact durable review seed',
+      () async {
+    final prepared = await harness.prepare();
+    expect(prepared.reviewSession, isNotNull);
+    expect(prepared.reviewSession!.baseProposalHashes, {
+      for (final candidate in prepared.assetProposals!.candidates)
+        candidate.candidateId: candidate.canonicalHash,
+    });
+    expect(prepared.reviewSession!.frames.first.outputMode,
+        AssetOutputMode.sharedAtlas);
+    expect(prepared.reviewSession!.activeDecisions.decisions, isEmpty);
+    expect(prepared.settings.toJson().containsKey('assetReviews'), isFalse);
+    expect(harness.stages, isEmpty);
+  });
+
+  test('AC-10 corrected geometry survives preparation and native readback',
+      () async {
+    final literal =
+        await harness.prepare(mode: AssetOutputMode.standaloneObjects);
+    var session = harness.seed(literal);
+    final tree = session.activeCandidates
+        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
+    session = session.editMetadata(
+        candidateId: tree.candidateId,
+        expectedCandidateHash: tree.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: 'Arbre corrigé',
+        category: AssetCategory.nature);
+    final named = session.activeCandidates
+        .singleWhere((c) => c.candidateId == tree.candidateId);
+    final parts = named.parts.take(5).map((p) => p.toJson()).toList();
+    session = session.changeGeometry(
+        candidateId: named.candidateId,
+        expectedCandidateHash: named.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        geometry: AssetReviewGeometry(
+            parts: parts,
+            canvasWidth: 64,
+            canvasHeight: 96,
+            anchorX: 16,
+            anchorY: 96,
+            anchorConvention: AnchorConvention.explicit));
+    final corrected = session.activeCandidates
+        .singleWhere((c) => c.candidateId == tree.candidateId);
+    session = session.decide(
+        candidateId: corrected.candidateId,
+        expectedCandidateHash: corrected.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        action: ReviewAction.approve,
+        humanConfirmed: true);
+    final reloaded = AssetReviewSession.fromJson(session.toJson());
+    final prepared = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: reloaded);
+    final current = prepared.assetCandidates
+        .singleWhere((c) => c.candidateId == tree.candidateId);
+    expect(current.parts.map((p) => p.toJson()), parts);
+    expect(current.name, 'Arbre corrigé');
+    expect(current.anchor.x, 16);
+    expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
+    expect(prepared.composition.nativeMaps, literal.composition.nativeMaps);
+    final result =
+        await harness.workflow.writeApproved(harness.approve(prepared));
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(result.receipt.projectPath);
+    try {
+      final native = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(native.loadDiagnostics, isEmpty);
+      expect(native.manifest.elements, hasLength(1));
+      for (final map in literal.composition.nativeMaps.values) {
+        expect(native.mapById(map.id), map);
+      }
+    } finally {
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+    await harness.expectSourceUnchanged();
+  });
+
+  test('AC-10 metadata correction expires approval without losing the object',
+      () async {
+    final literal =
+        await harness.prepare(mode: AssetOutputMode.standaloneObjects);
+    var session = harness.seed(literal);
+    final candidate = session.activeCandidates.first;
+    session = harness.decide(session, candidate,
+        name: 'Objet approuvé', category: AssetCategory.nature);
+    final first = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: session);
+    final oldApproval = harness.approve(first);
+    final approved = session.activeCandidates
+        .singleWhere((c) => c.candidateId == candidate.candidateId);
+    session = session.editMetadata(
+        candidateId: approved.candidateId,
+        expectedCandidateHash: approved.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: 'Objet à revalider');
+    final second = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: session);
+    expect(
+        second.assetCandidates
+            .singleWhere((c) => c.candidateId == candidate.candidateId)
+            .name,
+        'Objet à revalider');
+    expect(second.approvedCandidateHashes, isEmpty);
+    expect(second.assetLibrary, isNull);
+    await expectLater(harness.workflow.writeApproved(oldApproval),
+        throwsA(isA<ConverterWorkflowFailure>()));
+    expect(harness.stages, isEmpty);
+  });
+
+  test('AC-10 union exports current children without historical decisions',
+      () async {
+    final literal =
+        await harness.prepare(mode: AssetOutputMode.standaloneObjects);
+    var session = harness.seed(literal);
+    final tree = session.activeCandidates
+        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
+    final house = session.activeCandidates
+        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
+    session = harness.decide(session, tree);
+    final parent = session.activeCandidates
+        .singleWhere((c) => c.candidateId == tree.candidateId);
+    session = session.unionCandidates(
+        expectedSessionHash: session.canonicalHash,
+        candidateId: ConverterId('review-union'),
+        inputs: [
+          AssetUnionInput(
+              candidateId: parent.candidateId,
+              expectedCandidateHash: parent.canonicalHash,
+              offsetX: 0,
+              offsetY: 0),
+          AssetUnionInput(
+              candidateId: house.candidateId,
+              expectedCandidateHash: house.canonicalHash,
+              offsetX: 64,
+              offsetY: 0),
+        ],
+        name: 'Groupe corrigé',
+        category: AssetCategory.object);
+    final union = session.activeCandidates
+        .singleWhere((c) => c.candidateId.value == 'review-union');
+    session = session.decide(
+        candidateId: union.candidateId,
+        expectedCandidateHash: union.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        action: ReviewAction.approve,
+        humanConfirmed: true);
+    final prepared = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: session);
+    expect(prepared.assetCandidates.map((c) => c.candidateId),
+        isNot(contains(tree.candidateId)));
+    expect(prepared.assetCandidates.map((c) => c.candidateId),
+        contains(union.candidateId));
+    expect(prepared.reviewDecisions.decisions.map((d) => d.candidateId),
+        isNot(contains(tree.candidateId)));
+    expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
+    expect(prepared.canApprove, isTrue);
+    harness.approve(prepared);
+  });
+
+  test('AC-10 fresh source rejects a session with a different generation',
+      () async {
+    final literal = await harness.prepare();
+    final seed = harness.seed(literal);
+    final forged = AssetReviewSession.fromJson({
+      ...seed.toJson(),
+      'proposalGenerationHash': '0' * 64,
+    });
+    await expectLater(
+        harness.prepare(session: forged),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((e) => e.code, 'code', 'workflow.review_session.stale')));
+    expect(harness.stages, isEmpty);
+  });
+
+  test(
+      'AC-10 output mode changes retain corrections and reattest the seed mode',
+      () async {
+    final literal = await harness.prepare();
+    var session = harness.seed(literal);
+    final candidate = session.activeCandidates.first;
+    session = session.editMetadata(
+        candidateId: candidate.candidateId,
+        expectedCandidateHash: candidate.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: 'Correction conservée',
+        category: AssetCategory.object);
+    session = session.changeOutputMode(
+        expectedSessionHash: session.canonicalHash,
+        outputMode: AssetOutputMode.standaloneObjects);
+    final prepared = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: session);
+    expect(
+        prepared.assetCandidates
+            .singleWhere((c) => c.candidateId == candidate.candidateId)
+            .name,
+        'Correction conservée');
+    expect(prepared.reviewSession!.frames.first.outputMode,
+        AssetOutputMode.sharedAtlas);
+    expect(
+        prepared.reviewSession!.outputMode, AssetOutputMode.standaloneObjects);
+    expect(prepared.approvedCandidateHashes, isEmpty);
+    expect(prepared.composition.nativeMaps, literal.composition.nativeMaps);
+  });
+
+  test('AC-10 a destination rename does not discard source-bound review',
+      () async {
+    final literal = await harness.prepare();
+    var session = harness.seed(literal);
+    final candidate = session.activeCandidates.first;
+    session = session.editMetadata(
+        candidateId: candidate.candidateId,
+        expectedCandidateHash: candidate.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: 'Nom conservé',
+        category: AssetCategory.nature);
+    final prepared = await harness.prepare(
+        session: session,
+        projectName: 'Projet renommé',
+        folderName: 'another-destination');
+    expect(
+        prepared.assetCandidates
+            .singleWhere((c) => c.candidateId == candidate.candidateId)
+            .name,
+        'Nom conservé');
+    expect(prepared.settings.projectName, 'Projet renommé');
+    expect(prepared.settings.folderName, 'another-destination');
+    expect(prepared.reviewSession!.canonicalHash, session.canonicalHash);
+  });
+
   test('unreviewed proposals leave the literal draft unchanged', () async {
     final prepared = await harness.prepare();
     expect(prepared.assetProposals!.candidates, isNotEmpty);
@@ -56,7 +291,7 @@ void main() {
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
     final prepared = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
-        reviews: [harness.review(tree)]);
+        session: harness.decide(harness.seed(literal), tree));
     expect(prepared.canApprove, isTrue);
     expect(prepared.assetLibrary!.canExport, isTrue);
     expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
@@ -116,7 +351,7 @@ void main() {
       harness.prepare(
           mode: AssetOutputMode.standaloneObjects,
           limits: limits,
-          reviews: [harness.review(tree)]),
+          session: harness.decide(harness.seed(prepared), tree)),
       throwsA(isA<ConverterWorkflowFailure>()
           .having((e) => e.code, 'code', 'native.quota.image')),
     );
@@ -132,28 +367,31 @@ void main() {
     final literal = await harness.prepare();
     final house = literal.assetProposals!.candidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
-    final blocked = await harness.prepare(
-        reviews: [harness.review(house, category: AssetCategory.building)]);
+    var session = harness.decide(harness.seed(literal), house,
+        category: AssetCategory.building);
+    final blocked = await harness.prepare(session: session);
     expect(
         blocked.assetLibrary!.diagnostics.any((d) => d.blocksExport), isTrue);
     expect(blocked.nativeDraft, isNull);
     expect(blocked.canApprove, isFalse);
     expect(harness.stages, isEmpty);
     expect(await harness.output.list().toList(), isEmpty);
-    await expectLater(
-        harness.prepare(
-            mode: AssetOutputMode.standaloneObjects,
-            reviews: [harness.review(house)]),
+    expect(
+        () => harness.prepare(
+            mode: AssetOutputMode.standaloneObjects, session: session),
         throwsA(isA<ConverterWorkflowFailure>()));
-    final fresh =
-        await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    final freshHouse = fresh.assetProposals!.candidates
-        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
+    session = session.changeOutputMode(
+        expectedSessionHash: session.canonicalHash,
+        outputMode: AssetOutputMode.standaloneObjects);
+    final fresh = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects, session: session);
+    expect(fresh.approvedCandidateHashes, isEmpty);
+    final freshHouse = session.activeCandidates
+        .singleWhere((c) => c.candidateId == house.candidateId);
     final approved = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
-        reviews: [
-          harness.review(freshHouse, category: AssetCategory.building)
-        ]);
+        session: harness.decide(session, freshHouse,
+            category: AssetCategory.building));
     expect(approved.canApprove, isTrue);
     expect(approved.composition.nativeMaps, literal.composition.nativeMaps);
     expect(
@@ -170,7 +408,8 @@ void main() {
     final literal = await harness.prepare();
     final proposal = literal.assetProposals!.candidates.first;
     final prepared = await harness.prepare(
-        reviews: [harness.review(proposal, action: ReviewAction.keepLiteral)]);
+        session: harness.decide(harness.seed(literal), proposal,
+            action: ReviewAction.keepLiteral));
     expect(prepared.reviewDecisions.decisions.single.action,
         ReviewAction.keepLiteral);
     expect(prepared.assetLibrary, isNull);
@@ -192,7 +431,7 @@ void main() {
     final proposal = literal.assetProposals!.candidates.first;
     final first = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
-        reviews: [harness.review(proposal)]);
+        session: harness.decide(harness.seed(literal), proposal));
     final approval = harness.approve(first);
     harness.workflow.invalidatePrepared();
     expect(harness.workflow.state.prepared, isNull);
@@ -201,7 +440,8 @@ void main() {
         throwsA(isA<ConverterWorkflowFailure>()));
     final second = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
-        reviews: [harness.review(proposal, name: 'Arbre renommé')]);
+        session: harness.decide(harness.seed(literal), proposal,
+            name: 'Arbre renommé'));
     expect(second.preparationHash, isNot(first.preparationHash));
     expect(second.reviewDecisions.canonicalHash,
         isNot(first.reviewDecisions.canonicalHash));
@@ -240,13 +480,15 @@ final class _AssetWorkflow {
 
   Future<PreparedStudy> prepare(
       {AssetOutputMode mode = AssetOutputMode.sharedAtlas,
-      List<ConverterAssetReview> reviews = const [],
+      AssetReviewSession? session,
+      String projectName = 'Original asset library study',
+      String folderName = 'original-library',
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     final snapshot = workflow.state.snapshot!;
     workflow.updateSettings(ConverterStudySettings(
-      projectName: 'Original asset library study',
+      projectName: projectName,
       parentPath: output.path,
-      folderName: 'original-library',
+      folderName: folderName,
       selectedSourceMapIds: const [1, 8, 12, 20, 21],
       profileAcknowledgement: SourceStudyAcknowledgement(
           sourceSnapshotHash: snapshot.canonicalHash,
@@ -254,23 +496,63 @@ final class _AssetWorkflow {
           humanConfirmed: true,
           reason: 'Original controlled fixture; study only.'),
       assetOutputMode: mode,
-      assetReviews: reviews,
+      reviewSession: session,
       writeLimits: limits,
     ));
     return workflow.prepareStudy();
   }
 
-  ConverterAssetReview review(AssetCandidate candidate,
-          {String name = 'Arbre original',
-          AssetCategory category = AssetCategory.nature,
-          ReviewAction action = ReviewAction.approve}) =>
-      ConverterAssetReview(
-          candidateId: candidate.candidateId,
-          proposalHash: candidate.canonicalHash,
-          name: name,
-          category: category,
-          action: action,
-          humanConfirmed: true);
+  AssetReviewSession seed(PreparedStudy prepared) {
+    final proposals = prepared.assetProposals!;
+    return AssetReviewSession.create(
+        sessionId: ConverterId('original-review-session'),
+        logicalProjectNamespace:
+            prepared.normalizedSource.snapshot.logicalProjectNamespace,
+        sourceSnapshotHash: prepared.sourceSnapshotHash,
+        selectedSourceMapIds: prepared.settings.selectedSourceMapIds,
+        outputMode: prepared.settings.assetOutputMode,
+        proposalGenerationHash: canonicalHashOf({
+          'kind': 'reviewProposalGeneration',
+          'version': 1,
+          'sourceSnapshotHash': proposals.sourceSnapshotHash.value,
+          'normalizedSourceHash': proposals.normalizedSourceHash.value,
+          'selectedSourceMapIds': prepared.settings.selectedSourceMapIds,
+          'outputMode': prepared.settings.assetOutputMode.name,
+          'candidateHashes':
+              proposals.candidates.map((c) => c.canonicalHash.value).toList(),
+          'placementClaims': {
+            for (final e in proposals.placementClaims.entries)
+              e.key.value: e.value.map((claim) => claim.toJson()).toList(),
+          },
+          'sourceImages':
+              proposals.sourceImages.map((s) => s.toJson()).toList(),
+          'diagnostics': proposals.diagnostics.map((d) => d.toJson()).toList(),
+        }),
+        candidates: proposals.candidates,
+        placementClaims: proposals.placementClaims,
+        sourceMaps: prepared.normalizedSource.maps);
+  }
+
+  AssetReviewSession decide(
+      AssetReviewSession session, AssetCandidate candidate,
+      {String name = 'Arbre original',
+      AssetCategory category = AssetCategory.nature,
+      ReviewAction action = ReviewAction.approve}) {
+    final named = session.editMetadata(
+        candidateId: candidate.candidateId,
+        expectedCandidateHash: candidate.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        name: name,
+        category: category);
+    final current = named.activeCandidates
+        .singleWhere((c) => c.candidateId == candidate.candidateId);
+    return named.decide(
+        candidateId: current.candidateId,
+        expectedCandidateHash: current.canonicalHash,
+        expectedSessionHash: named.canonicalHash,
+        action: action,
+        humanConfirmed: true);
+  }
 
   StudyApproval approve(PreparedStudy prepared) => workflow.approvePrepared(
       sessionRevision: prepared.sessionRevision,

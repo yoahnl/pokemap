@@ -19,6 +19,8 @@ final class LocalAssetProposalLimits {
     this.maxPartsPerCandidate = 4096,
     this.maxTotalParts = 16384,
     this.maxUsageComparisons = 1048576,
+    this.maxClaimsPerCandidate = 16384,
+    this.maxTotalClaims = 65536,
     this.jsonLimits = const ContractLimits(),
   });
 
@@ -31,6 +33,8 @@ final class LocalAssetProposalLimits {
   final int maxPartsPerCandidate;
   final int maxTotalParts;
   final int maxUsageComparisons;
+  final int maxClaimsPerCandidate;
+  final int maxTotalClaims;
   final ContractLimits jsonLimits;
 }
 
@@ -69,12 +73,19 @@ final class LocalAssetProposalSet {
   LocalAssetProposalSet._({
     required List<AssetCandidate> candidates,
     required List<LocalAssetProposalDiagnostic> diagnostics,
+    required Map<ConverterId, List<SourcePlacementClaim>> placementClaims,
+    required List<SourceImage> sourceImages,
     required this.sourceSnapshotHash,
     required this.normalizedSourceHash,
     required this.literalCompositionHash,
     required this.canonicalHash,
   })  : candidates = List.unmodifiable(candidates),
-        diagnostics = List.unmodifiable(diagnostics);
+        diagnostics = List.unmodifiable(diagnostics),
+        placementClaims = Map.unmodifiable({
+          for (final entry in placementClaims.entries)
+            entry.key: List<SourcePlacementClaim>.unmodifiable(entry.value),
+        }),
+        sourceImages = List.unmodifiable(sourceImages);
 
   final List<AssetCandidate> candidates;
   final List<LocalAssetProposalDiagnostic> diagnostics;
@@ -82,6 +93,9 @@ final class LocalAssetProposalSet {
   final Sha256Hash normalizedSourceHash;
   final Sha256Hash literalCompositionHash;
   final Sha256Hash canonicalHash;
+
+  final Map<ConverterId, List<SourcePlacementClaim>> placementClaims;
+  final List<SourceImage> sourceImages;
 
   Map<String, Object?> toJson() => {
         'kind': 'localAssetProposals',
@@ -91,6 +105,11 @@ final class LocalAssetProposalSet {
         'literalCompositionHash': literalCompositionHash.value,
         'candidates': candidates.map((c) => c.toJson()).toList(),
         'diagnostics': diagnostics.map((d) => d.toJson()).toList(),
+        'placementClaims': {
+          for (final entry in placementClaims.entries)
+            entry.key.value: entry.value.map((c) => c.toJson()).toList(),
+        },
+        'sourceImages': sourceImages.map((s) => s.toJson()).toList(),
       };
 }
 
@@ -110,7 +129,9 @@ final class LocalAssetProposer {
     final diagnostics = <LocalAssetProposalDiagnostic>[];
     final alpha = <ConverterId, Uint8List>{};
     final candidates = <ConverterId, AssetCandidate>{};
+    final placementClaims = <ConverterId, List<SourcePlacementClaim>>{};
     var totalParts = 0;
+    var totalClaims = 0;
     var components = 0;
     for (final info in inputs.images.values) {
       cancellation?.check();
@@ -287,6 +308,7 @@ final class LocalAssetProposer {
               'Fully transparent source cells are retained, including their hidden RGB.');
         }
         final occurrences = <String>[];
+        final matchingClaims = <SourcePlacementClaim>[];
         var occurrenceTextLength = 0;
         final first = parts.first;
         for (final other in inputs.maps.values) {
@@ -321,6 +343,26 @@ final class LocalAssetProposer {
               }
             }
             if (matches) {
+              if (other.sourceMapId == map.sourceMapId &&
+                  !candidates.containsKey(candidate.candidateId)) {
+                if (parts.length >
+                        limits.maxClaimsPerCandidate - matchingClaims.length ||
+                    parts.length >
+                        limits.maxTotalClaims -
+                            totalClaims -
+                            matchingClaims.length) {
+                  _quota('Placement claim budget exceeded');
+                }
+                for (final part in parts) {
+                  matchingClaims.add(inputs.placementClaim(
+                      LocalAssetCell(
+                          mapId: other.sourceMapId,
+                          sourceZ: part.sourceLayer!,
+                          x: ox + part.destinationOffset.x ~/ 32,
+                          y: oy + part.destinationOffset.y ~/ 32),
+                      part));
+                }
+              }
               final occurrence = 'map:${other.sourceMapId};x:$ox;y:$oy';
               occurrenceTextLength +=
                   occurrence.length + (occurrences.isEmpty ? 0 : 1);
@@ -348,7 +390,10 @@ final class LocalAssetProposer {
             _quota('Candidate budget exceeded');
           }
           totalParts += cells.length;
+          inputs.validatePlacementClaims(candidate, matchingClaims);
+          totalClaims += matchingClaims.length;
           candidates[candidate.candidateId] = candidate;
+          placementClaims[candidate.candidateId] = matchingClaims;
         }
         await Future<void>.delayed(Duration.zero);
       }
@@ -358,6 +403,12 @@ final class LocalAssetProposer {
       ..sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
     diagnostics.sort(
         (a, b) => '${a.mapId}:${a.code}'.compareTo('${b.mapId}:${b.code}'));
+    final orderedClaims = {
+      for (final candidate in ordered)
+        if (placementClaims.containsKey(candidate.candidateId))
+          candidate.candidateId: placementClaims[candidate.candidateId]!,
+    };
+    final sourceImages = inputs.sourceImages();
     final record = {
       'kind': 'localAssetProposals',
       'version': 1,
@@ -365,11 +416,18 @@ final class LocalAssetProposer {
       'normalizedSourceHash': source.canonicalHash.value,
       'literalCompositionHash': literal.compositionHash.value,
       'candidates': ordered.map((c) => c.toJson()).toList(),
-      'diagnostics': diagnostics.map((d) => d.toJson()).toList()
+      'diagnostics': diagnostics.map((d) => d.toJson()).toList(),
+      'placementClaims': {
+        for (final entry in orderedClaims.entries)
+          entry.key.value: entry.value.map((c) => c.toJson()).toList(),
+      },
+      'sourceImages': sourceImages.map((s) => s.toJson()).toList(),
     };
     return LocalAssetProposalSet._(
         candidates: ordered,
         diagnostics: diagnostics,
+        placementClaims: orderedClaims,
+        sourceImages: sourceImages,
         sourceSnapshotHash: source.snapshot.canonicalHash,
         normalizedSourceHash: source.canonicalHash,
         literalCompositionHash: literal.compositionHash,
@@ -385,6 +443,67 @@ final class LocalAssetProposer {
   }) =>
       _AssetInputs(source, literal, outputMode, limits)
           .candidate(cells, manual: true);
+
+  LocalAssetProposalSet manualProposalFromCells({
+    required NormalizedSourceProject source,
+    required LiteralTileComposition literal,
+    required List<LocalAssetCell> cells,
+    AssetOutputMode outputMode = AssetOutputMode.sharedAtlas,
+    LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
+  }) {
+    if (cells.length > limits.maxClaimsPerCandidate ||
+        cells.length > limits.maxTotalClaims) {
+      _quota('Manual placement claim budget exceeded');
+    }
+    final inputs = _AssetInputs(source, literal, outputMode, limits);
+    final candidate = inputs.candidate(cells, manual: true);
+    final parts = candidate.parts;
+    final orderedCells = cells.toList()
+      ..sort((a, b) {
+        var order = a.sourceZ.compareTo(b.sourceZ);
+        if (order == 0) order = a.y.compareTo(b.y);
+        if (order == 0) order = a.x.compareTo(b.x);
+        return order;
+      });
+    final claims = [
+      for (var i = 0; i < orderedCells.length; i++)
+        inputs.placementClaim(orderedCells[i], parts[i]),
+    ];
+    inputs.validatePlacementClaims(candidate, claims);
+    final sourceImages = inputs.sourceImages();
+    final record = {
+      'kind': 'localAssetProposals',
+      'version': 1,
+      'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+      'normalizedSourceHash': source.canonicalHash.value,
+      'literalCompositionHash': literal.compositionHash.value,
+      'candidates': [candidate.toJson()],
+      'diagnostics': <Object?>[],
+      'placementClaims': {
+        candidate.candidateId.value: claims.map((c) => c.toJson()).toList(),
+      },
+      'sourceImages': sourceImages.map((s) => s.toJson()).toList(),
+    };
+    return LocalAssetProposalSet._(
+        candidates: [candidate],
+        diagnostics: const [],
+        placementClaims: {candidate.candidateId: claims},
+        sourceImages: sourceImages,
+        sourceSnapshotHash: source.snapshot.canonicalHash,
+        normalizedSourceHash: source.canonicalHash,
+        literalCompositionHash: literal.compositionHash,
+        canonicalHash: canonicalHashOf(record, limits: limits.jsonLimits));
+  }
+
+  void validatePlacementClaims({
+    required NormalizedSourceProject source,
+    required LiteralTileComposition literal,
+    required AssetCandidate candidate,
+    required List<SourcePlacementClaim> claims,
+    LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
+  }) =>
+      _AssetInputs(source, literal, candidate.outputMode, limits)
+          .validatePlacementClaims(candidate, claims);
 }
 
 Never _quota(String message) =>
@@ -418,6 +537,8 @@ final class _AssetInputs {
       (limits.maxPartsPerCandidate, 4096),
       (limits.maxTotalParts, 65536),
       (limits.maxUsageComparisons, 16777216),
+      (limits.maxClaimsPerCandidate, 65536),
+      (limits.maxTotalClaims, 65536),
       (limits.jsonLimits.maxDepth, 64),
       (limits.jsonLimits.maxNodes, 1000000),
       (limits.jsonLimits.maxStringCodeUnits, 1048576),
@@ -454,6 +575,8 @@ final class _AssetInputs {
             'The admitted source grid must be 32 pixels');
       }
       maps[map.sourceMapId] = map;
+      sourceMaps[map.sourceMapId] = ir;
+      sourceMapHashes[map.sourceMapId] = ir.canonicalHash;
     }
     if (maps.length != literal.mapIds.length) {
       throw ContractError('asset.proposal.binding', r'$',
@@ -471,26 +594,20 @@ final class _AssetInputs {
     }
     var sourceBytes = 0;
     var sourcePixels = 0;
-    for (final crop in literal.crops) {
-      if (crop.autotileSlot != null) continue;
-      final key = (crop.sourceTilesetId, crop.sourceTileId);
-      if (crops.containsKey(key)) {
-        throw ContractError(
-            'asset.proposal.binding', r'$', 'Duplicate source crop');
+    void addImage(ConverterId fileId, Sha256Hash hash) {
+      final entries =
+          source.snapshot.entries.where((entry) => entry.fileId == fileId);
+      if (entries.length != 1 ||
+          entries.single.sha256 != hash ||
+          entries.single.kind != SourceNodeKind.file ||
+          entries.single.format != 'raster' ||
+          !entries.single.relativePath.toLowerCase().endsWith('.png')) {
+        throw ContractError('asset.proposal.binding', r'$',
+            'Source is not an admitted original PNG image');
       }
-      crops[key] = crop;
-      if (images.containsKey(crop.imageFileId)) continue;
+      if (images.containsKey(fileId)) return;
       if (images.length >= limits.maxSourceImages) {
         _quota('Source image count budget exceeded');
-      }
-      final entries = source.snapshot.entries
-          .where((entry) => entry.fileId == crop.imageFileId);
-      if (entries.length != 1 ||
-          entries.single.sha256 != crop.imageSha256 ||
-          entries.single.kind != SourceNodeKind.file ||
-          entries.single.format != 'raster') {
-        throw ContractError('asset.proposal.binding', r'$',
-            'Crop source is not an admitted image');
       }
       final entry = entries.single;
       sourceBytes += entry.byteLength;
@@ -498,8 +615,9 @@ final class _AssetInputs {
         _quota('Source image byte budget exceeded');
       }
       final artifacts = literal.draft!.artifacts
-          .where((artifact) => artifact.rawSha256 == crop.imageSha256);
-      if (artifacts.length != 1) {
+          .where((artifact) => artifact.rawSha256 == hash);
+      if (artifacts.length != 1 ||
+          artifacts.single.bytes.length != entry.byteLength) {
         throw ContractError('asset.proposal.binding', r'$',
             'Original static source artifact is missing');
       }
@@ -509,7 +627,36 @@ final class _AssetInputs {
       if (sourcePixels > limits.maxPixels) {
         _quota('Source image pixel budget exceeded');
       }
-      images[crop.imageFileId] = _AssetImage(entry, size.$1, size.$2);
+      images[fileId] = _AssetImage(entry, size.$1, size.$2);
+    }
+
+    for (final crop in literal.crops) {
+      if (crop.autotileSlot != null) continue;
+      final key = (crop.sourceTilesetId, crop.sourceTileId);
+      if (crops.containsKey(key)) {
+        throw ContractError(
+            'asset.proposal.binding', r'$', 'Duplicate source crop');
+      }
+      crops[key] = crop;
+      addImage(crop.imageFileId, crop.imageSha256);
+    }
+    for (final tileset in source.tilesets) {
+      if (!literal.tilesetIds.containsKey(tileset.sourceTilesetId)) continue;
+      final references =
+          tileset.images.where((image) => image.role == 'tileset').toList();
+      final entry =
+          references.length == 1 ? references.single.sourceFile : null;
+      if (entry == null ||
+          references.single.state != 'resolved' ||
+          entry.sha256 == null ||
+          !source.snapshot.entries.any((current) =>
+              current.fileId == entry.fileId &&
+              canonicalJsonOf(current.toJson()) ==
+                  canonicalJsonOf(entry.toJson()))) {
+        throw ContractError('asset.proposal.binding', r'$',
+            'Selected tileset has no exact admitted original image');
+      }
+      addImage(entry.fileId, entry.sha256!);
     }
     final sortedImages = images.entries.toList()
       ..sort((a, b) => a.key.value.compareTo(b.key.value));
@@ -523,9 +670,91 @@ final class _AssetInputs {
   final AssetOutputMode outputMode;
   final LocalAssetProposalLimits limits;
   final maps = <int, SourceMapData>{};
+  final sourceMaps = <int, SourceMapIr>{};
+  final sourceMapHashes = <int, Sha256Hash>{};
   final layerCells = <int, Map<int, List<int>>>{};
   final crops = <(int, int), LiteralTileCrop>{};
   final images = <ConverterId, _AssetImage>{};
+
+  List<SourceImage> sourceImages() => [
+        for (final image in images.values)
+          SourceImage.fromJson({
+            'fileId': image.entry.fileId.value,
+            'contentHash': image.entry.sha256!.value,
+            'pixelWidth': image.width,
+            'pixelHeight': image.height,
+          }, limits: limits.jsonLimits),
+      ];
+
+  SourcePlacementClaim placementClaim(LocalAssetCell cell, AssetPart part) {
+    final map = sourceMaps[cell.mapId]!;
+    return SourcePlacementClaim(
+        sourceSnapshotHash: source.snapshot.canonicalHash,
+        sourceMapHash: sourceMapHashes[cell.mapId]!,
+        sourceMapFileId: map.map.sourceFileId,
+        sourceMapId: cell.mapId,
+        sourceZ: cell.sourceZ,
+        x: cell.x,
+        y: cell.y,
+        tileId: part.locator.tileId!,
+        partId: part.partId);
+  }
+
+  void validatePlacementClaims(
+      AssetCandidate candidate, List<SourcePlacementClaim> claims) {
+    if (claims.length > limits.maxClaimsPerCandidate ||
+        claims.length > limits.maxTotalClaims) {
+      _quota('Placement claim validation budget exceeded');
+    }
+    if (candidate.exampleOnly ||
+        candidate.sourceSnapshotHash != source.snapshot.canonicalHash ||
+        candidate.logicalProjectNamespace !=
+            source.snapshot.logicalProjectNamespace) {
+      throw ContractError('asset.proposal.claim_binding', r'$',
+          'Candidate does not belong to the exact original source');
+    }
+    final parts = {for (final part in candidate.parts) part.partId: part};
+    final declaredImages = {
+      for (final image in candidate.sources) image.fileId: image,
+    };
+    final seen = <(ConverterId, String)>{};
+    for (final claim in claims) {
+      final map = sourceMaps[claim.sourceMapId];
+      if (map == null || !seen.add((claim.partId, claim.placementKey))) {
+        throw ContractError('asset.proposal.claim_binding', r'$',
+            'Claim is duplicated or outside the admitted map selection');
+      }
+      claim.validateAgainst(map, candidate);
+      final part = parts[claim.partId]!;
+      final crop = crops[(map.map.sourceTilesetId, claim.tileId)];
+      final image = images[part.sourceFileId];
+      final declaredImage = declaredImages[part.sourceFileId];
+      final mapEntry = source.snapshot.entries
+          .singleWhere((entry) => entry.fileId == map.map.sourceFileId);
+      if (crop == null ||
+          crop.autotileSlot != null ||
+          image == null ||
+          declaredImage == null ||
+          part.sourceFileId != crop.imageFileId ||
+          image.entry.sha256 != crop.imageSha256 ||
+          declaredImage.contentHash != crop.imageSha256 ||
+          declaredImage.pixelWidth != image.width ||
+          declaredImage.pixelHeight != image.height ||
+          part.sourceRect.x != crop.x ||
+          part.sourceRect.y != crop.y ||
+          part.sourceRect.width != crop.width ||
+          part.sourceRect.height != crop.height ||
+          part.sourceLayer != claim.sourceZ ||
+          part.sourcePriority != crop.priority ||
+          part.quarterTurns != 0 ||
+          part.reflected ||
+          part.locator.file != mapEntry.relativePath ||
+          part.locator.line != null) {
+        throw ContractError('asset.proposal.claim_crop', r'$',
+            'Source cell and candidate pixels do not share the exact crop');
+      }
+    }
+  }
 
   AssetCandidate alphaCandidate(_AssetImage info, List<int> input) {
     final cells = input.toList()..sort();

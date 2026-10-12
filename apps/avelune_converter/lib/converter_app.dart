@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -21,6 +22,7 @@ class ConverterApp extends StatelessWidget {
     this.folderOpener = openConverterFolder,
     this.initialSourcePath = '',
     this.initialParentPath = '',
+    this.sessionStore,
   });
 
   final ConverterWorkflow? workflow;
@@ -28,6 +30,7 @@ class ConverterApp extends StatelessWidget {
   final ConverterFolderOpener folderOpener;
   final String initialSourcePath;
   final String initialParentPath;
+  final LocalReviewSessionStore? sessionStore;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +58,7 @@ class ConverterApp extends StatelessWidget {
         folderOpener: folderOpener,
         initialSourcePath: initialSourcePath,
         initialParentPath: initialParentPath,
+        sessionStore: sessionStore,
       ),
     );
   }
@@ -68,6 +72,7 @@ class ConverterWindow extends StatefulWidget {
     required this.folderOpener,
     required this.initialSourcePath,
     required this.initialParentPath,
+    this.sessionStore,
   });
 
   final ConverterWorkflow? workflow;
@@ -75,6 +80,7 @@ class ConverterWindow extends StatefulWidget {
   final ConverterFolderOpener folderOpener;
   final String initialSourcePath;
   final String initialParentPath;
+  final LocalReviewSessionStore? sessionStore;
 
   @override
   State<ConverterWindow> createState() => _ConverterWindowState();
@@ -89,7 +95,17 @@ class _ConverterWindowState extends State<ConverterWindow> {
   final _search = TextEditingController();
   final _selectedMaps = <int>{};
   final _decisions = <LiteralDependencyDecision>[];
-  final _assetReviews = <ConverterId, ConverterAssetReview>{};
+  AssetReviewSession? _reviewSession;
+  StoredReviewSession? _storedReview;
+  LocalReviewSessionStore? _sessionStore;
+  late final AppLifecycleListener _lifecycle;
+  Future<bool>? _exitRequest;
+  bool _savingSession = false;
+  bool _loadingSession = false;
+  bool _reviewSourceVerified = false;
+  bool _unappliedDrafts = false;
+  String? _sessionNotice;
+  int _sessionGeneration = 0;
   AssetOutputMode _assetOutputMode = AssetOutputMode.sharedAtlas;
   PreparedStudy? _reviewPreview;
   StreamSubscription<ConverterWorkflowEvent>? _subscription;
@@ -103,7 +119,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   late (String, String, String, String) _lastFormValues;
 
   ConverterWorkflowState get _state => _workflow.state;
-  bool get _busy => _state.isBusy;
+  bool get _busy => _state.isBusy || _savingSession || _loadingSession;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   (String, String, String, String) get _formValues =>
       (_source.text, _parent.text, _name.text, _folder.text);
@@ -114,15 +130,30 @@ class _ConverterWindowState extends State<ConverterWindow> {
         : value;
   }
 
-  bool get _formValid =>
-      path.isAbsolute(_sourceRoot) &&
-      path.isAbsolute(_parent.text.trim()) &&
-      _name.text.trim().isNotEmpty &&
-      _validFolder(_folder.text.trim());
+  bool get _formValid {
+    if (!path.isAbsolute(_sourceRoot) ||
+        !path.isAbsolute(_parent.text.trim()) ||
+        _name.text.trim().isEmpty ||
+        !_validFolder(_folder.text.trim())) {
+      return false;
+    }
+    try {
+      _resumeSettings();
+      return true;
+    } on LocalReviewSessionStoreFailure {
+      return false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _sessionStore = widget.sessionStore;
+    _lifecycle = AppLifecycleListener(
+      onExitRequested: () async => await _prepareForSessionChange()
+          ? AppExitResponse.exit
+          : AppExitResponse.cancel,
+    );
     _lastFormValues = _formValues;
     for (final controller in [_source, _parent, _name, _folder]) {
       controller.addListener(_markEdited);
@@ -141,6 +172,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     unawaited(_subscription?.cancel());
     for (final controller in [_source, _parent, _name, _folder, _search]) {
       controller.dispose();
@@ -157,8 +189,299 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _dirty = true;
       _localError = null;
+      _sessionNotice = null;
+      if (_sourceRoot != _state.source?.rootPath) _reviewSourceVerified = false;
     });
   }
+
+  LocalReviewResumeSettings _resumeSettings() {
+    final snapshot = _state.snapshot;
+    final previous = _storedReview?.resumeSettings;
+    final previousAcknowledgement = previous?.profileAcknowledgement;
+    final keepAcknowledgement =
+        snapshot != null &&
+        previousAcknowledgement?.sourceSnapshotHash == snapshot.canonicalHash &&
+        previousAcknowledgement?.profileEvidenceHash ==
+            snapshot.profile.evidenceHash &&
+        previousAcknowledgement?.humanConfirmed == _studyAcknowledged;
+    return LocalReviewResumeSettings(
+      sourceRootPath: _sourceRoot,
+      destinationParentPath: _parent.text.trim(),
+      projectName: _name.text.trim(),
+      folderName: _folder.text.trim(),
+      allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
+      sourceScanPolicy: _state.source?.policy ?? previous?.sourceScanPolicy,
+      normalizationLimits:
+          previous?.normalizationLimits ?? const SourceNormalizationLimits(),
+      writeLimits: previous?.writeLimits ?? const NativeWriteLimits(),
+      profileAcknowledgement: snapshot == null || keepAcknowledgement
+          ? previousAcknowledgement
+          : LocalReviewProfileAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: _studyAcknowledged,
+              reason: _studyAcknowledged
+                  ? 'Limites du profil observé acceptées pour ce projet d’étude.'
+                  : '',
+            ),
+      dependencyDecisions: !_reviewSourceVerified && previous != null
+          ? previous.dependencyDecisions
+          : _decisions.map(LocalReviewDependencyDecision.fromDecision).toList(),
+    );
+  }
+
+  bool get _sessionUnsaved {
+    final session = _reviewSession;
+    if (session == null) return false;
+    final stored = _storedReview;
+    if (stored == null ||
+        stored.session.canonicalHash != session.canonicalHash ||
+        !_formValid) {
+      return true;
+    }
+    return canonicalHashOf(_resumeSettings().toJson()) !=
+        canonicalHashOf(stored.resumeSettings.toJson());
+  }
+
+  Future<LocalReviewSessionStore> _getSessionStore() async =>
+      _sessionStore ??= await openConverterReviewSessionStore();
+
+  Future<bool> _saveReviewSession() async {
+    final session = _reviewSession;
+    if (session == null ||
+        !_formValid ||
+        _unappliedDrafts ||
+        _busy ||
+        !_reviewSourceVerified) {
+      return false;
+    }
+    final generation = _sessionGeneration;
+    final stored = _storedReview;
+    setState(() {
+      _savingSession = true;
+      _sessionNotice = null;
+      _localError = null;
+    });
+    try {
+      final settings = _resumeSettings();
+      final store = await _getSessionStore();
+      final saved = stored == null
+          ? await store.create(session: session, resumeSettings: settings)
+          : await store.compareAndSwap(
+              session: session,
+              resumeSettings: settings,
+              expectedStoredRevision: stored.storedRevision,
+              expectedCanonicalHash: stored.canonicalHash,
+            );
+      if (!mounted || generation != _sessionGeneration) return false;
+      setState(() {
+        _storedReview = saved;
+        _sessionNotice = 'Session enregistrée';
+      });
+      return _reviewSession?.canonicalHash == saved.session.canonicalHash &&
+          canonicalHashOf(_resumeSettings().toJson()) ==
+              canonicalHashOf(saved.resumeSettings.toJson());
+    } catch (error) {
+      if (mounted && generation == _sessionGeneration) {
+        setState(() {
+          _sessionNotice = 'Enregistrement impossible';
+          _localError =
+              error is LocalReviewSessionStoreFailure &&
+                  error.code.contains('conflict')
+              ? 'Une autre fenêtre a enregistré une version plus récente. Vos corrections sont conservées ; rechargez cette session avant de réessayer.'
+              : 'La session n’a pas pu être enregistrée. Vos corrections restent disponibles.';
+        });
+      }
+      return false;
+    } finally {
+      if (mounted && generation == _sessionGeneration) {
+        setState(() => _savingSession = false);
+      }
+    }
+  }
+
+  Future<bool> _prepareForSessionChange() => _exitRequest ??=
+      _confirmSessionChange().whenComplete(() => _exitRequest = null);
+
+  Future<bool> _confirmSessionChange() async {
+    if (_busy) return false;
+    if (!_sessionUnsaved && !_unappliedDrafts) return true;
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StudioReviewDialog(
+        title: 'Conserver votre session de revue ?',
+        content: Text(
+          _unappliedDrafts
+              ? 'Certains champs ne sont pas appliqués. Restez pour les appliquer, ou abandonnez explicitement ces changements.'
+              : 'Vos décisions et corrections ne sont pas enregistrées.',
+        ),
+        cancelLabel: 'Rester',
+        onCancelled: () => Navigator.pop(dialogContext, 'stay'),
+        secondaryActionLabel: 'Abandonner les changements',
+        onSecondaryAction: () => Navigator.pop(dialogContext, 'discard'),
+        confirmLabel: 'Enregistrer et fermer',
+        onConfirmed: _unappliedDrafts || !_formValid || !_reviewSourceVerified
+            ? null
+            : () => Navigator.pop(dialogContext, 'save'),
+      ),
+    );
+    if (!mounted || choice == 'stay' || choice == null) return false;
+    if (choice == 'discard') return true;
+    return _saveReviewSession();
+  }
+
+  void _setStep(int step) {
+    if (_unappliedDrafts && step != _step) {
+      setState(
+        () => _localError = 'Appliquez ou abandonnez les champs de revue avant de changer d’étape.',
+      );
+      return;
+    }
+    setState(() => _step = step);
+  }
+
+  void _acceptReviewSession(
+    AssetReviewSession next,
+    Sha256Hash expectedPreviousHash,
+  ) {
+    final current = _reviewSession;
+    if (_busy ||
+        !_reviewSourceVerified ||
+        current == null ||
+        current.canonicalHash != expectedPreviousHash ||
+        current.sessionId != next.sessionId ||
+        next.revision <= current.revision ||
+        current.sourceSnapshotHash != next.sourceSnapshotHash ||
+        current.proposalGenerationHash != next.proposalGenerationHash) {
+      return;
+    }
+    setState(() {
+      _reviewPreview ??= _prepared;
+      _reviewSession = next;
+      _assetOutputMode = next.outputMode;
+      _dirty = true;
+      _sessionNotice = null;
+    });
+    _workflow.invalidatePrepared();
+  }
+
+  Future<void> _chooseReviewSession() => _run(() async {
+    if (_busy || !await _prepareForSessionChange() || !mounted) return;
+    setState(() => _loadingSession = true);
+    try {
+      final sessions = await (await _getSessionStore()).list();
+      if (!mounted) return;
+      if (sessions.isEmpty) {
+        setState(() => _sessionNotice = 'Aucune session enregistrée');
+        return;
+      }
+      final selected = await showDialog<StoredReviewSession>(
+        context: context,
+        builder: (dialogContext) => StudioReviewDialog(
+          title: 'Reprendre une session',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final stored in sessions)
+                StudioChoice(
+                  key: ValueKey(
+                    'load-session-${stored.session.sessionId.value}',
+                  ),
+                  label: stored.resumeSettings.projectName,
+                  subtitle:
+                      '${stored.session.selectedSourceMapIds.length} carte(s) · ${stored.session.activeCandidates.length} proposition(s) · révision ${stored.storedRevision}',
+                  selected: false,
+                  onTap: () => Navigator.pop(dialogContext, stored),
+                ),
+            ],
+          ),
+          confirmLabel: 'Choisir une session',
+          onConfirmed: null,
+          onCancelled: () => Navigator.pop(dialogContext),
+        ),
+      );
+      if (selected != null && mounted) await _restoreReviewSession(selected);
+    } finally {
+      if (mounted) setState(() => _loadingSession = false);
+    }
+  });
+
+  Future<void> _restoreReviewSession(
+    StoredReviewSession stored, {
+    String? sourceRootPath,
+  }) async {
+    final generation = ++_sessionGeneration;
+    _workflow.invalidatePrepared();
+    final settings = stored.resumeSettings;
+    _source.text = sourceRootPath ?? settings.sourceRootPath;
+    _parent.text = settings.destinationParentPath;
+    _name.text = settings.projectName;
+    _folder.text = settings.folderName;
+    setState(() {
+      _loadingSession = true;
+      _storedReview = stored;
+      _reviewSession = stored.session;
+      _assetOutputMode = stored.session.outputMode;
+      _selectedMaps
+        ..clear()
+        ..addAll(stored.session.selectedSourceMapIds);
+      _decisions.clear();
+      _studyAcknowledged =
+          settings.profileAcknowledgement?.humanConfirmed ?? false;
+      _allowFirstFrameAutotiles = settings.allowFirstFrameAutotiles;
+      _reviewSourceVerified = false;
+      _unappliedDrafts = false;
+      _reviewPreview = null;
+      _dirty = true;
+      _step = 2;
+      _sessionNotice = 'Vérification de la source…';
+    });
+    try {
+      final prepared = await ConverterReviewSessionResumer.resume(
+        stored: stored,
+        workflow: _workflow,
+        sourceRootPath: sourceRootPath,
+      );
+      if (!mounted || generation != _sessionGeneration) return;
+      setState(() {
+        _decisions
+          ..clear()
+          ..addAll(prepared.settings.dependencyDecisions);
+        _studyAcknowledged =
+            prepared.settings.profileAcknowledgement.humanConfirmed;
+        _reviewPreview = null;
+        _reviewSourceVerified = true;
+        _dirty = false;
+        _sessionNotice = 'Session reprise · source vérifiée';
+      });
+    } catch (error) {
+      if (!mounted || generation != _sessionGeneration) return;
+      setState(() {
+        if (error is ConverterWorkflowFailure &&
+            error.code == 'native.destination.exists') {
+          _sessionNotice = 'Session conservée · destination déjà utilisée';
+          _localError = 'Ce dossier contient déjà une conversion. Choisissez un nouveau nom de dossier dans Source, puis préparez la sélection pour reprendre vos corrections.';
+        } else {
+          _sessionNotice = 'Session conservée · source à retrouver';
+          _localError = 'La source n’est pas accessible ou ne correspond plus à cette session. Vos décisions sont conservées. Sélectionnez à nouveau le dossier exact pour reprendre.';
+        }
+      });
+    } finally {
+      if (mounted && generation == _sessionGeneration) {
+        setState(() => _loadingSession = false);
+      }
+    }
+  }
+
+  Future<void> _reselectSessionSource() => _run(() async {
+    final stored = _storedReview;
+    if (stored == null || _busy || _unappliedDrafts) return;
+    if (!await _prepareForSessionChange() || !mounted) return;
+    final selected = await widget.pathPicker(ConverterPathKind.sourceFolder);
+    if (selected == null || !mounted) return;
+    await _restoreReviewSession(stored, sourceRootPath: selected);
+  });
 
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
@@ -179,6 +502,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   Future<void> _pick(ConverterPathKind kind) => _run(() async {
+    if (_unappliedDrafts) return;
+    if (kind != ConverterPathKind.destinationParent &&
+        !await _prepareForSessionChange()) {
+      return;
+    }
     final selected = await widget.pathPicker(kind);
     if (selected == null || !mounted) return;
     if (kind == ConverterPathKind.destinationParent) {
@@ -188,22 +516,29 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _studyAcknowledged = false;
         _allowFirstFrameAutotiles = false;
-        _assetReviews.clear();
         _reviewPreview = null;
+        _reviewSession = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _sessionGeneration++;
         _step = 0;
       });
     }
   });
 
   Future<void> _scan() => _run(() async {
+    if (!await _prepareForSessionChange() || !mounted) return;
     setState(() {
       _step = 1;
       _studyAcknowledged = false;
       _allowFirstFrameAutotiles = false;
       _decisions.clear();
-      _assetReviews.clear();
       _assetOutputMode = AssetOutputMode.sharedAtlas;
       _reviewPreview = null;
+      _reviewSession = null;
+      _storedReview = null;
+      _reviewSourceVerified = false;
+      _sessionGeneration++;
     });
     final snapshot = await _workflow.scanSource(
       ConverterSourceSelection(
@@ -239,17 +574,64 @@ class _ConverterWindowState extends State<ConverterWindow> {
       dependencyDecisions: _decisions,
       allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
       assetOutputMode: _assetOutputMode,
-      assetReviews: _assetReviews.values.toList(),
+      reviewSession: _reviewSession,
+      normalizationLimits:
+          _storedReview?.resumeSettings.normalizationLimits ??
+          const SourceNormalizationLimits(),
+      writeLimits:
+          _storedReview?.resumeSettings.writeLimits ??
+          const NativeWriteLimits(),
     );
   }
 
   Future<void> _prepareCurrent() async {
-    _workflow.updateSettings(_settings());
-    final prepared = await _workflow.prepareStudy();
-    if (!mounted) return;
+    if (_unappliedDrafts) {
+      throw StateError(
+        'Appliquez ou abandonnez les champs de revue avant la préparation.',
+      );
+    }
+    final generation = _sessionGeneration;
+    final stored = _storedReview;
+    final PreparedStudy prepared;
+    if (stored != null && !_reviewSourceVerified) {
+      final current = StoredReviewSession(
+        session: _reviewSession ?? stored.session,
+        resumeSettings: _resumeSettings(),
+        storedRevision: stored.storedRevision,
+      );
+      prepared = await ConverterReviewSessionResumer.resume(
+        stored: current,
+        workflow: _workflow,
+        sourceRootPath: _sourceRoot,
+        destinationParentPath: _parent.text.trim(),
+        folderName: _folder.text.trim(),
+        projectName: _name.text.trim(),
+      );
+    } else {
+      _workflow.updateSettings(_settings());
+      prepared = await _workflow.prepareStudy();
+    }
+    if (!mounted || generation != _sessionGeneration) return;
+    if (_reviewSession != null &&
+        prepared.reviewSession?.canonicalHash !=
+            _reviewSession!.canonicalHash) {
+      throw const ConverterWorkflowFailure(
+        'workflow.review.mismatch',
+        'Le plan ne correspond pas à la revue active. Préparez à nouveau la sélection.',
+      );
+    }
     setState(() {
       _dirty = false;
       _reviewPreview = null;
+      _reviewSession ??= prepared.reviewSession;
+      _reviewSourceVerified = true;
+      _decisions
+        ..clear()
+        ..addAll(prepared.settings.dependencyDecisions);
+      _studyAcknowledged =
+          prepared.settings.profileAcknowledgement.humanConfirmed;
+      _allowFirstFrameAutotiles = prepared.settings.allowFirstFrameAutotiles;
+      _assetOutputMode = _reviewSession?.outputMode ?? _assetOutputMode;
       final ids = prepared.normalizedSource.maps
           .map((value) => value.map.sourceMapId)
           .toList();
@@ -261,77 +643,97 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Future<void> _prepare() => _run(_prepareCurrent);
 
-  void _editAsset(ConverterId candidateId) {
+  void _changeAssetOutputMode(AssetOutputMode mode) => unawaited(
+    _run(() async {
+      if (_unappliedDrafts) return;
+      final session = _reviewSession;
+      if (session != null) {
+        _acceptReviewSession(
+          session.changeOutputMode(
+            outputMode: mode,
+            expectedSessionHash: session.canonicalHash,
+          ),
+          session.canonicalHash,
+        );
+        await _prepareCurrent();
+        return;
+      }
+      setState(() {
+        _reviewPreview ??= _prepared;
+        _assetOutputMode = mode;
+        _dirty = true;
+      });
+      await _prepareCurrent();
+    }),
+  );
+
+  void _changeSelection(int id, bool selected) => unawaited(
+    _run(() async {
+      final ids = _selectedMaps.toSet();
+      selected ? ids.add(id) : ids.remove(id);
+      await _replaceSelection(ids);
+    }),
+  );
+
+  Future<void> _replaceSelection(Set<int> ids) async {
+    if (!await _prepareForSessionChange() || !mounted) return;
     setState(() {
-      _reviewPreview ??= _state.prepared;
-      _assetReviews.remove(candidateId);
+      _selectedMaps
+        ..clear()
+        ..addAll(ids);
+      _decisions.clear();
+      _reviewPreview = null;
+      _reviewSession = null;
+      _storedReview = null;
+      _reviewSourceVerified = false;
+      _sessionGeneration++;
       _dirty = true;
     });
     _workflow.invalidatePrepared();
   }
 
-  void _reviewAsset(ConverterAssetReview review) => unawaited(
-    _run(() async {
-      setState(() {
-        _reviewPreview ??= _prepared;
-        _assetReviews[review.candidateId] = review;
-        _dirty = true;
-      });
-      await _prepareCurrent();
-    }),
-  );
-
-  void _changeAssetOutputMode(AssetOutputMode mode) => unawaited(
-    _run(() async {
-      setState(() {
-        _reviewPreview ??= _prepared;
-        _assetOutputMode = mode;
-        _assetReviews.clear();
-        _dirty = true;
-      });
-      await _prepareCurrent();
-    }),
-  );
-
-  void _changeSelection(int id, bool selected) {
-    setState(() {
-      selected ? _selectedMaps.add(id) : _selectedMaps.remove(id);
-      _decisions.clear();
-      _assetReviews.clear();
-      _reviewPreview = null;
-      _dirty = true;
-    });
-  }
-
   void _changeDependency(
     LiteralMapDependency dependency,
     LiteralDependencyDisposition disposition,
-  ) {
-    final prepared = _prepared!;
-    setState(() {
-      _assetReviews.clear();
-      _reviewPreview = null;
-      _decisions.removeWhere(
-        (value) =>
-            canonicalHashOf(value.locator.toJson()) ==
-            canonicalHashOf(dependency.locator.toJson()),
-      );
-      _decisions.add(
-        LiteralDependencyDecision(
-          sourceSnapshotHash: prepared.sourceSnapshotHash,
-          selectionHash: prepared.composition.selectionHash,
-          locator: dependency.locator,
-          targetSourceMapId: dependency.targetSourceMapId!,
-          decision: disposition,
-        ),
-      );
-      _dirty = true;
-    });
-  }
+  ) => unawaited(
+    _run(() async {
+      final prepared = _prepared!;
+      if (!await _prepareForSessionChange() || !mounted) return;
+      setState(() {
+        _reviewPreview = null;
+        _reviewSession = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _sessionGeneration++;
+        _decisions.removeWhere(
+          (value) =>
+              canonicalHashOf(value.locator.toJson()) ==
+              canonicalHashOf(dependency.locator.toJson()),
+        );
+        _decisions.add(
+          LiteralDependencyDecision(
+            sourceSnapshotHash: prepared.sourceSnapshotHash,
+            selectionHash: prepared.composition.selectionHash,
+            locator: dependency.locator,
+            targetSourceMapId: dependency.targetSourceMapId!,
+            decision: disposition,
+          ),
+        );
+        _dirty = true;
+      });
+      _workflow.invalidatePrepared();
+    }),
+  );
 
   Future<void> _export() => _run(() async {
     final prepared = _prepared;
-    if (prepared == null || !prepared.canApprove || _dirty || _busy) return;
+    if (prepared == null ||
+        !prepared.canApprove ||
+        _dirty ||
+        _busy ||
+        _unappliedDrafts) {
+      return;
+    }
     var confirmed = false;
     final accepted = await showDialog<bool>(
       context: context,
@@ -410,6 +812,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                       'RPG Maker XP / Pokémon Essentials → Avelune Studio',
                   prominent: _step == 0,
                 ),
+                _sessionActions(),
                 if (_busy) _progress(),
                 if (_localError != null)
                   Padding(
@@ -502,7 +905,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                     ][index],
                     selected: _step == index,
                     leading: Text('${index + 1}'),
-                    onTap: () => setState(() => _step = index),
+                    onTap: () => _setStep(index),
                   ),
                 const Spacer(),
                 const StudioBadge('Traitement local', icon: Icons.computer),
@@ -515,6 +918,47 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ),
       ),
     ),
+  );
+
+  Widget _sessionActions() => StudioActionBar(
+    message:
+        _sessionNotice ??
+        (_reviewSession != null && !_formValid
+            ? 'Corrigez les champs du projet avant l’enregistrement.'
+            : _reviewSession == null
+            ? 'Reprenez une session enregistrée ou analysez votre source.'
+            : _unappliedDrafts
+            ? 'Champs de revue à appliquer'
+            : _sessionUnsaved
+            ? 'Session à enregistrer'
+            : 'Session enregistrée'),
+    actions: [
+      StudioButton(
+        key: const ValueKey('load-review-session'),
+        label: 'Reprendre une session',
+        icon: Icons.folder_open,
+        secondary: true,
+        onPressed: _busy ? null : _chooseReviewSession,
+      ),
+      if (_reviewSession != null)
+        StudioButton(
+          key: const ValueKey('save-review-session'),
+          label: 'Enregistrer la session',
+          icon: Icons.save_outlined,
+          secondary: true,
+          onPressed:
+              !_busy && _formValid && !_unappliedDrafts && _reviewSourceVerified
+              ? () => unawaited(_saveReviewSession())
+              : null,
+        ),
+      if (_storedReview != null && !_reviewSourceVerified && !_busy)
+        StudioButton(
+          key: const ValueKey('reselect-session-source'),
+          label: 'Retrouver le dossier source',
+          secondary: true,
+          onPressed: _reselectSessionSource,
+        ),
+    ],
   );
 
   Widget _sourcePage() {
@@ -724,22 +1168,20 @@ class _ConverterWindowState extends State<ConverterWindow> {
               secondary: true,
               onPressed: _busy
                   ? null
-                  : () => setState(() {
-                      _selectedMaps.addAll(_state.availableSourceMapIds);
-                      _decisions.clear();
-                      _dirty = true;
-                    }),
+                  : () => unawaited(
+                      _run(
+                        () => _replaceSelection(
+                          _state.availableSourceMapIds.toSet(),
+                        ),
+                      ),
+                    ),
             ),
             StudioButton(
               label: 'Tout retirer',
               secondary: true,
               onPressed: _busy
                   ? null
-                  : () => setState(() {
-                      _selectedMaps.clear();
-                      _decisions.clear();
-                      _dirty = true;
-                    }),
+                  : () => unawaited(_run(() => _replaceSelection(<int>{}))),
             ),
           ],
           children: [
@@ -774,7 +1216,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _resourcesPage() {
     final prepared = _prepared;
-    if (prepared == null) {
+    if (prepared == null && _reviewSession == null) {
       return const StudioEmptyState(
         title: 'Les ressources apparaîtront après l’analyse',
         description: 'Les atlas affichés proviennent des fichiers du projet sélectionné.',
@@ -787,7 +1229,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
           'Les tuiles gardent leurs placements source. Les objets approuvés sont ajoutés à la bibliothèque après une vérification de leurs images source.',
         ),
         const SizedBox(height: 24),
-        for (final tileset in prepared.normalizedSource.tilesets)
+        _assetReviewPanel(prepared),
+        const SizedBox(height: 24),
+        for (final tileset
+            in prepared?.normalizedSource.tilesets ?? <NormalizedTileset>[])
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: StudioPanel(
@@ -797,7 +1242,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
               radius: 16,
               children: [
                 Text(
-                  '${prepared.composition.crops.where((value) => value.sourceTilesetId == tileset.sourceTilesetId).length} tuiles littérales préparées.',
+                  '${prepared!.composition.crops.where((value) => value.sourceTilesetId == tileset.sourceTilesetId).length} tuiles littérales préparées.',
                 ),
                 for (final reference in tileset.images)
                   Text(
@@ -836,21 +1281,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
               ],
             ),
           ),
-        ConverterAssetReviewPanel(
-          proposals: prepared.assetProposals?.candidates ?? const [],
-          reviewedCandidates: prepared.assetCandidates,
-          artifacts: prepared.composition.draft?.artifacts ?? const [],
-          limits: prepared.settings.writeLimits,
-          outputMode: _assetOutputMode,
-          enabled: !_busy && _sourceRoot == _state.source?.rootPath,
-          onModeChanged: _changeAssetOutputMode,
-          onEditing: _editAsset,
-          onReview: _reviewAsset,
-        ),
-        for (final diagnostic in prepared.assetProposalDiagnostics)
+        for (final diagnostic
+            in prepared?.assetProposalDiagnostics ??
+                <LocalAssetProposalDiagnostic>[])
           StudioNotice(_assetIssueMessage(diagnostic.code, diagnostic.message)),
         for (final diagnostic
-            in prepared.assetLibrary?.diagnostics ??
+            in prepared?.assetLibrary?.diagnostics ??
                 <ApprovedAssetLibraryDiagnostic>[])
           StudioNotice(
             _assetIssueMessage(diagnostic.code, diagnostic.message),
@@ -860,6 +1296,36 @@ class _ConverterWindowState extends State<ConverterWindow> {
       ],
     );
   }
+
+  Widget _assetReviewPanel(PreparedStudy? prepared) =>
+      ConverterAssetReviewPanel(
+        artifacts: prepared?.composition.draft?.artifacts ?? const [],
+        limits:
+            prepared?.settings.writeLimits ??
+            _storedReview?.resumeSettings.writeLimits ??
+            const NativeWriteLimits(),
+        outputMode: _assetOutputMode,
+        enabled:
+            !_busy &&
+            _reviewSourceVerified &&
+            _sourceRoot == _state.source?.rootPath,
+        session: _reviewSession,
+        onSessionChanged: _acceptReviewSession,
+        onUnappliedDraftsChanged: (value) {
+          if (mounted && value != _unappliedDrafts) {
+            setState(() => _unappliedDrafts = value);
+          }
+        },
+        sourceFilePaths: _reviewSourceVerified
+            ? {
+                for (final entry
+                    in _state.snapshot?.entries ?? <SourceFileEntry>[])
+                  if (entry.sha256 != null) entry.fileId: entry.relativePath,
+              }
+            : const {},
+        availableSources: prepared?.assetProposals?.sourceImages ?? const [],
+        onModeChanged: _changeAssetOutputMode,
+      );
 
   Widget _verificationPage() {
     final prepared = _prepared;
@@ -1182,10 +1648,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
   );
 
   Widget _progress() {
-    final progress = _state.progress;
+    final progress = _savingSession || _loadingSession ? null : _state.progress;
     final total = progress?.total;
     final determinate = total != null && total > 0;
-    final phase = _phaseLabel(_state.phase);
+    final phase = _savingSession
+        ? 'Enregistrement de la session…'
+        : _loadingSession
+        ? 'Reprise de la session…'
+        : _phaseLabel(_state.phase);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: StudioPanel(
@@ -1216,7 +1686,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ? 'Choix modifiés : préparez à nouveau le plan.'
         : 'Projet d’étude — gameplay non certifié',
     actions: [
-      if (_busy)
+      if (_state.isBusy)
         StudioButton(
           key: const ValueKey('cancel-job'),
           label: _state.cancellationRequested
@@ -1227,12 +1697,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
               ? null
               : _workflow.cancelCurrentJob,
         )
-      else ...[
+      else if (!_busy) ...[
         if (_step > 0)
           StudioButton(
             label: 'Précédent',
             secondary: true,
-            onPressed: () => setState(() => _step--),
+            onPressed: () => _setStep(_step - 1),
           ),
         if (_step == 0)
           StudioButton(
@@ -1262,7 +1732,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
               'Comparer les cartes',
               'Revoir le plan',
             ][_step + 1],
-            onPressed: () => setState(() => _step++),
+            onPressed: () => _setStep(_step + 1),
           ),
         if (_step == 4 && _state.result == null)
           StudioButton(
