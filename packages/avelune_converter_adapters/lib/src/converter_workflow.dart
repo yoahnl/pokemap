@@ -100,6 +100,7 @@ final class ConverterStudySettings {
     required List<int> selectedSourceMapIds,
     required SourceStudyAcknowledgement profileAcknowledgement,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
+    bool allowFirstFrameAutotiles = false,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
     NativeWriteLimits writeLimits = const NativeWriteLimits(),
@@ -149,6 +150,7 @@ final class ConverterStudySettings {
         List.unmodifiable(ids),
         profileAcknowledgement,
         List.unmodifiable(decisions),
+        allowFirstFrameAutotiles,
         normalizationLimits,
         writeLimits);
   }
@@ -160,6 +162,7 @@ final class ConverterStudySettings {
       this.selectedSourceMapIds,
       this.profileAcknowledgement,
       this.dependencyDecisions,
+      this.allowFirstFrameAutotiles,
       this.normalizationLimits,
       this.writeLimits);
 
@@ -169,6 +172,7 @@ final class ConverterStudySettings {
   final List<int> selectedSourceMapIds;
   final SourceStudyAcknowledgement profileAcknowledgement;
   final List<LiteralDependencyDecision> dependencyDecisions;
+  final bool allowFirstFrameAutotiles;
   final SourceNormalizationLimits normalizationLimits;
   final NativeWriteLimits writeLimits;
 
@@ -182,6 +186,7 @@ final class ConverterStudySettings {
         'profileAcknowledgement': profileAcknowledgement.toJson(),
         'dependencyDecisions':
             dependencyDecisions.map((value) => value.toJson()).toList(),
+        'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
         'normalizationLimits': _normalizationLimitsJson(normalizationLimits),
         'writeLimits': _writeLimitsJson(writeLimits),
       };
@@ -748,7 +753,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac09-study-v1';
+const _converterVersion = 'avelune-converter-ac07-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1020,6 +1025,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             folderName: settings.folderName,
             sourceRootPath: tree.rootPath,
             dependencyDecisions: settings.dependencyDecisions,
+            allowFirstFrameAutotiles: settings.allowFirstFrameAutotiles,
             limits: settings.writeLimits,
             cancellation: relay.cancellation);
         relay.finish(
@@ -1310,7 +1316,9 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'version': 1,
       'converterVersion': _converterVersion,
       'sourceFormat': 'rmxp-marshal-4.8',
-      'tilePolicy': 'ordinary-32px-only',
+      'tilePolicy': 'literal-32px-stored-autotile-variant',
+      'autotileAnimation':
+          'attested-source-clock-or-explicit-first-frame-study',
       'dimension': 'twoD',
       'template': 'empty',
       'tileSize': 32,
@@ -1336,11 +1344,16 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac05-ac06-v1',
+      'profileId': 'avelune-converter-native-study-ac07-v1',
       'repository': 'yoahnl/pokemap',
       'revision': 'bc4706ae767621f3e6f806a193b590770026c66e',
       'capabilities': [
-        for (final action in ['tileset.import_image', 'map.create', 'map.save'])
+        for (final action in [
+          'tileset.import_image',
+          'tileset.upsert',
+          'map.create',
+          'map.save'
+        ])
           {
             'capabilityId': 'native.study.$action',
             'status': 'supported',
@@ -1362,16 +1375,17 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                     'git:bc4706ae767621f3e6f806a193b590770026c66e:documentation/reports/converter/AC-06/commands.json',
               },
               {
-                'type': 'codeRead',
+                'type': 'test',
                 'summary':
-                    'Qualified native writer and literal composer source pins.',
+                    'AC-07 exact native animation upsert, immutable atlas geometry and strict timeline readback.',
                 'reference':
-                    'sha256:native_project_writer.dart:f64bfca2ae4a295cd0145c4cc9e20bd1beb3282d9c358fbc5b6f1b596b65fe4e;literal_tile_composer.dart:5d3ba67354a8d00a31b5757020336578fceb0959cf255b842b23bb0d5cb69c61',
+                    'repo:packages/avelune_converter_adapters/test/native_project_writer_test.dart:AC-07',
               },
             ],
             'limitations': [
               'Study staging only; published=false and playableCertified=false.',
-              'No autotiles, animation, native events, gameplay priority, or collision conversion certification.',
+              'No native events, gameplay priority, or collision conversion certification.',
+              'Autotile animation requires source clock attestation; a first-frame study is explicitly degraded.',
               'The source profile remains observed or requires confirmation; acknowledging study does not confirm a version.',
             ],
           }
@@ -1471,7 +1485,7 @@ ConversionPlan? _previewPlan(
         {
           'operationId': mutation.operationId.value,
           'domain':
-              mutation.actionId == 'tileset.import_image' ? 'assets' : 'maps',
+              mutation.actionId.startsWith('tileset.') ? 'assets' : 'maps',
           'sourceEntityIds':
               mutation.sourceEntityIds.map((id) => id.value).toList(),
           'targetEntityIds':
@@ -1544,7 +1558,12 @@ PlanContext _planContext(
       targetEntityIds:
           mutations.expand((value) => value.targetEntityIds).toSet(),
       actionCapabilities: {
-        for (final action in ['tileset.import_image', 'map.create', 'map.save'])
+        for (final action in [
+          'tileset.import_image',
+          'tileset.upsert',
+          'map.create',
+          'map.save'
+        ])
           action: ConverterId('native.study.$action'),
       },
       approvedCandidateHashes: const {});

@@ -136,10 +136,14 @@ final class LiteralTileFixture {
     String? sourceRootPath,
     bool contradictoryProfile = false,
     bool reverseManifest = false,
+    Map<String, List<int>> autotilePngs = const {},
+    List<int>? scriptsBytes,
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
     final bytes = <String, List<int>>{
+      if (scriptsBytes != null)
+        'Data/Scripts.rxdata': List<int>.unmodifiable(scriptsBytes),
       'README.md':
           utf8.encode('Original controlled Pokemon Essentials v21.1 fixture\n'),
       'Data/MapInfos.rxdata': _Marshal().dump({
@@ -186,7 +190,8 @@ final class LiteralTileFixture {
           'Graphics/Tilesets/${tileset.imageName}.png': tileset.png,
       for (final tileset in sourceTilesets)
         for (final name in tileset.autotileNames)
-          if (name.isNotEmpty) 'Graphics/Autotiles/$name.png': tileset.png,
+          if (name.isNotEmpty)
+            'Graphics/Autotiles/$name.png': autotilePngs[name] ?? tileset.png,
       if (contradictoryProfile)
         'Scripts/Version.rb': utf8.encode('ESSENTIALS_VERSION = "22"\n'),
     };

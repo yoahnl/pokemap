@@ -281,8 +281,8 @@ void main() {
   for (final entry in const {
     1: 'literal.tile.reserved',
     47: 'literal.tile.reserved',
-    48: 'literal.tile.autotile_deferred',
-    383: 'literal.tile.autotile_deferred',
+    48: 'autotile.geometry',
+    383: 'autotile.geometry',
     400: 'literal.tile.out_of_bounds',
   }.entries) {
     test('TIL-01 tile ${entry.key} has an explicit localized blocker',
@@ -307,6 +307,12 @@ void main() {
       expect(result.canWrite, isFalse);
       expect(result.draft, isNull);
       final diagnostic = _blocking(result, entry.value);
+      if (entry.key >= 48 && entry.key < 384) {
+        expect(diagnostic.locator['file'], 'Data/Tilesets.rxdata');
+        expect(diagnostic.locator['sourceTilesetId'], 1);
+        expect(diagnostic.locator['autotileSlot'], entry.key ~/ 48 - 1);
+        return;
+      }
       expect(diagnostic.locator['file'], 'Data/Map001.rxdata');
       expect(diagnostic.locator['mapId'], 1);
       expect(diagnostic.locator['tileId'], entry.key);

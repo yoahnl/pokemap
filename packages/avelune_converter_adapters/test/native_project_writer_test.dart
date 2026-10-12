@@ -76,6 +76,102 @@ void main() {
         isTrue);
   });
 
+  NativeProjectDraft animatedDraft({ProjectTilesetEntry? replacement}) {
+    final entry = replacement ??
+        ProjectTilesetEntry(
+          id: 'fixture_atlas',
+          name: 'Original two tiles',
+          relativePath: 'assets/studio/fixture_atlas.png',
+          source: const ProjectRegularAtlasTilesetSource(
+            assetId: 'image_fixture_atlas',
+            pixelWidth: 64,
+            pixelHeight: 32,
+            tileWidth: 32,
+            tileHeight: 32,
+            tileAnimations: [
+              ProjectRegularAtlasTileAnimation(tileId: 0, frames: [
+                ProjectImageCollectionAnimationFrame(
+                    tileId: 0, durationMs: 100),
+                ProjectImageCollectionAnimationFrame(
+                    tileId: 1, durationMs: 150),
+                ProjectImageCollectionAnimationFrame(
+                    tileId: 0, durationMs: 250),
+              ]),
+            ],
+          ),
+        );
+    return copyNativeFixtureDraft(fixture.draft, mutations: [
+      fixture.draft.mutations.first,
+      NativeMutation(
+        operationId: ConverterId('fixture-animation'),
+        actionId: 'tileset.upsert',
+        sourceEntityIds: fixture.draft.mutations.first.sourceEntityIds,
+        targetEntityIds: [ConverterId('fixture_atlas')],
+        parameters: {'tileset': entry.toJson()},
+      ),
+      ...fixture.draft.mutations.skip(1),
+    ]);
+  }
+
+  test('AC-07 native upsert preserves the exact three frame timeline on reopen',
+      () async {
+    final draft = animatedDraft();
+    final approval = approveNativeFixtureDraft(draft);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, draft);
+    final opened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await opened.load();
+      final expected = draft.mutations[1].parameters['tileset'];
+      expect(snapshot.manifest.tilesets.single.toJson(), expected);
+      expect(receipt.verified, isTrue);
+      expect(receipt.published, isFalse);
+    } finally {
+      await opened.close();
+    }
+    await sourceUnchanged();
+  });
+
+  test('AC-07 animation upsert cannot change the imported atlas geometry',
+      () async {
+    await refuseBeforeStage(animatedDraft(
+      replacement: const ProjectTilesetEntry(
+        id: 'fixture_atlas',
+        name: 'Original two tiles',
+        relativePath: 'assets/studio/fixture_atlas.png',
+        source: ProjectRegularAtlasTilesetSource(
+          assetId: 'image_fixture_atlas',
+          pixelWidth: 96,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+      ),
+    ));
+  });
+
+  test('AC-07 removed timeline fails strict post-mutation verification',
+      () async {
+    final draft = animatedDraft();
+    final approval = approveNativeFixtureDraft(draft);
+    var tampered = false;
+    await expectLater(
+      NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
+        if (stage != NativeWriteStage.beforeNativeVerify) return;
+        final file = File('$projectPath/project.json');
+        final manifest = jsonDecode(await file.readAsString()) as Map;
+        final tileset = (manifest['tilesets'] as List).single as Map;
+        (tileset['source'] as Map).remove('tileAnimations');
+        await file.writeAsString(jsonEncode(manifest), flush: true);
+        tampered = true;
+      }).write(approval.plan, approval.context, draft),
+      throwsA(isA<NativeWriteException>()
+          .having((error) => error.code, 'code', 'native.verify.manifest')),
+    );
+    expect(tampered, isTrue);
+    await sourceUnchanged();
+  });
+
   test(
       'NAT-01 bootstraps empty twoD32 and strict native loader reads map and image',
       () async {

@@ -12,6 +12,8 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as path;
 
+import 'literal_autotile_composer.dart';
+
 final class NativeWriteLimits {
   const NativeWriteLimits({
     this.maxArtifacts = 32,
@@ -600,7 +602,7 @@ _PreparedNativeDraft _prepareNativeDraft(
   for (var i = 0; i < draft.mutations.length; i++) {
     final mutation = draft.mutations[i];
     final operation = planned[i];
-    final domain = mutation.actionId == 'tileset.import_image'
+    final domain = mutation.actionId.startsWith('tileset.')
         ? OperationDomain.assets
         : OperationDomain.maps;
     if (mutation.operationId != operation.operationId ||
@@ -617,10 +619,14 @@ _PreparedNativeDraft _prepareNativeDraft(
       throw const NativeWriteException('native.operation.binding',
           'Native operation differs from its exact approved action, references or draft evidence');
     }
-    if (!const {'tileset.import_image', 'map.create', 'map.save'}
-        .contains(mutation.actionId)) {
+    if (!const {
+      'tileset.import_image',
+      'tileset.upsert',
+      'map.create',
+      'map.save'
+    }.contains(mutation.actionId)) {
       throw const NativeWriteException('native.action.unsupported',
-          'Only image import, map creation and native map save are admitted in AC-05');
+          'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
   }
   final artifacts = <String, NativeArtifact>{};
@@ -690,6 +696,7 @@ _PreparedNativeDraft _prepareNativeDraft(
   final mapEntries = <ProjectMapEntry>[];
   final maps = <String, MapData>{};
   final createdMaps = <String, Map<String, Object?>>{};
+  final animatedTilesets = <String>{};
   final usedArtifacts = <String>{};
   var mapCells = 0;
   for (var i = 0; i < draft.mutations.length; i++) {
@@ -735,6 +742,44 @@ _PreparedNativeDraft _prepareNativeDraft(
                 pixelHeight: size.$2,
                 tileWidth: 32,
                 tileHeight: 32)));
+      case 'tileset.upsert':
+        _allowParameters(parameters, const {'tileset'});
+        final raw = parameters['tileset'];
+        if (raw is! Map<String, Object?>) {
+          throw const NativeWriteException('native.tileset.animation',
+              'Atlas animation must describe one canonical imported tileset');
+        }
+        final next =
+            ProjectTilesetEntry.fromJson(Map<String, dynamic>.from(raw));
+        final index = tilesetEntries.indexWhere((entry) => entry.id == next.id);
+        final atlas = next.source;
+        final imported = draft.mutations.where((entry) =>
+            entry.actionId == 'tileset.import_image' &&
+            entry.parameters['tilesetId'] == next.id);
+        if (index < 0 ||
+            atlas is! ProjectRegularAtlasTilesetSource ||
+            imported.length != 1 ||
+            !_sameIds(
+                mutation.sourceEntityIds, imported.single.sourceEntityIds) ||
+            !_targetIds(mutation.targetEntityIds, {next.id}) ||
+            !animatedTilesets.add(next.id) ||
+            createdMaps.isNotEmpty ||
+            canonicalJsonOf(next.toJson(), limits: limits.jsonLimits) !=
+                canonicalJsonOf(raw, limits: limits.jsonLimits)) {
+          throw const NativeWriteException('native.tileset.animation',
+              'A unique canonical animation upsert must follow its exact image import before map creation');
+        }
+        final unchanged = next.toJson();
+        final unchangedSource = Map<String, Object?>.from(atlas.toJson())
+          ..remove('tileAnimations');
+        unchanged['source'] = unchangedSource;
+        if (canonicalJsonOf(unchanged, limits: limits.jsonLimits) !=
+            canonicalJsonOf(tilesetEntries[index].toJson(),
+                limits: limits.jsonLimits)) {
+          throw const NativeWriteException('native.tileset.animation',
+              'An animation upsert must retain the imported identity, image, geometry and properties');
+        }
+        tilesetEntries[index] = next;
       case 'map.create':
         _allowParameters(parameters, const {
           'mapId',
@@ -816,7 +861,7 @@ _PreparedNativeDraft _prepareNativeDraft(
         maps[map.id] = map;
       default:
         throw const NativeWriteException('native.action.unsupported',
-            'Only image import, map creation and native map save are admitted in AC-05');
+            'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
   }
   if (usedArtifacts.length != artifacts.length ||
@@ -827,6 +872,7 @@ _PreparedNativeDraft _prepareNativeDraft(
     throw const NativeWriteException('native.draft.incomplete',
         'The approved draft must account for every artifact and every final map');
   }
+  tilesetEntries.sort((left, right) => left.id.compareTo(right.id));
   final manifest =
       bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries);
   ProjectValidator.validate(manifest, maps: maps.values);
@@ -919,6 +965,41 @@ void _verifyLiteralCompositionContents(NativeProjectDraft draft,
     for (final entry in draft.mapIds.entries) '${entry.key}': entry.value,
   };
   final tilesetIds = <String, String>{};
+  final rawAutotiles = composition['autotiles'];
+  if (rawAutotiles != null && rawAutotiles is! List) {
+    throw const NativeWriteException('native.composition.autotiles',
+        'Autotile evidence must be a bounded collection');
+  }
+  final autotileEvidence = <String, Map>{};
+  final autotileSlots = <String>{};
+  for (final row in (rawAutotiles as List?) ?? const []) {
+    if (row is! Map ||
+        row['nativeTilesetId'] is! String ||
+        row['sourceTilesetId'] is! int ||
+        row['autotileSlot'] is! int ||
+        (row['autotileSlot'] as int) < 0 ||
+        (row['autotileSlot'] as int) > 6 ||
+        row['tileAnimations'] is! List ||
+        row['degraded'] is! bool ||
+        row['firstFrameOnly'] is! bool ||
+        row['animationVerified'] is! bool ||
+        autotileEvidence.containsKey(row['nativeTilesetId']) ||
+        !autotileSlots
+            .add('${row['sourceTilesetId']}:${row['autotileSlot']}')) {
+      throw const NativeWriteException('native.composition.autotiles',
+          'Each literal autotile requires a unique source slot and native atlas');
+    }
+    if (row['degraded'] == true &&
+        (composition['allowFirstFrameAutotiles'] != true ||
+            row['firstFrameOnly'] != true ||
+            row['animationVerified'] != false ||
+            (row['tileAnimations'] as List).isNotEmpty)) {
+      throw const NativeWriteException('native.composition.autotiles',
+          'Degraded animation requires an explicit first-frame study choice');
+    }
+    autotileEvidence[row['nativeTilesetId'] as String] = row;
+  }
+  final seenAutotiles = <String>{};
   for (final mutation in draft.mutations) {
     if (mutation.actionId != 'tileset.import_image') continue;
     final identities = draft.source.tilesets
@@ -927,12 +1008,56 @@ void _verifyLiteralCompositionContents(NativeProjectDraft draft,
       throw const NativeWriteException('native.composition.contents',
           'A literal import must bind one exact normalized tileset identity');
     }
-    final sourceId = '${identities.single.sourceTilesetId}';
+    final normalized = identities.single;
+    final nativeId = mutation.parameters['tilesetId'] as String;
+    final autotile = autotileEvidence[nativeId];
+    if (autotile != null) {
+      final images = normalized.images.where((image) =>
+          image.role == 'autotile' && image.slot == autotile['autotileSlot']);
+      final artifact = draft.artifacts.where((artifact) =>
+          artifact.handle == mutation.parameters['artifactHandle']);
+      final updates = draft.mutations.where((entry) =>
+          entry.actionId == 'tileset.upsert' &&
+          (entry.parameters['tileset'] as Map?)?['id'] == nativeId);
+      final sourceEntry = images.length == 1 ? images.single.sourceFile : null;
+      final timelines = updates.length == 1
+          ? (((updates.single.parameters['tileset'] as Map)['source']
+                  as Map)['tileAnimations'] ??
+              const [])
+          : const [];
+      if (normalized.sourceTilesetId != autotile['sourceTilesetId'] ||
+          sourceEntry == null ||
+          !mutation.sourceEntityIds.contains(sourceEntry.fileId) ||
+          sourceEntry.fileId.value != autotile['sourceFileId'] ||
+          sourceEntry.sha256?.value != autotile['sourceFileHash'] ||
+          artifact.length != 1 ||
+          artifact.single.handle != autotile['artifactHandle'] ||
+          artifact.single.rawSha256.value != autotile['nativeImageSha256'] ||
+          !seenAutotiles.add(nativeId) ||
+          updates.length > 1 ||
+          canonicalJsonOf(timelines, limits: limits.jsonLimits) !=
+              canonicalJsonOf(autotile['tileAnimations'],
+                  limits: limits.jsonLimits) ||
+          autotile['animationVerified'] !=
+              ((autotile['tileAnimations'] as List).isNotEmpty &&
+                  autotile['degraded'] == false)) {
+        throw const NativeWriteException('native.composition.autotiles',
+            'Autotile provenance must bind the exact source image, generated atlas and native timeline');
+      }
+      _verifyAutotileProvenance(
+          draft, autotile, images.single, artifact.single, limits);
+      continue;
+    }
+    final sourceId = '${normalized.sourceTilesetId}';
     if (tilesetIds.containsKey(sourceId)) {
       throw const NativeWriteException('native.composition.contents',
           'Literal tileset mapping must account for each source identity once');
     }
     tilesetIds[sourceId] = mutation.parameters['tilesetId'] as String;
+  }
+  if (seenAutotiles.length != autotileEvidence.length) {
+    throw const NativeWriteException('native.composition.autotiles',
+        'Every literal autotile evidence entry must have its exact native import');
   }
   final mapHashes = {
     for (final entry in draft.mapIds.entries)
@@ -955,6 +1080,115 @@ void _verifyLiteralCompositionContents(NativeProjectDraft draft,
           canonicalJsonOf(artifacts, limits: limits.jsonLimits)) {
     throw const NativeWriteException('native.composition.contents',
         'Literal provenance must describe the exact native maps and artifact bytes');
+  }
+}
+
+void _verifyAutotileProvenance(
+    NativeProjectDraft draft,
+    Map row,
+    NormalizedMediaReference sourceImage,
+    NativeArtifact artifact,
+    NativeWriteLimits limits) {
+  final provenance = row['provenance'];
+  if (provenance is! Map ||
+      row['compositionHash'] !=
+          canonicalHashOf(provenance, limits: limits.jsonLimits).value ||
+      provenance['kind'] != 'literalAutotile' ||
+      provenance['version'] != 1 ||
+      provenance['sourceSnapshotHash'] !=
+          draft.source.snapshot.canonicalHash.value ||
+      provenance['sourceFileId'] != row['sourceFileId'] ||
+      provenance['sourceFileHash'] != row['sourceFileHash'] ||
+      provenance['sourceFilePath'] != sourceImage.sourceFile!.relativePath ||
+      provenance['sourceName'] != sourceImage.sourceName ||
+      provenance['sourceTilesetId'] != row['sourceTilesetId'] ||
+      provenance['autotileSlot'] != row['autotileSlot'] ||
+      provenance['nativeTilesetId'] != row['nativeTilesetId'] ||
+      provenance['generatedImageHash'] != row['nativeImageSha256'] ||
+      provenance['firstFrameOnly'] != row['firstFrameOnly'] ||
+      provenance['degraded'] != row['degraded'] ||
+      provenance['variantCount'] != 48 ||
+      provenance['localTileIdRule'] != 'frame*48+storedVariant' ||
+      provenance['neighborhoodRecomputed'] != false ||
+      canonicalJsonOf(provenance['tileAnimations'],
+              limits: limits.jsonLimits) !=
+          canonicalJsonOf(row['tileAnimations'], limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.composition.autotiles',
+        'Autotile internal provenance must match its hash and exact approved contents');
+  }
+  final frames = provenance['sourceFrameCount'];
+  final profile = provenance['sourceProfile'];
+  final dimensions = _pngHeaderDimensions(artifact.bytes, limits);
+  final animated = row['animationVerified'] == true;
+  if (frames is! int ||
+      frames <= 0 ||
+      frames != dimensions.$2 ~/ 192 ||
+      dimensions.$1 != 256 ||
+      dimensions.$2 % 192 != 0 ||
+      provenance['pixelWidth'] != dimensions.$1 ||
+      provenance['pixelHeight'] != dimensions.$2 ||
+      row['firstFrameOnly'] != !animated ||
+      row['degraded'] != (frames > 1 && !animated) ||
+      profile is! Map ||
+      profile['sourceSnapshotHash'] !=
+          draft.source.snapshot.canonicalHash.value ||
+      !const {'unverified', 'attested'}.contains(profile['state']) ||
+      (animated &&
+          (profile['state'] != 'attested' ||
+              provenance['nativeAnimationAvailable'] != true))) {
+    throw const NativeWriteException('native.composition.autotiles',
+        'Autotile geometry, degradation and source clock must agree');
+  }
+  if (profile['state'] == 'attested') {
+    final sourceClock = draft.source.snapshot.entries
+        .where((entry) => entry.fileId.value == profile['sourceFileId']);
+    if (sourceClock.length != 1 ||
+        sourceClock.single.sha256?.value != profile['sourceFileHash'] ||
+        profile['sourceFileHash'] !=
+            LiteralAutotileComposer.attestedArchiveSha256 ||
+        sourceClock.single.relativePath != profile['sourceFilePath'] ||
+        sourcePathCollisionKey(sourceClock.single.relativePath) !=
+            'data/scripts.rxdata' ||
+        profile['baseFrameDurationMs'] != 250 ||
+        profile['nameSuffixUnitMs'] != 50 ||
+        profile['clockScale'] != 1 ||
+        provenance['frameDurationMs'] !=
+            LiteralAutotileComposer.attestedFrameDurationMs(
+                sourceImage.sourceName)) {
+      throw const NativeWriteException('native.composition.autotiles',
+          'Attested source clock must bind its admitted script archive and scale');
+    }
+  }
+  if (!animated) return;
+  final duration = provenance['frameDurationMs'];
+  final timeline = row['tileAnimations'] as List;
+  if (duration is! int ||
+      duration <= 0 ||
+      duration > 2147483647 ||
+      frames < 2 ||
+      timeline.length != 48) {
+    throw const NativeWriteException('native.composition.autotiles',
+        'Animated autotiles require all stored variants and a bounded source duration');
+  }
+  for (var variant = 0; variant < 48; variant++) {
+    final animation = timeline[variant];
+    if (animation is! Map ||
+        animation['tileId'] != variant ||
+        animation['frames'] is! List ||
+        (animation['frames'] as List).length != frames) {
+      throw const NativeWriteException('native.composition.autotiles',
+          'Each stored variant must retain every source frame');
+    }
+    final steps = animation['frames'] as List;
+    for (var frame = 0; frame < frames; frame++) {
+      final step = steps[frame];
+      if (step is! Map ||
+          step['tileId'] != frame * 48 + variant ||
+          step['durationMs'] != duration) {
+        throw const NativeWriteException('native.composition.autotiles',
+            'Native frame order and timing must retain the stored source variant');
+      }
+    }
   }
 }
 

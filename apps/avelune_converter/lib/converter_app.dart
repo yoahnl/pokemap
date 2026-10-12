@@ -93,6 +93,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   int? _previewMap;
   bool _dirty = false;
   bool _studyAcknowledged = false;
+  bool _allowFirstFrameAutotiles = false;
   String? _localError;
   ConverterWorkflowEventKind? _lastOutcome;
   late (String, String, String, String) _lastFormValues;
@@ -182,6 +183,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _source.text = selected;
       setState(() {
         _studyAcknowledged = false;
+        _allowFirstFrameAutotiles = false;
         _step = 0;
       });
     }
@@ -191,6 +193,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _step = 1;
       _studyAcknowledged = false;
+      _allowFirstFrameAutotiles = false;
       _decisions.clear();
     });
     final snapshot = await _workflow.scanSource(
@@ -225,6 +228,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             : '',
       ),
       dependencyDecisions: _decisions,
+      allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
     );
   }
 
@@ -645,6 +649,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
                       _dirty = true;
                     }),
             ),
+            const SizedBox(height: 12),
+            StudioToggleRow(
+              key: const ValueKey('allow-first-frame-autotiles'),
+              label: 'Autoriser une étude statique si l’animation ne peut pas être vérifiée.',
+              description: 'Les frames sont conservées ; seule la première est affichée. Cette dégradation apparaîtra dans la revue.',
+              value: _allowFirstFrameAutotiles,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() {
+                      _allowFirstFrameAutotiles = value;
+                      _dirty = true;
+                    }),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -731,7 +748,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
               radius: 16,
               children: [
                 Text(
-                  '${prepared.composition.crops.where((value) => value.sourceTilesetId == tileset.sourceTilesetId).length} tuiles ordinaires préparées.',
+                  '${prepared.composition.crops.where((value) => value.sourceTilesetId == tileset.sourceTilesetId).length} tuiles littérales préparées.',
                 ),
                 for (final reference in tileset.images)
                   Text(
@@ -741,6 +758,29 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   ConverterAtlasPreview(
                     prepared: prepared,
                     sourceTilesetId: tileset.sourceTilesetId,
+                  ),
+                for (final autotile in prepared.composition.autotiles.where(
+                  (value) => value.sourceTilesetId == tileset.sourceTilesetId,
+                ))
+                  StudioPanel(
+                    compact: true,
+                    children: [
+                      Text(
+                        'Autotile ${autotile.autotileSlot + 1} · ${autotile.sourceFrameCount} frame(s) · 48 variantes conservées',
+                      ),
+                      StudioBadge(
+                        autotile.animationVerified
+                            ? 'Animation attestée · ${autotile.frameDurationMs} ms par frame'
+                            : autotile.degraded
+                            ? 'Étude dégradée · première frame'
+                            : 'Ressource statique',
+                      ),
+                      ConverterAtlasPreview(
+                        prepared: prepared,
+                        sourceTilesetId: tileset.sourceTilesetId,
+                        autotileSlot: autotile.autotileSlot,
+                      ),
+                    ],
                   ),
               ],
             ),

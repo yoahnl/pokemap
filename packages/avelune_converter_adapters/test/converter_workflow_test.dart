@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
@@ -10,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/original_autotile_fixture.dart';
 
 void main() {
   test('UX-01 real source analysis composition approval and native staging',
@@ -159,6 +161,90 @@ void main() {
       expect(
           harness.approve(acknowledged).approvedPlan.approvedByHuman, isTrue);
       expect(harness.nativeStages, isEmpty);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test(
+      'AC-07 first frame consent changes the preparation and invalidates approval',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      final animatedSettings = harness.settings(snapshot);
+      harness.workflow.updateSettings(animatedSettings);
+      final first = await harness.workflow.prepareStudy();
+      final approval = harness.approve(first);
+      final studySettings =
+          harness.settings(snapshot, allowFirstFrameAutotiles: true);
+      expect(
+          studySettings.canonicalHash, isNot(animatedSettings.canonicalHash));
+      harness.workflow.updateSettings(studySettings);
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      await expectLater(harness.workflow.writeApproved(approval),
+          _throwsWorkflow('workflow.stale_approval'));
+      final second = await harness.workflow.prepareStudy();
+      expect(second.preparationHash, isNot(first.preparationHash));
+      expect(second.settings.allowFirstFrameAutotiles, isTrue);
+      expect(harness.nativeStages, isEmpty);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test(
+      'AC-07 real workflow blocks unverified animation until exact first-frame consent',
+      () async {
+    final raster = OriginalAutotileFixture.standard();
+    final harness = await _WorkflowHarness.create(maps: [
+      LiteralFixtureMap(id: 1, layers: const [
+        [79, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0]
+      ])
+    ], tilesets: [
+      LiteralFixtureTileset(id: 1, autotileNames: const ['OriginalWater'])
+    ], autotilePngs: {
+      'OriginalWater': raster.pngBytes
+    });
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, selected: [1]));
+      final blocked = await harness.workflow.prepareStudy();
+      expect(blocked.canApprove, isFalse);
+      expect(
+          blocked.composition.diagnostics.any((value) =>
+              value.code == 'literal.autotile.animation_unverified' &&
+              value.blocksPlanning),
+          isTrue);
+      expect(
+          () => harness.approve(blocked), _throwsWorkflow('workflow.blocked'));
+      expect(harness.nativeStages, isEmpty);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [1], allowFirstFrameAutotiles: true));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.preparationHash, isNot(blocked.preparationHash));
+      expect(prepared.canApprove, isTrue);
+      expect(prepared.composition.autotiles.single.degraded, isTrue);
+      expect(prepared.composition.autotiles.single.animationVerified, isFalse);
+      final result =
+          await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(result.receipt.verified, isTrue);
+      expect(result.published, isFalse);
+      expect(result.playableCertified, isFalse);
+      final manifest = ProjectManifest.fromJson(jsonDecode(
+          await File('${result.receipt.projectPath}/project.json')
+              .readAsString()) as Map<String, dynamic>);
+      final atlas = manifest.tilesets
+          .singleWhere((value) =>
+              value.id == prepared.composition.autotiles.single.nativeTilesetId)
+          .source as ProjectRegularAtlasTilesetSource;
+      expect(atlas.tileAnimations, isEmpty);
+      expect(await _diskHashes(harness.sourceRoot), before);
     } finally {
       await harness.close();
     }
@@ -1128,6 +1214,7 @@ final class _WorkflowHarness {
           {List<int> selected = const [1, 8],
           List<LiteralDependencyDecision> decisions = const [],
           bool humanConfirmed = true,
+          bool allowFirstFrameAutotiles = false,
           String? reason,
           String? projectName,
           String? parentPath,
@@ -1154,6 +1241,7 @@ final class _WorkflowHarness {
                   : ''),
         ),
         dependencyDecisions: decisions,
+        allowFirstFrameAutotiles: allowFirstFrameAutotiles,
         normalizationLimits: normalizationLimits,
         writeLimits: writeLimits,
       );
@@ -1163,6 +1251,7 @@ final class _WorkflowHarness {
     NativeWriteCheckpoint? nativeCheckpoint,
     List<LiteralFixtureMap>? maps,
     List<LiteralFixtureTileset>? tilesets,
+    Map<String, List<int>> autotilePngs = const {},
     bool contradictoryProfile = false,
   }) async {
     final root =
@@ -1179,6 +1268,7 @@ final class _WorkflowHarness {
               ]),
             ],
         tilesets: tilesets,
+        autotilePngs: autotilePngs,
         contradictoryProfile: contradictoryProfile,
       );
       final stages = <NativeWriteStage>[];

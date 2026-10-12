@@ -25,7 +25,8 @@ class ConverterMapComparison extends StatefulWidget {
 
 class _ConverterMapComparisonState extends State<ConverterMapComparison> {
   final _transform = TransformationController();
-  ui.Image? _image;
+  Map<String, ui.Image> _images = const {};
+  Map<String, ui.Image> _sourceAutotileImages = const {};
   String? _error;
   int _generation = 0;
   bool _fitPending = true;
@@ -57,25 +58,40 @@ class _ConverterMapComparisonState extends State<ConverterMapComparison> {
 
   Future<void> _load() async {
     final generation = ++_generation;
-    _image?.dispose();
-    _image = null;
+    for (final image in _images.values) {
+      image.dispose();
+    }
+    for (final image in _sourceAutotileImages.values) {
+      image.dispose();
+    }
+    _images = const {};
+    _sourceAutotileImages = const {};
     _error = null;
     _emptyImage = false;
     if (_target == null) return;
+    Map<String, ui.Image> images = const {};
+    Map<String, ui.Image> sourceImages = const {};
     try {
-      final image = await _decodeAtlas(
+      images = await _decodeAtlases(widget.prepared, _source.sourceTilesetId);
+      sourceImages = await _decodeSourceAutotiles(
         widget.prepared,
         _source.sourceTilesetId,
       );
       if (!mounted || generation != _generation) {
-        image?.dispose();
+        for (final image in [...images.values, ...sourceImages.values]) {
+          image.dispose();
+        }
         return;
       }
       setState(() {
-        _image = image;
-        _emptyImage = image == null;
+        _images = images;
+        _sourceAutotileImages = sourceImages;
+        _emptyImage = images.isEmpty;
       });
     } catch (error) {
+      for (final image in [...images.values, ...sourceImages.values]) {
+        image.dispose();
+      }
       if (mounted && generation == _generation) {
         setState(
           () => _error =
@@ -88,7 +104,12 @@ class _ConverterMapComparisonState extends State<ConverterMapComparison> {
   @override
   void dispose() {
     _generation++;
-    _image?.dispose();
+    for (final image in _images.values) {
+      image.dispose();
+    }
+    for (final image in _sourceAutotileImages.values) {
+      image.dispose();
+    }
     _transform.dispose();
     super.dispose();
   }
@@ -128,7 +149,7 @@ class _ConverterMapComparisonState extends State<ConverterMapComparison> {
       );
     }
     if (_error != null) return StudioNotice(_error!, isError: true);
-    if (_image == null && !_emptyImage) {
+    if (_images.isEmpty && !_emptyImage) {
       return const StudioPanel(
         children: [
           Text('Chargement des pixels de l’atlas vérifié…'),
@@ -194,7 +215,7 @@ class _ConverterMapComparisonState extends State<ConverterMapComparison> {
             ),
             const SizedBox(height: 12),
             const StudioNotice(
-              'La vue source reconstruit les tuiles lues ; elle n’est pas une capture du jeu Essentials. Les priorités d’acteurs, événements et comportements ne sont pas certifiés par cette comparaison.',
+              'Cette comparaison statique reconstruit les tuiles lues à la première frame ; elle n’est pas une capture du jeu Essentials. Les animations se vérifient dans Studio. Les priorités d’acteurs, événements et comportements ne sont pas certifiés ici.',
             ),
           ],
         );
@@ -223,8 +244,14 @@ class _ConverterMapComparisonState extends State<ConverterMapComparison> {
               child: CustomPaint(
                 size: Size(source.width * 32, source.height * 32),
                 painter: sourceMode
-                    ? SourceTilesPainter(source, _image)
-                    : NativeTilesPainter(_target!, _image),
+                    ? SourceTilesPainter(
+                        source,
+                        _images,
+                        widget.prepared.composition.crops,
+                        autotileImages: _sourceAutotileImages,
+                        autotiles: widget.prepared.composition.autotiles,
+                      )
+                    : NativeTilesPainter(_target!, _images),
               ),
             ),
           ),
@@ -239,10 +266,12 @@ class ConverterAtlasPreview extends StatefulWidget {
     super.key,
     required this.prepared,
     required this.sourceTilesetId,
+    this.autotileSlot,
   });
 
   final PreparedStudy prepared;
   final int sourceTilesetId;
+  final int? autotileSlot;
 
   @override
   State<ConverterAtlasPreview> createState() => _ConverterAtlasPreviewState();
@@ -264,7 +293,8 @@ class _ConverterAtlasPreviewState extends State<ConverterAtlasPreview> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.prepared.composition.compositionHash !=
             widget.prepared.composition.compositionHash ||
-        oldWidget.sourceTilesetId != widget.sourceTilesetId) {
+        oldWidget.sourceTilesetId != widget.sourceTilesetId ||
+        oldWidget.autotileSlot != widget.autotileSlot) {
       unawaited(_load());
     }
   }
@@ -275,7 +305,21 @@ class _ConverterAtlasPreviewState extends State<ConverterAtlasPreview> {
     _image = null;
     _error = null;
     try {
-      final image = await _decodeAtlas(widget.prepared, widget.sourceTilesetId);
+      final auto = widget.autotileSlot == null
+          ? null
+          : widget.prepared.composition.autotiles
+                .where(
+                  (value) =>
+                      value.sourceTilesetId == widget.sourceTilesetId &&
+                      value.autotileSlot == widget.autotileSlot,
+                )
+                .firstOrNull;
+      final id =
+          auto?.nativeTilesetId ??
+          widget.prepared.composition.tilesetIds[widget.sourceTilesetId];
+      final image = id == null
+          ? null
+          : await _decodeNativeAtlas(widget.prepared, id);
       if (!mounted || generation != _generation) {
         image?.dispose();
         return;
@@ -305,7 +349,9 @@ class _ConverterAtlasPreviewState extends State<ConverterAtlasPreview> {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('${_image!.width} × ${_image!.height} pixels source'),
+              Text(
+                '${_image!.width} × ${_image!.height} pixels ${widget.autotileSlot == null ? 'source' : 'assemblés · atlas de frames, aperçu statique'}',
+              ),
               const SizedBox(height: 8),
               StudioAssetPreview(
                 height: 240,
@@ -320,28 +366,75 @@ class _ConverterAtlasPreviewState extends State<ConverterAtlasPreview> {
   );
 }
 
-Future<ui.Image?> _decodeAtlas(
+Future<Map<String, ui.Image>> _decodeAtlases(
   PreparedStudy prepared,
   int sourceTilesetId,
 ) async {
-  Sha256Hash? hash;
-  for (final crop in prepared.composition.crops) {
-    if (crop.sourceTilesetId == sourceTilesetId) {
-      hash = crop.imageSha256;
-      break;
+  final ids = prepared.composition.crops
+      .where((crop) => crop.sourceTilesetId == sourceTilesetId)
+      .map((crop) => crop.nativeTilesetId)
+      .toSet();
+  final images = <String, ui.Image>{};
+  try {
+    for (final id in ids) {
+      final image = await _decodeNativeAtlas(prepared, id);
+      if (image != null) images[id] = image;
     }
+    return Map.unmodifiable(images);
+  } catch (_) {
+    for (final image in images.values) {
+      image.dispose();
+    }
+    rethrow;
   }
-  if (hash == null) return null;
+}
+
+Future<ui.Image?> _decodeNativeAtlas(PreparedStudy prepared, String id) async {
+  final import = prepared.composition.draft?.mutations
+      .where(
+        (value) =>
+            value.actionId == 'tileset.import_image' &&
+            value.parameters['tilesetId'] == id,
+      )
+      .firstOrNull;
+  if (import == null) return null;
   final artifact = prepared.composition.draft?.artifacts
-      .where((value) => value.rawSha256 == hash)
+      .where((value) => value.handle == import.parameters['artifactHandle'])
       .firstOrNull;
   if (artifact == null) {
     throw StateError('Les pixels préparés ne correspondent pas à cet atlas.');
   }
-  const NativePngValidator().headerDimensions(
-    artifact.bytes,
-    limits: prepared.settings.writeLimits,
-  );
+  return _decodeArtifact(artifact, prepared.settings.writeLimits);
+}
+
+Future<Map<String, ui.Image>> _decodeSourceAutotiles(
+  PreparedStudy prepared,
+  int sourceTilesetId,
+) async {
+  final images = <String, ui.Image>{};
+  try {
+    for (final autotile in prepared.composition.autotiles.where(
+      (value) => value.sourceTilesetId == sourceTilesetId,
+    )) {
+      images[autotile.nativeTilesetId] = await _decodeArtifact(
+        autotile.sourceArtifact,
+        prepared.settings.writeLimits,
+      );
+    }
+    return Map.unmodifiable(images);
+  } catch (_) {
+    for (final image in images.values) {
+      image.dispose();
+    }
+    rethrow;
+  }
+}
+
+Future<ui.Image> _decodeArtifact(
+  NativeArtifact artifact,
+  NativeWriteLimits limits,
+) async {
+  const NativePngValidator().headerDimensions(artifact.bytes, limits: limits);
   final bytes = artifact.bytes is Uint8List
       ? artifact.bytes as Uint8List
       : Uint8List.fromList(artifact.bytes);
@@ -355,15 +448,33 @@ Future<ui.Image?> _decodeAtlas(
 }
 
 class SourceTilesPainter extends CustomPainter {
-  SourceTilesPainter(this.source, this.image)
-    : layers =
-          (source.layers.toList()
-                ..sort((a, b) => a.sourceZ.compareTo(b.sourceZ)))
-              .map((layer) => layer.cells)
-              .toList(growable: false);
+  SourceTilesPainter(
+    this.source,
+    this.images,
+    List<LiteralTileCrop> inputCrops, {
+    this.autotileImages = const {},
+    List<LiteralAutotileComposition> autotiles = const [],
+  }) : layers =
+           (source.layers.toList()
+                 ..sort((a, b) => a.sourceZ.compareTo(b.sourceZ)))
+               .map((layer) => layer.cells)
+               .toList(growable: false),
+       autotiles = Map.unmodifiable({
+         for (final autotile in autotiles)
+           if (autotile.sourceTilesetId == source.sourceTilesetId)
+             autotile.autotileSlot: autotile,
+       }),
+       crops = Map.unmodifiable({
+         for (final crop in inputCrops)
+           if (crop.sourceTilesetId == source.sourceTilesetId)
+             crop.sourceTileId: crop,
+       });
 
   final SourceMapData source;
-  final ui.Image? image;
+  final Map<String, ui.Image> images;
+  final Map<String, ui.Image> autotileImages;
+  final Map<int, LiteralAutotileComposition> autotiles;
+  final Map<int, LiteralTileCrop> crops;
   final List<List<int>> layers;
 
   @override
@@ -373,22 +484,65 @@ class SourceTilesPainter extends CustomPainter {
       for (var index = 0; index < cells.length; index++) {
         final tile = cells[index];
         if (tile == 0) continue;
-        if (tile < 384) throw StateError('Tuile source non prise en charge.');
-        _paintTile(canvas, image!, paint, tile - 384, index, source.width);
+        if (tile >= 48 && tile < 384) {
+          final autotile = autotiles[tile ~/ 48 - 1];
+          final image = autotileImages[autotile?.nativeTilesetId];
+          if (autotile == null || image == null) {
+            throw StateError(
+              'Les pixels source originaux de cet autotile ne sont pas disponibles.',
+            );
+          }
+          for (final part in autotile.sourceParts(
+            frame: 0,
+            variant: tile % 48,
+          )) {
+            canvas.drawImageRect(
+              image,
+              Rect.fromLTWH(
+                part.x.toDouble(),
+                part.y.toDouble(),
+                part.width.toDouble(),
+                part.height.toDouble(),
+              ),
+              Rect.fromLTWH(
+                (index % source.width) * 32 + part.destinationX.toDouble(),
+                (index ~/ source.width) * 32 + part.destinationY.toDouble(),
+                part.width.toDouble(),
+                part.height.toDouble(),
+              ),
+              paint,
+            );
+          }
+          continue;
+        }
+        final crop = crops[tile];
+        if (crop == null) throw StateError('Tuile source non préparée.');
+        _paintTile(
+          canvas,
+          images[crop.nativeTilesetId]!,
+          paint,
+          crop.nativeLocalTileId,
+          index,
+          source.width,
+        );
       }
     }
   }
 
   @override
   bool shouldRepaint(SourceTilesPainter oldDelegate) =>
-      oldDelegate.source != source || oldDelegate.image != image;
+      oldDelegate.source != source ||
+      oldDelegate.images != images ||
+      oldDelegate.autotileImages != autotileImages ||
+      oldDelegate.autotiles != autotiles ||
+      oldDelegate.crops != crops;
 }
 
 class NativeTilesPainter extends CustomPainter {
-  const NativeTilesPainter(this.target, this.image);
+  const NativeTilesPainter(this.target, this.images);
 
   final MapData target;
-  final ui.Image? image;
+  final Map<String, ui.Image> images;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -401,7 +555,7 @@ class NativeTilesPainter extends CustomPainter {
         final entry = layer.palette[cell - 1];
         _paintTile(
           canvas,
-          image!,
+          images[entry.tilesetId]!,
           paint,
           entry.localTileId,
           index,
@@ -413,7 +567,7 @@ class NativeTilesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(NativeTilesPainter oldDelegate) =>
-      oldDelegate.target != target || oldDelegate.image != image;
+      oldDelegate.target != target || oldDelegate.images != images;
 }
 
 void _paintTile(
@@ -426,7 +580,12 @@ void _paintTile(
 ) {
   canvas.drawImageRect(
     image,
-    Rect.fromLTWH((localId % 8) * 32, (localId ~/ 8) * 32, 32, 32),
+    Rect.fromLTWH(
+      (localId % (image.width ~/ 32)) * 32,
+      (localId ~/ (image.width ~/ 32)) * 32,
+      32,
+      32,
+    ),
     Rect.fromLTWH(
       (cellIndex % mapWidth) * 32,
       (cellIndex ~/ mapWidth) * 32,

@@ -118,7 +118,7 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
         {
           'operationId': mutation.operationId.value,
           'domain':
-              mutation.actionId == 'tileset.import_image' ? 'assets' : 'maps',
+              mutation.actionId.startsWith('tileset.') ? 'assets' : 'maps',
           'sourceEntityIds':
               mutation.sourceEntityIds.map((id) => id.value).toList(),
           'targetEntityIds':

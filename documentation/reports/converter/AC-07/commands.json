@@ -1,0 +1,2066 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-07",
+  "status": "verified_pending_human_review",
+  "commands": [
+    {
+      "evidenceKey": "ac07.fullAdaptersFinal",
+      "verdict": "PASS",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 13.561,
+      "runnerPid": 97289,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-yoct54em.log",
+      "logSha256": "de3fbc96a868c4ead23a5a23b579102521118d48c582843c28593d94bc24c41a",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-yoct54em.log.json",
+      "observedProcessCount": 4,
+      "resultLines": [
+        "00:11 +233: All tests passed!"
+      ],
+      "environment": {
+        "AVELUNE_AUTOTILE_SCRIPTS_PATH": "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      }
+    },
+    {
+      "evidenceKey": "ac07.adaptersAnalysisFinal",
+      "verdict": "PASS",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.393,
+      "runnerPid": 2336,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ojlg1muh.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ojlg1muh.log.json",
+      "observedProcessCount": 2,
+      "resultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "evidenceKey": "ac07.appComparisonFinalCandidate",
+      "verdict": "PASS",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/map_comparison_autotile_test.dart",
+        "test/converter_app_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 17.356,
+      "runnerPid": 86456,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dzrok3rm.log",
+      "logSha256": "ff6bd040920668e17e3ef9e9d18c48bbf8be9e4b15c7d99e8dd82120dbad8ac8",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dzrok3rm.log.json",
+      "observedProcessCount": 4,
+      "resultLines": [
+        "00:12 +9: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "ac07.appAnalysisClean",
+      "verdict": "PASS",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 8.497,
+      "runnerPid": 93308,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dwqx2m13.log",
+      "logSha256": "47214b8f17ff94de8e0e01cc217c139f8be73815c02d77fb78f5e469f58e840d",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dwqx2m13.log.json",
+      "observedProcessCount": 2,
+      "resultLines": [
+        "No issues found! (ran in 7.1s)"
+      ]
+    },
+    {
+      "evidenceKey": "ac07.converterBuildFinal",
+      "verdict": "PASS",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 22.004,
+      "runnerPid": 97288,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dml6n378.log",
+      "logSha256": "15b0c3df3912899cb2fa68f3365f5516fc964fc650a05233dcf778db4e0a88e6",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dml6n378.log.json",
+      "observedProcessCount": 44,
+      "resultLines": [
+        "✓ Built build/macos/Build/Products/Debug/Avelune Converter.app"
+      ]
+    },
+    {
+      "evidenceKey": "ac07.aotCompile",
+      "verdict": "PASS",
+      "command": [
+        "dart",
+        "compile",
+        "exe",
+        "tool/literal_autotile_probe.dart",
+        "-o",
+        "/private/tmp/avelune-converter-ac07-probe-b52195763dff1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 25.703,
+      "runnerPid": 6656,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-gg49oapl.log",
+      "logSha256": "b0a0b2c2e9504525aae4bd4f02466fa5dbff33c7bdf82c9cbe37a323700f3b33",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-gg49oapl.log.json",
+      "observedProcessCount": 6,
+      "resultLines": [
+        "Generated: /private/tmp/avelune-converter-ac07-probe-b52195763dff1"
+      ]
+    },
+    {
+      "evidenceKey": "ac07.aotProbe",
+      "verdict": "PASS",
+      "command": [
+        "/private/tmp/avelune-converter-ac07-probe-b52195763dff1",
+        "--offline",
+        "--parent",
+        "/private/tmp",
+        "--scripts",
+        "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.774,
+      "runnerPid": 8634,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-6mqz09vd.log",
+      "logSha256": "e5c936641e19269a5f5035cc824cf2af6f8315bd79c442145186a5f480bf7d67",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-6mqz09vd.log.json",
+      "observedProcessCount": 1,
+      "resultLines": []
+    },
+    {
+      "evidenceKey": "autotileFocused18",
+      "verdict": "PASS",
+      "argv": [
+        "env",
+        "AVELUNE_AUTOTILE_SCRIPTS_PATH=/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata",
+        "dart",
+        "test",
+        "test/literal_autotile_composer_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "startedUtc": "2026-10-12T04:01:31.792647+00:00",
+      "exitCode": 0,
+      "elapsedSeconds": 6.587,
+      "runnerPid": 91021,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "receiptPath": "/private/tmp/avelune-converter-ac07-raster-w7vqnsn_/public-duration-final-green-receipt.json",
+      "receiptSha256": "438ad6600f707e36dacc00b11dd056f41b002870c50ee66b973058a938f2f34e",
+      "resultLines": [
+        "00:04 +18: All tests passed!"
+      ]
+    },
+    {
+      "evidenceKey": "autotileFocusedAnalyze",
+      "verdict": "PASS",
+      "argv": [
+        "dart",
+        "analyze",
+        "lib/src/literal_autotile_composer.dart",
+        "test/literal_autotile_composer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "startedUtc": "2026-10-12T04:01:33.082071+00:00",
+      "exitCode": 0,
+      "elapsedSeconds": 1.478,
+      "runnerPid": 91105,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "receiptPath": "/private/tmp/avelune-converter-ac07-raster-w7vqnsn_/public-duration-analyze-receipt.json",
+      "receiptSha256": "a286c499c96dacf5bf9b91eca0a0343fc32320bd85e4b78b9a4c36a4021df185",
+      "resultLines": [
+        "No issues found!"
+      ]
+    },
+    {
+      "verdict": "PASS",
+      "label": "oracle-extraction",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-oracle-extraction-receipt.json",
+      "receiptSha256": "2e727fc52e3141c246f7b608d220d92cfd6e598a30c42d76707fba42c639b5bc",
+      "command": "dart --packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json /private/tmp/avelune-converter-ac07-oracle-extract.dart /Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata",
+      "argv": [
+        "dart",
+        "--packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac07-oracle-extract.dart",
+        "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.688,
+      "runnerPid": 47007,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "label": "clock-extraction",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-clock-extraction-receipt.json",
+      "receiptSha256": "6737682930fc7036f3596dc5bbeb89d8d22457f844c68cc733465fc289817aa0",
+      "command": "dart --packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json /private/tmp/avelune-converter-ac07-clock-extract.dart /Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata",
+      "argv": [
+        "dart",
+        "--packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac07-clock-extract.dart",
+        "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.677,
+      "runnerPid": 53450,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "label": "fixture-qualification",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-fixture-qualification-receipt.json",
+      "receiptSha256": "6a004eff641e15201ec94a2cddaacc88ae63ce009ca3ca5c0482d9a4a570498d",
+      "command": "dart --packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json /private/tmp/avelune-converter-ac07-fixture-qualification.dart",
+      "argv": [
+        "dart",
+        "--packages=/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac07-fixture-qualification.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.828,
+      "runnerPid": 54631,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "label": "fixture-analyze",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-fixture-analyze-receipt.json",
+      "receiptSha256": "433ffec091c7312fcd895ebfef270a901e0ab0808c056426678c93be7f0c664c",
+      "command": "dart analyze test/support/original_autotile_fixture.dart",
+      "argv": [
+        "dart",
+        "analyze",
+        "test/support/original_autotile_fixture.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 0.821,
+      "runnerPid": 55326,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "evidenceKey": "studio.red-valid",
+      "verdict": "EXPECTED_RED",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/red-valid-receipt.json",
+      "receiptSha256": "ce3104b07a5e54fb010347aea285b3efdfe6ed83dfa7404fef2c6323e2449e85",
+      "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/red-valid.log",
+      "logSha256": "edf3a1938839d4b731e03a2ebfeff5ae7f2ec401f817a13a9d4c5ee88101e578",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "test",
+        "--no-pub",
+        "test/platform/rendering/studio_map_visual_animation_test.dart",
+        "--reporter",
+        "expanded",
+        "--plain-name",
+        "native atlas paints all three timed frames at boundaries and loops"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "runnerPid": 54848,
+      "exitCode": 1,
+      "elapsedSeconds": 14.398871500015957,
+      "observedProcessCount": 3,
+      "attributedSurvivorCount": 0,
+      "signals": [],
+      "protectedIdentitiesUnchanged": true
+    },
+    {
+      "evidenceKey": "studio.red-millisecond",
+      "verdict": "EXPECTED_RED",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/red-millisecond-receipt.json",
+      "receiptSha256": "db6103627b72a54141ea1fc00d33c5cd3263c44511e8ddba58626c45b8c136cb",
+      "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/red-millisecond.log",
+      "logSha256": "4697f49d39d2da51694c18e43f35244e47b857f008c49887d6819d9b2eea49a4",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "test",
+        "--no-pub",
+        "test/platform/rendering/studio_map_visual_animation_test.dart",
+        "--reporter",
+        "expanded",
+        "--plain-name",
+        "non-binary millisecond boundaries cannot leave the painted frame behind the clock"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "runnerPid": 72533,
+      "exitCode": 1,
+      "elapsedSeconds": 5.433415625011548,
+      "observedProcessCount": 3,
+      "attributedSurvivorCount": 0,
+      "signals": [],
+      "protectedIdentitiesUnchanged": true
+    },
+    {
+      "evidenceKey": "studio.green-millisecond-final",
+      "verdict": "PASS",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/green-millisecond-final-receipt.json",
+      "receiptSha256": "6db34d4e2fe33d78e6d936d9a002a8efa8ec0e01c76d7a7b98fc135d771b0e83",
+      "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/green-millisecond-final.log",
+      "logSha256": "63346433bf0c356eb2b0029b2bea0560fa7176588defac08eeda5a4d615d355a",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "test",
+        "--no-pub",
+        "test/platform/rendering/studio_map_visual_animation_test.dart",
+        "test/infrastructure/studio_map_resources_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "runnerPid": 73786,
+      "exitCode": 0,
+      "elapsedSeconds": 5.187036916991929,
+      "observedProcessCount": 4,
+      "attributedSurvivorCount": 0,
+      "signals": [],
+      "protectedIdentitiesUnchanged": true
+    },
+    {
+      "evidenceKey": "studio.analyze-millisecond-final",
+      "verdict": "PASS",
+      "receiptPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/analyze-millisecond-final-receipt.json",
+      "receiptSha256": "6a821a495ae2fc70f4e19a361781dcac66ab9ebdf21265a4efef06807f668c31",
+      "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/analyze-millisecond-final.log",
+      "logSha256": "283d7aef449f1b9244f3fab7ce03f1af2a966b45b7755f6ff5686f2b041be540",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "analyze",
+        "--no-pub",
+        "lib/platform/rendering/studio_map_visual_widgets.dart",
+        "test/platform/rendering/studio_map_visual_animation_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "runnerPid": 74625,
+      "exitCode": 0,
+      "elapsedSeconds": 6.155445832991973,
+      "observedProcessCount": 2,
+      "attributedSurvivorCount": 0,
+      "signals": [],
+      "protectedIdentitiesUnchanged": true
+    },
+    {
+      "verdict": "PASS",
+      "argv": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "npm-check",
+      "exitCode": 0,
+      "elapsedSeconds": 1.218,
+      "runnerPid": 94434,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "npm-build",
+      "exitCode": 0,
+      "elapsedSeconds": 1.308,
+      "runnerPid": 95813,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "argv": [
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-concurrency=1",
+        "test/map_metadata_server.test.ts",
+        "test/map_lifecycle_server.test.ts",
+        "test/studio_resource_import.test.ts"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "focused-mcp-tests",
+      "exitCode": 0,
+      "elapsedSeconds": 27.749,
+      "runnerPid": 96145,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "HARNESS_FAILURE",
+      "argv": [
+        "node",
+        "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+        "mcp"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "mcp-tileset-probe",
+      "exitCode": 1,
+      "elapsedSeconds": 9.982,
+      "runnerPid": 96263,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "HARNESS_FAILURE",
+      "argv": [
+        "node",
+        "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+        "mcp"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "mcp-tileset-final",
+      "exitCode": 1,
+      "elapsedSeconds": 9.197,
+      "runnerPid": 98060,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "HARNESS_FAILURE",
+      "argv": [
+        "node",
+        "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+        "jsonl"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "jsonl-tileset-final",
+      "exitCode": 1,
+      "elapsedSeconds": 8.849,
+      "runnerPid": 98180,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "argv": [
+        "node",
+        "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+        "mcp"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "mcp-tileset-complete",
+      "exitCode": 0,
+      "elapsedSeconds": 9.293,
+      "runnerPid": 241,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "argv": [
+        "node",
+        "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+        "jsonl"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "label": "jsonl-tileset-complete",
+      "exitCode": 0,
+      "elapsedSeconds": 8.771,
+      "runnerPid": 299,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_converter_qualification",
+      "label": "host-pub-get",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 2.925,
+      "runnerPid": 15096,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_converter_qualification",
+      "label": "flutter-devices",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "devices",
+        "--machine"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 8.77,
+      "runnerPid": 15423,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_converter_qualification",
+      "label": "public-painter-scales",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "test",
+        "--no-pub",
+        "test/ac07_public_painter_scale_probe_test.dart",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 15.368,
+      "runnerPid": 36523,
+      "confirmedSurvivors": [],
+      "signals": []
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_studio_qualification",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "analyze",
+        "--no-pub",
+        "--no-fatal-infos",
+        "lib/ac07_qualification_main.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+      "runnerPid": 5241,
+      "exitCode": 0,
+      "elapsedSeconds": 11.469136792002246
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_studio_qualification",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "analyze",
+        "--no-pub",
+        "--no-fatal-infos",
+        "lib/ac07_qualification_main.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+      "runnerPid": 40123,
+      "exitCode": 0,
+      "elapsedSeconds": 12.139944082999136
+    },
+    {
+      "verdict": "PASS",
+      "scope": "temporary_studio_qualification",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+      "runnerPid": 4157,
+      "exitCode": 0,
+      "elapsedSeconds": 2.2414622500073165
+    },
+    {
+      "verdict": "QUALIFICATION_HARNESS_RESULT",
+      "scope": "temporary_studio_qualification",
+      "command": [
+        "/opt/homebrew/bin/dart",
+        "analyze",
+        "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/studio_ui_main.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+      "runnerPid": 4485,
+      "exitCode": 3,
+      "elapsedSeconds": 0.7154117079917341
+    },
+    {
+      "verdict": "QUALIFICATION_HARNESS_RESULT",
+      "scope": "temporary_studio_qualification",
+      "command": [
+        "/opt/homebrew/bin/flutter",
+        "analyze",
+        "--no-pub",
+        "lib/ac07_qualification_main.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+      "runnerPid": 4719,
+      "exitCode": 1,
+      "elapsedSeconds": 11.572296541999094
+    }
+  ],
+  "oracle": {
+    "variantCount": 48,
+    "frameCount": 3,
+    "formatCount": 3,
+    "goldens": 432,
+    "productionTableImported": false,
+    "sourceScriptEmbedded": false,
+    "sourceMediaEmbedded": false
+  },
+  "parity": {
+    "receiptPath": "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/parity-receipts.json",
+    "commands": [
+      {
+        "argv": [
+          "npm",
+          "run",
+          "check"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "npm-check",
+        "exitCode": 0,
+        "elapsedSeconds": 1.218,
+        "runnerPid": 94434,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "npm-build",
+        "exitCode": 0,
+        "elapsedSeconds": 1.308,
+        "runnerPid": 95813,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "--import",
+          "tsx",
+          "--test",
+          "--test-concurrency=1",
+          "test/map_metadata_server.test.ts",
+          "test/map_lifecycle_server.test.ts",
+          "test/studio_resource_import.test.ts"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "focused-mcp-tests",
+        "exitCode": 0,
+        "elapsedSeconds": 27.749,
+        "runnerPid": 96145,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+          "mcp"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "mcp-tileset-probe",
+        "exitCode": 1,
+        "elapsedSeconds": 9.982,
+        "runnerPid": 96263,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+          "mcp"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "mcp-tileset-final",
+        "exitCode": 1,
+        "elapsedSeconds": 9.197,
+        "runnerPid": 98060,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+          "jsonl"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "jsonl-tileset-final",
+        "exitCode": 1,
+        "elapsedSeconds": 8.849,
+        "runnerPid": 98180,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+          "mcp"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "mcp-tileset-complete",
+        "exitCode": 0,
+        "elapsedSeconds": 9.293,
+        "runnerPid": 241,
+        "confirmedSurvivors": [],
+        "signals": []
+      },
+      {
+        "argv": [
+          "node",
+          "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/tileset_probe.mjs",
+          "jsonl"
+        ],
+        "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+        "label": "jsonl-tileset-complete",
+        "exitCode": 0,
+        "elapsedSeconds": 8.771,
+        "runnerPid": 299,
+        "confirmedSurvivors": [],
+        "signals": []
+      }
+    ],
+    "facts": {
+      "mcp": {
+        "mode": "mcp",
+        "root": "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/mcp",
+        "originalRoot": "/private/tmp/ac07-original-qualification-ML3C8U/.avelune-converter-stage-KA24m8/converted-autotile-fixture",
+        "tilesetId": "auto_c94573f8cf49189b50fc5a06",
+        "delta": {
+          "durationMs": {
+            "before": 250,
+            "after": 300
+          },
+          "changedFrames": 144,
+          "unchangedTileIds": true,
+          "unchangedGeometry": true,
+          "unchangedPNGBytes": true
+        },
+        "beforeManifestSha256": "75092d42e9b8cac8d461a59c5d99097a33762b7c852270447fcd3d691e8bfe5a",
+        "afterManifestSha256": "d5cc2b9d5006294e41fd1e67e66823cdc9c519c25858c4c17c8beb72b91766ed",
+        "beforeRevision": "sha256:c33ca834477bbf603b93d18964e50d1bb9d8d978c88199a3f57f2b76b921bbe5",
+        "afterRevision": "sha256:8342cb1f125d451bb8da32166bc93db9254ed6eafcc25393b93bfa52184158ea",
+        "reopenedRevision": "sha256:8342cb1f125d451bb8da32166bc93db9254ed6eafcc25393b93bfa52184158ea",
+        "planUnchangedFiles": true,
+        "planUnchangedRevision": true
+      },
+      "jsonl": {
+        "mode": "jsonl",
+        "root": "/private/tmp/avelune-converter-ac07-parity-izmkj1v2/jsonl",
+        "originalRoot": "/private/tmp/ac07-original-qualification-ML3C8U/.avelune-converter-stage-KA24m8/converted-autotile-fixture",
+        "tilesetId": "auto_c94573f8cf49189b50fc5a06",
+        "delta": {
+          "durationMs": {
+            "before": 250,
+            "after": 300
+          },
+          "changedFrames": 144,
+          "unchangedTileIds": true,
+          "unchangedGeometry": true,
+          "unchangedPNGBytes": true
+        },
+        "beforeManifestSha256": "75092d42e9b8cac8d461a59c5d99097a33762b7c852270447fcd3d691e8bfe5a",
+        "afterManifestSha256": "d5cc2b9d5006294e41fd1e67e66823cdc9c519c25858c4c17c8beb72b91766ed",
+        "beforeRevision": "sha256:c33ca834477bbf603b93d18964e50d1bb9d8d978c88199a3f57f2b76b921bbe5",
+        "afterRevision": "sha256:8342cb1f125d451bb8da32166bc93db9254ed6eafcc25393b93bfa52184158ea",
+        "reopenedRevision": "sha256:8342cb1f125d451bb8da32166bc93db9254ed6eafcc25393b93bfa52184158ea",
+        "planUnchangedFiles": true,
+        "planUnchangedRevision": true
+      }
+    },
+    "limitations": [
+      "Global catalog397actions/60resourceKinds has transportCertificationComplete=false and itemTransportCertificationComplete=false; this scoped exercise does not promote its registry automatically.",
+      "Native validation valid=true, structure/references=true, zero Pokemon errors; capability certification not requested, capabilityTruth fail=noPromotedCapabilities. No capability/playability certification claimed.",
+      "250→300ms is native authoring edit only; not a converter attested-source-clock preservation claim.",
+      "Canonical journaling changes at apply are recorded explicitly; all native map/assets/data bytes except project.json remain identical. Plan changes no file bytes and no revision.",
+      "Direct converter pipeline, Studio/render/Player acceptance and allother transport/actions are outside this sub-pass."
+    ],
+    "liveCatalog": {
+      "actions": [
+        {
+          "id": "map.create",
+          "version": 1
+        },
+        {
+          "id": "map.save",
+          "version": 1
+        },
+        {
+          "id": "tileset.import_image",
+          "version": 1
+        },
+        {
+          "id": "tileset.upsert",
+          "version": 1
+        }
+      ],
+      "summary": {
+        "blockedOrMissingCount": 0,
+        "catalogComplete": true,
+        "coverageScope": "canonicalAuthoringCatalog",
+        "endToEndVerifiedMutationActionCount": 135,
+        "fullyEndToEndVerifiedMutationActionCount": 103,
+        "itemTransportCertificationComplete": false,
+        "mutationActionCount": 397,
+        "notApplicableCount": 83,
+        "resourceCount": 88,
+        "transportCertificationComplete": false
+      }
+    }
+  },
+  "studioUnitTests": {
+    "focusedAnimationCount": 18,
+    "existingResourcesCount": 7,
+    "total": 25,
+    "resultLine": "00:01 +25: All tests passed!"
+  },
+  "studioEarlierInterruptedAttempt": {
+    "receiptPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/green-first-receipt.json",
+    "runnerPid": 57677,
+    "externalSignal": "TERM",
+    "reverifiedPpid": 57666,
+    "reverifiedStart": "Mon Oct 12 05:31:36 2026",
+    "reason": "Offstage failure plus test-only fakeAsync waiting helper hang",
+    "qualification": "not green despite Flutter returning exitCode0 after interruption",
+    "attributedSurvivorCount": 0
+  },
+  "logRetention": "Exact host log/receipt paths and SHA-256 references are retained. Temporary wrappers, original controlled PNGs and the external source archive are not versioned.",
+  "productionBuild": "apps/avelune_converter/build/macos/Build/Products/Debug/Avelune Converter.app",
+  "nativeUiQualification": {
+    "converter": {
+      "qualification": "Real Converter macOS UI, explicit first-frame study when source clock is unverified",
+      "verdict": "PASS bounded",
+      "onlyExcludedPath": "Data/Scripts.rxdata",
+      "sourceOriginalUnchanged": true,
+      "sourceCopyUnchanged": true,
+      "sourceOriginalManifestHash": "a43687ffbe3b5bae4fe6e5bc5f0c1bf9363c89a1a547f4bd8962b85901c14621",
+      "sourceCopyManifestHash": "20aef6d1ca1c69f1d5ce8c042944ba2fd8ffe71c0c268a51f39deeef59c36d24",
+      "destinationEmpty": true,
+      "planApproved": false,
+      "nativeWrite": false,
+      "published": false,
+      "nativeWriteCheckpointCount": 0,
+      "hotRestart": [
+        {
+          "action": "restart",
+          "result": {
+            "rawReceiptPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-003-restart.json",
+            "result": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hot restart completed successfully"
+                }
+              ]
+            },
+            "previousBootId": "20030:1791778975680393",
+            "stateAfter": {
+              "schemaVersion": 1,
+              "qualificationKind": "converterUiInteractive",
+              "pid": 20030,
+              "runNonce": "eaf7c9ca-efbd-4870-910d-ccbf9958968a",
+              "bootId": "20030:1791778999436505",
+              "bundleId": "com.yoahnl.avelune.converter.ac07qualification",
+              "productName": "Avelune Converter",
+              "containerRoot": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data",
+              "sourceRoot": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/original-source",
+              "parentRoot": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/output",
+              "resolvedExecutable": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host/build/macos/Build/Products/Debug/Avelune Converter.app/Contents/MacOS/Avelune Converter",
+              "nativeSourceAudit": {
+                "directoryFlags": 17826048,
+                "noFollowAnyFlag": 536870912,
+                "traversed": [
+                  {
+                    "path": "/",
+                    "fdOpened": true,
+                    "errno": 0
+                  },
+                  {
+                    "path": "/Users",
+                    "fdOpened": false,
+                    "errno": 1
+                  }
+                ],
+                "direct": {
+                  "path": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/original-source",
+                  "fdOpened": false,
+                  "errno": 22
+                },
+                "allOpenedDescriptorsClosed": true,
+                "variants": [
+                  {
+                    "name": "directNoFollowAnyOnly",
+                    "flags": 554696704,
+                    "fdOpened": true,
+                    "errno": 0
+                  },
+                  {
+                    "name": "directNoFollowBaseline",
+                    "flags": 17826048,
+                    "fdOpened": true,
+                    "errno": 0
+                  },
+                  {
+                    "name": "directSearchNoFollowAny",
+                    "flags": 1628438528,
+                    "fdOpened": true,
+                    "errno": 0
+                  },
+                  {
+                    "name": "searchUsersAncestor",
+                    "flags": 1091567872,
+                    "rootFdOpened": true,
+                    "fdOpened": true,
+                    "errno": 0
+                  }
+                ]
+              },
+              "sourceSelectionRoot": null,
+              "destinationSelectionRoot": null,
+              "revision": 1,
+              "snapshotHash": null,
+              "snapshotState": null,
+              "availableMapIds": [],
+              "preparationHash": null,
+              "canApprove": null,
+              "selectedMapIds": null,
+              "compositionHash": null,
+              "previewPlanHash": null,
+              "approvalHash": null,
+              "allowFirstFrameAutotiles": null,
+              "studyAcknowledged": null,
+              "diagnostics": null,
+              "autotiles": null,
+              "renderedTexts": [
+                "CONVERTER",
+                "1",
+                "Source",
+                "Choisir le projet",
+                "2",
+                "Analyse",
+                "Voir les possibilités",
+                "3",
+                "Ressources",
+                "Examiner les atlas",
+                "4",
+                "Vérification",
+                "Comparer et vérifier",
+                "5",
+                "Export",
+                "Revoir puis créer",
+                "Traitement local",
+                "Projet d’étude",
+                "Un nouveau départ pour vos projets.",
+                "RPG Maker XP / Pokémon Essentials → Avelune Studio",
+                "Votre projet source",
+                "Choisissez un dossier non chiffré ou son fichier Game.rxproj.",
+                "Dossier source ou Game.rxproj",
+                "Choisissez un dossier ou saisissez son chemin",
+                "Choisir un dossier",
+                "Choisir Game.rxproj",
+                "Copier le chemin",
+                "Dossier parent de destination",
+                "Choisissez un dossier ou saisissez son chemin",
+                "Choisir la destination",
+                "Nom du projet Avelune",
+                "Nom du nouveau dossier",
+                "Ce que vous obtiendrez",
+                "Des cartes éditables dans Avelune Studio, avec leurs tuiles et atlas réutilisables.",
+                "Projet d’étude — cartes et ressources",
+                "La lecture du projet ne certifie pas ses événements, ses combats ou sa progression. Les écarts restent visibles avant création.",
+                "Les scripts source ne sont jamais exécutés. Aucun compte, service cloud ou clé IA n’est nécessaire.",
+                "Projet d’étude — gameplay non certifié",
+                "Analyser le projet"
+              ],
+              "busy": false,
+              "phase": null,
+              "jobId": null,
+              "jobState": null,
+              "progress": null,
+              "cancellationRequested": false,
+              "failure": null,
+              "result": null,
+              "window": {
+                "width": 1600,
+                "height": 1000,
+                "devicePixelRatio": 1
+              },
+              "textFields": [
+                {
+                  "key": null,
+                  "label": "Dossier source ou Game.rxproj",
+                  "value": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/original-source",
+                  "controllerIdentity": 530570152,
+                  "selectionBase": -1,
+                  "selectionExtent": -1,
+                  "left": 256,
+                  "top": 192,
+                  "width": 837.3333333333335,
+                  "height": 32,
+                  "isFocused": false
+                },
+                {
+                  "key": null,
+                  "label": "Dossier parent de destination",
+                  "value": "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/output",
+                  "controllerIdentity": 203452495,
+                  "selectionBase": -1,
+                  "selectionExtent": -1,
+                  "left": 256,
+                  "top": 300,
+                  "width": 837.3333333333335,
+                  "height": 32,
+                  "isFocused": false
+                },
+                {
+                  "key": null,
+                  "label": "Nom du projet Avelune",
+                  "value": "Mon projet Avelune",
+                  "controllerIdentity": 658416009,
+                  "selectionBase": -1,
+                  "selectionExtent": -1,
+                  "left": 256,
+                  "top": 408,
+                  "width": 837.3333333333335,
+                  "height": 31,
+                  "isFocused": false
+                },
+                {
+                  "key": null,
+                  "label": "Nom du nouveau dossier",
+                  "value": "avelune-study",
+                  "controllerIdentity": 518074680,
+                  "selectionBase": -1,
+                  "selectionExtent": -1,
+                  "left": 256,
+                  "top": 455,
+                  "width": 837.3333333333335,
+                  "height": 31,
+                  "isFocused": false
+                }
+              ],
+              "flutterErrors": [],
+              "cancelGateEntered": false,
+              "cancelGateUsed": false,
+              "cancelGateStagingRoot": null,
+              "nativeCheckpoints": [],
+              "events": [],
+              "type": "_extensionType",
+              "method": "ext.flutter.ac07.qualificationState",
+              "status": "Success",
+              "eventCount": 0,
+              "checkpointCount": 0
+            }
+          }
+        }
+      ],
+      "protectedProcessIdentityUnchanged": {
+        "6272": true,
+        "61161": true,
+        "82303": true
+      },
+      "captures": [
+        {
+          "label": "initial-analysis-blocked",
+          "path": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ui-1-006-0.png",
+          "pixelSize": [
+            1600,
+            1000
+          ],
+          "sha256": "04c762e928cec5be3f285340b22a250ca0d9c5b8f80079978fdff576bcd5ea9e",
+          "bytes": 137250,
+          "inspectedVisually": true,
+          "callPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-006-take_screenshots.json"
+        },
+        {
+          "label": "resources-3frames-degraded",
+          "path": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ui-1-019-0.png",
+          "pixelSize": [
+            1600,
+            1000
+          ],
+          "sha256": "44269a379afbc3f10ba941fe2db6bf646464cf1e59012519b8af5133ad122368",
+          "bytes": 131650,
+          "inspectedVisually": true,
+          "callPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-019-take_screenshots.json"
+        },
+        {
+          "label": "resources-3frames-degraded",
+          "path": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ui-1-022-0.png",
+          "pixelSize": [
+            1280,
+            800
+          ],
+          "sha256": "32f73db4b3ee7d6244bb2267f683dab79bbd192b344d89ee42ccaf60b147481e",
+          "bytes": 110317,
+          "inspectedVisually": true,
+          "callPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-022-take_screenshots.json"
+        },
+        {
+          "label": "comparison-first-frame-fit",
+          "path": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ui-1-031-0.png",
+          "pixelSize": [
+            1600,
+            1000
+          ],
+          "sha256": "46198dff967997c418547012e31c05e99e88f4c77c47302eb9e9992c3f5831fa",
+          "bytes": 168384,
+          "inspectedVisually": true,
+          "callPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-031-take_screenshots.json"
+        },
+        {
+          "label": "comparison-first-frame-fit",
+          "path": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ui-1-035-0.png",
+          "pixelSize": [
+            1280,
+            800
+          ],
+          "sha256": "e254bad0a8a1c7911fea0298678b6c7599208bf8600f973e9c8dbfc6cb75c114",
+          "bytes": 145180,
+          "inspectedVisually": true,
+          "callPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/call-035-take_screenshots.json"
+        }
+      ],
+      "publicPainterScaleFacts": {
+        "sourceSnapshotHash": "999cfb3a7788ec9c4776ac0125dd818eb9fe1f229ff71053a7f1169d0ba5cb8c",
+        "preparationHash": "30d8217f31d481dadeee771c77b576a3731bc3a8f40a12fa2f93b2dabd22f87e",
+        "compositionHash": "ab41fa0080bbd02e82465df29860f90d70ea09fa33253fd5cafca7e2fc38b634",
+        "sourceImageHash": "c494dc20593854d81a27122630694ebd50d11c7ca1ced985a89408365a788070",
+        "generatedImageHash": "ad6e830d5328823b06f9cf8baa4030bfd8fc9fba8faaa673ce824432d9cd2cb4",
+        "facts": [
+          {
+            "scale": 1,
+            "pixelWidth": 256,
+            "pixelHeight": 192,
+            "differentPixels": 0,
+            "maxChannelDelta": 0,
+            "sourceRgbaSha256": "b15b902eeb86f6d0860975bf9d54d68b04aca5304aecd9bdff93d8d9c071e5fd",
+            "nativeRgbaSha256": "b15b902eeb86f6d0860975bf9d54d68b04aca5304aecd9bdff93d8d9c071e5fd"
+          },
+          {
+            "scale": 2,
+            "pixelWidth": 512,
+            "pixelHeight": 384,
+            "differentPixels": 0,
+            "maxChannelDelta": 0,
+            "sourceRgbaSha256": "2c92d5492a122eed7f435960d47e82e99b5c60bc9cd4eb03d3ecb153ef2aeec2",
+            "nativeRgbaSha256": "2c92d5492a122eed7f435960d47e82e99b5c60bc9cd4eb03d3ecb153ef2aeec2"
+          },
+          {
+            "scale": 1.4791666666666667,
+            "pixelWidth": 379,
+            "pixelHeight": 284,
+            "differentPixels": 3848,
+            "maxChannelDelta": 253,
+            "sourceRgbaSha256": "9d48654fa0e8355393f2f4deae8adeee4ced822dafda7edc7080a00cada512d3",
+            "nativeRgbaSha256": "c5d98b4c80bbe3186b942a998495d1f52da1f6ebe1cc93d945719b06eff74228"
+          }
+        ],
+        "approval": true,
+        "nativeResult": true
+      },
+      "limits": [
+        "Static frame0 reconstruction from original PNGparts versus generated native atlas; not an Essentials runtime capture.",
+        "Source clock deliberately unverified: Scripts.rxdata exists only in original, excluded from QA copy. No animation certification in degraded study.",
+        "Fractional fit scale1.4791666667 differs on screen due quarter-versus-tile sampling, reproduced offscreen. Public current painters match exact rawRGBA at1x and2x. No fit-scale pixel-equality claim.",
+        "Integer scales were proved by headless Flutter painters fed by actual productionworkflow; product UI has no explicit integerzoom preset.",
+        "No planapproval, nativeprojectwrite, publication or gameplaycertification exercised.",
+        "Unrelated unusedempty source image slots display image manquante in the resource list; no productfix made in thisscope."
+      ],
+      "wrapperFailures": [
+        {
+          "kind": "Driver setup",
+          "detail": "Non-TTY exec closed stdin before start; initial ui-process-receipt-15850.json has rounds0, survivors0, signals0. Restarted owned driver with TTY."
+        },
+        {
+          "kind": "RPC timeout",
+          "detail": "First analyse-project tap hit queue.Empty after40s deadline; no blindretry. Actual subsequent workflow state proves completed source+preparation. Later taps have successful receipts.",
+          "events": [
+            {
+              "error": ""
+            }
+          ]
+        },
+        {
+          "kind": "Foreground warning",
+          "detail": "Flutter logged Failed to foreground app; open returned1. Exact owned native window/bootstrap/VMextensions/screenshots were subsequently observed."
+        }
+      ],
+      "scaleProbeNoApprovalOrWrite": true,
+      "build": {
+        "command": [
+          "/opt/homebrew/bin/flutter",
+          "run",
+          "--machine",
+          "--no-pub",
+          "-d",
+          "macos",
+          "--debug",
+          "-t",
+          "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/converter_ui_main.dart",
+          "--dart-define=AC07_SOURCE_PATH=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/original-source",
+          "--dart-define=AC07_PARENT_PATH=/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-eaf7c9ca-efbd-4870-910d-ccbf9958968a/output",
+          "--dart-define=AC07_RUN_NONCE=eaf7c9ca-efbd-4870-910d-ccbf9958968a"
+        ],
+        "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+        "builtLine": "✓ Built build/macos/Build/Products/Debug/Avelune Converter.app",
+        "binaryPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host/build/macos/Build/Products/Debug/Avelune Converter.app/Contents/MacOS/Avelune Converter",
+        "binarySha256": "98aca40d94a5bc39e1984d4a64b23df910f0d93a458ed3496d67abd724a18058",
+        "bundleId": "com.yoahnl.avelune.converter.ac07qualification",
+        "standaloneBuildExitNotSeparatelyMeasured": true,
+        "flutterRunExitCode": 0,
+        "buildElapsedNotSeparatelyMeasured": true,
+        "logPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-run-1.log"
+      },
+      "receiptPath": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/ac07-converter-ui-qualification-receipt.json",
+      "receiptSha256": "76b83d11aeae3f54515d30f5c1bf859fd52b113998644f8d456acfd105cf5ed2",
+      "processes": {
+        "signals": [],
+        "survivingOwnedProcesses": []
+      },
+      "observedProcessCount": 198,
+      "runs": [
+        {
+          "label": "host-pub-get",
+          "argv": [
+            "env",
+            "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+            "/opt/homebrew/bin/flutter",
+            "pub",
+            "get",
+            "--offline"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+          "exitCode": 0,
+          "elapsedSeconds": 2.925,
+          "runnerPid": 15096,
+          "confirmedSurvivors": [],
+          "signals": []
+        },
+        {
+          "label": "flutter-devices",
+          "argv": [
+            "env",
+            "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+            "/opt/homebrew/bin/flutter",
+            "devices",
+            "--machine"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+          "exitCode": 0,
+          "elapsedSeconds": 8.77,
+          "runnerPid": 15423,
+          "confirmedSurvivors": [],
+          "signals": []
+        },
+        {
+          "label": "public-painter-scales",
+          "argv": [
+            "env",
+            "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac07-ui-0lu9qp08/flutter-config",
+            "/opt/homebrew/bin/flutter",
+            "test",
+            "--no-pub",
+            "test/ac07_public_painter_scale_probe_test.dart",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-0lu9qp08/native-host",
+          "exitCode": 0,
+          "elapsedSeconds": 15.368,
+          "runnerPid": 36523,
+          "confirmedSurvivors": [],
+          "signals": []
+        }
+      ]
+    },
+    "studio": {
+      "nativeBundleId": "com.yoahnl.pokemap.editor.ac07qualification",
+      "nativeExecutableSha256": "7b3870ea33ce2e2ab398ab071426869093567fe7058bda942e79b5b1ac9170e2",
+      "loopObserved": true,
+      "nativeViewport": [
+        1600,
+        921
+      ],
+      "save": {
+        "name": "AC07 native timeline saved",
+        "mapPath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-a6b366ce-4803-4f4e-ae94-172689dfc7c9/project/maps/map_f985711bded2747bf186170c5abda80773b19e243f538d82c320849d.json",
+        "mapSha256": "54a7b6ff13093e92d8151a01c80a67ef07c41e8210d5386fb64096910270e493",
+        "painted": {
+          "x": 7,
+          "y": 5,
+          "layer": "z2",
+          "paletteCell": 19,
+          "localTileId": 18
+        },
+        "forcedVariant31Cell": 32
+      },
+      "timelinePreservation": {
+        "unchangedCompleteAtlasRecord": true,
+        "animationCount": 48,
+        "framesPerAnimation": 3,
+        "durationsMs": 250,
+        "unchangedOriginalAtlasPngSha256": "ad6e830d5328823b06f9cf8baa4030bfd8fc9fba8faaa673ce824432d9cd2cb4"
+      },
+      "limitations": [
+        "The QA entrypoint adds binding, ownership checks, visibility and painted-layer capture instrumentation; production widget bytes are unchanged.",
+        "Marionette CLI 0.6.0 uses a dedicated stdio endpoint; no global session was switched.",
+        "Native captures are 1600x921; the physical visible frame limited height. No image was upscaled or manufactured.",
+        "Captured scheduler timestamps and asynchronous encoding latencies are observational; exact250ms boundaries and clock no-hidden-time behavior are proven by deterministic widget tests.",
+        "Initial12 capture stopped after11 PNG files at the fresh-paint guard. Paused4 capture exceeded its transport timeout, then persisted all4 stable frames. These timeouts and rootOffstage dirty-boundary refusal remain harness limitations; rootOffstage resumption is not claimed PASS.",
+        "RGBA quarter centers verify forced variant31 and phase identity. Alpha0/127 source pixels composite against the native background; no raw-alpha equality claim is made.",
+        "Debug harness analysis has two information lints: transitive marionette_flutter dependency and print; no dependency/config changes were made in the original repo."
+      ],
+      "navigationLoopPhases": [
+        0,
+        1,
+        2,
+        0
+      ],
+      "reopenedObservedPhases": [
+        2,
+        1,
+        2,
+        1,
+        0,
+        1
+      ],
+      "nativePngCaptureCount": 31,
+      "timelinedCaptureCount": 20,
+      "pausedCapture": {
+        "persistedComplete": true,
+        "observedPhases": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "transportTimedOut": true,
+        "boundedTransportPass": false
+      },
+      "sourceUnchanged": true,
+      "originalStageUnchanged": true,
+      "compiledFiles": {
+        "apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart": "e6d8a8a46e9c94eab3afb63d0cb734205fda0954c21f8cb3550124b8e2f4d376",
+        "apps/avelune_studio/test/platform/rendering/studio_map_visual_animation_test.dart": "4acd38d0ea246f81600f383f613c31059fa994794d65d5ab5821f43d45c5c80a",
+        "packages/map_render_3d/lib/map_render_3d.dart": "6e34d45f49c64bf09072895b9fdaf735921897a41bc9e5de5b1b6923a8871685"
+      },
+      "receiptPath": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/ac07-native-studio-receipt.json",
+      "receiptSha256": "bb80a208c3b83c8cbe8cdec10b8c64d46bf71ec83e55ecb733aba49206e47faf",
+      "processes": {
+        "signals": [],
+        "survivingOwnedProcesses": []
+      },
+      "observedProcessCount": 273,
+      "commands": [
+        {
+          "command": [
+            "/opt/homebrew/bin/flutter",
+            "analyze",
+            "--no-pub",
+            "--no-fatal-infos",
+            "lib/ac07_qualification_main.dart"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+          "runnerPid": 5241,
+          "exitCode": 0,
+          "elapsedSeconds": 11.469136792002246
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/flutter",
+            "analyze",
+            "--no-pub",
+            "--no-fatal-infos",
+            "lib/ac07_qualification_main.dart"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+          "runnerPid": 40123,
+          "exitCode": 0,
+          "elapsedSeconds": 12.139944082999136
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/flutter",
+            "pub",
+            "get",
+            "--offline"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+          "runnerPid": 4157,
+          "exitCode": 0,
+          "elapsedSeconds": 2.2414622500073165
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/dart",
+            "analyze",
+            "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/studio_ui_main.dart"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+          "runnerPid": 4485,
+          "exitCode": 3,
+          "elapsedSeconds": 0.7154117079917341
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/flutter",
+            "analyze",
+            "--no-pub",
+            "lib/ac07_qualification_main.dart"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac07-ui-runtime-contracts-20261012/repository-2/apps/avelune_studio",
+          "runnerPid": 4719,
+          "exitCode": 1,
+          "elapsedSeconds": 11.572296541999094
+        }
+      ],
+      "sourceHash": "daa40df561d27a37069f2a73a3e74842826827af5128f50b640adf8c746d3c26",
+      "originalStageHash": "53526bc6c630a3d923cf73de17f3a33411444163dfa6fbb5b8b29ea674759e43",
+      "freshReopen": {
+        "pid": 35432,
+        "bundleId": "com.yoahnl.pokemap.editor.ac07qualification",
+        "activeProjectRoot": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor.ac07qualification/Data/Documents/avelune-converter-ac07-qualification-a6b366ce-4803-4f4e-ae94-172689dfc7c9/project",
+        "sessionStatus": "ready",
+        "flutterErrors": [],
+        "dirty": false,
+        "saving": false,
+        "documentError": null
+      }
+    }
+  },
+  "executionHistory": [
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.393,
+      "runnerPid": 2336,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ojlg1muh.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ojlg1muh.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "compile",
+        "exe",
+        "tool/literal_autotile_probe.dart",
+        "-o",
+        "/private/tmp/avelune-converter-ac07-probe-b52195763dff1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 25.703,
+      "runnerPid": 6656,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-gg49oapl.log",
+      "logSha256": "b0a0b2c2e9504525aae4bd4f02466fa5dbff33c7bdf82c9cbe37a323700f3b33",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-gg49oapl.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "/private/tmp/avelune-converter-ac07-probe-b52195763dff1",
+        "--offline",
+        "--parent",
+        "/private/tmp",
+        "--scripts",
+        "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.774,
+      "runnerPid": 8634,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-6mqz09vd.log",
+      "logSha256": "e5c936641e19269a5f5035cc824cf2af6f8315bd79c442145186a5f480bf7d67",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-6mqz09vd.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "dart",
+        "test",
+        "test/native_project_writer_test.dart",
+        "--name",
+        "AC-07"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 6.589,
+      "runnerPid": 51739,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-adjm1owx.log",
+      "logSha256": "60df297cbecfd74c4c5169dd4cd104f038b7d80282c04a313a6324a14820d067",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-adjm1owx.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "test/native_project_writer_test.dart",
+        "--name",
+        "AC-07"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 4.891,
+      "runnerPid": 53652,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-i53tmx85.log",
+      "logSha256": "d8d4f18ca6fc0082805c8512a6fe8fd618651edb45a915b67d7a10dc726ed43b",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-i53tmx85.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "dart",
+        "test",
+        "test/literal_autotile_integration_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 4.647,
+      "runnerPid": 58685,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ajhp2hp1.log",
+      "logSha256": "805ed73c18d00d89470500169c51392a6e2de18063cef7b6e34adae0d7e07daf",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ajhp2hp1.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "analyze",
+        "lib/src/literal_tile_composer.dart",
+        "lib/src/native_project_writer.dart",
+        "lib/src/converter_workflow.dart",
+        "test/literal_autotile_integration_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.517,
+      "runnerPid": 64929,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-0ud1oyng.log",
+      "logSha256": "94d5824578958be24b906c692b7b0e86e329986399b3bf41ff70974eb5e0f29f",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-0ud1oyng.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_workflow_test.dart",
+        "test/native_project_writer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 1.662,
+      "runnerPid": 65521,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-tt6y3jex.log",
+      "logSha256": "f09c05be417ba0c3eae479cfb6a8d6c1f156233be446fbd1135b856378c5bd7d",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-tt6y3jex.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "flutter",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 8.607,
+      "runnerPid": 65586,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-uzi7zn5f.log",
+      "logSha256": "9b3cc7e400cae4fdeba0ad7da676d262a4619e8ed384ff360adb80f96c9fd1d4",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-uzi7zn5f.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "dart",
+        "test",
+        "test/literal_autotile_integration_test.dart",
+        "test/converter_workflow_test.dart",
+        "test/native_project_writer_test.dart"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 7.523,
+      "runnerPid": 70849,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ahwmpgl3.log",
+      "logSha256": "94212c652aced460cce895d9a285b26cd63696c9d62aca615a3127e4c2d974fe",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ahwmpgl3.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "test/literal_autotile_integration_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 5.807,
+      "runnerPid": 81956,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ohpwys2t.log",
+      "logSha256": "48b3e15e92994231eefacc48bdac267187dc04a9f32a32389c10e4e48539df3f",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ohpwys2t.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/map_comparison_autotile_test.dart",
+        "test/converter_app_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 17.614,
+      "runnerPid": 83786,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-oq8c8sar.log",
+      "logSha256": "47cd8091033003dd44ae23a6279d4f0c31883b5f37085639f213e8c15cff5c97",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-oq8c8sar.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 11.706,
+      "runnerPid": 83788,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-1yg6fq3w.log",
+      "logSha256": "713722212baad00f962bed61e263c2703641e83f45aab634690da2ae6652c197",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-1yg6fq3w.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 12.693,
+      "runnerPid": 86455,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-a2wg3_ci.log",
+      "logSha256": "50d85189455adeb4389086f2b0e68daacbbafb84dd2323a4ca624d51fd887efe",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-a2wg3_ci.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "flutter",
+        "test",
+        "--no-pub",
+        "test/map_comparison_autotile_test.dart",
+        "test/converter_app_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 17.356,
+      "runnerPid": 86456,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dzrok3rm.log",
+      "logSha256": "ff6bd040920668e17e3ef9e9d18c48bbf8be9e4b15c7d99e8dd82120dbad8ac8",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dzrok3rm.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_NONZERO",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 1,
+      "elapsedSeconds": 5.998,
+      "runnerPid": 87932,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-7175cfom.log",
+      "logSha256": "8e2ad1a34d21810cff283cd31b415278a55b3fb9dd1c9a80e59ac2ee171f97e0",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-7175cfom.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "run",
+        "tool/literal_autotile_probe.dart",
+        "--offline",
+        "--parent",
+        "/private/tmp",
+        "--scripts",
+        "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto/Data/Scripts.rxdata"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 13.073,
+      "runnerPid": 87933,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-lnuvh17s.log",
+      "logSha256": "7d3e7ef5b819bdc656a1c8fe375d89dcebf00efe3d1d3aca74a78b9633a8f6df",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-lnuvh17s.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.685,
+      "runnerPid": 87944,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-uk89mlb_.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-uk89mlb_.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 23.339,
+      "runnerPid": 90375,
+      "confirmedSurvivors": [
+        {
+          "pid": 90718,
+          "ppid": 1,
+          "uid": 501,
+          "start": "Mon Oct 12 06:01:27 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        },
+        {
+          "pid": 91325,
+          "ppid": 1,
+          "uid": 501,
+          "start": "Mon Oct 12 06:01:37 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        },
+        {
+          "pid": 91326,
+          "ppid": 1,
+          "uid": 501,
+          "start": "Mon Oct 12 06:01:37 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        }
+      ],
+      "signals": [
+        {
+          "pid": 90718,
+          "signal": "SIGTERM",
+          "verifiedIdentity": {
+            "pid": 90718,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 06:01:27 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 91325,
+          "signal": "SIGTERM",
+          "verifiedIdentity": {
+            "pid": 91325,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 06:01:37 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        },
+        {
+          "pid": 91326,
+          "signal": "SIGTERM",
+          "verifiedIdentity": {
+            "pid": 91326,
+            "ppid": 1,
+            "uid": 501,
+            "start": "Mon Oct 12 06:01:37 2026",
+            "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+          }
+        }
+      ],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-u_b25z8m.log",
+      "logSha256": "15b0c3df3912899cb2fa68f3365f5516fc964fc650a05233dcf778db4e0a88e6",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-u_b25z8m.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 12.796,
+      "runnerPid": 93306,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-0qu1acmf.log",
+      "logSha256": "20b32255aff2764c304da9c127d7fffba706ceb4c7b3de34bdde3e1f1e8452ae",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-0qu1acmf.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 3.745,
+      "runnerPid": 93307,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-73vkcl4c.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-73vkcl4c.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 8.497,
+      "runnerPid": 93308,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dwqx2m13.log",
+      "logSha256": "47214b8f17ff94de8e0e01cc217c139f8be73815c02d77fb78f5e469f58e840d",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dwqx2m13.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_workflow_test.dart",
+        "--name",
+        "AC-07 real workflow",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 5.736,
+      "runnerPid": 94859,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-bhs20h7u.log",
+      "logSha256": "444561fec1ff7828a41a9190d812f54325cc51fb6dc0f1d386202ef2ca3fbc2d",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-bhs20h7u.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 22.004,
+      "runnerPid": 97288,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dml6n378.log",
+      "logSha256": "15b0c3df3912899cb2fa68f3365f5516fc964fc650a05233dcf778db4e0a88e6",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-dml6n378.log.json",
+      "resultLines": []
+    },
+    {
+      "verdict": "HISTORICAL_PASS",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 13.561,
+      "runnerPid": 97289,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-yoct54em.log",
+      "logSha256": "de3fbc96a868c4ead23a5a23b579102521118d48c582843c28593d94bc24c41a",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-yoct54em.log.json",
+      "resultLines": []
+    }
+  ],
+  "historicalFailureClassification": {
+    "51739": "Expected RED: native timeline upsert not yet admitted.",
+    "58685": "Expected RED: integrated literal autotile implementation absent.",
+    "65521": "Intermediate regression failure; replaced by final full-package verification.",
+    "70849": "Real integration defect: prepared atlas order differed from canonical native manifest order; corrected.",
+    "83786": "Harness failure: original oracle relative path used from the Flutter app working directory; corrected.",
+    "83788": "Existing test expected the earlier map diagnostic locator instead of the actual Tilesets source locator; corrected.",
+    "87932": "Static analysis info for a missing curly-brace block; corrected."
+  },
+  "markdownHygiene": {
+    "command": [
+      "bash",
+      "tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "environment": {
+      "POKEMAP_MARKDOWN_MAX_NEW": "1"
+    },
+    "exitCode": 0,
+    "result": "Markdown hygiene: 1 new Markdown file(s), all in canonical locations.",
+    "authorizedReason": "One consolidated per-lot Markdown Evidence Pack requested by the converter kit.",
+    "studioSubpassWithoutOverride": {
+      "exitCode": 1,
+      "reason": "Shared root-created AC-07 report exceeded the default zero-new-Markdown budget; no Markdown created by the subpass."
+    }
+  }
+}

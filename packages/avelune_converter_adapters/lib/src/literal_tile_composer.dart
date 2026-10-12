@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'literal_autotile_composer.dart';
 
 enum LiteralDependencyDisposition { include, excludeStudy, block }
 
@@ -96,6 +97,9 @@ final class LiteralTileCrop {
     required this.passage,
     required this.priority,
     required this.terrainTag,
+    this.autotileSlot,
+    this.autotileVariant,
+    this.nativeImageSha256,
   });
 
   final int sourceTilesetId;
@@ -112,6 +116,9 @@ final class LiteralTileCrop {
   final int passage;
   final int priority;
   final int terrainTag;
+  final int? autotileSlot;
+  final int? autotileVariant;
+  final Sha256Hash? nativeImageSha256;
 
   Map<String, Object?> toJson() => {
         'sourceTilesetId': sourceTilesetId,
@@ -128,6 +135,10 @@ final class LiteralTileCrop {
         'passage': passage,
         'priority': priority,
         'terrainTag': terrainTag,
+        if (autotileSlot != null) 'autotileSlot': autotileSlot,
+        if (autotileVariant != null) 'autotileVariant': autotileVariant,
+        if (nativeImageSha256 != null)
+          'nativeImageSha256': nativeImageSha256!.value,
       };
 }
 
@@ -196,6 +207,7 @@ final class LiteralTileComposition {
     required List<int> selectedSourceMapIds,
     required List<int> includedSourceMapIds,
     required List<LiteralTileCrop> crops,
+    required List<LiteralAutotileComposition> autotiles,
     required List<LiteralLayerProvenance> layerProvenance,
     required List<LiteralMapDependency> dependencies,
     required List<LiteralCompositionDiagnostic> diagnostics,
@@ -205,6 +217,7 @@ final class LiteralTileComposition {
         selectedSourceMapIds = List.unmodifiable(selectedSourceMapIds),
         includedSourceMapIds = List.unmodifiable(includedSourceMapIds),
         crops = List.unmodifiable(crops),
+        autotiles = List.unmodifiable(autotiles),
         layerProvenance = List.unmodifiable(layerProvenance),
         dependencies = List.unmodifiable(dependencies),
         diagnostics = List.unmodifiable(diagnostics);
@@ -218,6 +231,7 @@ final class LiteralTileComposition {
   final List<int> selectedSourceMapIds;
   final List<int> includedSourceMapIds;
   final List<LiteralTileCrop> crops;
+  final List<LiteralAutotileComposition> autotiles;
   final List<LiteralLayerProvenance> layerProvenance;
   final List<LiteralMapDependency> dependencies;
   final List<LiteralCompositionDiagnostic> diagnostics;
@@ -237,6 +251,7 @@ final class LiteralTileComposer {
     required String folderName,
     String? sourceRootPath,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
+    bool allowFirstFrameAutotiles = false,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -267,6 +282,7 @@ final class LiteralTileComposer {
       decisions: List.unmodifiable(frozenDecisions),
       limits: limits,
       cancellation: cancellation,
+      allowFirstFrameAutotiles: allowFirstFrameAutotiles,
     ).run();
   }
 }
@@ -291,6 +307,7 @@ final class _LiteralCompositionRun {
     required this.decisions,
     required this.limits,
     required this.cancellation,
+    required this.allowFirstFrameAutotiles,
   });
 
   final NormalizedSourceProject source;
@@ -304,6 +321,8 @@ final class _LiteralCompositionRun {
   final List<LiteralDependencyDecision> decisions;
   final NativeWriteLimits limits;
   final ScanCancellation? cancellation;
+  final bool allowFirstFrameAutotiles;
+  final autotiles = <(int, int), LiteralAutotileComposition>{};
   final diagnostics = <LiteralCompositionDiagnostic>[];
   final dependencies = <LiteralMapDependency>[];
   final crops = <LiteralTileCrop>[];
@@ -350,6 +369,8 @@ final class _LiteralCompositionRun {
     inspectAtlases();
     if (blocked) return finish();
     await readAtlases();
+    if (blocked) return finish();
+    await readAutotiles();
     if (blocked) return finish();
     composeMaps();
     cancellation?.check();
@@ -578,11 +599,9 @@ final class _LiteralCompositionRun {
         for (var index = 0; index < values.length; index++) {
           final tile = values[index];
           if (tile == 0) continue;
-          if (tile < 384) {
+          if (tile < 48) {
             diagnostic(
-                tile < 48
-                    ? 'literal.tile.reserved'
-                    : 'literal.tile.autotile_deferred',
+                'literal.tile.reserved',
                 true,
                 {
                   'file': mapFile(map),
@@ -592,11 +611,8 @@ final class _LiteralCompositionRun {
                   'x': index % map.width,
                   'y': index ~/ map.width
                 },
-                tile < 48
-                    ? 'Reserved tile identity is not a regular tile'
-                    : 'Autotile conversion requires AC-07',
-                key:
-                    '${tile < 48 ? 'reserved' : 'autotile'}:$id:${layer.sourceZ}:$tile');
+                'Reserved tile identity is not a regular tile',
+                key: 'reserved:$id:${layer.sourceZ}:$tile');
           } else {
             used.add(tile);
           }
@@ -697,7 +713,7 @@ final class _LiteralCompositionRun {
       final invalidTiles = <int>{};
       for (final tile in usedTiles[entry.key]!) {
         final localId = tile - 384;
-        if (localId >= 8 * (size.$2 ~/ 32)) {
+        if (tile >= 384 && localId >= 8 * (size.$2 ~/ 32)) {
           invalidTiles.add(tile);
         } else if (tile >= tileset.passages.cellCount ||
             tile >= tileset.priorities.cellCount ||
@@ -748,6 +764,110 @@ final class _LiteralCompositionRun {
     }
   }
 
+  Future<void> readAutotiles() async {
+    final slots = <(int, int)>[
+      for (final id in usedTiles.keys.toList()..sort())
+        for (final slot
+            in (usedTiles[id]!
+                .where((tile) => tile >= 48 && tile < 384)
+                .map((tile) => tile ~/ 48 - 1)
+                .toSet()
+                .toList()
+              ..sort()))
+          (id, slot),
+    ];
+    if (slots.isEmpty) return;
+    if (closure.length * 2 + usedTiles.length + slots.length * 2 >
+        limits.maxMutations) {
+      throw const NativeWriteException('literal.quota.mutations',
+          'Autotile import and timeline mutation budget exceeded');
+    }
+    const composer = LiteralAutotileComposer();
+    final profile = await composer.inspectProfile(
+        snapshot: source.snapshot,
+        files: files,
+        limits: limits,
+        cancellation: cancellation);
+    var pixels =
+        dimensions.values.fold<int>(0, (sum, size) => sum + size.$1 * size.$2);
+    var logicalBytes = atlasArtifacts.values
+        .fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
+    for (final slot in slots) {
+      cancellation?.check();
+      final remainingPixels = limits.maxImagePixels - pixels;
+      final remainingBytes = limits.maxTotalArtifactBytes - logicalBytes;
+      if (remainingPixels <= 0 ||
+          remainingBytes <= 0 ||
+          artifacts.length >= limits.maxArtifacts) {
+        throw const NativeWriteException('literal.quota.autotiles',
+            'Aggregate source and generated atlas budget exceeded');
+      }
+      try {
+        final composition = await composer.compose(
+            source: source,
+            files: files,
+            sourceTilesetId: slot.$1,
+            autotileSlot: slot.$2,
+            profile: profile,
+            limits: NativeWriteLimits(
+                maxArtifacts: limits.maxArtifacts,
+                maxMutations: limits.maxMutations,
+                maxArtifactBytes: limits.maxArtifactBytes,
+                maxTotalArtifactBytes: remainingBytes,
+                maxImagePixels: remainingPixels,
+                maxMapCells: limits.maxMapCells,
+                jsonLimits: limits.jsonLimits),
+            cancellation: cancellation);
+        pixels += composition.sourcePixelWidth * composition.sourcePixelHeight +
+            composition.pixelWidth * composition.pixelHeight;
+        final sourceEntry = source.snapshot.entries
+            .singleWhere((entry) => entry.fileId == composition.sourceFileId);
+        logicalBytes +=
+            sourceEntry.byteLength + composition.artifact.bytes.length;
+        if (pixels > limits.maxImagePixels ||
+            logicalBytes > limits.maxTotalArtifactBytes) {
+          throw const NativeWriteException('literal.quota.autotiles',
+              'Aggregate source and generated atlas budget exceeded');
+        }
+        if (composition.degraded) {
+          diagnostic(
+              'literal.autotile.animation_unverified',
+              !allowFirstFrameAutotiles,
+              {
+                'file': sourceEntry.relativePath,
+                'sourceTilesetId': slot.$1,
+                'autotileSlot': slot.$2,
+                'firstFrameOnly': true,
+                'sourceFrameCount': composition.sourceFrameCount,
+              },
+              allowFirstFrameAutotiles
+                  ? 'Explicit study choice retains all frames but displays only the first; animation is unverified'
+                  : 'Unverified animation requires an explicit first-frame study choice');
+        }
+        for (final entry in composition.diagnostics) {
+          diagnostic(
+              entry.code,
+              false,
+              entry.locator?.toJson() ?? {'file': sourceEntry.relativePath},
+              entry.message);
+        }
+        autotiles[slot] = composition;
+        artifacts.putIfAbsent(
+            composition.artifact.handle, () => composition.artifact);
+      } on LiteralAutotileFailure catch (error) {
+        diagnostic(
+            error.code,
+            true,
+            {
+              ...?error.locator?.toJson(),
+              'sourceTilesetId': slot.$1,
+              'autotileSlot': slot.$2,
+            },
+            error.message);
+      }
+    }
+  }
+
   void composeMaps() {
     final palettes = <int, List<TileLayerPaletteEntry>>{};
     final paletteCells = <int, Map<int, int>>{};
@@ -758,7 +878,12 @@ final class _LiteralCompositionRun {
       final nativeId = tilesetIds[id]!;
       palettes[id] = List.unmodifiable([
         for (final tile in tileIds)
-          TileLayerPaletteEntry(tilesetId: nativeId, localTileId: tile - 384),
+          tile >= 384
+              ? TileLayerPaletteEntry(
+                  tilesetId: nativeId, localTileId: tile - 384)
+              : TileLayerPaletteEntry(
+                  tilesetId: autotiles[(id, tile ~/ 48 - 1)]!.nativeTilesetId,
+                  localTileId: tile % 48),
       ]);
       paletteCells[id] = {
         for (var index = 0; index < tileIds.length; index++)
@@ -766,15 +891,19 @@ final class _LiteralCompositionRun {
       };
       for (var index = 0; index < tileIds.length; index++) {
         final tile = tileIds[index];
-        final localId = tile - 384;
+        final autotile = tile < 384 ? autotiles[(id, tile ~/ 48 - 1)]! : null;
+        final localId = autotile == null ? tile - 384 : tile % 48;
         crops.add(LiteralTileCrop(
             sourceTilesetId: id,
             sourceTileId: tile,
-            nativeTilesetId: nativeId,
+            nativeTilesetId: autotile?.nativeTilesetId ?? nativeId,
             nativeLocalTileId: localId,
             paletteCell: index + 1,
-            imageFileId: atlasEntries[id]!.fileId,
-            imageSha256: atlas.rawSha256,
+            imageFileId: autotile?.sourceFileId ?? atlasEntries[id]!.fileId,
+            imageSha256: autotile?.sourceFileHash ?? atlas.rawSha256,
+            nativeImageSha256: autotile?.artifact.rawSha256,
+            autotileSlot: autotile?.autotileSlot,
+            autotileVariant: autotile == null ? null : tile % 48,
             x: (localId % 8) * 32,
             y: (localId ~/ 8) * 32,
             passage: tileset.passages.valueAt(tile, 0, 0),
@@ -799,6 +928,51 @@ final class _LiteralCompositionRun {
             'tileHeight': 32
           },
           limits: limits));
+      for (final autotile
+          in autotiles.values.where((entry) => entry.sourceTilesetId == id)) {
+        final autoId = autotile.nativeTilesetId;
+        final autoName =
+            '${tileset.name.trim().isEmpty ? 'Tileset $id' : tileset.name.trim()} · Autotile ${autotile.autotileSlot + 1}';
+        final sourceIds = [tileset.identity, autotile.sourceFileId];
+        mutations.add(NativeMutation(
+            operationId: ConverterId('literal-import-$autoId'),
+            actionId: 'tileset.import_image',
+            sourceEntityIds: sourceIds,
+            targetEntityIds: [
+              ConverterId(autoId),
+              ConverterId('image_$autoId')
+            ],
+            parameters: {
+              'artifactHandle': autotile.artifact.handle,
+              'tilesetId': autoId,
+              'name': autoName,
+              'tileWidth': 32,
+              'tileHeight': 32,
+            },
+            limits: limits));
+        if (autotile.tileAnimations.isNotEmpty) {
+          mutations.add(NativeMutation(
+              operationId: ConverterId('literal-animation-$autoId'),
+              actionId: 'tileset.upsert',
+              sourceEntityIds: sourceIds,
+              targetEntityIds: [ConverterId(autoId)],
+              parameters: {
+                'tileset': ProjectTilesetEntry(
+                        id: autoId,
+                        name: autoName,
+                        relativePath: 'assets/studio/$autoId.png',
+                        source: ProjectRegularAtlasTilesetSource(
+                            assetId: 'image_$autoId',
+                            pixelWidth: autotile.pixelWidth,
+                            pixelHeight: autotile.pixelHeight,
+                            tileWidth: 32,
+                            tileHeight: 32,
+                            tileAnimations: autotile.tileAnimations))
+                    .toJson(),
+              },
+              limits: limits));
+        }
+      }
     }
     for (final id in inputs.keys.toList()..sort()) {
       cancellation?.check();
@@ -893,6 +1067,26 @@ final class _LiteralCompositionRun {
       ],
       'decisions': sortedDecisions.map((item) => item.toJson()).toList(),
       'crops': crops.map((item) => item.toJson()).toList(),
+      'autotiles': [
+        for (final item in autotiles.values)
+          {
+            'sourceTilesetId': item.sourceTilesetId,
+            'autotileSlot': item.autotileSlot,
+            'nativeTilesetId': item.nativeTilesetId,
+            'artifactHandle': item.artifact.handle,
+            'sourceFileId': item.sourceFileId.value,
+            'sourceFileHash': item.sourceFileHash.value,
+            'nativeImageSha256': item.artifact.rawSha256.value,
+            'compositionHash': item.compositionHash.value,
+            'provenance': item.provenance,
+            'firstFrameOnly': item.firstFrameOnly,
+            'degraded': item.degraded,
+            'animationVerified': item.animationVerified,
+            'tileAnimations':
+                item.tileAnimations.map((frame) => frame.toJson()).toList(),
+          }
+      ],
+      'allowFirstFrameAutotiles': allowFirstFrameAutotiles,
       'layerProvenance': provenance.map((item) => item.toJson()).toList(),
       'dependencies': dependencies.map((item) => item.toJson()).toList(),
       'diagnostics': diagnostics.map((item) => item.toJson()).toList(),
@@ -928,6 +1122,7 @@ final class _LiteralCompositionRun {
         selectedSourceMapIds: selected,
         includedSourceMapIds: included,
         crops: crops,
+        autotiles: autotiles.values.toList(),
         layerProvenance: provenance,
         dependencies: dependencies,
         diagnostics: diagnostics);
