@@ -112,7 +112,7 @@ sealed class ConverterDocument extends _JsonRecord {
   String get schemaVersion => _json['schemaVersion'] as String;
   String get kind => _json['kind'] as String;
   bool get exampleOnly => _json['exampleOnly'] as bool;
-  Sha256Hash get canonicalHash => canonicalHashOf(_json);
+  late final Sha256Hash canonicalHash = canonicalHashOf(_json);
 }
 
 final class TargetCapabilities extends ConverterDocument {
@@ -333,6 +333,9 @@ final class PixelOffset extends _JsonRecord {
 
 final class SourceLocator extends _JsonRecord {
   SourceLocator._(super.json);
+
+  factory SourceLocator.fromJson(Object? input) =>
+      _archiveLocator(input, r'$.locator');
 
   String get file => _json['file'] as String;
 

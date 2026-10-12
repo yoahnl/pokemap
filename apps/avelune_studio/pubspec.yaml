@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  avelune_design_system:
+    path: ../../packages/avelune_design_system
   flutter_riverpod: ^3.0.3
   file_picker: 11.0.3
   http: ^1.2.2

@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
-import 'package:avelune_studio/avelune_design_system.dart';
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart' show MapData, TileLayer;
 

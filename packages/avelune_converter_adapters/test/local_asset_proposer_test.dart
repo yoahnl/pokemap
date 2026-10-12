@@ -1,11 +1,71 @@
 import 'dart:convert';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
 
 import 'package:avelune_converter_adapters/src/local_asset_proposer.dart';
 import 'package:avelune_converter_adapters/src/literal_tile_composer.dart';
 import 'support/original_asset_fixture.dart';
+import 'support/literal_tile_fixture.dart';
+
+Future<LiteralTileFixture> _usedTileFixture(
+    {bool reverseManifest = false, int mapWidth = 81, int mapHeight = 41}) {
+  final raster = image.Image(width: 256, height: 1792, numChannels: 4);
+  for (var y = 0; y < raster.height; y++) {
+    for (var x = 0; x < raster.width; x++) {
+      raster.setPixelRgba(x, y, x % 251, y % 241, (x + y) % 239, 255);
+    }
+  }
+  return LiteralTileFixture.create(
+      namespace: 'used-static-tile-fixture',
+      reverseManifest: reverseManifest,
+      tilesets: [
+        LiteralFixtureTileset(
+            id: 1,
+            metadataTileCount: 832,
+            png: image.encodePng(raster),
+            priorities: {804: 2}),
+      ],
+      maps: [
+        LiteralFixtureMap(id: 1, width: mapWidth, height: mapHeight, layers: [
+          List.filled(mapWidth * mapHeight, 384),
+          List.filled(mapWidth * mapHeight, 0),
+          List.filled(mapWidth * mapHeight, 804),
+        ]),
+        LiteralFixtureMap(id: 8, width: 1, height: 1, layers: [
+          [804],
+          [0],
+          [804],
+        ]),
+      ]);
+}
+
+Future<LiteralTileComposition> _usedTileLiteral(
+    LiteralTileFixture fixture) async {
+  final literal = await const LiteralTileComposer().compose(
+      source: fixture.source,
+      files: fixture.files,
+      selectedSourceMapIds: const [1, 8],
+      projectName: 'Original used tile study',
+      parentPath: '/private/tmp/used-static-tiles-output',
+      folderName: 'original-used-static-tiles');
+  expect(literal.canWrite, isTrue,
+      reason: literal.diagnostics.map((d) => d.toJson()).toString());
+  return literal;
+}
+
+Future<LocalAssetProposalSet> _usedTiles(
+        LiteralTileFixture fixture, LiteralTileComposition literal,
+        {LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
+        ScanCancellation? cancellation}) =>
+    const LocalAssetProposer().propose(
+        source: fixture.source,
+        files: fixture.files,
+        literal: literal,
+        strategy: LocalAssetProposalStrategy.usedStaticTiles,
+        limits: limits,
+        cancellation: cancellation);
 
 List<LocalAssetCell> _houseCells() => const [
       LocalAssetCell(mapId: 8, sourceZ: 2, x: 0, y: 0),
@@ -30,6 +90,139 @@ Matcher _failure(String code) =>
     isA<ContractError>().having((e) => e.code, 'code', code);
 
 void main() {
+  test('used static tile fixture metadata bounds are explicit', () {
+    for (final count in [0, -1, 65537]) {
+      expect(() => LiteralFixtureTileset(id: 1, metadataTileCount: count),
+          throwsRangeError);
+    }
+    expect(LiteralFixtureTileset(id: 1).metadataTileCount, 512);
+  });
+
+  test('used static tile seeds preserve 3321 repeats and every exact claim',
+      () async {
+    final fixture = await _usedTileFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final mapsBefore = {
+      for (final entry in literal.nativeMaps.entries)
+        entry.key: canonicalHashOf(entry.value.toJson()),
+    };
+    final sourceBefore = {
+      for (final entry in fixture.sourceBytes.entries)
+        entry.key: base64Encode(entry.value),
+    };
+    final result = await _usedTiles(fixture, literal,
+        limits: const LocalAssetProposalLimits(maxPartsPerCandidate: 1));
+    expect(result.candidates, hasLength(4));
+    expect(result.candidates.map((c) => c.candidateId).toSet(), hasLength(4));
+    expect(result.candidates.every((c) => c.parts.length == 1), isTrue);
+    expect(
+        result.candidates.every((c) =>
+            c.canvasSize.width == 32 &&
+            c.canvasSize.height == 32 &&
+            c.category == AssetCategory.unclassified &&
+            c.state == CandidateState.needsReview &&
+            c.approvedRevision == null &&
+            c.integrationMode == IntegrationMode.libraryOnly),
+        isTrue);
+    expect(result.candidates.map((c) => c.parts.single.locator.tileId).toSet(),
+        {384, 804});
+    expect(
+        result.candidates.any((c) =>
+            c.parts.single.locator.tileId == 820 ||
+            c.parts.single.locator.tileId == 821),
+        isFalse);
+    final allClaims = result.placementClaims.values.expand((c) => c).toList();
+    expect(allClaims, hasLength(6644));
+    expect(allClaims.map((c) => c.placementKey).toSet(), hasLength(6644));
+    for (final candidate in result.candidates) {
+      final claims = result.placementClaims[candidate.candidateId]!;
+      final part = candidate.parts.single;
+      expect(claims.length, part.locator.mapId == 1 ? 3321 : 1);
+      expect(
+          claims.every((claim) =>
+              claim.sourceMapId == part.locator.mapId &&
+              claim.sourceZ == part.sourceLayer &&
+              claim.tileId == part.locator.tileId &&
+              claim.partId == part.partId),
+          isTrue);
+      if (part.locator.tileId == 804) {
+        expect(part.sourceRect.toJson(),
+            {'x': 128, 'y': 1664, 'width': 32, 'height': 32});
+        expect(part.sourcePriority, 2);
+      }
+      const LocalAssetProposer().validatePlacementClaims(
+          source: fixture.source,
+          literal: literal,
+          candidate: candidate,
+          claims: claims);
+      final reference = candidate.evidence.last.reference;
+      expect(
+          reference,
+          'claims:${claims.length};sha256:${canonicalHashOf({
+                'kind': 'sourcePlacementOccurrences',
+                'version': 1,
+                'claims': claims.map((c) => c.toJson()).toList(),
+              }).value}');
+      expect(reference.length, lessThan(128));
+    }
+    expect({
+      for (final entry in literal.nativeMaps.entries)
+        entry.key: canonicalHashOf(entry.value.toJson()),
+    }, mapsBefore);
+    expect({
+      for (final entry in fixture.sourceBytes.entries)
+        entry.key: base64Encode(entry.value),
+    }, sourceBefore);
+    await expectLater(
+        const LocalAssetProposer().propose(
+            source: fixture.source, files: fixture.files, literal: literal),
+        throwsA(_failure('asset.proposal.quota')));
+  });
+
+  test('used static tile identities and claims are deterministically ordered',
+      () async {
+    final a = await _usedTileFixture(mapWidth: 3, mapHeight: 2);
+    final b = await _usedTileFixture(
+        reverseManifest: true, mapWidth: 3, mapHeight: 2);
+    final first = await _usedTiles(a, await _usedTileLiteral(a));
+    final second = await _usedTiles(b, await _usedTileLiteral(b));
+    expect(first.toJson(), second.toJson());
+    expect(first.canonicalHash, second.canonicalHash);
+  });
+
+  test('used static tile quotas refuse the whole proposal without truncation',
+      () async {
+    final fixture = await _usedTileFixture();
+    final literal = await _usedTileLiteral(fixture);
+    for (final limits in [
+      const LocalAssetProposalLimits(maxCandidates: 3),
+      const LocalAssetProposalLimits(maxTotalParts: 3),
+      const LocalAssetProposalLimits(maxComponents: 3),
+      const LocalAssetProposalLimits(maxClaimsPerCandidate: 3320),
+      const LocalAssetProposalLimits(maxTotalClaims: 6643),
+      const LocalAssetProposalLimits(maxUsageComparisons: 1),
+    ]) {
+      await expectLater(_usedTiles(fixture, literal, limits: limits),
+          throwsA(_failure('asset.proposal.quota')));
+    }
+  });
+
+  test('used static tile strategy preserves cancellation and source guards',
+      () async {
+    final fixture = await _usedTileFixture();
+    final literal = await _usedTileLiteral(fixture);
+    fixture.files.reads.clear();
+    final cancellation = ScanCancellation()..cancel();
+    await expectLater(_usedTiles(fixture, literal, cancellation: cancellation),
+        throwsA(_failure('source.cancelled')));
+    expect(fixture.files.reads, isEmpty);
+    final imagePath =
+        fixture.sourceBytes.keys.singleWhere((path) => path.endsWith('.png'));
+    fixture.files.overrides[imagePath] = [1, 2, 3];
+    await expectLater(_usedTiles(fixture, literal),
+        throwsA(_failure('asset.proposal.source_changed')));
+  });
+
   test('unplaced alpha island is a proposal without invented map usage',
       () async {
     final fixture =

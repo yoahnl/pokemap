@@ -8,6 +8,8 @@ import 'package:image/image.dart' as image;
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
 
+enum LocalAssetProposalStrategy { connectedGroups, usedStaticTiles }
+
 final class LocalAssetProposalLimits {
   const LocalAssetProposalLimits({
     this.maxSourceImages = 32,
@@ -121,6 +123,8 @@ final class LocalAssetProposer {
     required SourceFilePort files,
     required LiteralTileComposition literal,
     AssetOutputMode outputMode = AssetOutputMode.sharedAtlas,
+    LocalAssetProposalStrategy strategy =
+        LocalAssetProposalStrategy.connectedGroups,
     LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -160,6 +164,7 @@ final class LocalAssetProposer {
         throw ContractError('asset.proposal.image', info.entry.relativePath,
             'Source image geometry could not be decoded');
       }
+      if (strategy == LocalAssetProposalStrategy.usedStaticTiles) continue;
       final columns = info.width ~/ 32;
       final rows = info.height ~/ 32;
       final occupied = Uint8List(columns * rows);
@@ -218,6 +223,9 @@ final class LocalAssetProposer {
         cancellation?.check();
         await Future<void>.delayed(Duration.zero);
       }
+    }
+    if (strategy == LocalAssetProposalStrategy.usedStaticTiles) {
+      return _usedStaticTiles(inputs, cancellation);
     }
     var usageChecks = 0;
     for (final map in inputs.maps.values) {
@@ -432,6 +440,135 @@ final class LocalAssetProposer {
         normalizedSourceHash: source.canonicalHash,
         literalCompositionHash: literal.compositionHash,
         canonicalHash: canonicalHashOf(record, limits: limits.jsonLimits));
+  }
+
+  Future<LocalAssetProposalSet> _usedStaticTiles(
+      _AssetInputs inputs, ScanCancellation? cancellation) async {
+    final candidates = <(int, int, int), AssetCandidate>{};
+    final claims = <ConverterId, List<SourcePlacementClaim>>{};
+    final diagnostics = <LocalAssetProposalDiagnostic>[];
+    var totalClaims = 0;
+    var comparisons = 0;
+    for (final map in inputs.maps.values) {
+      var animatedDeferred = false;
+      final layers = inputs.layerCells[map.sourceMapId]!.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      for (final layer in layers) {
+        for (var index = 0; index < layer.value.length; index++) {
+          if (++comparisons > inputs.limits.maxUsageComparisons) {
+            _quota('Used tile placement comparison budget exceeded');
+          }
+          if (index % 4096 == 0) {
+            cancellation?.check();
+            await Future<void>.delayed(Duration.zero);
+          }
+          final tileId = layer.value[index];
+          if (tileId == 0) continue;
+          if (tileId < 384) {
+            animatedDeferred = true;
+            continue;
+          }
+          if (!inputs.crops.containsKey((map.sourceTilesetId, tileId))) {
+            throw ContractError('asset.proposal.binding', r'$',
+                'Used regular tile has no exact admitted static crop');
+          }
+          final key = (map.sourceMapId, layer.key, tileId);
+          final cell = LocalAssetCell(
+              mapId: map.sourceMapId,
+              sourceZ: layer.key,
+              x: index % map.width,
+              y: index ~/ map.width);
+          var candidate = candidates[key];
+          if (candidate == null) {
+            if (candidates.length >= inputs.limits.maxCandidates) {
+              _quota('Used tile candidate budget exceeded');
+            }
+            if (candidates.length >= inputs.limits.maxComponents) {
+              _quota('Used tile seed component budget exceeded');
+            }
+            if (candidates.length >= inputs.limits.maxTotalParts) {
+              _quota('Used tile total part budget exceeded');
+            }
+            candidate = inputs.usedTileCandidate(cell);
+            candidates[key] = candidate;
+            claims[candidate.candidateId] = [];
+          }
+          final candidateClaims = claims[candidate.candidateId]!;
+          if (candidateClaims.length >= inputs.limits.maxClaimsPerCandidate ||
+              totalClaims >= inputs.limits.maxTotalClaims) {
+            _quota('Used tile placement claim budget exceeded');
+          }
+          candidateClaims
+              .add(inputs.placementClaim(cell, candidate.parts.single));
+          totalClaims++;
+        }
+      }
+      if (animatedDeferred) {
+        diagnostics.add(LocalAssetProposalDiagnostic(
+            'asset.proposal.animated_deferred',
+            'Autotile parts remain literal; only exact used static crops are proposed.',
+            mapId: map.sourceMapId));
+      }
+    }
+    final ordered = <AssetCandidate>[];
+    for (final candidate in candidates.values) {
+      cancellation?.check();
+      final candidateClaims = claims[candidate.candidateId]!;
+      inputs.validatePlacementClaims(candidate, candidateClaims);
+      final geometry = Map<String, Object?>.from(candidate.toJson());
+      geometry['evidence'] = [
+        ...(geometry['evidence'] as List),
+        {
+          'type': candidateClaims.length > 1
+              ? 'repeatedPlacement'
+              : 'formatMetadata',
+          'summary':
+              '${candidateClaims.length} exact source placement occurrence(s); no business identity is inferred.',
+          'reference':
+              'claims:${candidateClaims.length};sha256:${canonicalHashOf({
+                'kind': 'sourcePlacementOccurrences',
+                'version': 1,
+                'claims':
+                    candidateClaims.map((claim) => claim.toJson()).toList(),
+              }, limits: inputs.limits.jsonLimits).value}',
+        }
+      ];
+      ordered.add(
+          AssetCandidate.fromJson(geometry, limits: inputs.limits.jsonLimits));
+      await Future<void>.delayed(Duration.zero);
+    }
+    ordered.sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
+    cancellation?.check();
+    final orderedClaims = {
+      for (final candidate in ordered)
+        candidate.candidateId: claims[candidate.candidateId]!,
+    };
+    final sourceImages = inputs.sourceImages();
+    final record = {
+      'kind': 'localAssetProposals',
+      'version': 1,
+      'sourceSnapshotHash': inputs.source.snapshot.canonicalHash.value,
+      'normalizedSourceHash': inputs.source.canonicalHash.value,
+      'literalCompositionHash': inputs.literal.compositionHash.value,
+      'candidates': ordered.map((candidate) => candidate.toJson()).toList(),
+      'diagnostics':
+          diagnostics.map((diagnostic) => diagnostic.toJson()).toList(),
+      'placementClaims': {
+        for (final entry in orderedClaims.entries)
+          entry.key.value: entry.value.map((claim) => claim.toJson()).toList(),
+      },
+      'sourceImages': sourceImages.map((source) => source.toJson()).toList(),
+    };
+    return LocalAssetProposalSet._(
+        candidates: ordered,
+        diagnostics: diagnostics,
+        placementClaims: orderedClaims,
+        sourceImages: sourceImages,
+        sourceSnapshotHash: inputs.source.snapshot.canonicalHash,
+        normalizedSourceHash: inputs.source.canonicalHash,
+        literalCompositionHash: inputs.literal.compositionHash,
+        canonicalHash:
+            canonicalHashOf(record, limits: inputs.limits.jsonLimits));
   }
 
   AssetCandidate manualFromCells({
@@ -858,6 +995,38 @@ final class _AssetInputs {
         'The bottom-center anchor is a proposal; native placement semantics are not certified.'
       ],
       'approvedRevision': null,
+    }, limits: limits.jsonLimits);
+  }
+
+  AssetCandidate usedTileCandidate(LocalAssetCell cell) {
+    final base = candidate([cell], manual: false);
+    final part = base.parts.single;
+    final map = maps[cell.mapId]!;
+    final id = 'asset_${canonicalHashOf({
+          'kind': 'usedStaticTileCandidate',
+          'namespace': source.snapshot.logicalProjectNamespace.value,
+          'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+          'sourceMapId': cell.mapId,
+          'sourceZ': cell.sourceZ,
+          'sourceTilesetId': map.sourceTilesetId,
+          'sourceTileId': part.locator.tileId,
+          'sourceFileId': part.sourceFileId.value,
+          'sourceRect': part.sourceRect.toJson(),
+        }).value}';
+    return AssetCandidate.fromJson({
+      ...base.toJson(),
+      'candidateId': id,
+      'name':
+          'Tuile ${part.locator.tileId} · carte ${cell.mapId} · couche ${cell.sourceZ}',
+      'evidence': [
+        {
+          'type': 'formatMetadata',
+          'summary':
+              'One exact admitted static source crop used by the selected map and layer.',
+          'reference':
+              'map:${cell.mapId};z:${cell.sourceZ};tile:${part.locator.tileId}',
+        },
+      ],
     }, limits: limits.jsonLimits);
   }
 

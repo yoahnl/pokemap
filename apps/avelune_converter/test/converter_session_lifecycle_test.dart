@@ -4,7 +4,7 @@ import 'dart:ui' show AppExitResponse;
 import 'package:avelune_converter/converter_app.dart';
 import 'package:avelune_converter/asset_review_panel.dart';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
-import 'package:avelune_studio/avelune_design_system.dart';
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

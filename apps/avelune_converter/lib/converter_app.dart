@@ -4,7 +4,7 @@ import 'dart:ui' show AppExitResponse;
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
-import 'package:avelune_studio/avelune_design_system.dart';
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,7 +20,9 @@ class ConverterApp extends StatelessWidget {
   const ConverterApp({
     super.key,
     this.workflow,
+    this.workflowFactory,
     this.pathPicker = pickConverterPath,
+    this.planSavePicker = pickConverterPlanSavePath,
     this.folderOpener = openConverterFolder,
     this.initialSourcePath = '',
     this.initialParentPath = '',
@@ -30,7 +32,9 @@ class ConverterApp extends StatelessWidget {
   });
 
   final ConverterWorkflow? workflow;
+  final ConverterWorkflow Function()? workflowFactory;
   final ConverterPathPicker pathPicker;
+  final ConverterPlanSavePicker planSavePicker;
   final ConverterFolderOpener folderOpener;
   final String initialSourcePath;
   final String initialParentPath;
@@ -60,7 +64,9 @@ class ConverterApp extends StatelessWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: ConverterWindow(
         workflow: workflow,
+        workflowFactory: workflowFactory,
         pathPicker: pathPicker,
+        planSavePicker: planSavePicker,
         folderOpener: folderOpener,
         initialSourcePath: initialSourcePath,
         initialParentPath: initialParentPath,
@@ -76,7 +82,9 @@ class ConverterWindow extends StatefulWidget {
   const ConverterWindow({
     super.key,
     required this.workflow,
+    this.workflowFactory,
     required this.pathPicker,
+    required this.planSavePicker,
     required this.folderOpener,
     required this.initialSourcePath,
     required this.initialParentPath,
@@ -86,7 +94,9 @@ class ConverterWindow extends StatefulWidget {
   });
 
   final ConverterWorkflow? workflow;
+  final ConverterWorkflow Function()? workflowFactory;
   final ConverterPathPicker pathPicker;
+  final ConverterPlanSavePicker planSavePicker;
   final ConverterFolderOpener folderOpener;
   final String initialSourcePath;
   final String initialParentPath;
@@ -99,7 +109,9 @@ class ConverterWindow extends StatefulWidget {
 }
 
 class _ConverterWindowState extends State<ConverterWindow> {
-  late final _workflow = widget.workflow ?? ConverterWorkflow();
+  late ConverterWorkflow _workflow =
+      widget.workflow ?? widget.workflowFactory?.call() ?? ConverterWorkflow();
+  late bool _ownsWorkflow = widget.workflow == null;
   late final _source = TextEditingController(text: widget.initialSourcePath);
   late final _parent = TextEditingController(text: widget.initialParentPath);
   final _name = TextEditingController(text: 'Mon projet Avelune');
@@ -113,6 +125,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   late final AppLifecycleListener _lifecycle;
   Future<bool>? _exitRequest;
   bool _savingSession = false;
+  bool _savingPlan = false;
   bool _loadingSession = false;
   bool _reviewSourceVerified = false;
   bool _unappliedDrafts = false;
@@ -131,7 +144,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   late (String, String, String, String) _lastFormValues;
 
   ConverterWorkflowState get _state => _workflow.state;
-  bool get _busy => _state.isBusy || _savingSession || _loadingSession;
+  bool get _busy =>
+      _state.isBusy || _savingSession || _savingPlan || _loadingSession;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   (String, String, String, String) get _formValues =>
       (_source.text, _parent.text, _name.text, _folder.text);
@@ -170,6 +184,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
     for (final controller in [_source, _parent, _name, _folder]) {
       controller.addListener(_markEdited);
     }
+    _listenToWorkflow();
+  }
+
+  void _listenToWorkflow() {
     _subscription = _workflow.events.listen((event) {
       if (!mounted) return;
       setState(() {
@@ -189,7 +207,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     for (final controller in [_source, _parent, _name, _folder, _search]) {
       controller.dispose();
     }
-    if (widget.workflow == null) unawaited(_workflow.dispose());
+    if (_ownsWorkflow) unawaited(_workflow.dispose());
     super.dispose();
   }
 
@@ -655,6 +673,78 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Future<void> _prepare() => _run(_prepareCurrent);
 
+  Future<void> _savePlan() => _run(() async {
+    if (_busy || _dirty || _unappliedDrafts || _state.prepared == null) return;
+    final recipe = _workflow.exportStudyPlanRecipe();
+    setState(() => _savingPlan = true);
+    try {
+      final selected = await widget.planSavePicker();
+      if (selected == null || !mounted) return;
+      await const LocalStudyPlanStore().writeNew(recipe, selected);
+      if (mounted) {
+        setState(
+          () => _sessionNotice = 'Plan enregistré. Il sera vérifié à nouveau avant toute création.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingPlan = false);
+    }
+  });
+
+  Future<void> _loadPlan() => _run(() async {
+    if (_busy || !await _prepareForSessionChange() || !mounted) return;
+    final selected = await widget.pathPicker(ConverterPathKind.planFile);
+    if (selected == null || !mounted) return;
+    setState(() => _loadingSession = true);
+    try {
+      final recipe = await const LocalStudyPlanStore().read(selected);
+      if (!mounted) return;
+      final previous = _workflow;
+      final ownedPrevious = _ownsWorkflow;
+      await _subscription?.cancel();
+      _workflow = widget.workflowFactory?.call() ?? ConverterWorkflow();
+      _ownsWorkflow = true;
+      _listenToWorkflow();
+      if (ownedPrevious) await previous.dispose();
+      if (!mounted) return;
+      _source.text = recipe.sourceSelection.rootPath;
+      _parent.text = recipe.settings.parentPath;
+      _name.text = recipe.settings.projectName;
+      _folder.text = recipe.settings.folderName;
+      setState(() {
+        _sessionGeneration++;
+        _storedReview = null;
+        _reviewSession = null;
+        _reviewPreview = null;
+        _reviewSourceVerified = false;
+        _unappliedDrafts = false;
+        _selectedMaps
+          ..clear()
+          ..addAll(recipe.settings.selectedSourceMapIds);
+        _decisions
+          ..clear()
+          ..addAll(recipe.settings.dependencyDecisions);
+        _studyAcknowledged =
+            recipe.settings.profileAcknowledgement.humanConfirmed;
+        _allowFirstFrameAutotiles = recipe.settings.allowFirstFrameAutotiles;
+        _assetOutputMode = recipe.settings.assetOutputMode;
+        _step = 1;
+      });
+      final prepared = await _workflow.restoreStudyPlanRecipe(recipe);
+      if (!mounted) return;
+      setState(() {
+        _dirty = false;
+        _reviewSession = prepared.reviewSession;
+        _reviewSourceVerified = true;
+        _previewMap = prepared.normalizedSource.maps.first.map.sourceMapId;
+        _sessionNotice = 'Plan vérifié depuis la source actuelle. Une nouvelle approbation est nécessaire pour créer le projet.';
+        _step = 4;
+      });
+    } finally {
+      if (mounted) setState(() => _loadingSession = false);
+    }
+  });
+
   void _changeAssetOutputMode(AssetOutputMode mode) => unawaited(
     _run(() async {
       if (_unappliedDrafts) return;
@@ -782,7 +872,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
               const SizedBox(height: 12),
               StudioToggleRow(
                 key: const ValueKey('approve-plan'),
-                label: 'J’approuve les cartes, les objets, les dépendances et les limites de ce plan.',
+                label: 'J’approuve ce plan et les limites indiquées.',
                 value: confirmed,
                 onChanged: (value) => update(() => confirmed = value),
               ),
@@ -797,7 +887,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
       preparationHash: prepared.preparationHash,
       humanConfirmed: true,
     );
-    setState(() => _step = 4);
+    setState(() {
+      _step = 4;
+      _sessionNotice = null;
+    });
     await _workflow.writeApproved(approval);
   });
 
@@ -891,8 +984,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                     horizontal: 8,
                   ),
                   child: Image.asset(
-                    'assets/home/avelune_logo.png',
-                    package: 'avelune_studio',
+                    'assets/avelune_logo.png',
                     height: 48,
                     semanticLabel: 'Avelune Converter',
                     fit: BoxFit.contain,
@@ -936,7 +1028,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _sessionActions() => StudioActionBar(
     message:
-        _sessionNotice ??
+        (_state.result?.published == true
+            ? 'Projet d’étude publié et vérifié.'
+            : _sessionNotice) ??
         (_reviewSession != null && !_formValid
             ? 'Corrigez les champs du projet avant l’enregistrement.'
             : _reviewSession == null
@@ -947,6 +1041,26 @@ class _ConverterWindowState extends State<ConverterWindow> {
             ? 'Session à enregistrer'
             : 'Session enregistrée'),
     actions: [
+      StudioButton(
+        key: const ValueKey('load-conversion-plan'),
+        label: 'Charger un plan local',
+        icon: Icons.description_outlined,
+        secondary: true,
+        onPressed: _busy ? null : _loadPlan,
+      ),
+      StudioButton(
+        key: const ValueKey('save-conversion-plan'),
+        label: 'Enregistrer le plan',
+        icon: Icons.save_outlined,
+        secondary: true,
+        onPressed:
+            !_busy &&
+                !_dirty &&
+                !_unappliedDrafts &&
+                _state.prepared?.canApprove == true
+            ? _savePlan
+            : null,
+      ),
       StudioButton(
         key: const ValueKey('load-review-session'),
         label: 'Reprendre une session',
@@ -1806,12 +1920,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
               _sessionNotice = switch (recovery.state) {
                 NativePublicationRecoveryState.published =>
                   'Publication vérifiée : ${recovery.receipt!.projectPath}. Le gameplay complet reste non certifié.',
-                NativePublicationRecoveryState.prepared =>
-                  'Préparation vérifiée, non publiée. Une nouvelle approbation reste nécessaire.',
-                NativePublicationRecoveryState.incomplete =>
-                  'Préparation incomplète conservée. Aucun succès de publication établi.',
-                NativePublicationRecoveryState.conflict =>
-                  'Le dossier ne correspond pas au journal. Les fichiers sont conservés.',
+                NativePublicationRecoveryState.prepared => 'Préparation vérifiée, non publiée. Une nouvelle approbation reste nécessaire.',
+                NativePublicationRecoveryState.incomplete => 'Préparation incomplète conservée. Aucun succès de publication établi.',
+                NativePublicationRecoveryState.conflict => 'Le dossier ne correspond pas au journal. Les fichiers sont conservés.',
                 NativePublicationRecoveryState.corrupt =>
                   'Le journal est invalide. Les fichiers sont conservés.',
               };
@@ -1827,13 +1938,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
             : 'Afficher les fichiers conservés',
         secondary: true,
         icon: Icons.folder_open,
-        onPressed: () =>
-            _run(() => widget.folderOpener(
-                _state.failure!.promotionMayHaveOccurred &&
-                        _state.failure!.destinationPath != null
-                    ? path.dirname(_state.failure!.destinationPath!)
-                    : _state.failure!.stagingPath ??
-                        path.dirname(_state.failure!.journalPath!))),
+        onPressed: () => _run(
+          () => widget.folderOpener(
+            _state.failure!.promotionMayHaveOccurred &&
+                    _state.failure!.destinationPath != null
+                ? path.dirname(_state.failure!.destinationPath!)
+                : _state.failure!.stagingPath ??
+                      path.dirname(_state.failure!.journalPath!),
+          ),
+        ),
       ),
     ],
   );
@@ -1973,6 +2086,21 @@ String _phaseLabel(ConverterWorkflowPhase? phase) => switch (phase) {
 
 String _failureMessage(Object error) {
   if (error is ConverterWorkflowFailure) {
+    if (error.code.startsWith('workflow.recipe')) {
+      if (error.code.endsWith('conflict')) {
+        return 'Ce fichier de plan existe déjà. Choisissez un nouveau nom.';
+      }
+      if (error.code.endsWith('source_overlap')) {
+        return 'Enregistrez le plan dans un autre dossier que le projet source.';
+      }
+      if (error.code.endsWith('destination_overlap')) {
+        return 'Enregistrez le plan en dehors du futur projet Avelune.';
+      }
+      if (error.code.endsWith('stale')) {
+        return 'Ce plan ne correspond plus aux données actuelles. Relancez l’analyse de la source.';
+      }
+      return 'Le plan local n’a pas pu être chargé ou enregistré. Choisissez un fichier valide et accessible.';
+    }
     if (error.code.contains('stale') || error.code.contains('changed')) {
       return 'Le projet source a changé. Relancez son analyse avant de créer le projet Avelune.';
     }

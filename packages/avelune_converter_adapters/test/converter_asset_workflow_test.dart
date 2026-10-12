@@ -17,6 +17,12 @@ void main() {
       () async {
     final prepared = await harness.prepare();
     expect(prepared.reviewSession, isNotNull);
+    expect(prepared.assetProposals!.candidates, hasLength(21));
+    expect(
+        prepared.assetProposals!.candidates.every((c) => c.parts.length == 1),
+        isTrue);
+    expect(prepared.assetProposals!.placementClaims.values.expand((c) => c),
+        hasLength(27));
     expect(prepared.reviewSession!.baseProposalHashes, {
       for (final candidate in prepared.assetProposals!.candidates)
         candidate.candidateId: candidate.canonicalHash,
@@ -32,7 +38,7 @@ void main() {
       () async {
     final literal =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    var session = harness.seed(literal);
+    var session = harness.groupMap(harness.seed(literal), 1);
     final tree = session.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
     session = session.editMetadata(
@@ -144,7 +150,8 @@ void main() {
       () async {
     final literal =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    var session = harness.seed(literal);
+    var session = harness.groupMap(harness.seed(literal), 1);
+    session = harness.groupMap(session, 8);
     final tree = session.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
     final house = session.activeCandidates
@@ -299,11 +306,12 @@ void main() {
       () async {
     final literal =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    final tree = literal.assetProposals!.candidates
+    final session = harness.groupMap(harness.seed(literal), 1);
+    final tree = session.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
     final prepared = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
-        session: harness.decide(harness.seed(literal), tree));
+        session: harness.decide(session, tree));
     expect(prepared.canApprove, isTrue);
     expect(prepared.assetLibrary!.canExport, isTrue);
     expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
@@ -366,13 +374,14 @@ void main() {
     const limits = NativeWriteLimits(maxImagePixels: 71680);
     final prepared = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects, limits: limits);
-    final tree = prepared.assetProposals!.candidates
+    final session = harness.groupMap(harness.seed(prepared), 1);
+    final tree = session.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
     await expectLater(
       harness.prepare(
           mode: AssetOutputMode.standaloneObjects,
           limits: limits,
-          session: harness.decide(harness.seed(prepared), tree)),
+          session: harness.decide(session, tree)),
       throwsA(isA<ConverterWorkflowFailure>()
           .having((e) => e.code, 'code', 'native.quota.image')),
     );
@@ -386,10 +395,10 @@ void main() {
       'disjoint mixed-priority groups require a fresh explicit standalone choice',
       () async {
     final literal = await harness.prepare();
-    final house = literal.assetProposals!.candidates
+    final seed = harness.groupMap(harness.seed(literal), 8);
+    final house = seed.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
-    var session = harness.decide(harness.seed(literal), house,
-        category: AssetCategory.building);
+    var session = harness.decide(seed, house, category: AssetCategory.building);
     final blocked = await harness.prepare(session: session);
     expect(
         blocked.assetLibrary!.diagnostics.any((d) => d.blocksExport), isTrue);
@@ -573,6 +582,38 @@ final class _AssetWorkflow {
         expectedSessionHash: named.canonicalHash,
         action: action,
         humanConfirmed: true);
+  }
+
+  AssetReviewSession groupMap(AssetReviewSession session, int mapId) {
+    final candidates = session.activeCandidates
+        .where((candidate) =>
+            candidate.parts.every((part) => part.locator.mapId == mapId))
+        .toList()
+      ..sort((a, b) {
+        final x = session.frame.placementClaims[a.candidateId]!.single;
+        final y = session.frame.placementClaims[b.candidateId]!.single;
+        var order = x.sourceZ.compareTo(y.sourceZ);
+        if (order == 0) order = x.y.compareTo(y.y);
+        if (order == 0) order = x.x.compareTo(y.x);
+        return order;
+      });
+    return session.unionCandidates(
+        candidateId: ConverterId('review-manual-map-group-$mapId'),
+        expectedSessionHash: session.canonicalHash,
+        inputs: [
+          for (final candidate in candidates)
+            AssetUnionInput(
+                candidateId: candidate.candidateId,
+                expectedCandidateHash: candidate.canonicalHash,
+                offsetX: session.frame.placementClaims[candidate.candidateId]!
+                        .single.x *
+                    32,
+                offsetY: session.frame.placementClaims[candidate.candidateId]!
+                        .single.y *
+                    32),
+        ],
+        name: 'Groupe manuel carte $mapId',
+        category: AssetCategory.unclassified);
   }
 
   StudyApproval approve(PreparedStudy prepared) => workflow.approvePrepared(

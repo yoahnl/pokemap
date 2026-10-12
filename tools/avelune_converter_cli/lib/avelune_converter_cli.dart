@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,26 +7,55 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 Future<int> runConverterCli(List<String> arguments,
-    {StringSink? output, StringSink? error}) async {
+    {StringSink? output,
+    StringSink? error,
+    Stream<void>? cancellationSignals}) async {
   final out = output ?? stdout;
   final err = error ?? stderr;
-  final scan = ArgParser()
+  ArgParser common() => ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false)
+    ..addFlag('offline',
+        negatable: false, help: 'Exécution locale sans réseau ni IA.')
+    ..addFlag('json', negatable: false, help: 'Résultat JSON sur stdout.')
+    ..addFlag('progress',
+        negatable: false, help: 'Phases et compteurs sur stderr.');
+  ArgParser sourceArguments() => common()
     ..addOption('source', help: 'Dossier source absolu, lu sans modification.')
     ..addOption('namespace',
-        help: 'Identifiant logique stable du projet source.')
-    ..addFlag('offline',
-        negatable: false, help: 'Exécuter uniquement les opérations locales.')
-    ..addFlag('json',
+        help: 'Identifiant logique stable du projet source.');
+  final scan = sourceArguments();
+  final plan = sourceArguments()
+    ..addOption('destination',
+        help: 'Nouveau dossier natif absolu ; son parent doit exister.')
+    ..addOption('maps', help: 'IDs de cartes source séparés par des virgules.')
+    ..addOption('name', help: 'Nom du projet natif.')
+    ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
+    ..addOption('plan',
+        help: 'Nouveau fichier .json de recette, hors source et projet natif.')
+    ..addFlag('ack-profile',
         negatable: false,
-        help: 'Émettre le snapshot JSON sur la sortie standard.');
+        help: 'Accepter explicitement le profil observé pour une étude.')
+    ..addFlag('allow-first-frame-autotiles', negatable: false);
+  final convert = common()
+    ..addOption('plan',
+        help: 'Recette .json à rescanner et recomposer exactement.')
+    ..addOption('approve-plan',
+        help: 'SHA-256 exact du plan approuvé après sa revue.');
+  final verify = common()
+    ..addOption('project',
+        help: 'Projet natif absolu à vérifier sans écriture.');
   final parser = ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false)
-    ..addCommand('scan', scan);
-  final usage = 'Avelune Converter — inventaire local\n'
-      'dart run bin/avelune_converter.dart scan '
-      '--source DOSSIER_ABSOLU --namespace IDENTIFIANT --offline [--json]\n\n'
-      '${scan.usage}';
+    ..addCommand('scan', scan)
+    ..addCommand('plan', plan)
+    ..addCommand('convert', convert)
+    ..addCommand('verify', verify);
+  final commands = {
+    'scan': scan,
+    'plan': plan,
+    'convert': convert,
+    'verify': verify
+  };
   int invalid() {
     err.writeln('Arguments invalides. Utiliser --help.');
     return 2;
@@ -38,68 +68,291 @@ Future<int> runConverterCli(List<String> arguments,
     return invalid();
   }
   if (parsed['help'] == true || parsed.command?['help'] == true) {
-    out.writeln(usage);
+    final selected = parsed.command?.name;
+    out.writeln('Avelune Converter — étude locale hors ligne\n'
+        'scan --source SOURCE --namespace ID --offline [--json]\n'
+        'plan --source SOURCE --namespace ID --maps 1,2 --name NOM '
+        '--destination DEST --plan RECETTE.json --ack-profile --offline\n'
+        'convert --plan RECETTE.json --approve-plan SHA256 --offline\n'
+        'verify --project DEST --offline\n'
+        'Les chemins sont absolus. Code 0 d’étude ne certifie pas un jeu complet.\n');
+    if (selected != null) out.writeln(commands[selected]!.usage);
     return 0;
   }
   final command = parsed.command;
   if (command == null ||
-      command.name != 'scan' ||
       parsed.rest.isNotEmpty ||
       command.rest.isNotEmpty ||
       command['offline'] != true) {
-    return invalid();
-  }
-  final sourcePath = command['source'] as String?;
-  final namespace = command['namespace'] as String?;
-  if (sourcePath == null ||
-      !sourcePath.startsWith('/') ||
-      sourcePath.contains('\u0000') ||
-      namespace == null) {
-    return invalid();
-  }
-  final ConverterId projectId;
+        return invalid();
+      }
+  bool absolute(String? value) =>
+      value != null &&
+      value.startsWith('/') &&
+      value.length <= 4096 &&
+      !value.contains('\u0000');
+  ConverterSourceSelection? selection;
+  Sha256Hash? approvedHash;
+  List<int> selectedMaps = const [];
+  String? parentPath;
+  String? folderName;
   try {
-    projectId = ConverterId(namespace);
-  } on ContractError {
-    return invalid();
-  }
-  MacOsSourceTree? source;
-  try {
-    if (await FileSystemEntity.type(sourcePath, followLinks: false) !=
-        FileSystemEntityType.directory) {
-      throw ContractError('source.root_invalid', r'$',
-          'La source doit être un dossier existant sans lien symbolique.');
+    if (command.name == 'scan' || command.name == 'plan') {
+      final sourcePath = command['source'] as String?;
+      final namespace = command['namespace'] as String?;
+      if (!absolute(sourcePath) || namespace == null) return invalid();
+      selection = ConverterSourceSelection(
+          rootPath: sourcePath!,
+          logicalProjectNamespace: ConverterId(namespace));
     }
-    source = await MacOsSourceTree.open(sourcePath);
-    final snapshot = await SourceScanner()
-        .scan(source: source, logicalProjectNamespace: projectId);
+    if (command.name == 'plan') {
+      final destination = command['destination'] as String?;
+      final planPath = command['plan'] as String?;
+      final name = command['name'] as String?;
+      final maps = command['maps'] as String?;
+      if (!absolute(destination) ||
+          !absolute(planPath) ||
+          name == null ||
+          maps == null ||
+          command['ack-profile'] != true ||
+          destination!.endsWith('/')) {
+        return invalid();
+      }
+      final slash = destination.lastIndexOf('/');
+      if (slash <= 0) return invalid();
+      parentPath = destination.substring(0, slash);
+      folderName = destination.substring(slash + 1);
+      selectedMaps = maps.split(',').map(int.parse).toList();
+      if (selectedMaps.isEmpty ||
+          selectedMaps.length > 2048 ||
+          selectedMaps.any((id) => id <= 0 || id > 2147483647) ||
+          selectedMaps.toSet().length != selectedMaps.length) {
+        return invalid();
+      }
+    } else if (command.name == 'convert') {
+      if (!absolute(command['plan'] as String?) ||
+          command['approve-plan'] == null) {
+        return invalid();
+      }
+      approvedHash = Sha256Hash(command['approve-plan'] as String);
+    } else if (command.name == 'verify') {
+      if (!absolute(command['project'] as String?)) return invalid();
+    }
+  } on Object {
+    return invalid();
+  }
+
+  final workflow = ConverterWorkflow();
+  final cancellation = ScanCancellation();
+  final cancelSubscription = cancellationSignals?.listen((_) {
+    cancellation.cancel();
+    workflow.cancelCurrentJob();
+  });
+  final progressSubscription = command['progress'] == true
+      ? workflow.events.listen((event) {
+          final state = event.state;
+          final progress = state.progress;
+          if (state.phase != null && progress != null) {
+            err.writeln(
+                '${state.phase!.name}: ${progress.done}/${progress.total ?? "?"} ${progress.unit.name}');
+          }
+        })
+      : null;
+  try {
+    cancellation.check();
+    if (selection != null) {
+      if (await FileSystemEntity.type(selection.rootPath, followLinks: false) !=
+          FileSystemEntityType.directory) {
+        throw const ConverterWorkflowFailure('source.root_invalid',
+            'La source doit être un dossier existant sans lien symbolique.');
+      }
+      cancellation.check();
+      final snapshot = await workflow.scanSource(selection);
+      cancellation.check();
+      if (command.name == 'scan') {
+        if (command['json'] == true) {
+          out.writeln(jsonEncode(snapshot.toJson()));
+        } else {
+          final files = snapshot.entries
+              .where((e) => e.kind == SourceNodeKind.file)
+              .length;
+          out.writeln(
+              'Inventaire ${snapshot.state.name} : $files fichiers, ${snapshot.excludedPaths.length} exclusions, ${snapshot.diagnostics.length} diagnostics.');
+          out.writeln('SHA-256 : ${snapshot.canonicalHash.value}');
+          out.writeln('Profil Essentials : ${snapshot.profile.state.name}');
+          if (snapshot.profile.version != null) {
+            out.writeln('Version observée : ${snapshot.profile.version}');
+          }
+        }
+        if (snapshot.state == SourceScanState.cancelled) return 130;
+        if (snapshot.state != SourceScanState.complete) {
+          err.writeln(
+              'Inventaire incomplet : ${snapshot.diagnostics.map((d) => '${d.code}: ${d.message}').join('; ')}');
+          return 3;
+        }
+        return 0;
+      }
+      workflow.updateSettings(ConverterStudySettings(
+          projectName: command['name'] as String,
+          parentPath: parentPath!,
+          folderName: folderName!,
+          selectedSourceMapIds: selectedMaps,
+          profileAcknowledgement: SourceStudyAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: true,
+              reason:
+                  'CLI --ack-profile: étude hors ligne du profil observé, sans certification de jeu complet.'),
+          allowFirstFrameAutotiles:
+              command['allow-first-frame-autotiles'] == true));
+      await workflow.prepareStudy();
+      cancellation.check();
+      final recipe = workflow.exportStudyPlanRecipe();
+      await const LocalStudyPlanStore()
+          .writeNew(recipe, command['plan'] as String);
+      if (command['json'] == true) {
+        out.writeln(jsonEncode(recipe.toJson()));
+      } else {
+        out.writeln('Plan d’étude sauvegardé : ${command['plan']}');
+        out.writeln('Approbation requise : ${recipe.approvedPlanHash.value}');
+        out.writeln('Recette : ${recipe.canonicalHash.value}');
+      }
+      return 0;
+    }
+    if (command.name == 'convert') {
+      final recipe =
+          await const LocalStudyPlanStore().read(command['plan'] as String);
+      cancellation.check();
+      if (recipe.approvedPlanHash != approvedHash) {
+        throw const ConverterWorkflowFailure('workflow.stale_approval',
+            '--approve-plan doit correspondre exactement au hash du plan revu.');
+      }
+      final fresh = await workflow.restoreStudyPlanRecipe(recipe);
+      cancellation.check();
+      final approval = workflow.approvePrepared(
+          sessionRevision: fresh.sessionRevision,
+          preparationHash: fresh.preparationHash,
+          humanConfirmed: true);
+      if (approval.approvedPlanHash != approvedHash) {
+        throw const ConverterWorkflowFailure('workflow.stale_approval',
+            'Le plan fraîchement recomposé diffère de l’approbation.');
+      }
+      final result = await workflow.writeApproved(approval);
+      final json = {
+        'kind': 'converterStudyResult',
+        'version': 1,
+        'projectPath': result.projectPath,
+        'published': result.published,
+        'verified': result.receipt.verified,
+        'playableCertified': result.playableCertified,
+        'sourceUnchanged': result.sourceUnchanged,
+        'nativeRevision': result.receipt.nativeRevision,
+        'approvedPlanHash': result.approvedPlanHash.value,
+        'preparationHash': result.preparationHash.value,
+        'sourceSnapshotHash': result.sourceSnapshotHash.value,
+        'journalPath': result.publication.journalPath,
+        'stagingPath': result.receipt.stagingRoot
+      };
+      if (command['json'] == true) {
+        out.writeln(jsonEncode(json));
+      } else {
+        out.writeln(
+            'Étude native publiée et vérifiée : ${result.projectPath}\nJournal : ${result.publication.journalPath}');
+      }
+      return 0;
+    }
+    final projectPath = command['project'] as String;
+    final result = await const NativeStudyVerifier().verify(
+        projectPath: projectPath,
+        allowedParentPath: Directory(projectPath).parent.path,
+        cancellation: cancellation);
     if (command['json'] == true) {
-      out.writeln(jsonEncode(snapshot.toJson()));
+      out.writeln(jsonEncode(result.toJson()));
     } else {
-      final files = snapshot.entries
-          .where((entry) => entry.kind == SourceNodeKind.file)
-          .length;
-      out.writeln('Inventaire ${snapshot.state.name} : $files fichiers, '
-          '${snapshot.excludedPaths.length} exclusions, '
-          '${snapshot.diagnostics.length} diagnostics.');
-      out.writeln('SHA-256 : ${snapshot.canonicalHash.value}');
-      out.writeln('Profil Essentials : ${snapshot.profile.state.name}');
-      final version = snapshot.profile.version;
-      if (version != null) out.writeln('Version observée : $version');
-    }
-    if (snapshot.state == SourceScanState.cancelled) return 130;
-    if (snapshot.state != SourceScanState.complete) {
-      err.writeln('Inventaire incomplet : consulter les diagnostics.');
-      return 3;
+      out.writeln(
+          'Projet natif vérifié en lecture seule : ${result.mapCount} cartes, ${result.assetCount} assets.\nRévision : ${result.nativeRevision}');
     }
     return 0;
+  } on ConverterWorkflowFailure catch (failure) {
+    await progressSubscription?.cancel();
+    final json = {
+      'code': failure.code,
+      'message': failure.message,
+      if (failure.locator != null) 'locator': failure.locator,
+      if (failure.stagingPath != null) 'stagingPath': failure.stagingPath,
+      if (failure.journalPath != null) 'journalPath': failure.journalPath,
+      if (failure.destinationPath != null)
+        'destinationPath': failure.destinationPath,
+      'promotionMayHaveOccurred': failure.promotionMayHaveOccurred
+    };
+    err.writeln(command['json'] == true
+        ? jsonEncode(json)
+        : '${failure.code} : ${failure.message}'
+            '${failure.journalPath == null ? "" : "\nJournal : ${failure.journalPath}"}'
+            '${failure.stagingPath == null ? "" : "\nStaging : ${failure.stagingPath}"}'
+            '${failure.destinationPath == null ? "" : "\nDestination : ${failure.destinationPath}"}'
+            '${failure.promotionMayHaveOccurred ? "\nLa promotion peut avoir eu lieu ; vérifier le journal avant toute reprise." : ""}');
+    return converterCliExitCode(failure.code);
   } on ContractError catch (failure) {
+    await progressSubscription?.cancel();
     err.writeln('${failure.code} : ${failure.message}');
-    return 3;
+    return converterCliExitCode(failure.code);
   } on FileSystemException {
-    err.writeln('source.io : la source est indisponible.');
-    return 3;
+    await progressSubscription?.cancel();
+    err.writeln('source.io : le fichier ou dossier demandé est indisponible.');
+    return command.name == 'verify' ? 5 : 3;
+  } on Object {
+    await progressSubscription?.cancel();
+    err.writeln('workflow.failed : l’opération locale n’a pas pu se terminer.');
+    return 5;
   } finally {
-    await source?.close();
+    await cancelSubscription?.cancel();
+    await progressSubscription?.cancel();
+    await workflow.dispose();
   }
+}
+
+int converterCliExitCode(String code) {
+  if (code.contains('cancelled')) return 130;
+  if (code.contains('platform') ||
+      code.contains('protected') ||
+      code.contains('outsideRoots') ||
+      code.contains('overlap') ||
+      code == 'native.verify.policy' ||
+      code.startsWith('security.')) {
+    return 6;
+  }
+  if (code.contains('stale') ||
+      code.contains('changed') ||
+      code.contains('conflict') ||
+      code == 'publication.destination.exists') {
+    return 7;
+  }
+  if (code.startsWith('native.verify.') ||
+      code.startsWith('publication.native.')) {
+    return 5;
+  }
+  if (code.startsWith('source.') ||
+      code.startsWith('marshal.') ||
+      code.startsWith('source_archive.') ||
+      code.startsWith('normalization.') ||
+      code == 'workflow.incomplete') {
+    return 3;
+  }
+  if (code == 'workflow.recipe.invalid' ||
+      code == 'workflow.recipe.store_invalid' ||
+      code == 'workflow.recipe.quota' ||
+      code == 'workflow.destination.invalid' ||
+      code == 'workflow.selection.invalid' ||
+      code == 'workflow.quota.selection') {
+    return 2;
+  }
+  if (code == 'workflow.blocked' ||
+      code == 'workflow.recipe.unavailable' ||
+      code == 'workflow.profile_ack' ||
+      code.startsWith('literal.') ||
+      code.startsWith('asset.')) {
+    return 4;
+  }
+  return 5;
 }

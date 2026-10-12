@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter/converter_app.dart';
+import 'package:avelune_converter/desktop_services.dart';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
-import 'package:avelune_studio/avelune_design_system.dart';
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,11 +38,131 @@ void main() {
       find.byKey(const ValueKey('analyse-project')),
     );
     expect(action.onPressed, isNull);
+    expect(
+      tester
+          .widget<StudioButton>(
+            find.byKey(const ValueKey('save-conversion-plan')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.text('Charger un plan local'), findsOneWidget);
     final rect = tester.getRect(find.byKey(const ValueKey('action-bar')));
     expect(rect.bottom, lessThanOrEqualTo(800));
     expect(rect.height, greaterThanOrEqualTo(44));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a local plan is freshly restored and still needs approval', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    final planPath = '${source.root.path}/reviewed-plan.json';
+    ConverterWorkflow? restored;
+    try {
+      await _scanAndPrepare(
+        tester,
+        source,
+        planSavePicker: () async => planPath,
+      );
+      await _acknowledgeAndPrepare(tester, source);
+      final recipe = source.workflow.exportStudyPlanRecipe();
+      await tester.tap(find.byKey(const ValueKey('save-conversion-plan')));
+      await tester.pump();
+      await _waitFor(
+        tester,
+        () => find.textContaining('Plan enregistré.').evaluate().isNotEmpty,
+      );
+      expect(File(planPath).existsSync(), isTrue);
+      expect(
+        (await tester.runAsync(
+          () => const LocalStudyPlanStore().read(planPath),
+        ))!.canonicalHash,
+        recipe.canonicalHash,
+      );
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(
+        ConverterApp(
+          workflowFactory: () => restored = ConverterWorkflow(),
+          pathPicker: (kind) async =>
+              kind == ConverterPathKind.planFile ? planPath : null,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('load-conversion-plan')));
+      await tester.pump();
+      await _waitFor(
+        tester,
+        () =>
+            restored?.state.prepared != null &&
+            !restored!.state.isBusy &&
+            find
+                .textContaining('Une nouvelle approbation')
+                .evaluate()
+                .isNotEmpty,
+      );
+      expect(
+        restored!.exportStudyPlanRecipe().canonicalHash,
+        recipe.canonicalHash,
+      );
+      expect(restored!.state.approval, isNull);
+      expect(restored!.state.result, isNull);
+      expect(source.nativeStages, isEmpty);
+      expect(find.textContaining('Une nouvelle approbation'), findsOneWidget);
+      await _approveInDialog(tester);
+      await _waitFor(tester, () => restored!.state.result != null);
+      expect(restored!.state.result!.published, isTrue);
+      expect(find.textContaining('Une nouvelle approbation'), findsNothing);
+      expect(find.text('Projet d’étude publié et vérifié.'), findsOneWidget);
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(() async {
+        await restored?.dispose();
+        await source.close();
+      });
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets('a malformed local plan leaves the source form editable', (
+    tester,
+  ) async {
+    final root = (await tester.runAsync(
+      () => Directory.systemTemp.createTemp('ac16-invalid-plan-widget-'),
+    ))!;
+    _setWindow(tester, const Size(1280, 800));
+    try {
+      final plan = File('${root.path}/invalid.json');
+      await tester.runAsync(() => plan.writeAsString('{"unexpected":true}'));
+      await tester.pumpWidget(
+        ConverterApp(
+          pathPicker: (kind) async =>
+              kind == ConverterPathKind.planFile ? plan.path : null,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('load-conversion-plan')));
+      await tester.pump();
+      await _waitFor(
+        tester,
+        () => find
+            .textContaining('Le plan local n’a pas pu')
+            .evaluate()
+            .isNotEmpty,
+      );
+      expect(
+        tester
+            .widget<StudioButton>(find.byKey(const ValueKey('choose-source')))
+            .onPressed,
+        isNotNull,
+      );
+      expect(find.textContaining('Projet d’étude publié'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(() => root.delete(recursive: true));
+    }
+  }, skip: !Platform.isMacOS);
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
   testWidgets('qualified and quarantined events are visible before creation', (
@@ -642,6 +763,7 @@ Future<void> _scanAndPrepare(
   WidgetTester tester,
   _OriginalSource source, {
   Future<void> Function(String)? folderOpener,
+  ConverterPlanSavePicker? planSavePicker,
 }) async {
   await tester.pumpWidget(
     ConverterApp(
@@ -649,6 +771,7 @@ Future<void> _scanAndPrepare(
       initialSourcePath: source.sourcePath,
       initialParentPath: source.output.path,
       folderOpener: folderOpener ?? (_) async {},
+      planSavePicker: planSavePicker ?? () async => null,
     ),
   );
   await tester.tap(find.byKey(const ValueKey('analyse-project')));

@@ -94,12 +94,13 @@ Future<void> main(List<String> args) async {
     final snapshot = await workflow.scanSource(ConverterSourceSelection(
         rootPath: sourceRoot,
         logicalProjectNamespace: ConverterId('source-semantic-study')));
+    record['sourceSnapshotHash'] = snapshot.canonicalHash.value;
+    record['sourceScanState'] = snapshot.state.name;
+    await save('source-snapshot.json', snapshot.toJson());
     require(snapshot.state == SourceScanState.complete,
         'A complete source snapshot is required');
-    record['sourceSnapshotHash'] = snapshot.canonicalHash.value;
     record['availableSourceMapCount'] =
         workflow.state.availableSourceMapIds.length;
-    await save('source-snapshot.json', snapshot.toJson());
     workflow.updateSettings(ConverterStudySettings(
         projectName: args[4],
         parentPath: destination.path,
@@ -116,6 +117,10 @@ Future<void> main(List<String> args) async {
     await save('normalized-source.json', prepared.normalizedSource.toJson());
     await save('preview-plan.json', prepared.previewPlan?.toJson());
     await save('review-session.json', prepared.reviewSession?.toJson());
+    await save('asset-proposals.json', prepared.assetProposals?.toJson());
+    record['assetProposalDiagnostics'] =
+        prepared.assetProposalDiagnostics.map((item) => item.toJson()).toList();
+    record['assetCandidateCount'] = prepared.assetCandidates.length;
     record['diagnostics'] = [
       ...prepared.normalizedSource.diagnostics.map((item) => item.toJson()),
       ...prepared.composition.diagnostics.map((item) => item.toJson()),

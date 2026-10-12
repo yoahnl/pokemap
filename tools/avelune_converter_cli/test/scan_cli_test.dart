@@ -146,7 +146,7 @@ void main() {
     final before = await sourceFingerprint(source);
     final result = await invoke(scanArguments());
 
-    expect(result.exitCode, Platform.isMacOS ? 0 : 3);
+    expect(result.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
     expect('${result.output}${result.error}',
         isNot(contains('private-canary-not-for-output')));
@@ -173,7 +173,7 @@ void main() {
     final before = await sourceFingerprint(source);
     final result = await invoke(scanArguments(json: false));
 
-    expect(result.exitCode, Platform.isMacOS ? 0 : 3);
+    expect(result.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
     if (!Platform.isMacOS) {
       return;
@@ -251,7 +251,7 @@ void main() {
     final before = await sourceFingerprint(source);
     final result = await invoke(scanArguments());
 
-    expect(result.exitCode, Platform.isMacOS ? 0 : 3);
+    expect(result.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
     if (!Platform.isMacOS) {
       return;
@@ -270,7 +270,7 @@ void main() {
   test('non-macOS scans report native adapter unavailability', () async {
     final result = await invoke(scanArguments());
 
-    expect(result.exitCode, 3);
+    expect(result.exitCode, 6);
     expect(result.error, isNotEmpty);
   },
       skip: Platform.isMacOS
@@ -285,7 +285,7 @@ void main() {
       workingDirectory: Directory.current.path,
     ).timeout(const Duration(seconds: 20));
 
-    expect(result.exitCode, Platform.isMacOS ? 0 : 3);
+    expect(result.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
     expect('${result.stdout}${result.stderr}',
         isNot(contains('private-canary-not-for-output')));

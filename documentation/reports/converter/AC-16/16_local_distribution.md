@@ -1,0 +1,454 @@
+# AC-16 — Distribution du convertisseur V1
+
+Date : 13 octobre 2026, Europe/Paris. Branche : main. Base du lot : fb654a223c7996f3caf3a0562574acd1ffa16940, commit AC-15. Verdict de livraison locale : TO REVIEW / PARTIAL. REL-02 et REL-03 passent ; REL-01 conserve une limite de capture/contrôle de la release. Ce rapport ne déclare pas la V1 complète ni un Kanto entièrement jouable.
+
+## Résultat et périmètre
+
+L’application indépendante se trouve dans apps/avelune_converter. Son design system est extrait dans un package Flutter partagé, sans importer Studio, le runtime ou le moteur de combat. La CLI compilée et l’interface utilisent ConverterWorkflow, la même recette fermée et une recomposition fraîche avant une nouvelle approbation. Aucune approbation persistée ne devient une autorisation automatique. Le convertisseur reste déterministe et hors ligne ; le combat conserve l’autorité Avelune.
+
+Le ZIP réel contient la release macOS, une CLI arm64, une fixture synthétique originale, les notices effectivement produites par le build et un README.txt de qualification privée. Après extraction dans un nouveau dossier, les 38 fichiers, 35 répertoires et neuf liens internes relatifs correspondent exactement à l’inventaire. Le binaire extrait réalise plan→convert→verify sur les deux cartes originales sans SDK installé pour l’exécution, sans modifier la source et sans écrire pendant verify. L’application macOS contient arm64 et x86_64 ; l’exécution a été qualifiée sur la machine arm64 uniquement.
+
+La qualification UI réelle utilise une application native debug, la fixture originale et le même fichier de recette que la CLI. La sortie canonique de 20 fichiers est identique après vérification stricte. La release a été construite et lancée, mais ScreenCaptureKit -3811 bloque sa capture/son contrôle CUA : la capture debug ne remplace pas une capture de cette release.
+
+La lacune de bibliothèque signalée par Yoahn est également corrigée au niveau des propositions perdues : Route 9 donne désormais 69 propositions de tuiles effectivement utilisées, 8 167 placements liés à leur source, et aucun diagnostic de proposition. Cela reste une base de revue, pas une bibliothèque terminée de pinceaux de chemin et d’arbres assemblés. Les pixels d’origine sont conservés. Aucun média Pokémon, projet Kanto ou secret n’entre dans le ZIP logiciel ou dans ce commit.
+
+## Audit initial, décisions et Gate 0
+
+Sources relues : codex_rule.md, skills/README.md, skills/verification-before-completion/SKILL.md, skills/using-pokemap-mcp/SKILL.md, skill test-flutter-desktop, kit AC-16 et tests REL-01/02/03, rapport AC-15 et frontières du workflow/writer natif. Les consignes du kit sont des spécifications de travail ; les décisions humaines sur apps/avelune_converter, commits locaux, source Kanto, absence d’IA obligatoire et combat Avelune priment. La demande directe de ne pas ajouter de commentaires prime sur la règle Codex contradictoire.
+
+L’audit de la release AC-14 révélait un couplage indésirable au design system public de Studio : 306 fichiers runtime, 15 fichiers Studio dont quatre médias Pokémon, cinq fichiers player_ui et un render_3d étaient embarqués. Les 20 implémentations du design system, 1 283 lignes Flutter, formaient une frontière extractible. Elles sont déplacées sans réécriture des widgets ; les chemins Studio deviennent des façades d’export et un test vérifie leur identité de types. Le graphe Converter final comporte 85 packages ; 52 dépendances liées notamment au runtime/battle/Flame/audio/vidéo/gamepads disparaissent.
+
+La CLI précédente proposait seulement scan. Appeler directement le writer pour la compléter aurait contourné la préparation, les bindings, la vérification de source et l’approbation. La recette enregistre tous les paramètres et hashes nécessaires, puis restoreStudyPlanRecipe rescane/recompose par le workflow public et refuse tout écart. Le contrat accepte seulement le format/version courant, jusqu’à 4 MiB et 250 000 nœuds. Aucun reader legacy, changement du modèle natif ou exécution Ruby n’a été ajouté.
+
+Le study AC-15 conservait quatre atlas et sept éléments techniques : quatre fragments d’occlusion et trois masques invisibles de collision. Le proposer associait tout le sol connecté de Route 9 à une composante de 4 392 cases / 8 167 parts et dépassait son quota 4 096. Le correctif produit une proposition par tuile statique utilisée, carte et couche, avec les claims exacts ; il ne relève pas le quota, ne tronque pas les placements et n’injecte pas les autres morceaux de l’atlas comme s’ils étaient présents sur la carte. L’API de composantes connectées conserve son rôle ; le workflow utilise usedStaticTiles. La revue/manipulation humaine existante permet ensuite les assemblages.
+
+Une lenteur réelle du corpus a également révélé le recalcul de canonicalHash pour chaque validation de claim. ConverterDocument possède déjà une copie JSON profondément gelée. Le hash est donc mémorisé une seule fois par document immuable ; les contrôles de provenance sont conservés. Quatre tests prouvent l’identité du hash, le gel profond avant/après calcul, la distinction d’une nouvelle copie modifiée et le rejet d’un claim contre une source modifiée. Les durées observées sur Kanto ne constituent pas un benchmark isolé : des scans complets et d’autres travaux concurrents restent dans le temps total.
+
+État initial : main, index vide, base fb654a223c7996f3caf3a0562574acd1ffa16940. Au gel initial AC-16, 39 chemins étrangers étaient déjà modifiés/non suivis ; spatial_scene_view.dart avait changé dans une autre session depuis le contrôle AC-15. D’autres travaux étrangers ont continué pendant le lot : 80 chemins étrangers au contrôle prérapport du 13 octobre. Aucun n’est restauré, stagé ou nettoyé. Le reçu de clôture donne le dernier état et compare les octets immédiatement avant/après le commit.
+
+## Contrats et implémentation
+
+ConverterStudyPlanRecipe conserve les paramètres, source snapshot, observations du profil, sélection de cartes, choix d’assets, artefacts, draft et plan approuvé. Les champs inconnus, formats obsolètes, hashes incohérents, recettes manipulées même avec un hash global recalculé, sources déplacées/modifiées et destinations occupées sont refusés. SourceLocator.fromJson réutilise le validateur strict à sept champs du contrat existant.
+
+LocalStudyPlanStore lit et crée exclusivement un nouveau fichier régulier hors source et hors destination canonique, sans suivre un lien, remplacer un fichier ou masquer une erreur. Une preuve AOT a révélé un appel openat Darwin incorrect : le mode était déclaré comme un quatrième argument fixe alors qu’il est variadique. Le fichier résultant était illisible, mode 0100240 / EACCES 13. La signature FFI utilise maintenant VarArgs<(Uint32,)> ; les plans réels sont créés en 0600. Aucun chmod correctif ni contournement des contrôles n’a été utilisé.
+
+Deux findings P2 de la critique ont été reproduits puis corrigés : alias /tmp contre /private/tmp pouvant laisser enregistrer la recette dans la destination, et mutation/annulation pendant la dernière relecture du verifier. Le store compare les parents canoniques. NativeStudyVerifier réalise sa dernière relecture avant ses derniers contrôles d’identité et d’annulation. Les cas RED correspondants restent dans les reçus, et les tests ciblés sont verts.
+
+L’interface propose Enregistrer le plan et Charger un plan avec les sélecteurs natifs. Charger restaure un nouveau workflow, conserve les paramètres exacts et demande une nouvelle approbation visible. Les erreurs sont françaises et typées. La confirmation réussie retire le message d’approbation périmée. Le harnais dev/macOS Marionette capture l’état réel du workflow dans un conteneur de QA privé ; il n’intègre pas de faux writer et ne change pas l’entrée de production.
+
+La CLI propose scan, plan, convert et verify, avec --offline obligatoire pour les opérations et --approve-plan égal au SHA exact lors de convert. Les codes 0/2/3/4/5/6/7/130 distinguent résultat d’étude, arguments/échecs et annulation ; SIGINT demande une annulation coopérative et conserve les chemins de récupération. Le code zéro et verified ne certifient jamais un jeu complet.
+
+NativeStudyVerifier relit le projet natif et contrôle son inventaire exact, ses assets, receipts, mutations, blobs, révisions et journal. Le comparateur partagé avec PUB-04 contrôle également la chaîne des mutations et reconstruit le bootstrap à partir du beforeBlob du premier changement project.create. Seuls dates/chemins de staging/identités de transport sont normalisés selon un contrat fermé ; les hashes sémantiques ne sont pas ignorés. Les six sabotages PUB-04 restent testés, auxquels s’ajoutent préimage manquante, révision altérée, ordre inversé, attentes inconnues/périmées et racines invalides.
+
+## REL-03 — mêmes recette et résultat par CLI et interface
+
+Racine de la qualification native : /Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012. Les sept fichiers de la fixture sont originaux et byte-identical à ceux du générateur. La CLI publie d’abord dans output/native-study, puis cette sortie est conservée intacte sous output/native-study-cli-preserved pour libérer la destination demandée par la même recette.
+
+Le fichier approved-plan.json est identique pour les deux transports. recipeHash f103da06e0858aee23acb62211bc3bbec31388377de51075525991ab54b29d4b ; approvedPlanHash 590c686e11edd17045d4ab1413a8a76b047c51e5228f2ad7fb31d9938672e51b ; nativeDraftHash def2553a16f53fe10d201bccee34cb143c0a31868055bc84ad16846d3820cd71. Les trois IDs d’opération attendus sont capturés depuis une nouvelle recomposition avant publication UI, dans native-expectations.json, et ne sont pas déduits des sorties comparées.
+
+Dans l’application native debug PID 79392 : Chargement du plan→nouvelle préparation et approval null→case d’approbation cochée→confirmation→publication réelle et vérification. La sortie UI et la CLI portent la révision sha256:3c0bcc7cc6ee4538d8e1ccac19025b04f34e6b6484efd4ddc2cb098e85f71648. Le lancement Flutter rapporte un échec de foreground open=1 ; le rendu natif et les actions ont néanmoins été observés par Marionette. La fenêtre a été fermée par q ; aucun descendant possédé ne subsiste.
+
+Captures réelles : /private/tmp/avelune-ac16-root-original-20261012/evidence/converter-native-initial.png et converter-native-published.png. La capture publiée a SHA 8b6a10a92f9b0ea685f64b5228d8ed57a87682f9e3f5042924627d2a21d54243 ; trace converter-native-journey.json. Cette observation précède uniquement les retouches de label/message et le cache de hash, testés ensuite sur les pins finaux ; elle n’est pas attribuée rétroactivement au binaire final de release.
+
+Le replay du comparateur sur les pins finaux confirme 20 fichiers, verified true de chaque côté, equal true et fingerprint sha256:2f766c91e52bb4aebc94aaedb13c4f29eac4cdd9e218dc54e5fad75b9d6b6213. proofScope=closedNativeOutputEquality et transportsObservedByComparator=false : les traces CLI/UI séparées prouvent les transports ; le comparateur seul ne les observe pas. Résultat REL-03 : PASS.
+
+## REL-01/02 — artefact local et installation réelle
+
+Distribution finale : /Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261013. Archive AveluneConverter-local-validation.zip, 37 076 890 octets, SHA 8bf599f6b713a45be11e9a1b30f297743d422c811262b3e89768e44379a517aa. inventory.json SHA 20b41dc415226dd806ce58f17a0764a133693319ce5c80362198c980278ec8e1. Payload : 38 fichiers réguliers, 35 répertoires, neuf liens relatifs internes, une notice Flutter décompressée de la vraie NOTICES.Z. Aucune acknowledgement CocoaPods n’existe dans ce build utilisant Swift Package Manager ; le packager gère les sidecars réels quand ils existent, sans en fabriquer.
+
+Le packager refuse secrets par noms/extensions, médias Pokémon/PSDK, ressources Studio/runtime/player/Flame, fichiers spéciaux, liens sortants/absolus ou revenant après une sortie lexicale, CLI non exécutable, fixture inconnue/incomplète et notices malformées ou dépassant la borne. Il conserve les modes et liens des frameworks, compare les entrées avant/après copie et archivage, et crée exclusivement une destination neuve. Les tests de packaging couvrent 22 cas. Les petits stubs de ces tests sont des entrées de test du packager ; la fixture effectivement distribuée est celle produite par le générateur Dart et convertie réellement.
+
+Extraction finale : /private/tmp/avelune-ac16-final-install-20261013/AveluneConverter-local-validation. L’inventaire extrait, modes et liens inclus, correspond exactement. Sa CLI exécute --help, plan sur cartes 1 et 8, convert avec le hash 58ac113707c5a1b7c362393805d43666555780f9a7a539e3119cce7d331b917b, puis verify. Projet final : deux cartes, un atlas ; révision sha256:e97145a9bc0a6d6a32bc2e4215460f6b12b4c421a7aaba219f544b0c959a943c ; sourceUnchanged et verifyReadOnly true ; playableCertified false. Aucun SDK source ou appel réseau requis à l’exécution de ce binaire extrait.
+
+REL-02 : PASS pour cette archive privée et son inventaire. Aucun grant de licence global du dépôt n’est inventé. L’archive n’est ni notarized ni publiée ; elle ne constitue pas une autorisation de redistribution publique. Le corpus Kanto est une entrée externe autorisée par Yoahn, jamais une dépendance livrée.
+
+REL-01 : build propre, artefact extrait, exécution CLI complète et observation UI native debug PASS ; capture/contrôle de la release PARTIAL (ScreenCaptureKit -3811). Aucun réglage macOS de sécurité ou permission n’a été modifié pour contourner ce blocage.
+
+## Route 9, ressources et limites de Kanto
+
+Source read-only : /Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto. Snapshot complet inchangé 5bc0f5dd57e70951cb86fe7c71114e983827251830b2b11f23ef2dab48f1c8de ; 383 cartes disponibles, sélection 98 uniquement. Le replay final scan→prepare→approve→write→verify→publish termine exit0 en 553.500s. Il produit 69 candidats needsReview/unclassified, liés à 8 167 placements exacts, aucun diagnostic de proposition, sourceUnchanged true, strictNativeReadPassed true et sourceScriptsExecuted/aiCalls zéro.
+
+Révision publiée : sha256:64b185150e8057db66ab8b30d163305924d0df788e6c98bd0bf47a958fcbd054 ; draft 02697375d547605a11531c5bb235dae5d457101e0644a5d78a8a7ddcea63c43f. Route 9 garde 72×61, cinq couches, 315 décors placés et huit clips joueur ; nativeMapHash 17e9afc98e9f3c1cf22240970ed413e4c0a8033527cb865fae95a6022496077e. Les 536 transitions source non qualifiées restent fermées. Les 16 événements restent quarantinés, hors certification gameplay. Le spawn (35,22) est une prévisualisation, pas le départ source certifié. L’autorité de combat demeure Avelune.
+
+Sortie et preuve conservées byte-identical dans /Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - AC16 ressources 20261013 (738 fichiers). Le binaire distribué vérifie la copie native en lecture seule, une carte et 59 assets, révision inchangée. Le premier contrôle a refusé une identité d’asset modifiée pendant la lecture (exit5/4.143s) ; la comparaison de tous les octets de la copie avec l’original n’a montré aucune différence. Une nouvelle vérification indépendante passe en 2.881s, sans changement de code/fichier ni assouplissement du contrôle. L’identité du port inclut taille, mtime et ctime ; la cause de cette variation transitoire de métadonnées n’est pas établie. Le refus initial est conservé comme limite observée, pas effacé. Le projet modifié, sauvegardé et rouvert réellement dans Studio au lot AC-15 demeure dans Kanto Route 9 - AC15 publié 20261012/Projet modifié dans Studio ; aucun de ses fichiers n’est remplacé par ce lot. La copie AC-16 a une preuve de lecture native stricte, pas une nouvelle preuve d’édition/reouverture dans Studio.
+
+Les chemins existent en pixels dans l’atlas FRLG_Outside City 256×16192, notamment la grille de neuf tuiles 481/482/483, 489/490/491, 497/498/499. Les propositions ne créent pas encore un ProjectSmartTilePreset avec contrat cardinal/blob complet et parcours peindre→save→reopen qualifié. palette.upsert existe, mais une palette JSON invisible dans Studio ne suffirait pas à prouver un pinceau produit. La bibliothèque actuelle du study reste composée des sept éléments techniques tant qu’aucune revue n’approuve de ressources supplémentaires.
+
+Un arbre isolé de l’atlas couvre 64×96, x128/y1664 : 804/805, 812/813 et 820/821. Les deux tuiles inférieures ne sont pas utilisées sur Route 9 ; elles ne sont pas ajoutées automatiquement à ses claims. D’autres sommets de forêt ont d’autres bases. L’assemblage doit préserver pixels, pivots, collisions et profondeur, sans prétendre qu’une composante alpha opaque identifie un arbre entier. Une IA facultative pourra suggérer reconnaissance et noms avec consentement, mais l’import et la recomposition n’en dépendent pas. Bibliothèque chemins/arbres : PARTIAL. KAN-03, départ/dialogue/warp/état/save en jeu : non certifié.
+
+## Qualification, tests, analyses et incidents conservés
+
+Snapshot qualifié : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository. Il provient de git archive de la base avec les seuls fichiers de ce lot, hors 39 puis 80 travaux étrangers. Les configurations locales ont été réécrites uniquement dans ce checkout temporaire. Les pins des 89 fichiers de code/manifestes/tests sont byte-identical au host après les derniers changements ; le rapport est le seul Markdown créé.
+
+Les suites finales core/adapters/app donnent respectivement 710, 656 et 84 PASS, sans échec ; elles ne sont pas additionnées aux reruns précédents. Les trois analyses finales sont sans issue. Le packaging donne 22 PASS. Les tests CLI gardent leurs skips explicitement liés aux corpus optionnels/plateforme. Les fixtures et les corps de test malformés, annulation, TOCTOU, quotas, reprise et exactitude native demeurent actifs.
+
+Le superviseur enregistre PID runner/descendants, UID, date de démarrage et commande, puis ne nettoie que ses survivants dont l’identité est reconfirmée. Tous les derniers runs finaux ont zéro survivant et PIDs protégés inchangés. Aucun kill par nom, ancienneté ou recherche globale ; la consigne humaine de laisser les PID préexistants tranquilles prime. Les instances release ouvertes par cette tâche sont laissées intactes après la défaillance de contrôle CUA.
+
+Incidents RED préservés : signature FFI openat (plan illisible, deux essais UI échoués puis correction réelle) ; alias canonique du store et mutation/annulation finale du verifier (tests RED puis GREEN) ; première suite adapters concurrente, 649 PASS/1 FAIL par timeout 30s de la fixture à 3 321 répétitions, puis replay complet à concurrency=2 et dernier replay 656 PASS ; premier scan Kanto incomplet exit2/30.936s, cause non établie, suivi de deux scans complets, avec conservation des snapshots en erreur améliorée ; deux infos d’analyse sur imports relatifs dev, corrigées ; premier packaging refusé parce que son parent de sortie n’existait pas, parent privé créé puis nouveau run validé. Aucun test n’a été supprimé pour transformer ces échecs en succès.
+
+Deux runs de parité MCP ont échoué worker254 dans le snapshot : pub get --offline avait résolu image4.11.0 avec archive4.0.9, incompatibles pour decodeLazy. map_authoring/pubspec.lock est ignoré et absent de git archive. Le lock réel du host, image4.9.2, est copié seulement dans le snapshot, suivi de pub get --offline --enforce-lockfile. Aucun lock/configuration du host n’est changé. Le build/check tools/pokemap_mcp puis deux tests live de catalogue/transport passent sur ce contexte corrigé.
+
+Parité MCP : aucune nouvelle commande d’authoring cible n’est créée. Le workflow utilise map_authoring pour les mêmes opérations natives ; le mécanisme de recette/CLI, la proposition locale et l’extraction de widgets ne changent pas les modèles cibles. La preuve native/direct API et la comparaison JSONL des mutations existent dans les tests. Le catalog pokemap_describe live et les actions pertinentes ont été vérifiés dans une instance MCP privée avec racine étroite. Cette preuve ne vaut pas qualification de toutes les sessions MCP globales ni de la bibliothèque SmartTile encore absente.
+
+Le contrôle global git diff --check relève des espaces de fin de ligne dans map_data.freezed.dart et map_entity_payloads.freezed.dart, fichiers générés modifiés par une autre session. Ces chemins sont étrangers et laissés intacts. Le contrôle scoped sur les 90 chemins du lot passe. L’hygiène Markdown passe : un seul nouveau fichier, en emplacement canonique, avec la borne explicitement autorisée par le livrable AC-16.
+
+## Verdicts des agents et passes
+
+| Passe | Responsabilité et preuve | Verdict |
+| --- | --- | --- |
+| Audit / Architecture | Frontière design system, recette exacte, suppression des dépendances de moteur ; audit initial root et ac12_native_mapping. | PASS pour le périmètre local ; les limites de V1 sont identifiées. |
+| Implémentation | ac12_semantics : workflow/recipe/store/verifier/CLI, erreurs et reprise ; ac12_validation_design : usedStaticTiles, packaging et cache immuable ; extraction par ac12_native_mapping. | PASS, tous les pins possédés correspondent au snapshot final. |
+| Tests | RED/GREEN des stores/verifier/hash cache, fixtures et attaques de normalisation ; suites finales root 710/656/84, packaging22. | PASS ; skips CLI et corpus externe documentés. |
+| Build / Validation | Build70.0MB, CLI AOT, ZIP extrait, convert/verify réel, Kanto final et comparaison CLI/UI fermée. | PASS artefacts/CLI/REL03 ; REL01 visuel release PARTIAL. |
+| Critique finale | ac12_native_mapping, passe séparée de lecture seule du 13 octobre, deux P2 corrigés, hashes finaux/receipts/archive/graphe relus, aucune nouvelle relance. | Aucun nouveau blocker P1/P2 ; TO REVIEW/PARTIAL avec KAN03 et bibliothèque métier non certifiés. |
+
+## Auto-critique et clôture technique
+
+L’extraction structurelle touche de nombreux petits fichiers, mais conserve les implémentations verbatim et prouve l’identité des imports Studio. La CLI ne contourne pas le workflow ; son installation réelle ferme le risque FFI que les seuls tests VM n’avaient pas détecté. La comparaison exige des attentes capturées avant publication et vérifie les métadonnées ; elle n’est pas une comparaison visuelle ou une preuve de gameplay.
+
+Le point faible produit demeure la bibliothèque : exposer 69 tuiles d’étude évite la perte silencieuse, mais ne fournit pas à Yoahn un pinceau de route ou un arbre entier prêt à poser. Les prochaines corrections doivent qualifier les ressources natives correspondantes et leur usage dans Studio, à partir des pixels d’origine. Les événements et le parcours Kanto en jeu restent des critères distincts. Ces limites ne sont ni masquées par les tests verts ni transférées au moteur de combat.
+
+Le commit du lot doit contenir uniquement les chemins de l’inventaire ci-dessous et ce rapport. Aucun push, rebase, amend, changement de branche ou nettoyage étranger. Le reçu /private/tmp/avelune-ac16-root-close-20261013.json consigne le SHA local final, l’index vide et les hashes étrangers immédiatement avant/après. Le ticket existant AC-16 dans le seul grand domaine Post Bêta Monde & narration est porté à TO REVIEW/PARTIAL avec ce SHA et ces preuves, jamais DONE. Gate bêta reste false. Le worktree reste sale du fait des travaux étrangers ; cette saleté ne constitue pas un échec caché du lot.
+
+## Commandes exactes et résultats
+
+Les tableaux et blocs suivants reproduisent les commandes enregistrées par les superviseurs, avec cwd et durées. Les pins/logs/reçus complets demeurent les preuves techniques ; les résultats des tests de packages différents ne se substituent pas aux contrôles UI et gameplay.
+
+Les suites core/adapters/app utilisent les pins finaux. Les tests adapters/app ont les trois variables AVELUNE_AC12_SOURCE_SCRIPTS, AVELUNE_AC13_SOURCE_SCRIPTS et AVELUNE_AUTOTILE_SCRIPTS_PATH pointant sur Data/Scripts.rxdata du corpus Kanto ci-dessus, en lecture seule. CLI : deux corpus optionnels non configurés et un test non-macOS sont SKIP, sans assimilation à des PASS. Les preuves Studio/design system précèdent le cache du core Converter qui ne les modifie pas.
+
+### Core final, 710 PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_core
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart test
+```
+
+Exit 0 ; 22.074 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-core-final-20261012-01.json.
+
+### Core analyse, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_core
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart analyze
+```
+
+Exit 0 ; 2.649 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-core-analyze-final-20261012-01.json.
+
+### Adapters final, 656 PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_adapters
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart test --concurrency=2
+```
+
+Exit 0 ; 296.392 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-adapters-cache-final-20261012-01.json.
+
+### Adapters analyse, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_adapters
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart analyze
+```
+
+Exit 0 ; 15.319 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-adapters-analyze-cache-20261012-01.json.
+
+### Converter final, 84 PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/flutter test
+```
+
+Exit 0 ; 49.716 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-app-cache-final-20261012-01.json.
+
+### Converter analyse, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze
+```
+
+Exit 0 ; 21.793 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-app-analyze-cache-20261012-01.json.
+
+### CLI final, 28 PASS / 3 SKIP
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/avelune_converter_cli
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart test
+```
+
+Exit 0 ; 23.036 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-cli-final-20261013-01.json.
+
+### Build macOS final, 70.0 MB
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/flutter build macos --release --no-pub
+```
+
+Exit 0 ; 94.822 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-build-release-cache-20261012-01.json.
+
+### CLI AOT compilée
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/avelune_converter_cli
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart compile exe bin/avelune_converter.dart -o /private/tmp/avelune-ac16-root-original-20261012/bin/avelune-converter-cached
+```
+
+Exit 0 ; 40.287 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-cli-compile-cache-20261012-01.json.
+
+### Packager permanent, 22 PASS
+
+Cwd : /Users/karim/Project/pokemonProject/apps/avelune_converter
+
+```text
+python3 -B tool/test_package_distribution.py
+```
+
+Exit 0 ; 1.228 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-package-tests-20261012-01.json.
+
+### Archive finale
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter
+
+```text
+python3 tool/package_distribution.py --app '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter/build/macos/Build/Products/Release/Avelune Converter.app' --cli /private/tmp/avelune-ac16-root-original-20261012/bin/avelune-converter-cached --fixture /private/tmp/avelune-ac16-root-original-20261012/source --output /Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261013
+```
+
+Exit 0 ; 13.974 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-package-final-20261012-01.json.
+
+### Installation finale, --help/plan/convert/verify PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository
+
+```text
+python3 /private/tmp/avelune-ac16-qualify-final-install-20261013.py
+```
+
+Exit 0 ; 1.218 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-installed-final-20261013-01.json.
+
+### CLI/UI comparaison finale, equal=true
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_adapters
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart run tool/compare_native_studies.dart --parent '/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/output' --plan '/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/approved-plan.json' --expectations '/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/native-expectations.json' '/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/output/native-study-cli-preserved' '/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/output/native-study'
+```
+
+Exit 0 ; 28.234 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-comparison-final-20261012-01.json.
+
+### Native UI debug réelle, exit0 après q
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/apps/avelune_converter
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/flutter run -t dev/marionette_main.dart -d macos --debug --no-pub '--dart-define=AVELUNE_CONVERTER_QA_PLAN=/Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16 original 20261012/approved-plan.json'
+```
+
+Exit 0 ; 478.278 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-native-ui-20261012-01.json.
+
+### Kanto réel final, nativeStudyPublished
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/packages/avelune_converter_adapters
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart run tool/source_semantics_study.dart '/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto' /private/tmp/avelune-ac16-kanto-resources-final-20261012/output /private/tmp/avelune-ac16-kanto-resources-final-20261012/evidence 98 'Route 9 — bibliothèque AC16' --approved-study
+```
+
+Exit 0 ; 553.5 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-kanto-resources-final-20261012-01.json.
+
+### Kanto original relu par binaire distribué, verified=true
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository
+
+```text
+/Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261013/payload/AveluneConverter-local-validation/bin/avelune-converter verify --project '/private/tmp/avelune-ac16-kanto-resources-final-20261012/output/Projet converti' --offline --json
+```
+
+Exit 0 ; 3.441 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-kanto-verify-original-20261013-01.json.
+
+### Design system analyse, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-ac16-design-system-g3plj6df/repository/packages/avelune_design_system
+
+```text
+/opt/homebrew/bin/flutter analyze --no-pub
+```
+
+Exit 0 ; 5.17 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-ds-package-analyze-20261012-01.json.
+
+### Studio façades, 20 PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-ac16-design-system-g3plj6df/repository/apps/avelune_studio
+
+```text
+/opt/homebrew/bin/flutter test --no-pub test/presentation/studio_design_system_identity_test.dart test/presentation/studio_design_system_test.dart test/presentation/studio_review_dialog_test.dart test/pokemon/pokemon_move_presentation_test.dart
+```
+
+Exit 0 ; 8.988 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-ds-studio-focused-green-20261012-02.json.
+
+### Studio analyse, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-ac16-design-system-g3plj6df/repository/apps/avelune_studio
+
+```text
+/opt/homebrew/bin/flutter analyze --no-pub
+```
+
+Exit 0 ; 17.404 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-ds-studio-analyze-20261012-03.json.
+
+### MCP build
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/pokemap_mcp
+
+```text
+npm run build
+```
+
+Exit 0 ; 1.865 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-mcp-build-20261012-01.json.
+
+### MCP check
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/pokemap_mcp
+
+```text
+npm run check
+```
+
+Exit 0 ; 3.092 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-mcp-check-20261012-01.json.
+
+### MCP catalogue/transport live, 2 PASS
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/pokemap_mcp
+
+```text
+node --import tsx --test test/pokemon_authoring.test.ts
+```
+
+Exit 0 ; 18.727 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-mcp-live-catalog-20261012-03.json.
+
+### Copie Kanto utilisateur relue, verified=true
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository
+
+```text
+/Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261013/payload/AveluneConverter-local-validation/bin/avelune-converter verify --project '/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - AC16 ressources 20261013/output/Projet converti' --offline --json
+```
+
+Exit 0 ; 2.881 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-user-study-verify-20261013-02.json.
+
+### CLI analyse finale, aucune issue
+
+Cwd : /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac16-qualified-m5bf0qiz/repository/tools/avelune_converter_cli
+
+```text
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart analyze
+```
+
+Exit 0 ; 2.917 s ; survivants possédés 0 ; protectedUnchanged=true. Reçu : /private/tmp/avelune-ac16-root-cli-analyze-final-20261013-01.json.
+
+## Inventaire des fichiers et zones modifiées
+
+Les coordonnées Ldébut,nombre proviennent du diff unifié contre fb654a223c7996f3caf3a0562574acd1ffa16940. Pour les fichiers créés, le nombre de lignes et les symboles sont relevés dans la source. Les widgets partagés et les façades ont la même raison d’extraction, précisée sur chaque ligne. Les détails de diff sont accessibles par git show du commit de ce rapport ; aucun snapshot intégral de code n’est recopié.
+
+| Fichier | Zones modifiées/créées | Raison et impact |
+| --- | --- | --- |
+| apps/avelune_converter/assets/avelune_logo.png | créé, 0 lignes | Logo Converter autonome ; retire la dépendance aux assets Studio. |
+| apps/avelune_converter/dev/marionette_main.dart | créé, 66 lignes | Harnais QA debug macOS du workflow réel ; entrée shipping inchangée. |
+| apps/avelune_converter/lib/asset_review_canvas.dart | L5 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Import du design system canonique ; comportement de revue inchangé. |
+| apps/avelune_converter/lib/asset_review_panel.dart | L7 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Import du design system canonique ; comportement de revue inchangé. |
+| apps/avelune_converter/lib/converter_app.dart | L7 import 'package:avelune_converter_core/avelune_converter_core.dart'; ; L23 class ConverterApp extends StatelessWidget { ; L25 class ConverterApp extends StatelessWidget { ; L35 class ConverterApp extends StatelessWidget { ; L37 class ConverterApp extends StatelessWidget { ; L67 class ConverterApp extends StatelessWidget { ; L69 class ConverterApp extends StatelessWidget { ; L85 class ConverterWindow extends StatefulWidget { ; L87 class ConverterWindow extends StatefulWidget { ; L97 class ConverterWindow extends StatefulWidget { ; L99 class ConverterWindow extends StatefulWidget { ; L112,3 class _ConverterWindowState extends State<ConverterWindow> { ; L128 class _ConverterWindowState extends State<ConverterWindow> { ; L147,2 class _ConverterWindowState extends State<ConverterWindow> { ; L187,4 class _ConverterWindowState extends State<ConverterWindow> { ; L210 class _ConverterWindowState extends State<ConverterWindow> { ; L676,72 class _ConverterWindowState extends State<ConverterWindow> { ; L875 class _ConverterWindowState extends State<ConverterWindow> { ; L890,4 class _ConverterWindowState extends State<ConverterWindow> { ; L987 class _ConverterWindowState extends State<ConverterWindow> { ; L1031,3 class _ConverterWindowState extends State<ConverterWindow> { ; L1044,20 class _ConverterWindowState extends State<ConverterWindow> { ; L1923,3 class _ConverterWindowState extends State<ConverterWindow> { ; L1941,9 class _ConverterWindowState extends State<ConverterWindow> { ; L2089,15 String _failureMessage(Object error) { | Chargement/sauvegarde natifs de recette, nouvelle approbation et confirmation claire. |
+| apps/avelune_converter/lib/desktop_services.dart | L8,6 import 'package:path_provider/path_provider.dart'; ; L17 typedef ConverterFolderOpener = Future<void> Function(String directory); ; L27,8 Future<String?> pickConverterPath(ConverterPathKind kind) async { ; L50,7 Future<String?> pickConverterPath(ConverterPathKind kind) async { | FilePicker natif pour lire/créer le fichier de plan. |
+| apps/avelune_converter/lib/map_comparison.dart | L8 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Import du design system canonique ; comportement de revue inchangé. |
+| apps/avelune_converter/lib/vision_panel.dart | L7 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Import du design system canonique ; comportement de revue inchangé. |
+| apps/avelune_converter/pubspec.lock | L27,0 packages: ; L42 packages: ; L45 packages: ; L48 packages: ; L104,0 packages: ; L152,0 packages: ; L162,0 packages: ; L183,0 packages: ; L206,0 packages: ; L214,0 packages: ; L299,0 packages: ; L314,0 packages: ; L335,0 packages: ; L359,0 packages: ; L383,0 packages: ; L495,0 packages: ; L516,0 packages: ; L540,0 packages: ; L572,0 packages: ; L588,0 packages: | Dépendance au package partagé ; graphe autonome sans moteur et lock ciblé. |
+| apps/avelune_converter/pubspec.yaml | L19,2 dependencies: ; L38,2 flutter: | Dépendance au package partagé ; graphe autonome sans moteur et lock ciblé. |
+| apps/avelune_converter/test/asset_review_canvas_test.dart | L5 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/test/asset_review_panel_test.dart | L7 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/test/asset_review_session_panel_test.dart | L5 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/test/converter_app_test.dart | L6 import 'package:avelune_converter/converter_app.dart'; ; L8 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart'; ; L41,9 void main() { ; L56,111 void main() { ; L766 Future<void> _scanAndPrepare( ; L774 Future<void> _scanAndPrepare( | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/test/converter_session_lifecycle_test.dart | L7 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart'; | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/test/vision_panel_test.dart | L8 import 'package:avelune_converter_core/avelune_converter_core.dart'; | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| apps/avelune_converter/tool/create_original_fixture.dart | créé, 81 lignes | Générateur rerunnable de deux cartes/atlas originaux et déclaration de fixture. |
+| apps/avelune_converter/tool/package_distribution.py | créé, 362 lignes ; PackageError | Archive privée inventoriée, modes/liens/notices/source originale vérifiés. |
+| apps/avelune_converter/tool/test_package_distribution.py | créé, 254 lignes ; DistributionTests | Archive privée inventoriée, modes/liens/notices/source originale vérifiés. |
+| apps/avelune_studio/lib/avelune_design_system.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_button.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_tool.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/dialogs/studio_review_dialog.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/feedback/studio_badge.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/feedback/studio_empty_state.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/feedback/studio_notice.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_choice.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_draft_field.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_path_field.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_search_field.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_select.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_toggle_row.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_action_bar.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_asset_preview.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_page_header.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_panel.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_section.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_sidebar.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/theme/studio_theme.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/lib/presentation/theme/studio_tokens.dart | L1 | Façade export-only du design system partagé ; conserve les identités/types Studio. |
+| apps/avelune_studio/pubspec.lock | L100,7 packages: | Dépendance au package partagé ; graphe autonome sans moteur et lock ciblé. |
+| apps/avelune_studio/pubspec.yaml | L15,2 dependencies: | Dépendance au package partagé ; graphe autonome sans moteur et lock ciblé. |
+| apps/avelune_studio/test/presentation/studio_design_system_identity_test.dart | créé, 157 lignes | Vérifie l’identité des types canoniques et façades Studio. |
+| packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart | L28,3 export 'src/source_catalog_study_composer.dart'; | Exporte les trois contrats/API locaux de recette, store et verification. |
+| packages/avelune_converter_adapters/lib/src/converter_study_plan_recipe.dart | créé, 274 lignes ; ConverterStudyPlanRecipe | Recette complète fermée, paramètres/hashes bornés et identité exacte. |
+| packages/avelune_converter_adapters/lib/src/converter_workflow.dart | L9 import 'approved_asset_library.dart'; ; L439,2 final class ConverterWorkflow { ; L448,43 final class ConverterWorkflow { ; L492,57 final class ConverterWorkflow { ; L578,6 final class ConverterWorkflow { ; L613,4 final class ConverterWorkflow { ; L645,4 final class ConverterWorkflow { ; L656,7 final class ConverterWorkflow { ; L694 final class ConverterWorkflow { ; L750,5 final class ConverterWorkflow { ; L782 final class ConverterWorkflow { ; L788 final class ConverterWorkflow { ; L994 int _workflowSequence = 0; ; L1333 Future<void> _converterWorker(_WorkerLaunch launch) async { ; L1364 Future<void> _converterWorker(_WorkerLaunch launch) async { ; L1854 ConverterWorkflowFailure _workflowFailure(Object error, | Export/restauration fermée du plan via recomposition fraîche ; stratégie des tuiles utilisées. |
+| packages/avelune_converter_adapters/lib/src/local_asset_proposer.dart | L11,2 import 'native_project_writer.dart'; ; L126,2 final class LocalAssetProposer { ; L167 final class LocalAssetProposer { ; L227,3 final class LocalAssetProposer { ; L445,129 final class LocalAssetProposer { ; L1001,32 final class _AssetInputs { | Propositions bornées par tuile utilisée/couche avec tous les placements source. |
+| packages/avelune_converter_adapters/lib/src/local_study_plan_store.dart | créé, 217 lignes ; LocalStudyPlanStore, _PlanNative | Persistance exclusive sans symlink/recouvrement canonique ; openat Darwin variadique. |
+| packages/avelune_converter_adapters/lib/src/native_study_verifier.dart | créé, 161 lignes ; NativeStudyVerification, NativeStudyVerifier | Lecture stricte du projet/assets ; dernier contrôle d’identité/annulation après la relecture. |
+| packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart | L20,6 void main() { ; L41 void main() { ; L153,2 void main() { ; L309,2 void main() { ; L314 void main() { ; L377,2 void main() { ; L384 void main() { ; L398,2 void main() { ; L401 void main() { ; L587,32 final class _AssetWorkflow { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/converter_study_plan_recipe_test.dart | créé, 353 lignes | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/local_asset_proposer_test.dart | L4 import 'package:avelune_converter_core/avelune_converter_core.dart'; ; L10,59 import 'support/original_asset_fixture.dart'; ; L93,133 void main() { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/native_reproducibility_test.dart | créé, 126 lignes | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/publication_workflow_reproducibility_test.dart | L10 import 'support/native_writer_fixture.dart'; ; L12,0 const _authoringRoot = '.pokemap/authoring/'; ; L22 void main() { ; L45 void main() { ; L66,2 void main() { ; L71,5 void main() { ; L77,11 void main() { ; L119 void main() { ; L127,2 void main() { ; L133 void main() { ; L144,32 void main() { ; L182 void main() { ; L189 void main() { ; L192,3 void main() { ; L207,0 void main() { ; L236,0 Map<String, dynamic> _object(Object? value) { ; L239,0 void _require(bool condition, String message) { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart | L105 final class LiteralFixtureTileset { ; L118,5 final class LiteralFixtureTileset { ; L126 final class LiteralFixtureTileset { ; L357,20 _Object _tileset(LiteralFixtureTileset tileset) => _Object('RPG::Tileset', { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/test/support/native_reproducibility.dart | créé, 616 lignes ; NativeReproducibilityComparison, _LogNormaliser | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_adapters/tool/compare_native_studies.dart | créé, 112 lignes | Comparaison fermée des deux sorties à partir d’attentes capturées avant publication. |
+| packages/avelune_converter_adapters/tool/source_semantics_study.dart | L97,3 Future<void> main(List<String> args) async { ; L101,0 Future<void> main(List<String> args) async { ; L103,0 Future<void> main(List<String> args) async { ; L120,4 Future<void> main(List<String> args) async { | Conserve propositions/diagnostics et snapshot même en erreur pour le corpus réel. |
+| packages/avelune_converter_core/lib/src/models.dart | L115 sealed class ConverterDocument extends _JsonRecord { ; L337,3 final class SourceLocator extends _JsonRecord { | Décodeur public SourceLocator strict ; hash mémorisé du document gelé sans supprimer la validation. |
+| packages/avelune_converter_core/test/immutable_document_hash_test.dart | créé, 89 lignes | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_converter_core/test/source_locator_decode_test.dart | créé, 42 lignes | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| packages/avelune_design_system/analysis_options.yaml | créé, 1 lignes | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/avelune_design_system.dart | créé, 20 lignes | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/buttons/studio_button.dart | créé, 68 lignes ; StudioButtonVariant, StudioButton | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/buttons/studio_tool.dart | créé, 81 lignes ; StudioTool | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/dialogs/studio_review_dialog.dart | créé, 46 lignes ; StudioReviewDialog | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/feedback/studio_badge.dart | créé, 63 lignes ; StudioTone, StudioBadge | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/feedback/studio_empty_state.dart | créé, 43 lignes ; StudioEmptyState | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/feedback/studio_notice.dart | créé, 60 lignes ; StudioNotice | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_choice.dart | créé, 122 lignes ; StudioChoice, _StudioChoiceState | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_draft_field.dart | créé, 68 lignes ; StudioDraftField, _StudioDraftFieldState | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_path_field.dart | créé, 40 lignes ; StudioPathField | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_search_field.dart | créé, 43 lignes ; StudioSearchField | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_select.dart | créé, 39 lignes ; StudioSelect | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/inputs/studio_toggle_row.dart | créé, 24 lignes ; StudioToggleRow | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_action_bar.dart | créé, 30 lignes ; StudioActionBar | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_asset_preview.dart | créé, 61 lignes ; StudioAssetPreview, _PreviewBackground | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_page_header.dart | créé, 67 lignes ; StudioPageHeader | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_panel.dart | créé, 53 lignes ; StudioPanel | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_section.dart | créé, 38 lignes ; StudioSection | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/shared/widgets/layout/studio_sidebar.dart | créé, 22 lignes ; StudioSidebar | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/theme/studio_theme.dart | créé, 217 lignes | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/lib/presentation/theme/studio_tokens.dart | créé, 98 lignes ; StudioColors | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/avelune_design_system/pubspec.yaml | créé, 20 lignes | Extraction Flutter canonique verbatim ; retire le couplage Converter→Studio. |
+| packages/map_render_3d/test/spatial_surface_preview_picking_test.dart | créé, 144 lignes | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| tools/avelune_converter_cli/bin/avelune_converter.dart | L6,2 Future<void> main(List<String> arguments) async { | Commandes offline plan/convert/verify, même workflow et annulation SIGINT. |
+| tools/avelune_converter_cli/lib/avelune_converter_cli.dart | L1 ; L10,3 Future<int> runConverterCli(List<String> arguments, ; L15 Future<int> runConverterCli(List<String> arguments, ; L17,6 Future<int> runConverterCli(List<String> arguments, ; L25,11 Future<int> runConverterCli(List<String> arguments, ; L37,10 Future<int> runConverterCli(List<String> arguments, ; L49,10 Future<int> runConverterCli(List<String> arguments, ; L71,9 Future<int> runConverterCli(List<String> arguments, ; L83,0 Future<int> runConverterCli(List<String> arguments, ; L87,12 Future<int> runConverterCli(List<String> arguments, ; L100,42 Future<int> runConverterCli(List<String> arguments, ; L144,17 Future<int> runConverterCli(List<String> arguments, ; L162,59 Future<int> runConverterCli(List<String> arguments, ; L222,47 Future<int> runConverterCli(List<String> arguments, ; L270 Future<int> runConverterCli(List<String> arguments, ; L272,2 Future<int> runConverterCli(List<String> arguments, ; L276,20 Future<int> runConverterCli(List<String> arguments, ; L297 Future<int> runConverterCli(List<String> arguments, ; L299 Future<int> runConverterCli(List<String> arguments, ; L301,7 Future<int> runConverterCli(List<String> arguments, ; L309,47 Future<int> runConverterCli(List<String> arguments, ; L357 Future<int> runConverterCli(List<String> arguments, | Commandes offline plan/convert/verify, même workflow et annulation SIGINT. |
+| tools/avelune_converter_cli/test/scan_cli_test.dart | L149 void main() { ; L176 void main() { ; L254 void main() { ; L273 void main() { ; L288 void main() { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| tools/avelune_converter_cli/test/study_cli_test.dart | créé, 220 lignes ; _ObservedSink | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
+| documentation/reports/converter/AC-16/16_local_distribution.md | Document consolidé : audit, frontières, preuves, limites, inventaire et clôture | Livrable AC-16 explicitement demandé par le kit ; un seul nouveau Markdown. |

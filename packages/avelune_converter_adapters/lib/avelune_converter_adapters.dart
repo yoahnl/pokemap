@@ -25,3 +25,6 @@ export 'src/source_event_item_bindings.dart';
 export 'src/source_pickup_feedback_binding.dart';
 export 'src/source_catalog_projection.dart';
 export 'src/source_catalog_study_composer.dart';
+export 'src/converter_study_plan_recipe.dart';
+export 'src/local_study_plan_store.dart';
+export 'src/native_study_verifier.dart';

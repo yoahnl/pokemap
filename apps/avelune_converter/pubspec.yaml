@@ -16,8 +16,8 @@ dependencies:
     path: ../../packages/avelune_converter_core
   avelune_converter_adapters:
     path: ../../packages/avelune_converter_adapters
-  avelune_studio:
-    path: ../avelune_studio
+  avelune_design_system:
+    path: ../../packages/avelune_design_system
   map_core:
     path: ../../packages/map_core
   file_picker: 11.0.3
@@ -35,3 +35,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/avelune_logo.png

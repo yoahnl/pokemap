@@ -6,6 +6,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:path/path.dart' as path;
 
 import 'approved_asset_library.dart';
+import 'converter_study_plan_recipe.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
@@ -435,7 +436,8 @@ final class ConverterWorkflow {
   final StreamController<ConverterWorkflowEvent> _events =
       StreamController.broadcast();
   ConverterWorkflowState _state = const ConverterWorkflowState._();
-  final ConverterId _sessionId;
+  ConverterId _sessionId;
+  bool _restoringRecipe = false;
   _WorkflowRun? _active;
   bool _disposed = false;
   int _attemptOrdinal = 0;
@@ -443,8 +445,107 @@ final class ConverterWorkflow {
   ConverterWorkflowState get state => _state;
   Stream<ConverterWorkflowEvent> get events => _events.stream;
 
-  Future<SourceSnapshot> scanSource(ConverterSourceSelection source) async {
+  bool get canRestoreStudyPlanRecipe =>
+      !_disposed &&
+      !_restoringRecipe &&
+      !_state.isBusy &&
+      _state.source == null &&
+      _state.revision == 1 &&
+      _attemptOrdinal == 0;
+
+  ConverterStudyPlanRecipe exportStudyPlanRecipe() {
     _requireIdle();
+    final prepared = _state.prepared;
+    if (prepared == null ||
+        prepared.sessionRevision != _state.revision ||
+        !prepared.canApprove ||
+        prepared.nativeDraft == null ||
+        prepared.previewPlan == null) {
+      throw const ConverterWorkflowFailure('workflow.recipe.unavailable',
+          'Prepare a current, reviewable study plan before exporting its recipe.');
+    }
+    return _studyPlanRecipe(prepared);
+  }
+
+  ConverterStudyPlanRecipe _studyPlanRecipe(PreparedStudy prepared) {
+    final approved = _approvedPreview(prepared);
+    return ConverterStudyPlanRecipe(
+        sessionId: _sessionId,
+        sessionRevision: prepared.sessionRevision,
+        sourceSelection: _state.source!,
+        settings: prepared.settings,
+        sourceSnapshotHash: prepared.sourceSnapshotHash,
+        profileEvidenceHash: prepared.profileEvidenceHash,
+        settingsHash: prepared.settings.canonicalHash,
+        nativeDraftHash: prepared.nativeDraft!.canonicalHash,
+        preparationHash: prepared.preparationHash,
+        previewPlanHash: prepared.previewPlan!.canonicalHash,
+        approvedPlanHash: approved.canonicalHash,
+        targetCapabilitiesHash: prepared.targetCapabilities.canonicalHash,
+        rulesHash: _studyRulesHash(),
+        converterVersion: _converterVersion);
+  }
+
+  Future<PreparedStudy> restoreStudyPlanRecipe(
+      ConverterStudyPlanRecipe recipe) async {
+    _requireIdle();
+    if (!canRestoreStudyPlanRecipe) {
+      throw const ConverterWorkflowFailure('workflow.recipe.not_fresh',
+          'Restore requires a new, unused workflow.');
+    }
+    if (recipe.converterVersion != _converterVersion ||
+        recipe.rulesHash != _studyRulesHash() ||
+        recipe.targetCapabilitiesHash != _nativeCapabilities().canonicalHash) {
+      throw const ConverterWorkflowFailure('workflow.recipe.stale',
+          'This recipe belongs to a different converter or target contract.');
+    }
+    _restoringRecipe = true;
+    _sessionId = recipe.sessionId;
+    _state = ConverterWorkflowState._(revision: recipe.sessionRevision - 2);
+    try {
+      final snapshot =
+          await _scanSource(recipe.sourceSelection, restoringRecipe: true);
+      if (_state.cancellationRequested) {
+        throw const ConverterWorkflowFailure(
+            'workflow.cancelled', 'Recipe restoration was cancelled.');
+      }
+      if (snapshot.state != SourceScanState.complete ||
+          snapshot.canonicalHash != recipe.sourceSnapshotHash ||
+          snapshot.profile.evidenceHash != recipe.profileEvidenceHash) {
+        throw const ConverterWorkflowFailure('workflow.source_changed',
+            'The fresh source inventory or profile differs from the saved recipe.');
+      }
+      _updateSettings(recipe.settings, restoringRecipe: true);
+      final prepared = await _prepareStudy(restoringRecipe: true);
+      if (_state.cancellationRequested) {
+        throw const ConverterWorkflowFailure(
+            'workflow.cancelled', 'Recipe restoration was cancelled.');
+      }
+      if (!prepared.canApprove ||
+          prepared.nativeDraft == null ||
+          prepared.previewPlan == null ||
+          _studyPlanRecipe(prepared).canonicalHash != recipe.canonicalHash) {
+        _state = _state._copy(prepared: null, approval: null);
+        throw const ConverterWorkflowFailure('workflow.recipe.stale',
+            'Fresh composition does not reproduce the exact saved study plan.');
+      }
+      _state = _state._copy(prepared: prepared, approval: null);
+      return prepared;
+    } catch (error) {
+      _state = _state._copy(prepared: null, approval: null);
+      throw _recordFailure(error);
+    } finally {
+      _restoringRecipe = false;
+      _emit(ConverterWorkflowEventKind.changed);
+    }
+  }
+
+  Future<SourceSnapshot> scanSource(ConverterSourceSelection source) =>
+      _scanSource(source);
+
+  Future<SourceSnapshot> _scanSource(ConverterSourceSelection source,
+      {bool restoringRecipe = false}) async {
+    _requireIdle(restoringRecipe: restoringRecipe);
     _state = ConverterWorkflowState._(
         revision: _nextRevision(), source: source, isBusy: true);
     _emit(ConverterWorkflowEventKind.changed);
@@ -474,8 +575,12 @@ final class ConverterWorkflow {
     }
   }
 
-  void updateSettings(ConverterStudySettings settings) {
-    _requireIdle();
+  void updateSettings(ConverterStudySettings settings) =>
+      _updateSettings(settings);
+
+  void _updateSettings(ConverterStudySettings settings,
+      {bool restoringRecipe = false}) {
+    _requireIdle(restoringRecipe: restoringRecipe);
     final snapshot = _requireSource();
     _checkAcknowledgement(snapshot, settings.profileAcknowledgement);
     if (_state.settings?.canonicalHash == settings.canonicalHash) return;
@@ -505,8 +610,10 @@ final class ConverterWorkflow {
     _emit(ConverterWorkflowEventKind.changed);
   }
 
-  Future<PreparedStudy> prepareStudy() async {
-    _requireIdle();
+  Future<PreparedStudy> prepareStudy() => _prepareStudy();
+
+  Future<PreparedStudy> _prepareStudy({bool restoringRecipe = false}) async {
+    _requireIdle(restoringRecipe: restoringRecipe);
     final snapshot = _requireSource();
     final settings = _state.settings;
     if (settings == null) {
@@ -535,13 +642,23 @@ final class ConverterWorkflow {
           snapshot: snapshot,
           settings: settings));
       final prepared = outcome.prepared!;
-      _state = _state._copy(prepared: prepared, isBusy: false, failure: null);
+      _state = _state._copy(
+          prepared: restoringRecipe ? null : prepared,
+          isBusy: false,
+          failure: null);
       _emit(ConverterWorkflowEventKind.completed);
       return prepared;
     } catch (error) {
       throw _recordFailure(error);
     }
   }
+
+  ConversionPlan _approvedPreview(PreparedStudy prepared) =>
+      ConversionPlan.fromJson({
+        ...prepared.previewPlan!.toJson(),
+        'state': 'ready',
+        'approvedByHuman': true,
+      }, limits: prepared.settings.writeLimits.jsonLimits);
 
   StudyApproval approvePrepared({
     required int sessionRevision,
@@ -574,12 +691,7 @@ final class ConverterWorkflow {
       throw const ConverterWorkflowFailure('workflow.blocked',
           'Resolve the blocking diagnostics before approval.');
     }
-    final json = preview.toJson();
-    final approved = ConversionPlan.fromJson({
-      ...json,
-      'state': 'ready',
-      'approvedByHuman': true,
-    }, limits: prepared.settings.writeLimits.jsonLimits);
+    final approved = _approvedPreview(prepared);
     admitPlan(approved, _planContext(prepared, approved, _sessionId));
     final approval = StudyApproval._(
         sessionRevision: sessionRevision,
@@ -635,7 +747,11 @@ final class ConverterWorkflow {
   }
 
   void cancelCurrentJob() {
-    if (_disposed || !_state.isBusy || _state.cancellationRequested) return;
+    if (_disposed ||
+        (!_state.isBusy && !_restoringRecipe) ||
+        _state.cancellationRequested) {
+      return;
+    }
     _state = _state._copy(cancellationRequested: true);
     _active?.control?.send(const _WorkerControl.cancel());
     _emit(ConverterWorkflowEventKind.changed);
@@ -663,13 +779,13 @@ final class ConverterWorkflow {
     return _state.revision + 1;
   }
 
-  void _requireIdle() {
+  void _requireIdle({bool restoringRecipe = false}) {
     if (_disposed) {
       throw const ConverterWorkflowFailure(
           'workflow.disposed', 'The workflow is closed.',
           retryable: false);
     }
-    if (_state.isBusy) {
+    if (_state.isBusy || (_restoringRecipe && !restoringRecipe)) {
       throw const ConverterWorkflowFailure(
           'workflow.busy', 'Wait for the current job or request cancellation.');
     }
@@ -875,7 +991,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac15-study-v1';
+const _converterVersion = 'avelune-converter-ac16-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1214,6 +1330,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         if (composition.canWrite) {
           try {
             proposals = await const LocalAssetProposer().propose(
+                strategy: LocalAssetProposalStrategy.usedStaticTiles,
                 source: normalized,
                 files: files,
                 literal: composition,
@@ -1244,7 +1361,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
           } on ContractError catch (error) {
             if (error.code != 'asset.proposal.quota') rethrow;
             proposalDiagnostics.add(LocalAssetProposalDiagnostic(error.code,
-                'Local recognition exceeded its budget; no partial proposals were retained. Literal map conversion remains available.'));
+                '${error.toString()} No partial proposals were retained. Literal map conversion remains available.'));
           }
         }
         AssetReviewSession? reviewSession;
@@ -1734,6 +1851,7 @@ ConverterWorkflowFailure _workflowFailure(Object error,
   }
   if (code == 'source.cancelled' ||
       code == 'native.cancelled' ||
+      code == 'native.admission.source.cancelled' ||
       code == 'publication.cancelled') {
     code = 'workflow.cancelled';
   } else if (code.startsWith('source.') && code.contains('changed')) {

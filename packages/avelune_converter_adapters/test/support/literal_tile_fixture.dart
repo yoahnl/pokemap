@@ -102,6 +102,7 @@ final class LiteralFixtureTileset {
   LiteralFixtureTileset({
     required this.id,
     this.name = 'Original atlas',
+    this.metadataTileCount = 512,
     String? imageName,
     List<int>? png,
     this.imagePresent = true,
@@ -114,10 +115,15 @@ final class LiteralFixtureTileset {
         autotileNames = List.unmodifiable(autotileNames),
         priorities = Map.unmodifiable(priorities),
         passages = Map.unmodifiable(passages),
-        terrainTags = Map.unmodifiable(terrainTags);
+        terrainTags = Map.unmodifiable(terrainTags) {
+    if (metadataTileCount < 1 || metadataTileCount > 65536) {
+      throw RangeError.range(metadataTileCount, 1, 65536, 'metadataTileCount');
+    }
+  }
 
   final int id;
   final String name;
+  final int metadataTileCount;
   final String imageName;
   final List<int> png;
   final bool imagePresent;
@@ -348,11 +354,26 @@ _Object _tileset(LiteralFixtureTileset tileset) => _Object('RPG::Tileset', {
       '@fog_name': '',
       '@battleback_name': '',
       '@passages': _Table(
-          1, 512, 1, 1, List.generate(512, (id) => tileset.passages[id] ?? 0)),
-      '@priorities': _Table(1, 512, 1, 1,
-          List.generate(512, (id) => tileset.priorities[id] ?? 0)),
-      '@terrain_tags': _Table(1, 512, 1, 1,
-          List.generate(512, (id) => tileset.terrainTags[id] ?? 0)),
+          1,
+          tileset.metadataTileCount,
+          1,
+          1,
+          List.generate(
+              tileset.metadataTileCount, (id) => tileset.passages[id] ?? 0)),
+      '@priorities': _Table(
+          1,
+          tileset.metadataTileCount,
+          1,
+          1,
+          List.generate(
+              tileset.metadataTileCount, (id) => tileset.priorities[id] ?? 0)),
+      '@terrain_tags': _Table(
+          1,
+          tileset.metadataTileCount,
+          1,
+          1,
+          List.generate(
+              tileset.metadataTileCount, (id) => tileset.terrainTags[id] ?? 0)),
     });
 
 _Object _event(List<List<Object?>> parameters) => _Object('RPG::Event', {
