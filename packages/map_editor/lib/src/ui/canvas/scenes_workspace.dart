@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../application/models/narrative_document_route.dart';
+import '../../application/authoring_api/scene_dialogue_choice_policy_authoring_gateway.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../theme/theme.dart';
@@ -89,6 +90,19 @@ typedef SceneEndPayloadUpdater =
       required String nodeId,
       String? sceneOutcomeId,
       required SceneOutcomePolicy? outcomePolicy,
+    });
+
+typedef SceneDialogueChoicePolicyLoader =
+    Future<SceneDialogueChoicePolicyEditorData> Function({
+      required String sceneId,
+      required String nodeId,
+    });
+
+typedef SceneDialogueChoicePolicyUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required SceneDialogueChoicePolicy policy,
     });
 
 typedef SceneYarnDialoguePayloadUpdater =
@@ -240,6 +254,8 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateConditionSource,
     this.onUpdateEndPayload,
     required this.onUpdateYarnDialoguePayload,
+    this.onLoadDialogueChoicePolicies,
+    this.onUpdateDialogueChoicePolicy,
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
@@ -291,6 +307,8 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneConditionSourceUpdater onUpdateConditionSource;
   final SceneEndPayloadUpdater? onUpdateEndPayload;
   final SceneYarnDialoguePayloadUpdater onUpdateYarnDialoguePayload;
+  final SceneDialogueChoicePolicyLoader? onLoadDialogueChoicePolicies;
+  final SceneDialogueChoicePolicyUpdater? onUpdateDialogueChoicePolicy;
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
@@ -915,6 +933,23 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     presentationCinematics: widget.presentationCinematics,
                     newGameConfig: widget.newGameConfig,
                     onUpdateYarnDialoguePayload: _updateYarnDialoguePayload,
+                    onLoadDialogueChoicePolicies:
+                        widget.onLoadDialogueChoicePolicies == null
+                        ? null
+                        : ({required nodeId}) =>
+                              widget.onLoadDialogueChoicePolicies!(
+                                sceneId: selectedScene.id,
+                                nodeId: nodeId,
+                              ),
+                    onUpdateDialogueChoicePolicy:
+                        widget.onUpdateDialogueChoicePolicy == null
+                        ? null
+                        : ({required nodeId, required policy}) =>
+                              widget.onUpdateDialogueChoicePolicy!(
+                                sceneId: selectedScene.id,
+                                nodeId: nodeId,
+                                policy: policy,
+                              ),
                     onOpenDialogue: (dialogueId) {
                       final sceneId = selectedScene.id;
                       final nodeId = _selectedNodeId;

@@ -22,6 +22,7 @@ YarnStep _step(RuntimeDialogueStep step) => switch (step) {
           step.text,
           characterId: step.characterId,
           portraitStateId: step.portraitStateId,
+          feedback: step.feedback,
         ),
       RuntimeDialogueJump() => YarnStepJump(step.targetNode),
       RuntimeDialogueChoiceBlock() => YarnStepChoiceBlock(

@@ -1134,7 +1134,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Événements : ${normalized?.maps.fold<int>(0, (count, value) => count + value.map.events.length) ?? 0} extraits ; adaptation non disponible.',
+              _eventSummary ??
+                  'Événements : ${normalized?.maps.fold<int>(0, (count, value) => count + value.map.events.length) ?? 0} extraits ; préparez une sélection pour vérifier leur adaptation.',
             ),
             const SizedBox(height: 16),
             StudioBadge(
@@ -1424,9 +1425,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
             Text(
               prepared.nativeDraft?.compositionEvidence['sourceSemantics'] !=
                       null
-                  ? 'Comportement : passages et profondeur des décors calculés automatiquement sans IA pour la marche prise en charge. Les sauts, les modes dynamiques et les événements restent à convertir.'
+                  ? 'Comportement : passages et profondeur des décors calculés automatiquement sans IA pour la marche prise en charge. Les sauts et les modes dynamiques restent à adapter.'
                   : 'Comportement : événements et gameplay non certifiés.',
             ),
+            if (_eventSummary != null) ...[
+              const SizedBox(height: 8),
+              Text(_eventSummary!),
+            ],
           ],
         ),
         const SizedBox(height: 24),
@@ -1594,9 +1599,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
         const SizedBox(height: 16),
         Text(
           prepared.nativeDraft?.compositionEvidence['sourceSemantics'] != null
-              ? 'La création importe le personnage source, les passages pris en charge et les décors avec leur profondeur, sans IA. Les passages non qualifiés sont fermés et signalés ; les événements restent à convertir.'
+              ? 'La création importe le personnage source, les passages pris en charge et les décors avec leur profondeur, sans IA. Les passages non qualifiés sont fermés et signalés.'
               : 'La création conserve les tuiles littérales. Aucun événement, collision ou comportement non pris en charge n’est présenté comme converti.',
         ),
+        if (_eventSummary != null) ...[
+          const SizedBox(height: 8),
+          Text(_eventSummary!),
+        ],
         const SizedBox(height: 16),
         StudioSection(
           title: 'Détails de la préparation',
@@ -1612,6 +1621,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _issuesPanel(),
       ],
     );
+  }
+
+  Map<String, Object?>? get _eventProjection {
+    final events = _prepared?.nativeDraft?.compositionEvidence['sourceEvents'];
+    if (events is! Map<String, Object?>) return null;
+    final projection = events['projection'];
+    return projection is Map<String, Object?> ? projection : null;
+  }
+
+  String? get _eventSummary {
+    final projection = _eventProjection;
+    if (projection == null) return null;
+    return 'Événements : ${projection['qualifiedEventCount']} adapté(s) automatiquement sans IA ; ${projection['quarantinedEventCount']} en quarantaine.';
   }
 
   Map<String, Object?>? get _semanticProjection {
@@ -1635,6 +1657,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   : 'Sélection actuelle',
               blocking: false,
             ),
+          for (final event
+              in ((_eventProjection?['events'] as List?) ?? const [])
+                  .whereType<Map<String, Object?>>())
+            if (event['status'] == 'quarantinedWholeEvent')
+              (
+                code: 'workflow.events.quarantined',
+                message: 'Cet événement reste inactif et ses données source sont conservées. Son contenu doit être adapté avant de pouvoir le jouer.',
+                locator: jsonEncode({
+                  'source': event['locator'],
+                  'pointsÀAdapter': event['gaps'],
+                }),
+                blocking: false,
+              ),
           for (final value
               in _state.snapshot?.diagnostics ?? <SourceScanDiagnostic>[])
             (
@@ -1897,6 +1932,8 @@ String _failureMessage(Object error) {
 }
 
 String _issueTitle(String code, bool blocking) {
+  if (code == 'workflow.events.quarantined')
+    return 'Événement conservé en quarantaine';
   if (code.startsWith('semantics.')) return 'Comportement source à vérifier';
   if (code.startsWith('library.')) return 'Objet proposé à vérifier';
   if (code.contains('autotile')) return 'Autotiles à prendre en charge';

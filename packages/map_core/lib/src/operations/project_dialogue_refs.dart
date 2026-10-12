@@ -155,6 +155,20 @@ ProjectManifest replaceDialogueOutcomeSceneReferences(
               yarnNodeName: payload.yarnNodeName,
               expectedOutcomes: expectedOutcomes,
               speakerHints: payload.speakerHints,
+              linePolicies: payload.linePolicies,
+              declaredCancellationOutcomes: {for (final outcome in payload.declaredCancellationOutcomes) outcome == from ? to : outcome}.toList(growable: false),
+              choicePolicies: [for (final policy in payload.choicePolicies)
+                SceneDialogueChoicePolicy(nodeName: policy.nodeName, choiceIndex: policy.choiceIndex,
+                  defaultOutcomeId: policy.defaultOutcomeId == from ? to : policy.defaultOutcomeId,
+                  cancellation: switch (policy.cancellation.kind) {
+                    SceneDialogueChoiceCancellationKind.disabled => const SceneDialogueChoiceCancellation.disabled(),
+                    SceneDialogueChoiceCancellationKind.choice => SceneDialogueChoiceCancellation.choice(
+                      policy.cancellation.outcomeId == from ? to : policy.cancellation.outcomeId!),
+                    SceneDialogueChoiceCancellationKind.branch => SceneDialogueChoiceCancellation.branch(
+                      policy.cancellation.outcomeId == from ? to : policy.cancellation.outcomeId!),
+                  },
+                ),
+              ],
             ),
           ),
         );

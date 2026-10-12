@@ -6,6 +6,299 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 
 void main() {
   group('executeNarrativeEventScene', () {
+    for (final value in [
+      const NarrativeValue.boolean(true),
+      NarrativeValue.integer(2),
+    ]) {
+      test('fact condition observes buffered ${value.kind.name}', () async {
+        const initial = GameState(saveId: 'fact_buffer');
+        final fact = NarrativeFactDefinition(
+          id: 'page_state',
+          label: 'Page state',
+          initialValue: value.kind == NarrativeValueKind.boolean
+              ? const NarrativeValue.boolean(false)
+              : NarrativeValue.integer(0),
+        );
+        final scene = _factScene(value: value);
+        var staleCallbackReads = 0;
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'fact_event',
+            sceneId: scene.id,
+            executionId: 'fact_execution',
+            gameState: initial,
+          ),
+          project: ProjectManifest(
+            name: 'Buffered fact',
+            maps: const [],
+            tilesets: const [],
+            facts: [fact],
+            scenes: [scene],
+          ),
+          mapsById: const {},
+          currentGameState: () => initial,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (intent) {
+              staleCallbackReads++;
+              return evaluateCanonicalNarrativeFactSceneCondition(
+                source: intent.conditionSource!,
+                gameState: initial,
+                resolver: NarrativeFactRuntimeResolver.fromFacts([fact]),
+              )
+                  ? 'true'
+                  : 'false';
+            },
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+          ),
+        );
+
+        expect(result, isA<NarrativeSceneExecutionCompleted>());
+        final completed = result as NarrativeSceneExecutionCompleted;
+        expect(completed.qualifiedOutcomes.single.outcomeId, 'present');
+        expect(staleCallbackReads, 0);
+        expect(initial.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+        final reloaded = GameState.fromJson(
+          completed.updatedGameState.toJson(),
+        );
+        expect(
+          evaluateCanonicalNarrativeFactSceneCondition(
+            source: (scene.graph.nodes
+                    .singleWhere((node) => node.id == 'condition')
+                    .payload as SceneConditionPayload)
+                .conditionSource!,
+            gameState: reloaded,
+            resolver: NarrativeFactRuntimeResolver.fromFacts([fact]),
+          ),
+          isTrue,
+        );
+      });
+    }
+
+    test('fact projection preserves the latest host writes', () async {
+      const initial = GameState(saveId: 'fact_host');
+      var host = initial;
+      final facts = [
+        NarrativeFactDefinition(id: 'page_state', label: 'Page state'),
+        NarrativeFactDefinition(id: 'host_state', label: 'Host state'),
+      ];
+      final scene = _factScene(
+        value: const NarrativeValue.boolean(true),
+        withDialogue: true,
+      );
+      final project = ProjectManifest(
+        name: 'Fact host',
+        maps: const [],
+        tilesets: const [],
+        facts: facts,
+        scenes: [scene],
+        dialogues: const [
+          ProjectDialogueEntry(
+            id: 'inventory_dialogue',
+            name: 'Host write',
+            relativePath: 'dialogues/host.yarn',
+          ),
+        ],
+      );
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'fact_event',
+          sceneId: scene.id,
+          executionId: 'fact_host_execution',
+          gameState: initial,
+        ),
+        project: project,
+        mapsById: const {},
+        currentGameState: () => host,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (_) => throw StateError('Stale fact callback'),
+          showDialogue: (_) {
+            expect(host.storyFlags.activeFlags, isEmpty);
+            host = SceneConsequenceRuntimeWriter(project: project)
+                .applyOne(
+                  host,
+                  SceneConsequence.setFact(factId: 'host_state', value: true),
+                )
+                .gameState;
+            host = host.copyWith(
+              trainerProfile: host.trainerProfile.copyWith(money: 1234),
+            );
+            return 'completed';
+          },
+          startBattle: (_) => throw StateError('Unexpected battle'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final completed = result as NarrativeSceneExecutionCompleted;
+      expect(completed.qualifiedOutcomes.single.outcomeId, 'present');
+      expect(completed.updatedGameState.storyFlags.activeFlags,
+          containsAll(['page_state', 'host_state']));
+      expect(completed.updatedGameState.trainerProfile.money, 1234);
+      expect(host.storyFlags.activeFlags, ['host_state']);
+      expect(initial.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('non-fact conditions keep their host callback with pending facts',
+        () async {
+      const initial = GameState(saveId: 'custom_condition');
+      final scene = _factScene(
+        value: const NarrativeValue.boolean(true),
+        conditionSource: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+          sourceId: 'custom_flag',
+          operator: SceneConditionOperator.isTrue,
+        ),
+      );
+      var callbackReads = 0;
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'fact_event',
+          sceneId: scene.id,
+          executionId: 'custom_execution',
+          gameState: initial,
+        ),
+        project: ProjectManifest(
+          name: 'Custom condition',
+          maps: const [],
+          tilesets: const [],
+          facts: [
+            NarrativeFactDefinition(id: 'page_state', label: 'Page state')
+          ],
+          scenes: [scene],
+        ),
+        mapsById: const {},
+        currentGameState: () => initial,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (intent) {
+            callbackReads++;
+            expect(intent.conditionSource!.sourceId, 'custom_flag');
+            return 'true';
+          },
+          showDialogue: (_) => throw StateError('Unexpected dialogue'),
+          startBattle: (_) => throw StateError('Unexpected battle'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      expect(callbackReads, 1);
+      expect(
+          (result as NarrativeSceneExecutionCompleted)
+              .qualifiedOutcomes
+              .single
+              .outcomeId,
+          'present');
+    });
+
+    test('fact projection never commits a scene that later fails', () async {
+      const initial = GameState(saveId: 'fact_rollback');
+      final scene = _factScene(
+        value: const NarrativeValue.boolean(true),
+        rejectAfterCondition: true,
+      );
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'fact_event',
+          sceneId: scene.id,
+          executionId: 'fact_rollback_execution',
+          gameState: initial,
+        ),
+        project: ProjectManifest(
+          name: 'Fact rollback',
+          maps: const [],
+          tilesets: const [],
+          facts: [
+            NarrativeFactDefinition(id: 'page_state', label: 'Page state'),
+          ],
+          scenes: [scene],
+        ),
+        mapsById: const {},
+        currentGameState: () => initial,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (_) => 'false',
+          showDialogue: (_) => throw StateError('Unexpected dialogue'),
+          startBattle: (_) => throw StateError('Unexpected battle'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic'),
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionFailed>());
+      expect(initial.storyFlags.activeFlags, isEmpty);
+      expect(initial.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+    });
+
+    for (final hostFreesSpace in [true, false]) {
+      test('consequence validates the latest host bag '
+          '${hostFreesSpace ? 'release' : 'fill'}', () async {
+        final initial = GameState(
+          saveId: 'host_bag_capacity',
+          bag: Bag(entries: [
+            BagEntry(
+              itemId: 'item_potion',
+              quantity: maximumBagEntryQuantity - (hostFreesSpace ? 0 : 1),
+            ),
+          ]),
+        );
+        var host = initial;
+        var dialogueCalls = 0;
+        final scene = _hostPickupScene();
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'host_bag_event',
+            sceneId: scene.id,
+            executionId: 'host_bag_execution',
+            gameState: initial,
+          ),
+          project: ProjectManifest(
+            name: 'Host bag capacity',
+            maps: const [],
+            tilesets: const [],
+            scenes: [scene],
+            dialogues: const [
+              ProjectDialogueEntry(
+                id: 'inventory_dialogue',
+                name: 'Host bag',
+                relativePath: 'dialogues/host.yarn',
+              ),
+            ],
+          ),
+          mapsById: const {},
+          currentGameState: () => host,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => 'true',
+            showDialogue: (_) {
+              dialogueCalls++;
+              if (dialogueCalls == 1) {
+                host = hostFreesSpace
+                    ? const GameStateMutations().removeItemForNarrativeConsequence(
+                        host, itemId: 'item_potion', quantity: 1)
+                    : const GameStateMutations().giveItem(host, 'item_potion', 1);
+              }
+              return 'completed';
+            },
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+          ),
+        );
+
+        if (hostFreesSpace) {
+          expect(result, isA<NarrativeSceneExecutionCompleted>());
+          expect((result as NarrativeSceneExecutionCompleted)
+              .updatedGameState.bag.entries.single.quantity,
+              maximumBagEntryQuantity);
+          expect(dialogueCalls, 2);
+          expect(host.bag.entries.single.quantity, maximumBagEntryQuantity - 1);
+        } else {
+          expect(result, isA<NarrativeSceneExecutionFailed>());
+          expect(dialogueCalls, 1);
+          expect(host.bag.entries.single.quantity, maximumBagEntryQuantity);
+        }
+      });
+    }
+
     for (final giving in [true, false]) {
       test('inventory condition observes buffered ${giving ? 'give' : 'take'}',
           () async {
@@ -655,6 +948,76 @@ void main() {
       expect(replay.updatedGameState, first.updatedGameState);
     });
   });
+}
+
+SceneAsset _hostPickupScene() {
+  final json = _inventoryScene(giving: true, withDialogue: true).toJson();
+  final graph = json['graph'] as Map<String, dynamic>;
+  final nodes = graph['nodes'] as List;
+  nodes.add({
+    'id': 'after_grant',
+    'kind': 'yarnDialogue',
+    'payload': {
+      'kind': 'yarnDialogue',
+      'dialogueId': 'inventory_dialogue',
+      'yarnNodeName': 'Start',
+    },
+  });
+  final edges = graph['edges'] as List;
+  for (final edge in edges.cast<Map<String, dynamic>>()) {
+    switch (edge['id']) {
+      case 'start-change':
+        edge['toNodeId'] = 'dialogue';
+      case 'dialogue-condition':
+        edge['toNodeId'] = 'change';
+      case 'change-condition':
+        edge['toNodeId'] = 'after_grant';
+    }
+  }
+  edges.add({
+    'id': 'after-grant-condition',
+    'fromNodeId': 'after_grant',
+    'fromPortId': 'completed',
+    'toNodeId': 'condition',
+    'kind': 'default',
+  });
+  return SceneAsset.fromJson(json);
+}
+
+SceneAsset _factScene({
+  required NarrativeValue value,
+  bool withDialogue = false,
+  bool rejectAfterCondition = false,
+  SceneConditionSource? conditionSource,
+}) {
+  final json = _inventoryScene(
+    giving: true,
+    withDialogue: withDialogue,
+    rejectAfterCondition: rejectAfterCondition,
+  ).toJson();
+  json['id'] = 'fact_scene';
+  json['name'] = 'Buffered fact condition';
+  final nodes = (json['graph'] as Map<String, dynamic>)['nodes'] as List;
+  for (final node in nodes.cast<Map<String, dynamic>>()) {
+    if (node['id'] == 'change') {
+      (node['payload'] as Map<String, dynamic>)['consequence'] =
+          SceneConsequence.setFactValue(
+        factId: 'page_state',
+        value: value,
+      ).toJson();
+    }
+    if (node['id'] == 'condition') {
+      (node['payload'] as Map<String, dynamic>)['conditionSource'] =
+          (conditionSource ??
+                  SceneConditionSource.factValue(
+                    factId: 'page_state',
+                    operator: NarrativeFactOperator.equals,
+                    expectedValue: value,
+                  ))
+              .toJson();
+    }
+  }
+  return SceneAsset.fromJson(json);
 }
 
 SceneAsset _inventoryScene(

@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:map_core/map_core.dart';
+
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/dialogue_portrait_resolver.dart';
 
@@ -30,6 +34,9 @@ class DialoguePresentationSnapshot {
     required this.isLastContent,
     required this.choices,
     this.portrait,
+    this.segments = const [],
+    this.iconPngBytes = const {},
+    this.isAdvanceAvailable = true,
   });
 
   final int revision;
@@ -42,6 +49,9 @@ class DialoguePresentationSnapshot {
   final bool isLastContent;
   final List<DialoguePresentationChoice> choices;
   final ResolvedDialoguePortrait? portrait;
+  final List<DialogueLineSegment> segments;
+  final Map<String, Uint8List> iconPngBytes;
+  final bool isAdvanceAvailable;
 }
 
 DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
@@ -50,6 +60,7 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
   required String visibleText,
   required bool isCurrentLineFullyRevealed,
   DialoguePortraitLookup? resolvePortrait,
+  Map<String, Uint8List> iconPngBytes = const {},
 }) {
   final state = session.state;
   return switch (state) {
@@ -57,9 +68,11 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
       :final text,
       :final characterId,
       :final portraitStateId,
+      :final feedback,
     ) =>
       () {
-        final fullLine = _splitDialogueLine(text);
+        final fullLine = feedback?.segments.isNotEmpty == true
+            ? (speaker: null, text: text) : _splitDialogueLine(text);
         final portrait = characterId == null || portraitStateId == null
             ? null
             : resolvePortrait?.call(
@@ -84,6 +97,10 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
           isLastContent: session.isLastContent,
           choices: const <DialoguePresentationChoice>[],
           portrait: portrait,
+          segments: visibleDialogueLineSegments(feedback?.segments ?? const [], visibleText.runes.length),
+          iconPngBytes: Map.unmodifiable(iconPngBytes),
+          isAdvanceAvailable: !isCurrentLineFullyRevealed ||
+              feedback?.advance.kind != DialogueLineAdvanceKind.autoAfterReveal,
         );
       }(),
     DialogueWaitingForChoice(
@@ -155,6 +172,7 @@ enum DialoguePresentationCommandRejection {
   staleSnapshot,
   wrongMode,
   choiceMissing,
+  advanceUnavailable,
 }
 
 class DialoguePresentationCommandValidation {
@@ -185,7 +203,9 @@ DialoguePresentationCommandValidation validateDialoguePresentationCommand(
   }
   return switch (command) {
     DialogueAdvanceCommand() => snapshot.mode == DialoguePresentationMode.line
-        ? const DialoguePresentationCommandValidation.accepted()
+        ? snapshot.isAdvanceAvailable
+            ? const DialoguePresentationCommandValidation.accepted()
+            : const DialoguePresentationCommandValidation.rejected(DialoguePresentationCommandRejection.advanceUnavailable)
         : const DialoguePresentationCommandValidation.rejected(
             DialoguePresentationCommandRejection.wrongMode,
           ),

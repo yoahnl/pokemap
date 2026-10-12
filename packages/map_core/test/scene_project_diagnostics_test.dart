@@ -5,6 +5,29 @@ import 'package:test/test.dart';
 
 void main() {
   group('Scene project diagnostics', () {
+    test('distinct cancellation belongs to the scene policy outcome contract', () {
+      final scene = _sceneWithMiddleNode(SceneNode(
+        id: 'node_dialogue',
+        kind: SceneNodeKind.yarnDialogue,
+        payload: SceneYarnDialoguePayload(
+          dialogueId: 'dialogue_test',
+          expectedOutcomes: const ['accepted', 'cancel'],
+          choicePolicies: const [SceneDialogueChoicePolicy(
+            nodeName: 'Start',
+            cancellation: SceneDialogueChoiceCancellation.branch('cancel'),
+          )],
+        ),
+      ));
+      final report = diagnoseSceneAgainstProject(scene, _project(dialogues: const [
+        ProjectDialogueEntry(
+          id: 'dialogue_test', name: 'Dialogue Test',
+          relativePath: 'dialogues/dialogue_test.yarn',
+          declaredOutcomes: [DialogueDeclaredOutcome(id: 'accepted', label: 'Accepted')],
+        ),
+      ]));
+      expect(report.byCode(SceneDiagnosticCode.dialogueExpectedOutcomeUnknown), isEmpty);
+    });
+
     test('detects missing dialogue reference without parsing Yarn', () {
       final scene = _sceneWithMiddleNode(
         SceneNode(

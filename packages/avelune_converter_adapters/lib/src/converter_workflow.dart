@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'approved_asset_library.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
+import 'source_event_study_composer.dart';
 import 'local_asset_proposer.dart';
 import 'macos_source_tree.dart';
 import 'native_project_writer.dart';
@@ -805,7 +806,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac12-study-v1';
+const _converterVersion = 'avelune-converter-ac13-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1065,7 +1066,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             files: files,
             limits: settings.normalizationLimits,
             cancellation: relay.cancellation,
-            selectedMapIds: wanted);
+            selectedMapIds: wanted,
+            includeEventSystem: true);
         relay.finish(done: normalized.maps.length);
         await relay.start(ConverterWorkflowPhase.compose, JobUnit.assets);
         final composition = await const LiteralTileComposer().compose(
@@ -1207,7 +1209,16 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             files: files,
             limits: settings.writeLimits,
             cancellation: relay.cancellation);
-        final draft = _mergeAssetLibrary(semantic ?? composition.draft, library,
+        final events = semantic == null
+            ? null
+            : await const SourceEventStudyComposer().compose(
+                source: normalized,
+                base: semantic,
+                files: files,
+                limits: settings.writeLimits,
+                cancellation: relay.cancellation);
+        final draft = _mergeAssetLibrary(
+            events?.draft ?? semantic ?? composition.draft, library,
             limits: settings.writeLimits);
         relay.finish(
             done: composition.crops
@@ -1525,7 +1536,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'template': 'empty',
       'tileSize': 32,
       'requestedMode': 'study',
-      'events': 'sourceArchiveOnlyInactive',
+      'events': 'qualified-static-native-or-whole-event-quarantine',
       'gameplayMetadata': 'sourceArchiveOnly',
       'publication': false,
     });
@@ -1593,17 +1604,31 @@ const _nativeStudyActions = [
   'element.upsert',
   'asset.import',
   'characterStudio.character.create',
+  'characterStudio.character.update',
   'characterStudio.animationClip.upsert',
   'characterStudio.character.setDefault',
+  'event_v2.registry_mode.set',
+  'fact.create',
+  'entity.upsert',
+  'trigger.create',
+  'warp.create',
+  'dialogue.create',
+  'scene.upsert',
+  'world_rule.create',
+  'event_v2.record_upsert',
+  'scene.dialogue.audioMedia.import',
+  'pokemon.catalog.write',
+  'pokemon.configuration.set_enabled',
+  'item.create',
 ];
 
 TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac12-v1',
+      'profileId': 'avelune-converter-native-study-ac13-v1',
       'repository': 'yoahnl/pokemap',
-      'revision': '3a1209a6f8344d9826f0d5abbc509989ad4acab5',
+      'revision': '0ec7e5b7f74e8e71bb49429ebea9cfed232dc25f',
       'capabilities': [
         for (final action in _nativeStudyActions)
           {
@@ -1639,6 +1664,13 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                     'AC-08 current human-reviewed library assets, exact source raster witnesses and canonical native definitions; map placements unchanged.',
                 'reference':
                     'repo:packages/avelune_converter_adapters/test/approved_asset_library_test.dart:AC-08',
+              },
+              {
+                'type': 'test',
+                'summary':
+                    'AC-13 source-bound event projection, canonical action application, exact dialogue bytes and preserved raw event companions after strict fresh reopen.',
+                'reference':
+                    'repo:packages/avelune_converter_adapters/test/source_event_study_composer_test.dart:AC-13',
               },
             ],
             'limitations': [
@@ -1719,9 +1751,31 @@ ConversionPlan? _previewPlan(
   }
   add(
       'workflow.study.gameplay',
-      'Events and gameplay metadata are retained in the extracted source archive; native gameplay is not certified.',
+      'Qualified static events use native scenes and persistent facts. Unsupported whole events retain their exact source data; complete native gameplay is not certified.',
       false,
       family: 'events');
+  final eventEvidence = draft.compositionEvidence['sourceEvents'];
+  if (eventEvidence is Map) {
+    final projection = eventEvidence['projection'] as Map;
+    final qualified = projection['qualifiedEventCount'] as int;
+    final quarantined = projection['quarantinedEventCount'] as int;
+    add(
+        'workflow.events.summary',
+        '$qualified of ${qualified + quarantined} selected source events have qualified static native semantics; $quarantined whole events remain inactive with preserved source bytes. Runtime qualification is separate.',
+        false,
+        family: 'events',
+        disposition: 'adapted');
+    for (final event in (projection['events'] as List).cast<Map>()) {
+      if (event['status'] != 'quarantinedWholeEvent') continue;
+      add(
+          'workflow.events.quarantined',
+          'Whole source event is inactive: ${(event['gaps'] as List).join(', ')}.',
+          false,
+          family: 'events',
+          locator: _planLocator(
+              normalized, Map<String, Object?>.from(event['locator'] as Map)));
+    }
+  }
   add(
       'workflow.study.publication',
       'The native result is verified staging; project publication requires a separate reviewed step.',
@@ -1756,7 +1810,7 @@ ConversionPlan? _previewPlan(
       for (final mutation in draft.mutations)
         {
           'operationId': mutation.operationId.value,
-          'domain': _mutationDomain(mutation.actionId),
+          'domain': mutation.domain.name,
           'sourceEntityIds':
               mutation.sourceEntityIds.map((id) => id.value).toList(),
           'targetEntityIds':
@@ -1833,6 +1887,3 @@ PlanContext _planContext(
       },
       approvedCandidateHashes: prepared.approvedCandidateHashes);
 }
-
-String _mutationDomain(String action) =>
-    action.startsWith('map.') ? 'maps' : 'assets';

@@ -117,7 +117,7 @@ NativeFixtureApproval approveNativeFixtureDraft(NativeProjectDraft draft,
       for (final mutation in draft.mutations)
         {
           'operationId': mutation.operationId.value,
-          'domain': mutation.actionId.startsWith('map.') ? 'maps' : 'assets',
+          'domain': mutation.domain.name,
           'sourceEntityIds':
               mutation.sourceEntityIds.map((id) => id.value).toList(),
           'targetEntityIds':

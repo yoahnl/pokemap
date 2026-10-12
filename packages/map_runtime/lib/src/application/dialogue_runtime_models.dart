@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 sealed class YarnStep {}
 
 class YarnStepLine extends YarnStep {
@@ -5,10 +7,14 @@ class YarnStepLine extends YarnStep {
     this.text, {
     this.characterId,
     this.portraitStateId,
-  });
+    this.feedback,
+  }) {
+    feedback?.validateText(text);
+  }
   final String text;
   final String? characterId;
   final String? portraitStateId;
+  final DialogueLineFeedback? feedback;
 }
 
 class YarnStepJump extends YarnStep {
@@ -17,8 +23,9 @@ class YarnStepJump extends YarnStep {
 }
 
 class YarnStepChoiceBlock extends YarnStep {
-  YarnStepChoiceBlock(this.choices);
+  YarnStepChoiceBlock(this.choices, {this.policy});
   final List<YarnChoice> choices;
+  final SceneDialogueChoicePolicy? policy;
 }
 
 class YarnChoice {
@@ -41,17 +48,22 @@ class DialogueShowingLine extends DialogueSessionState {
     required this.text,
     this.characterId,
     this.portraitStateId,
-  });
+    this.feedback,
+  }) {
+    feedback?.validateText(text);
+  }
   final String text;
   final String? characterId;
   final String? portraitStateId;
+  final DialogueLineFeedback? feedback;
 }
 
 class DialogueWaitingForChoice extends DialogueSessionState {
   DialogueWaitingForChoice(
-      {required this.choices, required this.selectedIndex});
+      {required this.choices, required this.selectedIndex, this.policy});
   final List<YarnChoice> choices;
   final int selectedIndex;
+  final SceneDialogueChoicePolicy? policy;
 }
 
 class DialogueSession {
@@ -74,8 +86,133 @@ class DialogueSession {
   final int _stepIndex;
   final String? _selectedOutcomeId;
 
+  DialogueSession withLinePolicies(List<SceneDialogueLinePolicy> policies) {
+    final scopes = <SceneDialogueLineScope>[];
+    final mappedLists = Map<List<YarnStep>, List<YarnStep>>.identity();
+    final byScope = {for (final policy in policies) (policy.nodeName, policy.lineIndex): policy.feedback};
+    final configured = <YarnNode>[];
+    for (final node in nodes) {
+      var lineIndex = 0;
+      List<YarnStep> visit(List<YarnStep> steps) {
+        final result = <YarnStep>[];
+        mappedLists[steps] = result;
+        for (final step in steps) {
+          switch (step) {
+            case YarnStepLine():
+              final index = lineIndex++;
+              scopes.add(SceneDialogueLineScope(nodeName: node.title, lineIndex: index,
+                text: step.text, feedback: step.feedback));
+              result.add(YarnStepLine(step.text, characterId: step.characterId,
+                portraitStateId: step.portraitStateId,
+                feedback: byScope[(node.title, index)] ?? step.feedback));
+            case YarnStepChoiceBlock():
+              result.add(YarnStepChoiceBlock([
+                for (final choice in step.choices)
+                  YarnChoice(text: choice.text, outcomeId: choice.outcomeId, steps: visit(choice.steps)),
+              ], policy: step.policy));
+            case YarnStepJump():
+              result.add(step);
+          }
+        }
+        return result;
+      }
+      configured.add(YarnNode(title: node.title, steps: visit(node.steps)));
+    }
+    validateSceneDialogueLinePolicies(scopes, policies);
+    final current = mappedLists[_currentSteps];
+    if (current == null) throw ArgumentError('Dialogue line policy requires a current node scope.');
+    final step = current[_stepIndex];
+    return DialogueSession._(nodes: configured,
+      state: step is YarnStepLine
+          ? DialogueShowingLine(text: step.text, characterId: step.characterId,
+              portraitStateId: step.portraitStateId, feedback: step.feedback)
+          : state,
+      currentNodeTitle: _currentNodeTitle, currentSteps: current,
+      stepIndex: _stepIndex, selectedOutcomeId: _selectedOutcomeId);
+  }
+
+  Iterable<DialogueLineFeedback> get lineFeedback sync* {
+    Iterable<DialogueLineFeedback> visit(List<YarnStep> steps) sync* {
+      for (final step in steps) {
+        if (step is YarnStepLine && step.feedback != null) yield step.feedback!;
+        if (step is YarnStepChoiceBlock) {
+          for (final choice in step.choices) {
+            yield* visit(choice.steps);
+          }
+        }
+      }
+    }
+    for (final node in nodes) {
+      yield* visit(node.steps);
+    }
+  }
+
   String? get currentNodeTitle => _currentNodeTitle;
   String? get selectedOutcomeId => _selectedOutcomeId;
+
+  DialogueSession withChoicePolicies(List<SceneDialogueChoicePolicy> policies) {
+    final scopes = <SceneDialogueChoiceScope>[];
+    final mappedLists = Map<List<YarnStep>, List<YarnStep>>.identity();
+    final byScope = {for (final policy in policies) (policy.nodeName, policy.choiceIndex): policy};
+    final configured = <YarnNode>[];
+    for (final node in nodes) {
+      var choiceIndex = 0;
+      List<YarnStep> visit(List<YarnStep> steps) {
+        final result = <YarnStep>[];
+        mappedLists[steps] = result;
+        for (final step in steps) {
+          if (step is! YarnStepChoiceBlock) {
+            result.add(step);
+            continue;
+          }
+          final index = choiceIndex++;
+          scopes.add(SceneDialogueChoiceScope(nodeName: node.title, choiceIndex: index,
+              outcomeIds: step.choices.map((choice) => choice.outcomeId).toList(growable: false)));
+          result.add(YarnStepChoiceBlock([
+            for (final choice in step.choices)
+              YarnChoice(text: choice.text, outcomeId: choice.outcomeId, steps: visit(choice.steps)),
+          ], policy: byScope[(node.title, index)]));
+        }
+        return result;
+      }
+      configured.add(YarnNode(title: node.title, steps: visit(node.steps)));
+    }
+    validateSceneDialogueChoicePolicies(scopes, policies);
+    final current = mappedLists[_currentSteps];
+    if (current == null) throw ArgumentError('Dialogue choice policy requires a current node scope.');
+    final step = current[_stepIndex];
+    return DialogueSession._(
+      nodes: configured,
+      state: step is YarnStepChoiceBlock
+          ? DialogueWaitingForChoice(choices: step.choices,
+              selectedIndex: step.policy?.defaultOutcomeId == null
+                  ? (state as DialogueWaitingForChoice).selectedIndex
+                  : step.choices.indexWhere((choice) => choice.outcomeId == step.policy!.defaultOutcomeId),
+              policy: step.policy)
+          : step is YarnStepLine
+              ? DialogueShowingLine(text: step.text, characterId: step.characterId,
+                  portraitStateId: step.portraitStateId, feedback: step.feedback)
+              : state,
+      currentNodeTitle: _currentNodeTitle, currentSteps: current,
+      stepIndex: _stepIndex, selectedOutcomeId: _selectedOutcomeId,
+    );
+  }
+
+  String? get choiceCancellationOutcomeId => switch (state) {
+    DialogueWaitingForChoice(:final policy) => policy?.cancellation.outcomeId,
+    _ => null,
+  };
+
+  DialogueSession? cancelChoice() {
+    final current = state;
+    if (current is! DialogueWaitingForChoice) return this;
+    final cancellation = current.policy?.cancellation;
+    if (cancellation == null || cancellation.kind == SceneDialogueChoiceCancellationKind.disabled) return this;
+    if (cancellation.kind == SceneDialogueChoiceCancellationKind.branch) return null;
+    final choice = current.choices.singleWhere((choice) => choice.outcomeId == cancellation.outcomeId);
+    return _resolveStep(choice.steps, 0, nodes, nodeTitle: _currentNodeTitle,
+        selectedOutcomeId: choice.outcomeId ?? _selectedOutcomeId);
+  }
 
   /// Returns an equivalent session whose visible lines and choices have been
   /// transformed without changing navigation or outcome IDs.
@@ -94,13 +231,15 @@ class DialogueSession {
           :final text,
           :final characterId,
           :final portraitStateId,
+          :final feedback,
         ) =>
           DialogueShowingLine(
             text: transform(text),
             characterId: characterId,
             portraitStateId: portraitStateId,
+            feedback: feedback?.mapText(transform),
           ),
-        DialogueWaitingForChoice(:final choices, :final selectedIndex) =>
+        DialogueWaitingForChoice(:final choices, :final selectedIndex, :final policy) =>
           DialogueWaitingForChoice(
             choices: choices
                 .map(
@@ -112,6 +251,7 @@ class DialogueSession {
                 )
                 .toList(growable: false),
             selectedIndex: selectedIndex,
+            policy: policy,
           ),
       },
       currentNodeTitle: _currentNodeTitle,
@@ -133,6 +273,7 @@ class DialogueSession {
       _stepIndex + 1,
       nodes,
       selectedOutcomeId: _selectedOutcomeId,
+      nodeTitle: _currentNodeTitle,
     );
   }
 
@@ -143,7 +284,7 @@ class DialogueSession {
     return DialogueSession._(
       nodes: nodes,
       state:
-          DialogueWaitingForChoice(choices: s.choices, selectedIndex: newIndex),
+          DialogueWaitingForChoice(choices: s.choices, selectedIndex: newIndex, policy: s.policy),
       currentNodeTitle: _currentNodeTitle,
       currentSteps: _currentSteps,
       stepIndex: _stepIndex,
@@ -160,6 +301,7 @@ class DialogueSession {
       0,
       nodes,
       selectedOutcomeId: choice.outcomeId ?? _selectedOutcomeId,
+      nodeTitle: _currentNodeTitle,
     );
   }
 
@@ -191,14 +333,16 @@ List<YarnStep> _mapSteps(
               :final text,
               :final characterId,
               :final portraitStateId,
+              :final feedback,
             ) =>
               YarnStepLine(
                 transform(text),
                 characterId: characterId,
                 portraitStateId: portraitStateId,
+                feedback: feedback?.mapText(transform),
               ),
             YarnStepJump(:final targetNode) => YarnStepJump(targetNode),
-            YarnStepChoiceBlock(:final choices) => YarnStepChoiceBlock(
+            YarnStepChoiceBlock(:final choices, :final policy) => YarnStepChoiceBlock(
                 choices
                     .map(
                       (choice) => YarnChoice(
@@ -208,6 +352,7 @@ List<YarnStep> _mapSteps(
                       ),
                     )
                     .toList(growable: false),
+                policy: policy,
               ),
           },
         )
@@ -235,6 +380,7 @@ DialogueSession? _resolveStep(
             text: step.text,
             characterId: characterId,
             portraitStateId: portraitStateId,
+            feedback: step.feedback,
           ),
           currentNodeTitle: currentTitle,
           currentSteps: currentSteps,
@@ -253,7 +399,9 @@ DialogueSession? _resolveStep(
           nodes: nodes,
           state: DialogueWaitingForChoice(
             choices: step.choices,
-            selectedIndex: 0,
+            selectedIndex: step.policy?.defaultOutcomeId == null ? 0
+                : step.choices.indexWhere((choice) => choice.outcomeId == step.policy!.defaultOutcomeId),
+            policy: step.policy,
           ),
           currentNodeTitle: currentTitle,
           currentSteps: currentSteps,

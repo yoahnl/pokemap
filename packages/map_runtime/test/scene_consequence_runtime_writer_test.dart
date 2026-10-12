@@ -688,6 +688,113 @@ void main() {
       expect(reloaded.party, result.gameState.party);
     });
 
+    test('giveItem rejects a bag overflow without consuming the pickup', () {
+      const state = GameState(
+        saveId: 'save_pickup_overflow',
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'item_potion', quantity: maximumBagEntryQuantity),
+          ],
+        ),
+      );
+      final grant = SceneConsequence.giveItem(
+        itemId: 'item_potion',
+        quantity: 1,
+      );
+
+      final result = SceneConsequenceRuntimeWriter(project: _project())
+          .applyOne(state, grant);
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.itemGrantRejected,
+      );
+      expect(result.failedConsequence, grant);
+      expect(identical(result.gameState, state), isTrue);
+      expect(result.appliedConsequences, isEmpty);
+    });
+
+    test('giveItem refusal rolls back rewards and the pickup fact', () {
+      const state = GameState(
+        saveId: 'save_atomic_pickup_overflow',
+        trainerProfile: TrainerProfile(name: 'Player', money: 25),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'item_potion', quantity: maximumBagEntryQuantity),
+          ],
+        ),
+      );
+      final grant = SceneConsequence.giveItem(
+        itemId: 'item_potion',
+        quantity: 1,
+      );
+
+      final result = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(id: 'pickup_consumed', label: 'Pickup'),
+          ],
+        ),
+      ).applyAll(state, [
+        SceneConsequence.giveMoney(amount: 1000),
+        SceneConsequence.giveItem(itemId: 'item_ticket', quantity: 2),
+        grant,
+        SceneConsequence.setFact(factId: 'pickup_consumed', value: true),
+      ]);
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.itemGrantRejected,
+      );
+      expect(result.failedConsequence, grant);
+      expect(identical(result.gameState, state), isTrue);
+      expect(result.gameState.trainerProfile.money, 25);
+      expect(result.gameState.bag, state.bag);
+      expect(result.gameState.storyFlags.activeFlags, isEmpty);
+      expect(result.appliedConsequences, isEmpty);
+    });
+
+    test(
+      'giveItem at the bag limit persists together with the pickup fact',
+      () {
+        const state = GameState(
+          saveId: 'save_pickup_limit',
+          bag: Bag(
+            entries: [
+              BagEntry(
+                itemId: 'item_potion',
+                quantity: maximumBagEntryQuantity - 1,
+              ),
+            ],
+          ),
+        );
+
+        final result = SceneConsequenceRuntimeWriter(
+          project: _project(
+            facts: [
+              NarrativeFactDefinition(
+                id: 'pickup_consumed',
+                label: 'Pickup',
+              ),
+            ],
+          ),
+        ).applyAll(state, [
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 1),
+          SceneConsequence.setFact(factId: 'pickup_consumed', value: true),
+        ]);
+
+        expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+        expect(result.appliedConsequences, hasLength(2));
+        final reloaded = GameState.fromJson(result.gameState.toJson());
+        expect(reloaded.bag.entries.single.quantity, maximumBagEntryQuantity);
+        expect(reloaded.storyFlags.activeFlags, contains('pickup_consumed'));
+        expect(state.storyFlags.activeFlags, isEmpty);
+        expect(state.bag.entries.single.quantity, maximumBagEntryQuantity - 1);
+      },
+    );
+
     test('takeItem insufficient quantity fails without partial state', () {
       const state = GameState(
         saveId: 'save_take_item',

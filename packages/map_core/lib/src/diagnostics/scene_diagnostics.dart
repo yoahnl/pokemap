@@ -68,6 +68,7 @@ enum SceneDiagnosticCode {
   branchSourceHasNoOutcomes,
   dialogueRefUnknown,
   dialogueExpectedOutcomeUnknown,
+  dialogueCancellationOutcomeInactive,
   battleTrainerRefUnknown,
   battleTemplateRefMissing,
   cinematicRefUnknown,
@@ -499,8 +500,20 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           final declaredOutcomeIds = dialogue.declaredOutcomes
               .map((outcome) => outcome.id)
               .toSet();
+          final sceneCancellationOutcomes = payload.choicePolicies
+              .where((policy) => policy.cancellation.kind == SceneDialogueChoiceCancellationKind.branch)
+              .map((policy) => policy.cancellation.outcomeId).toSet();
+          for (final outcome in payload.declaredCancellationOutcomes) {
+            if (sceneCancellationOutcomes.contains(outcome) || declaredOutcomeIds.contains(outcome)) continue;
+            diagnostics.add(SceneDiagnostic(
+              code: SceneDiagnosticCode.dialogueCancellationOutcomeInactive,
+              severity: SceneDiagnosticSeverity.warning,
+              message: 'Cette branche de scène est conservée mais aucune touche d’annulation ne la déclenche.',
+              sceneId: scene.id, nodeId: node.id, outcomeId: outcome,
+              target: SceneDiagnosticTarget.outcome));
+          }
           for (final expectedOutcomeId in payload.expectedOutcomes) {
-            if (declaredOutcomeIds.contains(expectedOutcomeId)) continue;
+            if (declaredOutcomeIds.contains(expectedOutcomeId) || payload.declaredCancellationOutcomes.contains(expectedOutcomeId)) continue;
             diagnostics.add(
               SceneDiagnostic(
                 code: SceneDiagnosticCode.dialogueExpectedOutcomeUnknown,

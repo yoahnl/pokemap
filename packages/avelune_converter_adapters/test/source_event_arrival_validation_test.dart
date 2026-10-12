@@ -1,0 +1,262 @@
+import 'package:avelune_converter_adapters/src/native_project_writer.dart';
+import 'package:avelune_converter_adapters/src/source_event_arrival_validation.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:test/test.dart';
+
+const _position = GridPos(x: 1, y: 1);
+const _size = GridSize(width: 4, height: 4);
+
+MapWarp _arrival(String id, GridPos pos, {String mapId = 'map'}) => MapWarp(
+    id: id,
+    pos: pos,
+    targetMapId: mapId,
+    targetPos: pos,
+    triggerMode: MapWarpTriggerMode.onBump);
+
+MapData _map(
+        {List<MapEntity> entities = const [],
+        List<MapLayer> layers = const [],
+        List<MapWarp>? warps,
+        List<MapPlacedElement> placedElements = const []}) =>
+    MapData(
+        id: 'map',
+        name: 'Destination',
+        size: _size,
+        layers: layers,
+        entities: entities,
+        placedElements: placedElements,
+        warps: warps ?? [_arrival('arrival', _position)]);
+
+ProjectManifest _manifest(MapData map,
+        {List<ProjectElementEntry> elements = const [],
+        List<WorldRuleDefinition> worldRules = const [],
+        List<NarrativeFactDefinition> facts = const []}) =>
+    ProjectManifest(
+        name: 'Arrival guard',
+        maps: [
+          ProjectMapEntry(
+              id: map.id, name: map.name, relativePath: 'maps/${map.id}.json')
+        ],
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'tiles', name: 'Tiles', relativePath: 'assets/tiles.png')
+        ],
+        settings: const ProjectSettings(tileWidth: 32, tileHeight: 32),
+        elementCategories: const [
+          ProjectElementCategory(id: 'obstacles', name: 'Obstacles')
+        ],
+        elements: elements,
+        worldRules: worldRules,
+        facts: facts);
+
+({MapData map, ProjectManifest manifest}) _maskFixture({required int localX}) {
+  final pixels = List<bool>.filled(32 * 32, false);
+  pixels[24 * 32 + localX] = true;
+  final mask = ElementCollisionPixelMask(
+      widthPx: 32,
+      heightPx: 32,
+      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: 32, heightPx: 32, solidPixels: pixels));
+  final element = ProjectElementEntry(
+      id: 'wall',
+      name: 'Wall',
+      tilesetId: 'tiles',
+      categoryId: 'obstacles',
+      frames: const [
+        TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))
+      ],
+      collisionProfile: ElementCollisionProfile(collisionMask: mask));
+  final map = _map(layers: const [
+    TileLayer(id: 'base', name: 'Base', cells: [])
+  ], placedElements: const [
+    MapPlacedElement(
+        id: 'placed',
+        elementId: 'wall',
+        layerId: 'base',
+        pos: _position,
+        applyCollision: true)
+  ]);
+  return (map: map, manifest: _manifest(map, elements: [element]));
+}
+
+Matcher _arrivalFailure(String code) => throwsA(
+    isA<NativeWriteException>().having((error) => error.code, 'code', code));
+
+void main() {
+  test('accepts a free canonical destination without altering project data',
+      () {
+    final map = _map();
+    final manifest = _manifest(map);
+    final before = map.toJson();
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: manifest, maps: [map], arrivalAnchorIds: ['arrival']),
+        returnsNormally);
+    expect(map.toJson(), before);
+  });
+
+  test('rejects a full collision cell at the arrival', () {
+    final collisions = List<bool>.filled(16, false)..[5] = true;
+    final map = _map(layers: [
+      CollisionLayer(id: 'collision', name: 'Collision', collisions: collisions)
+    ]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.blocked'));
+  });
+
+  test(
+      'rejects a pixel mask overlapping the hitbox while the cell centre is free',
+      () {
+    final fixture = _maskFixture(localX: 16);
+    final world = GameplayWorldState.initial(
+        map: fixture.map,
+        project: fixture.manifest,
+        playerPos: _position,
+        tileWidth: 32,
+        tileHeight: 32);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isFalse);
+    expect(world.worldStaticObstaclesCollidePlayerCollisionRect(), isTrue);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: fixture.manifest,
+            maps: [fixture.map],
+            arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.blocked'));
+  });
+
+  test('accepts a pixel mask outside the hitbox in the same authored cell', () {
+    final fixture = _maskFixture(localX: 0);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: fixture.manifest,
+            maps: [fixture.map],
+            arrivalAnchorIds: ['arrival']),
+        returnsNormally);
+  });
+
+  test('rejects future projected blocking entities despite their hiding rule',
+      () {
+    final entity = MapEntity(
+        id: 'future',
+        name: 'Future object',
+        kind: MapEntityKind.custom,
+        pos: _position,
+        blocksMovement: true,
+        properties: {
+          mapEntityCollisionWidthProperty: '1',
+          mapEntityCollisionHeightProperty: '1'
+        });
+    final map = _map(entities: [entity]);
+    final fact = addNarrativeFact(_manifest(map), label: 'Hide future object')
+        .createdFact;
+    final manifest = _manifest(map, facts: [fact]);
+    final rule = addWorldRule(manifest,
+        label: 'Initially hidden',
+        source: WorldRuleSource.factValue(
+            factId: fact.id,
+            operator: NarrativeFactOperator.equals,
+            expectedValue: const NarrativeValue.boolean(false)),
+        target: const WorldRuleTarget(
+            kind: WorldRuleTargetKind.mapEntity,
+            mapId: 'map',
+            entityId: 'future'),
+        effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden),
+        maps: [map]).createdRule;
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: manifest.copyWith(worldRules: [rule]),
+            maps: [map],
+            arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.blocked'));
+  });
+
+  test('allows through entities at the destination', () {
+    final map = _map(entities: const [
+      MapEntity(
+          id: 'through',
+          name: 'Through',
+          kind: MapEntityKind.custom,
+          pos: _position,
+          blocksMovement: false)
+    ]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['arrival']),
+        returnsNormally);
+  });
+
+  test('checks each anchor after a free anchor on the same map', () {
+    final map = _map(warps: [
+      _arrival('first', const GridPos(x: 0, y: 0)),
+      _arrival('second', _position)
+    ], entities: const [
+      MapEntity(
+          id: 'solid',
+          name: 'Solid',
+          kind: MapEntityKind.custom,
+          pos: _position,
+          blocksMovement: true,
+          properties: {
+            mapEntityCollisionWidthProperty: '1',
+            mapEntityCollisionHeightProperty: '1'
+          })
+    ]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['first', 'second']),
+        _arrivalFailure('events.arrival.blocked'));
+  });
+
+  test('requires every requested anchor to resolve exactly once', () {
+    final map = _map();
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['missing']),
+        _arrivalFailure('events.arrival.binding'));
+    final duplicate = map.copyWith(warps: [map.warps.single, map.warps.single]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(duplicate),
+            maps: [duplicate],
+            arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.binding'));
+  });
+
+  test(
+      'rejects an out of bounds anchor before a clamped player spawn can hide it',
+      () {
+    final map = _map(warps: [_arrival('arrival', const GridPos(x: 4, y: 1))]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['arrival']),
+        _arrivalFailure('events.arrival.bounds'));
+  });
+
+  test('honours cancellation before querying collisions', () {
+    final map = _map();
+    final cancellation = ScanCancellation()..cancel();
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['arrival'],
+            cancellation: cancellation),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'source.cancelled')));
+  });
+}

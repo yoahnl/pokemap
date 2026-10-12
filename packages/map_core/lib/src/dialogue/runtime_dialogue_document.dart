@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../operations/narrative_event_canonical_json.dart';
+import '../models/dialogue_line_feedback.dart';
 
 /// Data-only dialogue document consumed by packaged games.
 final class RuntimeDialogueDocument {
@@ -116,9 +117,11 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {
     String? characterId,
     String? portraitStateId,
     bool preserveWhitespace = false,
+    this.feedback,
   }) : text = preserveWhitespace ? text : text.trim(),
        characterId = characterId?.trim(),
        portraitStateId = portraitStateId?.trim() {
+    feedback?.validateText(this.text);
     if (this.text.trim().isEmpty) {
       throw const FormatException('Runtime dialogue line cannot be empty.');
     }
@@ -142,6 +145,7 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {
   final String text;
   final String? characterId;
   final String? portraitStateId;
+  final DialogueLineFeedback? feedback;
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -149,6 +153,7 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {
     'text': text,
     if (characterId != null) 'characterId': characterId,
     if (portraitStateId != null) 'portraitStateId': portraitStateId,
+    if (feedback != null) 'feedback': feedback!.toJson(),
   };
 
   @override
@@ -156,11 +161,11 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {
       other is RuntimeDialogueLine &&
       text == other.text &&
       characterId == other.characterId &&
-      portraitStateId == other.portraitStateId;
+      portraitStateId == other.portraitStateId && feedback == other.feedback;
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, text, characterId, portraitStateId);
+      Object.hash(runtimeType, text, characterId, portraitStateId, feedback);
 }
 
 final class RuntimeDialogueJump extends RuntimeDialogueStep {
@@ -299,6 +304,7 @@ final class RuntimeDialogueDocumentCodec {
         'choices',
         'characterId',
         'portraitStateId',
+        'feedback',
       },
     );
     return switch (_string(source['kind'])) {
@@ -307,10 +313,13 @@ final class RuntimeDialogueDocumentCodec {
           _exact(
             source,
             required: const <String>{'kind', 'text'},
-            optional: const <String>{'characterId', 'portraitStateId'},
+            optional: const <String>{'characterId', 'portraitStateId', 'feedback'},
           )['text'],
         ),
         preserveWhitespace: true,
+        feedback: source.containsKey('feedback')
+            ? DialogueLineFeedback.fromJson(_object(source['feedback'], required: const {'segments', 'advance'}, optional: const {'revealIntervalMicros', 'audioCue'}))
+            : null,
         characterId: source.containsKey('characterId')
             ? _string(source['characterId'])
             : null,

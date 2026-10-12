@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
+import 'dialogue_line_feedback.dart';
 import 'presentation_interaction_outcome.dart';
 import 'scene_consequence.dart';
 import 'scene_interactive_command.dart';
@@ -921,6 +922,92 @@ final class SceneEndPayload extends SceneNodePayload {
   int get hashCode => Object.hash(sceneOutcomeId, outcomePolicy, notes);
 }
 
+enum SceneDialogueChoiceCancellationKind { disabled, choice, branch }
+
+@immutable
+final class SceneDialogueChoiceCancellation {
+  const SceneDialogueChoiceCancellation.disabled()
+      : kind = SceneDialogueChoiceCancellationKind.disabled,
+        outcomeId = null;
+
+  const SceneDialogueChoiceCancellation.choice(this.outcomeId)
+      : kind = SceneDialogueChoiceCancellationKind.choice;
+
+  const SceneDialogueChoiceCancellation.branch(this.outcomeId)
+      : kind = SceneDialogueChoiceCancellationKind.branch;
+
+  final SceneDialogueChoiceCancellationKind kind;
+  final String? outcomeId;
+
+  factory SceneDialogueChoiceCancellation.fromJson(Map<String, dynamic> json) {
+    final kind = _readEnum(SceneDialogueChoiceCancellationKind.values, json['kind'], 'kind');
+    if (kind == SceneDialogueChoiceCancellationKind.disabled) {
+      if (json['outcomeId'] != null) {
+        throw const FormatException('Disabled choice cancellation cannot declare an outcome.');
+      }
+      return const SceneDialogueChoiceCancellation.disabled();
+    }
+    final outcome = _readRequiredString(json, 'outcomeId');
+    return kind == SceneDialogueChoiceCancellationKind.choice
+        ? SceneDialogueChoiceCancellation.choice(outcome)
+        : SceneDialogueChoiceCancellation.branch(outcome);
+  }
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'kind': kind.name,
+    'outcomeId': outcomeId,
+  });
+
+  @override
+  bool operator ==(Object other) => other is SceneDialogueChoiceCancellation &&
+      other.kind == kind && other.outcomeId == outcomeId;
+
+  @override
+  int get hashCode => Object.hash(kind, outcomeId);
+}
+
+@immutable
+final class SceneDialogueChoicePolicy {
+  const SceneDialogueChoicePolicy({
+    required this.nodeName,
+    this.choiceIndex = 0,
+    this.defaultOutcomeId,
+    this.cancellation = const SceneDialogueChoiceCancellation.disabled(),
+  });
+
+  final String nodeName;
+  final int choiceIndex;
+  final String? defaultOutcomeId;
+  final SceneDialogueChoiceCancellation cancellation;
+
+  factory SceneDialogueChoicePolicy.fromJson(Map<String, dynamic> json) {
+    final index = json['choiceIndex'] ?? 0;
+    if (index is! int) throw const FormatException('choiceIndex must be an integer.');
+    return SceneDialogueChoicePolicy(
+      nodeName: _readRequiredString(json, 'nodeName'),
+      choiceIndex: index,
+      defaultOutcomeId: _readOptionalString(json, 'defaultOutcomeId'),
+      cancellation: _readOptionalObject(json, 'cancellation', SceneDialogueChoiceCancellation.fromJson) ??
+          const SceneDialogueChoiceCancellation.disabled(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'nodeName': nodeName,
+    'choiceIndex': choiceIndex,
+    'defaultOutcomeId': defaultOutcomeId,
+    'cancellation': cancellation.toJson(),
+  });
+
+  @override
+  bool operator ==(Object other) => other is SceneDialogueChoicePolicy &&
+      other.nodeName == nodeName && other.choiceIndex == choiceIndex &&
+      other.defaultOutcomeId == defaultOutcomeId && other.cancellation == cancellation;
+
+  @override
+  int get hashCode => Object.hash(nodeName, choiceIndex, defaultOutcomeId, cancellation);
+}
+
 @immutable
 final class SceneYarnDialoguePayload extends SceneNodePayload {
   SceneYarnDialoguePayload({
@@ -928,10 +1015,22 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
     this.yarnNodeName,
     List<String> expectedOutcomes = const <String>[],
     List<String> speakerHints = const <String>[],
-  })  : expectedOutcomes = _immutableNonBlankUniqueStrings(
+    List<SceneDialogueChoicePolicy> choicePolicies = const [],
+    List<SceneDialogueLinePolicy> linePolicies = const [],
+    List<String> declaredCancellationOutcomes = const [],
+  })  : linePolicies = List.unmodifiable(linePolicies),
+        declaredCancellationOutcomes = _immutableNonBlankUniqueStrings([
+          ...declaredCancellationOutcomes,
+          ...choicePolicies.where((policy) => policy.cancellation.kind ==
+              SceneDialogueChoiceCancellationKind.branch)
+            .map((policy) => policy.cancellation.outcomeId).whereType<String>()
+            .toSet().where((outcome) => !declaredCancellationOutcomes.contains(outcome)),
+        ], 'SceneYarnDialoguePayload.declaredCancellationOutcomes'),
+        expectedOutcomes = _immutableNonBlankUniqueStrings(
           expectedOutcomes,
           'SceneYarnDialoguePayload.expectedOutcomes',
         ),
+        choicePolicies = List<SceneDialogueChoicePolicy>.unmodifiable(choicePolicies),
         speakerHints = _immutableNonBlankUniqueStrings(
           speakerHints,
           'SceneYarnDialoguePayload.speakerHints',
@@ -941,6 +1040,40 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
       yarnNodeName,
       'SceneYarnDialoguePayload.yarnNodeName',
     );
+    final lineScopes = <(String, int)>{};
+    final cueIds = <String>{};
+    for (final policy in this.linePolicies) {
+      if (!lineScopes.add((policy.nodeName, policy.lineIndex))) {
+        throw ValidationException('Duplicate dialogue line policy scope.');
+      }
+      final cue = policy.feedback.audioCue;
+      if (cue != null && !cueIds.add(cue.cueId)) {
+        throw ValidationException('Duplicate dialogue audio cue identity.');
+      }
+    }
+    final scopes = <(String, int)>{};
+    if (this.declaredCancellationOutcomes.any((outcome) =>
+        !this.expectedOutcomes.contains(outcome))) {
+      throw ValidationException('Declared cancellation outcomes must belong to the Scene dialogue contract.');
+    }
+    for (final policy in this.choicePolicies) {
+      _requireNotBlank(policy.nodeName, 'SceneDialogueChoicePolicy.nodeName');
+      if (policy.nodeName != policy.nodeName.trim() || policy.choiceIndex < 0) {
+        throw ValidationException('Choice policy scope must be trimmed and nonnegative.');
+      }
+      if (!scopes.add((policy.nodeName, policy.choiceIndex))) {
+        throw ValidationException('Duplicate dialogue choice policy scope.');
+      }
+      for (final outcome in [policy.defaultOutcomeId, policy.cancellation.outcomeId]) {
+        if (outcome != null && !this.expectedOutcomes.contains(outcome)) {
+          throw ValidationException('Choice policy references an undeclared Scene dialogue outcome.');
+        }
+      }
+      if (policy.cancellation.kind != SceneDialogueChoiceCancellationKind.disabled &&
+          (policy.cancellation.outcomeId == null || policy.cancellation.outcomeId!.trim().isEmpty)) {
+        throw ValidationException('Choice cancellation requires an outcome.');
+      }
+    }
   }
 
   factory SceneYarnDialoguePayload.fromJson(Map<String, dynamic> json) {
@@ -949,6 +1082,9 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
       yarnNodeName: _readOptionalString(json, 'yarnNodeName'),
       expectedOutcomes: _readStringList(json, 'expectedOutcomes'),
       speakerHints: _readStringList(json, 'speakerHints'),
+      choicePolicies: _readObjectList(json, 'choicePolicies', SceneDialogueChoicePolicy.fromJson),
+      linePolicies: _readObjectList(json, 'linePolicies', SceneDialogueLinePolicy.fromJson),
+      declaredCancellationOutcomes: _readStringList(json, 'declaredCancellationOutcomes'),
     );
   }
 
@@ -959,6 +1095,9 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
   final String? yarnNodeName;
   final List<String> expectedOutcomes;
   final List<String> speakerHints;
+  final List<SceneDialogueChoicePolicy> choicePolicies;
+  final List<SceneDialogueLinePolicy> linePolicies;
+  final List<String> declaredCancellationOutcomes;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
@@ -967,6 +1106,9 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
         'yarnNodeName': yarnNodeName,
         'expectedOutcomes': expectedOutcomes,
         'speakerHints': speakerHints,
+        if (choicePolicies.isNotEmpty) 'choicePolicies': choicePolicies.map((policy) => policy.toJson()).toList(growable: false),
+        if (linePolicies.isNotEmpty) 'linePolicies': linePolicies.map((policy) => policy.toJson()).toList(growable: false),
+        if (declaredCancellationOutcomes.isNotEmpty) 'declaredCancellationOutcomes': declaredCancellationOutcomes,
       });
 
   @override
@@ -976,6 +1118,9 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
           other.dialogueId == dialogueId &&
           other.yarnNodeName == yarnNodeName &&
           _listEquals(other.expectedOutcomes, expectedOutcomes) &&
+          _listEquals(other.choicePolicies, choicePolicies) &&
+          _listEquals(other.linePolicies, linePolicies) &&
+          _listEquals(other.declaredCancellationOutcomes, declaredCancellationOutcomes) &&
           _listEquals(other.speakerHints, speakerHints);
 
   @override
@@ -984,6 +1129,9 @@ final class SceneYarnDialoguePayload extends SceneNodePayload {
         yarnNodeName,
         Object.hashAll(expectedOutcomes),
         Object.hashAll(speakerHints),
+        Object.hashAll(choicePolicies),
+        Object.hashAll(linePolicies),
+        Object.hashAll(declaredCancellationOutcomes),
       );
 }
 

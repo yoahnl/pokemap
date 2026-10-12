@@ -1,7 +1,13 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/dialogue_feedback_playback_port.dart';
 import '../../application/dialogue_portrait_resolver.dart';
 import '../flutter/dialogue_presentation_snapshot.dart';
 import 'dialogue_text_speed.dart';
@@ -16,6 +22,9 @@ class DialogueOverlayComponent extends PositionComponent {
     this.textSpeed = RuntimeDialogueTextSpeed.instant,
     this.onPresentationSnapshotChanged,
     this.portraitResolver,
+    this.feedbackPlaybackPort,
+    this.iconBytesLoader,
+    this.onFailed,
     bool renderInFlame = true,
   })  : _session = session,
         _renderInFlame = renderInFlame,
@@ -30,6 +39,17 @@ class DialogueOverlayComponent extends PositionComponent {
   final ValueChanged<DialoguePresentationSnapshot?>?
       onPresentationSnapshotChanged;
   final DialoguePortraitResolver? portraitResolver;
+  final DialogueFeedbackPlaybackPort? feedbackPlaybackPort;
+  final DialogueIconBytesLoader? iconBytesLoader;
+  final void Function(Object error)? onFailed;
+  final Map<String, Uint8List> _iconBytes = {};
+  final Map<String, ui.Image> _iconImages = {};
+  double _waitElapsedMicros = 0;
+  bool _finished = false;
+  bool _linePlaybackReady = false;
+  final Set<String> _playedCues = {};
+  static int _nextPlaybackScope = 0;
+  final String _playbackScope = 'dialogue-${_nextPlaybackScope++}';
   RuntimeDialogueTextSpeed textSpeed;
   bool _renderInFlame;
   bool _presentationReady = false;
@@ -67,7 +87,7 @@ class DialogueOverlayComponent extends PositionComponent {
     if (state is! DialogueShowingLine) {
       return '';
     }
-    if (textSpeed == RuntimeDialogueTextSpeed.instant) {
+    if (_revealIntervalMicros == 0) {
       return state.text;
     }
     return String.fromCharCodes(state.text.runes.take(_visibleRuneCount));
@@ -76,7 +96,7 @@ class DialogueOverlayComponent extends PositionComponent {
   bool get isCurrentLineFullyRevealed {
     final state = _session.state;
     return state is! DialogueShowingLine ||
-        textSpeed == RuntimeDialogueTextSpeed.instant ||
+        _revealIntervalMicros == 0 ||
         _visibleRuneCount >= state.text.runes.length;
   }
 
@@ -85,7 +105,38 @@ class DialogueOverlayComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    try {
+      await _loadPresentation();
+    } on Object catch (error, stackTrace) {
+      _failFeedback(error);
+      if (onFailed == null) Error.throwWithStackTrace(error, stackTrace);
+    }
+  }
+
+  Future<void> _loadPresentation() async {
     await portraitResolver?.preload(_session);
+    if (_finished) return;
+    for (final feedback in _session.lineFeedback) {
+      for (final icon in feedback.segments.whereType<DialogueIconSegment>()) {
+        if (_iconBytes.containsKey(icon.assetId)) continue;
+        final loader = iconBytesLoader;
+        if (loader == null) throw StateError('Dialogue icon loader is missing.');
+        final bytes = await loader(icon.assetId);
+        if (_finished) return;
+        validateDialogueIconPng(bytes);
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        if (_finished) {
+          frame.image.dispose();
+          return;
+        }
+        _iconBytes[icon.assetId] = Uint8List.fromList(bytes).asUnmodifiableView();
+        _iconImages[icon.assetId] = frame.image;
+      }
+    }
+    await _beginLineFeedback();
+    if (_finished) return;
     _cursorPainter = TextPainter(
       text: const TextSpan(
         text: '▶',
@@ -100,28 +151,85 @@ class DialogueOverlayComponent extends PositionComponent {
     return super.onLoad();
   }
 
+  int get _revealIntervalMicros {
+    final state = _session.state;
+    final explicit = state is DialogueShowingLine ? state.feedback?.revealIntervalMicros : null;
+    return explicit ?? textSpeed.revealInterval?.inMicroseconds ?? 0;
+  }
+
+  bool get _autoAdvance => _session.state is DialogueShowingLine &&
+      (_session.state as DialogueShowingLine).feedback?.advance.kind == DialogueLineAdvanceKind.autoAfterReveal;
+
+  Future<void> _beginLineFeedback() async {
+    _linePlaybackReady = false;
+    final state = _session.state;
+    final cue = state is DialogueShowingLine ? state.feedback?.audioCue : null;
+    if (cue != null && _playedCues.add(cue.cueId)) {
+      final port = feedbackPlaybackPort;
+      if (port == null) throw StateError('Dialogue feedback audio port is missing.');
+      await port.playCue(cue, playbackId: '$_playbackScope:${cue.cueId}');
+    }
+    _linePlaybackReady = true;
+  }
+
+  void _startLineFeedback() {
+    unawaited(_beginLineFeedback().catchError((Object error, StackTrace stackTrace) {
+      _failFeedback(error);
+      if (onFailed == null) Zone.current.handleUncaughtError(error, stackTrace);
+    }));
+  }
+
+  void _failFeedback(Object error) {
+    if (_finished) return;
+    _finished = true;
+    for (final image in _iconImages.values) {
+      image.dispose();
+    }
+    _iconImages.clear();
+    removeFromParent();
+    onFailed?.call(error);
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+    if (_finished || !_linePlaybackReady || !dt.isFinite || dt < 0) return;
     final state = _session.state;
-    final interval = textSpeed.revealInterval;
-    if (state is! DialogueShowingLine ||
-        interval == null ||
-        isCurrentLineFullyRevealed) {
-      return;
+    if (state is! DialogueShowingLine) return;
+    var availableMicros = dt * Duration.microsecondsPerSecond;
+    if (!isCurrentLineFullyRevealed) {
+      final interval = _revealIntervalMicros;
+      final remaining = state.text.runes.length - _visibleRuneCount;
+      final needed = remaining * interval - _revealAccumulatorSeconds * Duration.microsecondsPerSecond;
+      if (availableMicros + 0.000001 >= needed) {
+        _visibleRuneCount = state.text.runes.length;
+        _revealAccumulatorSeconds = 0;
+        availableMicros = (availableMicros - needed).clamp(0, double.infinity);
+      } else {
+        _revealAccumulatorSeconds += dt;
+        final accumulated = _revealAccumulatorSeconds * Duration.microsecondsPerSecond;
+        final revealed = (accumulated + 0.000001) ~/ interval;
+        _visibleRuneCount += revealed;
+        _revealAccumulatorSeconds -= revealed * interval / Duration.microsecondsPerSecond;
+        availableMicros = 0;
+      }
+      _rebuildLinePainters(state);
+      _publishPresentationSnapshot();
     }
-    _revealAccumulatorSeconds += dt;
-    final intervalSeconds =
-        interval.inMicroseconds / Duration.microsecondsPerSecond;
-    final revealed = _revealAccumulatorSeconds ~/ intervalSeconds;
-    if (revealed <= 0) {
-      return;
+    if (!_autoAdvance || !isCurrentLineFullyRevealed) return;
+    _waitElapsedMicros += availableMicros;
+    final delay = state.feedback!.advance.delayMicros;
+    if (_waitElapsedMicros + 0.000001 >= delay) _advanceLine(automatic: true);
+  }
+
+  @override
+  void onRemove() {
+    _finished = true;
+    for (final image in _iconImages.values) {
+      image.dispose();
     }
-    _revealAccumulatorSeconds -= revealed * intervalSeconds;
-    final runeCount = state.text.runes.length;
-    _visibleRuneCount = (_visibleRuneCount + revealed).clamp(0, runeCount);
-    _rebuildLinePainters(state);
-    _publishPresentationSnapshot();
+    _iconImages.clear();
+    super.onRemove();
   }
 
   void setRenderInFlame(bool renderInFlame) {
@@ -135,7 +243,7 @@ class DialogueOverlayComponent extends PositionComponent {
     }
     textSpeed = speed;
     _revealAccumulatorSeconds = 0;
-    if (speed == RuntimeDialogueTextSpeed.instant) {
+    if (_revealIntervalMicros == 0) {
       _revealCurrentLineFully();
     }
     if (_presentationReady) {
@@ -156,7 +264,7 @@ class DialogueOverlayComponent extends PositionComponent {
   void _rebuildLinePainters(DialogueShowingLine state) {
     _textPainter = TextPainter(
       text: TextSpan(
-        text: visibleText,
+        children: _lineSpans(state),
         style: const TextStyle(
           color: Colors.white,
           fontSize: _kFontSize,
@@ -166,11 +274,19 @@ class DialogueOverlayComponent extends PositionComponent {
       ),
       textDirection: TextDirection.ltr,
       maxLines: 4,
-    )..layout(maxWidth: size.x - 32 - _kPaddingH * 2);
+    );
+    final visibleIcons = _visibleSegments(state).whereType<DialogueIconSegment>().toList(growable: false);
+    if (visibleIcons.isNotEmpty) {
+      _textPainter.setPlaceholderDimensions([
+        for (final icon in visibleIcons) PlaceholderDimensions(
+          size: Size(icon.widthPx.toDouble(), icon.heightPx.toDouble()), alignment: ui.PlaceholderAlignment.middle),
+      ]);
+    }
+    _textPainter.layout(maxWidth: size.x - 32 - _kPaddingH * 2);
 
     _hintPainter = TextPainter(
       text: TextSpan(
-        text: !isCurrentLineFullyRevealed
+        text: _autoAdvance && isCurrentLineFullyRevealed ? '' : !isCurrentLineFullyRevealed
             ? 'E · Afficher'
             : _session.isLastContent
                 ? 'E · Fermer'
@@ -179,6 +295,22 @@ class DialogueOverlayComponent extends PositionComponent {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
+  }
+
+  List<DialogueLineSegment> _visibleSegments(DialogueShowingLine state) =>
+      visibleDialogueLineSegments(state.feedback?.segments ?? const [], visibleText.runes.length);
+
+  List<InlineSpan> _lineSpans(DialogueShowingLine state) {
+    final segments = _visibleSegments(state);
+    if (segments.isEmpty) return [TextSpan(text: visibleText)];
+    return [for (final segment in segments) switch (segment) {
+      DialogueTextSegment() => TextSpan(text: segment.text, style: TextStyle(
+        color: segment.style?.colorArgb == null ? null : Color(segment.style!.colorArgb!),
+        shadows: segment.style?.shadowColorArgb == null ? null : [Shadow(
+          color: Color(segment.style!.shadowColorArgb!), offset: const Offset(1, 1))])),
+      DialogueIconSegment() => WidgetSpan(alignment: ui.PlaceholderAlignment.middle,
+        child: SizedBox(width: segment.widthPx.toDouble(), height: segment.heightPx.toDouble())),
+    }];
   }
 
   void _rebuildChoicePainters(DialogueWaitingForChoice state) {
@@ -224,6 +356,7 @@ class DialogueOverlayComponent extends PositionComponent {
   }
 
   void _renderLine(Canvas canvas) {
+    final state = _session.state as DialogueShowingLine;
     final vw = size.x;
     final vh = size.y;
     final boxH = vh * _kBoxHeightFraction;
@@ -237,6 +370,21 @@ class DialogueOverlayComponent extends PositionComponent {
     canvas.drawRRect(rrect, _borderPaint);
 
     _textPainter.paint(canvas, Offset(16 + _kPaddingH, boxY + _kPaddingV));
+    var offset = 0;
+    for (final segment in _visibleSegments(state)) {
+      if (segment is DialogueIconSegment) {
+        final image = _iconImages[segment.assetId];
+        final boxes = _textPainter.getBoxesForSelection(TextSelection(baseOffset: offset, extentOffset: offset + 1));
+        if (image != null && boxes.isNotEmpty) {
+          final box = boxes.first;
+          final textOrigin = Offset(16 + _kPaddingH, boxY + _kPaddingV);
+          canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+            Rect.fromLTWH(textOrigin.dx + box.left, textOrigin.dy + box.top,
+              segment.widthPx.toDouble(), segment.heightPx.toDouble()), Paint()..filterQuality = FilterQuality.none);
+        }
+      }
+      offset += segment.plainText.length;
+    }
 
     _hintPainter.paint(
       canvas,
@@ -287,6 +435,23 @@ class DialogueOverlayComponent extends PositionComponent {
     _publishPresentationSnapshot();
   }
 
+  bool cancelChoice() {
+    final outcome = _session.choiceCancellationOutcomeId;
+    if (outcome == null) return true;
+    final next = _session.cancelChoice();
+    if (next == null) {
+      removeFromParent();
+      onFinished(outcome);
+      return false;
+    }
+    _session = next;
+    _resetRevealForCurrentState();
+    _startLineFeedback();
+    _rebuildPainters();
+    _publishPresentationSnapshot();
+    return true;
+  }
+
   bool confirmChoice() {
     final state = _session.state;
     final choiceOutcomeId = state is DialogueWaitingForChoice
@@ -300,12 +465,17 @@ class DialogueOverlayComponent extends PositionComponent {
     }
     _session = next;
     _resetRevealForCurrentState();
+    _startLineFeedback();
     _rebuildPainters();
     _publishPresentationSnapshot();
     return true;
   }
 
-  bool advance() {
+  bool advance() => _advanceLine();
+
+  bool _advanceLine({bool automatic = false}) {
+    if (_finished) return false;
+    if (!_linePlaybackReady && _presentationReady) return true;
     if (!isCurrentLineFullyRevealed) {
       _revealCurrentLineFully();
       if (_presentationReady) {
@@ -314,14 +484,17 @@ class DialogueOverlayComponent extends PositionComponent {
       }
       return true;
     }
+    if (_autoAdvance && !automatic) return true;
     final next = _session.advance();
     if (next == null) {
       removeFromParent();
+      _finished = true;
       onFinished(_session.selectedOutcomeId);
       return false;
     }
     _session = next;
     _resetRevealForCurrentState();
+    _startLineFeedback();
     _rebuildPainters();
     _publishPresentationSnapshot();
     return true;
@@ -334,6 +507,7 @@ class DialogueOverlayComponent extends PositionComponent {
       visibleText: visibleText,
       isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
       resolvePortrait: portraitResolver?.resolve,
+      iconPngBytes: _iconBytes,
     );
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);
@@ -341,9 +515,10 @@ class DialogueOverlayComponent extends PositionComponent {
 
   void _resetRevealForCurrentState() {
     _revealAccumulatorSeconds = 0;
+    _waitElapsedMicros = 0;
     final state = _session.state;
     _visibleRuneCount = state is DialogueShowingLine &&
-            textSpeed == RuntimeDialogueTextSpeed.instant
+            _revealIntervalMicros == 0
         ? state.text.runes.length
         : 0;
   }

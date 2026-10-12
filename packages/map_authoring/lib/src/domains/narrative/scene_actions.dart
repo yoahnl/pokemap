@@ -1,9 +1,15 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 import '../assets/project_media_store.dart';
 
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import '../../workspace/project_snapshot.dart';
+import 'dialogue_authoring_service.dart';
+import 'dialogue_source_store.dart';
+import 'dialogue_source_guards.dart';
 import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
@@ -24,6 +30,36 @@ final class SceneActions {
   const SceneActions();
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
+    narrativeActionDescriptor(
+      'scene.dialogue.lineFeedback.update',
+      'Configure one compiled dialogue line text, cadence and bounded media feedback',
+      resourceKinds: const ['project', 'scene', 'dialogue'],
+      extensions: const {
+        'linePolicy': {
+          'scopeFields': ['nodeName', 'lineIndex'],
+          'textBinding': 'nonemptySegmentsMatchCompiledPlainText',
+          'emptySegments': 'compiledScopeCadenceOrAudioOnly',
+          'segmentKinds': ['text', 'icon'],
+          'advanceKinds': ['confirm', 'autoAfterReveal'],
+          'audioMedia': 'knownNonLoopingSound',
+          'parameters': ['sceneId', 'nodeId', 'linePolicy'],
+        },
+      },
+    ),
+    narrativeActionDescriptor(
+      'scene.dialogue.choicePolicy.update',
+      'Configure one compiled dialogue choice default and cancellation policy',
+      resourceKinds: const ['project', 'scene', 'dialogue'],
+      extensions: const {
+        'choicePolicy': {
+          'scopeFields': ['nodeName', 'choiceIndex'],
+          'cancellationKinds': ['disabled', 'choice', 'branch'],
+          'defaultOutcome': 'uniqueVisibleChoiceOutcome',
+          'branchOutcome': 'distinctDeclaredSceneOutcome',
+          'parameters': ['sceneId', 'nodeId', 'choicePolicy'],
+        },
+      },
+    ),
     narrativeActionDescriptor(
       'scene.upsert',
       'Create or replace a complete Scene graph',
@@ -99,10 +135,57 @@ final class SceneActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
     switch (context.request.actionId) {
+      case 'scene.dialogue.lineFeedback.update':
+        rejectUnknownNarrativeParameters(parameters, const {'sceneId', 'nodeId', 'linePolicy'});
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final nodeId = narrativeStringParameter(parameters, 'nodeId');
+        final scene = _requireDialoguePolicyScene(context.snapshot.manifest, sceneId,
+          errorPrefix: 'scene.dialogue.line_feedback');
+        final node = _requireDialoguePolicyNode(scene, nodeId,
+          errorPrefix: 'scene.dialogue.line_feedback');
+        final payload = node.payload as SceneYarnDialoguePayload;
+        late final SceneDialogueLinePolicy policy;
+        try {
+          policy = SceneDialogueLinePolicy.fromJson(narrativeObjectParameter(parameters, 'linePolicy'));
+        } on ArgumentError {
+          throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
+            'The dialogue line feedback payload is invalid.');
+        } on FormatException {
+          throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
+            'The dialogue line feedback payload is invalid.');
+        }
+        final projected = updateDialogueLineFeedback(context.snapshot.manifest,
+          maps: context.snapshot.maps, sceneId: sceneId, nodeId: nodeId,
+          linePolicy: policy, dialogue: _compilePolicyDialogue(context.snapshot, payload.dialogueId,
+            errorPrefix: 'scene.dialogue.line_feedback'));
+        final updated = projected.scenes.singleWhere((candidate) => candidate.id == sceneId)
+            .graph.nodes.singleWhere((candidate) => candidate.id == nodeId).payload as SceneYarnDialoguePayload;
+        return narrativeProjectDraft(context.snapshot, projected,
+          operation: context.request.actionId, path: '/scenes/$sceneId/graph/nodes/$nodeId/payload/linePolicies',
+          before: payload.linePolicies.map((item) => item.toJson()).toList(growable: false),
+          after: updated.linePolicies.map((item) => item.toJson()).toList(growable: false));
+      case 'scene.dialogue.choicePolicy.update':
+        rejectUnknownNarrativeParameters(parameters, const {'sceneId', 'nodeId', 'choicePolicy'});
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final nodeId = narrativeStringParameter(parameters, 'nodeId');
+        final scene = _requireDialoguePolicyScene(context.snapshot.manifest, sceneId);
+        final node = _requireDialoguePolicyNode(scene, nodeId);
+        final payload = node.payload as SceneYarnDialoguePayload;
+        final policy = SceneDialogueChoicePolicy.fromJson(narrativeObjectParameter(parameters, 'choicePolicy'));
+        final projected = updateDialogueChoicePolicy(context.snapshot.manifest,
+          maps: context.snapshot.maps, sceneId: sceneId, nodeId: nodeId,
+          choicePolicy: policy, dialogue: _compilePolicyDialogue(context.snapshot, payload.dialogueId));
+        final updated = projected.scenes.singleWhere((candidate) => candidate.id == sceneId)
+            .graph.nodes.singleWhere((candidate) => candidate.id == nodeId).payload as SceneYarnDialoguePayload;
+        return narrativeProjectDraft(context.snapshot, projected,
+          operation: context.request.actionId, path: '/scenes/$sceneId/graph/nodes/$nodeId/payload/choicePolicies',
+          before: payload.choicePolicies.map((item) => item.toJson()).toList(growable: false),
+          after: updated.choicePolicies.map((item) => item.toJson()).toList(growable: false));
       case 'scene.upsert':
         rejectUnknownNarrativeParameters(parameters, const {'scene'});
         final scene =
             _decodeScene(narrativeObjectParameter(parameters, 'scene'));
+        _validateSceneDialoguePolicies(context.snapshot, scene);
         final before = context.snapshot.manifest.scenes
             .where((candidate) => candidate.id == scene.id)
             .firstOrNull;
@@ -513,6 +596,99 @@ final class SceneActions {
           'The requested Scene action is unsupported.',
         );
     }
+  }
+
+  ProjectManifest updateDialogueChoicePolicy(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required SceneDialogueChoicePolicy choicePolicy,
+    required RuntimeDialogueDocument dialogue,
+  }) {
+    final scene = _requireDialoguePolicyScene(project, sceneId);
+    final node = _requireDialoguePolicyNode(scene, nodeId);
+    final payload = node.payload as SceneYarnDialoguePayload;
+    final policies = [
+      for (final item in payload.choicePolicies)
+        if (item.nodeName != choicePolicy.nodeName || item.choiceIndex != choicePolicy.choiceIndex) item,
+      choicePolicy,
+    ]..sort((left, right) {
+      final byName = left.nodeName.compareTo(right.nodeName);
+      return byName == 0 ? left.choiceIndex.compareTo(right.choiceIndex) : byName;
+    });
+    late final SceneYarnDialoguePayload updated;
+    try {
+      updated = SceneYarnDialoguePayload(dialogueId: payload.dialogueId, yarnNodeName: payload.yarnNodeName,
+        expectedOutcomes: payload.expectedOutcomes, speakerHints: payload.speakerHints,
+        choicePolicies: policies, linePolicies: payload.linePolicies,
+        declaredCancellationOutcomes: payload.declaredCancellationOutcomes);
+      validateSceneDialogueChoicePolicies(sceneDialogueChoiceScopes(dialogue), updated.choicePolicies);
+    } on Object catch (error) {
+      throw NarrativeAuthoringException('scene.dialogue.choice_policy.invalid',
+        'The choice policy does not resolve against the compiled dialogue.',
+        details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
+    }
+    return upsert(project, maps: maps, scene: _copyScene(scene, graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [for (final candidate in scene.graph.nodes)
+        if (candidate.id == nodeId) SceneNode(id: candidate.id, kind: candidate.kind,
+          title: candidate.title, description: candidate.description, payload: updated)
+        else candidate],
+      edges: scene.graph.edges,
+    )));
+  }
+
+  ProjectManifest updateDialogueLineFeedback(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required SceneDialogueLinePolicy linePolicy,
+    required RuntimeDialogueDocument dialogue,
+  }) {
+    final scene = _requireDialoguePolicyScene(project, sceneId,
+      errorPrefix: 'scene.dialogue.line_feedback');
+    final node = _requireDialoguePolicyNode(scene, nodeId,
+      errorPrefix: 'scene.dialogue.line_feedback');
+    final payload = node.payload as SceneYarnDialoguePayload;
+    final policies = [
+      for (final item in payload.linePolicies)
+        if (item.nodeName != linePolicy.nodeName || item.lineIndex != linePolicy.lineIndex) item,
+      linePolicy,
+    ]..sort((left, right) {
+      final byName = left.nodeName.compareTo(right.nodeName);
+      return byName == 0 ? left.lineIndex.compareTo(right.lineIndex) : byName;
+    });
+    late final SceneYarnDialoguePayload updated;
+    try {
+      updated = SceneYarnDialoguePayload(dialogueId: payload.dialogueId, yarnNodeName: payload.yarnNodeName,
+        expectedOutcomes: payload.expectedOutcomes, speakerHints: payload.speakerHints,
+        choicePolicies: payload.choicePolicies, linePolicies: policies,
+        declaredCancellationOutcomes: payload.declaredCancellationOutcomes);
+      validateSceneDialogueChoicePolicies(sceneDialogueChoiceScopes(dialogue), updated.choicePolicies);
+      validateDialogueLineFeedbackAgainstProject(project: project, document: dialogue, policies: updated.linePolicies);
+    } on ValidationException catch (error) {
+      throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
+        'The line feedback does not resolve against the compiled dialogue and project media.',
+        details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
+    } on ArgumentError catch (error) {
+      throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
+        'The line feedback does not resolve against the compiled dialogue and project media.',
+        details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
+    } on FormatException catch (error) {
+      throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
+        'The line feedback does not resolve against the compiled dialogue and project media.',
+        details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
+    }
+    return upsert(project, maps: maps, scene: _copyScene(scene, graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [for (final candidate in scene.graph.nodes)
+        if (candidate.id == nodeId) SceneNode(id: candidate.id, kind: candidate.kind,
+          title: candidate.title, description: candidate.description, payload: updated)
+        else candidate],
+      edges: scene.graph.edges,
+    )));
   }
 
   ProjectManifest upsert(
@@ -1746,6 +1922,62 @@ T _enumParameter<T extends Enum>(
   final value = narrativeStringParameter(parameters, key);
   return values.where((candidate) => candidate.name == value).firstOrNull ??
       (throw ArgumentError.value(value, key, 'contains an unknown value'));
+}
+
+SceneAsset _requireDialoguePolicyScene(ProjectManifest project, String sceneId, {
+  String errorPrefix = 'scene.dialogue.choice_policy',
+}) {
+  final scene = project.scenes.where((candidate) => candidate.id == sceneId).firstOrNull;
+  if (scene == null) throw NarrativeAuthoringException('$errorPrefix.scene_unknown', 'The Scene is unknown.');
+  return scene;
+}
+
+SceneNode _requireDialoguePolicyNode(SceneAsset scene, String nodeId, {
+  String errorPrefix = 'scene.dialogue.choice_policy',
+}) {
+  final node = scene.graph.nodes.where((candidate) => candidate.id == nodeId).firstOrNull;
+  if (node == null || node.payload is! SceneYarnDialoguePayload) {
+    throw NarrativeAuthoringException('$errorPrefix.node_unknown', 'The Scene dialogue node is unknown.');
+  }
+  return node;
+}
+
+RuntimeDialogueDocument _compilePolicyDialogue(ProjectSnapshot snapshot, String dialogueId, {
+  String errorPrefix = 'scene.dialogue.choice_policy',
+}) {
+  final entry = snapshot.manifest.dialogues.where((candidate) => candidate.id == dialogueId).firstOrNull;
+  if (entry == null) throw NarrativeAuthoringException('$errorPrefix.dialogue_unknown', 'The dialogue is unknown.');
+  final bytes = snapshot.findResourceBytes(dialogueSourceResourceIdentity(dialogueId));
+  if (bytes == null) throw NarrativeAuthoringException('$errorPrefix.source_missing', 'The dialogue source is missing.');
+  final compiled = const DialogueAuthoringCompiler().compile(entry: entry, source: utf8.decode(bytes));
+  if (!compiled.canPublish || compiled.document == null) {
+    throw NarrativeAuthoringException('$errorPrefix.dialogue_invalid', 'The dialogue does not compile for publication.');
+  }
+  return compiled.document!;
+}
+
+void _validateSceneDialoguePolicies(ProjectSnapshot snapshot, SceneAsset scene) {
+  for (final node in scene.graph.nodes) {
+    final payload = node.payload;
+    if (payload is! SceneYarnDialoguePayload ||
+        (payload.choicePolicies.isEmpty && payload.linePolicies.isEmpty)) {
+      continue;
+    }
+    final document = _compilePolicyDialogue(snapshot, payload.dialogueId,
+      errorPrefix: payload.linePolicies.isNotEmpty ? 'scene.dialogue.line_feedback' : 'scene.dialogue.choice_policy');
+    try {
+      validateSceneDialogueChoicePolicies(sceneDialogueChoiceScopes(document), payload.choicePolicies);
+    } on ArgumentError {
+      throw NarrativeAuthoringException('scene.dialogue.choice_policy.invalid', 'The Scene contains a dangling dialogue choice policy.');
+    }
+    try {
+      validateDialogueLineFeedbackAgainstProject(project: snapshot.manifest, document: document, policies: payload.linePolicies);
+    } on ArgumentError {
+      throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid', 'The Scene contains incompatible dialogue line feedback.');
+    } on FormatException {
+      throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid', 'The Scene contains incompatible dialogue line feedback.');
+    }
+  }
 }
 
 SceneAsset _decodeScene(Map<String, dynamic> json) {

@@ -304,9 +304,28 @@ final class SceneConsequenceRuntimeWriter {
     if (validation != null) {
       return validation;
     }
-    return _SceneConsequenceRuntimeWriteStep.applied(
-      mutations.giveItem(gameState, consequence.itemId, consequence.quantity),
+    final quantityBefore = mutations.itemQuantity(
+      gameState,
+      consequence.itemId,
     );
+    final updatedState = mutations.giveItem(
+      gameState,
+      consequence.itemId,
+      consequence.quantity,
+    );
+    final quantityAfter = mutations.itemQuantity(
+      updatedState,
+      consequence.itemId,
+    );
+    if (quantityAfter < quantityBefore ||
+        quantityAfter - quantityBefore != consequence.quantity) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.itemGrantRejected,
+        'Scene consequence giveItem could not add ${consequence.quantity} of '
+        '"${consequence.itemId}" to the Bag.',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(updatedState);
   }
 
   _SceneConsequenceRuntimeWriteStep _applyTakeItem(

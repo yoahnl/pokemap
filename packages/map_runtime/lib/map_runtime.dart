@@ -148,6 +148,10 @@ export 'src/application/dialogue_portrait_resolver.dart'
         ResolvedDialoguePortrait,
         DialoguePortraitLookup,
         DialoguePortraitResolver;
+export 'src/application/dialogue_feedback_playback_port.dart'
+    show DialogueFeedbackPlaybackPort, DialogueIconBytesLoader, ProjectDialogueIconLoader;
+export 'src/presentation/flame/flame_dialogue_feedback_playback_adapter.dart'
+    show FlameDialogueFeedbackPlaybackAdapter;
 export 'src/application/character_animation_source_resolver.dart'
     show
         CharacterAnimationSourceDiagnosticCode,

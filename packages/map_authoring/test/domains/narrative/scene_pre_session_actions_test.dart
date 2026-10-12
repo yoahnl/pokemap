@@ -12,6 +12,8 @@ void main() {
         SceneActions.descriptors.map((descriptor) => descriptor.id).toSet(),
         const {
           'scene.upsert',
+          'scene.dialogue.choicePolicy.update',
+          'scene.dialogue.lineFeedback.update',
           'scene.delete',
           'scene.character_animation.set',
           'scene.preSession.create',

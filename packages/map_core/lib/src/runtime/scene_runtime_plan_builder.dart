@@ -271,6 +271,8 @@ SceneRuntimePlanIntent _dialogueIntent(
     yarnNodeName: payload.yarnNodeName,
     sourceNodeId: sourceNodeId,
     expectedOutcomes: payload.expectedOutcomes,
+    choicePolicies: payload.choicePolicies,
+    linePolicies: payload.linePolicies,
   );
 }
 

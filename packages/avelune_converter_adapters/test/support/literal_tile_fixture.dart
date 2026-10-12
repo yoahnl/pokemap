@@ -45,6 +45,7 @@ final class LiteralFixtureMap {
     this.height = 1,
     List<List<int>>? layers,
     List<List<Object?>> warpParameters = const [],
+    this.events = const [],
   })  : name = name ?? 'Original map $id',
         layers = List.unmodifiable((layers ??
                 const [
@@ -63,6 +64,38 @@ final class LiteralFixtureMap {
   final int height;
   final List<List<int>> layers;
   final List<List<Object?>> warpParameters;
+  final List<LiteralFixtureEvent> events;
+}
+
+final class LiteralFixtureEvent {
+  const LiteralFixtureEvent({required this.id, required this.x,
+    required this.y, required this.pages, this.name = 'Original event'});
+  final int id;
+  final int x;
+  final int y;
+  final String name;
+  final List<LiteralFixtureEventPage> pages;
+}
+
+final class LiteralFixtureEventPage {
+  const LiteralFixtureEventPage({required this.commands, this.selfSwitch,
+    this.globalSwitch, this.characterName = '', this.pattern = 0,
+    this.direction = 2, this.trigger = 0, this.through = false});
+  final List<LiteralFixtureEventCommand> commands;
+  final String? selfSwitch;
+  final int? globalSwitch;
+  final String characterName;
+  final int pattern;
+  final int direction;
+  final int trigger;
+  final bool through;
+}
+
+final class LiteralFixtureEventCommand {
+  const LiteralFixtureEventCommand(this.code, this.parameters, {this.indent = 0});
+  final int code;
+  final List<Object?> parameters;
+  final int indent;
 }
 
 final class LiteralFixtureTileset {
@@ -139,6 +172,7 @@ final class LiteralTileFixture {
     Map<String, List<int>> autotilePngs = const {},
     List<int>? scriptsBytes,
     Map<String, List<int>> extraFiles = const {},
+    bool includeEventSystem = false,
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
@@ -146,6 +180,11 @@ final class LiteralTileFixture {
       ...extraFiles,
       if (scriptsBytes != null)
         'Data/Scripts.rxdata': List<int>.unmodifiable(scriptsBytes),
+      if (includeEventSystem)
+        'Data/System.rxdata': _Marshal().dump(_Object('RPG::System', {
+          '@switches': [null, 'Original door opened', 'Original reward consumed'],
+          '@variables': [null, 'Original count'],
+        })),
       'README.md':
           utf8.encode('Original controlled Pokemon Essentials v21.1 fixture\n'),
       'Data/MapInfos.rxdata': _Marshal().dump({
@@ -167,9 +206,10 @@ final class LiteralTileFixture {
           '@height': map.height,
           '@data': _Table(3, map.width, map.height, 3,
               map.layers.expand((layer) => layer).toList()),
-          '@events': map.warpParameters.isEmpty
-              ? <int, Object?>{}
-              : {6: _event(map.warpParameters)},
+          '@events': {
+            if (map.warpParameters.isNotEmpty) 6: _event(map.warpParameters),
+            for (final event in map.events) event.id: _fixtureEvent(event),
+          },
           '@autoplay_bgm': false,
           '@autoplay_bgs': false,
           '@encounter_list': <Object?>[],
@@ -258,12 +298,42 @@ final class LiteralTileFixture {
     }
     final files = LiteralFixtureFiles(snapshot, frozenBytes);
     final source = await const RmxpSourceNormalizer().normalize(
-        snapshot: snapshot, files: files, selectedMapIds: selectedMapIds);
+        snapshot: snapshot, files: files, selectedMapIds: selectedMapIds,
+        includeEventSystem: includeEventSystem);
     files.reads.clear();
     return LiteralTileFixture._(
         snapshot, frozenBytes, files, source, sourceRootPath);
   }
 }
+
+_Object _fixtureEvent(LiteralFixtureEvent event) => _Object('RPG::Event', {
+  '@id': event.id, '@name': event.name, '@x': event.x, '@y': event.y,
+  '@pages': [for (final page in event.pages) _Object('RPG::Event::Page', {
+    '@condition': _Object('RPG::Event::Page::Condition', {
+      '@switch1_valid': page.globalSwitch != null, '@switch2_valid': false,
+      '@variable_valid': false, '@self_switch_valid': page.selfSwitch != null,
+      '@switch1_id': page.globalSwitch ?? 1, '@switch2_id': 1,
+      '@variable_id': 1, '@variable_value': 0,
+      '@self_switch_ch': page.selfSwitch ?? 'A',
+    }),
+    '@graphic': _Object('RPG::Event::Page::Graphic', {
+      '@tile_id': 0, '@character_name': page.characterName,
+      '@character_hue': 0, '@direction': page.direction,
+      '@pattern': page.pattern, '@opacity': 255, '@blend_type': 0,
+    }),
+    '@move_type': 0, '@move_speed': 3, '@move_frequency': 3,
+    '@move_route': _Object('RPG::MoveRoute', {
+      '@repeat': true, '@skippable': false,
+      '@list': [_Object('RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})],
+    }),
+    '@walk_anime': true, '@step_anime': false, '@direction_fix': false,
+    '@through': page.through, '@always_on_top': false, '@trigger': page.trigger,
+    '@list': [for (final command in page.commands) _Object('RPG::EventCommand', {
+      '@code': command.code, '@indent': command.indent,
+      '@parameters': command.parameters,
+    })],
+  })],
+});
 
 _Object _tileset(LiteralFixtureTileset tileset) => _Object('RPG::Tileset', {
       '@id': tileset.id,

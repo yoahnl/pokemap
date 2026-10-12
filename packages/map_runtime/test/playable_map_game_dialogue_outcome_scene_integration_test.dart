@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,11 +18,58 @@ const _refusedOutcomeId = 'refused';
 const _acceptedSceneOutcomeId = 'route.accepted';
 const _refusedSceneOutcomeId = 'route.refused';
 const _completedSceneOutcomeId = 'route.completed';
+const _choiceSource = '''
+title: Start
+---
+-> Accepter
+    <<outcome accepted>>
+-> Refuser
+    <<outcome refused>>
+===
+''';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame Yarn outcome to direct Scene port', () {
+    test('secondary input routes cancel-to-choice after native scene reload', () async {
+      final result = await _executeDialogueScene(_choiceSource,
+        input: RuntimeInputControl.secondary,
+        choicePolicies: const [SceneDialogueChoicePolicy(
+          nodeName: 'Start',
+          cancellation: SceneDialogueChoiceCancellation.choice('refused'),
+        )],
+      );
+      expect((result as NarrativeSceneExecutionCompleted).qualifiedOutcomes.single.outcomeId, _refusedSceneOutcomeId);
+    });
+
+    test('secondary input routes a distinct cancellation branch after scene reload', () async {
+      final result = await _executeDialogueScene(_choiceSource,
+        input: RuntimeInputControl.secondary,
+        choicePolicies: const [SceneDialogueChoicePolicy(
+          nodeName: 'Start',
+          cancellation: SceneDialogueChoiceCancellation.branch('cancel'),
+        )],
+      );
+      expect((result as NarrativeSceneExecutionCompleted).qualifiedOutcomes.single.outcomeId, 'route.cancel');
+    });
+
+    test('disabled cancellation keeps dialogue active before normal confirmation', () async {
+      final result = await _executeDialogueScene(_choiceSource,
+        input: RuntimeInputControl.secondary,
+        confirmAfterDisabled: true,
+        choicePolicies: const [SceneDialogueChoicePolicy(nodeName: 'Start')],
+      );
+      expect((result as NarrativeSceneExecutionCompleted).qualifiedOutcomes.single.outcomeId, _acceptedSceneOutcomeId);
+    });
+
+    test('configured default selects the matching visible choice after scene reload', () async {
+      final result = await _executeDialogueScene(_choiceSource,
+        choicePolicies: const [SceneDialogueChoicePolicy(nodeName: 'Start', defaultOutcomeId: 'refused')],
+      );
+      expect((result as NarrativeSceneExecutionCompleted).qualifiedOutcomes.single.outcomeId, _refusedSceneOutcomeId);
+    });
+
     test('routes a real Yarn choice outcome to its declared Scene port',
         () async {
       final result = await _executeDialogueScene('''
@@ -84,8 +132,9 @@ title: Start
       );
     });
 
+    for (final cancelToAccepted in [false, true]) {
     test(
-      'persists a consumed one-shot Event and does not replay its Yarn branch',
+      'persists one-shot Event and strict state after ${cancelToAccepted ? 'secondary cancellation' : 'primary confirmation'}',
       () async {
         final projectRoot = await Directory.systemTemp.createTemp(
           'dialogue_outcome_event_v2_',
@@ -106,12 +155,13 @@ title: Start
 ''');
 
           final bundle = RuntimeMapBundle(
-            manifest: _eventProject(),
+            manifest: await _persistAndReloadProject(projectRoot,
+              _eventProject(choicePolicies: cancelToAccepted ? const [SceneDialogueChoicePolicy(nodeName: 'Start', cancellation: SceneDialogueChoiceCancellation.choice('accepted'))] : const []), _eventMap()),
             map: _eventMap(),
             projectRootDirectory: projectRoot.path,
             tilesetAbsolutePathsById: const <String, String>{},
           );
-          final repository = _MemoryGameSaveRepository();
+          final repository = _IsolatedFileGameSaveRepository('${projectRoot.path}/save.json');
           var entityInteractionPreparationCount = 0;
           final game = _DialogueOutcomeSceneTestGame(
             bundle: bundle,
@@ -153,7 +203,7 @@ title: Start
           await _waitUntil(game, () => game.debugFlowPhaseName == 'dialogue');
           expect(
             game.handleRuntimeInputEvent(
-              const RuntimeInputEvent.press(RuntimeInputControl.primary),
+              RuntimeInputEvent.press(cancelToAccepted ? RuntimeInputControl.secondary : RuntimeInputControl.primary),
             ),
             isTrue,
           );
@@ -176,7 +226,10 @@ title: Start
                 'Scene branch before the Event is consumed.',
           );
           expect(await game.saveGame(), isTrue);
-          expect(repository.storedState, isNotNull);
+          final strictReload = await repository.load();
+          expect(strictReload!.narrativeEventProgress.consumedNarrativeEventIds, contains(_eventId));
+          expect(strictReload.narrativeFactRuntimeState.overridesByFactId[_acceptedFactId], isTrue);
+          expect(File('${projectRoot.path}/save.json').existsSync(), isTrue);
 
           expect(await game.loadGame(), isTrue);
           await _waitUntil(
@@ -215,11 +268,16 @@ title: Start
         }
       },
     );
+    }
   });
 }
 
 Future<NarrativeSceneExecutionResult> _executeDialogueScene(
-  String yarnSource,
+  String yarnSource, {
+  RuntimeInputControl input = RuntimeInputControl.primary,
+  bool confirmAfterDisabled = false,
+  List<SceneDialogueChoicePolicy> choicePolicies = const [],
+}
 ) async {
   final projectRoot = await Directory.systemTemp.createTemp(
     'dialogue_outcome_scene_',
@@ -233,7 +291,7 @@ Future<NarrativeSceneExecutionResult> _executeDialogueScene(
 
     final game = _DialogueOutcomeSceneTestGame(
       bundle: RuntimeMapBundle(
-        manifest: _project(),
+        manifest: await _persistAndReloadProject(projectRoot, _project(choicePolicies: choicePolicies), _map()),
         map: _map(),
         projectRootDirectory: projectRoot.path,
         tilesetAbsolutePathsById: const <String, String>{},
@@ -262,10 +320,16 @@ Future<NarrativeSceneExecutionResult> _executeDialogueScene(
 
     expect(
       game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        RuntimeInputEvent.press(input),
       ),
       isTrue,
     );
+
+    if (confirmAfterDisabled) {
+      game.update(0.016);
+      expect(game.debugFlowPhaseName, 'dialogue');
+      expect(game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary)), isTrue);
+    }
 
     return await execution.timeout(const Duration(seconds: 2));
   } finally {
@@ -273,7 +337,16 @@ Future<NarrativeSceneExecutionResult> _executeDialogueScene(
   }
 }
 
-ProjectManifest _project() => ProjectManifest(
+Future<ProjectManifest> _persistAndReloadProject(Directory root, ProjectManifest project, MapData map) async {
+  final projectFile = File('${root.path}/project.json');
+  await projectFile.writeAsString(jsonEncode(project.toJson()), flush: true);
+  final mapFile = File.fromUri(root.uri.resolve(project.maps.single.relativePath));
+  await mapFile.parent.create(recursive: true);
+  await mapFile.writeAsString(jsonEncode(map.toJson()), flush: true);
+  return ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);
+}
+
+ProjectManifest _project({List<SceneDialogueChoicePolicy> choicePolicies = const []}) => ProjectManifest(
       name: 'PlayableMapGame dialogue outcome Scene integration',
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
@@ -300,10 +373,10 @@ ProjectManifest _project() => ProjectManifest(
           ],
         ),
       ],
-      scenes: <SceneAsset>[_scene()],
+      scenes: <SceneAsset>[SceneAsset.fromJson(jsonDecode(jsonEncode(_scene(choicePolicies: choicePolicies).toJson())) as Map<String, dynamic>)],
     );
 
-ProjectManifest _eventProject() => _project().copyWith(
+ProjectManifest _eventProject({List<SceneDialogueChoicePolicy> choicePolicies = const []}) => _project().copyWith(
       name: 'PlayableMapGame Event V2 dialogue outcome integration',
       facts: <NarrativeFactDefinition>[
         NarrativeFactDefinition(
@@ -311,7 +384,7 @@ ProjectManifest _eventProject() => _project().copyWith(
           label: 'Accepted branch reached',
         ),
       ],
-      scenes: <SceneAsset>[_scene(recordAcceptedFact: true)],
+      scenes: <SceneAsset>[SceneAsset.fromJson(jsonDecode(jsonEncode(_scene(recordAcceptedFact: true, choicePolicies: choicePolicies).toJson())) as Map<String, dynamic>)],
       eventRegistry: NarrativeEventRegistry(
         schemaVersion: 1,
         mode: EventSystemMode.v2Only,
@@ -337,10 +410,12 @@ ProjectManifest _eventProject() => _project().copyWith(
       ),
     );
 
-SceneAsset _scene({bool recordAcceptedFact = false}) => SceneAsset(
+SceneAsset _scene({bool recordAcceptedFact = false, List<SceneDialogueChoicePolicy> choicePolicies = const []}) => SceneAsset(
       id: _sceneId,
       name: 'Dialogue Outcome Scene',
       declaredOutcomes: <SceneOutcome>[
+        if (choicePolicies.any((policy) => policy.cancellation.kind == SceneDialogueChoiceCancellationKind.branch))
+          SceneOutcome(id: 'route.cancel', label: 'Cancellation route'),
         SceneOutcome(
           id: _acceptedSceneOutcomeId,
           label: 'Accepted route',
@@ -364,9 +439,11 @@ SceneAsset _scene({bool recordAcceptedFact = false}) => SceneAsset(
             payload: SceneYarnDialoguePayload(
               dialogueId: _dialogueId,
               yarnNodeName: 'Start',
-              expectedOutcomes: const <String>[
+              choicePolicies: choicePolicies,
+              expectedOutcomes: <String>[
                 _acceptedOutcomeId,
                 _refusedOutcomeId,
+                if (choicePolicies.any((policy) => policy.cancellation.kind == SceneDialogueChoiceCancellationKind.branch)) 'cancel',
               ],
             ),
           ),
@@ -402,8 +479,12 @@ SceneAsset _scene({bool recordAcceptedFact = false}) => SceneAsset(
               sceneOutcomeId: _refusedSceneOutcomeId,
             ),
           ),
+          if (choicePolicies.any((policy) => policy.cancellation.kind == SceneDialogueChoiceCancellationKind.branch))
+            SceneNode(id: 'cancel_end', kind: SceneNodeKind.end, payload: SceneEndPayload(sceneOutcomeId: 'route.cancel')),
         ],
         edges: <SceneEdge>[
+          if (choicePolicies.any((policy) => policy.cancellation.kind == SceneDialogueChoiceCancellationKind.branch))
+            SceneEdge(id: 'dialogue_cancel', fromNodeId: 'dialogue', fromPortId: 'cancel', toNodeId: 'cancel_end', kind: SceneEdgeKind.dialogueOutcome),
           SceneEdge(
             id: 'start_to_dialogue',
             fromNodeId: 'start',
@@ -533,22 +614,10 @@ final class _DialogueOutcomeSceneTestGame extends PlayableMapGame {
   bool get isLoaded => true;
 }
 
-final class _MemoryGameSaveRepository implements GameSaveRepository {
-  GameState? storedState;
+final class _IsolatedFileGameSaveRepository extends FileGameSaveRepository {
+  _IsolatedFileGameSaveRepository(this.path);
+  final String path;
 
   @override
-  Future<void> save(GameState state) async {
-    storedState = state;
-  }
-
-  @override
-  Future<GameState?> load() async => storedState;
-
-  @override
-  Future<bool> exists() async => storedState != null;
-
-  @override
-  Future<void> delete() async {
-    storedState = null;
-  }
+  Future<String> getSaveFilePath() async => path;
 }

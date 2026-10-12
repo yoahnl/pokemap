@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_runtime/scene_consequence_runtime_writer.dart';
+import 'scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import 'scene_runtime/scene_runtime_host_callbacks.dart';
 
 /// Executes the configured Event V2 Scene against the coordinator snapshot.
@@ -73,7 +74,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         project: project,
         mapsById: mapsById,
       );
-  var validationState = request.gameState;
+  final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   bool? uniqueBattleConsumed;
   var blockedUniqueBattle = false;
   final consumedUniqueTableIds = <String>{};
@@ -81,7 +82,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     callbacks: SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) {
         final source = intent.conditionSource;
-        if (source?.sourceKind != SceneConditionSourceKind.inventoryItem ||
+        if ((source?.sourceKind != SceneConditionSourceKind.inventoryItem &&
+                source?.sourceKind != SceneConditionSourceKind.fact) ||
             pendingConsequences.isEmpty) {
           return callbacks.evaluateCondition(intent);
         }
@@ -93,14 +95,20 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         );
         if (!projected.success) {
           throw StateError(
-              projected.message ?? 'Scene inventory projection failed.');
+            projected.message ?? 'Scene condition projection failed.',
+          );
         }
-        return evaluateSceneInventoryCondition(
-          source: source!,
-          gameState: projected.gameState,
-        )
-            ? 'true'
-            : 'false';
+        final matched = source!.sourceKind == SceneConditionSourceKind.fact
+            ? evaluateCanonicalNarrativeFactSceneCondition(
+                source: source,
+                gameState: projected.gameState,
+                resolver: factResolver,
+              )
+            : evaluateSceneInventoryCondition(
+                source: source,
+                gameState: projected.gameState,
+              );
+        return matched ? 'true' : 'false';
       },
       showDialogue: callbacks.showDialogue,
       startBattle: (intent) async {
@@ -147,11 +155,17 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
           nodeId: nodeId,
           consequence: consequence,
         );
-        final validation = writer.applyOne(
-          validationState,
-          consequence,
-          pokemonGrantOperationId: grantOperationId,
-          railProgressionOperationId: railProgressionOperationId,
+        final validation = writer.applyAll(
+          currentGameState(),
+          [...pendingConsequences, consequence],
+          pokemonGrantOperationIds: [
+            ...pendingPokemonGrantOperationIds,
+            grantOperationId,
+          ],
+          railProgressionOperationIds: [
+            ...pendingRailProgressionOperationIds,
+            railProgressionOperationId,
+          ],
         );
         if (!validation.success) {
           throw StateError(
@@ -159,7 +173,6 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                 'Scene consequence ${consequence.kind.name} was rejected.',
           );
         }
-        validationState = validation.gameState;
         pendingConsequences.add(consequence);
         pendingPokemonGrantOperationIds.add(grantOperationId);
         pendingRailProgressionOperationIds.add(railProgressionOperationId);

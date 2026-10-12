@@ -509,6 +509,28 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'scene.dialogue.audioMedia.import') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/dialogue_audio_media_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/dialogue_audio_media_jsonl_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
+    };
+  }
+  if (actionId == 'scene.dialogue.lineFeedback.update') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
+    };
+  }
+  if (actionId == 'scene.dialogue.choicePolicy.update') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/application/scene_dialogue_choice_policy_authoring_gateway_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
+    };
+  }
   if (actionId == 'border_layer.stroke_erase') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/border_stroke_erase_actions_test.dart',
@@ -1568,6 +1590,18 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['cinematic.'],
     'test/domains/narrative/cinematic_authoring_gate_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['scene.dialogue.choicePolicy.update'],
+    'test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['scene.dialogue.lineFeedback.update'],
+    'test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['scene.dialogue.audioMedia.import'],
+    'test/domains/narrative/dialogue_audio_media_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['scene.', 'event.', 'event_v2.', 'fact.', 'world_rule.'],

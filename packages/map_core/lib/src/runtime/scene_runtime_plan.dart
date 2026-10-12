@@ -1,3 +1,4 @@
+import '../models/dialogue_line_feedback.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../diagnostics/scene_diagnostics.dart';
@@ -124,6 +125,8 @@ final class SceneRuntimePlanIntent {
     this.dialogueId,
     this.yarnNodeName,
     List<String> expectedOutcomes = const <String>[],
+    List<SceneDialogueChoicePolicy> choicePolicies = const [],
+    List<SceneDialogueLinePolicy> linePolicies = const [],
     this.battleKind,
     this.trainerId,
     this.battleTemplateId,
@@ -138,6 +141,8 @@ final class SceneRuntimePlanIntent {
     this.preSessionInteraction,
   })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
         expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
+        choicePolicies = List<SceneDialogueChoicePolicy>.unmodifiable(choicePolicies),
+        linePolicies = List.unmodifiable(linePolicies),
        battleDeclaredOutcomes = List<String>.unmodifiable(
          battleDeclaredOutcomes,
        ),
@@ -192,6 +197,8 @@ final class SceneRuntimePlanIntent {
     String? yarnNodeName,
     String? sourceNodeId,
     List<String> expectedOutcomes = const <String>[],
+    List<SceneDialogueChoicePolicy> choicePolicies = const [],
+    List<SceneDialogueLinePolicy> linePolicies = const [],
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.showDialogue,
@@ -199,6 +206,8 @@ final class SceneRuntimePlanIntent {
       yarnNodeName: yarnNodeName,
       sourceNodeId: sourceNodeId,
       expectedOutcomes: expectedOutcomes,
+      choicePolicies: choicePolicies,
+      linePolicies: linePolicies,
     );
   }
 
@@ -278,6 +287,8 @@ final class SceneRuntimePlanIntent {
   final String? dialogueId;
   final String? yarnNodeName;
   final List<String> expectedOutcomes;
+  final List<SceneDialogueChoicePolicy> choicePolicies;
+  final List<SceneDialogueLinePolicy> linePolicies;
   final String? battleKind;
   final String? trainerId;
   final String? battleTemplateId;
@@ -338,6 +349,7 @@ final class SceneRuntimePlanIntent {
           other.dialogueId == dialogueId &&
           other.yarnNodeName == yarnNodeName &&
           _listEquals(other.expectedOutcomes, expectedOutcomes) &&
+          _listEquals(other.choicePolicies, choicePolicies) &&
           other.battleKind == battleKind &&
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
@@ -365,7 +377,7 @@ final class SceneRuntimePlanIntent {
         Object.hashAll(branchSourceOutcomes),
         dialogueId,
         yarnNodeName,
-        Object.hashAll(expectedOutcomes),
+        Object.hash(Object.hashAll(expectedOutcomes), Object.hashAll(choicePolicies)),
         battleKind,
         trainerId,
         battleTemplateId,

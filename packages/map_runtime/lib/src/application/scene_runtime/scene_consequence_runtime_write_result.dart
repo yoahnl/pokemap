@@ -16,6 +16,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   ambiguousStoryStep,
   missingItemReference,
   invalidQuantity,
+  itemGrantRejected,
   insufficientItemQuantity,
   invalidMoneyAmount,
   missingRailProgressionOperationId,

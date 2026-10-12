@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show DialogueAuthoringCompiler, dialogueSourceResourceIdentity;
 import 'package:map_core/map_core.dart';
 
 import '../services/editor_snapshot_profile_recorder.dart';
@@ -270,6 +273,27 @@ final class EditorAuthoringReadSession {
   MapData? mapById(String mapId) {
     _requireOpen();
     return _snapshot.mapById(mapId);
+  }
+
+  RuntimeDialogueDocument dialogueDocument(String dialogueId) {
+    _requireOpen();
+    final entry = _snapshot.manifest.dialogues
+        .where((dialogue) => dialogue.id == dialogueId)
+        .firstOrNull;
+    final bytes = _snapshot.findResourceBytes(
+      dialogueSourceResourceIdentity(dialogueId),
+    );
+    if (entry == null || bytes == null) {
+      throw StateError('Le dialogue lié est absent du projet ouvert.');
+    }
+    final compiled = const DialogueAuthoringCompiler().compile(
+      entry: entry,
+      source: utf8.decode(bytes),
+    );
+    if (!compiled.canPublish || compiled.document == null) {
+      throw StateError('Le dialogue lié contient des erreurs de validation.');
+    }
+    return compiled.document!;
   }
 
   MapData? mapByStorageKey(String storageKey) {

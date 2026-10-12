@@ -311,19 +311,25 @@ final class RmxpSourceNormalizer {
     SourceNormalizationLimits limits = const SourceNormalizationLimits(),
     ScanCancellation? cancellation,
     Set<int>? selectedMapIds,
+    bool includeEventSystem = false,
   }) async {
     limits._validate();
     final token = cancellation ?? ScanCancellation();
     token.check();
-    return _SourceNormalizationRun(snapshot, files, limits, token,
-            selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds))
+    return _SourceNormalizationRun(
+            snapshot,
+            files,
+            limits,
+            token,
+            selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
+            includeEventSystem)
         .run();
   }
 }
 
 final class _SourceNormalizationRun {
   _SourceNormalizationRun(this.snapshot, this.files, this.limits,
-      this.cancellation, this.selectedMapIds)
+      this.cancellation, this.selectedMapIds, this.includeEventSystem)
       : archive = SourceArchive(
           limits: SourceArchiveLimits(maxTotalBytes: limits.maxTotalBytes),
         ),
@@ -339,6 +345,7 @@ final class _SourceNormalizationRun {
   final SourceNormalizationLimits limits;
   final ScanCancellation cancellation;
   final Set<int>? selectedMapIds;
+  final bool includeEventSystem;
   final SourceArchive archive;
   final ConverterId sourceProfileId;
   final byPath = <String, SourceFileEntry>{};
@@ -612,7 +619,11 @@ final class _SourceNormalizationRun {
         r'$',
         'Map quota exceeded');
     final requiredEntries = <SourceFileEntry>[
-      for (final path in ['Data/MapInfos.rxdata', 'Data/Tilesets.rxdata'])
+      for (final path in [
+        'Data/MapInfos.rxdata',
+        'Data/Tilesets.rxdata',
+        if (includeEventSystem) 'Data/System.rxdata'
+      ])
         if (byPath[sourcePathCollisionKey(path)] != null)
           byPath[sourcePathCollisionKey(path)]!,
       for (final id in selectedMapIds ?? mapEntries.keys)
@@ -638,6 +649,22 @@ final class _SourceNormalizationRun {
       plannedBytes += entry.byteLength;
     }
     final infoEntry = byPath[sourcePathCollisionKey('Data/MapInfos.rxdata')];
+    if (includeEventSystem) {
+      final systemEntry = byPath[sourcePathCollisionKey('Data/System.rxdata')];
+      if (systemEntry == null) {
+        diagnostic(
+            'normalization.missing_event_system',
+            locator('Data/System.rxdata'),
+            'Event switch names cannot be qualified without System data',
+            blocks: false);
+      } else {
+        try {
+          await load(systemEntry);
+        } on Object catch (error) {
+          failure(error, locator(systemEntry.relativePath));
+        }
+      }
+    }
     if (infoEntry == null) {
       diagnostic('normalization.missing_map_infos',
           locator('Data/MapInfos.rxdata'), 'MapInfos source file is absent');

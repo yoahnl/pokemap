@@ -24,6 +24,7 @@ import '../../application/authoring_api/presentation_studio_property_command.dar
 import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../application/authoring_api/scene_presentation_create_and_link_gateway.dart';
+import '../../application/authoring_api/scene_dialogue_choice_policy_authoring_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -1666,6 +1667,51 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 );
                 return true;
               } on ArgumentError {
+                return false;
+              }
+            },
+        onLoadDialogueChoicePolicies:
+            ({required sceneId, required nodeId}) async {
+              final current = ref.read(editorNotifierProvider);
+              final project = current.project;
+              final root = current.projectRootPath;
+              if (project == null || root == null) {
+                throw StateError(
+                  'Ouvrez un projet enregistré pour configurer les choix.',
+                );
+              }
+              return SceneDialogueChoicePolicyAuthoringGateway(
+                queries: ref.read(authoringQueryAdapterProvider),
+              ).load(root, project: project, sceneId: sceneId, nodeId: nodeId);
+            },
+        onUpdateDialogueChoicePolicy:
+            ({required sceneId, required nodeId, required policy}) async {
+              final current = ref.read(editorNotifierProvider);
+              final project = current.project;
+              final root = current.projectRootPath;
+              if (project == null || root == null) return false;
+              try {
+                final projected =
+                    await SceneDialogueChoicePolicyAuthoringGateway(
+                      queries: ref.read(authoringQueryAdapterProvider),
+                    ).updateDraft(
+                      root,
+                      project: project,
+                      sceneId: sceneId,
+                      nodeId: nodeId,
+                      policy: policy,
+                      activeMap: current.activeMap,
+                    );
+                final latest = ref.read(editorNotifierProvider);
+                if (latest.projectRootPath != root || latest.project != project) {
+                  return false;
+                }
+                editorNotifier.applyInMemoryProjectManifest(
+                  projected,
+                  statusMessage: 'Comportement des choix appliqué au brouillon',
+                );
+                return true;
+              } on Object {
                 return false;
               }
             },

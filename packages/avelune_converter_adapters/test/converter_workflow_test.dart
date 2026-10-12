@@ -8,12 +8,98 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
 import 'support/original_autotile_fixture.dart';
 
 void main() {
+  final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  test('AC13 real workflow admits qualified events and exports native pages',
+      () async {
+    final harness = await _WorkflowHarness.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        includeEventSystem: true,
+        extraFiles: {
+          'PBS/metadata.txt':
+              utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+          'Graphics/Characters/OriginalPlayer.png': image
+              .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+        },
+        maps: [
+          LiteralFixtureMap(id: 1, width: 4, height: 4, layers: [
+            List.filled(16, 384),
+            List.filled(16, 0),
+            List.filled(16, 0)
+          ], events: const [
+            LiteralFixtureEvent(id: 1, x: 1, y: 1, pages: [
+              LiteralFixtureEventPage(
+                  characterName: 'OriginalPlayer',
+                  commands: [
+                    LiteralFixtureEventCommand(101, ['Bienvenue']),
+                    LiteralFixtureEventCommand(123, ['A', 0]),
+                  ]),
+              LiteralFixtureEventPage(
+                  characterName: 'OriginalPlayer',
+                  selfSwitch: 'A',
+                  commands: [
+                    LiteralFixtureEventCommand(101, ['De retour']),
+                  ]),
+            ]),
+            LiteralFixtureEvent(id: 2, x: 2, y: 2, pages: [
+              LiteralFixtureEventPage(commands: [
+                LiteralFixtureEventCommand(355, ['unknown_reward()']),
+              ]),
+            ]),
+          ])
+        ]);
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, selected: [1]));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      expect(
+          prepared.nativeDraft!.mutations.map((entry) => entry.actionId),
+          containsAll([
+            'fact.create',
+            'entity.upsert',
+            'dialogue.create',
+            'scene.upsert',
+            'event_v2.record_upsert'
+          ]));
+      final result =
+          await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(
+          prepared.previewPlan!.findings
+              .any((entry) => entry.code.value == 'workflow.events.summary'),
+          isTrue);
+      expect(result.receipt.verified, isTrue);
+      expect(result.playableCertified, isFalse);
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(result.receipt.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.manifest.eventRegistry!.records, hasLength(3));
+        expect(native.manifest.dialogues, hasLength(2));
+        expect(native.loadDiagnostics, isEmpty);
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
   test('UX-01 real source analysis composition approval and native staging',
       () async {
     final harness = await _WorkflowHarness.create();
@@ -1253,6 +1339,9 @@ final class _WorkflowHarness {
     List<LiteralFixtureTileset>? tilesets,
     Map<String, List<int>> autotilePngs = const {},
     bool contradictoryProfile = false,
+    List<int>? scriptsBytes,
+    bool includeEventSystem = false,
+    Map<String, List<int>> extraFiles = const {},
   }) async {
     final root =
         await Directory.systemTemp.createTemp('ac09-original-workflow-');
@@ -1270,6 +1359,9 @@ final class _WorkflowHarness {
         tilesets: tilesets,
         autotilePngs: autotilePngs,
         contradictoryProfile: contradictoryProfile,
+        scriptsBytes: scriptsBytes,
+        includeEventSystem: includeEventSystem,
+        extraFiles: extraFiles,
       );
       final stages = <NativeWriteStage>[];
       final workflow = ConverterWorkflow(

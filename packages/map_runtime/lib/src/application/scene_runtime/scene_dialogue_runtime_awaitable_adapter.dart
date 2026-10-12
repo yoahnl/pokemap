@@ -15,6 +15,8 @@ final class SceneDialogueRuntimeDialogueRequest {
     required this.dialogueId,
     this.yarnNodeName,
     this.expectedOutcomes = const <String>[],
+    this.choicePolicies = const [],
+    this.linePolicies = const [],
   });
 
   final String requestId;
@@ -22,6 +24,8 @@ final class SceneDialogueRuntimeDialogueRequest {
   final String dialogueId;
   final String? yarnNodeName;
   final List<String> expectedOutcomes;
+  final List<SceneDialogueChoicePolicy> choicePolicies;
+  final List<SceneDialogueLinePolicy> linePolicies;
 }
 
 final class SceneDialogueRuntimeAwaitableAdapter {
@@ -53,6 +57,8 @@ final class SceneDialogueRuntimeAwaitableAdapter {
       dialogueId: dialogueId,
       yarnNodeName: intent.yarnNodeName,
       expectedOutcomes: intent.expectedOutcomes,
+      choicePolicies: intent.choicePolicies,
+      linePolicies: intent.linePolicies,
     );
 
     try {

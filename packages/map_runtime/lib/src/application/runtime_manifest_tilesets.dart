@@ -160,5 +160,17 @@ Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   // Append placed-element visuals after the established sources so their
   // relative insertion order remains unchanged while the set deduplicates.
   addPlacedElementVisualTilesetIds(ids, map, manifest);
+  final registeredTilesets = manifest.tilesets.map((entry) => entry.id).toSet();
+  for (final scene in manifest.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneYarnDialoguePayload) continue;
+      for (final policy in payload.linePolicies) {
+        for (final icon in policy.feedback.segments.whereType<DialogueIconSegment>()) {
+          if (registeredTilesets.contains(icon.assetId)) ids.add(icon.assetId);
+        }
+      }
+    }
+  }
   return ids;
 }

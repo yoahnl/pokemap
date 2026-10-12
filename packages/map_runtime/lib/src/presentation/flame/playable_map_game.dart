@@ -24,6 +24,7 @@ import '../../../src/application/save_game_use_case.dart';
 import '../../../src/infrastructure/file_game_save_repository.dart';
 import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/dialogue_feedback_playback_port.dart';
 import '../../application/dialogue_variable_interpolation.dart';
 import '../../application/encounter_to_battle_request.dart';
 import '../../application/scene_runtime/scene_wild_battle_request.dart';
@@ -136,6 +137,7 @@ import 'dialogue_text_speed.dart';
 import 'cinematic_emote_sprite_cache.dart';
 import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
+import 'flame_dialogue_feedback_playback_adapter.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
 import 'map_layers_component.dart';
 import 'overworld_render_priority.dart';
@@ -271,6 +273,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     String? initialPlayerAvatarCharacterId,
     PlayerPronounSet? initialPlayerPronounSet,
     RuntimeAudioMixer? audioMixer,
+    this.dialogueFeedbackPlaybackPort,
+    this.dialogueIconBytesLoader,
     this.presentationCinematicPlayer,
     @visibleForTesting RuntimeMusicService? musicService,
     @visibleForTesting double Function()? devicePixelRatioProvider,
@@ -676,6 +680,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// en état désiré par [_syncRuntimeMusic] ; créée au premier besoin pour ne
   /// rien coûter aux hôtes de test qui n'authorent aucune musique.
   final RuntimeAudioMixer? _audioMixer;
+  final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
+  final DialogueIconBytesLoader? dialogueIconBytesLoader;
+  FlameDialogueFeedbackPlaybackAdapter? _dialogueFeedbackPlayer;
   final RuntimeMusicService? _injectedMusicService;
   RuntimeMusicService? _musicService;
   final BattleMusicResolver _battleMusicResolver = const BattleMusicResolver();
@@ -687,6 +694,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   RuntimeMusicService get _music =>
       _injectedMusicService ??
       (_musicService ??= RuntimeMusicService(
+        mixer: _audioMixer,
+      ));
+
+  DialogueFeedbackPlaybackPort get _dialogueFeedbackAudio =>
+      dialogueFeedbackPlaybackPort ??
+      (_dialogueFeedbackPlayer ??= FlameDialogueFeedbackPlaybackAdapter(
+        mediaAssets: _bundle.manifest.cinematicMediaAssets,
+        resolvePath: (asset) => resolveDialogueFeedbackProjectFile(
+          _bundle.projectRootDirectory,
+          asset.relativePath,
+        ),
         mixer: _audioMixer,
       ));
 
@@ -3849,6 +3867,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    unawaited(_dialogueFeedbackPlayer?.dispose());
+    _dialogueFeedbackPlayer = null;
     _battleExitTransitionVisible.value = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled when the runtime closed.',
@@ -4262,6 +4282,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (overlay.isShowingChoices) {
         if (control == RuntimeInputControl.primary) {
           _confirmDialogueChoice();
+          return true;
+        }
+        if (control == RuntimeInputControl.secondary) {
+          overlay.cancelChoice();
           return true;
         }
       } else {
@@ -10929,7 +10953,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'elapsedMs=${stopwatch.elapsedMilliseconds}',
       );
       _openDialogue(
-        session,
+        session.withChoicePolicies(request.choicePolicies).withLinePolicies(request.linePolicies),
+        onDialogueFailed: (error) {
+          _completePendingSceneDialogue(
+            SceneDialogueRuntimeAwaitableResult.failed(
+              errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+              message: 'Scene dialogue feedback failed: $error',
+            ),
+          );
+        },
         onDialogueFinished: (outcomeId) {
           _completePendingSceneDialogue(
             SceneDialogueRuntimeAwaitableResult.completed(
@@ -11677,10 +11709,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _openDialogue(
     DialogueSession session, {
     void Function(String? outcomeId)? onDialogueFinished,
+    void Function(Object error)? onDialogueFailed,
   }) {
     session = interpolateDialogueVariables(
       session,
       _gameState.scriptVariables,
+    );
+    validateDialogueFeedbackReferences(
+      session.lineFeedback,
+      iconAssetIds: _bundle.runtimeImageAbsolutePathsById.keys.toSet(),
+      mediaAssets: _bundle.manifest.cinematicMediaAssets,
     );
     _notification?.removeFromParent();
     _notification = null;
@@ -11696,6 +11734,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       renderInFlame: !_preferDialogueFlutterOverlay,
       onPresentationSnapshotChanged: _setDialoguePresentationSnapshot,
       portraitResolver: _dialoguePortraitResolver,
+      feedbackPlaybackPort: session.lineFeedback.any((feedback) => feedback.audioCue != null)
+          ? _dialogueFeedbackAudio
+          : null,
+      iconBytesLoader: dialogueIconBytesLoader ??
+          ProjectDialogueIconLoader(
+            projectRoot: _bundle.projectRootDirectory,
+            absolutePathsByAssetId: _bundle.runtimeImageAbsolutePathsById,
+          ).load,
+      onFailed: (error) {
+        _dialogueOverlay = null;
+        _setDialoguePresentationSnapshot(null);
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
+        _pendingFieldActionTicket = null;
+        _pendingPostDialogueAction = null;
+        onDialogueFailed?.call(error);
+      },
       onFinished: (outcomeId) {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;

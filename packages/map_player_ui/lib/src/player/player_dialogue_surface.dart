@@ -37,6 +37,7 @@ final class PlayerDialogueViewData {
     required this.isLastContent,
     required this.choices,
     this.isAdvanceAvailable = true,
+    this.lineSpan,
   });
 
   final int revision;
@@ -48,6 +49,7 @@ final class PlayerDialogueViewData {
   final bool isLastContent;
   final List<PlayerDialogueChoiceViewData> choices;
   final bool isAdvanceAvailable;
+  final InlineSpan? lineSpan;
 }
 
 sealed class PlayerDialogueAction {
@@ -291,8 +293,8 @@ class _DialogueLineContent extends StatelessWidget {
             ),
             const SizedBox(height: PlayerSpacing.sm),
           ],
-          Text(
-            data.text,
+          Text.rich(
+            data.lineSpan ?? TextSpan(text: data.text),
             style: context.playerTypography.dialogueStyle(
               Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
             ),
@@ -338,8 +340,8 @@ class _DialogueLineWithAuthoredPortrait extends StatelessWidget {
                 ),
                 const SizedBox(height: PlayerSpacing.sm),
               ],
-              Text(
-                data.text,
+              Text.rich(
+                data.lineSpan ?? TextSpan(text: data.text),
                 style: context.playerTypography.dialogueStyle(
                   Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
                 ),
@@ -591,8 +593,8 @@ class _DialogueLineWithResolvedPortrait extends StatelessWidget {
                       ),
                       const SizedBox(height: PlayerSpacing.sm),
                     ],
-                    Text(
-                      data.text,
+                    Text.rich(
+                      data.lineSpan ?? TextSpan(text: data.text),
                       style: context.playerTypography.dialogueStyle(
                         Theme.of(context).textTheme.bodyLarge ??
                             const TextStyle(),

@@ -10,12 +10,15 @@ import 'package:ffi/ffi.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as path;
 
 import 'literal_autotile_composer.dart';
 import 'approved_asset_library.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
+import 'source_event_study_composer.dart';
+import 'source_event_arrival_validation.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -66,7 +69,9 @@ final class NativeArtifact {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
-    if (mediaType != 'image/png' && mediaType != 'application/json') {
+    if (mediaType != 'image/png' &&
+        mediaType != 'application/json' &&
+        !_nativeAudioMediaTypes.contains(mediaType)) {
       throw const NativeWriteException(
           'native.artifact.media', 'Unsupported native artifact media type');
     }
@@ -88,6 +93,8 @@ final class NativeArtifact {
     final frozen = owned.asUnmodifiableView();
     if (mediaType == 'application/json') {
       _validateNativeArtifactJson(frozen, limits.jsonLimits);
+    } else if (_nativeAudioMediaTypes.contains(mediaType)) {
+      _validateNativeAudioArtifact(frozen, mediaType);
     }
     final hash = Sha256Hash(sha256.convert(frozen).toString());
     if (expectedSha256 != null && expectedSha256 != hash) {
@@ -103,6 +110,30 @@ final class NativeArtifact {
   final Sha256Hash rawSha256;
   final ContentArtifactRef reference;
   String get handle => reference.handle;
+}
+
+const _nativeAudioMediaTypes = {
+  'audio/wav',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/flac'
+};
+
+PresentationMediaProbeResult _validateNativeAudioArtifact(
+    List<int> bytes, String mediaType) {
+  try {
+    final inspected = const PresentationMediaHeaderProbe()
+        .inspect(bytes, declaredMediaType: mediaType);
+    if (!_nativeAudioMediaTypes.contains(inspected.mediaType) ||
+        inspected.durationMilliseconds == null ||
+        inspected.durationMilliseconds! < 1) {
+      throw const FormatException('A finite supported sound is required');
+    }
+    return inspected;
+  } on Object {
+    throw const NativeWriteException('native.artifact.audio',
+        'Audio bytes must match their supported MIME and finite probed duration');
+  }
 }
 
 Map<String, Object?> _validateNativeArtifactJson(
@@ -213,6 +244,18 @@ final class NativeMutation {
   final List<ConverterId> sourceEntityIds;
   final List<ConverterId> targetEntityIds;
   final Map<String, Object?> parameters;
+
+  OperationDomain get domain => switch (actionId.split('.').first) {
+        'map' || 'entity' || 'trigger' || 'warp' => OperationDomain.maps,
+        'event_v2' ||
+        'fact' ||
+        'world_rule' ||
+        'dialogue' ||
+        'scene' =>
+          OperationDomain.events,
+        'item' || 'pokemon' => OperationDomain.catalogs,
+        _ => OperationDomain.assets,
+      };
 
   Map<String, Object?> toJson(int ordinal) => {
         'operationId': operationId.value,
@@ -551,12 +594,24 @@ final class NativeProjectWriter {
             'Fresh native map inventory differs from the approved draft');
       }
       final mapHashes = <String, Sha256Hash>{};
+      for (final entry in prepared.dialogueSources.entries) {
+        _checkCancelled(cancellation);
+        final bytes =
+            snapshot.resourceBytes(dialogueSourceResourceIdentity(entry.key));
+        final expected = utf8.encode(entry.value);
+        if (bytes.length != expected.length ||
+            sha256.convert(bytes) != sha256.convert(expected)) {
+          throw const NativeWriteException('native.verify.dialogue',
+              'Fresh native dialogue bytes differ from the approved source projection');
+        }
+      }
       for (final entry in prepared.maps.entries) {
         _checkCancelled(cancellation);
         final actual = snapshot.mapById(entry.key);
         if (actual == null ||
-            canonicalJsonOf(actual.toJson(), limits: limits.jsonLimits) !=
-                canonicalJsonOf(entry.value.toJson(),
+            canonicalJsonOf(jsonDecode(jsonEncode(actual.toJson())),
+                    limits: limits.jsonLimits) !=
+                canonicalJsonOf(jsonDecode(jsonEncode(entry.value.toJson())),
                     limits: limits.jsonLimits)) {
           throw const NativeWriteException('native.verify.map',
               'Fresh native map differs from the approved draft');
@@ -595,8 +650,16 @@ final class NativeProjectWriter {
             source.assetId != assetId ||
             source.pixelWidth != dimensions.$1 ||
             source.pixelHeight != dimensions.$2 ||
-            source.tileWidth != 32 ||
-            source.tileHeight != 32) {
+            source.tileWidth !=
+                (prepared.manifest.tilesets
+                        .singleWhere((tileset) => tileset.id == entry.key)
+                        .source as ProjectRegularAtlasTilesetSource)
+                    .tileWidth ||
+            source.tileHeight !=
+                (prepared.manifest.tilesets
+                        .singleWhere((tileset) => tileset.id == entry.key)
+                        .source as ProjectRegularAtlasTilesetSource)
+                    .tileHeight) {
           throw const NativeWriteException('native.verify.tileset',
               'Native atlas geometry differs from the loaded image');
         }
@@ -609,6 +672,24 @@ final class NativeProjectWriter {
               'Native retained blob is missing or differs from the approved image');
         }
         assetHashes[assetId] = hash;
+      }
+      if (snapshot.itemCatalog != prepared.itemCatalog) {
+        throw const NativeWriteException('native.verify.items',
+            'Fresh item catalog differs from the exact source bindings');
+      }
+      for (final entry in prepared.audio.entries) {
+        final bytes = await session.readCompanion(
+            prepared.catalog.require(entry.key).logicalPath, entry.value,
+            errorCode: 'native.verify.audio');
+        final blob = await session.snapshots
+            .readRetainedAssetBlob(session.project, entry.value.reference);
+        if (blob == null ||
+            blob.length != bytes.length ||
+            sha256.convert(blob) != sha256.convert(bytes)) {
+          throw const NativeWriteException('native.verify.audio',
+              'Dialogue sound logical file and retained blob must match exact source bytes');
+        }
+        assetHashes[entry.key] = Sha256Hash(sha256.convert(bytes).toString());
       }
       for (final entry in prepared.companions.entries) {
         _checkCancelled(cancellation);
@@ -643,7 +724,7 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.changed',
             'Native staging project changed after verification');
       }
-      for (final entry in prepared.companions.entries) {
+      for (final entry in {...prepared.companions, ...prepared.audio}.entries) {
         _checkCancelled(cancellation);
         await session.readCompanion(
             prepared.catalog.require(entry.key).logicalPath, entry.value,
@@ -675,14 +756,25 @@ final class NativeProjectWriter {
 }
 
 final class _PreparedNativeDraft {
-  const _PreparedNativeDraft(this.bootstrap, this.manifest, this.maps,
-      this.tilesets, this.companions, this.catalog);
+  const _PreparedNativeDraft(
+      this.bootstrap,
+      this.manifest,
+      this.maps,
+      this.tilesets,
+      this.companions,
+      this.catalog,
+      this.dialogueSources,
+      this.audio,
+      this.itemCatalog);
   final ProjectManifest bootstrap;
   final ProjectManifest manifest;
   final Map<String, MapData> maps;
   final Map<String, NativeArtifact> tilesets;
   final Map<String, NativeArtifact> companions;
   final AssetCatalog catalog;
+  final Map<String, String> dialogueSources;
+  final Map<String, NativeArtifact> audio;
+  final ProjectItemCatalog? itemCatalog;
 }
 
 ({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
@@ -724,6 +816,10 @@ final class _PreparedNativeDraft {
             'Aggregate retained image pixel budget exceeded');
       }
       if (!witness) dimensions[artifact.handle] = size;
+    } else if (_nativeAudioMediaTypes.contains(artifact.reference.mediaType) &&
+        !witness) {
+      _validateNativeAudioArtifact(
+          artifact.bytes, artifact.reference.mediaType);
     } else if (artifact.reference.mediaType != 'application/json') {
       throw const NativeWriteException('native.library.witness',
           'Source witnesses must be exact admitted PNG images');
@@ -824,9 +920,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   for (var i = 0; i < draft.mutations.length; i++) {
     final mutation = draft.mutations[i];
     final operation = planned[i];
-    final domain = mutation.actionId.startsWith('map.')
-        ? OperationDomain.maps
-        : OperationDomain.assets;
+    final domain = mutation.domain;
     if (mutation.operationId != operation.operationId ||
         mutation.actionId != operation.targetActionId ||
         mutation.actionVersion != 1 ||
@@ -855,10 +949,30 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'element_category.upsert',
           'element.upsert',
           'characterStudio.character.create',
+          'characterStudio.character.update',
           'characterStudio.animationClip.upsert',
           'characterStudio.character.setDefault',
         }.contains(mutation.actionId);
-    if (!ordinary && !library && !semantic) {
+    final event = draft.compositionEvidence.containsKey('sourceEvents') &&
+        const {
+          'asset.import',
+          'fact.create',
+          'fact.update',
+          'entity.upsert',
+          'trigger.create',
+          'warp.create',
+          'dialogue.create',
+          'scene.upsert',
+          'world_rule.create',
+          'world_rule.update',
+          'event_v2.registry_mode.set',
+          'event_v2.record_upsert',
+          'pokemon.catalog.write',
+          'pokemon.configuration.set_enabled',
+          'item.create',
+          'scene.dialogue.audioMedia.import',
+        }.contains(mutation.actionId);
+    if (!ordinary && !library && !semantic && !event) {
       throw const NativeWriteException('native.action.unsupported',
           'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
@@ -892,7 +1006,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   for (final artifact in draft.artifacts) {
     if (artifact.reference.mediaType == 'image/png') {
       _pngDimensions(artifact.bytes, limits);
-    } else if (!library.artifactHandles.contains(artifact.handle)) {
+    } else if (!library.artifactHandles.contains(artifact.handle) &&
+        !semantics.artifactHandles.contains(artifact.handle)) {
       throw const NativeWriteException('native.library.companion',
           'JSON artifacts require an exact approved companion binding');
     }
@@ -918,6 +1033,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final animatedTilesets = <String>{};
   final usedArtifacts = <String>{};
   final companions = <String, NativeArtifact>{};
+  final audio = <String, NativeArtifact>{};
+  final mediaAssets = <CinematicMediaAsset>[];
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
   final characters = <ProjectCharacterEntry>[];
@@ -940,19 +1057,28 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         final name = _string(parameters, 'name');
         final handle = _string(parameters, 'artifactHandle');
         final artifact = artifacts[handle];
+        final cellWidth = parameters['tileWidth'];
+        final cellHeight = parameters['tileHeight'];
+        final feedbackIcon = semantics.events?.draft.mutations.any((entry) =>
+                entry.operationId == mutation.operationId &&
+                entry.actionId == 'tileset.import_image' &&
+                entry.parameters['tileWidth'] == 1 &&
+                entry.parameters['tileHeight'] == 1) ??
+            false;
         if (id.length > 64 ||
             !RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(id) ||
             tilesets.keys.any((key) => key.toLowerCase() == id.toLowerCase()) ||
             artifact == null ||
             artifact.reference.mediaType != 'image/png' ||
-            parameters['tileWidth'] != 32 ||
-            parameters['tileHeight'] != 32 ||
+            (cellWidth != 32 || cellHeight != 32) &&
+                !(feedbackIcon && cellWidth == 1 && cellHeight == 1) ||
             !_targetIds(mutation.targetEntityIds, {id, 'image_$id'})) {
           throw const NativeWriteException('native.tileset.invalid',
               'A unique native atlas, its asset identity and explicit 32px grid are required');
         }
         final size = dimensions[handle]!;
-        if (size.$1 % 32 != 0 || size.$2 % 32 != 0) {
+        if (size.$1 % (cellWidth as int) != 0 ||
+            size.$2 % (cellHeight as int) != 0) {
           throw const NativeWriteException('native.tileset.geometry',
               'Atlas image must contain complete 32px cells');
         }
@@ -971,8 +1097,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                 assetId: 'image_$id',
                 pixelWidth: size.$1,
                 pixelHeight: size.$2,
-                tileWidth: 32,
-                tileHeight: 32)));
+                tileWidth: cellWidth,
+                tileHeight: cellHeight)));
       case 'tileset.upsert':
         _allowParameters(parameters, const {'tileset'});
         final raw = parameters['tileset'];
@@ -1044,7 +1170,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         semantics.requireOperation(mutation);
         final name = _string(parameters, 'name');
         final id = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
-        if (characters.isNotEmpty ||
+        if (characters.any((entry) => entry.id == id) ||
             !tilesets.containsKey(parameters['tilesetId']) ||
             !_targetIds(mutation.targetEntityIds, {id})) {
           throw const NativeWriteException('native.semantics.character',
@@ -1053,10 +1179,21 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         characters.add(ProjectCharacterEntry(
             id: id,
             name: name,
+            sortOrder: characters.length,
             tilesetId: parameters['tilesetId'] as String,
             frameWidth: parameters['frameWidth'] as int,
             frameHeight: parameters['frameHeight'] as int,
             tags: (parameters['tags'] as List).cast<String>()));
+      case 'characterStudio.character.update':
+        semantics.requireOperation(mutation);
+        final id = _string(parameters, 'characterId');
+        final index = characters.indexWhere((entry) => entry.id == id);
+        if (index < 0 || !_targetIds(mutation.targetEntityIds, {id})) {
+          throw const NativeWriteException('native.semantics.character',
+              'Source event character labels require their preceding canonical identity');
+        }
+        characters[index] =
+            characters[index].copyWith(name: _string(parameters, 'name'));
       case 'characterStudio.animationClip.upsert':
         semantics.requireOperation(mutation);
         final id = _string(parameters, 'characterId');
@@ -1087,8 +1224,53 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Semantic player default requires its preceding character');
         }
         defaultPlayerCharacterId = id;
+      case 'scene.dialogue.audioMedia.import':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {
+          'artifactHandle',
+          'assetId',
+          'mediaId',
+          'label',
+          'logicalPath'
+        });
+        final handle = _string(parameters, 'artifactHandle');
+        final id = _string(parameters, 'assetId');
+        final mediaId = _string(parameters, 'mediaId');
+        final logicalPath = _string(parameters, 'logicalPath');
+        final artifact = artifacts[handle];
+        if (artifact == null ||
+            !_nativeAudioMediaTypes.contains(artifact.reference.mediaType) ||
+            audio.containsKey(id) ||
+            mediaAssets.any((entry) => entry.id == mediaId)) {
+          throw const NativeWriteException('native.events.audio',
+              'One exact regenerated finite sound is required');
+        }
+        final inspected = const PresentationMediaHeaderProbe().inspect(
+            artifact.bytes,
+            declaredMediaType: artifact.reference.mediaType);
+        audio[id] = artifact;
+        usedArtifacts.add(handle);
+        assetRecords.add(AssetRecord(
+            id: id,
+            logicalPath: logicalPath,
+            artifact: artifact.reference,
+            usages: const ['dialogueAudio']));
+        mediaAssets.add(CinematicMediaAsset(
+            id: mediaId,
+            label: _string(parameters, 'label'),
+            kind: CinematicMediaAssetKind.sound,
+            relativePath: logicalPath,
+            durationMs: inspected.durationMilliseconds,
+            metadata: {
+              'sourceAssetId': id,
+              'mediaType': inspected.mediaType,
+              'container': inspected.container,
+              'codec': inspected.codec
+            }));
       case 'asset.import':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {
           'artifactHandle',
           'assetId',
@@ -1193,6 +1375,25 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'A canonical map save must follow the exact approved creation geometry');
         }
         maps[map.id] = map;
+      case 'pokemon.catalog.write':
+      case 'pokemon.configuration.set_enabled':
+      case 'item.create':
+      case 'fact.create':
+      case 'fact.update':
+      case 'entity.upsert':
+      case 'trigger.create':
+      case 'warp.create':
+      case 'dialogue.create':
+      case 'scene.upsert':
+      case 'world_rule.create':
+      case 'world_rule.update':
+      case 'event_v2.registry_mode.set':
+      case 'event_v2.record_upsert':
+        semantics.requireOperation(mutation);
+        if (semantics.events == null) {
+          throw const NativeWriteException('native.events.binding',
+              'Event mutations require their exact regenerated source event projection');
+        }
       default:
         throw const NativeWriteException('native.action.unsupported',
             'Only image import, atlas animation upsert, map creation and native map save are admitted');
@@ -1208,23 +1409,64 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   tilesetEntries.sort((left, right) => left.id.compareTo(right.id));
   elements.sort((left, right) => left.id.compareTo(right.id));
+  final projectedEvents = semantics.events?.projection;
+  if (projectedEvents != null) {
+    maps
+      ..clear()
+      ..addEntries(projectedEvents.nativeMaps.values
+          .map((map) => MapEntry(map.id, map)));
+  }
   final manifest = bootstrap.copyWith(
       maps: mapEntries,
       tilesets: tilesetEntries,
       elements: elements,
       elementCategories: categories,
       characters: characters,
+      pokemon: bootstrap.pokemon
+          .copyWith(enabled: projectedEvents?.itemCatalog != null),
+      cinematicMediaAssets: mediaAssets,
+      facts: projectedEvents?.facts ?? const [],
+      worldRules: projectedEvents?.worldRules ?? const [],
+      eventRegistry: projectedEvents?.registry,
+      dialogues: projectedEvents?.dialogues ?? const [],
+      scenes: projectedEvents?.scenes ?? const [],
       settings: bootstrap.settings
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
   ProjectValidator.validate(manifest, maps: maps.values);
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
+  if (projectedEvents != null) {
+    for (final scene in projectedEvents.scenes) {
+      try {
+        const SceneActions()
+            .upsert(manifest, maps: maps.values.toList(), scene: scene);
+      } on NarrativeAuthoringException catch (error) {
+        throw NativeWriteException('native.events.scene',
+            '${error.code}: ${canonicalJsonOf(error.details, limits: limits.jsonLimits)}');
+      }
+    }
+    const SourceEventArrivalValidator().validate(
+        manifest: manifest,
+        maps: maps.values.toList(),
+        arrivalAnchorIds:
+            (projectedEvents.semanticEvidence['arrivalAnchors'] as List)
+                .map((entry) => (entry as Map)['warpId'] as String),
+        cancellation: cancellation);
+  }
   if (!semantics.verified) {
     _verifyLiteralCompositionContents(draft, maps, limits, library);
   }
-  return _PreparedNativeDraft(bootstrap, manifest, maps, tilesets, companions,
-      AssetCatalog(records: assetRecords));
+  return _PreparedNativeDraft(
+      bootstrap,
+      manifest,
+      maps,
+      tilesets,
+      companions,
+      AssetCatalog(records: assetRecords),
+      projectedEvents?.dialogueSources ?? const {},
+      audio,
+      projectedEvents?.itemCatalog);
 }
 
 final class _VerifiedAssetLibrary {
@@ -1246,13 +1488,15 @@ final class _WitnessSourceFiles implements SourceFilePort {
 
 final class _VerifiedSourceSemantics {
   const _VerifiedSourceSemantics(this.verified, this.operationIds,
-      this.regeneratedOperationIds, this.artifactHandles, this.witnessHandles);
+      this.regeneratedOperationIds, this.artifactHandles, this.witnessHandles,
+      {this.events});
 
   final bool verified;
   final Set<ConverterId> operationIds;
   final Set<ConverterId> regeneratedOperationIds;
   final Set<String> artifactHandles;
   final Set<String> witnessHandles;
+  final SourceEventStudyComposition? events;
 
   void requireOperation(NativeMutation mutation) {
     if (!verified || !operationIds.contains(mutation.operationId)) {
@@ -1268,6 +1512,10 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     ScanCancellation? cancellation) async {
   final raw = draft.compositionEvidence['sourceSemantics'];
   if (raw == null) {
+    if (draft.compositionEvidence.containsKey('sourceEvents')) {
+      throw const NativeWriteException('native.events.binding',
+          'Event conversion requires preceding qualified source semantics');
+    }
     return const _VerifiedSourceSemantics(false, {}, {}, {}, {});
   }
   if (raw is! Map<String, Object?> ||
@@ -1289,7 +1537,42 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   final witnessHandles = <String>{};
   var decodedByteBudget = 0;
   var witnessReferenceCount = 0;
-  for (final row in raw['witnesses'] as List) {
+  final eventRaw = draft.compositionEvidence['sourceEvents'];
+  if (eventRaw != null &&
+      (eventRaw is! Map<String, Object?> ||
+          eventRaw['kind'] != 'sourceEventStudy' ||
+          eventRaw['version'] != 1 ||
+          eventRaw['witnesses'] is! List)) {
+    throw const NativeWriteException('native.events.evidence',
+        'Event evidence must contain one bounded source event composition');
+  }
+  final witnessRows = <String, Object?>{};
+  final suppliedRows = [
+    ...raw['witnesses'] as List,
+    if (eventRaw is Map<String, Object?>) ...eventRaw['witnesses'] as List
+  ];
+  if (suppliedRows.length > limits.maxArtifacts * 2) {
+    throw const NativeWriteException('native.semantics.witness_quota',
+        'Combined semantic witness envelopes exceed the bounded input budget');
+  }
+  for (final row in suppliedRows) {
+    if (row is! Map || row['fileId'] is! String) {
+      throw const NativeWriteException('native.semantics.witness',
+          'Semantic witnesses require bounded unique source references');
+    }
+    final id = row['fileId'] as String;
+    final previous = witnessRows[id];
+    if (previous == null && witnessRows.length >= limits.maxArtifacts) {
+      throw const NativeWriteException('native.semantics.witness_quota',
+          'Unique semantic source references exceed the bounded input budget');
+    }
+    if (previous != null && canonicalJsonOf(previous) != canonicalJsonOf(row)) {
+      throw const NativeWriteException('native.semantics.witness',
+          'A shared source witness cannot have conflicting envelopes');
+    }
+    witnessRows[id] = row;
+  }
+  for (final row in witnessRows.values) {
     if (row is! Map || row['fileId'] is! String) {
       throw const NativeWriteException('native.semantics.witness',
           'Source semantic witnesses must address inventoried files');
@@ -1390,6 +1673,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   }
   _checkCancelled(cancellation);
   final NativeProjectDraft expected;
+  SourceEventStudyComposition? eventComposition;
   try {
     final composition = draft.compositionEvidence['composition'] as Map;
     final base = await const LiteralTileComposer().compose(
@@ -1416,7 +1700,18 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     if (regenerated == null) {
       throw const FormatException('Missing semantic draft');
     }
-    expected = regenerated;
+    if (eventRaw != null) {
+      eventComposition = await const SourceEventStudyComposer().compose(
+          source: draft.source,
+          base: regenerated,
+          files: _WitnessSourceFiles(files),
+          limits: limits,
+          cancellation: cancellation);
+      if (eventComposition == null) {
+        throw const FormatException('Missing source event draft');
+      }
+    }
+    expected = eventComposition?.draft ?? regenerated;
   } catch (_) {
     _checkCancelled(cancellation);
     throw const NativeWriteException('native.semantics.regeneration',
@@ -1454,15 +1749,23 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     throw const NativeWriteException('native.semantics.regeneration',
         'Source semantic mutations, pixels and evidence differ from deterministic regeneration');
   }
-  final semanticIds = ((expected.compositionEvidence['sourceSemantics']
-          as Map)['operationIds'] as List)
-      .cast<String>();
+  final semanticIds = [
+    ...((expected.compositionEvidence['sourceSemantics'] as Map)['operationIds']
+            as List)
+        .cast<String>()
+  ];
+  if (eventComposition != null) {
+    semanticIds.addAll(((expected.compositionEvidence['sourceEvents']
+            as Map)['operationIds'] as List)
+        .cast<String>());
+  }
   return _VerifiedSourceSemantics(
       true,
       semanticIds.map(ConverterId.new).toSet(),
       expectedIds,
       expected.artifacts.map((artifact) => artifact.handle).toSet(),
-      witnessHandles);
+      witnessHandles,
+      events: eventComposition);
 }
 
 Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(

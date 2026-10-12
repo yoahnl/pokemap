@@ -38,9 +38,11 @@ class PlayerDialogueOverlay extends StatelessWidget {
         },
         speaker: snapshot.speaker,
         text: snapshot.text,
+        lineSpan: _lineSpan(),
         fullText: snapshot.fullText,
         isCurrentLineFullyRevealed: snapshot.isCurrentLineFullyRevealed,
         isLastContent: snapshot.isLastContent,
+        isAdvanceAvailable: snapshot.isAdvanceAvailable,
         choices: <PlayerDialogueChoiceViewData>[
           for (final choice in snapshot.choices)
             PlayerDialogueChoiceViewData(
@@ -89,5 +91,35 @@ class PlayerDialogueOverlay extends StatelessWidget {
                   ),
             ),
     );
+  }
+
+  InlineSpan? _lineSpan() {
+    if (snapshot.segments.isEmpty) return null;
+    return TextSpan(children: [
+      for (final segment in snapshot.segments)
+        switch (segment) {
+          DialogueTextSegment(:final text, :final style) => TextSpan(
+              text: text,
+              style: TextStyle(
+                color: style?.colorArgb == null ? null : Color(style!.colorArgb!),
+                shadows: style?.shadowColorArgb == null
+                    ? null
+                    : [Shadow(color: Color(style!.shadowColorArgb!), offset: const Offset(1, 1))],
+              ),
+            ),
+          DialogueIconSegment(:final assetId, :final widthPx, :final heightPx) => WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Image.memory(
+                snapshot.iconPngBytes[assetId] ??
+                    (throw StateError('Missing dialogue icon bytes: $assetId.')),
+                key: ValueKey<String>('dialogue-inline-icon-$assetId'),
+                width: widthPx.toDouble(),
+                height: heightPx.toDouble(),
+                filterQuality: FilterQuality.none,
+                fit: BoxFit.fill,
+              ),
+            ),
+        },
+    ]);
   }
 }

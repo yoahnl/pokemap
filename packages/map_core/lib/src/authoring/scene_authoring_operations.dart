@@ -836,6 +836,9 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
     yarnNodeName: _trimOptional(yarnNodeName),
     expectedOutcomes: expectedOutcomes,
     speakerHints: currentPayload.speakerHints,
+    choicePolicies: currentPayload.choicePolicies,
+    linePolicies: currentPayload.linePolicies,
+    declaredCancellationOutcomes: currentPayload.declaredCancellationOutcomes,
   );
   final updatedNode = SceneNode(
     id: node.id,

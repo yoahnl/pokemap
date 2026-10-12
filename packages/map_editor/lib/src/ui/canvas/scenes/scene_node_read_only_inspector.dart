@@ -1,12 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../application/authoring_api/scene_dialogue_choice_policy_authoring_gateway.dart';
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../../features/gameplay/items/item_capability_picker.dart';
 import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
+import 'scene_dialogue_choice_policy_dialog.dart';
 import 'scene_pre_session_interaction_dialog.dart';
 
 typedef SceneConditionSourceDraftUpdater =
@@ -36,6 +38,17 @@ typedef SceneBattlePayloadDraftUpdater =
       required String trainerId,
       required String battleKind,
       String? battleTemplateId,
+    });
+
+typedef SceneDialogueChoicePolicyDraftLoader =
+    Future<SceneDialogueChoicePolicyEditorData> Function({
+      required String nodeId,
+    });
+
+typedef SceneDialogueChoicePolicyDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required SceneDialogueChoicePolicy policy,
     });
 
 typedef SceneCinematicPayloadDraftUpdater =
@@ -130,6 +143,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.presentationCinematics = const [],
     this.newGameConfig = const ProjectNewGameConfig(),
     this.onUpdateYarnDialoguePayload,
+    this.onLoadDialogueChoicePolicies,
+    this.onUpdateDialogueChoicePolicy,
     this.onOpenDialogue,
     this.onUpdateBattlePayload,
     this.onUpdateCinematicPayload,
@@ -154,6 +169,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final List<PresentationCinematicAsset> presentationCinematics;
   final ProjectNewGameConfig newGameConfig;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final SceneDialogueChoicePolicyDraftLoader? onLoadDialogueChoicePolicies;
+  final SceneDialogueChoicePolicyDraftUpdater? onUpdateDialogueChoicePolicy;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
@@ -201,6 +218,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               presentationCinematics: presentationCinematics,
               newGameConfig: newGameConfig,
               onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
+              onLoadDialogueChoicePolicies: onLoadDialogueChoicePolicies,
+              onUpdateDialogueChoicePolicy: onUpdateDialogueChoicePolicy,
               onOpenDialogue: onOpenDialogue,
               onUpdateBattlePayload: onUpdateBattlePayload,
               onUpdateCinematicPayload: onUpdateCinematicPayload,
@@ -310,6 +329,8 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.presentationCinematics,
     required this.newGameConfig,
     required this.onUpdateYarnDialoguePayload,
+    required this.onLoadDialogueChoicePolicies,
+    required this.onUpdateDialogueChoicePolicy,
     required this.onOpenDialogue,
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
@@ -332,6 +353,8 @@ class _NodeInspectorBody extends StatelessWidget {
   final List<PresentationCinematicAsset> presentationCinematics;
   final ProjectNewGameConfig newGameConfig;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final SceneDialogueChoicePolicyDraftLoader? onLoadDialogueChoicePolicies;
+  final SceneDialogueChoicePolicyDraftUpdater? onUpdateDialogueChoicePolicy;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
@@ -394,6 +417,8 @@ class _NodeInspectorBody extends StatelessWidget {
               dialogues: linkedAssetContracts?.dialogues ?? const [],
               onUpdatePayload: onUpdateYarnDialoguePayload,
               onOpenDialogue: onOpenDialogue,
+              onLoadChoicePolicies: onLoadDialogueChoicePolicies,
+              onUpdateChoicePolicy: onUpdateDialogueChoicePolicy,
             ),
             const SizedBox(height: 10),
           ],
@@ -801,6 +826,8 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
     required this.dialogues,
     required this.onUpdatePayload,
     required this.onOpenDialogue,
+    required this.onLoadChoicePolicies,
+    required this.onUpdateChoicePolicy,
   });
 
   final SceneNode node;
@@ -808,6 +835,8 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
   final List<DialoguePublicContract> dialogues;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdatePayload;
   final ValueChanged<String>? onOpenDialogue;
+  final SceneDialogueChoicePolicyDraftLoader? onLoadChoicePolicies;
+  final SceneDialogueChoicePolicyDraftUpdater? onUpdateChoicePolicy;
 
   @override
   Widget build(BuildContext context) {
@@ -866,10 +895,24 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
           child: const Text('Ouvrir le dialogue'),
         ),
         const SizedBox(height: 8),
+        SceneDialogueChoicePolicyAuthoringButton(
+          key: ValueKey(
+            'scene-dialogue-choice-policy-${node.id}-${payload.dialogueId}',
+          ),
+          load: onLoadChoicePolicies == null
+              ? null
+              : () => onLoadChoicePolicies!(nodeId: node.id),
+          save: onUpdateChoicePolicy == null
+              ? null
+              : (policy) =>
+                    onUpdateChoicePolicy!(nodeId: node.id, policy: policy),
+        ),
+        const SizedBox(height: 8),
         const _InspectorNote(
-          label: 'Cette édition modifie uniquement le payload du nœud Scene. '
-              'Les outcomes Yarn restent read-only tant que leur contrat '
-              'public n’expose pas de mapping fiable.',
+          label:
+              'Chaque bloc de choix possède sa sélection de départ et son '
+              'comportement d’annulation. Les options viennent du dialogue ; '
+              'les branches viennent des liens déjà déclarés dans la scène.',
         ),
       ],
     );

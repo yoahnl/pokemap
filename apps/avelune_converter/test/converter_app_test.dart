@@ -44,6 +44,89 @@ void main() {
   });
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+  testWidgets('qualified and quarantined events are visible before creation', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(
+      () async => _OriginalSource.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        includeEventSystem: true,
+        extraFiles: {
+          'PBS/metadata.txt': utf8.encode(
+            '[1]\nWalkCharset = OriginalPlayer\n',
+          ),
+          'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+            image.Image(width: 128, height: 192, numChannels: 4),
+          ),
+        },
+        maps: [
+          LiteralFixtureMap(
+            id: 1,
+            width: 4,
+            height: 4,
+            layers: [
+              List.filled(16, 384),
+              List.filled(16, 0),
+              List.filled(16, 0),
+            ],
+            events: const [
+              LiteralFixtureEvent(
+                id: 1,
+                x: 1,
+                y: 1,
+                pages: [
+                  LiteralFixtureEventPage(
+                    characterName: 'OriginalPlayer',
+                    commands: [
+                      LiteralFixtureEventCommand(101, ['Bienvenue']),
+                    ],
+                  ),
+                ],
+              ),
+              LiteralFixtureEvent(
+                id: 2,
+                x: 2,
+                y: 2,
+                pages: [
+                  LiteralFixtureEventPage(
+                    commands: [
+                      LiteralFixtureEventCommand(355, ['unknown_reward()']),
+                      LiteralFixtureEventCommand(123, ['A', 0]),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          LiteralFixtureMap(id: 8),
+        ],
+      ),
+    ))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(
+        find.text(
+          'Événements : 1 adapté(s) automatiquement sans IA ; 1 en quarantaine.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Événement conservé en quarantaine'), findsOneWidget);
+      expect(
+        find.textContaining('les événements restent à convertir'),
+        findsNothing,
+      );
+      expect(source.nativeStages, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+
   testWidgets('semantic losses are visible before native creation', (
     tester,
   ) async {
@@ -629,6 +712,7 @@ final class _OriginalSource {
     List<int>? scriptsBytes,
     Map<String, List<int>> extraFiles = const {},
     List<LiteralFixtureTileset>? tilesets,
+    bool includeEventSystem = false,
   }) async {
     final root = await Directory.systemTemp.createTemp('ac09-original-widget-');
     try {
@@ -636,6 +720,7 @@ final class _OriginalSource {
       final fixture = await LiteralTileFixture.create(
         sourceRootPath: '${root.path}/$sourceSuffix',
         scriptsBytes: scriptsBytes,
+        includeEventSystem: includeEventSystem,
         extraFiles: extraFiles,
         tilesets: tilesets,
         maps: maps ?? [LiteralFixtureMap(id: 1), LiteralFixtureMap(id: 8)],

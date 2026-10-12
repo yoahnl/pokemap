@@ -21,6 +21,7 @@ import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
+import '../domains/narrative/narrative_authoring_exception.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
 import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/rail_journey_actions.dart';
@@ -394,6 +395,24 @@ final class JsonlWorker {
             : AuthoringErrorCode.revisionConflict,
         domainCode: error.code,
         message: error.message,
+      );
+    } on NarrativeAuthoringException catch (error) {
+      final dialoguePolicyError = error.code.startsWith('scene.dialogue.choice_policy.') ||
+          error.code.startsWith('scene.dialogue.line_feedback.') ||
+          error.code.startsWith('scene.dialogue.audio_media.') ||
+          error.code == 'dialogue.scene_choice_policy_references_blocking' ||
+          error.code == 'dialogue.scene_line_policy_references_blocking';
+      result = dialoguePolicyError ? _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      ) : _failure(
+        requestId,
+        code: AuthoringErrorCode.internal,
+        domainCode: 'worker.internal',
+        message: 'The command failed unexpectedly.',
       );
     } on Object {
       result = _failure(
