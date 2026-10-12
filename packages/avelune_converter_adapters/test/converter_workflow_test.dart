@@ -16,6 +16,181 @@ import 'support/original_autotile_fixture.dart';
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  test(
+      'AC-15 published study reopens in a fresh context after workflow disposal',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      final approval = harness.approve(prepared);
+      final result = await harness.workflow.writeApproved(approval);
+      expect(result.published, isTrue);
+      expect(result.receipt.published, isFalse);
+      expect(result.playableCertified, isFalse);
+      expect(result.projectPath, harness.destination);
+      await harness.workflow.dispose();
+      final beforeReopen = await _diskHashes(result.projectPath);
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [harness.output.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(result.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        expect(native.revision, result.publication.nativeRevision);
+        for (final map in prepared.composition.nativeMaps.values) {
+          expect(native.mapById(map.id), map);
+        }
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      final freshWorkflow = ConverterWorkflow();
+      try {
+        await expectLater(freshWorkflow.writeApproved(approval),
+            _throwsWorkflow('workflow.stale_approval'));
+      } finally {
+        await freshWorkflow.dispose();
+      }
+      expect(await _diskHashes(result.projectPath), beforeReopen);
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test(
+      'AC-15 lost promoted checkpoint reconciles without rewriting final files',
+      () async {
+    final stages = <NativePublicationStage>[];
+    final harness =
+        await _WorkflowHarness.create(publicationCheckpoint: (stage) {
+      stages.add(stage);
+      if (stage == NativePublicationStage.promotedBeforeReceipt) {
+        throw const NativePublicationException(
+            'publication.fixture.lost_checkpoint',
+            'Original fixture loses its acknowledgement after promotion.',
+            promotionMayHaveOccurred: true);
+      }
+    });
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      await expectLater(
+          harness.workflow.writeApproved(harness.approve(prepared)),
+          _throwsWorkflow('publication.fixture.lost_checkpoint'));
+      final failure = harness.workflow.state.failure!;
+      expect(harness.workflow.state.result, isNull);
+      expect(failure.promotionMayHaveOccurred, isTrue);
+      expect(failure.destinationPath, harness.destination);
+      expect(failure.journalPath, isNotNull);
+      expect(stages, contains(NativePublicationStage.promotedBeforeReceipt));
+      expect(stages, isNot(contains(NativePublicationStage.receiptCommitted)));
+      expect(await Directory(harness.destination).exists(), isTrue);
+      final beforeRecovery = await _diskHashes(harness.destination);
+      await harness.workflow.dispose();
+      final recovery = await const NativeProjectPublication().reconcile(
+          journalPath: failure.journalPath!,
+          policy: NativePublicationPolicy(
+              allowedParentRoots: [harness.output.path],
+              sourceRoots: [harness.sourceRoot]));
+      expect(recovery.state, NativePublicationRecoveryState.published);
+      expect(recovery.receipt!.published, isTrue);
+      expect(recovery.receipt!.projectPath, harness.destination);
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [harness.output.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(recovery.receipt!.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        expect(native.revision, recovery.receipt!.nativeRevision);
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      expect(await _diskHashes(harness.destination), beforeRecovery);
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+  test('AC-15 source change after native sealing invalidates preparation',
+      () async {
+    late _WorkflowHarness harness;
+    harness =
+        await _WorkflowHarness.create(publicationCheckpoint: (stage) async {
+      if (stage == NativePublicationStage.nativeSealed) {
+        await File('${harness.sourceRoot}/README.md').writeAsString(
+            'Externally changed original source after native sealing v21.1\n');
+      }
+    });
+    try {
+      final prepared = await harness.prepare();
+      await expectLater(
+          harness.workflow.writeApproved(harness.approve(prepared)),
+          _throwsWorkflow('workflow.source_changed'));
+      final failure = harness.workflow.state.failure!;
+      expect(harness.workflow.state.result, isNull);
+      expect(harness.workflow.state.prepared, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      expect(failure.promotionMayHaveOccurred, isFalse);
+      expect(failure.destinationPath, harness.destination);
+      expect(await File(failure.journalPath!).exists(), isTrue);
+      expect(await Directory(failure.stagingPath!).exists(), isTrue);
+      expect(await Directory(harness.destination).exists(), isFalse);
+      final journal = await File(failure.journalPath!).readAsLines();
+      final states = journal.map((line) => (jsonDecode(line) as Map)['state']);
+      expect(states, contains('sealed'));
+      expect(states, isNot(contains('publishIntent')));
+      expect(states, isNot(contains('published')));
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+  test('AC-15 publication cancellation before bootstrap stays cancelled',
+      () async {
+    late _WorkflowHarness harness;
+    harness = await _WorkflowHarness.create(publicationCheckpoint: (stage) {
+      if (stage == NativePublicationStage.beforeBootstrap) {
+        harness.workflow.cancelCurrentJob();
+      }
+    });
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      await expectLater(
+          harness.workflow.writeApproved(harness.approve(prepared)),
+          _throwsWorkflow('workflow.cancelled'));
+      final failure = harness.workflow.state.failure!;
+      expect(harness.workflow.state.result, isNull);
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.workflow.state.prepared, same(prepared));
+      expect(failure.promotionMayHaveOccurred, isFalse);
+      expect(failure.destinationPath, harness.destination);
+      expect(await File(failure.journalPath!).exists(), isTrue);
+      expect(await Directory(failure.stagingPath!).exists(), isTrue);
+      expect(await Directory(failure.stagingPath!).list().toList(), isEmpty);
+      expect(await Directory(harness.destination).exists(), isFalse);
+      final journal = await File(failure.journalPath!).readAsLines();
+      final states = journal.map((line) => (jsonDecode(line) as Map)['state']);
+      expect(states, contains('bootstrapIntent'));
+      expect(states, isNot(contains('bootstrapCompleted')));
+      expect(states, isNot(contains('published')));
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
   test('AC13 real workflow admits qualified events and exports native pages',
       () async {
     final harness = await _WorkflowHarness.create(
@@ -77,14 +252,17 @@ void main() {
               .any((entry) => entry.code.value == 'workflow.events.summary'),
           isTrue);
       expect(result.receipt.verified, isTrue);
+      expect(result.receipt.published, isFalse);
+      expect(result.published, isTrue);
+      expect(result.projectPath, harness.destination);
       expect(result.playableCertified, isFalse);
       const reader = LocalProjectFileReader();
       final policy = await WorkspacePolicy.create(
-          allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+          allowedRootPaths: [harness.output.path], fileReader: reader);
       final handles = WorkspaceHandleStore();
       final opener = ProjectOpenService(
           policy: policy, fileReader: reader, handles: handles);
-      final opened = await opener.openProject(result.receipt.projectPath);
+      final opened = await opener.openProject(result.projectPath);
       try {
         final native = await ProjectSnapshotLoader(handles: handles).load(
             opened.projectHandle,
@@ -100,7 +278,7 @@ void main() {
       await harness.close();
     }
   }, skip: scriptsPath == null || !Platform.isMacOS);
-  test('UX-01 real source analysis composition approval and native staging',
+  test('UX-01 real source analysis composition approval and native publication',
       () async {
     final harness = await _WorkflowHarness.create();
     final events = <ConverterWorkflowEvent>[];
@@ -151,7 +329,7 @@ void main() {
       final result = await harness.workflow.writeApproved(approval);
       expect(result.receipt.verified, isTrue);
       expect(result.receipt.published, isFalse);
-      expect(result.published, isFalse);
+      expect(result.published, isTrue);
       expect(result.playableCertified, isFalse);
       expect(result.sourceUnchanged, isTrue);
       expect(result.sourceSnapshotHash, snapshot.canonicalHash);
@@ -166,15 +344,21 @@ void main() {
           harness.nativeStages
               .where((stage) => stage == NativeWriteStage.stageCreated),
           hasLength(1));
-      expect(await Directory(harness.destination).exists(), isFalse);
+      expect(await Directory(harness.destination).exists(), isTrue);
+      expect(result.projectPath, harness.destination);
+      expect(result.publication.projectPath, result.projectPath);
+      expect(result.publication.destinationPath, harness.destination);
+      expect(result.publication.nativeRevision, result.receipt.nativeRevision);
+      expect(result.publication.draftHash, result.receipt.draftHash);
+      expect(await File(result.publication.journalPath).exists(), isTrue);
 
       const reader = LocalProjectFileReader();
       final policy = await WorkspacePolicy.create(
-          allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+          allowedRootPaths: [harness.output.path], fileReader: reader);
       final handles = WorkspaceHandleStore();
       final opener = ProjectOpenService(
           policy: policy, fileReader: reader, handles: handles);
-      final opened = await opener.openProject(result.receipt.projectPath);
+      final opened = await opener.openProject(result.projectPath);
       try {
         final native = await ProjectSnapshotLoader(handles: handles).load(
             opened.projectHandle,
@@ -190,8 +374,7 @@ void main() {
           expect(
               result.receipt.mapHashes[map.id],
               literalFixtureHash(
-                  await File('${result.receipt.projectPath}/$path')
-                      .readAsBytes()));
+                  await File('${result.projectPath}/$path').readAsBytes()));
         }
         final tileset = native.manifest.tilesets.single;
         final source = tileset.source! as ProjectRegularAtlasTilesetSource;
@@ -320,11 +503,11 @@ void main() {
       final result =
           await harness.workflow.writeApproved(harness.approve(prepared));
       expect(result.receipt.verified, isTrue);
-      expect(result.published, isFalse);
+      expect(result.published, isTrue);
       expect(result.playableCertified, isFalse);
       final manifest = ProjectManifest.fromJson(jsonDecode(
-          await File('${result.receipt.projectPath}/project.json')
-              .readAsString()) as Map<String, dynamic>);
+              await File('${result.projectPath}/project.json').readAsString())
+          as Map<String, dynamic>);
       final atlas = manifest.tilesets
           .singleWhere((value) =>
               value.id == prepared.composition.autotiles.single.nativeTilesetId)
@@ -904,7 +1087,28 @@ void main() {
           harness.nativeStages
               .where((stage) => stage == NativeWriteStage.stageCreated),
           hasLength(1));
-      expect(await harness.output.list().toList(), hasLength(1));
+      final outputEntries = await harness.output.list().toList();
+      expect(
+          outputEntries.map((entry) => entry.uri.pathSegments
+              .where((segment) => segment.isNotEmpty)
+              .last),
+          unorderedEquals([
+            'original-study-project',
+            Directory(result.publication.journalPath)
+                .parent
+                .uri
+                .pathSegments
+                .where((segment) => segment.isNotEmpty)
+                .last,
+            Directory(result.receipt.stagingRoot)
+                .uri
+                .pathSegments
+                .where((segment) => segment.isNotEmpty)
+                .last,
+          ]));
+      expect(
+          await Directory(result.receipt.stagingRoot).list().toList(), isEmpty);
+      expect(await File(result.publication.journalPath).exists(), isTrue);
     } finally {
       if (!release.isCompleted) release.complete();
       await harness.close();
@@ -951,6 +1155,9 @@ void main() {
       final retryApproval = harness.approve(harness.workflow.state.prepared!);
       final retry = await harness.workflow.writeApproved(retryApproval);
       expect(retry.receipt.verified, isTrue);
+      expect(retry.receipt.published, isFalse);
+      expect(retry.published, isTrue);
+      expect(retry.projectPath, harness.destination);
       expect(retry.receipt.stagingRoot, isNot(cancelledStage));
       expect(await Directory(cancelledStage!).exists(), isTrue);
       expect(await _diskHashes(harness.sourceRoot), sourceBefore);
@@ -1087,7 +1294,7 @@ void main() {
     }
   }, skip: !Platform.isMacOS);
 
-  test('literal cell quota keeps its real code before native staging',
+  test('literal cell quota keeps its real code before native publication',
       () async {
     final harness = await _WorkflowHarness.create();
     try {
@@ -1335,6 +1542,7 @@ final class _WorkflowHarness {
   static Future<_WorkflowHarness> create({
     ConverterWorkflowCheckpoint? checkpoint,
     NativeWriteCheckpoint? nativeCheckpoint,
+    NativePublicationCheckpoint? publicationCheckpoint,
     List<LiteralFixtureMap>? maps,
     List<LiteralFixtureTileset>? tilesets,
     Map<String, List<int>> autotilePngs = const {},
@@ -1346,7 +1554,8 @@ final class _WorkflowHarness {
     final root =
         await Directory.systemTemp.createTemp('ac09-original-workflow-');
     try {
-      final output = await Directory('${root.path}/output').create();
+      final createdOutput = await Directory('${root.path}/output').create();
+      final output = Directory(await createdOutput.resolveSymbolicLinks());
       final fixture = await LiteralTileFixture.create(
         sourceRootPath: '${root.path}/source',
         maps: maps ??
@@ -1366,6 +1575,7 @@ final class _WorkflowHarness {
       final stages = <NativeWriteStage>[];
       final workflow = ConverterWorkflow(
           checkpoint: checkpoint,
+          publicationCheckpoint: publicationCheckpoint,
           nativeWriteCheckpoint: (stage, stagingRoot, projectPath) async {
             stages.add(stage);
             await nativeCheckpoint?.call(stage, stagingRoot, projectPath);

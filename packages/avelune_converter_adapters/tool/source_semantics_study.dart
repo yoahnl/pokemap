@@ -162,19 +162,38 @@ Future<void> main(List<String> args) async {
     await save('approved-plan.json', approval.approvedPlan.toJson());
     final result = await workflow.writeApproved(approval);
     require(
-        result.receipt.verified && result.sourceUnchanged && !result.published,
-        'A verified unpublished output and unchanged source are required');
-    record['projectPath'] = result.receipt.projectPath;
+        result.receipt.verified &&
+            result.sourceUnchanged &&
+            result.published &&
+            !result.playableCertified,
+        'A committed native study and unchanged source are required');
+    record['projectPath'] = result.projectPath;
+    record['published'] = result.published;
+    record['playableCertified'] = result.playableCertified;
+    record['stagingProjectPath'] = result.receipt.projectPath;
+    record['publicationRecoveryRequired'] = false;
+    record['publication'] = {
+      'projectPath': result.publication.projectPath,
+      'destinationPath': result.publication.destinationPath,
+      'journalPath': result.publication.journalPath,
+      'nativeRevision': result.publication.nativeRevision,
+      'draftHash': result.publication.draftHash.value,
+      'inventoryHash': result.publication.inventoryHash.value,
+      'published': result.publication.published,
+    };
+    await File('${evidence.path}/publication-journal.jsonl').writeAsBytes(
+        await File(result.publication.journalPath).readAsBytes(),
+        flush: true);
     record['stagingRoot'] = result.receipt.stagingRoot;
     record['nativeRevision'] = result.receipt.nativeRevision;
     record['sourceUnchanged'] = result.sourceUnchanged;
     const reader = LocalProjectFileReader();
     final handles = WorkspaceHandleStore();
     final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+        allowedRootPaths: [destination.path], fileReader: reader);
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
-    final opened = await opener.openProject(result.receipt.projectPath);
+    final opened = await opener.openProject(result.projectPath);
     try {
       final native = await ProjectSnapshotLoader(handles: handles)
           .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
@@ -214,13 +233,28 @@ Future<void> main(List<String> args) async {
     } finally {
       opener.closeWorkspace(opened.workspaceHandle);
     }
-    record['status'] = 'nativeStudyVerified';
+    record['status'] = 'nativeStudyPublished';
   } catch (error, stack) {
     record['status'] = 'failed';
     record['error'] = error.toString();
     record['stack'] = stack.toString();
     record['workflowFailureCode'] = workflow.state.failure?.code;
     record['preservedFailureStagingPath'] = workflow.state.failure?.stagingPath;
+    record['publicationJournalPath'] = workflow.state.failure?.journalPath;
+    record['destinationPath'] = workflow.state.failure?.destinationPath;
+    record['promotionMayHaveOccurred'] =
+        workflow.state.failure?.promotionMayHaveOccurred ?? false;
+    record['publicationRecoveryRequired'] =
+        workflow.state.failure?.journalPath != null;
+    final journalPath = workflow.state.failure?.journalPath;
+    if (journalPath != null) {
+      try {
+        await File('${evidence.path}/publication-journal.jsonl')
+            .writeAsBytes(await File(journalPath).readAsBytes(), flush: true);
+      } catch (journalError) {
+        record['publicationJournalReadError'] = journalError.toString();
+      }
+    }
     exitCode = 2;
   } finally {
     await subscription.cancel();

@@ -75,13 +75,25 @@ void main() {
     expect(prepared.composition.nativeMaps, literal.composition.nativeMaps);
     final result =
         await harness.workflow.writeApproved(harness.approve(prepared));
+    final publishedParent = await harness.output.resolveSymbolicLinks();
+    expect(result.receipt.verified, isTrue);
+    expect(result.published, isTrue);
+    expect(result.receipt.published, isFalse);
+    expect(result.playableCertified, isFalse);
+    expect(
+        result.projectPath, '$publishedParent/${prepared.settings.folderName}');
+    expect(result.publication.projectPath, result.projectPath);
+    expect(await Directory(result.receipt.projectPath).exists(), isFalse);
+    expect(await Directory(result.receipt.stagingRoot).exists(), isTrue);
+    expect(
+        await Directory(result.receipt.stagingRoot).list().toList(), isEmpty);
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+        allowedRootPaths: [publishedParent], fileReader: reader);
     final handles = WorkspaceHandleStore();
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
-    final opened = await opener.openProject(result.receipt.projectPath);
+    final opened = await opener.openProject(result.projectPath);
     try {
       final native = await ProjectSnapshotLoader(handles: handles)
           .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
@@ -313,16 +325,25 @@ void main() {
         isTrue);
     final approval = harness.approve(prepared);
     final result = await harness.workflow.writeApproved(approval);
+    final publishedParent = await harness.output.resolveSymbolicLinks();
     expect(result.receipt.verified, isTrue);
-    expect(result.published, isFalse);
+    expect(result.published, isTrue);
+    expect(result.receipt.published, isFalse);
     expect(result.playableCertified, isFalse);
+    expect(
+        result.projectPath, '$publishedParent/${prepared.settings.folderName}');
+    expect(result.publication.projectPath, result.projectPath);
+    expect(await Directory(result.receipt.projectPath).exists(), isFalse);
+    expect(await Directory(result.receipt.stagingRoot).exists(), isTrue);
+    expect(
+        await Directory(result.receipt.stagingRoot).list().toList(), isEmpty);
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [result.receipt.stagingRoot], fileReader: reader);
+        allowedRootPaths: [publishedParent], fileReader: reader);
     final handles = WorkspaceHandleStore();
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
-    final opened = await opener.openProject(result.receipt.projectPath);
+    final opened = await opener.openProject(result.projectPath);
     try {
       final native = await ProjectSnapshotLoader(handles: handles)
           .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);

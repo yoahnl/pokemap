@@ -848,7 +848,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (!_busy && _state.failure?.stagingPath != null) ...[
+                        if (!_busy &&
+                            (_state.failure?.stagingPath != null ||
+                                _state.failure?.journalPath != null)) ...[
                           _recoveryPanel(),
                           const SizedBox(height: 24),
                         ],
@@ -1521,7 +1523,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     final result = _state.result;
     if (result != null && !_dirty) {
       return StudioPanel(
-        title: 'Projet d’étude créé et relu',
+        title: 'Projet d’étude publié et relu',
         radius: 16,
         children: [
           const StudioBadge(
@@ -1534,7 +1536,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ),
           const SizedBox(height: 16),
           const Text('Dossier du projet'),
-          SelectableText(result.receipt.projectPath),
+          SelectableText(result.projectPath),
           const SizedBox(height: 16),
           StudioButton(
             key: const ValueKey('show-result-folder'),
@@ -1542,11 +1544,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
             secondary: true,
             icon: Icons.folder_open,
             onPressed: () =>
-                _run(() => widget.folderOpener(result.receipt.projectPath)),
+                _run(() => widget.folderOpener(result.projectPath)),
           ),
           const SizedBox(height: 16),
           const StudioNotice(
-            'Dans Avelune Studio, ouvrez ce dossier pour examiner et éditer les cartes, puis choisissez « Tester la carte » pour les essayer. Le projet reste en préparation ; publication et gameplay complet ne sont pas certifiés.',
+            'Dans Avelune Studio, ouvrez ce dossier pour examiner et éditer les cartes, puis choisissez « Tester la carte » pour les essayer. Le projet d’étude est publié ; les comportements source non traduits restent signalés et le gameplay complet n’est pas certifié.',
           ),
         ],
       );
@@ -1761,24 +1763,77 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   Widget _recoveryPanel() => StudioPanel(
-    title: 'Préparation conservée',
+    title: _state.failure!.promotionMayHaveOccurred
+        ? 'Publication à vérifier'
+        : 'Préparation conservée',
     radius: 16,
     children: [
       Text('Étape interrompue : ${_phaseLabel(_state.phase)}.'),
       const SizedBox(height: 12),
-      const StudioNotice(
-        'Aucun projet final publié. Vous pouvez examiner les fichiers conservés. Une nouvelle approbation sera demandée pour réessayer.',
+      StudioNotice(
+        _state.failure!.promotionMayHaveOccurred
+            ? 'Le dossier final peut avoir été publié avant l’interruption. Le journal permet de vérifier son état ; les fichiers sont conservés.'
+            : 'La préparation est interrompue. Vous pouvez examiner les fichiers conservés. Une nouvelle approbation sera demandée pour réessayer.',
       ),
       const SizedBox(height: 16),
-      SelectableText(_state.failure!.stagingPath!),
+      SelectableText(
+        (_state.failure!.promotionMayHaveOccurred
+                ? _state.failure!.destinationPath
+                : _state.failure!.stagingPath) ??
+            _state.failure!.stagingPath ??
+            path.dirname(_state.failure!.journalPath!),
+      ),
+      if (_state.failure!.journalPath != null) ...[
+        const SizedBox(height: 12),
+        const Text('Journal de publication'),
+        SelectableText(_state.failure!.journalPath!),
+        const SizedBox(height: 12),
+        StudioButton(
+          key: const ValueKey('verify-publication-journal'),
+          label: 'Vérifier la publication',
+          secondary: true,
+          icon: Icons.fact_check_outlined,
+          onPressed: () => _run(() async {
+            final recovery = await const NativeProjectPublication().reconcile(
+              journalPath: _state.failure!.journalPath!,
+              policy: NativePublicationPolicy(
+                allowedParentRoots: [_parent.text.trim()],
+                sourceRoots: [_sourceRoot],
+              ),
+            );
+            if (!mounted) return;
+            setState(() {
+              _sessionNotice = switch (recovery.state) {
+                NativePublicationRecoveryState.published =>
+                  'Publication vérifiée : ${recovery.receipt!.projectPath}. Le gameplay complet reste non certifié.',
+                NativePublicationRecoveryState.prepared =>
+                  'Préparation vérifiée, non publiée. Une nouvelle approbation reste nécessaire.',
+                NativePublicationRecoveryState.incomplete =>
+                  'Préparation incomplète conservée. Aucun succès de publication établi.',
+                NativePublicationRecoveryState.conflict =>
+                  'Le dossier ne correspond pas au journal. Les fichiers sont conservés.',
+                NativePublicationRecoveryState.corrupt =>
+                  'Le journal est invalide. Les fichiers sont conservés.',
+              };
+            });
+          }),
+        ),
+      ],
       const SizedBox(height: 16),
       StudioButton(
         key: const ValueKey('show-recovered-folder'),
-        label: 'Afficher la préparation',
+        label: _state.failure!.promotionMayHaveOccurred
+            ? 'Afficher le dossier de sortie'
+            : 'Afficher les fichiers conservés',
         secondary: true,
         icon: Icons.folder_open,
         onPressed: () =>
-            _run(() => widget.folderOpener(_state.failure!.stagingPath!)),
+            _run(() => widget.folderOpener(
+                _state.failure!.promotionMayHaveOccurred &&
+                        _state.failure!.destinationPath != null
+                    ? path.dirname(_state.failure!.destinationPath!)
+                    : _state.failure!.stagingPath ??
+                        path.dirname(_state.failure!.journalPath!))),
       ),
     ],
   );
@@ -1912,6 +1967,7 @@ String _phaseLabel(ConverterWorkflowPhase? phase) => switch (phase) {
   ConverterWorkflowPhase.compose => 'Préparation des tuiles natives',
   ConverterWorkflowPhase.writeNative => 'Création du projet Avelune',
   ConverterWorkflowPhase.verifyNative => 'Relecture du projet créé',
+  ConverterWorkflowPhase.publishNative => 'Publication du projet vérifié',
   null => 'Traitement',
 };
 
@@ -1932,8 +1988,9 @@ String _failureMessage(Object error) {
 }
 
 String _issueTitle(String code, bool blocking) {
-  if (code == 'workflow.events.quarantined')
+  if (code == 'workflow.events.quarantined') {
     return 'Événement conservé en quarantaine';
+  }
   if (code.startsWith('semantics.')) return 'Comportement source à vérifier';
   if (code.startsWith('library.')) return 'Objet proposé à vérifier';
   if (code.contains('autotile')) return 'Autotiles à prendre en charge';

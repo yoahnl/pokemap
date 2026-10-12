@@ -13,6 +13,7 @@ import 'source_catalog_study_composer.dart';
 import 'local_asset_proposer.dart';
 import 'macos_source_tree.dart';
 import 'native_project_writer.dart';
+import 'native_project_publication.dart';
 import 'snapshot_source_files.dart';
 
 enum ConverterWorkflowPhase {
@@ -22,6 +23,7 @@ enum ConverterWorkflowPhase {
   compose,
   writeNative,
   verifyNative,
+  publishNative,
 }
 
 enum ConverterWorkflowEventKind {
@@ -281,6 +283,7 @@ final class StudyApproval {
 final class ConverterStudyResult {
   const ConverterStudyResult._({
     required this.receipt,
+    required this.publication,
     required this.sourceSnapshotHash,
     required this.preparationHash,
     required this.approvedPlanHash,
@@ -289,23 +292,33 @@ final class ConverterStudyResult {
   });
 
   final NativeWriteReceipt receipt;
+  final NativePublicationReceipt publication;
   final Sha256Hash sourceSnapshotHash;
   final Sha256Hash preparationHash;
   final Sha256Hash approvedPlanHash;
   final int sessionRevision;
   final bool sourceUnchanged;
-  bool get published => false;
+  String get projectPath => publication.projectPath;
+  bool get published => publication.published;
   bool get playableCertified => false;
 }
 
 final class ConverterWorkflowFailure implements Exception {
   const ConverterWorkflowFailure(this.code, this.message,
-      {this.locator, this.stagingPath, this.retryable = true});
+      {this.locator,
+      this.stagingPath,
+      this.journalPath,
+      this.destinationPath,
+      this.promotionMayHaveOccurred = false,
+      this.retryable = true});
 
   final String code;
   final String message;
   final String? locator;
   final String? stagingPath;
+  final String? journalPath;
+  final String? destinationPath;
+  final bool promotionMayHaveOccurred;
   final bool retryable;
 
   @override
@@ -411,12 +424,14 @@ final class ConverterWorkflowEvent {
 }
 
 final class ConverterWorkflow {
-  ConverterWorkflow({this.checkpoint, this.nativeWriteCheckpoint})
+  ConverterWorkflow(
+      {this.checkpoint, this.nativeWriteCheckpoint, this.publicationCheckpoint})
       : _sessionId = ConverterId(
             'converter-workflow:${DateTime.now().microsecondsSinceEpoch}:${_workflowSequence++}');
 
   final ConverterWorkflowCheckpoint? checkpoint;
   final NativeWriteCheckpoint? nativeWriteCheckpoint;
+  final NativePublicationCheckpoint? publicationCheckpoint;
   final StreamController<ConverterWorkflowEvent> _events =
       StreamController.broadcast();
   ConverterWorkflowState _state = const ConverterWorkflowState._();
@@ -714,8 +729,12 @@ final class ConverterWorkflow {
       if (message == null) {
         run.exited = true;
         if (run.outcome == null && !run.done.isCompleted) {
-          run.done.completeError(const ConverterWorkflowFailure(
-              'workflow.worker_failed', 'The worker exited without a result.'));
+          run.done.completeError(ConverterWorkflowFailure(
+              'workflow.worker_failed', 'The worker exited without a result.',
+              stagingPath: run.stagingRoot,
+              journalPath: run.journalPath,
+              destinationPath: run.destinationPath,
+              promotionMayHaveOccurred: run.promotionMayHaveOccurred));
         } else if (!run.done.isCompleted) {
           run.done.complete(run.outcome!);
         }
@@ -762,13 +781,28 @@ final class ConverterWorkflow {
                 progress: message.progress));
         _emit(ConverterWorkflowEventKind.progress);
       } else if (message is _WorkerCheckpoint) {
+        run.stagingRoot = message.stagingRoot ?? run.stagingRoot;
+        run.journalPath = message.journalPath ?? run.journalPath;
+        run.destinationPath = message.destinationPath ?? run.destinationPath;
+        if (message.publicationStage ==
+                NativePublicationStage.publishIntentDurable ||
+            message.publicationStage ==
+                NativePublicationStage.promotedBeforeReceipt) {
+          run.promotionMayHaveOccurred = true;
+        }
         unawaited(_handleCheckpoint(run, message));
+      } else if (message is _WorkerContextRequest) {
+        _replyCurrentContext(run, message);
       } else if (message is _WorkerOutcome) {
         run.outcome = message;
       } else if (message is List && !run.done.isCompleted) {
         run.outcome = _WorkerOutcome(
             failure: ConverterWorkflowFailure(
-                'workflow.worker_failed', message.first.toString()));
+                'workflow.worker_failed', message.first.toString(),
+                stagingPath: run.stagingRoot,
+                journalPath: run.journalPath,
+                destinationPath: run.destinationPath,
+                promotionMayHaveOccurred: run.promotionMayHaveOccurred));
       }
     });
     try {
@@ -789,7 +823,9 @@ final class ConverterWorkflow {
       _WorkflowRun run, _WorkerCheckpoint message) async {
     ConverterWorkflowFailure? failure;
     try {
-      if (message.stage == null) {
+      if (message.publicationStage != null) {
+        await publicationCheckpoint?.call(message.publicationStage!);
+      } else if (message.stage == null) {
         await checkpoint?.call(
             message.phase, message.jobId, run.request.revision);
       } else {
@@ -803,11 +839,43 @@ final class ConverterWorkflow {
       run.control?.send(_WorkerControl.ack(message.ackId, failure));
     }
   }
+
+  void _replyCurrentContext(_WorkflowRun run, _WorkerContextRequest message) {
+    PlanContext? context;
+    ConverterWorkflowFailure? failure;
+    try {
+      final prepared = _state.prepared;
+      final approval = run.request.approval;
+      if (_disposed ||
+          _state.cancellationRequested ||
+          prepared == null ||
+          approval == null ||
+          _state.revision != run.request.revision ||
+          _state.settings?.canonicalHash != prepared.settings.canonicalHash ||
+          approval.approvedPlanHash != approval.approvedPlan.canonicalHash ||
+          prepared.preparationHash != approval.preparationHash ||
+          _state.snapshot?.canonicalHash != prepared.sourceSnapshotHash ||
+          _state.source?.logicalProjectNamespace !=
+              prepared.normalizedSource.snapshot.logicalProjectNamespace) {
+        throw const ConverterWorkflowFailure('workflow.stale_publication',
+            'The active session no longer admits this publication.');
+      }
+      context = _planContext(prepared, approval.approvedPlan, _sessionId,
+          targetCapabilities: _nativeCapabilities());
+      admitPlan(approval.approvedPlan, context);
+    } catch (error) {
+      failure = _workflowFailure(error);
+    }
+    if (identical(_active, run) && !run.exited) {
+      run.control
+          ?.send(_WorkerControl.context(message.ackId, context, failure));
+    }
+  }
 }
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac14-study-v1';
+const _converterVersion = 'avelune-converter-ac15-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -839,6 +907,10 @@ final class _WorkflowRun {
   SendPort? control;
   _WorkerOutcome? outcome;
   bool exited = false;
+  String? stagingRoot;
+  String? journalPath;
+  String? destinationPath;
+  bool promotionMayHaveOccurred = false;
 }
 
 final class _WorkerLaunch {
@@ -856,10 +928,18 @@ final class _WorkerReady {
 final class _WorkerControl {
   const _WorkerControl.cancel()
       : ackId = null,
-        failure = null;
-  const _WorkerControl.ack(this.ackId, this.failure);
+        failure = null,
+        context = null;
+  const _WorkerControl.ack(this.ackId, this.failure) : context = null;
+  const _WorkerControl.context(this.ackId, this.context, this.failure);
   final int? ackId;
   final ConverterWorkflowFailure? failure;
+  final PlanContext? context;
+}
+
+final class _WorkerContextRequest {
+  const _WorkerContextRequest(this.ackId);
+  final int ackId;
 }
 
 final class _WorkerPhase {
@@ -884,6 +964,9 @@ final class _WorkerCheckpoint {
     this.stage,
     this.stagingRoot,
     this.projectPath,
+    this.publicationStage,
+    this.journalPath,
+    this.destinationPath,
   });
   final int ackId;
   final ConverterId jobId;
@@ -891,6 +974,9 @@ final class _WorkerCheckpoint {
   final NativeWriteStage? stage;
   final String? stagingRoot;
   final String? projectPath;
+  final NativePublicationStage? publicationStage;
+  final String? journalPath;
+  final String? destinationPath;
 }
 
 final class _WorkerOutcome {
@@ -914,7 +1000,24 @@ final class _WorkerRelay {
                 'workflow.cancelled', 'The job was cancelled.'));
           }
         }
+        for (final waiter in contextWaiters.values.toList()) {
+          if (!waiter.isCompleted) {
+            waiter.completeError(const ConverterWorkflowFailure(
+                'workflow.cancelled', 'The job was cancelled.'));
+          }
+        }
       } else {
+        final contextWaiter = contextWaiters[message.ackId];
+        if (contextWaiter != null && !contextWaiter.isCompleted) {
+          if (message.failure != null) {
+            contextWaiter.completeError(message.failure!);
+          } else if (message.context != null) {
+            contextWaiter.complete(message.context!);
+          } else {
+            contextWaiter.completeError(const ConverterWorkflowFailure(
+                'workflow.context_missing', 'The active context is missing.'));
+          }
+        }
         final waiter = waiters[message.ackId];
         if (waiter != null && !waiter.isCompleted) {
           if (message.failure == null) {
@@ -931,6 +1034,7 @@ final class _WorkerRelay {
   final ReceivePort port;
   final ScanCancellation cancellation = ScanCancellation();
   final Map<int, Completer<void>> waiters = {};
+  final Map<int, Completer<PlanContext>> contextWaiters = {};
   late final StreamSubscription<dynamic> subscription;
   int phaseIndex = 0;
   int ackIndex = 0;
@@ -966,7 +1070,10 @@ final class _WorkerRelay {
   Future<void> checkpoint(
       {NativeWriteStage? stage,
       String? stagingRoot,
-      String? projectPath}) async {
+      String? projectPath,
+      NativePublicationStage? publicationStage,
+      String? journalPath,
+      String? destinationPath}) async {
     cancellation.check();
     final ackId = ++ackIndex;
     final waiter = Completer<void>();
@@ -977,12 +1084,30 @@ final class _WorkerRelay {
         phase: phase,
         stage: stage,
         stagingRoot: stagingRoot,
-        projectPath: projectPath));
+        projectPath: projectPath,
+        publicationStage: publicationStage,
+        journalPath: journalPath,
+        destinationPath: destinationPath));
     try {
       await waiter.future;
       cancellation.check();
     } finally {
       waiters.remove(ackId);
+    }
+  }
+
+  Future<PlanContext> readCurrentContext() async {
+    cancellation.check();
+    final ackId = ++ackIndex;
+    final waiter = Completer<PlanContext>();
+    contextWaiters[ackId] = waiter;
+    launch.parent.send(_WorkerContextRequest(ackId));
+    try {
+      final context = await waiter.future;
+      cancellation.check();
+      return context;
+    } finally {
+      contextWaiters.remove(ackId);
     }
   }
 
@@ -997,6 +1122,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
   final request = launch.request;
   MacOsSourceTree? tree;
   NativeWriteReceipt? receipt;
+  NativePublicationJob? publicationJob;
   late _WorkerOutcome outcome;
   try {
     if (request.kind == _WorkerKind.write) {
@@ -1297,9 +1423,52 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         await relay.start(
             ConverterWorkflowPhase.writeNative, JobUnit.operations,
             total: draft.mutations.length);
-        final writer = NativeProjectWriter(
-            checkpoint: (stage, stagingRoot, projectPath) async {
+        final context =
+            _planContext(prepared, approval.approvedPlan, request.sessionId);
+        Future<void> publicationCheckpoint(NativePublicationStage? stage,
+            String? journalPath, String? destinationPath) async {
           try {
+            await relay.checkpoint(
+                publicationStage: stage,
+                journalPath: journalPath,
+                destinationPath: destinationPath);
+          } on ConverterWorkflowFailure catch (failure) {
+            throw NativePublicationException(failure.code, failure.message,
+                journalPath: journalPath,
+                destinationPath: destinationPath,
+                promotionMayHaveOccurred: failure.promotionMayHaveOccurred);
+          }
+        }
+
+        publicationJob = await NativeProjectPublication(
+            reservationCheckpoint: (journalPath, destinationPath) =>
+                publicationCheckpoint(null, journalPath, destinationPath),
+            checkpoint: (stage) => publicationCheckpoint(
+                stage,
+                publicationJob?.journalPath,
+                path.join(draft.parentPath, draft.folderName))).begin(
+            approval.approvedPlan, context, draft,
+            policy: NativePublicationPolicy(
+                allowedParentRoots: [draft.parentPath],
+                sourceRoots: [request.source.rootPath]),
+            cancellation: relay.cancellation);
+        await relay.checkpoint(
+            journalPath: publicationJob.journalPath,
+            destinationPath: path.join(draft.parentPath, draft.folderName));
+        final writer = NativeProjectWriter(stagingFactory: () async {
+          try {
+            return await publicationJob!.createStaging();
+          } on NativePublicationException catch (failure) {
+            throw NativeWriteException(
+                failure.code == 'workflow.cancelled'
+                    ? 'native.cancelled'
+                    : failure.code,
+                failure.message);
+          }
+        }, checkpoint: (stage, stagingRoot, projectPath) async {
+          try {
+            await publicationJob!
+                .recordWriteCheckpoint(stage, stagingRoot, projectPath);
             if (stage == NativeWriteStage.beforeNativeVerify) {
               relay.finish();
               await relay.start(
@@ -1316,6 +1485,13 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                     : failure.code,
                 failure.message,
                 stagingPath: stagingRoot);
+          } on NativePublicationException catch (failure) {
+            throw NativeWriteException(
+                failure.code == 'workflow.cancelled'
+                    ? 'native.cancelled'
+                    : failure.code,
+                failure.message,
+                stagingPath: stagingRoot);
           }
           if (stage == NativeWriteStage.afterMutation) {
             relay.update(JobProgress(
@@ -1324,10 +1500,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 unit: JobUnit.operations));
           }
         });
-        receipt = await writer.write(
-            approval.approvedPlan,
-            _planContext(prepared, approval.approvedPlan, request.sessionId),
-            draft,
+        receipt = await writer.write(approval.approvedPlan, context, draft,
             limits: prepared.settings.writeLimits,
             cancellation: relay.cancellation);
         relay.finish(
@@ -1336,9 +1509,31 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         await files.verifyUnchanged();
         relay.cancellation.check();
         relay.finish();
+        await relay.start(ConverterWorkflowPhase.publishNative, JobUnit.files);
+        Future<T> publicationCallback<T>(Future<T> Function() callback) async {
+          try {
+            return await callback();
+          } catch (error) {
+            final failure = _workflowFailure(error);
+            throw NativePublicationException(failure.code, failure.message,
+                journalPath: publicationJob?.journalPath,
+                destinationPath: publicationJob?.destinationPath,
+                promotionMayHaveOccurred: failure.promotionMayHaveOccurred);
+          }
+        }
+
+        final publication = await publicationJob.publish(
+            stagedReceipt: receipt,
+            readCurrentContext: () =>
+                publicationCallback(relay.readCurrentContext),
+            verifySourceUnchanged: () =>
+                publicationCallback(files.verifyUnchanged),
+            cancellation: relay.cancellation);
+        relay.finish();
         outcome = _WorkerOutcome(
             result: ConverterStudyResult._(
                 receipt: receipt,
+                publication: publication,
                 sourceSnapshotHash: snapshot.canonicalHash,
                 preparationHash: prepared.preparationHash,
                 approvedPlanHash: approval.approvedPlanHash,
@@ -1348,8 +1543,12 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
     }
   } catch (error) {
     outcome = _WorkerOutcome(
-        failure: _workflowFailure(error, stagingPath: receipt?.stagingRoot));
+        failure: _workflowFailure(error,
+            stagingPath: receipt?.stagingRoot,
+            journalPath: publicationJob?.journalPath,
+            destinationPath: publicationJob?.destinationPath));
   } finally {
+    await publicationJob?.close();
     await tree?.close();
     await relay.close();
   }
@@ -1498,17 +1697,28 @@ Future<void> _guardPreparationDestination(
   }
 }
 
-ConverterWorkflowFailure _workflowFailure(Object error, {String? stagingPath}) {
+ConverterWorkflowFailure _workflowFailure(Object error,
+    {String? stagingPath, String? journalPath, String? destinationPath}) {
   if (error is ConverterWorkflowFailure) {
     return ConverterWorkflowFailure(error.code, error.message,
         locator: error.locator,
         stagingPath: error.stagingPath ?? stagingPath,
+        journalPath: error.journalPath ?? journalPath,
+        destinationPath: error.destinationPath ?? destinationPath,
+        promotionMayHaveOccurred: error.promotionMayHaveOccurred,
         retryable: error.retryable);
   }
   String code;
   String message;
   String? locator;
-  if (error is NativeWriteException) {
+  var promotionMayHaveOccurred = false;
+  if (error is NativePublicationException) {
+    code = error.code;
+    message = error.message;
+    journalPath = error.journalPath ?? journalPath;
+    destinationPath = error.destinationPath ?? destinationPath;
+    promotionMayHaveOccurred = error.promotionMayHaveOccurred;
+  } else if (error is NativeWriteException) {
     code = error.code;
     message = error.message;
     stagingPath = error.stagingPath ?? stagingPath;
@@ -1518,15 +1728,23 @@ ConverterWorkflowFailure _workflowFailure(Object error, {String? stagingPath}) {
     locator = error.path;
   } else {
     return ConverterWorkflowFailure('workflow.failed', error.toString(),
-        stagingPath: stagingPath);
+        stagingPath: stagingPath,
+        journalPath: journalPath,
+        destinationPath: destinationPath);
   }
-  if (code == 'source.cancelled' || code == 'native.cancelled') {
+  if (code == 'source.cancelled' ||
+      code == 'native.cancelled' ||
+      code == 'publication.cancelled') {
     code = 'workflow.cancelled';
   } else if (code.startsWith('source.') && code.contains('changed')) {
     code = 'workflow.source_changed';
   }
   return ConverterWorkflowFailure(code, message,
-      locator: locator, stagingPath: stagingPath);
+      locator: locator,
+      stagingPath: stagingPath,
+      journalPath: journalPath,
+      destinationPath: destinationPath,
+      promotionMayHaveOccurred: promotionMayHaveOccurred);
 }
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
@@ -1550,7 +1768,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'catalogs':
           'essentials21.1-bounded-data-and-explicit-native-capabilities',
       'battleAuthority': 'aveluneNative',
-      'publication': false,
+      'publication': 'verified-study-exclusive-journalled-macos',
     });
 
 Sha256Hash _reviewProposalGenerationHash(LocalAssetProposalSet proposals,
@@ -1645,9 +1863,9 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac14-v1',
+      'profileId': 'avelune-converter-native-study-ac15-v1',
       'repository': 'yoahnl/pokemap',
-      'revision': '71c34d61430b7ead5b45f2d05eb7e07e39a06cdd',
+      'revision': '6b153da4ad1b2b7b9bfe629caa5b8789c909d8d0',
       'capabilities': [
         for (final action in _nativeStudyActions)
           {
@@ -1693,7 +1911,7 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
               },
             ],
             'limitations': [
-              'Study staging only; published=false and playableCertified=false.',
+              'Native study verification; publication requires a committed exclusive-promotion receipt. Gameplay remains uncertified.',
               'Native events and complete gameplay remain uncertified. Static passages and occlusion require the admitted AC-12 source profile.',
               'Library anchors and disjoint parts are preserved in companion metadata; native placement replacement is not certified.',
               'Autotile animation requires source clock attestation; a first-frame study is explicitly degraded.',
@@ -1814,11 +2032,11 @@ ConversionPlan? _previewPlan(
   }
   add(
       'workflow.study.publication',
-      'The native result is verified staging; project publication requires a separate reviewed step.',
+      'The approved study is written and verified in private staging, then published with a recoverable receipt. Gameplay remains uncertified.',
       false,
       cause: 'policy',
       family: 'publication',
-      disposition: 'excluded');
+      disposition: 'adapted');
   return ConversionPlan.fromJson({
     'schemaVersion': '1.0',
     'kind': 'conversionPlan',
@@ -1899,14 +2117,15 @@ Map<String, Object?>? _planLocator(
 }
 
 PlanContext _planContext(
-    PreparedStudy prepared, ConversionPlan plan, ConverterId sessionId) {
+    PreparedStudy prepared, ConversionPlan plan, ConverterId sessionId,
+    {TargetCapabilities? targetCapabilities}) {
   final source = prepared.normalizedSource;
   final mutations = prepared.nativeDraft!.mutations;
   return PlanContext(
       logicalProjectNamespace: source.snapshot.logicalProjectNamespace,
       sourceSnapshotHash: prepared.sourceSnapshotHash,
       sessionId: sessionId,
-      targetCapabilities: prepared.targetCapabilities,
+      targetCapabilities: targetCapabilities ?? prepared.targetCapabilities,
       rulesHash: _studyRulesHash(),
       decisions: prepared.reviewDecisions,
       candidates: prepared.assetCandidates,

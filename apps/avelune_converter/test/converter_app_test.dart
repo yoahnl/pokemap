@@ -278,14 +278,14 @@ void main() {
         final result = source.workflow.state.result!;
         expect(result.receipt.verified, isTrue);
         expect(result.receipt.mapHashes, hasLength(2));
-        expect(result.published, isFalse);
+        expect(result.published, isTrue);
         expect(result.playableCertified, isFalse);
-        expect(find.text('Projet d’étude créé et relu'), findsOneWidget);
+        expect(find.text('Projet d’étude publié et relu'), findsOneWidget);
         await tester.runAsync(() async {
-          expect(await Directory(result.receipt.projectPath).exists(), isTrue);
+          expect(await Directory(result.projectPath).exists(), isTrue);
           expect(
             await Directory('${source.output.path}/avelune-study').exists(),
-            isFalse,
+            isTrue,
           );
           await source.expectSourceUnchanged();
         });
@@ -294,7 +294,7 @@ void main() {
         );
         await tester.tap(find.byKey(const ValueKey('show-result-folder')));
         await tester.pump();
-        expect(openedFolder, result.receipt.projectPath);
+        expect(openedFolder, result.projectPath);
         expect(tester.takeException(), isNull);
       } finally {
         await tester.pumpWidget(const SizedBox());
@@ -346,10 +346,10 @@ void main() {
         expect(source.workflow.state.failure!.stagingPath, recoveredFolder);
         expect(find.text(recoveredFolder!), findsOneWidget);
         expect(
-          find.textContaining('Aucun projet final publié'),
+          find.textContaining('La préparation est interrompue'),
           findsOneWidget,
         );
-        expect(find.text('Projet d’étude créé et relu'), findsNothing);
+        expect(find.text('Projet d’étude publié et relu'), findsNothing);
         await tester.ensureVisible(
           find.byKey(const ValueKey('show-recovered-folder')),
         );
@@ -416,7 +416,7 @@ void main() {
         find.textContaining('Ce projet n’a pas pu être lu'),
         findsOneWidget,
       );
-      expect(find.text('Projet d’étude créé et relu'), findsNothing);
+      expect(find.text('Projet d’étude publié et relu'), findsNothing);
       expect(source.nativeStages, isEmpty);
       await tester.tap(find.text('Source'));
       await tester.pump();

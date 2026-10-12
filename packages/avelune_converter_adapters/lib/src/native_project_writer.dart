@@ -410,6 +410,7 @@ final class NativeProjectDraft {
 enum NativeWriteStage {
   beforeStage,
   stageCreated,
+  beforeBootstrap,
   afterBootstrap,
   afterMutation,
   afterMutations,
@@ -419,6 +420,8 @@ enum NativeWriteStage {
 
 typedef NativeWriteCheckpoint = FutureOr<void> Function(
     NativeWriteStage stage, String? stagingRoot, String? projectPath);
+
+typedef NativeStagingFactory = Future<String> Function();
 
 final class NativeWriteReceipt {
   NativeWriteReceipt._({
@@ -451,9 +454,11 @@ final class NativeWriteException implements Exception {
 }
 
 final class NativeProjectWriter {
-  const NativeProjectWriter({this.creation, this.checkpoint});
+  const NativeProjectWriter(
+      {this.creation, this.checkpoint, this.stagingFactory});
   final ProjectCreationPort? creation;
   final NativeWriteCheckpoint? checkpoint;
+  final NativeStagingFactory? stagingFactory;
 
   Future<NativeWriteReceipt> write(
     ConversionPlan plan,
@@ -480,9 +485,9 @@ final class NativeProjectWriter {
       await checkpoint?.call(NativeWriteStage.beforeStage, null, null);
       _checkCancelled(cancellation);
       await _guardDestination(draft, parent);
-      stagingRoot =
-          (await Directory(parent).createTemp('.avelune-converter-stage-'))
-              .path;
+      stagingRoot = stagingFactory == null
+          ? (await Directory(parent).createTemp('.avelune-converter-stage-')).path
+          : await stagingFactory!();
       _makePrivate(stagingRoot);
       projectPath = path.join(stagingRoot, draft.folderName);
       await _guardStage(draft, parent, stagingRoot);
@@ -496,6 +501,10 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.destination.changed',
             'Creation destination differs from the private staging path');
       }
+      await checkpoint?.call(
+          NativeWriteStage.beforeBootstrap, stagingRoot, projectPath);
+      _checkCancelled(cancellation);
+      await _guardStage(draft, parent, stagingRoot);
       final created = await creator.create(stageRequest,
           expectedDestination: projectPath,
           isCancelled: () => cancellation?.isCancelled ?? false);
