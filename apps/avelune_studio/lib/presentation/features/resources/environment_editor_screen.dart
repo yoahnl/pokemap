@@ -12,6 +12,12 @@ import '../../shared/widgets/inputs/studio_slider.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/map_workspace_visuals.dart';
+import '../map_workspace/workspace_compact_panel.dart';
+import 'resource_catalog.dart';
+import 'resource_family_tree.dart';
+import 'resource_family_tree_view.dart';
+import 'resource_filter_button.dart';
+import 'resource_preview.dart';
 part 'environment_editor_palette.dart';
 part 'environment_decor_picker.dart';
 
@@ -79,15 +85,25 @@ class _EnvironmentEditorScreenState extends State<EnvironmentEditorScreen> {
   }
 
   Future<void> add() async {
-    final element = await showDialog<ProjectElementEntry>(
+    final resource = await showDialog<ResourceItem>(
       context: context,
       builder: (context) => _EnvironmentDecorPicker(
         project: widget.project,
         visuals: widget.visuals,
-        excluded: draft.palette.map((item) => item.elementId).toSet(),
+        activeMapId: widget.project.resourceLibraryCatalog
+            .entryFor('environmentPreset', draft.id)
+            ?.mapId,
+        excluded: draft.palette
+            .map(
+              (item) =>
+                  '${item.isSpatial ? 'model3d' : 'element'}:${item.resourceId}',
+            )
+            .toSet(),
       ),
     );
-    if (mounted && element != null) change(() => draft.add(element.id));
+    if (mounted && resource != null) {
+      change(() => draft.add(resource.id, spatial: resource.model3d != null));
+    }
   }
 
   @override
@@ -96,8 +112,7 @@ class _EnvironmentEditorScreenState extends State<EnvironmentEditorScreen> {
     children: [
       StudioPageHeader(
         title: 'Composer un environnement',
-        description:
-            'Choisissez les décors et leur répartition. La zone se dessine sur Carte.',
+        description: 'Choisissez les décors et leur répartition. La zone se dessine sur Carte.',
       ),
       Expanded(
         child: SingleChildScrollView(

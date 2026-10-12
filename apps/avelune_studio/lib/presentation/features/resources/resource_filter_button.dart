@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_filter_tag.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 import 'resource_catalog.dart';
@@ -54,6 +55,7 @@ class ResourceFilterButton extends StatelessWidget {
     final count =
         (filters.scope == ResourceCatalogScope.all ? 0 : 1) +
         (!forMapPicker && filters.usage != ResourceCatalogUsage.all ? 1 : 0) +
+        (filters.showComponents ? 1 : 0) +
         (categoryTree != null && category.isNotEmpty ? 1 : 0);
     return StudioButton(
       key: const ValueKey('resource-filter-button'),
@@ -115,6 +117,17 @@ class ResourceFilterButton extends StatelessWidget {
                           ),
                         ],
                         const SizedBox(height: 16),
+                        StudioToggleRow(
+                          key: const ValueKey('resource-filter-components'),
+                          label: 'Afficher les composants',
+                          description: 'Pièces utilisées pour composer les terrains, chemins, bordures et environnements.',
+                          value: draft.showComponents,
+                          onChanged: (value) {
+                            draft.showComponents = value;
+                            refresh();
+                          },
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           !forMapPicker || activeMapName == null
                               ? 'Les ressources propres à une carte ne sont proposées que dans leur carte.'
@@ -170,6 +183,7 @@ class ResourceFilterButton extends StatelessWidget {
                             onPressed: () {
                               draft.scope = ResourceCatalogScope.all;
                               draft.usage = ResourceCatalogUsage.all;
+                              draft.showComponents = false;
                               draftCategory = '';
                               refresh();
                             },
@@ -186,6 +200,7 @@ class ResourceFilterButton extends StatelessWidget {
                             onPressed: () {
                               filters.scope = draft.scope;
                               filters.usage = draft.usage;
+                              filters.showComponents = draft.showComponents;
                               close();
                               onCategoryChanged?.call(draftCategory);
                               onChanged();
@@ -228,6 +243,15 @@ class ResourceFilterTags extends StatelessWidget {
     spacing: 8,
     runSpacing: 8,
     children: [
+      if (filters.showComponents)
+        StudioFilterTag(
+          key: const ValueKey('resource-filter-tag-components'),
+          label: 'Composants affichés',
+          onRemove: () {
+            filters.showComponents = false;
+            onChanged();
+          },
+        ),
       if (filters.familyId.isNotEmpty && familyLabel != null)
         StudioFilterTag(
           key: const ValueKey('resource-filter-tag-family'),

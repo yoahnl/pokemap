@@ -89,6 +89,11 @@ final class GamePackageProjectValidator {
                 .contains('map3d.animation@1')) {
           _fail('Animated 3D decor requires map3d.animation@1.');
         }
+        if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains('map3d.terrain-appearance@1')) {
+          _fail('Custom 3D terrain appearance requires map3d.terrain-appearance@1.');
+        }
       }
       return project;
     } on GamePackageFormatException {

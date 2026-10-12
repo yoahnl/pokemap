@@ -2,6 +2,29 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('modelled cliffs preserve their explicit wall visibility on reopen', () {
+    final json = MapSpatialScene(width: 2, depth: 2).toJson()
+      ..['generateCliffs'] = false;
+    final reopened = MapSpatialScene.fromJson(json);
+    expect(reopened.toJson()['generateCliffs'], false);
+    expect(reopened.copyWith().toJson()['generateCliffs'], false);
+    expect(reopened.copyWith(generateCliffs: true).generateCliffs, true);
+    expect(reopened, isNot(reopened.copyWith(generateCliffs: true)));
+    final map = MapData(
+      id: 'modelled',
+      name: 'Modelled',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 2, height: 2),
+      spatialScene: reopened,
+    );
+    expect(
+      const SpatialMapOperations()
+          .setLevels(map, [const SpatialCellLevel(x: 1, z: 1, level: 2)])
+          .spatialScene!
+          .generateCliffs,
+      false,
+    );
+  });
   final project = ProjectManifest(
     name: 'Relief',
     maps: [],

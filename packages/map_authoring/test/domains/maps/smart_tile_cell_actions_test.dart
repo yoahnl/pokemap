@@ -5,12 +5,193 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'pattern erase targets explicit strokes without deleting lower ownership',
+      () {
+    const lower = SmartTilePatternStroke(
+      id: 'lower',
+      patternId: 'rock-stamp',
+      phaseX: 0,
+      phaseY: 0,
+      cells: [GridPos(x: 0, y: 0)],
+    );
+    final fixture = _fixture(
+      spatial: true,
+      elevated: true,
+      includePattern: true,
+      field: const SmartTileField.cell(semanticCells: [1, 1, 0, 0]),
+      patternStrokes: const [
+        lower,
+        SmartTilePatternStroke(
+          id: 'upper',
+          patternId: 'rock-stamp',
+          phaseX: 0,
+          phaseY: 0,
+          cells: [GridPos(x: 0, y: 0)],
+        ),
+      ],
+    );
+    final draft = _buildPattern(
+      fixture.snapshot,
+      actionId: 'smart_tile.pattern.erase',
+      parameters: {
+        'mapId': 'map',
+        'layerId': 'ground',
+        'strokeIds': ['upper'],
+        'cells': [
+          {'x': 0, 'y': 0},
+        ],
+      },
+    );
+    final map = _map(draft);
+    final layer = map.layers.single as SmartTileLayer;
+    expect(layer.patternStrokes, [lower]);
+    expect(layer.field, (fixture.map.layers.single as SmartTileLayer).field);
+    expect(map.spatialScene, fixture.map.spatialScene);
+    expect(draft.preview['erasedOwnershipCount'], 1);
+    expect(draft.preview['targetStrokeIds'], ['upper']);
+    final descriptor = SmartTilePatternActions.descriptors
+        .singleWhere((value) => value.id == 'smart_tile.pattern.erase');
+    expect(descriptor.extensions['optionalEraseStrokeIds'], isTrue);
+  });
+
+  test('pattern erase rejects invalid stroke filters before mutation', () {
+    final fixture = _fixture(
+      spatial: true,
+      includePattern: true,
+      patternStrokes: const [
+        SmartTilePatternStroke(
+          id: 'upper',
+          patternId: 'rock-stamp',
+          phaseX: 0,
+          phaseY: 0,
+          cells: [GridPos(x: 0, y: 0)],
+        ),
+      ],
+    );
+    for (final ids in <List<Object?>>[
+      [],
+      ['upper', 'upper'],
+      ['unknown'],
+      ['upper', 'unknown'],
+      [' upper'],
+      [1],
+    ]) {
+      expect(
+        () => _buildPattern(
+          fixture.snapshot,
+          actionId: 'smart_tile.pattern.erase',
+          parameters: {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'strokeIds': ids,
+            'cells': [
+              {'x': 0, 'y': 0},
+            ],
+          },
+        ),
+        throwsA(isA<MapAuthoringException>()),
+      );
+      expect(
+          (fixture.map.layers.single as SmartTileLayer)
+              .patternStrokes
+              .single
+              .id,
+          'upper');
+    }
+  });
+
+  test('native 3D pattern erase preserves the material and elevated terrain',
+      () {
+    final fixture = _fixture(
+      spatial: true,
+      elevated: true,
+      includePattern: true,
+      field: const SmartTileField.cell(semanticCells: [1, 1, 0, 0]),
+      patternStrokes: const [
+        SmartTilePatternStroke(
+          id: 'source-pattern',
+          patternId: 'rock-stamp',
+          phaseX: 3,
+          phaseY: 4,
+          cells: [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+        ),
+      ],
+    );
+    final draft = _buildPattern(
+      fixture.snapshot,
+      actionId: 'smart_tile.pattern.erase',
+      parameters: {
+        'mapId': 'map',
+        'layerId': 'ground',
+        'cells': [
+          {'x': 0, 'y': 0}
+        ],
+      },
+    );
+    final map = _map(draft);
+    final layer = map.layers.single as SmartTileLayer;
+    expect(layer.field, (fixture.map.layers.single as SmartTileLayer).field);
+    expect(layer.patternStrokes.single.cells, [const GridPos(x: 1, y: 0)]);
+    expect(layer.patternStrokes.single.phaseX, 3);
+    expect(layer.patternStrokes.single.phaseY, 4);
+    expect(map.spatialScene, fixture.map.spatialScene);
+    expect(MapData.fromJson(map.toJson()), map);
+  });
   group('SmartTileCellActions', () {
+    for (final actionId in [
+      'smart_tile.cell.paint',
+      'smart_tile.cell.erase',
+      'smart_tile.cell.paint_batch',
+    ]) {
+      test('$actionId removes only targeted native 3D pattern cells', () {
+        final fixture = _fixture(
+          spatial: true,
+          includePattern: true,
+          field: const SmartTileField.cell(semanticCells: [1, 1, 0, 0]),
+          patternStrokes: const [
+            SmartTilePatternStroke(
+              id: 'source-pattern',
+              patternId: 'rock-stamp',
+              phaseX: 3,
+              phaseY: 4,
+              cells: [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+            ),
+          ],
+        );
+        final cells = [
+          {'x': 0, 'y': 0}
+        ];
+        final draft = _build(fixture.snapshot, actionId: actionId, parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          if (actionId == 'smart_tile.cell.paint_batch')
+            'strokes': [
+              {'materialId': 'grass', 'cells': cells}
+            ]
+          else ...{
+            if (actionId == 'smart_tile.cell.paint') 'materialId': 'grass',
+            'cells': cells,
+          },
+        });
+        final layer = _map(draft).layers.single as SmartTileLayer;
+        expect(layer.patternStrokes.single.cells, [GridPos(x: 1, y: 0)]);
+        expect(layer.patternStrokes.single.phaseX, 3);
+        expect(layer.patternStrokes.single.phaseY, 4);
+        expect(smartTileSemanticCells(layer),
+            [actionId == 'smart_tile.cell.erase' ? 0 : 1, 1, 0, 0]);
+        expect(draft.preview['changedCellCount'], 1);
+        expect(fixture.map.layers.single, isNot(layer));
+        expect(MapData.fromJson(_map(draft).toJson()), _map(draft));
+      });
+    }
     test('3D repaint clears higher soil through one canonical mutation', () {
       final fixture = _fixture(
           spatial: true,
-        field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]),
-        properties: const {'tileLayerOrder': 'bottom_to_top'},
+          field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]),
+          properties: const {
+            'tileLayerOrder': 'bottom_to_top'
+          },
           additionalLayers: [
             SmartTileLayer(
                 id: 'higher-soil',
@@ -76,13 +257,18 @@ void main() {
     test('paints elevated 3D terrain and preserves its supporting scene', () {
       final fixture = _fixture(spatial: true, elevated: true);
       final painted = _map(_build(fixture.snapshot,
-        actionId: 'smart_tile.cell.paint', parameters: const {
-          'mapId': 'map', 'layerId': 'ground', 'materialId': 'grass',
-          'cells': [{'x': 1, 'y': 1}],
-        }));
+          actionId: 'smart_tile.cell.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'ground',
+            'materialId': 'grass',
+            'cells': [
+              {'x': 1, 'y': 1}
+            ],
+          }));
       expect(painted.spatialScene, fixture.map.spatialScene);
       expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer),
-        [0,0,0,1]);
+          [0, 0, 0, 1]);
     });
     test('registers atomic paint and erase contracts', () {
       expect(
@@ -96,7 +282,8 @@ void main() {
         ],
       );
       for (final descriptor in SmartTileCellActions.descriptors.where(
-          (descriptor) => descriptor.id == 'smart_tile.cell.paint' ||
+          (descriptor) =>
+              descriptor.id == 'smart_tile.cell.paint' ||
               descriptor.id == 'smart_tile.cell.erase')) {
         expect(descriptor.guarantees, contains(AuthoringGuarantee.atomic));
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
@@ -716,6 +903,7 @@ AuthoringMutationDraft _build(
   bool spatial = false,
   bool elevated = false,
   List<SmartTileLayer> additionalLayers = const [],
+  List<SmartTilePatternStroke> patternStrokes = const [],
   Map<String, dynamic> properties = const {},
 }) {
   final resolvedField = field ??
@@ -744,6 +932,7 @@ AuthoringMutationDraft _build(
         usage: SmartTileUsage.terrain,
         materialPalette: const <String>['', 'grass'],
         field: resolvedField,
+        patternStrokes: patternStrokes,
       ),
       ...additionalLayers,
       if (includeCollision)

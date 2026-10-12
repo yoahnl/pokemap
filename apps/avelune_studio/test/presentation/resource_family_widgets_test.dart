@@ -19,6 +19,100 @@ Future<void> _choose(WidgetTester tester, String key, String label) async {
 }
 
 void main() {
+  testWidgets('components draft counts apply cancel reset and removable tag', (
+    tester,
+  ) async {
+    final project = workspaceProject.copyWith(
+      elements: [
+        workspaceElement,
+        workspaceElement.copyWith(id: 'component', name: 'Phase source'),
+      ],
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'component',
+            role: ResourceLibraryRole.component,
+          ),
+        ],
+      ),
+    );
+    final filters = ResourceCatalogFilterState();
+    var changes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => Column(
+              children: [
+                ResourceFilterButton(
+                  filters: filters,
+                  onChanged: () => setState(() => changes++),
+                  countResults: (draft, _) => filterResourceCatalog(
+                    project,
+                    resourceCatalog(project),
+                    draft,
+                  ).length,
+                ),
+                ResourceFilterTags(
+                  filters: filters,
+                  onChanged: () => setState(() => changes++),
+                ),
+                Text(
+                  'Visible: ${filterResourceCatalog(project, resourceCatalog(project), filters).length}',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    String count() => tester
+        .widget<Text>(
+          find.byKey(const ValueKey('resource-filter-result-count')),
+        )
+        .data!;
+    await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+    await tester.pumpAndSettle();
+    expect(count(), '2 résultats');
+    await tester.tap(find.byKey(const ValueKey('resource-filter-components')));
+    await tester.pumpAndSettle();
+    expect(count(), '3 résultats');
+    expect(filters.showComponents, isFalse);
+    expect(find.text('Visible: 2'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('resource-filter-cancel')));
+    await tester.pumpAndSettle();
+    expect(changes, 0);
+    await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('resource-filter-components')));
+    await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+    await tester.pumpAndSettle();
+    expect(filters.showComponents, isTrue);
+    expect(find.text('Visible: 3'), findsOneWidget);
+    expect(find.text('Filtres (1)'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('Retirer le filtre Composants affichés')),
+    );
+    await tester.pumpAndSettle();
+    expect(filters.showComponents, isFalse);
+    filters.showComponents = true;
+    filters.query = 'absent';
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+    await tester.pumpAndSettle();
+    expect(count(), '0 résultats');
+    await tester.tap(find.byKey(const ValueKey('resource-filter-reset')));
+    await tester.pumpAndSettle();
+    expect(count(), '0 résultats');
+    expect(filters.showComponents, isTrue);
+    await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+    await tester.pumpAndSettle();
+    expect(filters.showComponents, isFalse);
+    expect(filters.query, 'absent');
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('character resources retain their authored animation preview', (
     tester,
   ) async {

@@ -1,5 +1,50 @@
 import 'package:map_core/map_core_domain.dart';
 
+final class MapBorderEraseDraft {
+  MapBorderEraseDraft({
+    required this.sourceMap,
+    required this.sourceProject,
+    required this.layerId,
+    required this.featureId,
+    required List<GridPos> points,
+  }) : points = List.unmodifiable(points);
+
+  final MapData sourceMap;
+  final ProjectManifest sourceProject;
+  final String layerId;
+  final String featureId;
+  final List<GridPos> points;
+
+  BorderFeature get feature {
+    final layer = sourceMap.layers.whereType<BorderLayer>()
+        .where((layer) => layer.id == layerId && layer.isVisible).firstOrNull;
+    final feature = layer?.content.featureById(featureId);
+    if (feature?.geometry is! BorderStrokeGeometry) {
+      throw const ValidationException('Sélectionnez un tracé linéaire visible à gommer.');
+    }
+    return feature!;
+  }
+
+  BorderStrokeGeometry get geometry => feature.geometry as BorderStrokeGeometry;
+
+  GridPos pointFromWorldCell(GridPos cell) {
+    final offset = feature.spatialOffsetWorld;
+    final center = geometry.alignment == BorderStrokeAlignment.cellCenters ? .5 : 0;
+    return GridPos(x: cell.x - (center + (offset?.x ?? 0)).floor(),
+        y: cell.y - (center + (offset?.z ?? 0)).floor());
+  }
+
+  bool validFor(MapData map, ProjectManifest project) =>
+      identical(sourceMap, map) && identical(sourceProject, project);
+
+  MapBorderEraseDraft sample(GridPos point) {
+    _requireInside(point, sourceMap.size, geometry.alignment);
+    if (points.lastOrNull == point) return this;
+    return MapBorderEraseDraft(sourceMap: sourceMap, sourceProject: sourceProject,
+        layerId: layerId, featureId: featureId, points: [...points, point]);
+  }
+}
+
 final class MapBorderDrawingDraft {
   MapBorderDrawingDraft._({
     required this.mapId,
@@ -9,6 +54,10 @@ final class MapBorderDrawingDraft {
     required List<GridPos> anchors,
     required this.hover,
     required this.closed,
+    required this.featureId,
+    required this.seed,
+    required this.sourceMap,
+    required this.sourceProject,
   }) : anchors = List.unmodifiable(anchors);
 
   factory MapBorderDrawingDraft.start({
@@ -17,6 +66,10 @@ final class MapBorderDrawingDraft {
     required String blueprintId,
     BorderStrokeAlignment alignment = BorderStrokeAlignment.cellCenters,
     required GridPos origin,
+    MapData? sourceMap,
+    ProjectManifest? sourceProject,
+    String? featureId,
+    BorderSignedInt64? seed,
   }) {
     _requireInside(origin, mapSize, alignment);
     return MapBorderDrawingDraft._(
@@ -27,6 +80,14 @@ final class MapBorderDrawingDraft {
       anchors: [origin],
       hover: null,
       closed: false,
+      featureId:
+          featureId ??
+          'studio-border-${DateTime.now().microsecondsSinceEpoch}-${_nextId++}',
+      seed:
+          seed ??
+          BorderSignedInt64.fromInt(DateTime.now().microsecondsSinceEpoch),
+      sourceMap: sourceMap,
+      sourceProject: sourceProject,
     );
   }
 
@@ -37,6 +98,11 @@ final class MapBorderDrawingDraft {
   final List<GridPos> anchors;
   final GridPos? hover;
   final bool closed;
+  final String featureId;
+  final BorderSignedInt64 seed;
+  final MapData? sourceMap;
+  final ProjectManifest? sourceProject;
+  static int _nextId = 0;
 
   MapBorderDrawingDraft addAngle(GridPos point) {
     _requireInside(point, mapSize, alignment);
@@ -58,6 +124,10 @@ final class MapBorderDrawingDraft {
       anchors: next,
       hover: null,
       closed: closes,
+      featureId: featureId,
+      seed: seed,
+      sourceMap: sourceMap,
+      sourceProject: sourceProject,
     );
   }
 
@@ -71,6 +141,10 @@ final class MapBorderDrawingDraft {
         ? point
         : null,
     closed: closed,
+    featureId: featureId,
+    seed: seed,
+    sourceMap: sourceMap,
+    sourceProject: sourceProject,
   );
 
   MapBorderDrawingDraft? removeLastAngle() {
@@ -83,6 +157,10 @@ final class MapBorderDrawingDraft {
       anchors: anchors.sublist(0, anchors.length - 1),
       hover: null,
       closed: false,
+      featureId: featureId,
+      seed: seed,
+      sourceMap: sourceMap,
+      sourceProject: sourceProject,
     );
   }
 

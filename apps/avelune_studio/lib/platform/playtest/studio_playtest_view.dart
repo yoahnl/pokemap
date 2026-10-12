@@ -69,9 +69,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         projectFilePath: projectPath,
         mapId: widget.entry.id,
       );
-      if (bundle.map != document.map) {
-        throw StateError('La carte a changé pendant la préparation du test.');
-      }
+      _requireUnchangedMap(bundle, document.map);
       StudioSpatialPlaytest.validateHero(bundle);
       await _prepareProjectAssets();
       if (!mounted) throw StateError('Test fermé');
@@ -79,9 +77,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         projectFilePath: projectPath,
         mapId: widget.entry.id,
       );
-      if (bundle.map != document.map) {
-        throw StateError('La carte a changé pendant la préparation du test.');
-      }
+      _requireUnchangedMap(bundle, document.map);
       final playtest = await StudioSpatialPlaytest.prepare(
         bundle: bundle,
         projectFilePath: projectPath,
@@ -126,9 +122,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       projectFilePath: projectPath,
       mapId: widget.entry.id,
     );
-    if (bundle.map != document.map) {
-      throw StateError('La carte a changé pendant la préparation du test.');
-    }
+    _requireUnchangedMap(bundle, document.map);
     final initialGameState = await prepareStudioPlaytestStart(
       bundle,
       projectPath,
@@ -144,6 +138,18 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     _game = game;
     setState(() => _ready = true);
     return game;
+  }
+
+  void _requireUnchangedMap(RuntimeMapBundle bundle, MapData document) {
+    final expected = projectSpatialSmartTileModels(
+      map: document,
+      catalog: bundle.manifest.smartTileCatalog,
+      sourceCellWidth: bundle.manifest.settings.tileWidth,
+      sourceCellHeight: bundle.manifest.settings.tileHeight,
+    );
+    if (bundle.map != expected) {
+      throw StateError('La carte a changé pendant la préparation du test.');
+    }
   }
 
   Future<void> _prepareProjectAssets() async {

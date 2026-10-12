@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/project_manifest.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/smart_tile.dart';
 import 'smart_tile_catalog_validation.dart';
 import 'smart_tile_coverage.dart';
@@ -19,10 +20,10 @@ final class SmartTileDraftCompilationSuccess
     required List<ProjectSmartTileAnimation> animations,
     required this.coverage,
     required List<SmartTileDiagnostic> diagnostics,
-  })  : atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
-        materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
-        animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
-        diagnostics = List<SmartTileDiagnostic>.unmodifiable(diagnostics);
+  }) : atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
+       materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
+       animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
+       diagnostics = List<SmartTileDiagnostic>.unmodifiable(diagnostics);
 
   final ProjectSmartTilePreset preset;
   final List<ProjectSmartTileAtlas> atlases;
@@ -64,11 +65,26 @@ SmartTileDraftCompilationResult compileSmartTileAuthoringDraft({
         drafts: <ProjectSmartTileAuthoringDraft>[draft],
       ),
       projectTilesetIds: projectTilesetIds,
+      projectModelIds: manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in manifest.models3d)
+          model.id: model.inspection.animations
+              .map((clip) => clip.index)
+              .toSet(),
+      },
+      spatial: manifest.settings.dimension == ProjectDimension.threeD,
     ),
   ];
 
   final primaryAtlasId = draft.primaryAtlasId;
-  if (primaryAtlasId == null || primaryAtlasId.trim().isEmpty) {
+  final requiresAtlas = draft.rules.any(
+    (rule) => rule.candidates.any(
+      (candidate) =>
+          candidate.parts.any((part) => part.source is! SmartTileModel3dSource),
+    ),
+  );
+  if (requiresAtlas &&
+      (primaryAtlasId == null || primaryAtlasId.trim().isEmpty)) {
     diagnostics.add(
       _draftError(
         code: 'smart_tiles.draft.atlas_missing',
@@ -165,6 +181,14 @@ SmartTileDraftCompilationResult compileSmartTileAuthoringDraft({
     validateProjectSmartTileCatalog(
       catalog: projectedCatalog,
       projectTilesetIds: projectTilesetIds,
+      projectModelIds: manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in manifest.models3d)
+          model.id: model.inspection.animations
+              .map((clip) => clip.index)
+              .toSet(),
+      },
+      spatial: manifest.settings.dimension == ProjectDimension.threeD,
     ),
   );
 
@@ -176,9 +200,7 @@ SmartTileDraftCompilationResult compileSmartTileAuthoringDraft({
   );
   final uniqueDiagnostics = _uniqueDiagnostics(diagnostics);
   if (uniqueDiagnostics.any((diagnostic) => diagnostic.isError)) {
-    return SmartTileDraftCompilationFailure(
-      diagnostics: uniqueDiagnostics,
-    );
+    return SmartTileDraftCompilationFailure(diagnostics: uniqueDiagnostics);
   }
 
   return SmartTileDraftCompilationSuccess(
@@ -211,8 +233,9 @@ List<T> _upsertAllById<T>(
 ) {
   final result = existing.toList(growable: true);
   for (final item in incoming) {
-    final index =
-        result.indexWhere((candidate) => idOf(candidate) == idOf(item));
+    final index = result.indexWhere(
+      (candidate) => idOf(candidate) == idOf(item),
+    );
     if (index < 0) {
       result.add(item);
     } else {

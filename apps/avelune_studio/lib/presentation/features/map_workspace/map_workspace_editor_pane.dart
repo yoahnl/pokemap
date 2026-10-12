@@ -128,13 +128,20 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                 onChanged: widget.onChanged,
                               ),
                             if (widget.view.tool == StudioMapTool.border)
-                              MapBorderToolPanel(
-                                document: widget.document,
-                                project: widget.project,
-                                view: widget.view,
-                                onChanged: widget.onChanged,
-                                onCreateModel:
-                                    widget.onBorders ?? widget.onResources,
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: bounds.maxHeight * .3,
+                                ),
+                                child: SingleChildScrollView(
+                                  child: MapBorderToolPanel(
+                                    document: widget.document,
+                                    project: widget.project,
+                                    view: widget.view,
+                                    onChanged: widget.onChanged,
+                                    onCreateModel:
+                                        widget.onBorders ?? widget.onResources,
+                                  ),
+                                ),
                               ),
                             if (widget.view.tool == StudioMapTool.environment)
                               ConstrainedBox(

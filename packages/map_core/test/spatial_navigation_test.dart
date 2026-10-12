@@ -2,6 +2,20 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('ramp levels share the terrain ceiling and roundtrip above level 32', () {
+    SpatialRamp ramp(int highLevel) => SpatialRamp(id: 'upper', x: 1, z: 1,
+        width: 1, depth: 1, lowLevel: 28, highLevel: highLevel,
+        direction: SpatialRampDirection.north);
+    final upper = ramp(36);
+    expect(SpatialRamp.fromJson(upper.toJson()), upper);
+    final levels = List.filled(9, 28)..[1] = 36;
+    final scene = MapSpatialScene(width: 3, depth: 3, heightLevels: levels,
+        levelHeight: .25, navigation: SpatialNavigationProfile(ramps: [upper]));
+    expect(MapSpatialScene.fromJson(scene.toJson()), scene);
+    expect(scene.worldHeightAt(1.5, 1.5), 8);
+    expect(ramp(MapSpatialScene.maximumTerrainLevel).highLevel, 64);
+    expect(() => ramp(MapSpatialScene.maximumTerrainLevel + 1), throwsFormatException);
+  });
   test(
     'navigation has immutable roundtrip value semantics and default policy',
     () {

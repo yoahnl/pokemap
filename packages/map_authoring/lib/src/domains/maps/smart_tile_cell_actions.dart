@@ -148,6 +148,7 @@ final class SmartTileCellActions {
       projected = applySmartTileMapMaterialGesture(
         projected,
         layer: _layer(projected, layerId),
+        catalog: context.manifest.smartTileCatalog,
         cells: [for (final cell in stroke.cells) GridPos(x: cell.x, y: cell.y)],
         materialId: stroke.materialId,
       );
@@ -158,9 +159,11 @@ final class SmartTileCellActions {
         final after = projected.layers[index];
         if (before is! SmartTileLayer || after is! SmartTileLayer) continue;
         if (smartTileMaterialIdAt(before,
-                mapSize: context.map.size, x: cell.$1, y: cell.$2) !=
-            smartTileMaterialIdAt(after,
-                mapSize: context.map.size, x: cell.$1, y: cell.$2)) {
+                    mapSize: context.map.size, x: cell.$1, y: cell.$2) !=
+                smartTileMaterialIdAt(after,
+                    mapSize: context.map.size, x: cell.$1, y: cell.$2) ||
+            _hasPatternAt(before, cell.$1, cell.$2) !=
+                _hasPatternAt(after, cell.$1, cell.$2)) {
           return true;
         }
       }
@@ -186,7 +189,8 @@ final class SmartTileCellActions {
         },
       ),
       delta: context.map.spatialScene != null &&
-              layer.usage == SmartTileUsage.terrain
+              (layer.usage == SmartTileUsage.terrain ||
+                  layer.patternStrokes.isNotEmpty)
           ? null
           : MapMutationDelta.smartTileCells(
               layerId: layerId,
@@ -330,6 +334,7 @@ final class SmartTileCellActions {
     final projected = applySmartTileMapMaterialGesture(
       context.map,
       layer: layer,
+      catalog: context.manifest.smartTileCatalog,
       cells: <GridPos>[
         for (final cell in cells) GridPos(x: cell.x, y: cell.y),
       ],
@@ -341,9 +346,11 @@ final class SmartTileCellActions {
         final after = projected.layers[index];
         if (before is! SmartTileLayer || after is! SmartTileLayer) continue;
         if (smartTileMaterialIdAt(before,
-                mapSize: context.map.size, x: cell.x, y: cell.y) !=
-            smartTileMaterialIdAt(after,
-                mapSize: context.map.size, x: cell.x, y: cell.y)) {
+                    mapSize: context.map.size, x: cell.x, y: cell.y) !=
+                smartTileMaterialIdAt(after,
+                    mapSize: context.map.size, x: cell.x, y: cell.y) ||
+            _hasPatternAt(before, cell.x, cell.y) !=
+                _hasPatternAt(after, cell.x, cell.y)) {
           return true;
         }
       }
@@ -371,8 +378,8 @@ final class SmartTileCellActions {
         },
       ),
       delta: context.map.spatialScene != null &&
-              layer.usage == SmartTileUsage.terrain &&
-              !erase
+              ((layer.usage == SmartTileUsage.terrain && !erase) ||
+                  layer.patternStrokes.isNotEmpty)
           ? null
           : MapMutationDelta.smartTileCells(
               layerId: layerId,
@@ -782,6 +789,11 @@ GridPos _selectionCoordinate(
   }
   return GridPos(x: x, y: y);
 }
+
+bool _hasPatternAt(SmartTileLayer layer, int x, int y) =>
+    layer.patternStrokes.any(
+      (stroke) => stroke.cells.any((cell) => cell.x == x && cell.y == y),
+    );
 
 List<({int x, int y})> _cells(
   List<Object?> raw, {

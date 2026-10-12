@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
+const maximumSpatialTerrainLevel = 64;
+
 enum SpatialRampDirection { north, south, east, west }
 
 final class SpatialSpawn {
@@ -85,7 +87,7 @@ final class SpatialRamp extends SpatialBlockedArea {
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         lowLevel < 0 ||
-        highLevel > 32 ||
+        highLevel > maximumSpatialTerrainLevel ||
         highLevel <= lowLevel) {
       throw const FormatException('Invalid spatial ramp levels or identity.');
     }

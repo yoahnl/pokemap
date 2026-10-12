@@ -13,16 +13,16 @@ void main() {
   test('terrain changes are immutable and bound checked before publishing', () {
     final before = map();
     final after = ops.setLevels(before, [
-      const SpatialCellLevel(x: 2, z: 3, level: 32),
+      const SpatialCellLevel(x: 2, z: 3, level: 64),
     ]);
-    expect(after.spatialScene!.heightAt(2, 3), 32);
+    expect(after.spatialScene!.heightAt(2, 3), 64);
     expect(before.spatialScene!.heightAt(2, 3), 0);
     for (final cell in [
       const SpatialCellLevel(x: 3, z: 0, level: 1),
       const SpatialCellLevel(x: -1, z: 1, level: 1),
       const SpatialCellLevel(x: 0, z: 4, level: 1),
       const SpatialCellLevel(x: 0, z: 0, level: -1),
-      const SpatialCellLevel(x: 0, z: 0, level: 33),
+      const SpatialCellLevel(x: 0, z: 0, level: 65),
     ]) {
       expect(
         () => ops.setLevels(before, [
@@ -40,6 +40,17 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('quarter-height source cliffs retain levels above thirty-two', () {
+    final before = map().copyWith(
+      spatialScene: MapSpatialScene(width: 3, depth: 4, levelHeight: .25),
+    );
+    final after = ops.setLevels(before, [
+      const SpatialCellLevel(x: 1, z: 1, level: 37),
+    ]);
+    expect(after.spatialScene!.worldHeightAt(1.5, 1.5), 9.25);
+    expect(MapSpatialScene.fromJson(after.spatialScene!.toJson()), after.spatialScene);
   });
 
   test(

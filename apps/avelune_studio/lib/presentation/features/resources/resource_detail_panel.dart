@@ -294,6 +294,16 @@ class ResourceDetailPanel extends StatelessWidget {
         secondary: true,
         onPressed: () => onEdit(entry),
       ),
+    if (entry.model3d != null &&
+        project.settings.dimension == ProjectDimension.threeD &&
+        entry.metadata(project)?.mapId == null)
+      StudioButton(
+        key: const ValueKey('resource-create-path'),
+        label: 'Créer un chemin automatique',
+        icon: Icons.route_outlined,
+        secondary: true,
+        onPressed: () => onTerrain(entry),
+      ),
     if (entry.tileset case final tileset?) ...[
       StudioButton(
         label: 'Créer un décor',

@@ -55,6 +55,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
     final tree = ResourceFamilyTree(
       widget.project,
       filterResourceCatalog(widget.project, items, treeFilters),
+      showComponents: state.filters.showComponents,
     );
     final familyName = state.filters.familyId == unclassifiedResourceFamily
         ? 'Sans famille'
@@ -159,6 +160,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                       ),
                     ),
                     if (state.filters.familyId.isNotEmpty ||
+                        state.filters.showComponents ||
                         state.filters.scope != ResourceCatalogScope.all ||
                         state.filters.usage != ResourceCatalogUsage.all ||
                         categoryName != null) ...[

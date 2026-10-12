@@ -130,18 +130,20 @@ final class SmartTileCatalogActions {
           'smartTileAtlas',
           'smartTileMaterial',
           'smartTileAnimation',
+          'model3d',
         ],
       ),
       _descriptor(
         'smart_tile.preset.publish',
-        'Publish a Smart Tile preset including editable candidate labels '
-            '(rules[].candidates[].label), with optional atomic layer creation',
+        'Publish a Smart Tile preset with frame, animation or 3D model visual sources '
+            '(rules[].candidates[].parts[].source), editable candidate labels and optional atomic layer creation',
         resourceKinds: const <String>[
           'project',
           'map',
           'smartTilePreset',
           'smartTileLayer',
           'smartTileDraft',
+          'model3d',
         ],
       ),
       _presetLifecycleDescriptor('smart_tile.preset.rename', duplicate: false),

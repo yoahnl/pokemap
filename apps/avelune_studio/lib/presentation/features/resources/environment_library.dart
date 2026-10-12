@@ -6,6 +6,8 @@ import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../map_workspace/map_workspace_visuals.dart';
+import 'resource_catalog.dart';
+import 'resource_preview.dart';
 
 class EnvironmentLibrary extends StatefulWidget {
   const EnvironmentLibrary({
@@ -68,8 +70,7 @@ class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
                     title: widget.project.environmentPresets.isEmpty
                         ? 'Aucun environnement'
                         : 'Aucun résultat',
-                    description:
-                        'Un environnement répartit des décors existants dans les cases que vous choisissez.',
+                    description: 'Un environnement répartit des décors existants dans les cases que vous choisissez.',
                     icon: Icons.forest_outlined,
                   )
                 : ListView.separated(
@@ -77,12 +78,12 @@ class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final preset = presets[index];
-                      final first = widget.project.elements
-                          .where(
-                            (element) =>
-                                element.id == preset.palette.first.elementId,
-                          )
-                          .firstOrNull;
+                      final resource = ResourceItem(
+                        id: preset.id,
+                        name: preset.name,
+                        kind: ResourceKind.decors,
+                        environment: preset,
+                      );
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -91,9 +92,12 @@ class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
                             label: preset.name,
                             subtitle:
                                 '${preset.palette.length} décor(s) · densité ${(preset.defaultParams.density * 100).round()} %',
-                            leading: first == null
-                                ? const Icon(Icons.broken_image_outlined)
-                                : widget.visuals.thumbnail(first, size: 56),
+                            leading: resourcePreview(
+                              resource,
+                              widget.project,
+                              widget.visuals,
+                              size: 56,
+                            ),
                             selected: selectedId == preset.id,
                             onTap: () => setState(() => selectedId = preset.id),
                           ),
@@ -123,7 +127,11 @@ class _EnvironmentLibraryState extends State<EnvironmentLibrary> {
                                 StudioButton(
                                   label: 'Dessiner sur la carte',
                                   icon: Icons.draw_outlined,
-                                  onPressed: widget.canDraw
+                                  onPressed:
+                                      widget.canDraw &&
+                                          resource.compatibleWith(
+                                            widget.project.settings.dimension,
+                                          )
                                       ? () => widget.onDraw(preset)
                                       : null,
                                 ),

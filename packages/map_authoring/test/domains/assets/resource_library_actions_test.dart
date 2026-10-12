@@ -11,6 +11,224 @@ import 'element_definition_fixture.dart'
     show elementSnapshot, retainedElementBorder;
 
 void main() {
+  test('role-only classification persists and omission preserves all metadata',
+      () async {
+    var project = await _apply(informationFixture(), 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'role': 'component',
+    });
+    expect(project.resourceLibraryCatalog.entries.single.role,
+        ResourceLibraryRole.component);
+    project = await _apply(project, 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'familyId': 'trees',
+    });
+    project = await _apply(project, 'resource.classify_batch', {
+      'entries': [
+        {'resourceKind': 'element', 'resourceId': 'decor'}
+      ],
+    });
+    final entry = project.resourceLibraryCatalog.entries.single;
+    expect(entry.familyId, 'trees');
+    expect(entry.role, ResourceLibraryRole.component);
+    project = await _apply(project, 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'familyId': null,
+      'role': 'standard',
+    });
+    expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+    for (final role in [null, 'unknown', 2]) {
+      await expectLater(
+          () => _apply(project, 'resource.classify', {
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'role': role,
+              }),
+          throwsA(isA<VisualLibraryException>()));
+    }
+  });
+  test('classification batch has one change and accepts 100 typed resources',
+      () async {
+    final base = informationFixture();
+    final project = base.copyWith(elements: [
+      for (var index = 0; index < 100; index++)
+        base.elements.single.copyWith(id: 'decor-$index'),
+    ]);
+    final draft = await MapMutationDispatcher.canonical().build(catalogContext(
+      librarySnapshot([], project: project),
+      'resource.classify_batch',
+      {
+        'entries': [
+          for (final element in project.elements)
+            {
+              'resourceKind': 'element',
+              'resourceId': element.id,
+              'familyId': 'trees'
+            },
+        ],
+      },
+    ));
+    expect(draft.changeSet.changes, hasLength(1));
+    expect(draft.changeSet.diff.entries, hasLength(1));
+    final updated = ProjectManifest.fromJson(jsonDecode(utf8.decode(
+      draft.changeSet.changes.single.afterBytes!,
+    )) as Map<String, dynamic>);
+    expect(updated.resourceLibraryCatalog.entries, hasLength(100));
+    expect(updated.elements, project.elements);
+  });
+
+  test('batch shares absent and null semantics and typed identities', () async {
+    var project = smartInformationFixture().copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(entries: [
+      ResourceLibraryEntry(
+          resourceKind: 'element', resourceId: 'decor', familyId: 'trees'),
+      ResourceLibraryEntry(
+          resourceKind: 'smartTilePreset',
+          resourceId: 'ground',
+          familyId: 'ground'),
+    ]));
+    project = await _apply(project, 'resource.classify_batch', {
+      'entries': [
+        {'resourceKind': 'element', 'resourceId': 'decor', 'mapId': null},
+        {
+          'resourceKind': 'smartTilePreset',
+          'resourceId': 'ground',
+          'familyId': null
+        },
+      ]
+    });
+    expect(
+        project.resourceLibraryCatalog.entryFor('element', 'decor')!.familyId,
+        'trees');
+    expect(project.resourceLibraryCatalog.entryFor('smartTilePreset', 'ground'),
+        isNull);
+    final noop = await MapMutationDispatcher.canonical().build(catalogContext(
+      librarySnapshot([], project: project),
+      'resource.classify_batch',
+      {
+        'entries': [
+          {'resourceKind': 'element', 'resourceId': 'decor'}
+        ]
+      },
+    ));
+    expect(noop.changeSet.changes, isEmpty);
+  });
+
+  test('batch rejects malformed oversized duplicate and unknown entries',
+      () async {
+    final snapshot = librarySnapshot([], project: informationFixture());
+    final valid = {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'familyId': 'trees'
+    };
+    for (final parameters in <Map<String, Object?>>[
+      {'entries': []},
+      {'entries': List.filled(101, valid)},
+      {
+        'entries': [valid, valid]
+      },
+      {
+        'entries': [valid, false]
+      },
+      {
+        'entries': [
+          valid,
+          {'resourceKind': 'element', 'resourceId': 'missing'}
+        ]
+      },
+      {
+        'entries': [
+          valid,
+          {
+            'resourceKind': 'tileset',
+            'resourceId': 'sheet',
+            'familyId': 'missing'
+          }
+        ]
+      },
+      {
+        'entries': [
+          valid,
+          {'resourceKind': 'tileset', 'resourceId': 'sheet', 'mapId': 'missing'}
+        ]
+      },
+      {
+        'entries': [
+          valid,
+          {'resourceKind': 'tileset', 'resourceId': 'sheet', 'extra': true}
+        ]
+      },
+      {
+        'entries': [valid],
+        'extra': true
+      },
+    ]) {
+      await expectLater(
+          () => MapMutationDispatcher.canonical().build(catalogContext(
+                snapshot,
+                'resource.classify_batch',
+                parameters,
+              )),
+          throwsA(isA<VisualLibraryException>()),
+          reason: '$parameters');
+    }
+  });
+
+  test('batch validates final direct and transitive map scopes', () async {
+    final maps = [
+      catalogMap('a'),
+      catalogMap('b').copyWith(placedElements: [_placed()])
+    ];
+    final project = _withMaps(informationFixture(), maps);
+    final snapshot = librarySnapshot(maps, project: project);
+    for (final kindAndId in [('element', 'decor'), ('tileset', 'sheet')]) {
+      await expectLater(
+          () => MapMutationDispatcher.canonical().build(catalogContext(
+                snapshot,
+                'resource.classify_batch',
+                {
+                  'entries': [
+                    {
+                      'resourceKind':
+                          kindAndId.$1 == 'element' ? 'tileset' : 'element',
+                      'resourceId':
+                          kindAndId.$1 == 'element' ? 'sheet' : 'decor',
+                      'familyId': 'trees'
+                    },
+                    {
+                      'resourceKind': kindAndId.$1,
+                      'resourceId': kindAndId.$2,
+                      'mapId': 'a'
+                    },
+                  ]
+                },
+              )),
+          throwsA(isA<VisualLibraryException>().having((error) => error.code,
+              'code', 'resource_library.scope_conflict')));
+    }
+    final accepted =
+        await MapMutationDispatcher.canonical().build(catalogContext(
+      snapshot,
+      'resource.classify_batch',
+      {
+        'entries': [
+          {
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'familyId': 'trees',
+            'mapId': 'b'
+          },
+          {'resourceKind': 'tileset', 'resourceId': 'sheet', 'mapId': 'b'},
+        ]
+      },
+    ));
+    expect(accepted.changeSet.changes, hasLength(1));
+  });
+
   test(
       'creates updates classifies queries and refuses nonempty family deletion',
       () async {
@@ -475,7 +693,10 @@ void main() {
     final project = informationFixture().copyWith(
         resourceLibraryCatalog: ResourceLibraryCatalog(entries: [
       ResourceLibraryEntry(
-          resourceKind: 'element', resourceId: 'decor', familyId: 'trees')
+          resourceKind: 'element',
+          resourceId: 'decor',
+          familyId: 'trees',
+          role: ResourceLibraryRole.component)
     ]));
     final duplicated = await _apply(project, 'element.duplicate', {
       'sourceElementId': 'decor',
@@ -486,6 +707,8 @@ void main() {
     expect(
         duplicated.resourceLibraryCatalog.entryFor('element', 'copy')?.familyId,
         'trees');
+    expect(duplicated.resourceLibraryCatalog.entryFor('element', 'copy')?.role,
+        ResourceLibraryRole.component);
     final deleted =
         await _apply(project, 'element.delete', {'elementId': 'decor'});
     expect(deleted.resourceLibraryCatalog.entries, isEmpty);

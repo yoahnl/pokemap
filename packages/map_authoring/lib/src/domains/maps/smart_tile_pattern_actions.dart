@@ -143,7 +143,12 @@ final class SmartTilePatternActions {
   AuthoringMutationDraft _erase(AuthoringPlanningContext planning) {
     final context = SemanticMapActionContext.read(
       planning,
-      allowedParameters: const <String>{'layerId', 'cells', 'selection'},
+      allowedParameters: const <String>{
+        'layerId',
+        'cells',
+        'selection',
+        'strokeIds'
+      },
     );
     final layerId = context.parameters.string('layerId');
     requireExistingNativeSmartTileProject(
@@ -152,6 +157,9 @@ final class SmartTilePatternActions {
       layerId: layerId,
     );
     final layer = _patternLayer(context.map, layerId);
+    final strokeIds = context.parameters.contains('strokeIds')
+        ? _eraseStrokeIds(context.parameters.list('strokeIds'), layer)
+        : null;
     final gesture = smartTileGestureCells(
       context.parameters,
       layer: layer,
@@ -167,6 +175,7 @@ final class SmartTilePatternActions {
       cells: <GridPos>[
         for (final cell in gesture.cells) GridPos(x: cell.x, y: cell.y),
       ],
+      strokeIds: strokeIds,
     );
     final afterCount = projectedLayer.patternStrokes.fold<int>(
       0,
@@ -182,6 +191,7 @@ final class SmartTilePatternActions {
           'gestureSelection': gesture.selectionKind,
           'gestureCellCount': gesture.cells.length,
           'erasedOwnershipCount': beforeCount - afterCount,
+          if (strokeIds != null) 'targetStrokeIds': strokeIds,
           'batchAtomicity': 'all_or_nothing',
           'undoBoundary': 'gesture',
         },
@@ -214,7 +224,7 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const <String, Object?>{
+      extensions: <String, Object?>{
         'semanticIds': true,
         'rawTilesetRequired': false,
         'gestureAtomic': true,
@@ -226,8 +236,37 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           'floodFill',
         ],
         'optionalCollisionLayer': true,
+        if (id == 'smart_tile.pattern.erase') ...{
+          'optionalEraseStrokeIds': true,
+          'eraseStrokeIdsSchema': const <String, Object?>{
+            'type': 'array',
+            'minItems': 1,
+            'uniqueItems': true,
+            'items': <String, Object?>{'type': 'string', 'minLength': 1},
+          },
+          'eraseWithoutStrokeIds': 'all_overlapping_strokes',
+        },
       },
     );
+
+List<String> _eraseStrokeIds(List<Object?> raw, SmartTileLayer layer) {
+  final existingIds = layer.patternStrokes.map((stroke) => stroke.id).toSet();
+  final ids = <String>{};
+  if (raw.isEmpty) {
+    throw invalidSemanticField(
+        'strokeIds', 'a nonempty list of existing stroke IDs');
+  }
+  for (final value in raw) {
+    if (value is! String ||
+        value.isEmpty ||
+        value.trim() != value ||
+        !ids.add(value) ||
+        !existingIds.contains(value)) {
+      throw invalidSemanticField('strokeIds', 'unique existing stroke IDs');
+    }
+  }
+  return ids.toList(growable: false);
+}
 
 SmartTilePatternSelection _patternSelection(
   Map<String, Object?> raw, {

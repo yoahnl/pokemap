@@ -86,7 +86,7 @@ Set<String> _referencedSnapshotIds({
     final definition = record.latestPublished?.definition;
     if (definition == null) continue;
     for (final primitive in definition.primitives) {
-      referenced.add(primitive.visualSnapshotId);
+      if (!primitive.isSpatial) referenced.add(primitive.visualSnapshotId);
     }
     final ground = definition.ground;
     if (ground != null) {

@@ -1053,6 +1053,23 @@ tileset.tiled.import
 tileset.tiled.wang_bundle.delete
 ```
 
+Les sources visuelles Smart Tile acceptent `{kind: "model3d", modelId, scale,
+offsetX, offsetY, offsetZ, animationIndex, followTerrain}` dans les projets 3D.
+Les offsets sont des nombres finis, par défaut zéro. X/Z sont exprimés en
+unités de cellule et s’ajoutent aux offsets du part avant sa rotation par
+quarts de tour ; Y reste vertical. `followTerrain` vaut `true` par défaut et
+échantillonne la hauteur à l’ancre finale. Avec `false`, `offsetY` est une
+hauteur absolue. L’ancre finale doit rester dans la carte, même si les bornes
+visuelles du modèle dépassent. Le modèle doit exister ; échelle positive
+bornée à 1000, index d’animation et rotations sont validés. Les symétries de sprite
+sont refusées pour les modèles. `smart_tile.preset.publish` et les mutations
+de cellules conservent le même contrat : le calque stocke l’intention peinte,
+et les modèles unitaires sont dérivés à la hauteur du terrain dans Studio et
+le runtime. La gomme retire ces modèles, sans objet ajouté à la scène sauvegardée.
+Les identités dérivées `smt_` sont réservées et ne peuvent pas être éditées avec
+les commandes ordinaires d’objets. La suppression d’un modèle utilisé par un
+preset, un brouillon ou un motif est bloquée.
+
 `smart_tile.material.upsert_batch` v1 reçoit `{materials: [...]}` avec 1 à 250
 documents natifs de matériau. Les identifiants répétés sont refusés ; chaque
 document utilise le même décodage strict que `smart_tile.material.upsert`.
@@ -1114,6 +1131,7 @@ Les lots de ressources et de placements 3D utilisent les contrats suivants :
 ```text
 model3d.import_batch
 map3d.instance.upsert_batch
+map3d.instance.delete_batch
 ```
 
 `model3d.import_batch` v1 reçoit `{models: [{modelId, name, artifactHandle}]}`.
@@ -1139,6 +1157,16 @@ les modèles et les animations doivent exister et toutes les positions doivent
 être valides. Toute entrée invalide refuse le lot entier. La map est projetée
 et validée avant une seule écriture atomique et une seule annulation de lot ;
 les terrains, la caméra, la navigation et les autres instances sont conservés.
+
+`map3d.instance.delete_batch` v1 reçoit `{mapId, instanceIds: [instanceId]}`.
+Le lot contient de 1 à 50 identités distinctes d'une seule map 3D. Une identité
+absente, un doublon, une instance Smart Tile, une instance détenue par une aire
+d'environnement ou une feature de bordure, ou une référence narrative restante
+refuse le lot entier. Toutes les gardes sont évaluées avant projection ; une
+seule map est validée et écrite, avec une seule annulation pour le lot.
+Les placements d'environnement explicitement manuels peuvent recevoir une
+transformation exacte via `map3d.instance.upsert` ou `upsert_batch` ; leur
+suppression reste une opération de l'aire qui conserve ses métadonnées.
 
 Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
 sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou
@@ -1171,13 +1199,14 @@ preset ne publie pas son brouillon de préparation. Ces commandes traversent
 le dispatcher canonique et les transactions revisionnées communes.
 
 Le classement transversal des ressources est indépendant de ces catégories
-métier et utilise les quatre actions canoniques suivantes :
+métier et utilise les cinq actions canoniques suivantes :
 
 ```text
 resource.family.create
 resource.family.update
 resource.family.delete
 resource.classify
+resource.classify_batch
 ```
 
 `resource.family.create` reçoit `{familyId, name, parentId?}` ;
@@ -1190,6 +1219,16 @@ Un champ absent conserve la valeur ; `null` retire la famille ou rétablit la
 disponibilité projet. Les identités typées acceptées sont `element`, `model3d`,
 `smartTilePreset`, `tileset`, `borderBlueprint`, `environmentPreset` et
 `character`. Une identité, une famille ou une carte inconnue refuse le plan.
+
+`resource.classify_batch` reçoit `{entries: [{resourceKind, resourceId,
+familyId?, mapId?}]}` avec 1 à 100 entrées et sans doublon d'identité typée.
+Chaque entrée conserve la sémantique absent/null de `resource.classify`.
+Les usages directs et indirects des portées locales sont validés sur le
+catalogue final par la garde partagée ; aucun état intermédiaire n'est sauvegardé.
+Le lot produit une seule transaction revisionnée et un seul historique
+annulable. Une entrée invalide refuse l'ensemble sans écrire. Ce raccourci
+de classement en masse est exposé à l'API, au JSONL et au MCP ; l'interface
+Studio conserve son classement individuel sans nouvel outil de lot.
 
 Les trois lectures via `pokemap_query` sont `resourceLibraryCatalog` (id
 `resource-library`, catalogue et familles effectives), `resourceFamily`
@@ -1221,6 +1260,7 @@ le transport MCP stdio et les contrôleurs Studio utilisent ces contrats.
 
 ```text
 environment.attach_to_tile_layer
+environment.attach_to_spatial_terrain
 environment.detach_from_tile_layer
 environment.area_list
 environment.area_get
@@ -1246,6 +1286,27 @@ environment.diagnostics
 environment.render_preview
 ```
 
+Les palettes d'environnement référencent exclusivement des éléments 2D
+(`elementId`) ou des modèles 3D (`modelId`), sans mélange dans un preset.
+`environment.attach_to_spatial_terrain` cible le terrain natif d'une carte v9
+avec `mapId` et `layerId`. Les mêmes masques, graines, paramètres et opérations
+génèrent des instances unitaires dans `spatialScene.instances`. Le masque spatial
+désigne les cellules d'ancrage ; les dimensions visuelles du modèle ne nécessitent
+pas de remplir toute son empreinte dans le masque. Un item 3D peut définir
+`cellOffsetWorld: {x, y, z}` : l'ancre est le centre de cellule décalé en X/Z,
+avec la hauteur du terrain sous cette ancre plus Y. Seule l'ancre doit rester
+dans les limites de la carte ; la canopée peut les dépasser. Ce champ est interdit
+sur un item 2D. L'aperçu reste lié aux entrées exactes et à la révision courante.
+Chaque zone conserve ses `generatedPlacementIds` ; les ajouts et déplacements
+manuels sont identifiés par `manualPlacementIds` et préservés à la régénération.
+La régénération bornée et la suppression ne retirent que les instances de la
+zone. `environment.generated_placement_add` exige exactement un `elementId`
+ou un `modelId`, selon la dimension du preset. Les références et leur portée
+locale sont contrôlées directement et par les usages transitifs sauvegardés.
+L'identité automatique conserve sa cellule d'origine indépendamment du décalage
+XYZ : une régénération locale, un déplacement ou une suppression visent cette
+cellule canonique. Les placements manuels conservent leurs transformations libres.
+
 ### 13.3 Bordures
 
 ```text
@@ -1256,6 +1317,7 @@ border.blueprint.delete
 border_layer.stroke_add
 border_layer.stroke_update
 border_layer.stroke_delete
+border_layer.stroke_erase
 border_layer.region_fill
 border_layer.region_clear
 border_layer.feature_create
@@ -1279,6 +1341,62 @@ border_layer.preview
 border_layer.diagnostics
 border_layer.publication_readiness
 ```
+
+Les primitives de bordure utilisent exactement un `sourceElementId` 2D ou un
+`sourceModelId` 3D, sans mélange dans un blueprint. Le catalogue natif utilise
+`formatVersion: 5`, les features natives `formatVersion: 4`. En 3D, les sources
+restent des références vivantes aux modèles du projet ; aucune image de snapshot
+ni métrique pixel n'est publiée. `anchorWorld` optionnel désigne une ancre locale
+GLB ; sans valeur, le pivot du modèle est utilisé.
+
+Le kit 3D initial utilise `connectedLine` avec les rôles `lineCap`, `lineStraight`
+et `lineCorner`. Les mêmes traits et contours de régions, y compris leurs trous,
+produisent des instances natives orientées et posées sur le relief. Les slots et
+IDs d'instances sont déterministes ; chaque feature conserve seulement ses
+références d'ownership dans `materialization.spatialPlacements`. Les zones à éviter,
+la variation pondérée, la suppression de slots et le verrouillage par
+`lockedInstanceId` sont résolus dans le même contrat.
+
+Une définition 3D peut déclarer `straightOnly: true` dans son draft et sa révision
+publiée. Ce profil exige seulement `lineCap` et `lineStraight` ; `lineCorner` reste
+facultatif. Il annonce explicitement des tracés droits uniquement : toute chaîne
+qui tourne et toute région non vide sont refusées avant matérialisation avec
+`border.spatial.straight_only_geometry_required`, même si un coin est présent.
+La restriction participe aux fingerprints de publication et d'aperçu. Elle est
+interdite aux blueprints 2D et aux autres templates.
+
+`border_layer.feature_create` accepte `lineSide: "primary" | "inverted"` dès
+la création, avec `primary` par défaut et la même validation que l'édition du côté.
+Les actions de création et d'édition contrôlent la restriction `straightOnly`
+avant toute persistence de géométrie ; leurs plans refusent les virages atomiquement.
+
+Une feature 3D peut définir `spatialOffsetWorld: {x, y, z}` pour décaler un profil
+réutilisable dans les coordonnées de la carte, après rotation de ses primitives.
+Le décalage absent vaut zéro ; `border_layer.feature_update` conserve une valeur
+absente et l'efface avec `null`. Le champ exige le format de layer 4 et est refusé
+sur une carte 2D. La génération contrôle les ancrages après décalage et conserve
+les IDs de slots et leur ownership. Modifier le décalage rend l'aperçu périmé ;
+la régénération explicite replace les modèles tout en préservant les poses verrouillées.
+
+`border_layer.materialize_apply` prépare puis applique un aperçu canonique lié
+aux entrées exactes, aux sources et à la révision. Une modification du pivot,
+de l'échelle ou du relief produit un diagnostic de matérialisation périmée ; la
+régénération explicite recalcule les ancrages et conserve les instances étrangères.
+Les références de modèles sont contrôlées pour la suppression et les portées
+locales transitives. Le relink natif vers un autre blueprint est refusé avec
+`border.spatial.relink_unsupported` ; l'édition du kit courant puis sa régénération
+est prise en charge. Le redimensionnement natif passe par les opérations spatiales,
+pas par `border_layer.resize_apply` réservé aux cartes 2D.
+
+`border_layer.stroke_erase` accepte `mapId`, `layerId`, `featureId` et `points`
+(1 à 4096 coordonnées entières `{x, y}` dans le lattice du tracé). Il découpe les
+strokes touchés, conserve leur lineage déterministe et rematérialise les fragments
+en une seule transaction 2D ou 3D. Les pièces étrangères restent inchangées ; les
+overrides des slots supprimés sont retirés et les slots survivants gardent
+leurs corrections. Effacer tous les fragments supprime la feature et ses pièces.
+Une cellule extérieure est refusée ; une gomme sans changement renvoie
+`map.no_change`. Studio partage ce contrat pour son mode local Tracer/Gommer,
+avec aperçu, annulation et un seul undo au relâchement.
 
 ## 14. Éléments placés, entités, triggers et zones
 

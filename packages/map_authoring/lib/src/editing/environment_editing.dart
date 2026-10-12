@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart'
+    show Model3dVector3, ProjectModel3dEntry, SpatialModelInstance;
 
 import '../contracts/semantic_map_failure.dart';
 
@@ -30,7 +32,7 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
     _requireStableText(areaId, 'areaId');
     _requireStableText(name, 'name');
     _requireStableText(presetId, 'presetId');
-    _preset(manifest, presetId);
+    _validatePresetForMap(manifest, map, _preset(manifest, presetId));
     return _createArea(map,
         layerId: layerId,
         areaId: areaId,
@@ -87,6 +89,12 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
           {required String layerId, required String targetTileLayerId}) =>
       _attach(map, layerId: layerId, targetTileLayerId: targetTileLayerId);
 
+  MapData attachToSpatialTerrain(MapData map, {required String layerId}) =>
+      _attach(map,
+          layerId: layerId,
+          targetTileLayerId: null,
+          targetsSpatialTerrain: true);
+
   static void validateRegion(
           EnvironmentGenerationRegion region, GridSize size) =>
       _requireRegion(region, size);
@@ -120,7 +128,9 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
     bool clearParamsOverride = false,
   }) {
     if (name != null) _requireStableText(name, 'name');
-    if (presetId != null) _preset(manifest, presetId);
+    if (presetId != null) {
+      _validatePresetForMap(manifest, map, _preset(manifest, presetId));
+    }
     if (clearParamsOverride && paramsOverride != null) {
       throw invalidSemanticField(
           'paramsOverride', 'absent when clearParamsOverride is true');
@@ -149,7 +159,8 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
     required String layerId,
     required String areaId,
     required String placementId,
-    required String elementId,
+    String? elementId,
+    String? modelId,
     required GridPos pos,
   }) =>
       _addManualPlacement(manifest, map,
@@ -157,6 +168,7 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
           areaId: areaId,
           placementId: placementId,
           elementId: elementId,
+          modelId: modelId,
           pos: pos);
 
   MapData moveGeneratedPlacement(

@@ -36,12 +36,15 @@ final class ResourceFamily {
   int get hashCode => Object.hash(id, name, parentId);
 }
 
+enum ResourceLibraryRole { standard, component }
+
 final class ResourceLibraryEntry {
   ResourceLibraryEntry({
     required String resourceKind,
     required String resourceId,
     String? familyId,
     String? mapId,
+    this.role = ResourceLibraryRole.standard,
   }) : resourceKind = _identifier(resourceKind, 'entry.resourceKind'),
        resourceId = _identifier(resourceId, 'entry.resourceId'),
        familyId = _optionalIdentifier(familyId, 'entry.familyId'),
@@ -56,12 +59,23 @@ final class ResourceLibraryEntry {
   }
 
   factory ResourceLibraryEntry.fromJson(Map<String, Object?> json) {
-    _keys(json, const {'resourceKind', 'resourceId', 'familyId', 'mapId'});
+    _keys(json, const {
+      'resourceKind',
+      'resourceId',
+      'familyId',
+      'mapId',
+      'role',
+    });
     return ResourceLibraryEntry(
       resourceKind: _string(json['resourceKind'], 'entry.resourceKind'),
       resourceId: _string(json['resourceId'], 'entry.resourceId'),
       familyId: _optionalString(json['familyId'], 'entry.familyId'),
       mapId: _optionalString(json['mapId'], 'entry.mapId'),
+      role: json.containsKey('role')
+          ? ResourceLibraryRole.values.byName(
+              _string(json['role'], 'entry.role'),
+            )
+          : ResourceLibraryRole.standard,
     );
   }
 
@@ -69,6 +83,7 @@ final class ResourceLibraryEntry {
   final String resourceId;
   final String? familyId;
   final String? mapId;
+  final ResourceLibraryRole role;
   String get identity => '$resourceKind:$resourceId';
 
   Map<String, Object?> toJson() => {
@@ -76,6 +91,7 @@ final class ResourceLibraryEntry {
     'resourceId': resourceId,
     if (familyId != null) 'familyId': familyId,
     if (mapId != null) 'mapId': mapId,
+    if (role != ResourceLibraryRole.standard) 'role': role.name,
   };
 
   @override
@@ -84,10 +100,12 @@ final class ResourceLibraryEntry {
       resourceKind == other.resourceKind &&
       resourceId == other.resourceId &&
       familyId == other.familyId &&
-      mapId == other.mapId;
+      mapId == other.mapId &&
+      role == other.role;
 
   @override
-  int get hashCode => Object.hash(resourceKind, resourceId, familyId, mapId);
+  int get hashCode =>
+      Object.hash(resourceKind, resourceId, familyId, mapId, role);
 }
 
 final class ResourceLibraryCatalog {

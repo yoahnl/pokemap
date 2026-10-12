@@ -43,16 +43,22 @@ test("resource families and map scope persist through real MCP transactions", as
     await client.connect(transport);
     const described = await call("pokemap_describe");
     const actions = new Map((described.mutationActions as JsonRecord[]).map((entry) => [entry.id, entry]));
-    for (const id of ["resource.family.create", "resource.family.update", "resource.family.delete", "resource.classify"]) {
+    for (const id of ["resource.family.create", "resource.family.update", "resource.family.delete", "resource.classify", "resource.classify_batch"]) {
       assert.ok(actions.has(id), id);
       assert.equal(record(record(actions.get(id)!.extensions).inputSchema).additionalProperties, false);
     }
+    const batchSchema = record(record(actions.get("resource.classify_batch")!.extensions).inputSchema);
+    const entriesSchema = record(record(batchSchema.properties).entries);
+    assert.equal(entriesSchema.minItems, 1);
+    assert.equal(entriesSchema.maxItems, 100);
+    assert.equal(record(entriesSchema.items).additionalProperties, false);
+    assert.deepEqual(record(record(record(entriesSchema.items).properties).role).enum, ["standard", "component"]);
     const resourceKinds = new Set((described.resourceKinds as JsonRecord[]).map((entry) => entry.id));
     for (const id of ["resourceLibraryCatalog", "resourceFamily", "resourceLibraryEntry"]) {
       assert.ok(resourceKinds.has(id), id);
     }
     console.log(JSON.stringify({ liveMcpCatalog: true, mutationActions: actions.size,
-      resourceKinds: resourceKinds.size, resourceLibraryActions: 4, resourceLibraryQueries: 3 }));
+      resourceKinds: resourceKinds.size, resourceLibraryActions: 5, resourceLibraryQueries: 3 }));
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     async function mutate(actionId: string, parameters: JsonRecord, failure = false) {
       const validation = await call("pokemap_validate", { projectHandle: opened.projectHandle });
@@ -79,13 +85,31 @@ test("resource families and map scope persist through real MCP transactions", as
     await mutate("resource.family.create", { familyId: "forest", name: "Forêt A", parentId: "trees" });
     await mutate("resource.family.create", { familyId: "forest-detail", name: "Petits arbres", parentId: "forest" });
     await mutate("resource.family.update", { familyId: "forest", name: "Forêt locale", parentId: "forest-detail" }, true);
-    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a" });
+    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component" });
     await mutate("resource.classify", { resourceKind: "smartTilePreset", resourceId: "ground", familyId: "ground", mapId: null });
+    await mutate("resource.classify_batch", { entries: [
+      { resourceKind: "element", resourceId: "decor", familyId: "forest-detail" },
+      { resourceKind: "smartTilePreset", resourceId: "ground", familyId: "ground", mapId: null },
+      { resourceKind: "tileset", resourceId: "sheet", familyId: "props" },
+    ] });
+    await mutate("resource.classify_batch", { entries: [
+      { resourceKind: "element", resourceId: "decor", familyId: "trees" },
+      { resourceKind: "tileset", resourceId: "missing", familyId: "props" },
+    ] }, true);
+    await mutate("resource.classify_batch", { entries: [] }, true);
+    await mutate("resource.classify_batch", { entries: [
+      { resourceKind: "element", resourceId: "decor", familyId: "trees" },
+      { resourceKind: "element", resourceId: "decor", familyId: "props" },
+    ] }, true);
     await mutate("resource.classify", { resourceKind: "element", resourceId: "absent", familyId: "trees" }, true);
     await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", mapId: "absent" }, true);
+    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: "unknown" }, true);
+    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: null }, true);
     await mutate("resource.family.delete", { familyId: "forest-detail" }, true);
     await mutate("resource.family.create", { familyId: "temporary", name: "Temporaire" });
     await mutate("resource.family.delete", { familyId: "temporary" });
+    await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: "standard" });
+    await mutate("resource.classify_batch", { entries: [{ resourceKind: "element", resourceId: "decor", role: "component" }] });
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const catalog = await call("pokemap_query", { projectHandle: reopened.projectHandle,
@@ -94,7 +118,10 @@ test("resource families and map scope persist through real MCP transactions", as
     const after = record(JSON.parse(await readFile(manifestPath, "utf8")));
     const entries = record(after.resourceLibraryCatalog).entries as JsonRecord[];
     assert.deepEqual(entries.find((entry) => entry.resourceKind === "element"), {
-      resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a",
+      resourceKind: "element", resourceId: "decor", familyId: "forest-detail", mapId: "a", role: "component",
+    });
+    assert.deepEqual(entries.find((entry) => entry.resourceKind === "tileset"), {
+      resourceKind: "tileset", resourceId: "sheet", familyId: "props",
     });
     for (const key of ["elements", "tilesets", "smartTileCatalog", "maps"]) {
       assert.deepEqual(after[key], manifest[key], key);

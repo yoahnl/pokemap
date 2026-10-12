@@ -18,8 +18,10 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
       case 'Zones':
         view.tool = StudioMapTool.gameplayZone;
       case 'Bordures':
+        if (spatial) view.paletteTab = 'Bordures';
         view.tool = StudioMapTool.border;
       case 'Environnements':
+        view.paletteTab = 'Environnements';
         view.tool = StudioMapTool.environment;
       case 'Collisions':
         view.tool = StudioMapTool.collisionPaint;
@@ -30,7 +32,11 @@ extension _MapWorkspaceToolStripActions on MapWorkspaceToolStrip {
     }
     onChanged();
     if (!paletteVisible &&
-        (label == 'Décors' || label == 'Terrains' || label == 'Passages')) {
+        (label == 'Décors' ||
+            label == 'Terrains' ||
+            (label == 'Bordures' && spatial) ||
+            label == 'Passages' ||
+            label == 'Environnements')) {
       onMoreTools();
     }
   }

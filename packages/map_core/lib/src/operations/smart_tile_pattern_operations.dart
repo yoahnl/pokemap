@@ -183,7 +183,28 @@ SmartTileLayer eraseSmartTilePatternCells(
   SmartTileLayer layer, {
   required GridSize mapSize,
   required Iterable<GridPos> cells,
+  Iterable<String>? strokeIds,
 }) {
+  Set<String>? selectedIds;
+  if (strokeIds != null) {
+    selectedIds = <String>{};
+    final existingIds = layer.patternStrokes.map((stroke) => stroke.id).toSet();
+    for (final id in strokeIds) {
+      if (id.isEmpty ||
+          id.trim() != id ||
+          !selectedIds.add(id) ||
+          !existingIds.contains(id)) {
+        throw const ValidationException(
+          'Smart Tile pattern stroke IDs must be unique existing identities.',
+        );
+      }
+    }
+    if (selectedIds.isEmpty) {
+      throw const ValidationException(
+        'Smart Tile pattern stroke IDs cannot be empty.',
+      );
+    }
+  }
   final removed = <GridPos>{};
   for (final cell in cells) {
     _checkMapCell(cell, mapSize);
@@ -198,6 +219,10 @@ SmartTileLayer eraseSmartTilePatternCells(
   var changed = false;
   final strokes = <SmartTilePatternStroke>[];
   for (final stroke in layer.patternStrokes) {
+    if (selectedIds != null && !selectedIds.contains(stroke.id)) {
+      strokes.add(stroke);
+      continue;
+    }
     final remaining = <GridPos>[
       for (final cell in stroke.cells)
         if (!removed.contains(cell)) cell,

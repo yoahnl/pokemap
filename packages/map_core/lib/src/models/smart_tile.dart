@@ -220,15 +220,8 @@ abstract class SmartTileSourceRect with _$SmartTileSourceRect {
       _smartTileSourceRectFromJson(json);
 }
 
-SmartTileSourceRect _smartTileSourceRectFromJson(
-  Map<String, dynamic> json,
-) {
-  _requireStrictJsonIntegers(json, const <String>[
-    'x',
-    'y',
-    'width',
-    'height',
-  ]);
+SmartTileSourceRect _smartTileSourceRectFromJson(Map<String, dynamic> json) {
+  _requireStrictJsonIntegers(json, const <String>['x', 'y', 'width', 'height']);
   return _$SmartTileSourceRectFromJson(json);
 }
 
@@ -282,39 +275,40 @@ final class SmartTileSlotMatch {
     this.kind = SmartTileMatchKind.any,
     this.materialId,
   }) : assert(
-          kind == SmartTileMatchKind.material
-              ? materialId != null && materialId != ''
-              : materialId == null,
-          'materialId is required only for a material match',
-        );
+         kind == SmartTileMatchKind.material
+             ? materialId != null && materialId != ''
+             : materialId == null,
+         'materialId is required only for a material match',
+       );
 
   const SmartTileSlotMatch.any()
-      : kind = SmartTileMatchKind.any,
-        materialId = null;
+    : kind = SmartTileMatchKind.any,
+      materialId = null;
 
   const SmartTileSlotMatch.same()
-      : kind = SmartTileMatchKind.same,
-        materialId = null;
+    : kind = SmartTileMatchKind.same,
+      materialId = null;
 
   const SmartTileSlotMatch.different()
-      : kind = SmartTileMatchKind.different,
-        materialId = null;
+    : kind = SmartTileMatchKind.different,
+      materialId = null;
 
   const SmartTileSlotMatch.empty()
-      : kind = SmartTileMatchKind.empty,
-        materialId = null;
+    : kind = SmartTileMatchKind.empty,
+      materialId = null;
 
   const SmartTileSlotMatch.material(String id)
-      : assert(id != '', 'materialId must not be blank'),
-        kind = SmartTileMatchKind.material,
-        materialId = id;
+    : assert(id != '', 'materialId must not be blank'),
+      kind = SmartTileMatchKind.material,
+      materialId = id;
 
   factory SmartTileSlotMatch.fromJson(Map<String, dynamic> json) {
     final kind = _smartTileMatchKindFromJson(json['kind']);
     final hasMaterialId = json.containsKey('materialId');
     final rawMaterialId = json['materialId'];
     final materialId = rawMaterialId is String ? rawMaterialId : null;
-    final validMaterial = kind == SmartTileMatchKind.material &&
+    final validMaterial =
+        kind == SmartTileMatchKind.material &&
         materialId != null &&
         materialId.isNotEmpty &&
         materialId == materialId.trim();
@@ -333,9 +327,9 @@ final class SmartTileSlotMatch {
   final String? materialId;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'kind': _smartTileMatchKindToJson(kind),
-        if (materialId != null) 'materialId': materialId,
-      };
+    'kind': _smartTileMatchKindToJson(kind),
+    if (materialId != null) 'materialId': materialId,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -355,9 +349,7 @@ SmartTileMatchKind _smartTileMatchKindFromJson(Object? json) {
     'different' => SmartTileMatchKind.different,
     'empty' => SmartTileMatchKind.empty,
     'material' => SmartTileMatchKind.material,
-    _ => throw FormatException(
-        'Unknown Smart Tile match kind: $json',
-      ),
+    _ => throw FormatException('Unknown Smart Tile match kind: $json'),
   };
 }
 
@@ -476,9 +468,19 @@ sealed class SmartTileVisualSource with _$SmartTileVisualSource {
     required SmartTileFrameRef frame,
   }) = SmartTileFrameSource;
 
-  const factory SmartTileVisualSource.animation({
-    required String animationId,
-  }) = SmartTileAnimationSource;
+  const factory SmartTileVisualSource.animation({required String animationId}) =
+      SmartTileAnimationSource;
+
+  const factory SmartTileVisualSource.model3d({
+    required String modelId,
+    @Default(1) double scale,
+    @Default(0) double offsetX,
+    @Default(0) double offsetY,
+    @Default(0) double offsetZ,
+    int? animationIndex,
+    @Default(true) bool followTerrain,
+    @Default(false) bool replacesGround,
+  }) = SmartTileModel3dSource;
 
   factory SmartTileVisualSource.fromJson(Map<String, dynamic> json) =>
       _$SmartTileVisualSourceFromJson(json);
@@ -509,9 +511,7 @@ abstract class SmartTileVisualPart with _$SmartTileVisualPart {
       _smartTileVisualPartFromJson(json);
 }
 
-SmartTileVisualPart _smartTileVisualPartFromJson(
-  Map<String, dynamic> json,
-) {
+SmartTileVisualPart _smartTileVisualPartFromJson(Map<String, dynamic> json) {
   _requireStrictJsonIntegers(json, const <String>[
     'offsetX',
     'offsetY',
@@ -756,10 +756,7 @@ ProjectSmartTileAtlas _projectSmartTileAtlasFromJson(
 abstract class ProjectSmartTileMaterial with _$ProjectSmartTileMaterial {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
-  @Assert(
-    'connectionGroupId != ""',
-    'connectionGroupId must not be blank',
-  )
+  @Assert('connectionGroupId != ""', 'connectionGroupId must not be blank')
   const factory ProjectSmartTileMaterial({
     required String id,
     required String name,
@@ -788,16 +785,15 @@ ProjectSmartTileMaterial _projectSmartTileMaterialFromJson(
 }
 
 @freezed
-abstract class ProjectSmartTileAnimationFrame with _$ProjectSmartTileAnimationFrame {
+abstract class ProjectSmartTileAnimationFrame
+    with _$ProjectSmartTileAnimationFrame {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSmartTileAnimationFrame({
     required SmartTileFrameRef frame,
     required int durationMs,
   }) = _ProjectSmartTileAnimationFrame;
 
-  factory ProjectSmartTileAnimationFrame.fromJson(
-    Map<String, dynamic> json,
-  ) =>
+  factory ProjectSmartTileAnimationFrame.fromJson(Map<String, dynamic> json) =>
       _projectSmartTileAnimationFrameFromJson(json);
 }
 
@@ -829,10 +825,7 @@ abstract class ProjectSmartTileAnimation with _$ProjectSmartTileAnimation {
 abstract class ProjectSmartTilePreset with _$ProjectSmartTilePreset {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
-  @Assert(
-    'defaultMaterialId != ""',
-    'defaultMaterialId must not be blank',
-  )
+  @Assert('defaultMaterialId != ""', 'defaultMaterialId must not be blank')
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSmartTilePreset({
     required String id,
@@ -872,7 +865,8 @@ ProjectSmartTilePreset _projectSmartTilePresetFromJson(
 /// Draft resources remain private until the publication compiler projects
 /// them into the canonical catalog. Runtime resolution never reads this type.
 @freezed
-abstract class ProjectSmartTileAuthoringDraft with _$ProjectSmartTileAuthoringDraft {
+abstract class ProjectSmartTileAuthoringDraft
+    with _$ProjectSmartTileAuthoringDraft {
   @Assert('id != ""', 'id must not be blank')
   @Assert('targetPresetId != ""', 'targetPresetId must not be blank')
   @Assert('name != ""', 'name must not be blank')
@@ -928,14 +922,14 @@ final class ProjectSmartTileCatalog {
   static const int currentFormatVersion = 4;
 
   const ProjectSmartTileCatalog.empty()
-      : formatVersion = currentFormatVersion,
-        _categories = const <ProjectSmartTileCategory>[],
-        _atlases = const <ProjectSmartTileAtlas>[],
-        _materials = const <ProjectSmartTileMaterial>[],
-        _animations = const <ProjectSmartTileAnimation>[],
-        _presets = const <ProjectSmartTilePreset>[],
-        _patterns = const <ProjectSmartTilePattern>[],
-        _drafts = const <ProjectSmartTileAuthoringDraft>[];
+    : formatVersion = currentFormatVersion,
+      _categories = const <ProjectSmartTileCategory>[],
+      _atlases = const <ProjectSmartTileAtlas>[],
+      _materials = const <ProjectSmartTileMaterial>[],
+      _animations = const <ProjectSmartTileAnimation>[],
+      _presets = const <ProjectSmartTilePreset>[],
+      _patterns = const <ProjectSmartTilePattern>[],
+      _drafts = const <ProjectSmartTileAuthoringDraft>[];
 
   factory ProjectSmartTileCatalog({
     int formatVersion = currentFormatVersion,
@@ -980,13 +974,13 @@ final class ProjectSmartTileCatalog {
     required List<ProjectSmartTilePreset> presets,
     required List<ProjectSmartTilePattern> patterns,
     required List<ProjectSmartTileAuthoringDraft> drafts,
-  })  : _categories = List<ProjectSmartTileCategory>.unmodifiable(categories),
-        _atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
-        _materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
-        _animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
-        _presets = List<ProjectSmartTilePreset>.unmodifiable(presets),
-        _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns),
-        _drafts = List<ProjectSmartTileAuthoringDraft>.unmodifiable(drafts);
+  }) : _categories = List<ProjectSmartTileCategory>.unmodifiable(categories),
+       _atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
+       _materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
+       _animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
+       _presets = List<ProjectSmartTilePreset>.unmodifiable(presets),
+       _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns),
+       _drafts = List<ProjectSmartTileAuthoringDraft>.unmodifiable(drafts);
 
   factory ProjectSmartTileCatalog.fromJson(Map<String, dynamic> json) {
     final rawVersion = json['formatVersion'];
@@ -1019,19 +1013,20 @@ final class ProjectSmartTileCatalog {
         ProjectSmartTileCategory.fromJson,
       ),
       atlases: _decodeList(json['atlases'], ProjectSmartTileAtlas.fromJson),
-      materials:
-          _decodeList(json['materials'], ProjectSmartTileMaterial.fromJson),
-      animations:
-          _decodeList(json['animations'], ProjectSmartTileAnimation.fromJson),
+      materials: _decodeList(
+        json['materials'],
+        ProjectSmartTileMaterial.fromJson,
+      ),
+      animations: _decodeList(
+        json['animations'],
+        ProjectSmartTileAnimation.fromJson,
+      ),
       presets: _decodeList(json['presets'], ProjectSmartTilePreset.fromJson),
       patterns: version >= 4
           ? _decodeList(json['patterns'], ProjectSmartTilePattern.fromJson)
           : const <ProjectSmartTilePattern>[],
       drafts: version >= 3
-          ? _decodeList(
-              json['drafts'],
-              ProjectSmartTileAuthoringDraft.fromJson,
-            )
+          ? _decodeList(json['drafts'], ProjectSmartTileAuthoringDraft.fromJson)
           : const <ProjectSmartTileAuthoringDraft>[],
     );
   }
@@ -1065,27 +1060,33 @@ final class ProjectSmartTileCatalog {
   bool get isNotEmpty => !isEmpty;
 
   Map<String, Object?> toJson({bool compact = true}) => <String, Object?>{
-        'formatVersion': formatVersion,
-        'categories': categories.map((item) => item.toJson()).toList(),
-        'atlases': atlases.map((item) => item.toJson()).toList(),
-        'materials': materials
-            .map((item) => compact
-                ? _compactSmartTileMaterialJson(item.toJson())
-                : item.toJson())
-            .toList(),
-        'animations': animations.map((item) => item.toJson()).toList(),
-        'presets': presets
-            .map((item) => compact
-                ? _compactSmartTileOwnerJson(item.toJson())
-                : item.toJson())
-            .toList(),
-        'patterns': patterns.map((item) => item.toJson()).toList(),
-        'drafts': drafts
-            .map((item) => compact
-                ? _compactSmartTileOwnerJson(item.toJson())
-                : item.toJson())
-            .toList(),
-      };
+    'formatVersion': formatVersion,
+    'categories': categories.map((item) => item.toJson()).toList(),
+    'atlases': atlases.map((item) => item.toJson()).toList(),
+    'materials': materials
+        .map(
+          (item) => compact
+              ? _compactSmartTileMaterialJson(item.toJson())
+              : item.toJson(),
+        )
+        .toList(),
+    'animations': animations.map((item) => item.toJson()).toList(),
+    'presets': presets
+        .map(
+          (item) => compact
+              ? _compactSmartTileOwnerJson(item.toJson())
+              : item.toJson(),
+        )
+        .toList(),
+    'patterns': patterns.map((item) => item.toJson()).toList(),
+    'drafts': drafts
+        .map(
+          (item) => compact
+              ? _compactSmartTileOwnerJson(item.toJson())
+              : item.toJson(),
+        )
+        .toList(),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -1102,15 +1103,15 @@ final class ProjectSmartTileCatalog {
 
   @override
   int get hashCode => Object.hash(
-        formatVersion,
-        Object.hashAll(categories),
-        Object.hashAll(atlases),
-        Object.hashAll(materials),
-        Object.hashAll(animations),
-        Object.hashAll(presets),
-        Object.hashAll(patterns),
-        Object.hashAll(drafts),
-      );
+    formatVersion,
+    Object.hashAll(categories),
+    Object.hashAll(atlases),
+    Object.hashAll(materials),
+    Object.hashAll(animations),
+    Object.hashAll(presets),
+    Object.hashAll(patterns),
+    Object.hashAll(drafts),
+  );
 }
 
 Map<String, dynamic> _compactSmartTileMaterialJson(Map<String, dynamic> json) {
@@ -1218,10 +1219,7 @@ bool _catalogJsonIsStrictlyEmpty(Map<String, dynamic> json) {
   return true;
 }
 
-List<T> _decodeList<T>(
-  Object? json,
-  T Function(Map<String, dynamic>) decode,
-) {
+List<T> _decodeList<T>(Object? json, T Function(Map<String, dynamic>) decode) {
   if (json == null) {
     return <T>[];
   }
@@ -1229,11 +1227,7 @@ List<T> _decodeList<T>(
     throw const FormatException('Smart Tile catalog field must be a list');
   }
   return json
-      .map(
-        (item) => decode(
-          Map<String, dynamic>.from(item as Map),
-        ),
-      )
+      .map((item) => decode(Map<String, dynamic>.from(item as Map)))
       .toList(growable: false);
 }
 

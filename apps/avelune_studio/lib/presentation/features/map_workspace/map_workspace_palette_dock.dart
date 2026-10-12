@@ -69,6 +69,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
       items,
       activeMapId: map.id,
       forMapPicker: true,
+      showComponents: widget.view.resourceFilters.showComponents,
     );
     final visible = widget.view.paletteResources(widget.project, map.id);
     final preferredHeight = _height ?? (widget.compact ? 184.0 : 270.0);
@@ -245,6 +246,13 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                                         return;
                                       }
                                       final view = widget.view;
+                                      if (item.terrain != null) {
+                                        view.prepareTerrainPainting(
+                                          item.terrain!,
+                                        );
+                                        widget.onChanged();
+                                        return;
+                                      }
                                       view.brush = item.element;
                                       view.model3d = item.model3d;
                                       view.terrain = item.terrain;

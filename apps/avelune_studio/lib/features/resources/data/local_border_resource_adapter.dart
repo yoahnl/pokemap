@@ -15,24 +15,42 @@ Future<ResourceMutationReceipt> _createBorder(
   );
   final id = request.blueprintId ?? adapter._identity('border');
   final existing = baseline.manifest.borderCatalog.recordById(id);
+  if (existing?.draft.definition.isSpatial == true &&
+      existing!.draft.definition.template !=
+          BorderBlueprintTemplate.connectedLine) {
+    throw const ResourceFailure(
+      'Ce patron avancé ne peut pas être édité dans le patron linéaire. Créez une nouvelle bordure pour conserver l’originale.',
+    );
+  }
   final record = BorderBlueprintRecord(
     id: id,
     draft: BorderBlueprintDraft(
       baseRevision: existing?.latestPublished?.revision ?? 0,
       definition: BorderBlueprintDraftDefinition(
         name: request.name.trim(),
-        previewSeed: BorderSignedInt64.zero,
-        template: BorderBlueprintTemplate.connectedLine,
+        previewSeed:
+            existing?.draft.definition.previewSeed ?? BorderSignedInt64.zero,
+        template:
+            existing?.draft.definition.template ??
+            BorderBlueprintTemplate.connectedLine,
+        straightOnly:
+            request.straightOnly ??
+            existing?.draft.definition.straightOnly ??
+            false,
         primitives: [for (final source in sources) source.draft],
-        defaults: BorderGenerationParams(
-          irregularityPermille: 0,
-          detailDensityPermille: 0,
-          variationPermille: 0,
-          maxOverlapPx: 8,
-          gapTolerancePx: 1,
-          depthRows: 1,
-          allowAutoRotation: false,
-        ),
+        defaults:
+            existing?.draft.definition.defaults ??
+            BorderGenerationParams(
+              irregularityPermille: 0,
+              detailDensityPermille: 0,
+              variationPermille: 0,
+              maxOverlapPx: 8,
+              gapTolerancePx: 1,
+              depthRows: 1,
+              allowAutoRotation: false,
+            ),
+        ground: existing?.draft.definition.ground,
+        categoryId: existing?.draft.definition.categoryId,
         sortOrder:
             existing?.draft.definition.sortOrder ??
             baseline.manifest.borderCatalog.records.length,

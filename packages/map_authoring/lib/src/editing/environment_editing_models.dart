@@ -45,21 +45,35 @@ final class EnvironmentGeneratedPlacement {
   EnvironmentGeneratedPlacement({
     required this.id,
     required this.layerId,
-    required this.elementId,
+    this.elementId,
+    this.modelId,
+    this.position,
     required this.pos,
     required this.applyCollision,
-  });
+  }) {
+    if ((elementId == null) == (modelId == null) ||
+        (modelId != null) != (position != null)) {
+      throw ArgumentError(
+          'An Environment placement requires exactly one typed visual and a position for a model.');
+    }
+  }
 
   final String id;
   final String layerId;
-  final String elementId;
+  final String? elementId;
+  final String? modelId;
+  final Model3dVector3? position;
+  bool get isSpatial => modelId != null;
+  String get resourceId => elementId ?? modelId!;
   final GridPos pos;
   final bool applyCollision;
 
   Map<String, Object?> toJson() => {
         'id': id,
         'layerId': layerId,
-        'elementId': elementId,
+        if (elementId != null) 'elementId': elementId,
+        if (modelId != null) 'modelId': modelId,
+        if (position != null) 'position': position!.toJson(),
         'x': pos.x,
         'y': pos.y,
         'applyCollision': applyCollision,
@@ -73,6 +87,7 @@ final class EnvironmentGenerationPreview {
     required this.layerId,
     required this.areaId,
     required this.projectRevision,
+    required this.inputFingerprint,
     required this.seed,
     required this.requestedRegion,
     required this.resolutionRegion,
@@ -91,6 +106,7 @@ final class EnvironmentGenerationPreview {
   final String layerId;
   final String areaId;
   final String projectRevision;
+  final String inputFingerprint;
   final int seed;
   final EnvironmentGenerationRegion requestedRegion;
   final EnvironmentGenerationRegion resolutionRegion;
@@ -104,6 +120,7 @@ final class EnvironmentGenerationPreview {
         'layerId': layerId,
         'areaId': areaId,
         'projectRevision': projectRevision,
+        'inputFingerprint': inputFingerprint,
         'seed': seed,
         'requestedRegion': requestedRegion.toJson(),
         'resolutionRegion': resolutionRegion.toJson(),

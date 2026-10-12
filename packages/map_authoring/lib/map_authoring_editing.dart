@@ -1,4 +1,5 @@
 export 'src/editing/map_cell_stroke_buffer.dart';
+export 'src/domains/maps/border_actions.dart' show BorderActions;
 export 'src/editing/map_history_coordinator.dart';
 export 'src/editing/map_history_delta.dart';
 export 'src/editing/map_history_entry.dart';

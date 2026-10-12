@@ -28,6 +28,37 @@ AuthoringActionDescriptor _descriptor(
       extensions: <String, Object?>{
         'catalogFormatVersion': ProjectSmartTileCatalog.currentFormatVersion,
         'projectWidePreflight': true,
+        if (id == 'smart_tile.pattern.upsert' ||
+            id == 'smart_tile.preset.draft.upsert' ||
+            id == 'smart_tile.preset.publish') ...{
+          'model3dOffsetSpace': 'cell_local_before_quarter_turns',
+          'model3dTerrainSample': 'final_anchor',
+          'model3dGroundReplacement': 'source_cell_below_or_equal_layer',
+          'model3dVisualSourceSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['kind', 'modelId'],
+            'properties': {
+              'kind': {'const': 'model3d'},
+              'modelId': {'type': 'string', 'minLength': 1},
+              'scale': {
+                'type': 'number',
+                'exclusiveMinimum': 0,
+                'maximum': 1000,
+                'default': 1
+              },
+              'offsetX': {'type': 'number', 'default': 0},
+              'offsetY': {'type': 'number', 'default': 0},
+              'offsetZ': {'type': 'number', 'default': 0},
+              'animationIndex': {
+                'type': ['integer', 'null'],
+                'minimum': 0
+              },
+              'followTerrain': {'type': 'boolean', 'default': true},
+              'replacesGround': {'type': 'boolean', 'default': false},
+            },
+          },
+        },
         if (id == 'smart_tile.material.upsert_batch') ...{
           'maximumMaterialCount':
               SmartTileCatalogActions.maximumMaterialBatchCount,

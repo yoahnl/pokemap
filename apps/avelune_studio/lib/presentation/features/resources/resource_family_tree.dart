@@ -23,11 +23,12 @@ class ResourceFamilyTree {
     Iterable<ResourceItem> items, {
     String? activeMapId,
     bool forMapPicker = false,
+    bool showComponents = false,
   }) {
     final available = filterResourceCatalog(
       project,
       items,
-      ResourceCatalogFilterState(),
+      ResourceCatalogFilterState(showComponents: showComponents),
       activeMapId: activeMapId,
       forMapPicker: forMapPicker,
     );

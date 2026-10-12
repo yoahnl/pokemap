@@ -6,7 +6,7 @@ import '../../../features/decors/application/decor_source_support.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
-import 'resource_preview.dart';
+import 'resource_source_list.dart';
 
 List<Widget> resourceCreationButtons({
   required BuildContext context,
@@ -52,30 +52,33 @@ class _PathSourceDialog extends StatelessWidget {
     required this.project,
     required this.visuals,
     this.decor = false,
+    this.allowImport = true,
   });
 
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
   final bool decor;
+  final bool allowImport;
 
   @override
   Widget build(BuildContext context) {
     final sources = resourceCatalog(project)
         .where(
           (item) =>
-              item.tileset != null &&
-              (decor
-                  ? canCreateDecor(item.tileset!, project)
-                  : terrainSourceCompatibilityProblem(item.tileset!) == null),
+              (!decor && project.settings.dimension == ProjectDimension.threeD
+              ? item.model3d != null && item.metadata(project)?.mapId == null
+              : item.tileset != null &&
+                    (decor
+                        ? canCreateDecor(item.tileset!, project)
+                        : terrainSourceCompatibilityProblem(item.tileset!) ==
+                              null)),
         )
         .toList();
     final size = MediaQuery.sizeOf(context);
     return Dialog(
       child: SizedBox(
         width: (size.width - 48).clamp(0, 650).toDouble(),
-        height: (size.height - 80)
-            .clamp(260, (260 + sources.length * 92).clamp(300, 540))
-            .toDouble(),
+        height: (size.height - 80).clamp(260, 600).toDouble(),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -84,46 +87,35 @@ class _PathSourceDialog extends StatelessWidget {
               Text(
                 decor
                     ? 'Choisir l’image du décor'
+                    : project.settings.dimension == ProjectDimension.threeD
+                    ? 'Choisir le modèle du chemin'
                     : 'Choisir l’image du chemin',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 6),
-              const Text('Sélectionnez une planche à grille régulière.'),
+              Text(
+                !decor && project.settings.dimension == ProjectDimension.threeD
+                    ? 'Sélectionnez une pièce unitaire à peindre sur le terrain.'
+                    : 'Sélectionnez une planche à grille régulière.',
+              ),
               const SizedBox(height: 14),
               Expanded(
                 child: sources.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          'Aucune image compatible. Importez une planche à grille régulière.',
+                          !decor &&
+                                  project.settings.dimension ==
+                                      ProjectDimension.threeD
+                              ? 'Aucun modèle disponible. Importez une pièce unitaire partagée dans le projet.'
+                              : 'Aucune image compatible. Importez une planche à grille régulière.',
                         ),
                       )
-                    : ListView.separated(
-                        itemCount: sources.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final item = sources[index];
-                          return InkWell(
-                            key: ValueKey('path-source-${item.id}'),
-                            onTap: () => Navigator.of(context).pop(item),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Row(
-                                children: [
-                                  resourcePreview(
-                                    item,
-                                    project,
-                                    visuals,
-                                    size: 72,
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(child: Text(item.name)),
-                                  const Icon(Icons.arrow_forward),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                    : ResourceSourceList(
+                        project: project,
+                        visuals: visuals,
+                        items: sources,
+                        forMapPicker: false,
+                        onPick: (item) => Navigator.of(context).pop(item),
                       ),
               ),
               const SizedBox(height: 12),
@@ -137,10 +129,18 @@ class _PathSourceDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   StudioButton(
-                    label: 'Importer une image',
+                    label:
+                        !decor &&
+                            project.settings.dimension ==
+                                ProjectDimension.threeD
+                        ? 'Importer un modèle'
+                        : 'Importer une image',
                     icon: Icons.add_photo_alternate_outlined,
-                    onPressed: () =>
-                        Navigator.of(context).pop(const _ImportPathImage()),
+                    onPressed: allowImport
+                        ? () =>
+                              Navigator.of(context)
+                                  .pop(const _ImportPathImage())
+                        : null,
                   ),
                 ],
               ),
@@ -161,15 +161,19 @@ Future<void> chooseResourceSource({
   required ProjectManifest project,
   required MapWorkspaceVisuals visuals,
   required ValueChanged<ResourceItem> onChosen,
-  required VoidCallback onImport,
+  required VoidCallback? onImport,
   bool decor = false,
 }) async {
   final choice = await showDialog<Object>(
     context: context,
-    builder: (context) =>
-        _PathSourceDialog(project: project, visuals: visuals, decor: decor),
+    builder: (context) => _PathSourceDialog(
+      project: project,
+      visuals: visuals,
+      decor: decor,
+      allowImport: onImport != null,
+    ),
   );
   if (!context.mounted) return;
   if (choice is ResourceItem) onChosen(choice);
-  if (choice is _ImportPathImage) onImport();
+  if (choice is _ImportPathImage) onImport?.call();
 }

@@ -47,31 +47,34 @@ void main() {
       expect((decoded as BorderLayer).content.featureCount, 2);
     });
 
-    test('missing content defaults but explicit null and future are strict',
-        () {
-      final missing = _minimalBorderLayerJson()..remove('content');
-      final decoded = MapLayer.fromJson(missing);
-      expect((decoded as BorderLayer).content, BorderLayerContent.emptyContent);
-
-      for (final (invalidContent, expectedPath) in <(Object?, String)>[
-        (null, r'$.content'),
-        (true, r'$.content'),
-        (
-          <String, Object?>{
-            'formatVersion': 4,
-            'features': <Object?>[],
-          },
-          r'$.content.formatVersion',
-        ),
-      ]) {
-        final invalid = _minimalBorderLayerJson()..['content'] = invalidContent;
+    test(
+      'missing content defaults but explicit null and future are strict',
+      () {
+        final missing = _minimalBorderLayerJson()..remove('content');
+        final decoded = MapLayer.fromJson(missing);
         expect(
-          () => MapLayer.fromJson(invalid),
-          _formatAt(expectedPath),
-          reason: '$invalidContent',
+          (decoded as BorderLayer).content,
+          BorderLayerContent.emptyContent,
         );
-      }
-    });
+
+        for (final (invalidContent, expectedPath) in <(Object?, String)>[
+          (null, r'$.content'),
+          (true, r'$.content'),
+          (
+            <String, Object?>{'formatVersion': 5, 'features': <Object?>[]},
+            r'$.content.formatVersion',
+          ),
+        ]) {
+          final invalid = _minimalBorderLayerJson()
+            ..['content'] = invalidContent;
+          expect(
+            () => MapLayer.fromJson(invalid),
+            _formatAt(expectedPath),
+            reason: '$invalidContent',
+          );
+        }
+      },
+    );
 
     test('MapData v6 preserves a border layer and its runtime type', () {
       final map = MapData(
@@ -145,11 +148,7 @@ void main() {
         layerId: 'border',
         isVisible: false,
       );
-      final faded = setMapLayerOpacity(
-        hidden,
-        layerId: 'border',
-        opacity: 0.5,
-      );
+      final faded = setMapLayerOpacity(hidden, layerId: 'border', opacity: 0.5);
       final border = faded.layers.single as BorderLayer;
 
       expect(border.name, 'After');
@@ -166,11 +165,7 @@ void main() {
       final source = _map(
         version: ProjectVersion.v8,
         layers: <MapLayer>[
-          MapLayer.border(
-            id: 'border',
-            name: 'Bordures',
-            content: content,
-          ),
+          MapLayer.border(id: 'border', name: 'Bordures', content: content),
         ],
       );
 
@@ -201,46 +196,42 @@ void main() {
 MapData _map({
   ProjectVersion version = ProjectVersion.v8,
   List<MapLayer> layers = const <MapLayer>[],
-}) =>
-    MapData(
-      id: 'port',
-      name: 'Port',
-      size: const GridSize(width: 2, height: 2),
-      version: version,
-      layers: layers,
-    );
+}) => MapData(
+  id: 'port',
+  name: 'Port',
+  size: const GridSize(width: 2, height: 2),
+  version: version,
+  layers: layers,
+);
 
 Map<String, dynamic> _minimalBorderLayerJson() => <String, dynamic>{
-      'id': 'border',
-      'name': 'Bordures',
-      'isVisible': true,
-      'opacity': 1.0,
-      'content': <String, Object?>{
-        'formatVersion': 1,
-        'features': <Object?>[],
-      },
-      'properties': <String, String>{},
-      'runtimeType': 'border',
-    };
+  'id': 'border',
+  'name': 'Bordures',
+  'isVisible': true,
+  'opacity': 1.0,
+  'content': <String, Object?>{'formatVersion': 1, 'features': <Object?>[]},
+  'properties': <String, String>{},
+  'runtimeType': 'border',
+};
 
 Matcher _formatAt(String path) => throwsA(
-      isA<FormatException>().having(
-        (error) => error.message,
-        'message',
-        startsWith('$path:'),
-      ),
-    );
+  isA<FormatException>().having(
+    (error) => error.message,
+    'message',
+    startsWith('$path:'),
+  ),
+);
 
 BorderFeature _feature(String id) => BorderFeature(
-      id: id,
-      name: 'Feature $id',
-      blueprintId: 'coast',
-      seed: BorderSignedInt64.fromInt(1),
-      geometry: BorderRegionGeometry(
-        width: 1,
-        height: 1,
-        cells: const <bool>[true],
-      ),
-      overrides: const <BorderSlotOverride>[],
-      keepOutRegions: const <BorderKeepOutRegion>[],
-    );
+  id: id,
+  name: 'Feature $id',
+  blueprintId: 'coast',
+  seed: BorderSignedInt64.fromInt(1),
+  geometry: BorderRegionGeometry(
+    width: 1,
+    height: 1,
+    cells: const <bool>[true],
+  ),
+  overrides: const <BorderSlotOverride>[],
+  keepOutRegions: const <BorderKeepOutRegion>[],
+);

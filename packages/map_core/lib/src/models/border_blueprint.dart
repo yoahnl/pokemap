@@ -5,24 +5,101 @@ import 'border_signed_int64.dart';
 import 'border_value_objects.dart';
 import 'border_visual_snapshot.dart';
 import 'border_ground_variant_role.dart';
+import 'project_model3d.dart';
+
+enum BorderVisualKind { element, model3d }
+
+void _validateSpatialBehavior({
+  required String? modelId,
+  required int? animationIndex,
+  required bool animationLoop,
+  required double animationSpeed,
+  required bool blocksMovement,
+}) {
+  if ((animationIndex != null && animationIndex < 0) ||
+      !animationSpeed.isFinite ||
+      animationSpeed <= 0 ||
+      animationSpeed > 16) {
+    throw const ValidationException('Invalid spatial Border playback settings');
+  }
+  if (modelId == null &&
+      (animationIndex != null ||
+          !animationLoop ||
+          animationSpeed != 1 ||
+          !blocksMovement)) {
+    throw const ValidationException(
+      'Spatial Border behavior requires a model source',
+    );
+  }
+}
+
+void _validateVisualSource(
+  String? elementId,
+  String? modelId,
+  BorderPixelPos? anchorPx,
+  Model3dVector3? anchorWorld,
+  BorderPrimitiveAssetMetrics? metrics,
+  String? snapshotId,
+  bool published,
+) {
+  if ((elementId == null) == (modelId == null)) {
+    throw const ValidationException(
+      'A Border primitive requires exactly one element or model source',
+    );
+  }
+  _requireNonEmpty(elementId ?? modelId!, 'BorderPrimitive.source');
+  if (modelId != null) {
+    if (anchorPx != null || metrics != null || snapshotId != null) {
+      throw const ValidationException(
+        'A spatial Border primitive cannot contain sprite metadata',
+      );
+    }
+  } else if (anchorWorld != null ||
+      anchorPx == null ||
+      metrics == null ||
+      (published && (snapshotId == null || snapshotId.trim().isEmpty))) {
+    throw const ValidationException(
+      'An element Border primitive requires sprite metadata only',
+    );
+  }
+}
 
 /// Editable primitive referencing a current project element.
 @immutable
 final class BorderPrimitiveDraft {
   BorderPrimitiveDraft({
     required this.id,
-    required this.sourceElementId,
+    this.sourceElementId,
+    this.sourceModelId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     required this.weight,
-    required this.anchorPx,
+    BorderPixelPos? anchorPx,
+    this.anchorWorld,
+    this.animationIndex,
+    this.animationLoop = true,
+    this.animationSpeed = 1,
+    this.blocksMovement = true,
     required this.transforms,
-    required this.currentMetrics,
-  }) {
+    BorderPrimitiveAssetMetrics? currentMetrics,
+  }) : _anchorPx = anchorPx,
+       _currentMetrics = currentMetrics {
     _requireNonEmpty(id, 'BorderPrimitiveDraft.id');
-    _requireNonEmpty(
+    _validateSpatialBehavior(
+      modelId: sourceModelId,
+      animationIndex: animationIndex,
+      animationLoop: animationLoop,
+      animationSpeed: animationSpeed,
+      blocksMovement: blocksMovement,
+    );
+    _validateVisualSource(
       sourceElementId,
-      'BorderPrimitiveDraft.sourceElementId',
+      sourceModelId,
+      anchorPx,
+      anchorWorld,
+      currentMetrics,
+      null,
+      false,
     );
     if (weight < 0 || weight > 1000) {
       throw const ValidationException(
@@ -32,13 +109,32 @@ final class BorderPrimitiveDraft {
   }
 
   final String id;
-  final String sourceElementId;
+  final String? sourceElementId;
+  final String? sourceModelId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
   final int weight;
-  final BorderPixelPos anchorPx;
+  final BorderPixelPos? _anchorPx;
+  final Model3dVector3? anchorWorld;
+  final int? animationIndex;
+  final bool animationLoop;
+  final double animationSpeed;
+  final bool blocksMovement;
   final BorderTransformPolicy transforms;
-  final BorderPrimitiveAssetMetrics currentMetrics;
+  final BorderPrimitiveAssetMetrics? _currentMetrics;
+  bool get isSpatial => sourceModelId != null;
+  BorderVisualKind get visualKind =>
+      isSpatial ? BorderVisualKind.model3d : BorderVisualKind.element;
+  BorderPixelPos get anchorPx =>
+      _anchorPx ??
+      (throw const ValidationException(
+        'A spatial Border primitive has no pixel anchor',
+      ));
+  BorderPrimitiveAssetMetrics get currentMetrics =>
+      _currentMetrics ??
+      (throw const ValidationException(
+        'A spatial Border primitive has no pixel metrics',
+      ));
 
   @override
   bool operator ==(Object other) =>
@@ -46,24 +142,36 @@ final class BorderPrimitiveDraft {
       other is BorderPrimitiveDraft &&
           id == other.id &&
           sourceElementId == other.sourceElementId &&
+          sourceModelId == other.sourceModelId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
           weight == other.weight &&
-          anchorPx == other.anchorPx &&
+          _anchorPx == other._anchorPx &&
+          anchorWorld == other.anchorWorld &&
+          animationIndex == other.animationIndex &&
+          animationLoop == other.animationLoop &&
+          animationSpeed == other.animationSpeed &&
+          blocksMovement == other.blocksMovement &&
           transforms == other.transforms &&
-          currentMetrics == other.currentMetrics;
+          _currentMetrics == other._currentMetrics;
 
   @override
   int get hashCode => Object.hash(
-        id,
-        sourceElementId,
-        role,
-        authoredOrientation,
-        weight,
-        anchorPx,
-        transforms,
-        currentMetrics,
-      );
+    id,
+    sourceElementId,
+    sourceModelId,
+    role,
+    authoredOrientation,
+    weight,
+    _anchorPx,
+    anchorWorld,
+    animationIndex,
+    animationLoop,
+    animationSpeed,
+    blocksMovement,
+    transforms,
+    _currentMetrics,
+  );
 }
 
 /// Immutable published primitive referencing a content-addressed snapshot.
@@ -71,23 +179,39 @@ final class BorderPrimitiveDraft {
 final class BorderPublishedPrimitive {
   BorderPublishedPrimitive({
     required this.id,
-    required this.sourceElementId,
-    required this.visualSnapshotId,
+    this.sourceElementId,
+    this.sourceModelId,
+    String? visualSnapshotId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     required this.weight,
-    required this.anchorPx,
+    BorderPixelPos? anchorPx,
+    this.anchorWorld,
+    this.animationIndex,
+    this.animationLoop = true,
+    this.animationSpeed = 1,
+    this.blocksMovement = true,
     required this.transforms,
-    required this.publishedMetrics,
-  }) {
+    BorderPrimitiveAssetMetrics? publishedMetrics,
+  }) : _anchorPx = anchorPx,
+       _publishedMetrics = publishedMetrics,
+       _visualSnapshotId = visualSnapshotId {
     _requireNonEmpty(id, 'BorderPublishedPrimitive.id');
-    _requireNonEmpty(
-      sourceElementId,
-      'BorderPublishedPrimitive.sourceElementId',
+    _validateSpatialBehavior(
+      modelId: sourceModelId,
+      animationIndex: animationIndex,
+      animationLoop: animationLoop,
+      animationSpeed: animationSpeed,
+      blocksMovement: blocksMovement,
     );
-    _requireNonEmpty(
+    _validateVisualSource(
+      sourceElementId,
+      sourceModelId,
+      anchorPx,
+      anchorWorld,
+      publishedMetrics,
       visualSnapshotId,
-      'BorderPublishedPrimitive.visualSnapshotId',
+      true,
     );
     if (weight < 1 || weight > 1000) {
       throw const ValidationException(
@@ -97,14 +221,38 @@ final class BorderPublishedPrimitive {
   }
 
   final String id;
-  final String sourceElementId;
-  final String visualSnapshotId;
+  final String? sourceElementId;
+  final String? sourceModelId;
+  final String? _visualSnapshotId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
   final int weight;
-  final BorderPixelPos anchorPx;
+  final BorderPixelPos? _anchorPx;
+  final Model3dVector3? anchorWorld;
+  final int? animationIndex;
+  final bool animationLoop;
+  final double animationSpeed;
+  final bool blocksMovement;
   final BorderTransformPolicy transforms;
-  final BorderPrimitiveAssetMetrics publishedMetrics;
+  final BorderPrimitiveAssetMetrics? _publishedMetrics;
+  bool get isSpatial => sourceModelId != null;
+  BorderVisualKind get visualKind =>
+      isSpatial ? BorderVisualKind.model3d : BorderVisualKind.element;
+  BorderPixelPos get anchorPx =>
+      _anchorPx ??
+      (throw const ValidationException(
+        'A spatial Border primitive has no pixel anchor',
+      ));
+  BorderPrimitiveAssetMetrics get publishedMetrics =>
+      _publishedMetrics ??
+      (throw const ValidationException(
+        'A spatial Border primitive has no pixel metrics',
+      ));
+  String get visualSnapshotId =>
+      _visualSnapshotId ??
+      (throw const ValidationException(
+        'A spatial Border primitive uses a live model',
+      ));
 
   @override
   bool operator ==(Object other) =>
@@ -112,26 +260,38 @@ final class BorderPublishedPrimitive {
       other is BorderPublishedPrimitive &&
           id == other.id &&
           sourceElementId == other.sourceElementId &&
-          visualSnapshotId == other.visualSnapshotId &&
+          sourceModelId == other.sourceModelId &&
+          _visualSnapshotId == other._visualSnapshotId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
           weight == other.weight &&
-          anchorPx == other.anchorPx &&
+          _anchorPx == other._anchorPx &&
+          anchorWorld == other.anchorWorld &&
+          animationIndex == other.animationIndex &&
+          animationLoop == other.animationLoop &&
+          animationSpeed == other.animationSpeed &&
+          blocksMovement == other.blocksMovement &&
           transforms == other.transforms &&
-          publishedMetrics == other.publishedMetrics;
+          _publishedMetrics == other._publishedMetrics;
 
   @override
   int get hashCode => Object.hash(
-        id,
-        sourceElementId,
-        visualSnapshotId,
-        role,
-        authoredOrientation,
-        weight,
-        anchorPx,
-        transforms,
-        publishedMetrics,
-      );
+    id,
+    sourceElementId,
+    sourceModelId,
+    _visualSnapshotId,
+    role,
+    authoredOrientation,
+    weight,
+    _anchorPx,
+    anchorWorld,
+    animationIndex,
+    animationLoop,
+    animationSpeed,
+    blocksMovement,
+    transforms,
+    _publishedMetrics,
+  );
 }
 
 /// Optional editable Smart Tile ground band.
@@ -170,8 +330,8 @@ final class BorderPublishedGround {
     required this.edgeBandCells,
     required Map<BorderGroundVariantRole, String> visualSnapshotIdsByRole,
   }) : _visualSnapshotIdsByRole = _copyPublishedGroundSnapshots(
-          visualSnapshotIdsByRole,
-        ) {
+         visualSnapshotIdsByRole,
+       ) {
     _requireNonEmpty(
       sourceSmartTilePresetId,
       'BorderPublishedGround.sourceSmartTilePresetId',
@@ -192,17 +352,14 @@ final class BorderPublishedGround {
       other is BorderPublishedGround &&
           sourceSmartTilePresetId == other.sourceSmartTilePresetId &&
           edgeBandCells == other.edgeBandCells &&
-          _mapsEqual(
-            _visualSnapshotIdsByRole,
-            other._visualSnapshotIdsByRole,
-          );
+          _mapsEqual(_visualSnapshotIdsByRole, other._visualSnapshotIdsByRole);
 
   @override
   int get hashCode => Object.hash(
-        sourceSmartTilePresetId,
-        edgeBandCells,
-        _unorderedMapHash(_visualSnapshotIdsByRole),
-      );
+    sourceSmartTilePresetId,
+    edgeBandCells,
+    _unorderedMapHash(_visualSnapshotIdsByRole),
+  );
 }
 
 /// Shared shape of editable and published blueprint definitions.
@@ -212,6 +369,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     required this.name,
     required this.previewSeed,
     required this.template,
+    this.straightOnly = false,
     required List<TPrimitive> primitives,
     required this.defaults,
     this.ground,
@@ -223,11 +381,36 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     if (category != null) {
       _requireNonEmpty(category, 'BorderBlueprintDefinition.categoryId');
     }
+    final kinds = _primitives
+        .map(
+          (primitive) => switch (primitive) {
+            BorderPrimitiveDraft() => primitive.visualKind,
+            BorderPublishedPrimitive() => primitive.visualKind,
+            _ => throw const ValidationException(
+              'Unknown Border primitive type',
+            ),
+          },
+        )
+        .toSet();
+    if (kinds.length > 1 ||
+        (kinds.contains(BorderVisualKind.model3d) && ground != null)) {
+      throw const ValidationException(
+        'A Border blueprint must use one visual dimension, without sprite ground in 3D',
+      );
+    }
+    if (straightOnly &&
+        (template != BorderBlueprintTemplate.connectedLine ||
+            !kinds.contains(BorderVisualKind.model3d))) {
+      throw const ValidationException(
+        'Straight-only Borders require a spatial connectedLine blueprint',
+      );
+    }
   }
 
   final String name;
   final BorderSignedInt64 previewSeed;
   final BorderBlueprintTemplate template;
+  final bool straightOnly;
   final List<TPrimitive> _primitives;
   final BorderGenerationParams defaults;
   final TGround? ground;
@@ -235,6 +418,13 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
   final int sortOrder;
 
   List<TPrimitive> get primitives => _primitives;
+  bool get isSpatial => _primitives.any(
+    (primitive) => switch (primitive) {
+      BorderPrimitiveDraft() => primitive.isSpatial,
+      BorderPublishedPrimitive() => primitive.isSpatial,
+      _ => false,
+    },
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -244,6 +434,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
           name == other.name &&
           previewSeed == other.previewSeed &&
           template == other.template &&
+          straightOnly == other.straightOnly &&
           _listsEqual(_primitives, other._primitives) &&
           defaults == other.defaults &&
           ground == other.ground &&
@@ -252,30 +443,28 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
 
   @override
   int get hashCode => Object.hash(
-        runtimeType,
-        name,
-        previewSeed,
-        template,
-        Object.hashAll(_primitives),
-        defaults,
-        ground,
-        categoryId,
-        sortOrder,
-      );
+    runtimeType,
+    name,
+    previewSeed,
+    template,
+    straightOnly,
+    Object.hashAll(_primitives),
+    defaults,
+    ground,
+    categoryId,
+    sortOrder,
+  );
 }
 
-typedef BorderBlueprintDraftDefinition
-    = BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>;
-typedef BorderBlueprintPublishedDefinition = BorderBlueprintDefinition<
-    BorderPublishedPrimitive, BorderPublishedGround>;
+typedef BorderBlueprintDraftDefinition =
+    BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>;
+typedef BorderBlueprintPublishedDefinition =
+    BorderBlueprintDefinition<BorderPublishedPrimitive, BorderPublishedGround>;
 
 /// Editable state retained by every blueprint record.
 @immutable
 final class BorderBlueprintDraft {
-  BorderBlueprintDraft({
-    required this.baseRevision,
-    required this.definition,
-  }) {
+  BorderBlueprintDraft({required this.baseRevision, required this.definition}) {
     if (baseRevision < 0) {
       throw const ValidationException(
         'BorderBlueprintDraft.baseRevision must be >= 0',
@@ -300,10 +489,7 @@ final class BorderBlueprintDraft {
 /// Latest immutable published revision retained by a blueprint record.
 @immutable
 final class BorderBlueprintRevision {
-  BorderBlueprintRevision({
-    required this.revision,
-    required this.definition,
-  }) {
+  BorderBlueprintRevision({required this.revision, required this.definition}) {
     if (revision < 1) {
       throw const ValidationException(
         'BorderBlueprintRevision.revision must be >= 1',

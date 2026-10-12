@@ -9,6 +9,7 @@ import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'map_terrain_patterns.dart';
 
 class MapTerrainToolPanel extends StatelessWidget {
   const MapTerrainToolPanel({
@@ -28,6 +29,21 @@ class MapTerrainToolPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final preset = view.terrain;
+    final patterns = preset == null
+        ? <ProjectSmartTilePattern>[]
+        : availableTerrainPatterns(
+            project: project,
+            map: document.current,
+            preset: preset,
+          );
+    final selectedPattern = patterns
+        .where((pattern) => pattern.id == view.terrainPatternId)
+        .firstOrNull;
+    final materials = {
+      for (final material in project.smartTileCatalog.materials)
+        if (preset?.allowedMaterialIds.contains(material.id) == true)
+          material.id: material.name,
+    };
     final item = resourceCatalog(project)
         .where(
           (item) => item.kind == ResourceKind.terrains && item.id == preset?.id,
@@ -64,7 +80,11 @@ class MapTerrainToolPanel extends StatelessWidget {
                 label: 'Hauteur',
                 value: '${view.spatialTerrainLevel}',
                 options: {
-                  for (var level = 0; level <= 32; level++)
+                  for (
+                    var level = 0;
+                    level <= MapSpatialScene.maximumTerrainLevel;
+                    level++
+                  )
                     '$level': '$level ${level == 1 ? "bloc" : "blocs"}',
                 },
                 onChanged: document.saving
@@ -109,6 +129,89 @@ class MapTerrainToolPanel extends StatelessWidget {
                     onChanged();
                   },
           ),
+          if (preset != null &&
+              materials.length > 1 &&
+              (document.current.spatialScene == null ||
+                  view.spatialTerrainMode == SpatialTerrainMode.ground))
+            SizedBox(
+              width: 210,
+              child: StudioSelect(
+                key: const ValueKey('terrain-material-picker'),
+                label: 'Matière',
+                value:
+                    preset.allowedMaterialIds.contains(view.terrainMaterialId)
+                    ? view.terrainMaterialId
+                    : preset.defaultMaterialId,
+                options: materials,
+                onChanged: document.saving || selectedPattern != null
+                    ? null
+                    : (id) {
+                        if (!preset.allowedMaterialIds.contains(id) ||
+                            !materials.containsKey(id)) {
+                          return;
+                        }
+                        view.terrainMaterialId = id;
+                        onChanged();
+                      },
+              ),
+            ),
+          if (preset != null &&
+              (document.current.spatialScene == null ||
+                  view.spatialTerrainMode == SpatialTerrainMode.ground))
+            SizedBox(
+              width: 240,
+              child: StudioSelect(
+                key: const ValueKey('terrain-pattern-picker'),
+                label: 'Motif',
+                value: selectedPattern?.id ?? '',
+                options: {
+                  '': 'Peinture libre',
+                  for (final pattern in patterns) pattern.id: pattern.name,
+                },
+                onChanged: document.saving || patterns.isEmpty
+                    ? null
+                    : (id) {
+                        view.selectTerrainPattern(
+                          patterns
+                              .where((pattern) => pattern.id == id)
+                              .firstOrNull,
+                        );
+                        onChanged();
+                      },
+              ),
+            ),
+          if (selectedPattern != null &&
+              (document.current.spatialScene == null ||
+                  view.spatialTerrainMode == SpatialTerrainMode.ground))
+            SizedBox(
+              width: 170,
+              child: StudioSelect(
+                key: const ValueKey('terrain-pattern-mode'),
+                label: 'Placement',
+                value:
+                    (selectedPattern.repeatMode ==
+                                SmartTilePatternRepeatMode.stamp
+                            ? SmartTilePatternSelectionKind.stamp
+                            : view.terrainPatternMode)
+                        .name,
+                options: {
+                  'stamp': 'Tampon',
+                  if (selectedPattern.repeatMode ==
+                      SmartTilePatternRepeatMode.tiled) ...{
+                    'line': 'Ligne',
+                    'rectangle': 'Rectangle',
+                  },
+                },
+                onChanged: document.saving || view.tool != StudioMapTool.terrain
+                    ? null
+                    : (id) {
+                        view.terrainPatternMode = SmartTilePatternSelectionKind
+                            .values
+                            .firstWhere((mode) => mode.name == id);
+                        onChanged();
+                      },
+              ),
+            ),
           StudioButton(
             key: const ValueKey('terrain-erase'),
             label: 'Gomme',

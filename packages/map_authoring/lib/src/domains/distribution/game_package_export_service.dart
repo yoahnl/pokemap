@@ -188,6 +188,7 @@ final class CanonicalGamePackageExportService {
       var animatedDecor = false;
       var spatialGameplay = false;
       var spatialStory = false;
+      var customTerrainAppearance = false;
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
         spatialStory =
@@ -207,6 +208,7 @@ final class CanonicalGamePackageExportService {
               relativePath: entry.relativePath);
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+          customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
           animatedDecor |= SpatialGameplayCapabilities.requiresModelAnimation(
               projection.project,
               maps: [map]);
@@ -222,6 +224,7 @@ final class CanonicalGamePackageExportService {
               ? 'map3d@1'
               : 'map@1',
         if (animatedDecor) 'map3d.animation@1',
+        if (customTerrainAppearance) 'map3d.terrain-appearance@1',
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
       }.toList(growable: false)
@@ -410,6 +413,7 @@ final class CanonicalGamePackageExportService {
             'map@1',
             'map3d@1',
             'map3d.animation@1',
+            'map3d.terrain-appearance@1',
             SpatialGameplayCapabilities.capabilityId,
             SpatialGameplayCapabilities.storyCapabilityId,
             'overworld.menu@1',

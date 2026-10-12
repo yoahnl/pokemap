@@ -75,36 +75,38 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           stagedHandles.add(artifactHandle);
           fields['artifactHandle'] = artifactHandle;
         }
-        if (borderSources != null) {
+        if (borderSources != null &&
+            borderSources.any((source) => !source.draft.isSpatial)) {
           final handlesByPath = <String, String>{};
           fields['primitiveSources'] = <Object?>[
             for (final source in borderSources)
-              <String, Object?>{
-                'primitiveId': source.draft.id,
-                'frames': <Object?>[
-                  for (final frame in source.frames)
-                    <String, Object?>{
-                      'artifactHandle': await _stageBorderFrame(
-                        api,
-                        artifacts,
-                        frame,
-                        handlesByPath,
-                        stagedHandles,
-                      ),
-                      'sourceProjectRelativePath': frame.relativePath,
-                      'sourceRectPx': <String, int>{
-                        'x': frame.rect.x,
-                        'y': frame.rect.y,
-                        'width': frame.rect.width,
-                        'height': frame.rect.height,
+              if (!source.draft.isSpatial)
+                <String, Object?>{
+                  'primitiveId': source.draft.id,
+                  'frames': <Object?>[
+                    for (final frame in source.frames)
+                      <String, Object?>{
+                        'artifactHandle': await _stageBorderFrame(
+                          api,
+                          artifacts,
+                          frame,
+                          handlesByPath,
+                          stagedHandles,
+                        ),
+                        'sourceProjectRelativePath': frame.relativePath,
+                        'sourceRectPx': <String, int>{
+                          'x': frame.rect.x,
+                          'y': frame.rect.y,
+                          'width': frame.rect.width,
+                          'height': frame.rect.height,
+                        },
+                        if (frame.durationMs != null)
+                          'durationMs': frame.durationMs,
+                        if (frame.transparentColorArgb != null)
+                          'transparentColorArgb': frame.transparentColorArgb,
                       },
-                      if (frame.durationMs != null)
-                        'durationMs': frame.durationMs,
-                      if (frame.transparentColorArgb != null)
-                        'transparentColorArgb': frame.transparentColorArgb,
-                    },
-                ],
-              },
+                  ],
+                },
           ];
         }
         await api.attachProject(

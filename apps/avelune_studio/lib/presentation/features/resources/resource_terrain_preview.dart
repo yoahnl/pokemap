@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../map_workspace/map_workspace_visuals.dart';
+import '../../../features/terrains/domain/terrain_spatial_preview_map.dart';
+import '../terrains/terrain_spatial_preview.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 
 class ResourceTerrainPreview extends StatelessWidget {
   const ResourceTerrainPreview({
@@ -18,6 +21,34 @@ class ResourceTerrainPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (preset.rules.any(
+      (rule) => rule.candidates.any(
+        (candidate) => candidate.parts.any(
+          (part) => part.source is SmartTileModel3dSource,
+        ),
+      ),
+    )) {
+      try {
+        final preview = terrainSpatialPreviewMap(
+          project: project,
+          preset: preset,
+          size: 3,
+          cells: {
+            for (var index = 0; index < 9; index++)
+              GridPos(x: index % 3, y: index ~/ 3),
+          },
+        );
+        return TerrainSpatialPreview(
+          map: preview.map,
+          project: preview.project,
+          visuals: visuals,
+        );
+      } on FormatException {
+        return const StudioNotice(
+          'Cette pièce dépasse le terrain d’aperçu. Vérifiez ses points d’appui et ses décalages.',
+        );
+      }
+    }
     final tiles = _pattern();
     if (tiles == null) {
       return const Center(

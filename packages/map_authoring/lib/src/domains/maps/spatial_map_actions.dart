@@ -15,6 +15,7 @@ final class SpatialMapActions {
     'map3d.instance.upsert': 'instance',
     'map3d.instance.upsert_batch': 'instances',
     'map3d.instance.delete': 'instanceId',
+    'map3d.instance.delete_batch': 'instanceIds',
     'map3d.camera.configure': 'camera',
     'map3d.navigation.configure': 'navigation',
   };
@@ -28,11 +29,12 @@ final class SpatialMapActions {
           'levelHeight' =>
             'Configure physical terrain level height and preserve instance offsets',
           'cliffFrame' =>
-            'Configure or clear the repeated terrain cliff texture',
+            'Configure terrain cliff texture and generated wall visibility',
           'instance' => 'Place or replace a 3D model instance',
           'instances' =>
             'Place or replace bounded 3D instances atomically on one map',
           'instanceId' => 'Delete a 3D model instance',
+          'instanceIds' => 'Delete bounded 3D instances atomically on one map',
           'navigation' => 'Configure spawn, ramps and exploration movement',
           _ => 'Configure a fixed 3D map camera',
         },
@@ -46,10 +48,10 @@ final class SpatialMapActions {
           AuthoringGuarantee.idempotent,
           AuthoringGuarantee.revisionChecked,
           AuthoringGuarantee.undoable,
-          if (entry.value == 'instances') AuthoringGuarantee.atomic,
+          if (entry.value == 'instances' || entry.value == 'instanceIds') AuthoringGuarantee.atomic,
         ],
         extensions: {
-          if (entry.value == 'instances') ...{
+          if (entry.value == 'instances' || entry.value == 'instanceIds') ...{
             'maximumInstanceCount': maximumInstancesPerBatch,
             'batchAtomicity': 'all_or_nothing',
             'undoBoundary': 'batch',
@@ -61,7 +63,9 @@ final class SpatialMapActions {
             'required': ['mapId', entry.value],
             'properties': {
               'mapId': {'type': 'string', 'minLength': 1},
-              entry.value: _schema(entry.value)
+              entry.value: _schema(entry.value),
+              if (entry.value == 'cliffFrame')
+                'generateCliffs': {'type': 'boolean'},
             }
           }
         },
@@ -75,8 +79,10 @@ final class SpatialMapActions {
       throw semanticFailure(
           'map3d.action_unsupported', 'Unsupported spatial map action.');
     }
-    final context =
-        SemanticMapActionContext.read(planning, allowedParameters: {field});
+    final context = SemanticMapActionContext.read(planning, allowedParameters: {
+      field,
+      if (field == 'cliffFrame') 'generateCliffs',
+    });
     if (context.manifest.settings.dimension != ProjectDimension.threeD ||
         context.map.spatialScene == null) {
       throw semanticFailure('map3d.dimension_required',
@@ -92,6 +98,7 @@ final class SpatialMapActions {
     }
     if (field == 'instanceId') {
       final instanceId = context.parameters.string(field);
+      _requireAuthoredInstance(context.map, instanceId, requireExisting: true);
       final index = buildNarrativeDependencyIndex(
           project: context.manifest, maps: planning.snapshot.maps);
       final usages = index.usagesFor(NarrativeDependencyKey.mapSource(
@@ -111,9 +118,11 @@ final class SpatialMapActions {
     try {
       final after = switch (field) {
         'instances' => _upsertInstances(context),
+        'instanceIds' => _deleteInstances(context, planning.snapshot.maps),
         'levelHeight' =>
           _configureTerrainHeight(context.map, context.parameters.value(field)),
         'cliffFrame' => operations.configureTerrainAppearance(context.map,
+            generateCliffs: context.parameters.value('generateCliffs') as bool?,
             cliffFrame: context.parameters.value(field) == null
                 ? null
                 : SmartTileFrameRef.fromJson(_object(
@@ -128,20 +137,7 @@ final class SpatialMapActions {
                   z: cell['z'] as int,
                   level: cell['level'] as int);
             }).toList()),
-        'instance' => operations.upsertInstance(
-            context.map,
-            SpatialModelInstance.fromJson(
-                _object(context.parameters.object(field), {
-              'id',
-              'modelId',
-              'position',
-              'rotationDegrees',
-              'scale',
-              'animationIndex',
-              'animationLoop',
-              'animationSpeed',
-              'blocksMovement'
-            }))),
+        'instance' => _upsertInstance(context),
         'navigation' => operations.configureNavigation(
             context.map,
             SpatialNavigationProfile.fromJson(_object(
@@ -168,16 +164,17 @@ final class SpatialMapActions {
               _changedCells(context.map.spatialScene!, after.spatialScene!),
             'instances' =>
               _changedInstances(context.map.spatialScene!, after.spatialScene!),
+            'instanceIds' => context.parameters.list(field).length,
             _ => 1,
           },
-          preview: field == 'instances'
+          preview: field == 'instances' || field == 'instanceIds'
               ? {
-                  'instanceIds': context.parameters
+                  'instanceIds': field == 'instanceIds' ? context.parameters.list(field) : context.parameters
                       .list(field)
                       .map((item) => (item as Map)['id'])
                       .toList(),
                   'instanceCount': context.parameters.list(field).length,
-                  'changedInstanceCount': _changedInstances(
+                  'changedInstanceCount': field == 'instanceIds' ? context.parameters.list(field).length : _changedInstances(
                       context.map.spatialScene!, after.spatialScene!),
                   'batchAtomicity': 'all_or_nothing',
                   'undoBoundary': 'batch',
@@ -190,6 +187,83 @@ final class SpatialMapActions {
           'The spatial action parameters have invalid types or missing fields.');
     }
   }
+}
+
+MapData _upsertInstance(SemanticMapActionContext context) {
+  final instance = SpatialModelInstance.fromJson(_object(context.parameters.object('instance'), {
+    'id', 'modelId', 'position', 'rotationDegrees', 'scale', 'animationIndex',
+    'animationLoop', 'animationSpeed', 'blocksMovement',
+  }));
+  _requireAuthoredInstance(context.map, instance.id, allowManualEnvironment: true);
+  return const SpatialMapOperations().upsertInstance(context.map, instance);
+}
+
+void _requireAuthoredInstance(MapData map, String id, {bool requireExisting = false, bool allowManualEnvironment = false}) {
+  if (id.startsWith('smt_')) {
+    throw semanticFailure('map3d.instance.generated',
+        'Smart Tile models must be edited through their painted layer.');
+  }
+  for (final layer in map.layers) {
+    if (layer is EnvironmentLayer) {
+      for (final area in layer.content.areas) {
+        if (area.generatedPlacementIds.contains(id) &&
+            (!allowManualEnvironment || !area.manualPlacementIds.contains(id))) {
+          throw semanticFailure('map3d.instance.owned',
+              'Environment instances must be edited through their area.',
+              details: {'instanceId': id, 'layerId': layer.id, 'areaId': area.id});
+        }
+      }
+    } else if (layer is BorderLayer) {
+      for (final feature in layer.content.features) {
+        if (feature.generatedPlacementIds.contains(id)) {
+          throw semanticFailure('map3d.instance.owned',
+              'Border instances must be edited through their feature.',
+              details: {'instanceId': id, 'layerId': layer.id, 'featureId': feature.id});
+        }
+      }
+    }
+  }
+  if (requireExisting && !map.spatialScene!.instances.any((instance) => instance.id == id)) {
+    throw semanticFailure('map3d.instance.not_found', 'The spatial instance does not exist.',
+        details: {'instanceId': id});
+  }
+}
+
+MapData _deleteInstances(SemanticMapActionContext context, List<MapData> maps) {
+  final raw = context.parameters.list('instanceIds');
+  if (raw.isEmpty) {
+    throw const FormatException('A deletion batch requires at least one instance ID.');
+  }
+  if (raw.length > SpatialMapActions.maximumInstancesPerBatch) {
+    throw semanticFailure('map3d.instance.batch_too_large',
+        'An instance batch supports at most fifty instances.',
+        details: {'instanceCount': raw.length, 'maximumInstanceCount': SpatialMapActions.maximumInstancesPerBatch});
+  }
+  final ids = <String>{};
+  for (final value in raw) {
+    if (value is! String || value.trim().isEmpty || value != value.trim()) {
+      throw const FormatException('Deletion instance IDs must be nonempty strings without surrounding whitespace.');
+    }
+    if (!ids.add(value)) {
+      throw semanticFailure('map3d.instance.batch_duplicate',
+          'An instance batch cannot repeat an instance identity.', details: {'instanceId': value});
+    }
+    _requireAuthoredInstance(context.map, value, requireExisting: true);
+  }
+  final index = buildNarrativeDependencyIndex(project: context.manifest, maps: maps);
+  for (final id in ids) {
+    final usages = index.usagesFor(NarrativeDependencyKey.mapSource(
+        mapId: context.map.id, sourceKind: 'modelInstance', sourceId: id));
+    if (usages.isNotEmpty) {
+      throw semanticFailure('map3d.instance_referenced',
+          'The 3D instance is still referenced and cannot be deleted.',
+          details: {'instanceId': id, 'references': usages.map((usage) => usage.path).toList()..sort()});
+    }
+  }
+  final projected = context.map.copyWith(spatialScene: context.map.spatialScene!.copyWith(
+      instances: context.map.spatialScene!.instances.where((instance) => !ids.contains(instance.id))));
+  validateSpatialMapStructure(projected);
+  return projected;
 }
 
 MapData _upsertInstances(SemanticMapActionContext context) {
@@ -223,6 +297,7 @@ MapData _upsertInstances(SemanticMapActionContext context) {
       'animationSpeed',
       'blocksMovement',
     }));
+    _requireAuthoredInstance(context.map, instance.id, allowManualEnvironment: true);
     if (!ids.add(instance.id)) {
       throw semanticFailure('map3d.instance.batch_duplicate',
           'An instance batch cannot repeat an instance identity.',
@@ -291,6 +366,7 @@ MapData _configureTerrainHeight(MapData map, Object? value) {
     heightLevels: before.heightLevels,
     levelHeight: value.toDouble(),
     cliffFrame: before.cliffFrame,
+    generateCliffs: before.generateCliffs,
     instances: before.instances,
     camera: before.camera,
     navigation: before.navigation,
@@ -326,6 +402,12 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'instanceIds' => {
+          'type': 'array', 'minItems': 1,
+          'maxItems': SpatialMapActions.maximumInstancesPerBatch,
+          'uniqueItems': true,
+          'items': {'type': 'string', 'minLength': 1},
+        },
       'instances' => {
           'type': 'array',
           'minItems': 1,
@@ -391,8 +473,8 @@ Map<String, Object?> _schema(String field) => switch (field) {
                     'type': 'string',
                     'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
                   },
-                  'lowLevel': {'type': 'integer', 'minimum': 0, 'maximum': 31},
-                  'highLevel': {'type': 'integer', 'minimum': 1, 'maximum': 32},
+                  'lowLevel': {'type': 'integer', 'minimum': 0, 'maximum': MapSpatialScene.maximumTerrainLevel - 1},
+                  'highLevel': {'type': 'integer', 'minimum': 1, 'maximum': MapSpatialScene.maximumTerrainLevel},
                   'direction': {
                     'enum': ['north', 'south', 'east', 'west']
                   }
@@ -422,7 +504,7 @@ Map<String, Object?> _schema(String field) => switch (field) {
             'properties': {
               'x': {'type': 'integer', 'minimum': 0, 'maximum': 255},
               'z': {'type': 'integer', 'minimum': 0, 'maximum': 255},
-              'level': {'type': 'integer', 'minimum': 0, 'maximum': 32}
+              'level': {'type': 'integer', 'minimum': 0, 'maximum': MapSpatialScene.maximumTerrainLevel}
             }
           }
         },

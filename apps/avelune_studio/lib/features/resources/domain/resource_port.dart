@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:map_core/map_core_domain.dart';
 
 final class ResourceImageImport {
@@ -15,12 +16,48 @@ final class ResourceImageImport {
   final int tileHeight;
 }
 
+final class BorderModelSettings {
+  const BorderModelSettings({
+    this.animationIndex,
+    this.animationLoop = true,
+    this.animationSpeed = 1,
+    this.blocksMovement = true,
+  });
+
+  final int? animationIndex;
+  final bool animationLoop;
+  final double animationSpeed;
+  final bool blocksMovement;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BorderModelSettings &&
+      other.animationIndex == animationIndex &&
+      other.animationLoop == animationLoop &&
+      other.animationSpeed == animationSpeed &&
+      other.blocksMovement == blocksMovement;
+
+  @override
+  int get hashCode => Object.hash(
+    animationIndex,
+    animationLoop,
+    animationSpeed,
+    blocksMovement,
+  );
+}
+
 final class BorderCreationRequest {
   const BorderCreationRequest({
     required this.name,
     this.capElementId,
     this.straightElementId,
     this.cornerElementId,
+    this.capModelId,
+    this.straightModelId,
+    this.cornerModelId,
+    this.primitiveModelIds = const {},
+    this.primitiveModelSettings = const {},
+    this.straightOnly,
     this.blueprintId,
     this.publish = true,
     this.acceptedWarningCodes = const [],
@@ -30,6 +67,10 @@ final class BorderCreationRequest {
   final String? capElementId;
   final String? straightElementId;
   final String? cornerElementId;
+  final String? capModelId, straightModelId, cornerModelId;
+  final Map<String, String> primitiveModelIds;
+  final Map<String, BorderModelSettings> primitiveModelSettings;
+  final bool? straightOnly;
   final String? blueprintId;
   final bool publish;
   final List<String> acceptedWarningCodes;

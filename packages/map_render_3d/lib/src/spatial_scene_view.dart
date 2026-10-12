@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import 'package:flame_3d/camera.dart';
@@ -532,6 +533,39 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   double billboardPitch = 0, billboardYaw = 0;
   final groundTextureCache = <String, Future<Texture>>{};
   Map<String, _SceneChunk> sceneChunks = {};
+  final _smartTileProjectionCache =
+      Map<
+        MapData,
+        ({ProjectSmartTileCatalog catalog, int width, int height, MapData map})
+      >.identity();
+
+  MapData projectedSmartTileMap(MapData map, ProjectManifest? project) {
+    if (project == null) return map;
+    final cached = _smartTileProjectionCache[map];
+    if (cached != null &&
+        identical(cached.catalog, project.smartTileCatalog) &&
+        cached.width == project.settings.tileWidth &&
+        cached.height == project.settings.tileHeight) {
+      return cached.map;
+    }
+    final projected = projectSpatialSmartTileModels(
+      map: map,
+      catalog: project.smartTileCatalog,
+      sourceCellWidth: project.settings.tileWidth,
+      sourceCellHeight: project.settings.tileHeight,
+    );
+    if (_smartTileProjectionCache.length >= 8) {
+      _smartTileProjectionCache.remove(_smartTileProjectionCache.keys.first);
+    }
+    _smartTileProjectionCache[map] = (
+      catalog: project.smartTileCatalog,
+      width: project.settings.tileWidth,
+      height: project.settings.tileHeight,
+      map: projected,
+    );
+    return projected;
+  }
+
   List<_SceneGround> grounds = [];
   late final sceneComponents = SpatialSceneComponents(world);
   late final placementRenderer = SpatialPlacementPreviewRenderer(
@@ -572,6 +606,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final snapshot = configuration;
     final neighbors = List<SpatialSceneNeighbor>.of(snapshot.neighbors);
     final definitions = {for (final model in snapshot.models) model.id: model};
+    final activeModelIds = <String>{};
     final groups = <Object, Iterable<Object3D>>{};
     final nextChunks = <String, _SceneChunk>{};
     final nextGrounds = <_SceneGround>[];
@@ -605,13 +640,20 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     ];
     try {
       for (final placement in placements) {
-        final map = placement.map;
         final project = snapshot.groundProject;
+        final map = placement.map == null
+            ? null
+            : projectedSmartTileMap(placement.map!, project);
+        final scene = map?.spatialScene ?? placement.scene;
+        for (final instance in scene.instances) {
+          final sourceAssetId = definitions[instance.modelId]?.sourceAssetId;
+          if (sourceAssetId != null) activeModelIds.add(sourceAssetId);
+        }
         final loader = placement.loader;
         final mapId = map?.id ?? '__scene__';
         final signature = (
           map,
-          placement.scene,
+          scene,
           project,
           placement.offset,
           snapshot.ground,
@@ -674,11 +716,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           components.addAll(ground.components);
         }
         for (final mesh in terrainMeshes(
-          placement.scene,
+          scene,
           snapshot.ground,
           snapshot.edge,
           selectedCell: placement.active ? snapshot.selectedCell : null,
           paintedCells: groundPlan?.paintedCells,
+          replacedGroundCells: groundPlan?.groundReplacementCells ?? const {},
           bridgeCells: groundPlan?.bridgeCells ?? const {},
           cliffTexture: groundPlan?.cliff == null
               ? null
@@ -694,7 +737,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             ),
           );
         }
-        for (final instance in placement.scene.instances) {
+        for (final instance in scene.instances) {
           final definition = definitions[instance.modelId];
           if (definition == null) {
             throw StateError('Modèle absent : ${instance.modelId}');
@@ -800,9 +843,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           };
           groundTextureCache.removeWhere((id, _) => !imageIds.contains(id));
           final modelIds = {
-            for (final placement in placements)
-              for (final instance in placement.scene.instances)
-                definitions[instance.modelId]?.sourceAssetId,
+            ...activeModelIds,
             if (snapshot.placementPreview case final preview?)
               definitions[preview.modelId]?.sourceAssetId,
           };
@@ -1343,6 +1384,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     groundTextureCache.clear();
     grounds.clear();
     sceneChunks.clear();
+    _smartTileProjectionCache.clear();
     actorSelections.clear();
     super.onRemove();
   }
@@ -1390,10 +1432,11 @@ final class _SceneGround {
   final Offset offset;
   List<SpatialGroundVisual> visuals = [];
   List<MeshComponent> components = [];
+  bool initialized = false;
 
   bool resolve(int elapsedMs) {
     final next = plan.resolve(elapsedMs);
-    var changed = components.isEmpty || next.length != visuals.length;
+    var changed = !initialized || next.length != visuals.length;
     for (var index = 0; !changed && index < next.length; index++) {
       final before = visuals[index].visual, after = next[index].visual;
       changed =
@@ -1403,12 +1446,14 @@ final class _SceneGround {
           before.geometry.visualBounds != after.geometry.visualBounds;
     }
     if (!changed) return false;
+    initialized = true;
     visuals = next;
     components = [
       for (final mesh in spatialGroundMeshes(
         visuals,
         textures,
         scene: plan.scene,
+        excludedCellsFor: plan.excludedCellsFor,
       ))
         MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
     ];
@@ -1436,6 +1481,7 @@ Iterable<Mesh> terrainMeshes(
   Color edge, {
   (int, int)? selectedCell,
   Set<(int, int)>? paintedCells,
+  Set<(int, int)> replacedGroundCells = const {},
   Set<(int, int)> bridgeCells = const {},
   ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
 }) sync* {
@@ -1480,6 +1526,7 @@ Iterable<Mesh> terrainMeshes(
   }
 
   for (final face in spatialTerrainFaces(scene)) {
+    if (face.isTop && replacedGroundCells.contains(face.cell)) continue;
     if (!face.isTop && bridgeCells.contains(face.cell)) continue;
     if (face.isTop &&
         paintedCells != null &&

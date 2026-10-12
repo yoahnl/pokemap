@@ -3,6 +3,37 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'local collision bounds roundtrip independently of visible geometry',
+    () {
+      final collision = {
+        'min': {'x': .75, 'y': 0.0, 'z': .25},
+        'max': {'x': 1.25, 'y': 1.0, 'z': .75},
+      };
+      final model = ProjectModel3dEntry.fromJson({
+        ..._model().toJson(),
+        'collisionBounds': collision,
+      });
+      expect(model.toJson()['collisionBounds'], collision);
+      expect(model.inspection, _model().inspection);
+      expect(ProjectModel3dEntry.fromJson(model.toJson()), model);
+      expect(
+        model.copyWith(name: 'Tree').toJson()['collisionBounds'],
+        collision,
+      );
+      expect(model, isNot(_model()));
+      expect(
+        () => ProjectModel3dEntry.fromJson({
+          ..._model().toJson(),
+          'collisionBounds': {
+            'min': {'x': 1.0, 'y': 0.0, 'z': 0.0},
+            'max': {'x': 1.0, 'y': 1.0, 'z': 1.0},
+          },
+        }),
+        throwsFormatException,
+      );
+    },
+  );
   test('model material roundtrips explicit MASK and rejects other cutoffs', () {
     final json = {
       'index': 0,

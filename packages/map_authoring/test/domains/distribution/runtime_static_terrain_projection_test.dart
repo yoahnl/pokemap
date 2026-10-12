@@ -89,7 +89,8 @@ void main() {
       name: 'Map',
       version: ProjectVersion.v9,
       size: const GridSize(width: 10, height: 10),
-      spatialScene: MapSpatialScene(width: 10, depth: 10),
+      spatialScene:
+          MapSpatialScene(width: 10, depth: 10, generateCliffs: false),
       layers: [
         (_map().layers.first as SmartTileLayer).copyWith(
           materialPalette: ['', ...materials.map((m) => m.id)],
@@ -114,17 +115,21 @@ void main() {
     await Directory('${root.path}/maps').create();
     await File('${root.path}/maps/map.json').writeAsString(sourceMap);
     final profile = GamePackageExportProfile(
-          gameId: 'games.test.terrain',
-          gameVersion: '0.1.0',
-          title: 'Terrain',
-          authorName: 'Tester',
-          defaultLocale: 'en',
-          supportedLocales: ['en']);
+        gameId: 'games.test.terrain',
+        gameVersion: '0.1.0',
+        title: 'Terrain',
+        authorName: 'Tester',
+        defaultLocale: 'en',
+        supportedLocales: ['en']);
     final result = await const RuntimeProjectProjectionBuilder().build(
       projectRoot: root,
       profile: profile,
     );
     expect(result.project.smartTileCatalog.presets.single.rules, hasLength(2));
+    final projectedMap = MapData.fromJson(
+        jsonDecode(utf8.decode(result.payloadFiles['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    expect(projectedMap.spatialScene!.generateCliffs, false);
     final exported = AssetCatalog.fromJson(jsonDecode(
         utf8.decode(result.payloadFiles['project/$assetCatalogStorageKey']!)));
     final derived = exported.records
@@ -142,20 +147,20 @@ void main() {
     await expectLater(
       const RuntimeProjectProjectionBuilder(maxJsonSourceBytes: 128)
           .build(projectRoot: root, profile: profile),
-      throwsA(isA<GamePackageExportException>().having(
-          (error) => error.code, 'code', 'authoringFileTooLarge')),
+      throwsA(isA<GamePackageExportException>()
+          .having((error) => error.code, 'code', 'authoringFileTooLarge')),
     );
     await expectLater(
       const RuntimeProjectProjectionBuilder(maxPayloadEntries: 1)
           .build(projectRoot: root, profile: profile),
-      throwsA(isA<GamePackageExportException>().having(
-          (error) => error.code, 'code', 'projectionQuotaExceeded')),
+      throwsA(isA<GamePackageExportException>()
+          .having((error) => error.code, 'code', 'projectionQuotaExceeded')),
     );
     await expectLater(
       const RuntimeProjectProjectionBuilder(maxTotalPayloadBytes: 1)
           .build(projectRoot: root, profile: profile),
-      throwsA(isA<GamePackageExportException>().having(
-          (error) => error.code, 'code', 'projectionQuotaExceeded')),
+      throwsA(isA<GamePackageExportException>()
+          .having((error) => error.code, 'code', 'projectionQuotaExceeded')),
     );
   });
   test('static terrain projection preserves pixels and material properties',
@@ -195,7 +200,10 @@ void main() {
     for (final rule in preset.rules) {
       final frame = rule.candidates.single.parts.single.source.when(
           frame: (frame) => frame,
-          animation: (_) => throw StateError('animation'));
+          animation: (_) => throw StateError('animation'),
+          model3d:
+              (id, scale, x, y, z, animation, followTerrain, replacesGround) =>
+                  throw StateError('model3d'));
       expect(frame.columnSpan, 2);
       expect(frame.rowSpan, 2);
     }

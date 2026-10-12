@@ -4,6 +4,71 @@ import 'package:test/test.dart';
 void main() {
   const mapSize = GridSize(width: 2, height: 2);
 
+  test(
+    '3D material gestures remove pattern ownership only at edited cells',
+    () {
+      const layer = SmartTileLayer(
+        id: 'grass',
+        name: 'Grass',
+        presetId: 'grass',
+        usage: SmartTileUsage.path,
+        materialPalette: ['', 'grass'],
+        field: SmartTileField.cell(semanticCells: [1, 1, 0, 0]),
+        patternStrokes: [
+          SmartTilePatternStroke(
+            id: 'source',
+            patternId: 'source-grass',
+            phaseX: 3,
+            phaseY: 4,
+            cells: [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+          ),
+        ],
+      );
+      final source = MapData(
+        id: 'map',
+        name: 'Map',
+        size: mapSize,
+        version: ProjectVersion.v9,
+        spatialScene: MapSpatialScene(width: 2, depth: 2),
+        layers: [layer],
+      );
+      for (final materialId in <String?>[null, 'grass']) {
+        final edited = applySmartTileMapMaterialGesture(
+          source,
+          layer: layer,
+          catalog: ProjectSmartTileCatalog(),
+          cells: const [GridPos(x: 0, y: 0)],
+          materialId: materialId,
+        );
+        final painted = edited.layers.single as SmartTileLayer;
+        expect(painted.patternStrokes.single.cells, [
+          const GridPos(x: 1, y: 0),
+        ]);
+        expect(painted.patternStrokes.single.phaseX, 3);
+        expect(painted.patternStrokes.single.phaseY, 4);
+        expect(
+          smartTileMaterialIdAt(painted, mapSize: mapSize, x: 1, y: 0),
+          'grass',
+        );
+      }
+      final flat = source.copyWith(
+        version: ProjectVersion.v8,
+        spatialScene: null,
+      );
+      final unchanged = applySmartTileMapMaterialGesture(
+        flat,
+        layer: layer,
+        catalog: ProjectSmartTileCatalog(),
+        cells: const [GridPos(x: 0, y: 0)],
+        materialId: null,
+      );
+      expect(
+        (unchanged.layers.single as SmartTileLayer).patternStrokes,
+        layer.patternStrokes,
+      );
+    },
+  );
+
   test('3D soil repaint replaces higher soils locally and preserves paths', () {
     SmartTileLayer surface(String id, SmartTileUsage usage) => SmartTileLayer(
       id: id,
@@ -33,6 +98,7 @@ void main() {
       map = applySmartTileMapMaterialGesture(
         map,
         layer: layer,
+        catalog: ProjectSmartTileCatalog(),
         cells: const [GridPos(x: 0, y: 0)],
         materialId: material ?? id,
       );
@@ -56,6 +122,7 @@ void main() {
     final erased = applySmartTileMapMaterialGesture(
       map,
       layer: soil,
+      catalog: ProjectSmartTileCatalog(),
       cells: const [GridPos(x: 0, y: 0)],
       materialId: null,
     );

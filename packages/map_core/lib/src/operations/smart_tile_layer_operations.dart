@@ -6,6 +6,8 @@ import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import 'map_visual_composition.dart';
+import 'smart_tile_pattern_operations.dart';
+import 'spatial_smart_tile_models.dart';
 
 /// Map-only creation cannot atomically update the v5 manifest catalog.
 MapData addSmartTileLayer(
@@ -571,19 +573,25 @@ SmartTileLayer applySmartTileMaterialGesture(
 MapData applySmartTileMapMaterialGesture(
   MapData map, {
   required SmartTileLayer layer,
+  required ProjectSmartTileCatalog catalog,
   required Iterable<GridPos> cells,
   required String? materialId,
 }) {
   final positions = cells.toSet();
-  var next = replaceSmartTileLayer(
-    map,
-    layer: applySmartTileMaterialGesture(
-      layer,
+  var painted = applySmartTileMaterialGesture(
+    layer,
+    mapSize: map.size,
+    cells: positions,
+    materialId: materialId,
+  );
+  if (map.spatialScene != null) {
+    painted = eraseSmartTilePatternCells(
+      painted,
       mapSize: map.size,
       cells: positions,
-      materialId: materialId,
-    ),
-  );
+    );
+  }
+  var next = replaceSmartTileLayer(map, layer: painted);
   if (map.spatialScene == null ||
       layer.usage != SmartTileUsage.terrain ||
       materialId == null ||
@@ -594,15 +602,28 @@ MapData applySmartTileMapMaterialGesture(
   final higherLayers = mapPaintsFirstLayerInFront(map)
       ? map.layers.take(index)
       : map.layers.skip(index + 1);
+  final replacements = resolveSpatialSmartTileModelProjection(
+    map: map,
+    catalog: catalog,
+  ).groundReplacements;
   for (final other in higherLayers.whereType<SmartTileLayer>()) {
     if (other.usage != SmartTileUsage.terrain) continue;
+    final protectedCells = replacements[other.id];
+    final replaceableCells = protectedCells == null
+        ? positions
+        : positions.where((cell) => !protectedCells.contains((cell.x, cell.y)));
+    if (replaceableCells.isEmpty) continue;
     next = replaceSmartTileLayer(
       next,
-      layer: applySmartTileMaterialGesture(
-        other,
+      layer: eraseSmartTilePatternCells(
+        applySmartTileMaterialGesture(
+          other,
+          mapSize: map.size,
+          cells: replaceableCells,
+          materialId: null,
+        ),
         mapSize: map.size,
-        cells: positions,
-        materialId: null,
+        cells: replaceableCells,
       ),
     );
   }

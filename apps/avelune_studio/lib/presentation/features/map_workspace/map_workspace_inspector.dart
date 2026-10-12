@@ -8,6 +8,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+
 import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
@@ -20,7 +21,6 @@ import '../resources/resource_preview.dart';
 import '../resources/model_animation_controls.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
-import '../../shared/widgets/inputs/studio_select.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -160,23 +160,15 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             instance.rotationDegrees,
             (number) => commands.update(instance.id, rotation: number),
           ),
-          StudioSelect(
-            label: 'Hauteur au-dessus du sol',
-            value:
-                ((instance.position.y -
-                            document.current.spatialScene!.worldHeightAt(
-                              instance.position.x,
-                              instance.position.z,
-                            )) /
-                        document.current.spatialScene!.levelHeight)
-                    .toStringAsFixed(0),
-            options: {
-              for (var level = 0; level <= 32; level++)
-                '$level': '$level ${level == 1 ? "bloc" : "blocs"}',
-            },
-            onChanged: (value) => change(
-              () => commands.update(instance.id, heightLevel: int.parse(value)),
-            ),
+          field(
+            'height-offset',
+            'Décalage vertical (cases)',
+            instance.position.y -
+                document.current.spatialScene!.worldHeightAt(
+                  instance.position.x,
+                  instance.position.z,
+                ),
+            (number) => commands.update(instance.id, heightOffset: number),
           ),
           field(
             'scale',
@@ -228,9 +220,14 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             label: 'Événements de ce décor',
             icon: Icons.account_tree_outlined,
             secondary: true,
-            onPressed: widget.onEventSource == null ? null : () => widget.onEventSource!(
-              NarrativeEventSourceRef.modelInteract(document.current.id, instance.id),
-            ),
+            onPressed: widget.onEventSource == null
+                ? null
+                : () => widget.onEventSource!(
+                    NarrativeEventSourceRef.modelInteract(
+                      document.current.id,
+                      instance.id,
+                    ),
+                  ),
           ),
           const SizedBox(height: 8),
           StudioButton(

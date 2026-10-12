@@ -6,9 +6,439 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/glb_fixture.dart';
+
 void main() {
   group('native Smart Tile direct/JSONL parity', () {
-    test('material batch persists 217 materials identically through direct and JSONL', () async {
+    test(
+        'fractional model sources publish paint and reopen with pivots identically',
+        () async {
+      final direct =
+          await _Harness.create('model_offsets_direct', spatial: true);
+      final jsonl = await _Harness.create('model_offsets_jsonl', spatial: true);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      const part = SmartTileVisualPart(
+          source: SmartTileVisualSource.model3d(
+              modelId: 'unit',
+              scale: .5,
+              offsetX: .0625,
+              offsetY: .1875,
+              offsetZ: -.125,
+              replacesGround: true),
+          offsetUnit: SmartTileOffsetUnit.pixel,
+          offsetX: 8,
+          offsetY: 8,
+          transform: SmartTileSpriteTransform(quarterTurns: 1));
+      final rule = SmartTileRule(
+          id: 'model',
+          centerMatch: SmartTileSlotMatch.material('grass'),
+          candidates: [
+            SmartTileCandidate(id: 'model', parts: [part])
+          ]);
+      final draft = ProjectSmartTileAuthoringDraft(
+          id: 'native-draft',
+          targetPresetId: 'native-ground',
+          name: 'Native ground',
+          usage: SmartTileUsage.terrain,
+          lastStage: SmartTileAuthoringStage.publish,
+          topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          defaultMaterialId: 'grass',
+          allowedMaterialIds: ['grass'],
+          transformPolicy:
+              const SmartTileTransformPolicy(allowQuarterTurns: true),
+          rules: [rule]);
+      final pattern = ProjectSmartTilePattern(
+          id: 'native-part',
+          name: 'Native part',
+          usage: SmartTileUsage.terrain,
+          width: 1,
+          height: 1,
+          cells: [
+            SmartTilePatternCell(x: 0, y: 0, parts: [part])
+          ]);
+      for (final harness in [direct, jsonl]) {
+        final transport = harness == direct
+            ? harness.applyDirectAction
+            : harness.applyJsonlAction;
+        final artifact = await harness.mutations.artifacts
+            .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+        await transport(
+            actionId: 'model3d.import',
+            parameters: {
+              'modelId': 'unit',
+              'name': 'Unit',
+              'artifactHandle': artifact.reference.handle
+            },
+            sequence: 'offset-import');
+        await transport(
+            actionId: 'model3d.configure',
+            parameters: {
+              'modelId': 'unit',
+              'scale': 2,
+              'pivot': {'x': 10, 'y': 2, 'z': -1}
+            },
+            sequence: 'offset-configure');
+        await transport(
+            actionId: 'map3d.terrain.set_levels',
+            parameters: {
+              'mapId': 'map',
+              'cells': [
+                {'x': 0, 'z': 0, 'level': 1}
+              ]
+            },
+            sequence: 'offset-relief');
+        await transport(
+            actionId: 'smart_tile.preset.draft.upsert',
+            parameters: {'draft': draft.toJson()},
+            sequence: 'offset-draft');
+        final savedDraft = ProjectManifest.fromJson(
+                jsonDecode(utf8.decode(await harness.projectBytes()))
+                    as Map<String, dynamic>)
+            .smartTileCatalog
+            .drafts
+            .single;
+        expect(savedDraft.rules.single.candidates.single.parts.single, part);
+        await transport(
+            actionId: 'smart_tile.preset.publish',
+            parameters: {
+              'draftId': draft.id,
+              'layer': {'mapId': 'map', 'layerId': 'terrain', 'name': 'Terrain'}
+            },
+            sequence: 'offset-publish');
+        await transport(
+            actionId: 'smart_tile.cell.paint',
+            parameters: {
+              'mapId': 'map',
+              'layerId': 'terrain',
+              'materialId': 'grass',
+              'cells': [
+                {'x': 0, 'y': 0}
+              ]
+            },
+            sequence: 'offset-paint');
+        await transport(
+            actionId: 'smart_tile.pattern.upsert',
+            parameters: {'pattern': pattern.toJson()},
+            sequence: 'offset-pattern');
+        await transport(
+            actionId: 'smart_tile.pattern.paint',
+            parameters: {
+              'mapId': 'map',
+              'layerId': 'terrain',
+              'patternId': pattern.id,
+              'strokeId': 'native',
+              'selection': {
+                'kind': 'stamp',
+                'anchor': {'x': 0, 'y': 0}
+              }
+            },
+            sequence: 'offset-pattern-paint');
+        await transport(
+            actionId: 'smart_tile.preset.publish',
+            parameters: {
+              'preset': ProjectSmartTilePreset(
+                id: 'soil',
+                name: 'Sol',
+                usage: SmartTileUsage.terrain,
+                topology: SmartTileTopology.uniform,
+                templateHint: SmartTileTemplateHint.simple,
+                coveragePolicy: SmartTileCoveragePolicy.sparse,
+                coverageProfile: const SmartTileCoverageProfile(
+                    mode: SmartTileCoverageMode.template),
+                transformPolicy: const SmartTileTransformPolicy(),
+                defaultMaterialId: 'grass',
+                allowedMaterialIds: ['grass'],
+                rules: [
+                  SmartTileRule(
+                    id: 'soil',
+                    centerMatch: const SmartTileSlotMatch.material('grass'),
+                    candidates: [
+                      SmartTileCandidate(id: 'soil', parts: [
+                        SmartTileVisualPart(
+                            source: const SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                              atlasId: 'atlas', column: 0, row: 0),
+                        )),
+                      ]),
+                    ],
+                  ),
+                ],
+              ).toJson(),
+            },
+            sequence: 'offset-soil-publish');
+        await transport(
+            actionId: 'smart_tile.layer.create',
+            parameters: {
+              'mapId': 'map',
+              'layerId': 'soil',
+              'name': 'Sol',
+              'presetId': 'soil',
+              'insertIndex': 1,
+            },
+            sequence: 'offset-soil-layer');
+        final ownedLayer = (MapData.fromJson(
+                jsonDecode(utf8.decode(await harness.mapBytes()))
+                    as Map<String, dynamic>))
+            .layers
+            .first;
+        for (final action in [
+          'smart_tile.cell.paint',
+          'smart_tile.cell.paint_batch'
+        ]) {
+          await transport(
+              actionId: action,
+              parameters: {
+                'mapId': 'map',
+                'layerId': 'soil',
+                if (action == 'smart_tile.cell.paint') ...{
+                  'materialId': 'grass',
+                  'cells': [
+                    {'x': 0, 'y': 0}
+                  ],
+                } else
+                  'strokes': [
+                    {
+                      'materialId': 'grass',
+                      'cells': [
+                        {'x': 0, 'y': 0}
+                      ]
+                    },
+                  ],
+              },
+              sequence: 'offset-soil-$action');
+          final repainted = MapData.fromJson(
+              jsonDecode(utf8.decode(await harness.mapBytes()))
+                  as Map<String, dynamic>);
+          expect(repainted.layers.first, ownedLayer);
+          if (action == 'smart_tile.cell.paint') {
+            await transport(
+                actionId: 'smart_tile.cell.erase',
+                parameters: {
+                  'mapId': 'map',
+                  'layerId': 'soil',
+                  'cells': [
+                    {'x': 0, 'y': 0}
+                  ],
+                },
+                sequence: 'offset-soil-erase');
+          }
+        }
+        final opened = await harness.openDirect();
+        final snapshot = await harness.snapshots.load(opened.project);
+        expect(snapshot.manifest.models3d.single.pivot,
+            Model3dVector3(x: 10, y: 2, z: -1));
+        expect(snapshot.manifest.models3d.single.scale, 2);
+        expect(
+            snapshot.manifest.smartTileCatalog.patterns.single.cells.single
+                .parts.single,
+            part);
+        final instances = resolveSpatialSmartTileInstances(
+            map: snapshot.maps.single,
+            catalog: snapshot.manifest.smartTileCatalog);
+        expect(instances, hasLength(1));
+        expect(instances.single.position.x, closeTo(.375, 1e-9));
+        expect(instances.single.position.z, closeTo(.8125, 1e-9));
+        expect(instances.single.position.y, 1.1875);
+        expect(instances.single.scale, .5);
+        expect(instances.single.rotationDegrees, -90);
+        expect(
+            resolveSpatialSmartTileModelProjection(
+                    map: snapshot.maps.single,
+                    catalog: snapshot.manifest.smartTileCatalog)
+                .groundReplacements,
+            {
+              'terrain': {(0, 0)}
+            });
+        expect(snapshot.maps.single.spatialScene!.instances, isEmpty);
+        await harness.readApi.close(opened.workspace);
+        final reopened = await harness.openDirect();
+        final again = await harness.snapshots.load(reopened.project);
+        expect(
+            resolveSpatialSmartTileInstances(
+                map: again.maps.single,
+                catalog: again.manifest.smartTileCatalog),
+            instances);
+      }
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      for (final id in [
+        'smart_tile.pattern.upsert',
+        'smart_tile.preset.draft.upsert',
+        'smart_tile.preset.publish'
+      ]) {
+        final descriptor = SmartTileCatalogActions.descriptors
+            .singleWhere((descriptor) => descriptor.id == id);
+        final schema =
+            descriptor.extensions['model3dVisualSourceSchema'] as Map;
+        expect((schema['properties'] as Map).keys,
+            containsAll(['offsetX', 'offsetY', 'offsetZ', 'replacesGround']));
+        expect(descriptor.extensions['model3dOffsetSpace'],
+            'cell_local_before_quarter_turns');
+        expect(descriptor.extensions['model3dGroundReplacement'],
+            'source_cell_below_or_equal_layer');
+      }
+    });
+    for (final action in [
+      'smart_tile.cell.paint',
+      'smart_tile.cell.erase',
+      'smart_tile.pattern.erase',
+    ]) {
+      test('$action replaces native 3D patterns through direct and JSONL',
+          () async {
+        final direct =
+            await _Harness.create('pattern_cell_direct', spatial: true);
+        final jsonl =
+            await _Harness.create('pattern_cell_jsonl', spatial: true);
+        addTearDown(direct.dispose);
+        addTearDown(jsonl.dispose);
+        await direct.applyDirectFlow();
+        await jsonl.applyJsonlFlow();
+        final baseParameters = <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          'materialId': 'grass',
+          'cells': [
+            {'x': 0, 'y': 0}
+          ],
+        };
+        await direct.applyDirectAction(
+          actionId: 'smart_tile.cell.paint',
+          parameters: baseParameters,
+          sequence: 'pattern-base',
+        );
+        await jsonl.applyJsonlAction(
+          actionId: 'smart_tile.cell.paint',
+          parameters: baseParameters,
+          sequence: 'pattern-base',
+        );
+        await direct.applyDirectPatternFlow();
+        await jsonl.applyJsonlPatternFlow();
+        final before = MapData.fromJson(
+            jsonDecode(utf8.decode(await direct.mapBytes()))
+                as Map<String, dynamic>);
+        expect((before.layers.single as SmartTileLayer).patternStrokes,
+            hasLength(1));
+        expect(smartTileSemanticCells(before.layers.single as SmartTileLayer),
+            [1]);
+        final parameters = <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          if (action == 'smart_tile.cell.paint') 'materialId': 'grass',
+          'cells': [
+            {'x': 0, 'y': 0}
+          ],
+        };
+        await direct.applyDirectAction(
+            actionId: action, parameters: parameters, sequence: 'pattern-cell');
+        await jsonl.applyJsonlAction(
+            actionId: action, parameters: parameters, sequence: 'pattern-cell');
+        expect(await direct.mapBytes(), await jsonl.mapBytes());
+        final reopened = await direct.openDirect();
+        final snapshot = await direct.snapshots.load(reopened.project);
+        final layer = snapshot.maps.single.layers.single as SmartTileLayer;
+        expect(layer.patternStrokes, isEmpty);
+        expect(smartTileSemanticCells(layer),
+            [action == 'smart_tile.cell.erase' ? 0 : 1]);
+      });
+    }
+    test('selected pattern ownership erase persists through direct and JSONL',
+        () async {
+      final direct =
+          await _Harness.create('selected_pattern_direct', spatial: true);
+      final jsonl =
+          await _Harness.create('selected_pattern_jsonl', spatial: true);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      for (final harness in [direct, jsonl]) {
+        final transport = harness == direct
+            ? harness.applyDirectAction
+            : harness.applyJsonlAction;
+        if (harness == direct) {
+          await harness.applyDirectFlow();
+          await harness.applyDirectPatternFlow();
+        } else {
+          await harness.applyJsonlFlow();
+          await harness.applyJsonlPatternFlow();
+        }
+        await transport(
+          actionId: 'smart_tile.cell.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'terrain',
+            'materialId': 'grass',
+            'cells': [
+              {'x': 0, 'y': 0}
+            ],
+          },
+          sequence: 'selected-base',
+        );
+        await transport(
+          actionId: 'smart_tile.pattern.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'terrain',
+            'patternId': 'grass-detail',
+            'strokeId': 'lower',
+            'selection': {
+              'kind': 'stamp',
+              'anchor': {'x': 0, 'y': 0}
+            },
+          },
+          sequence: 'selected-lower',
+        );
+        await transport(
+          actionId: 'smart_tile.pattern.paint',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'terrain',
+            'patternId': 'grass-detail',
+            'strokeId': 'upper',
+            'selection': {
+              'kind': 'stamp',
+              'anchor': {'x': 0, 'y': 0}
+            },
+          },
+          sequence: 'selected-upper',
+        );
+        final before = MapData.fromJson(
+            jsonDecode(utf8.decode(await harness.mapBytes()))
+                as Map<String, dynamic>);
+        final beforeLayer = before.layers.single as SmartTileLayer;
+        expect(beforeLayer.patternStrokes.map((value) => value.id),
+            ['lower', 'upper']);
+        await transport(
+          actionId: 'smart_tile.pattern.erase',
+          parameters: const {
+            'mapId': 'map',
+            'layerId': 'terrain',
+            'strokeIds': ['upper'],
+            'cells': [
+              {'x': 0, 'y': 0}
+            ],
+          },
+          sequence: 'selected-erase',
+        );
+        final opened = await harness.openDirect();
+        final snapshot = await harness.snapshots.load(opened.project);
+        final layer = snapshot.maps.single.layers.single as SmartTileLayer;
+        expect(layer.patternStrokes, [beforeLayer.patternStrokes.first]);
+        expect(layer.field, beforeLayer.field);
+        expect(layer.materialPalette, beforeLayer.materialPalette);
+        expect(snapshot.maps.single.spatialScene, before.spatialScene);
+        await harness.readApi.close(opened.workspace);
+        final reopened = await harness.openDirect();
+        final fresh = await harness.snapshots.load(reopened.project);
+        expect(fresh.maps.single, snapshot.maps.single);
+      }
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+    });
+
+    test(
+        'material batch persists 217 materials identically through direct and JSONL',
+        () async {
       final direct = await _Harness.create('materials_direct', spatial: true);
       final jsonl = await _Harness.create('materials_jsonl', spatial: true);
       addTearDown(direct.dispose);
@@ -80,7 +510,8 @@ void main() {
     });
 
     for (final spatial in [false, true]) {
-      test('paint batch is atomic through direct and JSONL with spatial=$spatial',
+      test(
+          'paint batch is atomic through direct and JSONL with spatial=$spatial',
           () async {
         final direct = await _Harness.create('batch_direct', spatial: spatial);
         final jsonl = await _Harness.create('batch_jsonl', spatial: spatial);
@@ -91,41 +522,75 @@ void main() {
         final beforeMap = await direct.mapBytes();
         final beforeProject = await direct.projectBytes();
         final invalid = {
-          'mapId': 'map', 'layerId': 'terrain',
+          'mapId': 'map',
+          'layerId': 'terrain',
           'strokes': [
-            {'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}]},
-            {'materialId': 'missing', 'cells': [{'x': 0, 'y': 0}]},
+            {
+              'materialId': 'grass',
+              'cells': [
+                {'x': 0, 'y': 0}
+              ]
+            },
+            {
+              'materialId': 'missing',
+              'cells': [
+                {'x': 0, 'y': 0}
+              ]
+            },
           ],
         };
-        await expectLater(direct.planDirect(actionId: 'smart_tile.cell.paint_batch',
-          parameters: invalid, sequence: 'invalid-batch'),
-          throwsA(isA<MapAuthoringException>().having((error) => error.code,
-            'code', 'smart_tile.cell.material_not_allowed')));
+        await expectLater(
+            direct.planDirect(
+                actionId: 'smart_tile.cell.paint_batch',
+                parameters: invalid,
+                sequence: 'invalid-batch'),
+            throwsA(isA<MapAuthoringException>().having((error) => error.code,
+                'code', 'smart_tile.cell.material_not_allowed')));
         final rejected = await jsonl.planJsonlFailure(
-          actionId: 'smart_tile.cell.paint_batch', parameters: invalid,
-          sequence: 'invalid-batch');
-        expect(rejected.error?.details['domainCode'], 'smart_tile.cell.material_not_allowed');
+            actionId: 'smart_tile.cell.paint_batch',
+            parameters: invalid,
+            sequence: 'invalid-batch');
+        expect(rejected.error?.details['domainCode'],
+            'smart_tile.cell.material_not_allowed');
         expect(await direct.mapBytes(), beforeMap);
         expect(await jsonl.mapBytes(), beforeMap);
         expect(await direct.projectBytes(), beforeProject);
         expect(await jsonl.projectBytes(), beforeProject);
         final parameters = {
-          'mapId': 'map', 'layerId': 'terrain',
+          'mapId': 'map',
+          'layerId': 'terrain',
           'strokes': [
-            {'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}]},
-            {'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}]},
+            {
+              'materialId': 'grass',
+              'cells': [
+                {'x': 0, 'y': 0},
+                {'x': 0, 'y': 0}
+              ]
+            },
+            {
+              'materialId': 'grass',
+              'cells': [
+                {'x': 0, 'y': 0}
+              ]
+            },
           ],
         };
-        await direct.applyDirectAction(actionId: 'smart_tile.cell.paint_batch',
-          parameters: parameters, sequence: 'batch');
-        await jsonl.applyJsonlAction(actionId: 'smart_tile.cell.paint_batch',
-          parameters: parameters, sequence: 'batch');
+        await direct.applyDirectAction(
+            actionId: 'smart_tile.cell.paint_batch',
+            parameters: parameters,
+            sequence: 'batch');
+        await jsonl.applyJsonlAction(
+            actionId: 'smart_tile.cell.paint_batch',
+            parameters: parameters,
+            sequence: 'batch');
         expect(await direct.mapBytes(), await jsonl.mapBytes());
         expect(await direct.projectBytes(), beforeProject);
         expect(await jsonl.projectBytes(), beforeProject);
-        final painted = MapData.fromJson(jsonDecode(utf8.decode(await direct.mapBytes()))
-          as Map<String, dynamic>);
-        expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer), [1]);
+        final painted = MapData.fromJson(
+            jsonDecode(utf8.decode(await direct.mapBytes()))
+                as Map<String, dynamic>);
+        expect(smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+            [1]);
       });
     }
 
@@ -186,8 +651,8 @@ void main() {
             final description = await request('describe', {});
             expect(
               (description['mutationActions'] as List).whereType<Map>().map(
-                (item) => item['id'],
-              ),
+                    (item) => item['id'],
+                  ),
               contains(actionId),
             );
             final opened = await request('open', {
@@ -302,34 +767,62 @@ void main() {
             [erase ? 0 : 1]);
       }
       await expectLater(
-        direct.planDirect(actionId: 'smart_tile.preset.delete',
-          parameters: const {'presetId': 'grass'}, sequence: 'spatial-preset-delete'),
+        direct.planDirect(
+            actionId: 'smart_tile.preset.delete',
+            parameters: const {'presetId': 'grass'},
+            sequence: 'spatial-preset-delete'),
         throwsA(isA<MapAuthoringException>().having((error) => error.code,
-          'code', 'smart_tile.preset.references_blocking')),
+            'code', 'smart_tile.preset.references_blocking')),
       );
-      final rejected = await jsonl.planJsonlFailure(actionId: 'smart_tile.preset.delete',
-        parameters: const {'presetId': 'grass'}, sequence: 'spatial-preset-delete');
-      expect(rejected.error?.details['domainCode'], 'smart_tile.preset.references_blocking');
+      final rejected = await jsonl.planJsonlFailure(
+          actionId: 'smart_tile.preset.delete',
+          parameters: const {'presetId': 'grass'},
+          sequence: 'spatial-preset-delete');
+      expect(rejected.error?.details['domainCode'],
+          'smart_tile.preset.references_blocking');
       final steps = <(String, Map<String, Object?>)>[
-        ('smart_tile.layer.create', {'mapId': 'map', 'layerId': 'higher-soil',
-          'name': 'Higher soil', 'presetId': 'grass'}),
+        (
+          'smart_tile.layer.create',
+          {
+            'mapId': 'map',
+            'layerId': 'higher-soil',
+            'name': 'Higher soil',
+            'presetId': 'grass'
+          }
+        ),
         for (final layerId in ['terrain', 'higher-soil', 'terrain'])
-          ('smart_tile.cell.paint', {'mapId': 'map', 'layerId': layerId,
-            'materialId': 'grass', 'cells': [{'x': 0, 'y': 0}]}),
+          (
+            'smart_tile.cell.paint',
+            {
+              'mapId': 'map',
+              'layerId': layerId,
+              'materialId': 'grass',
+              'cells': [
+                {'x': 0, 'y': 0}
+              ]
+            }
+          ),
       ];
       for (var index = 0; index < steps.length; index++) {
         final (action, parameters) = steps[index];
-        await direct.applyDirectAction(actionId: action,
-          parameters: parameters, sequence: 'soil-$index');
-        await jsonl.applyJsonlAction(actionId: action,
-          parameters: parameters, sequence: 'soil-$index');
+        await direct.applyDirectAction(
+            actionId: action, parameters: parameters, sequence: 'soil-$index');
+        await jsonl.applyJsonlAction(
+            actionId: action, parameters: parameters, sequence: 'soil-$index');
         expect(await direct.mapBytes(), await jsonl.mapBytes());
       }
-      final repainted = MapData.fromJson(jsonDecode(utf8.decode(await direct.mapBytes()))
-        as Map<String, dynamic>);
+      final repainted = MapData.fromJson(
+          jsonDecode(utf8.decode(await direct.mapBytes()))
+              as Map<String, dynamic>);
       final layers = repainted.layers.whereType<SmartTileLayer>().toList();
-      expect(smartTileSemanticCells(layers.firstWhere((layer) => layer.id == 'terrain')), [1]);
-      expect(smartTileSemanticCells(layers.firstWhere((layer) => layer.id == 'higher-soil')), [0]);
+      expect(
+          smartTileSemanticCells(
+              layers.firstWhere((layer) => layer.id == 'terrain')),
+          [1]);
+      expect(
+          smartTileSemanticCells(
+              layers.firstWhere((layer) => layer.id == 'higher-soil')),
+          [0]);
     });
     test(
         'edits precise corners byte-identically without changing other lattices',

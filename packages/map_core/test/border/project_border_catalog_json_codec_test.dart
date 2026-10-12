@@ -116,7 +116,7 @@ void main() {
     });
 
     test('accepts V1/V2/V3/V4 and rejects unsupported strict versions', () {
-      for (final formatVersion in <int>[1, 2, 3, 4]) {
+      for (final formatVersion in <int>[1, 2, 3, 4, 5]) {
         final encoded = _emptyJson()..['formatVersion'] = formatVersion;
         final decoded = decodeProjectBorderCatalogJson(encoded);
 
@@ -130,7 +130,7 @@ void main() {
         1.0,
         '1',
         0,
-        5,
+        6,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(

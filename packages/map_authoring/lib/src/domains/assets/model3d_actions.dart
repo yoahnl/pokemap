@@ -45,7 +45,8 @@ final class Model3dActions {
             'Replace an inspected GLB source while preserving model identity and placements',
           'source.replace_batch' =>
             'Replace 1 to 50 inspected GLB sources in one recoverable publication',
-          'configure' => 'Configure a model name, scale and pivot',
+          'configure' =>
+            'Configure a model name, scale, pivot and local collision volume',
           _ => 'Delete an unused model and its owned source'
         },
         inputSchemaId: 'pokemap.authoring.model3d.$action.input.v1',
@@ -154,6 +155,23 @@ final class Model3dActions {
                       for (final axis in ['x', 'y', 'z'])
                         axis: {'type': 'number'}
                     }
+                  },
+                  'collisionBounds': {
+                    'type': ['object', 'null'],
+                    'additionalProperties': false,
+                    'required': ['min', 'max'],
+                    'properties': {
+                      for (final corner in ['min', 'max'])
+                        corner: {
+                          'type': 'object',
+                          'additionalProperties': false,
+                          'required': ['x', 'y', 'z'],
+                          'properties': {
+                            for (final axis in ['x', 'y', 'z'])
+                              axis: {'type': 'number'}
+                          }
+                        }
+                    }
                   }
                 }
               }
@@ -174,7 +192,13 @@ final class Model3dActions {
     parameters.allow(switch (action) {
       'model3d.import' => {'modelId', 'name', 'artifactHandle'},
       'model3d.source.replace' => {'modelId', 'artifactHandle'},
-      'model3d.configure' => {'modelId', 'name', 'scale', 'pivot'},
+      'model3d.configure' => {
+          'modelId',
+          'name',
+          'scale',
+          'pivot',
+          'collisionBounds'
+        },
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
     });
@@ -247,7 +271,12 @@ final class Model3dActions {
           pivot: fields.containsKey('pivot')
               ? Model3dVector3.fromJson(
                   Map<String, dynamic>.from(fields['pivot'] as Map))
-              : null);
+              : null,
+          collisionBounds: fields['collisionBounds'] == null
+              ? null
+              : Model3dBounds.fromJson(parameters.object('collisionBounds')),
+          clearCollisionBounds: fields.containsKey('collisionBounds') &&
+              fields['collisionBounds'] == null);
       return _compose(
           context,
           context.snapshot.manifest.copyWith(models3d: [
@@ -256,6 +285,11 @@ final class Model3dActions {
           ]),
           before: current,
           after: next);
+    }
+    if (_smartTileReferencesModel(
+        context.snapshot.manifest.smartTileCatalog, id)) {
+      throw const FormatException(
+          'The model is referenced by Smart Tiles and cannot be deleted.');
     }
     for (final map in context.snapshot.maps) {
       if (map.spatialScene?.instances
@@ -346,7 +380,8 @@ final class Model3dActions {
           relativePath: current.relativePath,
           inspection: inspection,
           scale: current.scale,
-          pivot: current.pivot);
+          pivot: current.pivot,
+          collisionBounds: current.collisionBounds);
       final sameContent = source.artifact.digest == actual.digest &&
           source.artifact.byteLength == actual.byteLength;
       if (sameContent && next == current) {
@@ -491,7 +526,8 @@ final class Model3dActions {
             relativePath: current.relativePath,
             inspection: inspection,
             scale: current.scale,
-            pivot: current.pivot);
+            pivot: current.pivot,
+            collisionBounds: current.collisionBounds);
         final sameContent = source.artifact.digest == actual.digest &&
             source.artifact.byteLength == actual.byteLength;
         if (sameContent && next == current) continue;
@@ -733,6 +769,25 @@ final class Model3dActions {
               seed: context.seed));
 }
 
+bool _smartTileReferencesModel(
+    ProjectSmartTileCatalog catalog, String modelId) {
+  final sources = <SmartTileVisualSource>[
+    for (final preset in catalog.presets)
+      for (final rule in preset.rules)
+        for (final candidate in rule.candidates)
+          for (final part in candidate.parts) part.source,
+    for (final draft in catalog.drafts)
+      for (final rule in draft.rules)
+        for (final candidate in rule.candidates)
+          for (final part in candidate.parts) part.source,
+    for (final pattern in catalog.patterns)
+      for (final cell in pattern.cells)
+        for (final part in cell.parts) part.source,
+  ];
+  return sources.any((source) =>
+      source is SmartTileModel3dSource && source.modelId == modelId);
+}
+
 Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
   final value = model.toJson();
   final bytes = utf8.encode(canonicalAuthoringJson(value));
@@ -748,6 +803,8 @@ Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
       'relativePath': model.relativePath,
       'scale': model.scale,
       'pivot': model.pivot.toJson(),
+      if (model.collisionBounds != null)
+        'collisionBounds': model.collisionBounds!.toJson(),
       'inspection': {
         'bounds': inspection.bounds.toJson(),
         'meshCount': inspection.meshCount,

@@ -10,6 +10,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_edi
 import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay_editing.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+
 import 'map_canvas_stroke.dart';
 import 'map_encounter_cell_stroke.dart';
 import 'map_character_gesture.dart';
@@ -62,6 +63,15 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   MapPlacedElement? _moving;
   bool _armed = false;
   MapCanvasStroke? _stroke;
+  MapBorderEraseDraft? _borderErase;
+  MapData? _borderErasePreview;
+  Matrix4? _borderEraseTransform;
+  bool get _ownsBorderEraseGesture => _borderErase != null &&
+      _borderErase!.validFor(widget.document.current, widget.project) &&
+      widget.view.tool == StudioMapTool.border &&
+      widget.view.borderEditingMode == BorderStrokeEditingMode.erase &&
+      widget.view.borderFeature == (layerId: _borderErase!.layerId, featureId: _borderErase!.featureId) &&
+      _borderEraseTransform == widget.view.transform.value;
   int? _panPointer;
   Offset? _panPosition;
   MapEncounterCellStroke? _encounterStroke;
@@ -117,7 +127,11 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.document != widget.document ||
         oldWidget.gestureGeneration != widget.gestureGeneration ||
+        (_stroke != null &&
+            (!identical(_stroke!.project, widget.project) ||
+                !_stroke!.matches(widget.view))) ||
         (_environmentOwner != null && !_ownsEnvironmentGesture) ||
+        (_borderErase != null && !_ownsBorderEraseGesture) ||
         (_decorDraft != null &&
             (!identical(_decorDraft!.source, widget.document.current) ||
                 !identical(_decorDraft!.project, widget.project) ||
@@ -132,11 +146,38 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   }
 
   void _paint(GridPos cell) {
-    _stroke?.paint(cell);
+    try {
+      if (_stroke?.matches(widget.view) == false) {
+        _cancel();
+      } else {
+        _stroke?.paint(cell);
+      }
+    } on Object catch (error) {
+      widget.document.error = error.toString();
+      _cancel();
+      widget.onChanged();
+    }
     setState(() {});
   }
 
   void _up(PointerUpEvent event) {
+    if (_borderErase != null) {
+      try {
+        if (_ownsBorderEraseGesture) {
+          _sampleBorderErase(event.localPosition);
+          final draft = _borderErase;
+          if (draft != null && _ownsBorderEraseGesture) {
+            MapBorderEditingCommands(widget.document, widget.project).finishErase(draft);
+            widget.view.repairBorderSelection(widget.document.current);
+          }
+        }
+      } on Object catch (failure) {
+        widget.document.error = failure.toString();
+      }
+      setState(_cancel);
+      widget.onChanged();
+      return;
+    }
     if (_decorPointer == event.pointer && _decorDraft != null) {
       _decorDraft!.move(
         _pixelOffset(event.localPosition),
@@ -221,7 +262,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
     final stroke = _stroke;
     if (stroke != null) {
       try {
-        widget.document.commit(stroke.commit());
+        if (identical(stroke.project, widget.project) &&
+            stroke.matches(widget.view)) {
+          widget.document.commit(stroke.commit());
+        }
       } catch (_) {
         widget.document.error =
             'Ce trait ne peut pas être appliqué à cette carte.';

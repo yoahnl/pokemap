@@ -76,29 +76,43 @@ Future<RuntimeMapBundle> prepareBorderRuntimeBundle(
   }
 
   final freshness = <BorderMaterializationFreshness>[];
+  final spatial = bundle.map.spatialScene == null
+      ? null
+      : _SpatialBorderReadiness(bundle);
   for (final layer in bundle.map.layers.whereType<BorderLayer>()) {
     for (final feature in layer.content.features) {
       final record = catalog.recordById(feature.blueprintId);
-      final request = BorderResolutionRequest(
-        mapSize: bundle.map.size,
-        tileSizePx: GridSize(
-          width: bundle.manifest.settings.tileWidth,
-          height: bundle.manifest.settings.tileHeight,
-        ),
-        blueprintId: feature.blueprintId,
-        blueprintRevision: record?.latestPublished,
-        feature: feature,
-        visualSnapshots: catalog.visualSnapshots,
-        // Runtime is deliberately passive: it validates the persisted
-        // materialization against the exact resolver contract recorded in
-        // its receipt, without importing or invoking the current solver.
-        resolverVersion: feature.materialization?.receipt.resolverVersion ?? 1,
-      );
-      final result = assessBorderMaterializationFreshness(
-        request,
-        materialization: feature.materialization,
-        snapshotIntegrity: integrity,
-      );
+      final BorderMaterializationFreshness result;
+      if (spatial != null) {
+        result = spatial.assess(layer.id, feature);
+      } else if (record?.latestPublished?.definition.isSpatial == true ||
+          feature.materialization?.targetsSpatialScene == true) {
+        result = BorderMaterializationFreshness(
+          state: BorderMaterializationState.invalid,
+          reasons: const {BorderStalenessReason.mapContextChanged},
+          isRenderable: false,
+          canRegenerate: false,
+        );
+      } else {
+        final request = BorderResolutionRequest(
+          mapSize: bundle.map.size,
+          tileSizePx: GridSize(
+            width: bundle.manifest.settings.tileWidth,
+            height: bundle.manifest.settings.tileHeight,
+          ),
+          blueprintId: feature.blueprintId,
+          blueprintRevision: record?.latestPublished,
+          feature: feature,
+          visualSnapshots: catalog.visualSnapshots,
+          resolverVersion:
+              feature.materialization?.receipt.resolverVersion ?? 1,
+        );
+        result = assessBorderMaterializationFreshness(
+          request,
+          materialization: feature.materialization,
+          snapshotIntegrity: integrity,
+        );
+      }
       freshness.add(result);
       if (!result.isRenderable) {
         throw BorderRuntimeReadinessException(
@@ -124,6 +138,255 @@ Future<RuntimeMapBundle> prepareBorderRuntimeBundle(
     ),
   );
 }
+
+final class _SpatialBorderReadiness {
+  _SpatialBorderReadiness(RuntimeMapBundle bundle)
+    : manifest = bundle.manifest,
+      map = bundle.map,
+      instances = {
+        for (final instance in bundle.map.spatialScene!.instances)
+          instance.id: instance,
+      },
+      models = {for (final model in bundle.manifest.models3d) model.id: model} {
+    final scene = map.spatialScene!;
+    mapContext = _spatialFingerprint({
+      'mapId': map.id,
+      'mapVersion': map.version.name,
+      'mapSize': map.size.toJson(),
+      'width': scene.width,
+      'depth': scene.depth,
+      'heightLevels': scene.heightLevels,
+      'levelHeight': scene.levelHeight,
+      'ramps': scene.navigation.ramps.map((ramp) => ramp.toJson()).toList(),
+      'tileWidth': manifest.settings.tileWidth,
+      'tileHeight': manifest.settings.tileHeight,
+    });
+    try {
+      validateSpatialMapStructure(map);
+      structureValid =
+          instances.length == scene.instances.length &&
+          models.length == manifest.models3d.length;
+    } on FormatException {
+      structureValid = false;
+    }
+  }
+
+  final ProjectManifest manifest;
+  final MapData map;
+  final Map<String, SpatialModelInstance> instances;
+  final Map<String, ProjectModel3dEntry> models;
+  final blueprints =
+      <String, ({bool valid, String blueprint, String visual})>{};
+  late final String mapContext;
+  late final bool structureValid;
+
+  BorderMaterializationFreshness assess(String layerId, BorderFeature feature) {
+    final materialization = feature.materialization;
+    final revision = manifest.borderCatalog
+        .recordById(feature.blueprintId)
+        ?.latestPublished;
+    BorderMaterializationFreshness invalid(BorderStalenessReason reason) =>
+        BorderMaterializationFreshness(
+          state: BorderMaterializationState.invalid,
+          reasons: {reason},
+          isRenderable: false,
+          canRegenerate: false,
+        );
+    if (!structureValid) {
+      return invalid(BorderStalenessReason.outputAltered);
+    }
+    if (revision == null) {
+      return invalid(BorderStalenessReason.blueprintMissing);
+    }
+    final definition = revision.definition;
+    if (!definition.isSpatial ||
+        !manifest.resourceLibraryCatalog.availableForMap(
+          'borderBlueprint',
+          feature.blueprintId,
+          map.id,
+        )) {
+      return invalid(BorderStalenessReason.visualSnapshotMissingOrCorrupt);
+    }
+    final blueprint = blueprints.putIfAbsent(feature.blueprintId, () {
+      final ids = definition.primitives
+          .map((primitive) => primitive.sourceModelId)
+          .toSet();
+      final sources = [
+        for (final id in ids)
+          if (models[id] != null) models[id]!,
+      ]..sort((left, right) => left.id.compareTo(right.id));
+      return (
+        valid:
+            !validateSpatialBorderBlueprint(
+              blueprintId: feature.blueprintId,
+              definition: definition,
+              manifest: manifest,
+            ).hasErrors &&
+            sources.every(
+              (model) => manifest.resourceLibraryCatalog.availableForMap(
+                'model3d',
+                model.id,
+                map.id,
+              ),
+            ),
+        blueprint: _spatialFingerprint(
+          encodeBorderBlueprintRevisionJson(revision, formatVersion: 5),
+        ),
+        visual: _spatialFingerprint({
+          'models': sources.map((model) => model.toJson()).toList(),
+        }),
+      );
+    });
+    if (!blueprint.valid ||
+        validateSpatialBorderFeatureGeometry(
+          blueprintId: feature.blueprintId,
+          featureId: feature.id,
+          definition: definition,
+          geometry: feature.geometry,
+        ).hasErrors) {
+      return invalid(BorderStalenessReason.visualSnapshotMissingOrCorrupt);
+    }
+    if (materialization == null) {
+      return BorderMaterializationFreshness(
+        state: BorderMaterializationState.unmaterialized,
+        reasons: const {},
+        isRenderable: false,
+        canRegenerate: true,
+      );
+    }
+    final receipt = materialization.receipt;
+    if (!materialization.targetsSpatialScene ||
+        receipt.resolverVersion != borderResolverVersion ||
+        receipt.blueprintRevision > revision.revision ||
+        receipt.inputFingerprint !=
+            computeBorderAggregateInputFingerprint(
+              resolverVersion: receipt.resolverVersion,
+              blueprintRevision: receipt.blueprintRevision,
+              components: receipt.components,
+            )) {
+      return invalid(BorderStalenessReason.outputAltered);
+    }
+    final primitives = {
+      for (final primitive in definition.primitives) primitive.id: primitive,
+    };
+    final placements = materialization.spatialPlacements;
+    final placedInstances = <SpatialModelInstance>[];
+    for (final placement in placements) {
+      final instance = instances[placement.instanceId];
+      final primitive = primitives[placement.primitiveId];
+      final expectedId =
+          'border3d_${_spatialFingerprint([map.id, layerId, feature.id, placement.slotKey]).substring(7, 39)}';
+      if (instance == null ||
+          primitive == null ||
+          instance.modelId != primitive.sourceModelId ||
+          instance.id != expectedId ||
+          instance.position.x < 0 ||
+          instance.position.z < 0 ||
+          instance.position.x >= map.spatialScene!.width ||
+          instance.position.z >= map.spatialScene!.depth) {
+        return invalid(BorderStalenessReason.outputAltered);
+      }
+      final model = models[instance.modelId]!;
+      if (instance.animationIndex != null &&
+          !model.inspection.animations.any(
+            (animation) => animation.index == instance.animationIndex,
+          )) {
+        return invalid(BorderStalenessReason.visualSnapshotMissingOrCorrupt);
+      }
+      placedInstances.add(instance);
+    }
+    if (receipt.outputFingerprint !=
+        _spatialFingerprint({
+          'placements': [
+            for (final placement in placements)
+              {
+                'slotKey': placement.slotKey,
+                'primitiveId': placement.primitiveId,
+                'instanceId': placement.instanceId,
+              },
+          ],
+          'instances': placedInstances
+              .map((instance) => instance.toJson())
+              .toList(),
+        })) {
+      return invalid(BorderStalenessReason.outputAltered);
+    }
+    final featureJson = encodeBorderFeatureJson(feature, formatVersion: 4)
+      ..remove('materialization');
+    final current = BorderInputFingerprints(
+      blueprint: blueprint.blueprint,
+      geometryAndSeed: _spatialFingerprint({
+        'geometry': featureJson['geometry'],
+        'seed': feature.seed.toString(),
+      }),
+      parameters: _spatialFingerprint({
+        'defaults': encodeBorderGenerationParamsJson(
+          feature.paramsOverride ?? definition.defaults,
+          formatVersion: 5,
+        ),
+        'lineSide': feature.lineSide.name,
+        'spatialOffsetWorld': feature.spatialOffsetWorld?.toJson(),
+      }),
+      overrides: _spatialFingerprint({
+        'overrides': featureJson['overrides'],
+        'lockedInstances': [
+          if (feature.overrides.any(
+            (override) => override.lockedInstanceId != null,
+          ))
+            for (final instance in map.spatialScene!.instances)
+              if (feature.overrides.any(
+                (override) => override.lockedInstanceId == instance.id,
+              ))
+                instance.toJson(),
+        ],
+      }),
+      keepOutRegions: _spatialFingerprint(featureJson['keepOutRegions']),
+      mapContext: mapContext,
+      visualSnapshots: blueprint.visual,
+    );
+    final previous = receipt.components;
+    final reasons = <BorderStalenessReason>{};
+    if (receipt.blueprintRevision != revision.revision) {
+      reasons.add(BorderStalenessReason.blueprintNewer);
+    } else if (current.blueprint != previous.blueprint) {
+      return invalid(BorderStalenessReason.outputAltered);
+    }
+    if (current.geometryAndSeed != previous.geometryAndSeed) {
+      reasons.add(BorderStalenessReason.geometryOrSeedChanged);
+    }
+    if (current.parameters != previous.parameters) {
+      reasons.add(BorderStalenessReason.parametersChanged);
+    }
+    if (current.overrides != previous.overrides) {
+      reasons.add(BorderStalenessReason.overridesChanged);
+    }
+    if (current.keepOutRegions != previous.keepOutRegions) {
+      reasons.add(BorderStalenessReason.keepOutRegionsChanged);
+    }
+    if (current.mapContext != previous.mapContext) {
+      reasons.add(BorderStalenessReason.mapContextChanged);
+    }
+    if (current.visualSnapshots != previous.visualSnapshots) {
+      reasons.add(BorderStalenessReason.visualSnapshotMissingOrCorrupt);
+    }
+    return BorderMaterializationFreshness(
+      state: reasons.isEmpty
+          ? BorderMaterializationState.fresh
+          : BorderMaterializationState.stale,
+      reasons: {
+        for (final reason in borderStalenessReasonV1Order)
+          if (reasons.contains(reason)) reason,
+      },
+      isRenderable: true,
+      canRegenerate: !reasons.contains(
+        BorderStalenessReason.visualSnapshotMissingOrCorrupt,
+      ),
+    );
+  }
+}
+
+String _spatialFingerprint(Object? value) =>
+    'sha256:${narrativeEventCanonicalSha256(value)}';
 
 Set<String> _materializedSnapshotIds(MapData map) {
   final ids = <String>{};

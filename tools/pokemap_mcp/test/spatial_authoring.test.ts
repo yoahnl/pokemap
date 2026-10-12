@@ -101,7 +101,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await mutate("tileset.import_image", { artifactHandle: cliffArtifact.artifactHandle, tilesetId: "cliff", name: "Cliff", tileWidth: 1, tileHeight: 1 });
     await mutate("smart_tile.atlas.upsert", { atlas: { id: "cliff", name: "Cliff", tilesetId: "cliff", cellWidth: 1, cellHeight: 1, columns: 1, rows: 1 } });
     const cliffFrame = { atlasId: "cliff", column: 0, row: 0, columnSpan: 1, rowSpan: 1 };
-    await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame });
+    await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame, generateCliffs: false });
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 2, z: 3, level: 2 }] });
     await mutate("map3d.instance.upsert", { mapId, instance: { id: "rock-1", modelId: "rock", position: { x: 2.2, y: 2, z: 3.7 }, rotationDegrees: 90, scale: 1, animationIndex: 0, animationLoop: false, animationSpeed: .25, blocksMovement: true } });
     await mutate("map3d.camera.configure", { mapId, camera: { mode: "fixed", pitchDegrees: 60, yawDegrees: 15, fieldOfViewDegrees: 30, distance: 25 } });
@@ -114,6 +114,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.equal(record(scene.camera).pitchDegrees, 60);
     assert.deepEqual(scene.navigation, navigation);
     assert.deepEqual(scene.cliffFrame, cliffFrame);
+    assert.equal(scene.generateCliffs, false);
     assert.equal((scene.instances as unknown[]).length, 1);
     assert.deepEqual(record((scene.instances as unknown[])[0]).position, { x: 2.2, y: 2, z: 3.7 });
     const animated = record((scene.instances as unknown[])[0]);
@@ -175,6 +176,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     for (const item of queried.items as JsonRecord[]) assert.equal((item.connections as unknown[]).length, 1);
     const reopenedMap = (queried.items as JsonRecord[]).find((item) => item.id === mapId)!;
     assert.deepEqual(record(reopenedMap.spatialScene).cliffFrame, cliffFrame);
+    assert.equal(record(reopenedMap.spatialScene).generateCliffs, false);
     projectHandle = String(reopened.projectHandle);
     workspaceHandle = String(reopened.workspaceHandle);
     await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame: null });

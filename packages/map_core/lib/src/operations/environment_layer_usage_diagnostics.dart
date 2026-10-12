@@ -1,5 +1,6 @@
 import '../models/environment.dart';
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 
@@ -18,6 +19,8 @@ enum EnvironmentLayerUsageDiagnosticKind {
   areaMaskSizeMismatch,
   emptyAreaMask,
   missingGeneratedPlacement,
+  spatialTerrainMissing,
+  duplicateGeneratedOwnership,
 }
 
 /// Un problème d’usage Environment sur une [MapData].
@@ -197,6 +200,8 @@ EnvironmentLayerUsageDiagnosticsReport diagnoseMapEnvironmentLayerUsage(
   final placedIds = <String>{
     for (final pe in map.placedElements) pe.id,
   };
+  final spatialIds = {for (final instance in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) instance.id};
+  final ownedIds = <String>{};
 
   MapLayer? targetForId(String? targetId) {
     if (targetId == null) {
@@ -218,7 +223,12 @@ EnvironmentLayerUsageDiagnosticsReport diagnoseMapEnvironmentLayerUsage(
     final content = layer.content;
     final areas = content.areas;
 
-    if (areas.isNotEmpty && content.targetTileLayerId == null) {
+    if (content.targetsSpatialTerrain && map.spatialScene == null) {
+      diagnostics.add(EnvironmentLayerUsageDiagnostic(severity: EnvironmentLayerUsageDiagnosticSeverity.error,
+          kind: EnvironmentLayerUsageDiagnosticKind.spatialTerrainMissing, mapId: map.id, layerId: layerId,
+          message: 'A spatial Environment requires native spatial terrain.'));
+    }
+    if (areas.isNotEmpty && content.targetTileLayerId == null && !content.targetsSpatialTerrain) {
       diagnostics.add(
         EnvironmentLayerUsageDiagnostic(
           severity: EnvironmentLayerUsageDiagnosticSeverity.warning,
@@ -304,10 +314,15 @@ EnvironmentLayerUsageDiagnosticsReport diagnoseMapEnvironmentLayerUsage(
         );
       }
       for (final pid in area.generatedPlacementIds) {
-        if (!placedIds.contains(pid)) {
+        if (!ownedIds.add(pid)) {
+          diagnostics.add(EnvironmentLayerUsageDiagnostic(severity: EnvironmentLayerUsageDiagnosticSeverity.error,
+              kind: EnvironmentLayerUsageDiagnosticKind.duplicateGeneratedOwnership, mapId: map.id, layerId: layerId,
+              areaId: aid, generatedPlacementId: pid, message: 'An Environment placement has multiple owning areas.'));
+        }
+        if (!(content.targetsSpatialTerrain ? spatialIds : placedIds).contains(pid)) {
           diagnostics.add(
             EnvironmentLayerUsageDiagnostic(
-              severity: EnvironmentLayerUsageDiagnosticSeverity.warning,
+              severity: content.targetsSpatialTerrain ? EnvironmentLayerUsageDiagnosticSeverity.error : EnvironmentLayerUsageDiagnosticSeverity.warning,
               kind:
                   EnvironmentLayerUsageDiagnosticKind.missingGeneratedPlacement,
               mapId: map.id,

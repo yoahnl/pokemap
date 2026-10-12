@@ -68,6 +68,8 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           'Sélection',
           'Décors',
           'Terrains',
+          'Bordures',
+          'Environnements',
           'Peindre',
           'Gomme de tuiles',
           'Déplacer la vue',

@@ -5,11 +5,14 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../resources/resource_catalog.dart';
+import 'map_terrain_patterns.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
 
 enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
 
@@ -55,14 +58,67 @@ class MapWorkspaceViewState {
   bool spatialFreeView = false;
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
   int spatialTerrainLevel = 1;
+  SpatialRampEditingPreview? rampPreview;
   ProjectElementEntry? brush;
   ProjectModel3dEntry? model3d;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
+  String? terrainMaterialId;
+  String? terrainPatternId;
+  SmartTilePatternSelectionKind terrainPatternMode =
+      SmartTilePatternSelectionKind.stamp;
   ProjectCharacterEntry? character;
   ProjectMapEntry? warpDestination;
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
+  ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;
+  String? borderDraftErrorFor(MapData map, ProjectManifest project) {
+    final failure = borderDraftFailure;
+    final draft = borderDraft;
+    return tool == StudioMapTool.border &&
+            map.spatialScene != null &&
+            failure != null &&
+            draft != null &&
+            draft.featureId == failure.draft.featureId &&
+            identical(failure.draft.sourceMap, map) &&
+            identical(failure.draft.sourceProject, project)
+        ? failure.message
+        : null;
+  }
+
+  void failBorderDraft(
+    MapBorderDrawingDraft draft,
+    EditableMapDocument document,
+    Object error,
+  ) {
+    final message = error.toString();
+    document.error = message;
+    borderDraftFailure = (draft: draft, message: message);
+  }
+
+  void clearBorderDraftFailure(EditableMapDocument document) {
+    final failure = borderDraftFailure;
+    if (failure != null &&
+        identical(failure.draft.sourceMap, document.current) &&
+        document.error == failure.message) {
+      document.error = null;
+    }
+    borderDraftFailure = null;
+  }
+
+  BorderStrokeEditingMode borderEditingMode = BorderStrokeEditingMode.draw;
+  ({String layerId, String featureId})? borderFeature;
+  MapBorderRegenerationPreview? borderPreview;
+  void repairBorderSelection(MapData map) {
+    final selected = borderFeature;
+    if (selected == null) return;
+    final layer = map.layers.whereType<BorderLayer>()
+        .where((layer) => layer.id == selected.layerId && layer.isVisible).firstOrNull;
+    if (layer?.content.featureById(selected.featureId) != null) return;
+    borderFeature = null;
+    borderPreview = null;
+    borderEditingMode = BorderStrokeEditingMode.draw;
+  }
   MapEnvironmentSession? environment;
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
@@ -195,6 +251,44 @@ class MapWorkspaceViewState {
     tool = character == null ? StudioMapTool.select : StudioMapTool.character;
   }
 
+  void prepareTerrainPainting(ProjectSmartTilePreset preset) {
+    paletteTab = 'Terrains';
+    if (terrain?.id != preset.id) terrainPatternId = null;
+    if (terrain?.id != preset.id ||
+        !preset.allowedMaterialIds.contains(terrainMaterialId)) {
+      terrainMaterialId = preset.defaultMaterialId;
+    }
+    terrain = preset;
+    brush = null;
+    model3d = null;
+    tile = null;
+    character = null;
+    spatialTerrainMode = SpatialTerrainMode.ground;
+    tool = StudioMapTool.terrain;
+  }
+
+  void selectTerrainPattern(ProjectSmartTilePattern? pattern) {
+    terrainPatternId = pattern?.id;
+    if (pattern?.repeatMode == SmartTilePatternRepeatMode.stamp) {
+      terrainPatternMode = SmartTilePatternSelectionKind.stamp;
+    }
+    spatialTerrainMode = SpatialTerrainMode.ground;
+    tool = StudioMapTool.terrain;
+  }
+
+  ProjectSmartTilePattern? terrainPatternFor(
+    ProjectManifest project,
+    MapData map,
+  ) {
+    final preset = terrain;
+    if (preset == null || terrainPatternId == null) return null;
+    return availableTerrainPatterns(
+      project: project,
+      map: map,
+      preset: preset,
+    ).where((pattern) => pattern.id == terrainPatternId).firstOrNull;
+  }
+
   List<ResourceItem> paletteResources(
     ProjectManifest project,
     String mapId, {
@@ -211,7 +305,7 @@ class MapWorkspaceViewState {
     };
     final filters = applyFilters
         ? resourceFilters.copy()
-        : ResourceCatalogFilterState();
+        : ResourceCatalogFilterState(showComponents: true);
     filters.usage = ResourceCatalogUsage.all;
     return filterResourceCatalog(
       project,
@@ -234,7 +328,7 @@ class MapWorkspaceViewState {
     final available = filterResourceCatalog(
       project,
       resourceCatalog(project),
-      ResourceCatalogFilterState(),
+      ResourceCatalogFilterState(showComponents: true),
       activeMapId: activeMapId,
       forMapPicker: true,
     ).map((item) => item.identity).toSet();
@@ -242,6 +336,9 @@ class MapWorkspaceViewState {
     if (mapId != null && _resourceMapId != null && _resourceMapId != mapId) {
       environment = null;
       borderDraft = null;
+      borderDraftFailure = null;
+      borderPreview = null;
+      borderFeature = null;
     }
     _resourceMapId = activeMapId;
     if (model3d != null) {
@@ -270,6 +367,24 @@ class MapWorkspaceViewState {
       if (terrain == null && tool == StudioMapTool.terrain) {
         tool = StudioMapTool.select;
       }
+      if (terrain == null) {
+        terrainMaterialId = null;
+        terrainPatternId = null;
+      } else if (!terrain!.allowedMaterialIds.contains(terrainMaterialId)) {
+        terrainMaterialId = terrain!.defaultMaterialId;
+      }
+      if (terrainPatternId != null) {
+        final pattern = map == null
+            ? project.smartTileCatalog.patterns
+                  .where((pattern) => pattern.id == terrainPatternId)
+                  .firstOrNull
+            : terrainPatternFor(project, map);
+        if (pattern == null) {
+          terrainPatternId = null;
+        } else if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp) {
+          terrainPatternMode = SmartTilePatternSelectionKind.stamp;
+        }
+      }
     }
     if (character != null) {
       character = project.characters
@@ -292,6 +407,7 @@ class MapWorkspaceViewState {
         !has('borderBlueprint', borderBlueprintId!)) {
       borderBlueprintId = null;
       borderDraft = null;
+      borderDraftFailure = null;
       if (tool == StudioMapTool.border) tool = StudioMapTool.select;
     }
     if (environment != null && map != null) {

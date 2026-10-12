@@ -4,6 +4,12 @@
 /// Les validations rejettent les états incohérents à la construction.
 library;
 
+import 'project_model3d.dart';
+
+enum EnvironmentVisualKind { element, model3d }
+
+enum EnvironmentTargetKind { detached, tileLayer, spatialTerrain }
+
 /// Mode de collision appliqué aux placements générés pour un item de palette.
 enum EnvironmentCollisionMode {
   /// Utiliser le comportement défini par le [ProjectElementEntry] / profil existant.
@@ -21,13 +27,23 @@ enum EnvironmentCollisionMode {
 /// [elementId] référence un futur `ProjectElementEntry.id` ; aucune validation manifest ici.
 final class EnvironmentPaletteItem {
   factory EnvironmentPaletteItem({
-    required String elementId,
+    String? elementId,
+    String? modelId,
+    Model3dVector3? cellOffsetWorld,
     required int weight,
     EnvironmentCollisionMode collisionMode =
         EnvironmentCollisionMode.useElementDefault,
     Set<String>? tags,
   }) {
-    final normalizedId = elementId.trim();
+    if ((elementId == null) == (modelId == null)) {
+      throw ArgumentError(
+        'An Environment palette item needs exactly one visual resource.',
+      );
+    }
+    if (elementId != null && cellOffsetWorld != null) {
+      throw ArgumentError('World cell offsets require a model3d palette item.');
+    }
+    final normalizedId = (elementId ?? modelId!).trim();
     if (normalizedId.isEmpty) {
       throw ArgumentError.value(
         elementId,
@@ -56,7 +72,9 @@ final class EnvironmentPaletteItem {
       built.add(nt);
     }
     return EnvironmentPaletteItem._(
-      elementId: normalizedId,
+      elementId: elementId == null ? null : normalizedId,
+      modelId: modelId == null ? null : normalizedId,
+      cellOffsetWorld: cellOffsetWorld,
       weight: weight,
       collisionMode: collisionMode,
       tags: Set.unmodifiable(built),
@@ -65,12 +83,21 @@ final class EnvironmentPaletteItem {
 
   const EnvironmentPaletteItem._({
     required this.elementId,
+    required this.modelId,
+    required this.cellOffsetWorld,
     required this.weight,
     required this.collisionMode,
     required this.tags,
   });
 
-  final String elementId;
+  final String? elementId;
+  final String? modelId;
+  final Model3dVector3? cellOffsetWorld;
+  EnvironmentVisualKind get visualKind => modelId == null
+      ? EnvironmentVisualKind.element
+      : EnvironmentVisualKind.model3d;
+  bool get isSpatial => modelId != null;
+  String get resourceId => elementId ?? modelId!;
   final int weight;
   final EnvironmentCollisionMode collisionMode;
 
@@ -82,6 +109,8 @@ final class EnvironmentPaletteItem {
     return identical(this, other) ||
         other is EnvironmentPaletteItem &&
             elementId == other.elementId &&
+            modelId == other.modelId &&
+            cellOffsetWorld == other.cellOffsetWorld &&
             weight == other.weight &&
             collisionMode == other.collisionMode &&
             _setEquals(tags, other.tags);
@@ -92,6 +121,8 @@ final class EnvironmentPaletteItem {
     final sorted = tags.toList()..sort();
     return Object.hash(
       elementId,
+      modelId,
+      cellOffsetWorld,
       weight,
       collisionMode,
       Object.hashAll(sorted),
@@ -163,7 +194,7 @@ final class EnvironmentGenerationParams {
 }
 
 void _checkUnitInterval(double value, String name) {
-  if (value < 0.0 || value > 1.0) {
+  if (!value.isFinite || value < 0.0 || value > 1.0) {
     throw ArgumentError.value(
       value,
       name,
@@ -258,11 +289,15 @@ final class EnvironmentArea {
     required int seed,
     EnvironmentGenerationParams? paramsOverride,
     List<String>? generatedPlacementIds,
+    List<String>? manualPlacementIds,
   }) {
     final nid = id.trim();
     if (nid.isEmpty) {
       throw ArgumentError.value(
-          id, 'id', 'EnvironmentArea id cannot be empty.');
+        id,
+        'id',
+        'EnvironmentArea id cannot be empty.',
+      );
     }
     final nname = name.trim();
     if (nname.isEmpty) {
@@ -302,6 +337,13 @@ final class EnvironmentArea {
       seen.add(tid);
       ordered.add(tid);
     }
+    final manual = manualPlacementIds ?? const <String>[];
+    if (manual.toSet().length != manual.length ||
+        manual.any((id) => !seen.contains(id))) {
+      throw ArgumentError(
+        'Manual Environment placements must be unique owned placements.',
+      );
+    }
     return EnvironmentArea._(
       id: nid,
       name: nname,
@@ -310,6 +352,7 @@ final class EnvironmentArea {
       seed: seed,
       paramsOverride: paramsOverride,
       generatedPlacementIds: List<String>.unmodifiable(ordered),
+      manualPlacementIds: List.unmodifiable(manual),
     );
   }
 
@@ -321,6 +364,7 @@ final class EnvironmentArea {
     required this.seed,
     required this.paramsOverride,
     required this.generatedPlacementIds,
+    required this.manualPlacementIds,
   });
 
   final String id;
@@ -330,6 +374,7 @@ final class EnvironmentArea {
   final int seed;
   final EnvironmentGenerationParams? paramsOverride;
   final List<String> generatedPlacementIds;
+  final List<String> manualPlacementIds;
 
   bool get hasGeneratedPlacements => generatedPlacementIds.isNotEmpty;
 
@@ -343,19 +388,21 @@ final class EnvironmentArea {
             mask == other.mask &&
             seed == other.seed &&
             paramsOverride == other.paramsOverride &&
-            _listEquals(generatedPlacementIds, other.generatedPlacementIds);
+            _listEquals(generatedPlacementIds, other.generatedPlacementIds) &&
+            _listEquals(manualPlacementIds, other.manualPlacementIds);
   }
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        presetId,
-        mask,
-        seed,
-        paramsOverride,
-        Object.hashAll(generatedPlacementIds),
-      );
+    id,
+    name,
+    presetId,
+    mask,
+    seed,
+    paramsOverride,
+    Object.hashAll(generatedPlacementIds),
+    Object.hashAll(manualPlacementIds),
+  );
 }
 
 /// Preset / recette d’environnement (palette + paramètres par défaut).
@@ -419,14 +466,19 @@ final class EnvironmentPreset {
     final seenIds = <String>{};
     final copy = <EnvironmentPaletteItem>[];
     for (final item in palette) {
-      if (seenIds.contains(item.elementId)) {
+      if (item.visualKind != palette.first.visualKind) {
+        throw ArgumentError(
+          'An Environment preset cannot mix 2D and 3D resources.',
+        );
+      }
+      if (seenIds.contains(item.resourceId)) {
         throw ArgumentError.value(
           item.elementId,
           'palette',
           'EnvironmentPreset palette cannot contain duplicate elementId.',
         );
       }
-      seenIds.add(item.elementId);
+      seenIds.add(item.resourceId);
       copy.add(item);
     }
     return EnvironmentPreset._(
@@ -454,6 +506,8 @@ final class EnvironmentPreset {
   final String name;
   final String templateId;
   final List<EnvironmentPaletteItem> palette;
+  EnvironmentVisualKind get visualKind => palette.first.visualKind;
+  bool get isSpatial => visualKind == EnvironmentVisualKind.model3d;
   final EnvironmentGenerationParams defaultParams;
   final String? categoryId;
   final int sortOrder;
@@ -473,14 +527,14 @@ final class EnvironmentPreset {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        templateId,
-        Object.hashAll(palette),
-        defaultParams,
-        categoryId,
-        sortOrder,
-      );
+    id,
+    name,
+    templateId,
+    Object.hashAll(palette),
+    defaultParams,
+    categoryId,
+    sortOrder,
+  );
 }
 
 /// Payload métier d’un futur Environment Layer sur carte (sans `MapLayer`, sans JSON).
@@ -491,14 +545,21 @@ final class EnvironmentLayerContent {
   /// Valeur par défaut sérialisable (`MapLayer.environment`, `@Default`).
   static const EnvironmentLayerContent emptyContent = EnvironmentLayerContent._(
     targetTileLayerId: null,
+    targetsSpatialTerrain: false,
     areas: <EnvironmentArea>[],
   );
 
   factory EnvironmentLayerContent({
     String? targetTileLayerId,
+    bool targetsSpatialTerrain = false,
     List<EnvironmentArea>? areas,
   }) {
     final String? resolvedTarget = _normalizeOptionalLayerId(targetTileLayerId);
+    if (targetsSpatialTerrain && resolvedTarget != null) {
+      throw ArgumentError(
+        'An Environment layer cannot target both tile and spatial surfaces.',
+      );
+    }
     final raw = areas ?? const <EnvironmentArea>[];
     final seenAreaIds = <String>{};
     final copy = <EnvironmentArea>[];
@@ -516,6 +577,7 @@ final class EnvironmentLayerContent {
     }
     return EnvironmentLayerContent._(
       targetTileLayerId: resolvedTarget,
+      targetsSpatialTerrain: targetsSpatialTerrain,
       areas: List<EnvironmentArea>.unmodifiable(copy),
     );
   }
@@ -523,24 +585,33 @@ final class EnvironmentLayerContent {
   /// Contenu sans zones ; utile pour un layer encore non dessiné.
   factory EnvironmentLayerContent.empty({
     String? targetTileLayerId,
+    bool targetsSpatialTerrain = false,
   }) {
     final String? resolvedTarget = _normalizeOptionalLayerId(targetTileLayerId);
-    if (resolvedTarget == null) {
+    if (resolvedTarget == null && !targetsSpatialTerrain) {
       return emptyContent;
     }
     return EnvironmentLayerContent(
       targetTileLayerId: resolvedTarget,
+      targetsSpatialTerrain: targetsSpatialTerrain,
       areas: null,
     );
   }
 
   const EnvironmentLayerContent._({
     required this.targetTileLayerId,
+    required this.targetsSpatialTerrain,
     required this.areas,
   });
 
   /// TileLayer où la génération pourra appliquer des patchs de tuiles ; pas de validation carte.
   final String? targetTileLayerId;
+  final bool targetsSpatialTerrain;
+  EnvironmentTargetKind get targetKind => targetsSpatialTerrain
+      ? EnvironmentTargetKind.spatialTerrain
+      : targetTileLayerId == null
+      ? EnvironmentTargetKind.detached
+      : EnvironmentTargetKind.tileLayer;
 
   /// Zones d’environnement ; ordre significatif pour [generatedPlacementIds].
   final List<EnvironmentArea> areas;
@@ -592,11 +663,16 @@ final class EnvironmentLayerContent {
     return identical(this, other) ||
         other is EnvironmentLayerContent &&
             targetTileLayerId == other.targetTileLayerId &&
+            targetsSpatialTerrain == other.targetsSpatialTerrain &&
             _listEquals(areas, other.areas);
   }
 
   @override
-  int get hashCode => Object.hash(targetTileLayerId, Object.hashAll(areas));
+  int get hashCode => Object.hash(
+    targetTileLayerId,
+    targetsSpatialTerrain,
+    Object.hashAll(areas),
+  );
 }
 
 String? _normalizeOptionalLayerId(String? targetTileLayerId) {

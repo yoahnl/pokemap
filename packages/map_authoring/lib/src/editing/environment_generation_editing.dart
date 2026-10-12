@@ -53,6 +53,7 @@ mixin _EnvironmentGenerationEditing {
       layerId: target.layer.id,
       areaId: target.area.id,
       projectRevision: projectRevision,
+      inputFingerprint: _generationInputFingerprint(manifest, map, target),
       seed: target.area.seed,
       requestedRegion: requested,
       resolutionRegion: resolution,
@@ -112,6 +113,10 @@ mixin _EnvironmentGenerationEditing {
       );
     }
 
+    if (target.preset.isSpatial) {
+      return _applySpatialGeneration(manifest, map, target, preview);
+    }
+
     final placedById = <String, MapPlacedElement>{
       for (final placement in map.placedElements) placement.id: placement,
     };
@@ -141,7 +146,7 @@ mixin _EnvironmentGenerationEditing {
         MapPlacedElement(
           id: candidate.id,
           layerId: candidate.layerId,
-          elementId: candidate.elementId,
+          elementId: candidate.elementId!,
           pos: candidate.pos,
           applyCollision: candidate.applyCollision,
           properties: const {
@@ -168,4 +173,57 @@ mixin _EnvironmentGenerationEditing {
     MapValidator.validate(updated, projectDialogueContext: manifest);
     return updated;
   }
+}
+
+MapData _applySpatialGeneration(ProjectManifest manifest, MapData map,
+    _EnvironmentTarget target, EnvironmentGenerationPreview preview) {
+  final scene = map.spatialScene!;
+  final tracked = target.area.generatedPlacementIds.toSet();
+  final removed = <String>{
+    for (final instance in scene.instances)
+      if (tracked.contains(instance.id) &&
+          !target.area.manualPlacementIds.contains(instance.id) &&
+          preview.resolutionRegion.contains(
+              _spatialTrackedAnchor(target.layer, target.area, instance)))
+        instance.id,
+  };
+  final retained = [
+    for (final instance in scene.instances)
+      if (!removed.contains(instance.id)) instance
+  ];
+  final occupied = {
+    for (final instance in retained) instance.id,
+    for (final value in map.placedElements) value.id
+  };
+  final generated = <SpatialModelInstance>[];
+  for (final candidate in preview.placements) {
+    if (target.area.manualPlacementIds.contains(candidate.id) ||
+        retained.any((instance) =>
+            target.area.manualPlacementIds.contains(instance.id) &&
+            instance.position.x.floor() == candidate.position!.x.floor() &&
+            instance.position.z.floor() == candidate.position!.z.floor())) {
+      continue;
+    }
+    if (!occupied.add(candidate.id)) {
+      throw semanticFailure('environment.placement_id_conflict',
+          'A generated Environment instance ID is already in use.',
+          details: {'placementId': candidate.id});
+    }
+    generated.add(SpatialModelInstance(
+        id: candidate.id,
+        modelId: candidate.modelId!,
+        position: candidate.position!,
+        blocksMovement: candidate.applyCollision));
+  }
+  final updated = _replaceArea(map,
+      layerId: target.layer.id,
+      areaId: target.area.id,
+      update: (area) => _copyArea(area, generatedPlacementIds: [
+            for (final id in area.generatedPlacementIds)
+              if (!removed.contains(id)) id,
+            for (final instance in generated) instance.id,
+          ])).copyWith(
+      spatialScene: scene.copyWith(instances: [...retained, ...generated]));
+  MapValidator.validate(updated, projectDialogueContext: manifest);
+  return updated;
 }

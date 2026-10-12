@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+
 import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'editable_map_document.dart';
 import 'map_editing_commands.dart';
 
@@ -53,13 +55,23 @@ class EnvironmentEditingCommands {
 
   MapEnvironmentSession create(EnvironmentPreset preset) {
     var map = document.current;
-    final support = MapEditingCommands(document, project).supportLayer(map);
-    if (!map.layers.any((layer) => layer.id == support.id)) {
+    if (preset.isSpatial != (map.spatialScene != null)) {
+      throw StateError('Choisissez un environnement adapté à cette carte.');
+    }
+    final support = preset.isSpatial
+        ? null
+        : MapEditingCommands(document, project).supportLayer(map);
+    if (support != null && !map.layers.any((layer) => layer.id == support.id)) {
       map = map.copyWith(layers: [...map.layers, support]);
     }
     var layer = map.layers
         .whereType<EnvironmentLayer>()
-        .where((layer) => layer.content.targetTileLayerId == support.id)
+        .where((layer) => layer.content.areas.isEmpty)
+        .where(
+          (layer) => preset.isSpatial
+              ? layer.content.targetsSpatialTerrain
+              : layer.content.targetTileLayerId == support!.id,
+        )
         .firstOrNull;
     if (layer == null) {
       final id =
@@ -70,11 +82,13 @@ class EnvironmentEditingCommands {
         id: id,
         name: 'Environnements',
       );
-      map = _actions.attachToTileLayer(
-        map,
-        layerId: id,
-        targetTileLayerId: support.id,
-      );
+      map = preset.isSpatial
+          ? _actions.attachToSpatialTerrain(map, layerId: id)
+          : _actions.attachToTileLayer(
+              map,
+              layerId: id,
+              targetTileLayerId: support!.id,
+            );
       layer = map.layers.whereType<EnvironmentLayer>().firstWhere(
         (layer) => layer.id == id,
       );
@@ -176,6 +190,13 @@ class EnvironmentEditingCommands {
           if (current.mask.isActiveAt(x, y)) GridPos(x: x, y: y),
       for (final placement in map.placedElements)
         if (current.generatedPlacementIds.contains(placement.id)) placement.pos,
+      for (final instance
+          in map.spatialScene?.instances ?? const <SpatialModelInstance>[])
+        if (current.generatedPlacementIds.contains(instance.id))
+          GridPos(
+            x: instance.position.x.floor(),
+            y: instance.position.z.floor(),
+          ),
     ];
     if (cells.isEmpty) {
       throw StateError('Dessinez une zone avant de préparer l’aperçu.');

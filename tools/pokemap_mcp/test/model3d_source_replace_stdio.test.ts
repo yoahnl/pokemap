@@ -68,6 +68,12 @@ test("live MCP replaces an inspected model source and restores it without changi
   try {
     await client.connect(transport);
     const described = await call("pokemap_describe");
+    const smartTileDescriptor = (described.mutationActions as JsonRecord[])
+      .find((action) => action.id === "smart_tile.pattern.upsert")!;
+    const modelSchema = record(record(smartTileDescriptor.extensions).model3dVisualSourceSchema);
+    assert.equal(record(record(modelSchema.properties).replacesGround).default, false);
+    assert.equal(record(smartTileDescriptor.extensions).model3dGroundReplacement,
+      "source_cell_below_or_equal_layer");
     const descriptor = (described.mutationActions as JsonRecord[])
       .find((action) => action.id === "model3d.source.replace")!;
     assert.ok(descriptor);
@@ -82,6 +88,11 @@ test("live MCP replaces an inspected model source and restores it without changi
     assert.equal(record(batchDescriptor.extensions).maximumModelCount, 50);
     assert.equal(record(batchDescriptor.extensions).maximumTotalByteLength, 64 << 20);
     assert.deepEqual(record(record(batchDescriptor.extensions).inputSchema).required, ["models"]);
+    const configureDescriptor = (described.mutationActions as JsonRecord[])
+      .find((action) => action.id === "model3d.configure")!;
+    const configureSchema = record(record(configureDescriptor.extensions).inputSchema);
+    const collisionSchema = record(record(configureSchema.properties).collisionBounds);
+    assert.deepEqual(collisionSchema.type, ["object", "null"]);
     const request = { name: "Model replacement", folderName: "models", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
     const preview = await call("pokemap_project_create_preview", { request });
@@ -113,10 +124,108 @@ test("live MCP replaces an inspected model source and restores it without changi
     await apply(await plan("model3d.import", { modelId: "house", name: "Maison",
       artifactHandle: await stage(beforeBytes) }));
     await apply(await plan("model3d.import", { modelId: "tree", name: "Arbre",
-      artifactHandle: await stage(beforeBytes) }));
+      artifactHandle: await stage(afterBytes) }));
+    const collisionBounds = { min: { x: .1, y: 0, z: .1 }, max: { x: .4, y: 1, z: .4 } };
     await apply(await plan("model3d.configure", { modelId: "house", name: "Maison gardée",
-      scale: 2.5, pivot: { x: 1, y: 2, z: -3 } }));
+      scale: 2.5, pivot: { x: 1, y: 2, z: -3 }, collisionBounds }));
     const manifestPath = join(projectRoot, "project.json");
+    const initialManifest = record(JSON.parse((await readFile(manifestPath)).toString()));
+    const mapId = String(record((initialManifest.maps as JsonRecord[])[0]).id);
+    await apply(await plan("smart_tile.material.upsert", { material: {
+      id: "grass", name: "Grass", connectionGroupId: "grass",
+    } }));
+    await apply(await plan("smart_tile.preset.publish", { preset: {
+      id: "grass-path", name: "Grass", usage: "path", topology: "uniform",
+      templateHint: "simple", coveragePolicy: "complete",
+      coverageProfile: { mode: "template" }, transformPolicy: {},
+      defaultMaterialId: "grass", allowedMaterialIds: ["grass"],
+      rules: [{ id: "grass", centerMatch: { kind: "material", materialId: "grass" },
+        candidates: [{ id: "grass", parts: [{ source: {
+          kind: "model3d", modelId: "tree", scale: .75, offsetY: .125,
+          animationIndex: 0,
+        } }] }] }],
+    }, layer: { mapId, layerId: "grass", name: "Grass" } }));
+    await apply(await plan("smart_tile.cell.paint", {
+      mapId, layerId: "grass", materialId: "grass", cells: [{ x: 2, y: 2 }],
+    }));
+    const savedManifest = record(JSON.parse((await readFile(manifestPath)).toString()));
+    const grassPreset = record((record(savedManifest.smartTileCatalog).presets as JsonRecord[])[0]);
+    const grassPart = record((record((record((grassPreset.rules as JsonRecord[])[0]).candidates as JsonRecord[])[0]).parts as JsonRecord[])[0]);
+    assert.deepEqual(grassPart.source, { modelId: "tree", scale: .75, offsetX: 0, offsetY: .125, offsetZ: 0, animationIndex: 0, followTerrain: true, replacesGround: false, kind: "model3d" });
+    const savedMap = record(JSON.parse((await readFile(join(projectRoot, "maps", `${mapId}.json`))).toString()));
+    const grassLayer = record((savedMap.layers as JsonRecord[]).find(layer => layer.id === "grass"));
+    assert.equal((record(grassLayer.field).semanticCells as number[])[2 * 8 + 2], 1);
+    const mapPath = join(projectRoot, "maps", `${mapId}.json`);
+    await apply(await plan("smart_tile.pattern.upsert", { pattern: {
+      id: "grass-edge", name: "Grass edge", usage: "path", width: 1, height: 1,
+      repeatMode: "tiled", cells: [{ x: 0, y: 0, parts: [{ source: {
+        kind: "model3d", modelId: "tree", scale: .75, offsetY: .5,
+        animationIndex: 0, followTerrain: true, replacesGround: true,
+      } }] }],
+    } }));
+    await apply(await plan("smart_tile.pattern.paint", {
+      mapId, layerId: "grass", patternId: "grass-edge", strokeId: "edges",
+      selection: { kind: "rectangle", start: { x: 2, y: 2 }, end: { x: 3, y: 2 } },
+    }));
+    const patternedManifest = record(JSON.parse(await readFile(manifestPath, "utf8")));
+    const savedPattern = (record(patternedManifest.smartTileCatalog).patterns as JsonRecord[])
+      .find((pattern) => pattern.id === "grass-edge")!;
+    const savedPatternPart = record((record((savedPattern.cells as JsonRecord[])[0]).parts as JsonRecord[])[0]);
+    assert.equal(record(savedPatternPart.source).replacesGround, true);
+    const patternedBytes = await readFile(mapPath);
+    for (const actionId of ["smart_tile.cell.erase", "smart_tile.cell.paint",
+      "smart_tile.cell.paint_batch"]) {
+      const cells = [{ x: 2, y: 2 }];
+      await apply(await plan(actionId, { mapId, layerId: "grass",
+        ...(actionId === "smart_tile.cell.paint_batch"
+          ? { strokes: [{ materialId: "grass", cells }] }
+          : { cells, ...(actionId === "smart_tile.cell.paint" ? { materialId: "grass" } : {}) }),
+      }));
+      const changed = record(JSON.parse(await readFile(mapPath, "utf8")));
+      const layer = (changed.layers as JsonRecord[]).find(value => value.id === "grass")!;
+      assert.deepEqual(record((layer.patternStrokes as JsonRecord[])[0]).cells, [{ x: 3, y: 2 }]);
+      const recent = await call("pokemap_history", { operation: "list", projectHandle, limit: 1 });
+      await call("pokemap_history", { operation: "undo", projectHandle,
+        entryId: record((recent.entries as JsonRecord[])[0]).entryId,
+        idempotencyKey: `undo-pattern-cell-${actionId}` });
+      assert.deepEqual(await readFile(mapPath), patternedBytes);
+    }
+    for (const presetId of ["replacement", "soil"]) {
+      await apply(await plan("smart_tile.preset.publish", { preset: {
+        id: presetId, name: presetId, usage: "terrain", topology: "uniform",
+        templateHint: "simple", coveragePolicy: "sparse",
+        coverageProfile: { mode: "template" }, transformPolicy: {},
+        defaultMaterialId: "grass", allowedMaterialIds: ["grass"],
+        rules: [{ id: "unit",
+          centerMatch: { kind: "material", materialId: "grass" },
+          candidates: [{ id: "unit", parts: [{ source: {
+            kind: "model3d", modelId: "tree", replacesGround: presetId === "replacement",
+          } }] }],
+        }],
+      } }));
+      await apply(await plan("smart_tile.layer.create", { mapId,
+        layerId: presetId, presetId, name: presetId,
+        insertIndex: presetId === "replacement" ? 0 : 1,
+      }));
+    }
+    await apply(await plan("smart_tile.cell.paint", { mapId,
+      layerId: "replacement", materialId: "grass", cells: [{ x: 1, y: 1 }],
+    }));
+    const beforeSoil = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const ownedLayer = (beforeSoil.layers as JsonRecord[])
+      .find(layer => layer.id === "replacement")!;
+    for (const actionId of ["smart_tile.cell.paint", "smart_tile.cell.paint_batch"]) {
+      await apply(await plan(actionId, { mapId, layerId: "soil",
+        ...(actionId === "smart_tile.cell.paint_batch"
+          ? { strokes: [{ materialId: "grass", cells: [{ x: 1, y: 1 }] }] }
+          : { materialId: "grass", cells: [{ x: 1, y: 1 }] }),
+      }));
+      const painted = record(JSON.parse(await readFile(mapPath, "utf8")));
+      assert.deepEqual((painted.layers as JsonRecord[])
+        .find(layer => layer.id === "replacement"), ownedLayer);
+      if (actionId === "smart_tile.cell.paint") await apply(await plan(
+        "smart_tile.cell.erase", { mapId, layerId: "soil", cells: [{ x: 1, y: 1 }] }));
+    }
     const beforeManifest = await readFile(manifestPath);
     const before = record((record(JSON.parse(beforeManifest.toString())).models3d as JsonRecord[])[0]);
     await plan("model3d.source.replace", { modelId: "unknown", artifactHandle: await stage(afterBytes) }, true);
@@ -133,7 +242,7 @@ test("live MCP replaces an inspected model source and restores it without changi
     const queried = await call("pokemap_query", { projectHandle,
       resourceKind: "model3d", operation: "get", ids: ["house"], view: "detail" });
     const after = record((queried.items as JsonRecord[])[0]);
-    for (const key of ["id", "name", "scale", "pivot", "sourceAssetId", "relativePath"]) {
+    for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "sourceAssetId", "relativePath"]) {
       assert.deepEqual(after[key], before[key], key);
     }
     assert.equal((record(after.inspection).animations as JsonRecord[]).length, 1);
@@ -164,7 +273,7 @@ test("live MCP replaces an inspected model source and restores it without changi
       resourceKind: "model3d", operation: "batch_get", ids: ["house", "tree"], view: "detail" });
     for (const current of batchAfter.items as JsonRecord[]) {
       const previous = batchModels.find(model => model.id === current.id)!;
-      for (const key of ["id", "name", "scale", "pivot", "sourceAssetId", "relativePath"]) {
+      for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "sourceAssetId", "relativePath"]) {
         assert.deepEqual(current[key], previous[key], key);
       }
       assert.equal((record(current.inspection).animations as JsonRecord[]).length, 1);
@@ -175,13 +284,15 @@ test("live MCP replaces an inspected model source and restores it without changi
     await call("pokemap_history", { operation: "undo", projectHandle,
       entryId: record((batchHistory.entries as JsonRecord[])[0]).entryId, idempotencyKey: "undo-model-sources" });
     for (const previous of batchModels) {
-      assert.deepEqual(await readFile(join(projectRoot, String(previous.relativePath))), beforeBytes);
+      assert.deepEqual(await readFile(join(projectRoot, String(previous.relativePath))),
+        previous.id === "tree" ? afterBytes : beforeBytes);
     }
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
     const restored = await call("pokemap_query", { projectHandle: reopened.projectHandle,
       resourceKind: "model3d", operation: "get", ids: ["house"], view: "detail" });
     assert.equal((record(record((restored.items as JsonRecord[])[0]).inspection).animations as JsonRecord[]).length, 0);
+    assert.deepEqual(record((restored.items as JsonRecord[])[0]).collisionBounds, collisionBounds);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {
     await client.close();

@@ -26,9 +26,9 @@ final class SpatialMapOperations {
           cell.x >= scene.width ||
           cell.z >= scene.depth ||
           cell.level < 0 ||
-          cell.level > 32) {
+          cell.level > MapSpatialScene.maximumTerrainLevel) {
         throw const FormatException(
-          'Spatial cells must be inside the map with levels from 0 to 32.',
+          'Spatial cells must be inside the map with levels from 0 to 64.',
         );
       }
       levels[cell.z * scene.width + cell.x] = cell.level;
@@ -39,6 +39,7 @@ final class SpatialMapOperations {
   }
 
   MapData upsertInstance(MapData map, SpatialModelInstance instance) {
+    _requireAuthoredInstance(instance.id);
     final scene = _scene(map);
     final exists = scene.instances.any((value) => value.id == instance.id);
     return map.copyWith(
@@ -53,6 +54,7 @@ final class SpatialMapOperations {
   }
 
   MapData deleteInstance(MapData map, String instanceId) {
+    _requireAuthoredInstance(instanceId);
     final scene = _scene(map);
     if (!scene.instances.any((value) => value.id == instanceId)) {
       throw const FormatException('The spatial instance does not exist.');
@@ -80,8 +82,12 @@ final class SpatialMapOperations {
   MapData configureTerrainAppearance(
     MapData map, {
     SmartTileFrameRef? cliffFrame,
-  }) =>
-      map.copyWith(spatialScene: _scene(map).copyWith(cliffFrame: cliffFrame));
+    bool? generateCliffs,
+  }) => map.copyWith(
+    spatialScene: _scene(
+      map,
+    ).copyWith(cliffFrame: cliffFrame, generateCliffs: generateCliffs),
+  );
 
   MapSpatialScene _reanchor(MapSpatialScene before, MapSpatialScene after) =>
       after.copyWith(
@@ -107,5 +113,11 @@ final class SpatialMapOperations {
     }
     validateSpatialMapStructure(map);
     return map.spatialScene!;
+  }
+
+  void _requireAuthoredInstance(String id) {
+    if (id.startsWith('smt_')) {
+      throw const FormatException('Smart Tile models must be edited through their painted layer.');
+    }
   }
 }

@@ -265,6 +265,7 @@ void main() {
           'action.resource.family.update',
           'action.resource.family.delete',
           'action.resource.classify',
+          'action.resource.classify_batch',
         ]),
       );
     });

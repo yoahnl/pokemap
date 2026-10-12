@@ -32,6 +32,24 @@ MapSpatialScene rampScene() => MapSpatialScene(
 );
 
 void main() {
+  test('modelled cliff visibility only removes generated walls', () {
+    final before = rampScene();
+    final after = before.copyWith(generateCliffs: false);
+    final generated = spatialTerrainFaces(before).toList();
+    final modelled = spatialTerrainFaces(after).toList();
+    expect(generated.where((face) => !face.isTop), isNotEmpty);
+    expect(modelled.every((face) => face.isTop), true);
+    expect(
+      modelled.map((face) => face.positions),
+      generated.where((face) => face.isTop).map((face) => face.positions),
+    );
+    for (final point in [(1.5, 1.5), (1.5, 2.5), (1.5, 3.5)]) {
+      expect(
+        after.worldHeightAt(point.$1, point.$2),
+        before.worldHeightAt(point.$1, point.$2),
+      );
+    }
+  });
   test('separated fractional ramps only subdivide nearby terrain cells', () {
     final levels = [
       for (var z = 0; z < 64; z++)

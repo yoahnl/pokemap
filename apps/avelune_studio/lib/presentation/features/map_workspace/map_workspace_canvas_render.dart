@@ -18,6 +18,7 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
         ? environment.previewResult
         : null;
     final renderedMap =
+        (_ownsBorderEraseGesture ? _borderErasePreview : null) ??
         _characterGesture?.preview ??
         _stroke?.preview ??
         environmentPreview ??
@@ -70,6 +71,12 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                 if (!focused && _gestureSource != null) _mutateGesture(_cancel);
               },
               onKeyEvent: (node, event) {
+                if (_borderErase != null && event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.escape) {
+                  _mutateGesture(_cancel);
+                  widget.onChanged();
+                  return KeyEventResult.handled;
+                }
                 final result = _decorKey(event);
                 if (result == KeyEventResult.handled) return result;
                 if (widget.view.tool == StudioMapTool.border &&
@@ -196,6 +203,7 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                                     widget.view.tool == StudioMapTool.border
                                     ? _hoverCell
                                     : null,
+                                borderStrokeCells: _selectedBorderCells,
                                 preview: _preview,
                                 cellWidth: _width,
                                 cellHeight: _height,

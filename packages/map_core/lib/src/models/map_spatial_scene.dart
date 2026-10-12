@@ -170,12 +170,15 @@ final class SpatialModelInstance {
 }
 
 final class MapSpatialScene {
+  static const maximumTerrainLevel = maximumSpatialTerrainLevel;
+
   MapSpatialScene({
     required this.width,
     required this.depth,
     Iterable<int>? heightLevels,
     this.levelHeight = 1,
     this.cliffFrame,
+    this.generateCliffs = true,
     Iterable<SpatialModelInstance> instances = const [],
     SpatialCameraProfile? camera,
     SpatialNavigationProfile? navigation,
@@ -188,7 +191,7 @@ final class MapSpatialScene {
         width > 256 ||
         depth > 256 ||
         this.heightLevels.length != width * depth ||
-        this.heightLevels.any((v) => v < 0 || v > 32) ||
+        this.heightLevels.any((v) => v < 0 || v > maximumTerrainLevel) ||
         !levelHeight.isFinite ||
         levelHeight <= 0 ||
         levelHeight > 16 ||
@@ -221,6 +224,7 @@ final class MapSpatialScene {
   final List<int> heightLevels;
   final double levelHeight;
   final SmartTileFrameRef? cliffFrame;
+  final bool generateCliffs;
   final List<SpatialModelInstance> instances;
   final SpatialCameraProfile camera;
   final SpatialNavigationProfile navigation;
@@ -279,6 +283,7 @@ final class MapSpatialScene {
     SpatialCameraProfile? camera,
     SpatialNavigationProfile? navigation,
     Object? cliffFrame = _unsetCliffFrame,
+    bool? generateCliffs,
   }) => MapSpatialScene(
     width: width,
     depth: depth,
@@ -287,6 +292,7 @@ final class MapSpatialScene {
     cliffFrame: identical(cliffFrame, _unsetCliffFrame)
         ? this.cliffFrame
         : cliffFrame as SmartTileFrameRef?,
+    generateCliffs: generateCliffs ?? this.generateCliffs,
     instances: instances ?? this.instances,
     camera: camera ?? this.camera,
     navigation: navigation ?? this.navigation,
@@ -299,6 +305,7 @@ final class MapSpatialScene {
           other.depth == depth &&
           other.levelHeight == levelHeight &&
           other.cliffFrame == cliffFrame &&
+          other.generateCliffs == generateCliffs &&
           other.camera == camera &&
           other.navigation == navigation &&
           const DeepCollectionEquality().equals(
@@ -312,6 +319,7 @@ final class MapSpatialScene {
     depth,
     levelHeight,
     cliffFrame,
+    generateCliffs,
     camera,
     navigation,
     const DeepCollectionEquality().hash(heightLevels),
@@ -327,6 +335,7 @@ final class MapSpatialScene {
       depth: json['depth'] as int,
       heightLevels: (json['heightLevels'] as List).cast<int>(),
       levelHeight: (json['levelHeight'] as num).toDouble(),
+      generateCliffs: json['generateCliffs'] as bool? ?? true,
       cliffFrame: json['cliffFrame'] == null
           ? null
           : SmartTileFrameRef.fromJson(
@@ -353,6 +362,7 @@ final class MapSpatialScene {
     'heightLevels': heightLevels,
     'levelHeight': levelHeight,
     if (cliffFrame != null) 'cliffFrame': cliffFrame!.toJson(),
+    if (!generateCliffs) 'generateCliffs': false,
     'instances': instances.map((v) => v.toJson()).toList(),
     'camera': camera.toJson(),
     'navigation': navigation.toJson(),

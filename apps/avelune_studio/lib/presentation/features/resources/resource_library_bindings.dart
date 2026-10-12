@@ -60,6 +60,7 @@ Future<void> classifyResource(
   final entry = catalog.entryFor(item.canonicalKind, item.id);
   var familyId = entry?.familyId;
   var mapId = entry?.mapId;
+  var role = entry?.role ?? ResourceLibraryRole.standard;
   try {
     final revision = await navigation.captureResourceRevision();
     if (!context.mounted || navigation.isDisposed) return;
@@ -68,7 +69,10 @@ Future<void> classifyResource(
       (_) => ResourceManagementDialog(
         title: 'Ranger « ${item.name} »',
         submitLabel: 'Enregistrer',
-        dirty: () => familyId != entry?.familyId || mapId != entry?.mapId,
+        dirty: () =>
+            familyId != entry?.familyId ||
+            mapId != entry?.mapId ||
+            role != (entry?.role ?? ResourceLibraryRole.standard),
         valid: () =>
             mapId == null || project.maps.any((map) => map.id == mapId),
         submit: () => _publishLibraryChange(navigation, 'resource.classify', {
@@ -76,10 +80,33 @@ Future<void> classifyResource(
           'resourceId': item.id,
           'familyId': familyId,
           'mapId': mapId,
+          'role': role.name,
         }, expectedSnapshotRevision: revision),
         fields: (refresh, busy) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            StudioSelect(
+              key: const ValueKey('resource-classify-role'),
+              label: 'Présentation dans la bibliothèque',
+              value: role.name,
+              options: const {
+                'standard': 'Ressource standard',
+                'component': 'Composant réutilisable',
+              },
+              onChanged: busy
+                  ? null
+                  : (value) {
+                      role = ResourceLibraryRole.values.byName(value);
+                      refresh();
+                    },
+            ),
+            if (role == ResourceLibraryRole.component) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Disponible dans les ateliers de composition. Le filtre « Afficher les composants » permet de le retrouver dans la bibliothèque.',
+              ),
+            ],
+            const SizedBox(height: 16),
             StudioSelect(
               key: const ValueKey('resource-classify-family'),
               label: 'Famille et sous-famille',

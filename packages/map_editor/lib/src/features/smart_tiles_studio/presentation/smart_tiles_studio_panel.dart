@@ -278,6 +278,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final diagnostics = validateProjectSmartTileCatalog(
       catalog: widget.manifest.smartTileCatalog,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
+      projectModelIds: widget.manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in widget.manifest.models3d)
+          model.id: model.inspection.animations.map((clip) => clip.index).toSet(),
+      },
+      spatial: widget.manifest.settings.dimension == ProjectDimension.threeD,
     );
     final inspectorFrame = selectedItem == null
         ? null
@@ -1380,6 +1386,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       for (final candidate in rule.candidates) {
         for (final part in candidate.parts) {
           final frames = switch (part.source) {
+            SmartTileModel3dSource() => const <SmartTileFrameRef>[],
             SmartTileFrameSource(frame: final frame) => <SmartTileFrameRef>[
               frame,
             ],
@@ -1419,6 +1426,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final diagnostics = validateProjectSmartTileCatalog(
       catalog: compiled,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
+      projectModelIds: widget.manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in widget.manifest.models3d)
+          model.id: model.inspection.animations.map((clip) => clip.index).toSet(),
+      },
+      spatial: widget.manifest.settings.dimension == ProjectDimension.threeD,
     );
     final blocking = diagnostics.where((item) => item.isError).toList();
     final warnings = diagnostics.where((item) => !item.isError).toList();
@@ -1799,6 +1812,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final diagnostics = validateProjectSmartTileCatalog(
       catalog: widget.manifest.smartTileCatalog,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
+      projectModelIds: widget.manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in widget.manifest.models3d)
+          model.id: model.inspection.animations.map((clip) => clip.index).toSet(),
+      },
+      spatial: widget.manifest.settings.dimension == ProjectDimension.threeD,
     );
     final blocking = diagnostics.where((item) => item.isError).length;
     return ListView(

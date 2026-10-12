@@ -7,6 +7,10 @@ import '../application/border_preview_transaction.dart';
 
 String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
   final message = switch (diagnostic.code) {
+    'border.spatial.line_side_inversion_unsupported' =>
+      'Le côté inversé nécessite une bordure droite répétant la même pièce, '
+          'avec deux extrémités opposées et une ancre commune. '
+          'Pour cette bordure, utilisez le côté principal.',
     'border.resolution.region_empty' => 'Peignez une zone non vide.',
     'border.resolution.region_geometry_required' =>
       'Utilisez une géométrie de zone pour ce blueprint organique.',

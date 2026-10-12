@@ -27,19 +27,19 @@ void main() {
     expect(ProjectBorderCatalog.formatVersionV4, 4);
     expect(
       ProjectBorderCatalog.latestSupportedFormatVersion,
-      ProjectBorderCatalog.formatVersionV4,
+      ProjectBorderCatalog.formatVersionV5,
     );
-    expect(BorderLayerContent.latestSupportedFormatVersion, 3);
+    expect(BorderLayerContent.latestSupportedFormatVersion, 4);
   });
 
-  test('catalog accepts 1 through 4 and rejects 0 and 5', () {
-    for (final version in <int>[1, 2, 3, 4]) {
+  test('catalog accepts 1 through 5 and rejects 0 and 6', () {
+    for (final version in <int>[1, 2, 3, 4, 5]) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         returnsNormally,
       );
     }
-    for (final version in <int>[0, 5]) {
+    for (final version in <int>[0, 6]) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         throwsA(isA<ValidationException>()),
@@ -47,8 +47,8 @@ void main() {
     }
   });
 
-  test('layer content remains limited to versions 1 through 3', () {
-    for (final version in <int>[1, 2, 3]) {
+  test('layer content remains limited to versions 1 through 4', () {
+    for (final version in <int>[1, 2, 3, 4]) {
       expect(
         () => BorderLayerContent(formatVersion: version),
         returnsNormally,
@@ -61,7 +61,7 @@ void main() {
         version,
       );
     }
-    for (final version in <int>[0, 4]) {
+    for (final version in <int>[0, 5]) {
       expect(
         () => BorderLayerContent(formatVersion: version),
         throwsA(isA<ValidationException>()),

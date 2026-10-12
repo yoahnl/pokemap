@@ -101,6 +101,12 @@ void validateSpatialMapStructure(MapData map) {
           SmartTileLayer() =>
             layer.usage != SmartTileUsage.terrain &&
                 layer.usage != SmartTileUsage.path,
+          EnvironmentLayer() =>
+            layer.content.targetTileLayerId != null ||
+                (!layer.content.targetsSpatialTerrain &&
+                    layer.content.areas.isNotEmpty),
+          BorderLayer() => layer.content.features.any((feature) =>
+            feature.materialization != null && !feature.materialization!.targetsSpatialScene),
           _ => true,
         },
       ) ||
@@ -108,10 +114,29 @@ void validateSpatialMapStructure(MapData map) {
       map.tilesetId.isNotEmpty ||
       map.visualStack != null) {
     throw const FormatException(
-      'A v9 map requires a 3D scene, Smart Tile ground/path surfaces and collision layers.',
+      'A v9 map requires a 3D scene, spatial Environment layers, Smart Tile ground/path surfaces and collision layers.',
     );
   }
-
+  final instanceIds = scene.instances.map((instance) => instance.id).toSet();
+  final ownedIds = <String>{};
+  for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+    for (final area in layer.content.areas) {
+      for (final id in area.generatedPlacementIds) {
+        if (!instanceIds.contains(id) || !ownedIds.add(id)) {
+          throw const FormatException('A spatial Environment placement requires one existing instance and one owning area.');
+        }
+      }
+    }
+  }
+  for (final layer in map.layers.whereType<BorderLayer>()) {
+    for (final feature in layer.content.features) {
+      for (final id in feature.generatedPlacementIds) {
+        if (!instanceIds.contains(id) || !ownedIds.add(id)) {
+          throw const FormatException('A spatial Border placement requires one existing instance and one owning feature.');
+        }
+      }
+    }
+  }
 }
 
 Map<String, dynamic> _migrateLegacyTileLayers(Map<String, dynamic> json) {

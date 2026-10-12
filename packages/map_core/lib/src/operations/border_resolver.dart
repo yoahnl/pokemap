@@ -17,6 +17,12 @@ const int borderResolverVersion = 3;
 /// fallback silently treats a line as an organic region.
 BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
   final revision = request.blueprintRevision;
+  if (request.feature.spatialOffsetWorld != null) {
+    return _unsupported(request, code: 'border.spatial.native_resolution_required', action: 'border.action.resolve_native_preview');
+  }
+  if (revision?.definition.isSpatial == true) {
+    return _unsupported(request, code: 'border.spatial.native_resolution_required', action: 'border.action.resolve_native_preview');
+  }
   if (revision == null) {
     return _unsupported(
       request,

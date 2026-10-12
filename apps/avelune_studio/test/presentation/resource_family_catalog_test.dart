@@ -1,10 +1,12 @@
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_family_tree.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/border_catalog_fixture.dart';
 import '../support/map_workspace_fixture.dart';
+import '../support/spatial_environment_fixture.dart';
 
 ProjectManifest _project() => workspaceProject.copyWith(
   elements: [
@@ -42,6 +44,113 @@ ProjectManifest _project() => workspaceProject.copyWith(
 );
 
 void main() {
+  test(
+    '3D decor palette hides components while semantic sources stay available',
+    () {
+      final base = spatialEnvironmentProject();
+      final project = base.copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          entries: [
+            ResourceLibraryEntry(
+              resourceKind: 'model3d',
+              resourceId: 'oak',
+              role: ResourceLibraryRole.component,
+            ),
+          ],
+        ),
+      );
+      final view = MapWorkspaceViewState()..paletteTab = 'Décors';
+      expect(view.paletteResources(project, 'a'), isEmpty);
+      expect(
+        view.paletteResources(project, 'a', applyFilters: false).single.id,
+        'oak',
+      );
+      view.resourceFilters.showComponents = true;
+      expect(view.paletteResources(project, 'a').single.id, 'oak');
+      view.model3d = project.models3d.single;
+      view.resourceFilters.showComponents = false;
+      view.reconcileResources(project, mapId: 'a');
+      expect(view.model3d?.id, 'oak');
+      expect(
+        project.resourceLibraryCatalog.availableForMap('model3d', 'oak', 'a'),
+        isTrue,
+      );
+    },
+  );
+  test(
+    'component role hides choices without changing availability or dimensions',
+    () {
+      final base = _project();
+      final project = base.copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          families: base.resourceLibraryCatalog.families,
+          entries: [
+            for (final entry in base.resourceLibraryCatalog.entries)
+              ResourceLibraryEntry(
+                resourceKind: entry.resourceKind,
+                resourceId: entry.resourceId,
+                familyId: entry.familyId,
+                mapId: entry.mapId,
+                role: entry.resourceId == 'map-a'
+                    ? ResourceLibraryRole.component
+                    : ResourceLibraryRole.standard,
+              ),
+          ],
+        ),
+      );
+      final items = resourceCatalog(project);
+      final filters = ResourceCatalogFilterState(familyId: 'trees');
+      expect(
+        filterResourceCatalog(project, items, filters).map((item) => item.id),
+        ['shared', 'map-b'],
+      );
+      expect(
+        ResourceFamilyTree(
+          project,
+          items,
+        ).nodes.singleWhere((node) => node.id == 'trees').count,
+        2,
+      );
+      expect(
+        project.resourceLibraryCatalog.availableForMap('element', 'map-a', 'a'),
+        isTrue,
+      );
+      filters.showComponents = true;
+      expect(
+        filterResourceCatalog(
+          project,
+          items,
+          filters,
+          forMapPicker: true,
+          activeMapId: 'a',
+        ).map((item) => item.id),
+        ['shared', 'map-a'],
+      );
+      expect(
+        filterResourceCatalog(
+          project,
+          items,
+          filters,
+          forMapPicker: true,
+          activeMapId: 'b',
+        ).map((item) => item.id),
+        ['shared', 'map-b'],
+      );
+      expect(
+        ResourceFamilyTree(
+          project,
+          items,
+          showComponents: true,
+        ).nodes.singleWhere((node) => node.id == 'trees').count,
+        3,
+      );
+      expect(filters.copy().showComponents, isTrue);
+      final copied = ResourceCatalogFilterState()..copyFrom(filters);
+      expect(copied.showComponents, isTrue);
+      filters.reset();
+      expect(filters.showComponents, isFalse);
+    },
+  );
   test('nature family descendants intersect usage search and availability', () {
     final project = _project();
     final items = resourceCatalog(project);

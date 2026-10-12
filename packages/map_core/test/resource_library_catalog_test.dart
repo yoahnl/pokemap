@@ -3,6 +3,42 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+    'component role is explicit persisted and independent from map scope',
+    () {
+      final component = ResourceLibraryEntry(
+        resourceKind: 'model3d',
+        resourceId: 'phase',
+        role: ResourceLibraryRole.component,
+      );
+      final standard = ResourceLibraryEntry(
+        resourceKind: 'model3d',
+        resourceId: 'phase',
+      );
+      final catalog = ResourceLibraryCatalog(entries: [component]);
+      expect(ResourceLibraryCatalog.fromJson(catalog.toJson()), catalog);
+      expect(component.toJson()['role'], 'component');
+      expect(standard.toJson().containsKey('role'), isFalse);
+      expect(
+        ResourceLibraryEntry.fromJson(standard.toJson()).role,
+        ResourceLibraryRole.standard,
+      );
+      expect(component, isNot(standard));
+      expect(catalog.availableForMap('model3d', 'phase', 'any-map'), isTrue);
+      for (final role in [null, 'unknown', 2]) {
+        expect(
+          () => ResourceLibraryCatalog.fromJson({
+            'formatVersion': 1,
+            'families': [],
+            'entries': [
+              {...standard.toJson(), 'role': role},
+            ],
+          }),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+  test(
     'empty catalog exposes immutable predefined families without inferred entries',
     () {
       const catalog = ResourceLibraryCatalog.empty();

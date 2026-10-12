@@ -22,6 +22,7 @@ void main() {
     });
     expect(compatibility.capabilities, contains('map3d@1'));
     expect(compatibility.capabilities, contains('map3d.animation@1'));
+    expect(compatibility.capabilities, contains('map3d.terrain-appearance@1'));
     expect(
       compatibility.capabilities,
       contains(SpatialGameplayCapabilities.capabilityId),

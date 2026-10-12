@@ -206,7 +206,7 @@ void main() {
                 revision: validation['snapshotRevision'] as String,
                 actionId: 'border.blueprint.set_deprecated',
                 parameters: {'blueprintId': 'fence', 'isDeprecated': value},
-                sequence: 'status-$value-${validation['snapshotRevision']}')
+                sequence: 'status-$operation-$value-${validation['snapshotRevision']}')
             .toJson()
       });
       expect(jsonDecode(await file.readAsString()), raw);

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/uwu_resource_host.dart';
+import '../support/resource_family_gestures.dart';
 
 void main() {
   testWidgets(
@@ -18,9 +20,7 @@ void main() {
       final host = await UwUResourceHost.open(tester);
       final before = host.fixture.controller.project!;
       final map = host.fixture.controller.active!.current;
-      await tester.tap(
-        find.byKey(const ValueKey('resource-family-environments')),
-      );
+      await selectResourceFamily(tester, ResourceLibraryFamily.environments);
       await tester.pump();
       await tester.tap(find.text('Créer un environnement'));
       await tester.pump();
@@ -158,9 +158,7 @@ void main() {
     final host = await UwUResourceHost.open(tester);
     final file = File('${host.fixture.directory.path}/project.json');
     final before = await tester.runAsync(file.readAsString);
-    await tester.tap(
-      find.byKey(const ValueKey('resource-family-environments')),
-    );
+    await selectResourceFamily(tester, ResourceLibraryFamily.environments);
     await tester.pump();
     await tester.tap(find.text('Créer un environnement'));
     await tester.pump();

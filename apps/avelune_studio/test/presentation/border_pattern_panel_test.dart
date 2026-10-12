@@ -1,4 +1,5 @@
 import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,10 +15,16 @@ void main() {
           body: BorderPatternPanel(
             chosen: {
               for (final role in ['lineCap', 'lineStraight', 'lineCorner'])
-                role: workspaceElement,
+                role: ResourceItem(
+                  id: workspaceElement.id,
+                  name: workspaceElement.name,
+                  kind: ResourceKind.decors,
+                  element: workspaceElement,
+                ),
             },
             active: null,
             visuals: WorkspaceTestVisuals(),
+            project: workspaceProject,
             onAssign: (_, _) {},
           ),
         ),

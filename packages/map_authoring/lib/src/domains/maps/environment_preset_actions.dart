@@ -12,7 +12,13 @@ final class EnvironmentPresetActions {
     visualLibraryDescriptor(
       'environment.preset.upsert',
       'Create or replace one validated Environment preset',
-      resourceKinds: const ['project', 'preset', 'element'],
+      resourceKinds: const [
+        'project',
+        'preset',
+        'element',
+        'model3d',
+        'environmentPreset'
+      ],
     ),
     visualLibraryDescriptor(
       'environment.preset.delete',
@@ -40,6 +46,21 @@ final class EnvironmentPresetActions {
           context.snapshot.manifest,
           preset,
         );
+        final errors = diagnoseProjectEnvironmentPresets(next)
+            .diagnostics
+            .where((diagnostic) =>
+                diagnostic.presetId == preset.id &&
+                diagnostic.severity ==
+                    EnvironmentPresetDiagnosticSeverity.error)
+            .toList();
+        if (errors.isNotEmpty) {
+          throw VisualLibraryException('environment.palette_invalid',
+              'The Environment palette must reference existing visual resources.',
+              details: {
+                'presetId': preset.id,
+                'diagnostics': [for (final error in errors) error.kind.name]
+              });
+        }
         return buildVisualManifestDraft(
           context.snapshot,
           next,

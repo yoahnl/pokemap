@@ -1,6 +1,51 @@
 part of 'map_workspace_canvas.dart';
 
 extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
+  List<GridPos> get _selectedBorderCells {
+    if (widget.view.tool != StudioMapTool.border ||
+        widget.view.borderEditingMode != BorderStrokeEditingMode.erase) {
+      return const [];
+    }
+    final target = widget.view.borderFeature;
+    final layer = widget.document.current.layers.whereType<BorderLayer>()
+        .where((layer) => layer.id == target?.layerId && layer.isVisible).firstOrNull;
+    final geometry = layer?.content.featureById(target?.featureId ?? '')?.geometry;
+    return geometry is BorderStrokeGeometry
+        ? geometry.strokes.expand((stroke) => stroke.points).toSet().toList() : const [];
+  }
+  void _startBorderErase(Offset position) {
+    final target = widget.view.borderFeature;
+    if (target == null) {
+      widget.document.error = 'Sélectionnez le tracé à gommer dans le panneau Bordures.';
+      _cancel();
+      widget.onChanged();
+      return;
+    }
+    _borderErase = MapBorderEraseDraft(sourceMap: widget.document.current,
+        sourceProject: widget.project, layerId: target.layerId,
+        featureId: target.featureId, points: const []);
+    _borderEraseTransform = widget.view.transform.value.clone();
+    _sampleBorderErase(position);
+  }
+
+  void _sampleBorderErase(Offset position) {
+    if (!_ownsBorderEraseGesture) {
+      _cancel();
+      return;
+    }
+    try {
+      final draft = _borderErase!;
+      _borderErase = draft.sample(_borderPoint(position, draft.geometry.alignment));
+      _borderErasePreview = MapBorderEditingCommands(widget.document, widget.project)
+          .previewErase(_borderErase!);
+      widget.document.error = null;
+    } on Object catch (failure) {
+      widget.document.error = failure.toString();
+      _cancel();
+      widget.onChanged();
+    }
+  }
+
   GridPos _borderPoint(Offset position, BorderStrokeAlignment alignment) =>
       alignment == BorderStrokeAlignment.gridEdges
       ? GridPos(
@@ -10,6 +55,7 @@ extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
       : _cell(position);
 
   void _previewBorderAt(Offset localPosition) {
+    if (widget.view.borderEditingMode == BorderStrokeEditingMode.erase) return;
     final draft = widget.view.borderDraft;
     var alignment = draft?.alignment;
     if (alignment == null) {
@@ -68,6 +114,7 @@ extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
   }
 
   void _finishBorder() {
+    if (widget.view.borderEditingMode == BorderStrokeEditingMode.erase) return;
     final draft = widget.view.borderDraft;
     if (draft == null || !draft.canFinish) return;
     try {

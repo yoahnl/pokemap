@@ -6,6 +6,131 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('JSONL publishes and paints a reusable 3D path model', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    expect((await f.apply(await f.planReplacement(animatedGlb()))).status,
+        AuthoringResultStatus.success);
+    await f.addPlacement();
+    final material = const ProjectSmartTileMaterial(
+      id: 'grass',
+      name: 'Grass',
+      connectionGroupId: 'grass',
+    );
+    expect(
+        (await f.apply(await f.planAction(
+                'smart_tile.material.upsert', {'material': material.toJson()})))
+            .status,
+        AuthoringResultStatus.success);
+    final preset = ProjectSmartTilePreset(
+      id: 'grass-path',
+      name: 'Grass',
+      usage: SmartTileUsage.path,
+      topology: SmartTileTopology.uniform,
+      templateHint: SmartTileTemplateHint.simple,
+      coveragePolicy: SmartTileCoveragePolicy.complete,
+      coverageProfile:
+          const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+      transformPolicy: const SmartTileTransformPolicy(),
+      defaultMaterialId: 'grass',
+      allowedMaterialIds: const ['grass'],
+      rules: const [
+        SmartTileRule(
+            id: 'grass',
+            centerMatch: SmartTileSlotMatch.material('grass'),
+            candidates: [
+              SmartTileCandidate(id: 'grass', parts: [
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.model3d(
+                    modelId: 'house', animationIndex: 0),
+                )
+              ]),
+            ])
+      ],
+    );
+    final published = await f.planAction('smart_tile.preset.publish', {
+      'preset': preset.toJson(),
+      'layer': {'mapId': 'room', 'layerId': 'grass', 'name': 'Grass'},
+    });
+    expect(published.status, AuthoringResultStatus.success,
+        reason: jsonEncode(published.toJson()));
+    expect((await f.apply(published)).status, AuthoringResultStatus.success);
+    final painted = await f.planAction('smart_tile.cell.paint', {
+      'mapId': 'room',
+      'layerId': 'grass',
+      'materialId': 'grass',
+      'cells': [
+        {'x': 2, 'y': 2}
+      ],
+    });
+    expect(painted.status, AuthoringResultStatus.success,
+        reason: jsonEncode(painted.toJson()));
+    expect((await f.apply(painted)).status, AuthoringResultStatus.success);
+    final reopened = await f.snapshots.load(f.project);
+    final map = reopened.maps.single;
+    final placements = resolveSpatialSmartTileInstances(
+        map: map, catalog: reopened.manifest.smartTileCatalog);
+    expect(placements, hasLength(1));
+    expect(placements.single.modelId, 'house');
+    expect(placements.single.animationIndex, 0);
+    expect(placements.single.position, Model3dVector3(x: 2.5, y: 0, z: 2.5));
+    expect(map.spatialScene!.instances, hasLength(1));
+    final deletion = await f.planAction('model3d.delete', {'modelId': 'house'});
+    expect(deletion.status, AuthoringResultStatus.failure);
+    expect(
+        reopened.manifest.smartTileCatalog.presets.single.rules.single
+            .candidates.single.parts.single.source,
+        isA<SmartTileModel3dSource>());
+  });
+
+  test('JSONL configures, preserves and clears local model collision',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final bounds = {
+      'min': {'x': .1, 'y': 0.0, 'z': .1},
+      'max': {'x': .4, 'y': 1.0, 'z': .4},
+    };
+    final configured = await f.planAction('model3d.configure', {
+      'modelId': 'house',
+      'collisionBounds': bounds,
+    });
+    expect(configured.status, AuthoringResultStatus.success,
+        reason: jsonEncode(configured.toJson()));
+    expect((await f.apply(configured)).status, AuthoringResultStatus.success);
+    expect(
+      (await f.snapshots.load(f.project))
+          .manifest
+          .models3d
+          .single
+          .toJson()['collisionBounds'],
+      bounds,
+    );
+    expect((await f.apply(await f.planReplacement(animatedGlb()))).status,
+        AuthoringResultStatus.success);
+    expect(
+      (await f.snapshots.load(f.project))
+          .manifest
+          .models3d
+          .single
+          .toJson()['collisionBounds'],
+      bounds,
+    );
+    final cleared = await f.planAction('model3d.configure', {
+      'modelId': 'house',
+      'collisionBounds': null,
+    });
+    expect(cleared.status, AuthoringResultStatus.success);
+    expect((await f.apply(cleared)).status, AuthoringResultStatus.success);
+    expect(
+      (await f.snapshots.load(f.project)).manifest.models3d.single.toJson(),
+      isNot(contains('collisionBounds')),
+    );
+  });
   test('source replacement exposes a revision checked recoverable contract',
       () {
     final descriptor = Model3dActions.descriptors

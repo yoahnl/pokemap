@@ -55,6 +55,7 @@ void addSmartTileTilesetIds(
 
   void addSource(SmartTileVisualSource source) {
     source.map(
+      model3d: (_) {},
       frame: (source) => addFrame(source.frame),
       animation: (source) {
         final animation = animationById[source.animationId];
@@ -123,8 +124,9 @@ void addPlacedElementVisualTilesetIds(
     if (element == null || element.frames.isEmpty) continue;
     for (final frame in element.frames) {
       final frameTilesetId = frame.tilesetId.trim();
-      final tilesetId =
-          frameTilesetId.isEmpty ? element.tilesetId.trim() : frameTilesetId;
+      final tilesetId = frameTilesetId.isEmpty
+          ? element.tilesetId.trim()
+          : frameTilesetId;
       if (tilesetId.isNotEmpty) ids.add(tilesetId);
     }
   }

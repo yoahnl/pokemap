@@ -21,6 +21,7 @@ MapCanvasOverlay buildEditingOverlay({
   required MapEncounterCellStroke? encounterStroke,
   required MapBorderDrawingDraft? borderDraft,
   required GridPos? borderCursor,
+  List<GridPos> borderStrokeCells = const [],
   required GridPos? preview,
   required double cellWidth,
   required double cellHeight,
@@ -68,7 +69,7 @@ MapCanvasOverlay buildEditingOverlay({
             view.tool == StudioMapTool.collisionErase
         ? colors.error
         : null,
-    strokeCells: [...?stroke?.cells, ...?encounterStroke?.cells],
+    strokeCells: [...?stroke?.cells, ...?encounterStroke?.cells, ...borderStrokeCells],
     borderDraft: borderDraft,
     borderCursor: borderCursor,
   );

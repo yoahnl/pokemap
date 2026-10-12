@@ -509,6 +509,36 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'border_layer.stroke_erase') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/border_stroke_erase_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/border_stroke_erase_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/border_stroke_erase_editor_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/border_stroke_erase_stdio.test.ts',
+    };
+  }
+  if (actionId == 'resource.classify_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_resource_library_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_resource_library_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_library_stdio.test.ts',
+    };
+  }
+  if (actionId == 'environment.attach_to_spatial_terrain') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/environment_spatial_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/environment_spatial_actions_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/application/spatial_environment_commands_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/environment_spatial_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('resource.family.') ||
       actionId == 'resource.classify') {
     return const {
@@ -543,6 +573,15 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/smart_tile_draft_artifact_actions_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/smart_tile_draft_artifact_stdio.test.ts',
+    };
+  }
+  if (actionId == 'map3d.instance.delete_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
     };
   }
   if (actionId == 'map3d.instance.upsert_batch') {
@@ -1241,6 +1280,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'map3d.instance.delete_batch') {
+    return 'test/domains/maps/spatial_map_actions_test.dart';
+  }
   if (actionId == 'smart_tile.preset.draft.import') {
     return 'test/domains/maps/smart_tile_draft_artifact_actions_test.dart';
   }
@@ -1388,6 +1430,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/border_catalog_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['border_layer.stroke_erase'],
+    'test/domains/maps/border_stroke_erase_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['border_layer.'],
     'test/domains/maps/border_actions_test.dart',
   ),
@@ -1405,6 +1451,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'trigger_zone.',
     ],
     'test/domains/maps/spatial_object_contract_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['environment.attach_to_spatial_terrain'],
+    'test/domains/maps/environment_spatial_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['environment.'],

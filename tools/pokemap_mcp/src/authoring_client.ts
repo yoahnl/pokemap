@@ -102,6 +102,20 @@ export class LocalAuthoringClient
     };
   }
 
+  get workerProcessId(): number | undefined {
+    const child = this.#child;
+    if (
+      !child ||
+      this.#closing ||
+      child.killed ||
+      child.exitCode !== null ||
+      child.signalCode !== null
+    ) {
+      return undefined;
+    }
+    return child.pid;
+  }
+
   async request(
     command: string,
     args: JsonRecord = {},

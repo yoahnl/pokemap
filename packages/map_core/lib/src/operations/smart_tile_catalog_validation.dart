@@ -36,10 +36,16 @@ final class SmartTileDiagnostic {
 List<SmartTileDiagnostic> validateProjectSmartTileCatalog({
   required ProjectSmartTileCatalog catalog,
   required Iterable<String> projectTilesetIds,
+  Iterable<String> projectModelIds = const <String>[],
+  Map<String, Set<int>> projectModelAnimationIndices = const {},
+  bool spatial = false,
 }) {
   final validator = _SmartTileCatalogValidator(
     catalog: catalog,
     projectTilesetIds: projectTilesetIds.toSet(),
+    projectModelIds: projectModelIds.toSet(),
+    projectModelAnimationIndices: projectModelAnimationIndices,
+    spatial: spatial,
   );
   return validator.validate();
 }
@@ -48,22 +54,35 @@ final class _SmartTileCatalogValidator {
   _SmartTileCatalogValidator({
     required this.catalog,
     required this.projectTilesetIds,
+    required this.projectModelIds,
+    required this.projectModelAnimationIndices,
+    required this.spatial,
   });
 
   final ProjectSmartTileCatalog catalog;
   final Set<String> projectTilesetIds;
+  final Set<String> projectModelIds;
+  final Map<String, Set<int>> projectModelAnimationIndices;
+  final bool spatial;
   final List<SmartTileDiagnostic> _diagnostics = <SmartTileDiagnostic>[];
 
-  late final Map<String, ProjectSmartTileAtlas> _atlasesById =
-      _firstById(catalog.atlases, (item) => item.id);
-  late final Map<String, ProjectSmartTileMaterial> _materialsById =
-      _firstById(catalog.materials, (item) => item.id);
+  late final Map<String, ProjectSmartTileAtlas> _atlasesById = _firstById(
+    catalog.atlases,
+    (item) => item.id,
+  );
+  late final Map<String, ProjectSmartTileMaterial> _materialsById = _firstById(
+    catalog.materials,
+    (item) => item.id,
+  );
   late final Map<String, ProjectSmartTileAnimation> _animationsById =
       _firstById(catalog.animations, (item) => item.id);
-  late final Map<String, ProjectSmartTilePreset> _presetsById =
-      _firstById(catalog.presets, (item) => item.id);
-  late final Set<String> _categoryIds =
-      catalog.categories.map((item) => item.id).toSet();
+  late final Map<String, ProjectSmartTilePreset> _presetsById = _firstById(
+    catalog.presets,
+    (item) => item.id,
+  );
+  late final Set<String> _categoryIds = catalog.categories
+      .map((item) => item.id)
+      .toSet();
 
   List<SmartTileDiagnostic> validate() {
     _validateFormatVersion();
@@ -80,13 +99,17 @@ final class _SmartTileCatalogValidator {
   void _validateCanonicalTopLevelFields() {
     for (var index = 0; index < catalog.categories.length; index += 1) {
       final category = catalog.categories[index];
-      final path = r'$.smartTileCatalog.categories[' '$index]';
+      final path =
+          r'$.smartTileCatalog.categories['
+          '$index]';
       _validateCanonicalId(category.id, '$path.id');
       _validateCanonicalName(category.name, '$path.name');
     }
     for (var index = 0; index < catalog.atlases.length; index += 1) {
       final atlas = catalog.atlases[index];
-      final path = r'$.smartTileCatalog.atlases[' '$index]';
+      final path =
+          r'$.smartTileCatalog.atlases['
+          '$index]';
       _validateCanonicalId(atlas.id, '$path.id');
       _validateCanonicalName(atlas.name, '$path.name');
       _validateCanonicalId(atlas.tilesetId, '$path.tilesetId');
@@ -103,14 +126,17 @@ final class _SmartTileCatalogValidator {
         _error(
           code: 'smart_tiles.atlas.invalid',
           path: path,
-          message: 'Atlas geometry must use positive cells/grid dimensions '
+          message:
+              'Atlas geometry must use positive cells/grid dimensions '
               'and non-negative origins, margins, and spacing.',
         );
       }
     }
     for (var index = 0; index < catalog.materials.length; index += 1) {
       final material = catalog.materials[index];
-      final path = r'$.smartTileCatalog.materials[' '$index]';
+      final path =
+          r'$.smartTileCatalog.materials['
+          '$index]';
       _validateCanonicalId(material.id, '$path.id');
       _validateCanonicalName(material.name, '$path.name');
       _validateCanonicalId(
@@ -123,7 +149,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.category_missing',
             path: '$path.categoryId',
-            message: 'Material "${material.id}" references missing category '
+            message:
+                'Material "${material.id}" references missing category '
                 '"${material.categoryId}".',
           );
         }
@@ -131,13 +158,17 @@ final class _SmartTileCatalogValidator {
     }
     for (var index = 0; index < catalog.animations.length; index += 1) {
       final animation = catalog.animations[index];
-      final path = r'$.smartTileCatalog.animations[' '$index]';
+      final path =
+          r'$.smartTileCatalog.animations['
+          '$index]';
       _validateCanonicalId(animation.id, '$path.id');
       _validateCanonicalName(animation.name, '$path.name');
     }
     for (var index = 0; index < catalog.patterns.length; index += 1) {
       final pattern = catalog.patterns[index];
-      final path = r'$.smartTileCatalog.patterns[' '$index]';
+      final path =
+          r'$.smartTileCatalog.patterns['
+          '$index]';
       _validateCanonicalId(pattern.id, '$path.id');
       _validateCanonicalName(pattern.name, '$path.name');
       if (pattern.categoryId.isNotEmpty) {
@@ -146,7 +177,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.category_missing',
             path: '$path.categoryId',
-            message: 'Pattern "${pattern.id}" references missing category '
+            message:
+                'Pattern "${pattern.id}" references missing category '
                 '"${pattern.categoryId}".',
           );
         }
@@ -159,7 +191,8 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tile_catalog_version_unsupported',
         path: r'$.smartTileCatalog.formatVersion',
-        message: 'Smart Tile catalog format ${catalog.formatVersion} is not '
+        message:
+            'Smart Tile catalog format ${catalog.formatVersion} is not '
             'the current format '
             '${ProjectSmartTileCatalog.currentFormatVersion}.',
       );
@@ -206,11 +239,15 @@ final class _SmartTileCatalogValidator {
 
   void _validateDrafts() {
     final targetPresetIds = <String>{};
-    for (var draftIndex = 0;
-        draftIndex < catalog.drafts.length;
-        draftIndex += 1) {
+    for (
+      var draftIndex = 0;
+      draftIndex < catalog.drafts.length;
+      draftIndex += 1
+    ) {
       final draft = catalog.drafts[draftIndex];
-      final draftPath = r'$.smartTileCatalog.drafts[' '$draftIndex]';
+      final draftPath =
+          r'$.smartTileCatalog.drafts['
+          '$draftIndex]';
       _validateCanonicalId(draft.id, '$draftPath.id');
       _validateCanonicalId(draft.targetPresetId, '$draftPath.targetPresetId');
       _validateCanonicalName(draft.name, '$draftPath.name');
@@ -218,7 +255,8 @@ final class _SmartTileCatalogValidator {
         _error(
           code: 'smart_tiles.draft.target_in_use',
           path: '$draftPath.targetPresetId',
-          message: 'Another Smart Tile draft already targets preset '
+          message:
+              'Another Smart Tile draft already targets preset '
               '"${draft.targetPresetId}".',
         );
       }
@@ -228,7 +266,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.preset_missing',
             path: '$draftPath.sourcePresetId',
-            message: 'Draft "${draft.id}" references missing source preset '
+            message:
+                'Draft "${draft.id}" references missing source preset '
                 '"$sourcePresetId".',
           );
         }
@@ -242,7 +281,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.category_missing',
             path: '$draftPath.categoryId',
-            message: 'Draft "${draft.id}" references missing category '
+            message:
+                'Draft "${draft.id}" references missing category '
                 '"${draft.categoryId}".',
           );
         }
@@ -251,10 +291,7 @@ final class _SmartTileCatalogValidator {
       final sourceTilesetIds = <String>{};
       for (var index = 0; index < draft.sourceTilesetIds.length; index += 1) {
         final tilesetId = draft.sourceTilesetIds[index];
-        _validateCanonicalId(
-          tilesetId,
-          '$draftPath.sourceTilesetIds[$index]',
-        );
+        _validateCanonicalId(tilesetId, '$draftPath.sourceTilesetIds[$index]');
         if (!sourceTilesetIds.add(tilesetId)) {
           _error(
             code: 'smart_tiles.id.duplicate',
@@ -266,23 +303,16 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.tileset_missing',
             path: '$draftPath.sourceTilesetIds[$index]',
-            message: 'Draft "${draft.id}" references missing tileset '
+            message:
+                'Draft "${draft.id}" references missing tileset '
                 '"$tilesetId".',
           );
         }
       }
 
       _duplicates(draft.atlases, (item) => item.id, '$draftPath.atlases');
-      _duplicates(
-        draft.materials,
-        (item) => item.id,
-        '$draftPath.materials',
-      );
-      _duplicates(
-        draft.animations,
-        (item) => item.id,
-        '$draftPath.animations',
-      );
+      _duplicates(draft.materials, (item) => item.id, '$draftPath.materials');
+      _duplicates(draft.animations, (item) => item.id, '$draftPath.animations');
       _duplicates(draft.rules, (item) => item.id, '$draftPath.rules');
 
       final draftAtlases = <String, ProjectSmartTileAtlas>{
@@ -299,7 +329,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.tileset_missing',
             path: '$path.tilesetId',
-            message: 'Draft atlas "${atlas.id}" references missing tileset '
+            message:
+                'Draft atlas "${atlas.id}" references missing tileset '
                 '"${atlas.tilesetId}".',
           );
         }
@@ -326,7 +357,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.draft.atlas_missing',
             path: '$draftPath.primaryAtlasId',
-            message: 'Draft "${draft.id}" references missing primary atlas '
+            message:
+                'Draft "${draft.id}" references missing primary atlas '
                 '"$primaryAtlasId".',
           );
         }
@@ -351,7 +383,8 @@ final class _SmartTileCatalogValidator {
             _error(
               code: 'smart_tiles.reference.category_missing',
               path: '$path.categoryId',
-              message: 'Draft material "${material.id}" references missing '
+              message:
+                  'Draft material "${material.id}" references missing '
                   'category "${material.categoryId}".',
             );
           }
@@ -372,10 +405,7 @@ final class _SmartTileCatalogValidator {
           );
         }
         if (!draftMaterials.containsKey(materialId)) {
-          _missingMaterial(
-            materialId,
-            '$draftPath.allowedMaterialIds[$index]',
-          );
+          _missingMaterial(materialId, '$draftPath.allowedMaterialIds[$index]');
         }
       }
 
@@ -386,7 +416,8 @@ final class _SmartTileCatalogValidator {
         _error(
           code: 'smart_tiles.topology.template_mismatch',
           path: '$draftPath.topology',
-          message: 'Draft template ${draft.templateHint.name} is not '
+          message:
+              'Draft template ${draft.templateHint.name} is not '
               'compatible with topology ${draft.topology.name}.',
         );
       }
@@ -396,21 +427,20 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.fallback_rule_missing',
             path: '$draftPath.fallbackRuleId',
-            message: 'Draft "${draft.id}" references missing fallback rule '
+            message:
+                'Draft "${draft.id}" references missing fallback rule '
                 '"$fallbackRuleId".',
           );
         }
       }
       if (draft.defaultMaterialId case final defaultMaterialId?) {
-        _validateCanonicalId(
-          defaultMaterialId,
-          '$draftPath.defaultMaterialId',
-        );
+        _validateCanonicalId(defaultMaterialId, '$draftPath.defaultMaterialId');
         if (!draftMaterials.containsKey(defaultMaterialId)) {
           _error(
             code: 'smart_tiles.draft.default_material_missing',
             path: '$draftPath.defaultMaterialId',
-            message: 'Draft "${draft.id}" references missing default '
+            message:
+                'Draft "${draft.id}" references missing default '
                 'material "$defaultMaterialId".',
           );
         }
@@ -418,7 +448,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.material_missing',
             path: '$draftPath.defaultMaterialId',
-            message: 'Draft default material "$defaultMaterialId" is not '
+            message:
+                'Draft default material "$defaultMaterialId" is not '
                 'allowed.',
           );
         }
@@ -428,16 +459,20 @@ final class _SmartTileCatalogValidator {
         ..._animationsById,
         for (final animation in draft.animations) animation.id: animation,
       };
-      for (var animationIndex = 0;
-          animationIndex < draft.animations.length;
-          animationIndex += 1) {
+      for (
+        var animationIndex = 0;
+        animationIndex < draft.animations.length;
+        animationIndex += 1
+      ) {
         final animation = draft.animations[animationIndex];
         final animationPath = '$draftPath.animations[$animationIndex]';
         _validateCanonicalId(animation.id, '$animationPath.id');
         _validateCanonicalName(animation.name, '$animationPath.name');
-        for (var frameIndex = 0;
-            frameIndex < animation.frames.length;
-            frameIndex += 1) {
+        for (
+          var frameIndex = 0;
+          frameIndex < animation.frames.length;
+          frameIndex += 1
+        ) {
           final frame = animation.frames[frameIndex];
           final framePath = '$animationPath.frames[$frameIndex]';
           if (frame.durationMs <= 0) {
@@ -466,37 +501,56 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.reference.material_not_allowed',
             path: '$rulePath.centerMatch.materialId',
-            message: 'Material "$centerMaterialId" is not available to '
+            message:
+                'Material "$centerMaterialId" is not available to '
                 'draft "${draft.id}".',
           );
         }
-        _duplicates(
-          rule.candidates,
-          (item) => item.id,
-          '$rulePath.candidates',
-        );
-        for (var candidateIndex = 0;
-            candidateIndex < rule.candidates.length;
-            candidateIndex += 1) {
+        _duplicates(rule.candidates, (item) => item.id, '$rulePath.candidates');
+        for (
+          var candidateIndex = 0;
+          candidateIndex < rule.candidates.length;
+          candidateIndex += 1
+        ) {
           final candidate = rule.candidates[candidateIndex];
           final candidatePath = '$rulePath.candidates[$candidateIndex]';
           _validateCanonicalId(candidate.id, '$candidatePath.id');
-          for (var partIndex = 0;
-              partIndex < candidate.parts.length;
-              partIndex += 1) {
+          for (
+            var partIndex = 0;
+            partIndex < candidate.parts.length;
+            partIndex += 1
+          ) {
             final part = candidate.parts[partIndex];
             final sourcePath = '$candidatePath.parts[$partIndex].source';
             part.source.when(
+              model3d:
+                  (
+                    modelId,
+                    scale,
+                    offsetX,
+                    offsetY,
+                    offsetZ,
+                    animationIndex,
+                    followTerrain,
+                    replacesGround,
+                  ) => _validateModelSource(
+                    modelId,
+                    scale,
+                    offsetX,
+                    offsetY,
+                    offsetZ,
+                    animationIndex,
+                    replacesGround: replacesGround,
+                    part: part,
+                    path: sourcePath,
+                  ),
               frame: (frame) => _validateFrameRefAgainst(
                 frame,
                 path: '$sourcePath.frame',
                 atlasesById: draftAtlases,
               ),
               animation: (animationId) {
-                _validateCanonicalId(
-                  animationId,
-                  '$sourcePath.animationId',
-                );
+                _validateCanonicalId(animationId, '$sourcePath.animationId');
                 if (!draftAnimations.containsKey(animationId)) {
                   _error(
                     code: 'smart_tiles.reference.animation_missing',
@@ -518,9 +572,11 @@ final class _SmartTileCatalogValidator {
       if (!projectTilesetIds.contains(atlas.tilesetId)) {
         _error(
           code: 'smart_tiles.reference.tileset_missing',
-          path: r'$.smartTileCatalog.atlases['
+          path:
+              r'$.smartTileCatalog.atlases['
               '$index].tilesetId',
-          message: 'Atlas "${atlas.id}" references missing tileset '
+          message:
+              'Atlas "${atlas.id}" references missing tileset '
               '"${atlas.tilesetId}".',
         );
       }
@@ -528,12 +584,15 @@ final class _SmartTileCatalogValidator {
   }
 
   void _validateAnimations() {
-    for (var animationIndex = 0;
-        animationIndex < catalog.animations.length;
-        animationIndex += 1) {
+    for (
+      var animationIndex = 0;
+      animationIndex < catalog.animations.length;
+      animationIndex += 1
+    ) {
       final animation = catalog.animations[animationIndex];
       final animationPath =
-          r'$.smartTileCatalog.animations[' '$animationIndex]';
+          r'$.smartTileCatalog.animations['
+          '$animationIndex]';
       if (animation.frames.isEmpty) {
         _error(
           code: 'smart_tiles.animation.invalid',
@@ -541,9 +600,11 @@ final class _SmartTileCatalogValidator {
           message: 'Animation "${animation.id}" must contain a frame.',
         );
       }
-      for (var frameIndex = 0;
-          frameIndex < animation.frames.length;
-          frameIndex += 1) {
+      for (
+        var frameIndex = 0;
+        frameIndex < animation.frames.length;
+        frameIndex += 1
+      ) {
         final frame = animation.frames[frameIndex];
         final framePath = '$animationPath.frames[$frameIndex]';
         if (frame.durationMs <= 0) {
@@ -559,11 +620,15 @@ final class _SmartTileCatalogValidator {
   }
 
   void _validatePatterns() {
-    for (var patternIndex = 0;
-        patternIndex < catalog.patterns.length;
-        patternIndex += 1) {
+    for (
+      var patternIndex = 0;
+      patternIndex < catalog.patterns.length;
+      patternIndex += 1
+    ) {
       final pattern = catalog.patterns[patternIndex];
-      final patternPath = r'$.smartTileCatalog.patterns[' '$patternIndex]';
+      final patternPath =
+          r'$.smartTileCatalog.patterns['
+          '$patternIndex]';
       if (pattern.cells.isEmpty) {
         _error(
           code: 'smart_tiles.pattern.cells_missing',
@@ -572,9 +637,11 @@ final class _SmartTileCatalogValidator {
         );
       }
       final coordinates = <(int, int)>{};
-      for (var cellIndex = 0;
-          cellIndex < pattern.cells.length;
-          cellIndex += 1) {
+      for (
+        var cellIndex = 0;
+        cellIndex < pattern.cells.length;
+        cellIndex += 1
+      ) {
         final cell = pattern.cells[cellIndex];
         final cellPath = '$patternPath.cells[$cellIndex]';
         if (cell.x < 0 ||
@@ -584,7 +651,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.pattern.cell_out_of_bounds',
             path: cellPath,
-            message: 'Pattern cell (${cell.x}, ${cell.y}) is outside the '
+            message:
+                'Pattern cell (${cell.x}, ${cell.y}) is outside the '
                 '${pattern.width}×${pattern.height} pattern.',
           );
         }
@@ -601,7 +669,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.pattern.cell_empty',
             path: cellPath,
-            message: 'A pattern cell must draw, erase a material, or set '
+            message:
+                'A pattern cell must draw, erase a material, or set '
                 'collision.',
           );
         }
@@ -617,10 +686,29 @@ final class _SmartTileCatalogValidator {
           }
           final sourcePath = '$partPath.source';
           part.source.when(
-            frame: (frame) => _validateFrameRef(
-              frame,
-              path: '$sourcePath.frame',
-            ),
+            model3d:
+                (
+                  modelId,
+                  scale,
+                  offsetX,
+                  offsetY,
+                  offsetZ,
+                  animationIndex,
+                  followTerrain,
+                  replacesGround,
+                ) => _validateModelSource(
+                  modelId,
+                  scale,
+                  offsetX,
+                  offsetY,
+                  offsetZ,
+                  animationIndex,
+                  replacesGround: replacesGround,
+                  part: part,
+                  path: sourcePath,
+                ),
+            frame: (frame) =>
+                _validateFrameRef(frame, path: '$sourcePath.frame'),
             animation: (animationId) {
               _validateCanonicalId(animationId, '$sourcePath.animationId');
               if (!_animationsById.containsKey(animationId)) {
@@ -638,20 +726,26 @@ final class _SmartTileCatalogValidator {
   }
 
   void _validatePresets() {
-    for (var presetIndex = 0;
-        presetIndex < catalog.presets.length;
-        presetIndex += 1) {
+    for (
+      var presetIndex = 0;
+      presetIndex < catalog.presets.length;
+      presetIndex += 1
+    ) {
       final preset = catalog.presets[presetIndex];
-      final presetPath = r'$.smartTileCatalog.presets[' '$presetIndex]';
+      final presetPath =
+          r'$.smartTileCatalog.presets['
+          '$presetIndex]';
       _validateCanonicalId(preset.id, '$presetPath.id');
       _validateCanonicalName(preset.name, '$presetPath.name');
       _validateCanonicalId(
         preset.defaultMaterialId,
         '$presetPath.defaultMaterialId',
       );
-      for (var materialIndex = 0;
-          materialIndex < preset.allowedMaterialIds.length;
-          materialIndex += 1) {
+      for (
+        var materialIndex = 0;
+        materialIndex < preset.allowedMaterialIds.length;
+        materialIndex += 1
+      ) {
         _validateCanonicalId(
           preset.allowedMaterialIds[materialIndex],
           '$presetPath.allowedMaterialIds[$materialIndex]',
@@ -663,14 +757,27 @@ final class _SmartTileCatalogValidator {
       _validatePresetCategory(preset, presetPath);
       _validatePresetTopology(preset, presetPath);
       _validatePresetMaterials(preset, presetPath);
+      final hasModelSources = preset.rules.any(
+        (rule) => rule.candidates.any(
+          (candidate) => candidate.parts.any(
+            (part) => part.source is SmartTileModel3dSource,
+          ),
+        ),
+      );
+      if (hasModelSources &&
+          (preset.transformPolicy.allowHFlip ||
+              preset.transformPolicy.allowVFlip)) {
+        _error(
+          code: 'smart_tiles.model3d.mirror_unsupported',
+          path: '$presetPath.transformPolicy',
+          message: '3D visual sources support rotations, not sprite mirroring.',
+        );
+      }
       _validateRules(preset, presetPath);
     }
   }
 
-  void _validatePresetCategory(
-    ProjectSmartTilePreset preset,
-    String path,
-  ) {
+  void _validatePresetCategory(ProjectSmartTilePreset preset, String path) {
     if (preset.categoryId.isNotEmpty) {
       _validateCanonicalId(preset.categoryId, '$path.categoryId');
     }
@@ -679,16 +786,14 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tiles.reference.category_missing',
         path: '$path.categoryId',
-        message: 'Preset "${preset.id}" references missing category '
+        message:
+            'Preset "${preset.id}" references missing category '
             '"${preset.categoryId}".',
       );
     }
   }
 
-  void _validatePresetTopology(
-    ProjectSmartTilePreset preset,
-    String path,
-  ) {
+  void _validatePresetTopology(ProjectSmartTilePreset preset, String path) {
     if (!_templateMatchesTopology(preset)) {
       final expected = smartTileTopologyForTemplate(preset.templateHint);
       final expectedLabel = preset.templateHint == SmartTileTemplateHint.edge16
@@ -697,7 +802,8 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tiles.topology.template_mismatch',
         path: '$path.topology',
-        message: 'Template ${preset.templateHint.name} requires topology '
+        message:
+            'Template ${preset.templateHint.name} requires topology '
             '$expectedLabel, not ${preset.topology.name}.',
         presetId: preset.id,
       );
@@ -705,13 +811,12 @@ final class _SmartTileCatalogValidator {
     _validateCoverageProfile(preset, path);
   }
 
-  void _validatePresetMaterials(
-    ProjectSmartTilePreset preset,
-    String path,
-  ) {
-    for (var materialIndex = 0;
-        materialIndex < preset.allowedMaterialIds.length;
-        materialIndex += 1) {
+  void _validatePresetMaterials(ProjectSmartTilePreset preset, String path) {
+    for (
+      var materialIndex = 0;
+      materialIndex < preset.allowedMaterialIds.length;
+      materialIndex += 1
+    ) {
       final materialId = preset.allowedMaterialIds[materialIndex];
       if (!_materialsById.containsKey(materialId)) {
         _missingMaterial(
@@ -727,7 +832,8 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tiles.reference.material_missing',
         path: '$path.defaultMaterialId',
-        message: 'Default material "${preset.defaultMaterialId}" is not in '
+        message:
+            'Default material "${preset.defaultMaterialId}" is not in '
             'the preset allowed-material list.',
       );
     }
@@ -735,18 +841,15 @@ final class _SmartTileCatalogValidator {
 
   void _validateRules(ProjectSmartTilePreset preset, String presetPath) {
     final allowedMaterialIds = preset.allowedMaterialIds.toSet();
-    _duplicates(
-      preset.rules,
-      (item) => item.id,
-      '$presetPath.rules',
-    );
+    _duplicates(preset.rules, (item) => item.id, '$presetPath.rules');
     final fallbackRuleId = preset.fallbackRuleId;
     if (fallbackRuleId != null &&
         !preset.rules.any((rule) => rule.id == fallbackRuleId)) {
       _error(
         code: 'smart_tiles.reference.fallback_rule_missing',
         path: '$presetPath.fallbackRuleId',
-        message: 'Preset "${preset.id}" references missing fallback rule '
+        message:
+            'Preset "${preset.id}" references missing fallback rule '
             '"$fallbackRuleId".',
         presetId: preset.id,
       );
@@ -768,11 +871,7 @@ final class _SmartTileCatalogValidator {
         allowedMaterialIds: allowedMaterialIds,
         presetId: preset.id,
       );
-      _duplicates(
-        rule.candidates,
-        (item) => item.id,
-        '$rulePath.candidates',
-      );
+      _duplicates(rule.candidates, (item) => item.id, '$rulePath.candidates');
       if (rule.candidates.isEmpty) {
         _publicationDiagnostic(
           preset: preset,
@@ -788,7 +887,8 @@ final class _SmartTileCatalogValidator {
           _error(
             code: 'smart_tiles.rule.no_positive_candidate',
             path: '$rulePath.candidates',
-            message: 'Fallback rule "${rule.id}" must contain at least one '
+            message:
+                'Fallback rule "${rule.id}" must contain at least one '
                 'positive-weight candidate.',
             presetId: preset.id,
             ruleId: rule.id,
@@ -798,15 +898,18 @@ final class _SmartTileCatalogValidator {
             preset: preset,
             code: 'smart_tiles.rule.no_positive_candidate',
             path: '$rulePath.candidates',
-            message: 'Published rule "${rule.id}" must contain at least one '
+            message:
+                'Published rule "${rule.id}" must contain at least one '
                 'positive-weight candidate.',
             ruleId: rule.id,
           );
         }
       }
-      for (var candidateIndex = 0;
-          candidateIndex < rule.candidates.length;
-          candidateIndex += 1) {
+      for (
+        var candidateIndex = 0;
+        candidateIndex < rule.candidates.length;
+        candidateIndex += 1
+      ) {
         final candidate = rule.candidates[candidateIndex];
         final candidatePath = '$rulePath.candidates[$candidateIndex]';
         _validateCanonicalId(candidate.id, '$candidatePath.id');
@@ -826,9 +929,11 @@ final class _SmartTileCatalogValidator {
             ruleId: rule.id,
           );
         }
-        for (var partIndex = 0;
-            partIndex < candidate.parts.length;
-            partIndex += 1) {
+        for (
+          var partIndex = 0;
+          partIndex < candidate.parts.length;
+          partIndex += 1
+        ) {
           final part = candidate.parts[partIndex];
           final partPath = '$candidatePath.parts[$partIndex]';
           if (!smartTileTransformPolicyAllows(
@@ -839,7 +944,8 @@ final class _SmartTileCatalogValidator {
               preset: preset,
               code: 'smart_tiles.transforms.not_allowed',
               path: '$partPath.transform',
-              message: 'Visual transform (${part.transform.quarterTurns}, '
+              message:
+                  'Visual transform (${part.transform.quarterTurns}, '
                   '${part.transform.flipX}) is outside the preset transform '
                   'policy.',
               ruleId: rule.id,
@@ -854,10 +960,29 @@ final class _SmartTileCatalogValidator {
           }
           final sourcePath = '$partPath.source';
           part.source.when(
-            frame: (frame) => _validateFrameRef(
-              frame,
-              path: '$sourcePath.frame',
-            ),
+            model3d:
+                (
+                  modelId,
+                  scale,
+                  offsetX,
+                  offsetY,
+                  offsetZ,
+                  animationIndex,
+                  followTerrain,
+                  replacesGround,
+                ) => _validateModelSource(
+                  modelId,
+                  scale,
+                  offsetX,
+                  offsetY,
+                  offsetZ,
+                  animationIndex,
+                  replacesGround: replacesGround,
+                  part: part,
+                  path: sourcePath,
+                ),
+            frame: (frame) =>
+                _validateFrameRef(frame, path: '$sourcePath.frame'),
             animation: (animationId) {
               _validateCanonicalId(animationId, '$sourcePath.animationId');
               if (!_animationsById.containsKey(animationId)) {
@@ -874,6 +999,73 @@ final class _SmartTileCatalogValidator {
     }
     if (_templateMatchesTopology(preset)) {
       _validateNativeCoverage(preset, presetPath);
+    }
+  }
+
+  void _validateModelSource(
+    String modelId,
+    double scale,
+    double offsetX,
+    double offsetY,
+    double offsetZ,
+    int? animationIndex, {
+    required bool replacesGround,
+    required SmartTileVisualPart part,
+    required String path,
+  }) {
+    _validateCanonicalId(modelId, '$path.modelId');
+    if (replacesGround &&
+        (part.footprintWidth != 1 ||
+            part.footprintHeight != 1 ||
+            part.channel != SmartTileRenderChannel.ground)) {
+      _error(
+        code: 'smart_tiles.model3d.ground_replacement_invalid',
+        path: '$path.replacesGround',
+        message: 'Ground replacement requires a one-cell ground model.',
+      );
+    }
+    if (!spatial) {
+      _error(
+        code: 'smart_tiles.model3d.dimension_invalid',
+        path: path,
+        message: '3D visual sources require a 3D project.',
+      );
+    }
+    if (!projectModelIds.contains(modelId)) {
+      _error(
+        code: 'smart_tiles.reference.model_missing',
+        path: '$path.modelId',
+        message: 'Missing 3D model "$modelId".',
+      );
+    }
+    if (!scale.isFinite ||
+        scale <= 0 ||
+        scale > 1000 ||
+        !offsetX.isFinite ||
+        !offsetY.isFinite ||
+        !offsetZ.isFinite) {
+      _error(
+        code: 'smart_tiles.model3d.transform_invalid',
+        path: path,
+        message:
+            'Model scale must be between 0 and 1000 and its local offsets finite.',
+      );
+    }
+    if (part.transform.flipX) {
+      _error(
+        code: 'smart_tiles.model3d.mirror_unsupported',
+        path: path,
+        message: '3D visual sources support rotations, not sprite mirroring.',
+      );
+    }
+    if (animationIndex != null &&
+        !(projectModelAnimationIndices[modelId]?.contains(animationIndex) ??
+            false)) {
+      _error(
+        code: 'smart_tiles.model3d.animation_invalid',
+        path: '$path.animationIndex',
+        message: 'The animation must belong to the inspected model.',
+      );
     }
   }
 
@@ -933,7 +1125,8 @@ final class _SmartTileCatalogValidator {
         preset: preset,
         code: 'smart_tiles.coverage.incomplete',
         path: '$presetPath.rules',
-        message: 'Preset "${preset.id}" does not resolve '
+        message:
+            'Preset "${preset.id}" does not resolve '
             '${missingCases.length} required coverage scenario(s).',
         missingMasks: _coverageMasks(preset, missingCases),
       );
@@ -946,7 +1139,8 @@ final class _SmartTileCatalogValidator {
         preset: preset,
         code: 'smart_tiles.coverage.fallback_only',
         path: '$presetPath.rules',
-        message: 'Preset "${preset.id}" resolves '
+        message:
+            'Preset "${preset.id}" resolves '
             '${fallbackCases.length} required scenario(s) only through its '
             'fallback rule.',
       );
@@ -963,15 +1157,15 @@ final class _SmartTileCatalogValidator {
         SmartTileCoverageStatus.exact ||
         SmartTileCoverageStatus.transformed ||
         SmartTileCoverageStatus.fallback ||
-        SmartTileCoverageStatus.missing =>
-          null,
+        SmartTileCoverageStatus.missing => null,
       };
       if (code == null) continue;
       _publicationDiagnostic(
         preset: preset,
         code: code,
         path: '$presetPath.rules',
-        message: 'Coverage scenario "${coverageCase.id}" has status '
+        message:
+            'Coverage scenario "${coverageCase.id}" has status '
             '${coverageCase.status.name}.',
         ruleId: coverageCase.ruleIds.isEmpty ? null : coverageCase.ruleIds.last,
         mask: _coverageMask(preset, coverageCase),
@@ -1001,8 +1195,7 @@ final class _SmartTileCatalogValidator {
   ) {
     final masks = <int>{
       for (final coverageCase in cases) _coverageMask(preset, coverageCase),
-    }.toList(growable: false)
-      ..sort();
+    }.toList(growable: false)..sort();
     return masks;
   }
 
@@ -1104,25 +1297,13 @@ final class _SmartTileCatalogValidator {
   }) {
     final slots = <MapEntry<String, String?>>[
       MapEntry<String, String?>('northEdge', signature.northEdge),
-      MapEntry<String, String?>(
-        'northEastCorner',
-        signature.northEastCorner,
-      ),
+      MapEntry<String, String?>('northEastCorner', signature.northEastCorner),
       MapEntry<String, String?>('eastEdge', signature.eastEdge),
-      MapEntry<String, String?>(
-        'southEastCorner',
-        signature.southEastCorner,
-      ),
+      MapEntry<String, String?>('southEastCorner', signature.southEastCorner),
       MapEntry<String, String?>('southEdge', signature.southEdge),
-      MapEntry<String, String?>(
-        'southWestCorner',
-        signature.southWestCorner,
-      ),
+      MapEntry<String, String?>('southWestCorner', signature.southWestCorner),
       MapEntry<String, String?>('westEdge', signature.westEdge),
-      MapEntry<String, String?>(
-        'northWestCorner',
-        signature.northWestCorner,
-      ),
+      MapEntry<String, String?>('northWestCorner', signature.northWestCorner),
     ];
     for (final slot in slots) {
       final materialId = slot.value;
@@ -1159,7 +1340,8 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tiles.reference.material_not_allowed',
         path: path,
-        message: 'Material "$materialId" is not allowed by preset '
+        message:
+            'Material "$materialId" is not allowed by preset '
             '"$presetId".',
         presetId: presetId,
       );
@@ -1167,11 +1349,7 @@ final class _SmartTileCatalogValidator {
   }
 
   void _validateFrameRef(SmartTileFrameRef frame, {required String path}) {
-    _validateFrameRefAgainst(
-      frame,
-      path: path,
-      atlasesById: _atlasesById,
-    );
+    _validateFrameRefAgainst(frame, path: path, atlasesById: _atlasesById);
   }
 
   void _validateFrameRefAgainst(
@@ -1187,7 +1365,8 @@ final class _SmartTileCatalogValidator {
       _error(
         code: 'smart_tiles.frame.invalid',
         path: path,
-        message: 'Frame coordinates must be non-negative and spans must be '
+        message:
+            'Frame coordinates must be non-negative and spans must be '
             'positive.',
       );
       return;
@@ -1215,14 +1394,15 @@ final class _SmartTileCatalogValidator {
     final materialId = match.materialId;
     final valid = match.kind == SmartTileMatchKind.material
         ? materialId != null &&
-            materialId.isNotEmpty &&
-            materialId == materialId.trim()
+              materialId.isNotEmpty &&
+              materialId == materialId.trim()
         : materialId == null;
     if (!valid) {
       _error(
         code: 'smart_tiles.rules.match_invalid',
         path: path,
-        message: 'materialId is required only for a canonical material '
+        message:
+            'materialId is required only for a canonical material '
             'match.',
       );
     }
@@ -1256,11 +1436,7 @@ final class _SmartTileCatalogValidator {
     );
   }
 
-  void _duplicates<T>(
-    List<T> items,
-    String Function(T) idOf,
-    String path,
-  ) {
+  void _duplicates<T>(List<T> items, String Function(T) idOf, String path) {
     final seen = <String>{};
     for (var index = 0; index < items.length; index += 1) {
       final id = idOf(items[index]);
@@ -1344,10 +1520,7 @@ bool _templateMatchesTopologyValues({
   return topology == smartTileTopologyForTemplate(template);
 }
 
-Map<String, T> _firstById<T>(
-  Iterable<T> items,
-  String Function(T) idOf,
-) {
+Map<String, T> _firstById<T>(Iterable<T> items, String Function(T) idOf) {
   final result = <String, T>{};
   for (final item in items) {
     result.putIfAbsent(idOf(item), () => item);

@@ -178,6 +178,7 @@ BorderFeature _withoutMaterialization(BorderFeature feature) => BorderFeature(
       seed: feature.seed,
       geometry: feature.geometry,
       lineSide: feature.lineSide,
+      spatialOffsetWorld: feature.spatialOffsetWorld,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,

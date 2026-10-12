@@ -85,11 +85,7 @@ BorderSpriteTransform decodeBorderSpriteTransformJson(
   String path = r'$',
 }) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _transformKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _transformKeys);
   final turnsPath = borderJsonPropertyPath(path, 'quarterTurns');
   final quarterTurns = _decodeSignedInt64(
     borderJsonRequireField(value, 'quarterTurns', path),
@@ -166,11 +162,7 @@ BorderResolvedPlacement decodeBorderResolvedPlacementJson(
   String path = r'$',
 }) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _placementKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _placementKeys);
 
   final idPath = borderJsonPropertyPath(path, 'id');
   final id = borderJsonRequireString(
@@ -262,6 +254,20 @@ Map<String, Object?> encodeBorderMaterializationJson(
   BorderMaterialization materialization, {
   String path = r'$',
 }) {
+  if (materialization.targetsSpatialScene) {
+    return <String, Object?>{
+      'receipt': _encodeReceipt(materialization.receipt, '$path.receipt'),
+      'targetsSpatialScene': true,
+      'spatialPlacements': <Object?>[
+        for (final placement in materialization.spatialPlacements)
+          <String, Object?>{
+            'slotKey': placement.slotKey,
+            'primitiveId': placement.primitiveId,
+            'instanceId': placement.instanceId,
+          },
+      ],
+    };
+  }
   final groundPath = borderJsonPropertyPath(path, 'ground');
   final placementPath = borderJsonPropertyPath(path, 'placements');
   if (materialization.ground.isEmpty && materialization.placements.isEmpty) {
@@ -332,6 +338,62 @@ BorderMaterialization decodeBorderMaterializationJson(
   String path = r'$',
 }) {
   final value = borderJsonRequireObject(json, path);
+  if (value.containsKey('targetsSpatialScene')) {
+    borderJsonRequireExactKeys(
+      value,
+      path: path,
+      requiredKeys: const {
+        'receipt',
+        'targetsSpatialScene',
+        'spatialPlacements',
+      },
+    );
+    if (value['targetsSpatialScene'] != true)
+      throw FormatException('$path: targetsSpatialScene must be true');
+    final values = borderJsonRequireList(
+      value['spatialPlacements'],
+      '$path.spatialPlacements',
+    );
+    final placements = <BorderSpatialPlacement>[];
+    for (var index = 0; index < values.length; index++) {
+      final itemPath = '$path.spatialPlacements[$index]';
+      final item = borderJsonRequireObject(values[index], itemPath);
+      borderJsonRequireExactKeys(
+        item,
+        path: itemPath,
+        requiredKeys: const {'slotKey', 'primitiveId', 'instanceId'},
+      );
+      placements.add(
+        borderJsonConstructAtPath(
+          itemPath,
+          () => BorderSpatialPlacement(
+            slotKey: borderJsonRequireString(
+              item['slotKey'],
+              '$itemPath.slotKey',
+            ),
+            primitiveId: borderJsonRequireString(
+              item['primitiveId'],
+              '$itemPath.primitiveId',
+            ),
+            instanceId: borderJsonRequireString(
+              item['instanceId'],
+              '$itemPath.instanceId',
+            ),
+          ),
+        ),
+      );
+    }
+    return borderJsonConstructAtPath(
+      path,
+      () => BorderMaterialization(
+        receipt: _decodeReceipt(value['receipt'], '$path.receipt'),
+        ground: const [],
+        placements: const [],
+        targetsSpatialScene: true,
+        spatialPlacements: placements,
+      ),
+    );
+  }
   borderJsonRequireExactKeys(
     value,
     path: path,
@@ -456,11 +518,7 @@ Map<String, Object?> _encodeReceipt(
 
 BorderResolutionReceipt _decodeReceipt(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _receiptKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _receiptKeys);
   final resolverPath = borderJsonPropertyPath(path, 'resolverVersion');
   final resolverVersion = _decodeSignedInt64(
     borderJsonRequireField(value, 'resolverVersion', path),
@@ -530,11 +588,7 @@ Map<String, Object?> _encodeComponents(
 
 BorderInputFingerprints _decodeComponents(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _componentsKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _componentsKeys);
   String decodeFingerprint(String key) {
     final fieldPath = borderJsonPropertyPath(path, key);
     final fingerprint = borderJsonRequireString(
@@ -575,11 +629,7 @@ Map<String, Object?> _encodeGroundCell(
 
 BorderResolvedGroundCell _decodeGroundCell(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _groundKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _groundKeys);
   final x = _decodeSignedInt64(
     borderJsonRequireField(value, 'x', path),
     borderJsonPropertyPath(path, 'x'),
@@ -639,11 +689,7 @@ Map<String, Object?> _encodeStableOrderKey(
 
 BorderStableOrderKey _decodeStableOrderKey(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _orderKeyKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _orderKeyKeys);
   int decodeNonNegative(String name) {
     final fieldPath = borderJsonPropertyPath(path, name);
     final decoded = _decodeSignedInt64(
@@ -683,11 +729,7 @@ Map<String, Object?> _encodeGridPos(GridPos pos, String path) =>
 
 GridPos _decodeGridPos(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _pointKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _pointKeys);
   return GridPos(
     x: _decodeSignedInt64(
       borderJsonRequireField(value, 'x', path),
@@ -708,11 +750,7 @@ Map<String, Object?> _encodePixelPos(BorderPixelPos pos, String path) =>
 
 BorderPixelPos _decodePixelPos(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _pointKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _pointKeys);
   return BorderPixelPos(
     x: _decodeSignedInt64(
       borderJsonRequireField(value, 'x', path),
@@ -746,11 +784,7 @@ Map<String, Object?> _encodePixelRect(BorderPixelRect rect, String path) {
 
 BorderPixelRect _decodePixelRect(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _rectKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _rectKeys);
   final x = _decodeSignedInt64(
     borderJsonRequireField(value, 'x', path),
     borderJsonPropertyPath(path, 'x'),
@@ -777,12 +811,7 @@ BorderPixelRect _decodePixelRect(Object? json, String path) {
   }
   return borderJsonConstructAtPath(
     path,
-    () => BorderPixelRect(
-      x: x,
-      y: y,
-      width: width,
-      height: height,
-    ),
+    () => BorderPixelRect(x: x, y: y, width: width, height: height),
   );
 }
 
@@ -853,42 +882,42 @@ void _validateFingerprint(String value, String path) {
 }
 
 String _encodeDrawBand(BorderDrawBand band) => switch (band) {
-      BorderDrawBand.outerAccent => 'outerAccent',
-      BorderDrawBand.structure => 'structure',
-      BorderDrawBand.innerFinish => 'innerFinish',
-      BorderDrawBand.accent => 'accent',
-    };
+  BorderDrawBand.outerAccent => 'outerAccent',
+  BorderDrawBand.structure => 'structure',
+  BorderDrawBand.innerFinish => 'innerFinish',
+  BorderDrawBand.accent => 'accent',
+};
 
 BorderDrawBand _decodeDrawBand(String value, String path) => switch (value) {
-      'outerAccent' => BorderDrawBand.outerAccent,
-      'structure' => BorderDrawBand.structure,
-      'innerFinish' => BorderDrawBand.innerFinish,
-      'accent' => BorderDrawBand.accent,
-      _ => throw FormatException('$path: unsupported Border draw band: $value'),
-    };
+  'outerAccent' => BorderDrawBand.outerAccent,
+  'structure' => BorderDrawBand.structure,
+  'innerFinish' => BorderDrawBand.innerFinish,
+  'accent' => BorderDrawBand.accent,
+  _ => throw FormatException('$path: unsupported Border draw band: $value'),
+};
 
 String _encodeBorderGroundRole(BorderGroundVariantRole role) => switch (role) {
-      BorderGroundVariantRole.isolated => 'isolated',
-      BorderGroundVariantRole.endNorth => 'endNorth',
-      BorderGroundVariantRole.endEast => 'endEast',
-      BorderGroundVariantRole.endSouth => 'endSouth',
-      BorderGroundVariantRole.endWest => 'endWest',
-      BorderGroundVariantRole.horizontal => 'horizontal',
-      BorderGroundVariantRole.vertical => 'vertical',
-      BorderGroundVariantRole.cornerNE => 'cornerNE',
-      BorderGroundVariantRole.cornerSE => 'cornerSE',
-      BorderGroundVariantRole.cornerSW => 'cornerSW',
-      BorderGroundVariantRole.cornerNW => 'cornerNW',
-      BorderGroundVariantRole.innerCornerNE => 'innerCornerNE',
-      BorderGroundVariantRole.innerCornerSE => 'innerCornerSE',
-      BorderGroundVariantRole.innerCornerSW => 'innerCornerSW',
-      BorderGroundVariantRole.innerCornerNW => 'innerCornerNW',
-      BorderGroundVariantRole.teeNorth => 'teeNorth',
-      BorderGroundVariantRole.teeEast => 'teeEast',
-      BorderGroundVariantRole.teeSouth => 'teeSouth',
-      BorderGroundVariantRole.teeWest => 'teeWest',
-      BorderGroundVariantRole.cross => 'cross',
-    };
+  BorderGroundVariantRole.isolated => 'isolated',
+  BorderGroundVariantRole.endNorth => 'endNorth',
+  BorderGroundVariantRole.endEast => 'endEast',
+  BorderGroundVariantRole.endSouth => 'endSouth',
+  BorderGroundVariantRole.endWest => 'endWest',
+  BorderGroundVariantRole.horizontal => 'horizontal',
+  BorderGroundVariantRole.vertical => 'vertical',
+  BorderGroundVariantRole.cornerNE => 'cornerNE',
+  BorderGroundVariantRole.cornerSE => 'cornerSE',
+  BorderGroundVariantRole.cornerSW => 'cornerSW',
+  BorderGroundVariantRole.cornerNW => 'cornerNW',
+  BorderGroundVariantRole.innerCornerNE => 'innerCornerNE',
+  BorderGroundVariantRole.innerCornerSE => 'innerCornerSE',
+  BorderGroundVariantRole.innerCornerSW => 'innerCornerSW',
+  BorderGroundVariantRole.innerCornerNW => 'innerCornerNW',
+  BorderGroundVariantRole.teeNorth => 'teeNorth',
+  BorderGroundVariantRole.teeEast => 'teeEast',
+  BorderGroundVariantRole.teeSouth => 'teeSouth',
+  BorderGroundVariantRole.teeWest => 'teeWest',
+  BorderGroundVariantRole.cross => 'cross',
+};
 
 BorderGroundVariantRole _decodeBorderGroundRole(String value, String path) =>
     switch (value) {
@@ -913,6 +942,6 @@ BorderGroundVariantRole _decodeBorderGroundRole(String value, String path) =>
       'teeWest' => BorderGroundVariantRole.teeWest,
       'cross' => BorderGroundVariantRole.cross,
       _ => throw FormatException(
-          '$path: unsupported Border ground role: $value',
-        ),
+        '$path: unsupported Border ground role: $value',
+      ),
     };

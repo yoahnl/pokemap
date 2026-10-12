@@ -1,4 +1,6 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring_editing.dart';
+
 import 'editable_map_document.dart';
 
 class SpatialModelEditingCommands {
@@ -6,11 +8,48 @@ class SpatialModelEditingCommands {
   final EditableMapDocument document;
   final ProjectManifest project;
   static const operations = SpatialMapOperations();
+  static const environments = EnvironmentEditing();
+  static const paintedTerrainMessage =
+      'Ces pièces appartiennent à un terrain peint. Choisissez Terrains et son calque pour modifier ou effacer les cases.';
+  static const generatedBorderMessage =
+      'Cette pièce appartient à une bordure générée. Choisissez Bordures et son tracé pour la régénérer ou le supprimer.';
+  void _requireIndependent(String id) {
+    if (id.startsWith('smt_')) throw StateError(paintedTerrainMessage);
+    if (borderOwner(id) != null) throw StateError(generatedBorderMessage);
+  }
+
+  ({String layerId, String featureId})? borderOwner(String id) {
+    for (final layer in document.current.layers.whereType<BorderLayer>()) {
+      for (final feature in layer.content.features) {
+        if (feature.generatedPlacementIds.contains(id)) {
+          return (layerId: layer.id, featureId: feature.id);
+        }
+      }
+    }
+    return null;
+  }
+
+  ({String layerId, String areaId})? owner(String id) {
+    for (final layer in document.current.layers.whereType<EnvironmentLayer>()) {
+      if (!layer.content.targetsSpatialTerrain) continue;
+      for (final area in layer.content.areas) {
+        if (area.generatedPlacementIds.contains(id)) {
+          return (layerId: layer.id, areaId: area.id);
+        }
+      }
+    }
+    return null;
+  }
+
   SpatialModelInstance? selected([String? id]) => document
       .current
       .spatialScene
       ?.instances
-      .where((item) => item.id == (id ?? document.selectedId))
+      .where(
+        (item) =>
+            !item.id.startsWith('smt_') &&
+            item.id == (id ?? document.selectedId),
+      )
       .firstOrNull;
   String _id() {
     final ids = document.current.spatialScene!.instances
@@ -63,12 +102,13 @@ class SpatialModelEditingCommands {
     double? rotation,
     double? scale,
     bool? blocksMovement,
-    int? heightLevel,
+    double? heightOffset,
     int? animationIndex,
     bool clearAnimation = false,
     bool? animationLoop,
     double? animationSpeed,
   }) {
+    _requireIndependent(id);
     final instance = selected(id);
     if (instance == null) throw StateError('Ce décor n’existe plus.');
     if (animationIndex != null &&
@@ -81,29 +121,23 @@ class SpatialModelEditingCommands {
             )) {
       throw StateError('Cette animation n’existe pas pour ce décor.');
     }
-    if (heightLevel != null && (heightLevel < 0 || heightLevel > 32)) {
-      throw StateError('Choisissez une hauteur de 0 à 32 blocs.');
+    if (heightOffset != null && !heightOffset.isFinite) {
+      throw StateError('Saisissez un décalage vertical valide.');
     }
     final scene = document.current.spatialScene!;
     final elevated =
         instance.position.y -
         scene.worldHeightAt(instance.position.x, instance.position.z);
-    final alignment =
-        elevated - (elevated / scene.levelHeight).round() * scene.levelHeight;
     final anchor = _position(
       x ?? instance.position.x,
       z ?? instance.position.z,
     );
     final next = instance.copyWith(
-      position: x == null && z == null && heightLevel == null
+      position: x == null && z == null && heightOffset == null
           ? null
           : Model3dVector3(
               x: anchor.x,
-              y:
-                  anchor.y +
-                  (heightLevel == null
-                      ? elevated
-                      : heightLevel * scene.levelHeight + alignment),
+              y: anchor.y + (heightOffset ?? elevated),
               z: anchor.z,
             ),
       rotationDegrees: rotation,
@@ -114,12 +148,39 @@ class SpatialModelEditingCommands {
       animationLoop: animationLoop,
       animationSpeed: animationSpeed,
     );
-    document.commit(operations.upsertInstance(document.current, next));
+    final source = owner(id);
+    final map = source == null
+        ? document.current
+        : environments.moveGeneratedPlacement(
+            document.current,
+            layerId: source.layerId,
+            areaId: source.areaId,
+            placementId: id,
+            pos: GridPos(
+              x: next.position.x.floor(),
+              y: next.position.z.floor(),
+            ),
+          );
+    document.commit(operations.upsertInstance(map, next));
   }
 
-  void delete(String id) =>
-      document.commit(operations.deleteInstance(document.current, id));
+  void delete(String id) {
+    _requireIndependent(id);
+    final source = owner(id);
+    document.commit(
+      source == null
+          ? operations.deleteInstance(document.current, id)
+          : environments.deleteGeneratedPlacement(
+              document.current,
+              layerId: source.layerId,
+              areaId: source.areaId,
+              placementId: id,
+            ),
+    );
+  }
+
   void duplicate(String id) {
+    _requireIndependent(id);
     final item = selected(id);
     if (item == null) throw StateError('Ce décor n’existe plus.');
     final next = SpatialModelInstance(
@@ -133,7 +194,22 @@ class SpatialModelEditingCommands {
       animationSpeed: item.animationSpeed,
       blocksMovement: item.blocksMovement,
     );
-    document.commit(operations.upsertInstance(document.current, next));
+    final source = owner(id);
+    final map = source == null
+        ? document.current
+        : environments.addGeneratedPlacement(
+            project,
+            document.current,
+            layerId: source.layerId,
+            areaId: source.areaId,
+            placementId: next.id,
+            modelId: next.modelId,
+            pos: GridPos(
+              x: next.position.x.floor(),
+              y: next.position.z.floor(),
+            ),
+          );
+    document.commit(operations.upsertInstance(map, next));
     document.selectedId = next.id;
   }
 }

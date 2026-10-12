@@ -121,7 +121,7 @@ List<SmartTileFormReadModel> smartTileFormsForAtlasFrame({
               SmartTileFrameSource(:final frame) => frame.atlasId == atlasId &&
                   frame.column == column &&
                   frame.row == row,
-              SmartTileAnimationSource() => false,
+              SmartTileAnimationSource() || SmartTileModel3dSource() => false,
             },
           ),
         ),

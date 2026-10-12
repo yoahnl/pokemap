@@ -2,6 +2,9 @@ part of 'map_workspace_canvas.dart';
 
 extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
   void _cancel() {
+    _borderErase = null;
+    _borderErasePreview = null;
+    _borderEraseTransform = null;
     _start = null;
     _preview = null;
     _hoverCell = null;
@@ -44,6 +47,11 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
   void _hover(PointerHoverEvent event) {
     final position = _cell(event.localPosition);
     if (widget.view.tool == StudioMapTool.border) {
+      if (_borderErase != null) {
+        _sampleBorderErase(event.localPosition);
+        _refreshGesture();
+        return;
+      }
       _previewBorderAt(event.localPosition);
       return;
     }
@@ -69,6 +77,11 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       return;
     }
     if (widget.view.tool == StudioMapTool.border) {
+      if (_borderErase != null) {
+        _sampleBorderErase(event.localPosition);
+        _refreshGesture();
+        return;
+      }
       _previewBorderAt(event.localPosition);
       return;
     }
@@ -215,6 +228,11 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       return;
     }
     if (tool == StudioMapTool.border) {
+      if (widget.view.borderEditingMode == BorderStrokeEditingMode.erase) {
+        _startBorderErase(event.localPosition);
+        _refreshGesture();
+        return;
+      }
       _addBorderAngle(event.localPosition);
       _cancel();
       return;

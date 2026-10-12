@@ -2,6 +2,7 @@ import '../models/border_feature.dart';
 import '../models/border_geometry.dart';
 import '../models/border_materialization.dart';
 import '../models/border_value_objects.dart';
+import '../models/project_model3d.dart';
 import 'border_blueprint_json_codec.dart';
 import 'border_geometry_json_codec.dart';
 import 'border_json_codec_helpers.dart';
@@ -27,6 +28,10 @@ const Set<String> _featureOptionalKeysV2 = <String>{
   ..._featureOptionalKeysV1,
   'lineSide',
 };
+const Set<String> _featureOptionalKeysV4 = <String>{
+  ..._featureOptionalKeysV2,
+  'spatialOffsetWorld',
+};
 const Set<String> _overrideRequiredKeys = <String>{
   'slotKey',
   'variationSalt',
@@ -35,6 +40,7 @@ const Set<String> _overrideRequiredKeys = <String>{
 };
 const Set<String> _overrideOptionalKeys = <String>{
   'lockedPlacement',
+  'lockedInstanceId',
   'replacementPrimitiveId',
   'offsetDeltaPx',
   'transformOverride',
@@ -51,6 +57,15 @@ Map<String, Object?> encodeBorderFeatureJson(
   int formatVersion = 1,
 }) {
   _requireSupportedFeatureFormatVersion(formatVersion, path);
+  if ((feature.spatialOffsetWorld != null ||
+          feature.materialization?.targetsSpatialScene == true ||
+          feature.overrides.any(
+            (override) => override.lockedInstanceId != null,
+          )) &&
+      formatVersion < 4)
+    throw FormatException(
+      '$path: spatial materialization requires layer format version 4',
+    );
   if (formatVersion == 1 && feature.lineSide != BorderLineSide.primary) {
     throw FormatException(
       '${borderJsonPropertyPath(path, 'lineSide')}: '
@@ -110,6 +125,7 @@ Map<String, Object?> encodeBorderFeatureJson(
     ),
     if (formatVersion >= 2 && feature.lineSide != BorderLineSide.primary)
       'lineSide': _encodeLineSide(feature.lineSide),
+    if (feature.spatialOffsetWorld != null) 'spatialOffsetWorld': feature.spatialOffsetWorld!.toJson(),
     if (params != null)
       'paramsOverride': encodeBorderGenerationParamsJson(
         params,
@@ -141,8 +157,8 @@ BorderFeature decodeBorderFeatureJson(
     value,
     path: path,
     requiredKeys: _featureRequiredKeys,
-    optionalKeys:
-        formatVersion == 1 ? _featureOptionalKeysV1 : _featureOptionalKeysV2,
+    optionalKeys: formatVersion >= 4 ? _featureOptionalKeysV4 : formatVersion == 1
+        ? _featureOptionalKeysV1 : _featureOptionalKeysV2,
   );
 
   final id = _decodeStableText(value, 'id', path);
@@ -160,6 +176,17 @@ BorderFeature decodeBorderFeatureJson(
     formatVersion: formatVersion,
   );
   final lineSide = _decodeOptionalLineSide(value, path);
+  Model3dVector3? spatialOffsetWorld;
+  if (value.containsKey('spatialOffsetWorld')) {
+    final offsetPath = borderJsonPropertyPath(path, 'spatialOffsetWorld');
+    final offset = borderJsonRequireObject(value['spatialOffsetWorld'], offsetPath);
+    borderJsonRequireExactKeys(offset, path: offsetPath, requiredKeys: const {'x', 'y', 'z'});
+    if (offset.values.any((item) => item is! num || !item.isFinite)) {
+      throw FormatException('$offsetPath: expected finite x, y and z numbers');
+    }
+    spatialOffsetWorld = borderJsonConstructAtPath(offsetPath,
+        () => Model3dVector3.fromJson(Map<String, dynamic>.from(offset)));
+  }
 
   BorderGenerationParams? paramsOverride;
   if (value['paramsOverride'] != null) {
@@ -181,6 +208,10 @@ BorderFeature decodeBorderFeatureJson(
   for (var index = 0; index < overrideValues.length; index += 1) {
     final overridePath = borderJsonIndexPath(overridesPath, index);
     final override = _decodeOverride(overrideValues[index], overridePath);
+    if (override.lockedInstanceId != null && formatVersion < 4)
+      throw FormatException(
+        '$overridePath: spatial locks require layer format version 4',
+      );
     if (!overrideSlots.add(override.slotKey)) {
       throw FormatException(
         '${borderJsonPropertyPath(overridePath, 'slotKey')}: '
@@ -219,6 +250,10 @@ BorderFeature decodeBorderFeatureJson(
       value['materialization'],
       path: materializationPath,
     );
+    if (materialization.targetsSpatialScene && formatVersion < 4)
+      throw FormatException(
+        '$materializationPath: spatial outputs require layer format version 4',
+      );
   }
 
   return borderJsonConstructAtPath(
@@ -230,6 +265,7 @@ BorderFeature decodeBorderFeatureJson(
       seed: seed,
       geometry: geometry,
       lineSide: lineSide,
+      spatialOffsetWorld: spatialOffsetWorld,
       paramsOverride: paramsOverride,
       overrides: overrides,
       keepOutRegions: keepOutRegions,
@@ -239,20 +275,17 @@ BorderFeature decodeBorderFeatureJson(
 }
 
 void _requireSupportedFeatureFormatVersion(int value, String path) {
-  if (value < 1 || value > 3) {
+  if (value < 1 || value > 4) {
     throw FormatException('$path: unsupported Border feature format version');
   }
 }
 
 String _encodeLineSide(BorderLineSide value) => switch (value) {
-      BorderLineSide.primary => 'primary',
-      BorderLineSide.inverted => 'inverted',
-    };
+  BorderLineSide.primary => 'primary',
+  BorderLineSide.inverted => 'inverted',
+};
 
-BorderLineSide _decodeOptionalLineSide(
-  BorderJsonObject value,
-  String path,
-) {
+BorderLineSide _decodeOptionalLineSide(BorderJsonObject value, String path) {
   if (!value.containsKey('lineSide') || value['lineSide'] == null) {
     return BorderLineSide.primary;
   }
@@ -265,10 +298,7 @@ BorderLineSide _decodeOptionalLineSide(
   };
 }
 
-Map<String, Object?> _encodeOverride(
-  BorderSlotOverride override,
-  String path,
-) {
+Map<String, Object?> _encodeOverride(BorderSlotOverride override, String path) {
   final slotKeyPath = borderJsonPropertyPath(path, 'slotKey');
   _validateStableText(override.slotKey, slotKeyPath);
   final replacement = override.replacementPrimitiveId;
@@ -283,6 +313,7 @@ Map<String, Object?> _encodeOverride(
     suppressed: override.suppressed,
     locked: override.locked,
     lockedPlacement: override.lockedPlacement,
+    lockedInstanceId: override.lockedInstanceId,
     replacementPrimitiveId: replacement,
     offsetDeltaPx: override.offsetDeltaPx,
     transformOverride: override.transformOverride,
@@ -303,6 +334,8 @@ Map<String, Object?> _encodeOverride(
         path: borderJsonPropertyPath(path, 'lockedPlacement'),
       ),
     if (replacement != null) 'replacementPrimitiveId': replacement,
+    if (override.lockedInstanceId != null)
+      'lockedInstanceId': override.lockedInstanceId,
     if (offset != null)
       'offsetDeltaPx': _encodeOffset(
         offset,
@@ -378,6 +411,9 @@ BorderSlotOverride _decodeOverride(Object? json, String path) {
     suppressed: suppressed,
     locked: locked,
     lockedPlacement: lockedPlacement,
+    lockedInstanceId: value['lockedInstanceId'] == null
+        ? null
+        : _decodeStableText(value, 'lockedInstanceId', path),
     replacementPrimitiveId: replacementPrimitiveId,
     offsetDeltaPx: offsetDeltaPx,
     transformOverride: transformOverride,
@@ -391,6 +427,9 @@ BorderSlotOverride _decodeOverride(Object? json, String path) {
       suppressed: suppressed,
       locked: locked,
       lockedPlacement: lockedPlacement,
+      lockedInstanceId: value['lockedInstanceId'] == null
+          ? null
+          : _decodeStableText(value, 'lockedInstanceId', path),
       replacementPrimitiveId: replacementPrimitiveId,
       offsetDeltaPx: offsetDeltaPx,
       transformOverride: transformOverride,
@@ -403,12 +442,17 @@ void _validateOverrideInvariants({
   required bool suppressed,
   required bool locked,
   required BorderResolvedPlacement? lockedPlacement,
+  required String? lockedInstanceId,
   required String? replacementPrimitiveId,
   required BorderPixelOffset? offsetDeltaPx,
   required BorderSpriteTransform? transformOverride,
   required String path,
 }) {
   if (suppressed) {
+    if (lockedInstanceId != null)
+      throw FormatException(
+        '$path: a suppressed override cannot lock a spatial instance',
+      );
     if (locked) {
       throw FormatException(
         '${borderJsonPropertyPath(path, 'locked')}: '
@@ -441,13 +485,15 @@ void _validateOverrideInvariants({
     }
   }
 
-  if (locked && lockedPlacement == null) {
+  if (lockedPlacement != null && lockedInstanceId != null)
+    throw FormatException('$path: a locked slot requires one visual dimension');
+  if (locked && lockedPlacement == null && lockedInstanceId == null) {
     throw FormatException(
       '${borderJsonPropertyPath(path, 'lockedPlacement')}: '
       'is required when locked is true',
     );
   }
-  if (!locked && lockedPlacement != null) {
+  if (!locked && (lockedPlacement != null || lockedInstanceId != null)) {
     throw FormatException(
       '${borderJsonPropertyPath(path, 'locked')}: '
       'must be true when lockedPlacement is present',
@@ -455,10 +501,7 @@ void _validateOverrideInvariants({
   }
   if (lockedPlacement != null && lockedPlacement.slotKey != slotKey) {
     throw FormatException(
-      '${borderJsonPropertyPath(
-        borderJsonPropertyPath(path, 'lockedPlacement'),
-        'slotKey',
-      )}: must match override slotKey',
+      '${borderJsonPropertyPath(borderJsonPropertyPath(path, 'lockedPlacement'), 'slotKey')}: must match override slotKey',
     );
   }
 }
@@ -471,11 +514,7 @@ Map<String, Object?> _encodeOffset(BorderPixelOffset offset, String path) =>
 
 BorderPixelOffset _decodeOffset(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _offsetKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _offsetKeys);
   return BorderPixelOffset(
     x: _decodeSignedNumeric(
       borderJsonRequireField(value, 'x', path),
@@ -488,11 +527,7 @@ BorderPixelOffset _decodeOffset(Object? json, String path) {
   );
 }
 
-String _decodeStableText(
-  BorderJsonObject value,
-  String key,
-  String path,
-) {
+String _decodeStableText(BorderJsonObject value, String key, String path) {
   final fieldPath = borderJsonPropertyPath(path, key);
   final decoded = borderJsonRequireString(
     borderJsonRequireField(value, key, path),

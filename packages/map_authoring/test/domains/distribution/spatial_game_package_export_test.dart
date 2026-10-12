@@ -233,7 +233,11 @@ void main() {
         jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
     const cliff = SmartTileFrameRef(atlasId: 'cliff', column: 2, row: 1);
     await mapFile.writeAsString(jsonEncode(map
-        .copyWith(spatialScene: map.spatialScene!.copyWith(cliffFrame: cliff))
+        .copyWith(
+            spatialScene: map.spatialScene!.copyWith(
+          cliffFrame: cliff,
+          generateCliffs: false,
+        ))
         .toJson()));
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
@@ -251,6 +255,7 @@ void main() {
         .findFile('project/${manifest.maps.first.relativePath}')!
         .content));
     expect(exportedMap['spatialScene']['cliffFrame'], cliff.toJson());
+    expect(exportedMap['spatialScene']['generateCliffs'], false);
     expect(archive.findFile('project/${manifest.tilesets.first.relativePath}'),
         isNotNull);
     expect(project['newGame']['enabled'], false);

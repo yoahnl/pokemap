@@ -3,82 +3,69 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/map_workspace_visuals.dart';
+import 'resource_catalog.dart';
+import 'resource_source_list.dart';
 
-class BorderSourcePanel extends StatefulWidget {
+class BorderSourcePanel extends StatelessWidget {
   const BorderSourcePanel({
     super.key,
     required this.project,
     required this.visuals,
     required this.active,
     required this.onActive,
+    this.activeMapId,
   });
 
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
-  final ProjectElementEntry? active;
-  final ValueChanged<ProjectElementEntry> onActive;
-
-  @override
-  State<BorderSourcePanel> createState() => _BorderSourcePanelState();
-}
-
-class _BorderSourcePanelState extends State<BorderSourcePanel> {
-  String query = '';
+  final ResourceItem? active;
+  final ValueChanged<ResourceItem> onActive;
+  final String? activeMapId;
 
   @override
   Widget build(BuildContext context) {
-    final matches = widget.project.elements
-        .where(
-          (element) =>
-              element.name.toLowerCase().contains(query) ||
-              element.id.toLowerCase().contains(query),
-        )
-        .toList();
-    return SingleChildScrollView(
-      child: StudioPanel(
-        title: 'Décors disponibles',
-        compact: true,
-        children: [
-          const Text(
-            'Choisissez un décor, puis cliquez sur une place du patron. Vous pouvez aussi le glisser.',
+    final spatial = project.settings.dimension == ProjectDimension.threeD;
+    final panel = StudioPanel(
+      title: spatial ? 'Modèles disponibles' : 'Décors disponibles',
+      compact: true,
+      children: [
+        Text(
+          spatial
+              ? 'Choisissez une pièce unitaire, puis cliquez sur sa place dans le patron.'
+              : 'Choisissez un décor, puis cliquez sur une place du patron. Vous pouvez aussi le glisser.',
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: ResourceSourceList(
+            project: project,
+            visuals: visuals,
+            items: resourceCatalog(project)
+                .where(
+                  (item) =>
+                      spatial ? item.model3d != null : item.element != null,
+                )
+                .where(
+                  (item) =>
+                      activeMapId != null ||
+                      item.metadata(project)?.mapId == null,
+                )
+                .toList(),
+            activeMapId: activeMapId,
+            selectedIdentity: active?.identity,
+            onPick: onActive,
+            keyPrefix: 'border-library',
+            draggableElements: !spatial,
           ),
-          TextField(
-            key: const ValueKey('border-library-search'),
-            decoration: const InputDecoration(
-              hintText: 'Rechercher un décor',
-              prefixIcon: Icon(Icons.search),
-            ),
-            onChanged: (value) => setState(() => query = value.toLowerCase()),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 340,
-            child: ListView.builder(
-              itemCount: matches.length,
-              itemBuilder: (context, index) {
-                final element = matches[index];
-                return Draggable<ProjectElementEntry>(
-                  data: element,
-                  feedback: Material(
-                    elevation: 6,
-                    child: widget.visuals.thumbnail(element, size: 56),
-                  ),
-                  child: ListTile(
-                    key: ValueKey('border-library-${element.id}'),
-                    dense: true,
-                    selected: widget.active?.id == element.id,
-                    leading: widget.visuals.thumbnail(element, size: 40),
-                    title: Text(element.name, maxLines: 1),
-                    onTap: () => widget.onActive(element),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (widget.project.elements.isEmpty)
-            const Text('Créez d’abord des décors dans Ressources.'),
-        ],
-      ),
+        ),
+      ],
+    );
+    final minimumHeight = 450 * MediaQuery.textScalerOf(context).scale(14) / 14;
+    return LayoutBuilder(
+      builder: (context, bounds) => bounds.maxHeight < minimumHeight
+          ? SingleChildScrollView(
+              child: SizedBox(height: minimumHeight, child: panel),
+            )
+          : panel,
     );
   }
 }

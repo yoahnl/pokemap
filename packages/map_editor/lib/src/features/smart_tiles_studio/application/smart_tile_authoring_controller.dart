@@ -651,7 +651,7 @@ final class SmartTileAuthoringController {
       final previous = parts[partIndex];
       final previousFrame = switch (previous.source) {
         SmartTileFrameSource(:final frame) => frame,
-        SmartTileAnimationSource() => null,
+        SmartTileAnimationSource() || SmartTileModel3dSource() => null,
       };
       final followsPreviousCrop = previousFrame != null &&
           previous.footprintWidth == previousFrame.columnSpan &&
@@ -915,7 +915,7 @@ final class SmartTileAuthoringController {
       final previous = parts[partIndex];
       final previousFrame = switch (previous.source) {
         SmartTileFrameSource(:final frame) => frame,
-        SmartTileAnimationSource() => null,
+        SmartTileAnimationSource() || SmartTileModel3dSource() => null,
       };
       final followsPreviousCrop = previousFrame != null &&
           previous.footprintWidth == previousFrame.columnSpan &&
@@ -1289,7 +1289,7 @@ final class SmartTileAuthoringController {
     }
     final frame = switch (part.source) {
       SmartTileFrameSource(:final frame) => frame,
-      SmartTileAnimationSource() => null,
+      SmartTileAnimationSource() || SmartTileModel3dSource() => null,
     };
     if (frame != null) {
       if (frame.atlasId != _state.atlasId) {

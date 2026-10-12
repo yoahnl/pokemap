@@ -29,20 +29,255 @@ final class BorderResourcePrimitive {
   final List<BorderResourceFrame> frames;
 }
 
+BorderPrimitiveDraft _withModelSettings(
+  ProjectManifest manifest,
+  BorderCreationRequest request,
+  BorderPrimitiveDraft primitive,
+) {
+  final original = BorderModelSettings(
+    animationIndex: primitive.animationIndex,
+    animationLoop: primitive.animationLoop,
+    animationSpeed: primitive.animationSpeed,
+    blocksMovement: primitive.blocksMovement,
+  );
+  final settings = request.primitiveModelSettings[primitive.id] ?? original;
+  final model = manifest.models3d.firstWhere(
+    (model) => model.id == primitive.sourceModelId,
+  );
+  if (!settings.animationSpeed.isFinite ||
+      settings.animationSpeed <= 0 ||
+      settings.animationSpeed > 16) {
+    throw const ResourceFailure(
+      'La vitesse doit être supérieure à 0 et au maximum égale à 16.',
+    );
+  }
+  if (settings.animationIndex != null &&
+      !model.inspection.animations.any(
+        (clip) => clip.index == settings.animationIndex,
+      )) {
+    throw const ResourceFailure(
+      'Le modèle ne contient pas l’animation sélectionnée. Choisissez une animation disponible ou « Aucune ».',
+    );
+  }
+  if (settings == original) return primitive;
+  return BorderPrimitiveDraft(
+    id: primitive.id,
+    sourceModelId: primitive.sourceModelId,
+    role: primitive.role,
+    authoredOrientation: primitive.authoredOrientation,
+    weight: primitive.weight,
+    anchorWorld: primitive.anchorWorld,
+    transforms: primitive.transforms,
+    animationIndex: settings.animationIndex,
+    animationLoop: settings.animationLoop,
+    animationSpeed: settings.animationSpeed,
+    blocksMovement: settings.blocksMovement,
+  );
+}
+
 Future<List<BorderResourcePrimitive>> prepareBorderResources({
   required ProjectManifest manifest,
   required String projectRoot,
   required BorderCreationRequest request,
 }) async {
   final root = await Directory(projectRoot).resolveSymbolicLinks();
-  final chosen = <(BorderPrimitiveRole, String?)>[
-    (BorderPrimitiveRole.lineCap, request.capElementId),
-    (BorderPrimitiveRole.lineStraight, request.straightElementId),
-    (BorderPrimitiveRole.lineCorner, request.cornerElementId),
+  final chosen = <(BorderPrimitiveRole, String?, String?)>[
+    (BorderPrimitiveRole.lineCap, request.capElementId, request.capModelId),
+    (
+      BorderPrimitiveRole.lineStraight,
+      request.straightElementId,
+      request.straightModelId,
+    ),
+    (
+      BorderPrimitiveRole.lineCorner,
+      request.cornerElementId,
+      request.cornerModelId,
+    ),
   ];
   final result = <BorderResourcePrimitive>[];
-  for (final (role, elementId) in chosen) {
+  final mapId = request.blueprintId == null
+      ? null
+      : manifest.resourceLibraryCatalog
+            .entryFor('borderBlueprint', request.blueprintId!)
+            ?.mapId;
+  final existing = manifest.borderCatalog
+      .recordById(request.blueprintId ?? '')
+      ?.draft
+      .definition;
+  final settingsIds = {
+    if (existing?.isSpatial == true)
+      ...existing!.primitives.map((primitive) => primitive.id),
+    for (final source in chosen)
+      if (source.$3 != null &&
+          existing?.primitives.any(
+                (primitive) => primitive.role == source.$1,
+              ) !=
+              true)
+        source.$1.name,
+  };
+  if (request.primitiveModelSettings.isNotEmpty &&
+      (manifest.settings.dimension != ProjectDimension.threeD ||
+          request.primitiveModelSettings.keys.any(
+            (id) => !settingsIds.contains(id),
+          ))) {
+    throw const ResourceFailure(
+      'Choisissez une pièce 3D existante pour ses réglages.',
+    );
+  }
+  if (request.primitiveModelIds.isNotEmpty &&
+      (existing?.isSpatial != true ||
+          request.primitiveModelIds.keys.any(
+            (id) =>
+                !existing!.primitives.any((primitive) => primitive.id == id),
+          ))) {
+    throw const ResourceFailure(
+      'Choisissez une variante existante de cette bordure 3D.',
+    );
+  }
+  if (existing?.isSpatial == true) {
+    if (chosen.any((source) => source.$2 != null)) {
+      throw const ResourceFailure(
+        'Cette bordure 3D doit utiliser uniquement des modèles.',
+      );
+    }
+    for (final primitive in existing!.primitives) {
+      final roleModelId = switch (primitive.role) {
+        BorderPrimitiveRole.lineCap => request.capModelId,
+        BorderPrimitiveRole.lineStraight => request.straightModelId,
+        BorderPrimitiveRole.lineCorner => request.cornerModelId,
+        _ => null,
+      };
+      final modelId =
+          request.primitiveModelIds[primitive.id] ??
+          roleModelId ??
+          primitive.sourceModelId!;
+      if (manifest.settings.dimension != ProjectDimension.threeD ||
+          !manifest.models3d.any((model) => model.id == modelId) ||
+          !manifest.resourceLibraryCatalog.availableForMap(
+            'model3d',
+            modelId,
+            mapId ?? '',
+          )) {
+        throw const ResourceFailure(
+          'Choisissez un modèle 3D disponible pour cette variante.',
+        );
+      }
+      result.add(
+        BorderResourcePrimitive(
+          draft: _withModelSettings(
+            manifest,
+            request,
+            modelId == primitive.sourceModelId
+                ? primitive
+                : BorderPrimitiveDraft(
+                    id: primitive.id,
+                    sourceModelId: modelId,
+                    role: primitive.role,
+                    authoredOrientation: primitive.authoredOrientation,
+                    weight: primitive.weight,
+                    anchorWorld: primitive.anchorWorld,
+                    transforms: primitive.transforms,
+                    animationIndex: primitive.animationIndex,
+                    animationLoop: primitive.animationLoop,
+                    animationSpeed: primitive.animationSpeed,
+                    blocksMovement: primitive.blocksMovement,
+                  ),
+          ),
+          frames: const [],
+        ),
+      );
+    }
+    for (final (role, _, modelId) in chosen) {
+      if (modelId == null ||
+          existing.primitives.any((primitive) => primitive.role == role)) {
+        continue;
+      }
+      if (!manifest.models3d.any((model) => model.id == modelId) ||
+          !manifest.resourceLibraryCatalog.availableForMap(
+            'model3d',
+            modelId,
+            mapId ?? '',
+          )) {
+        throw const ResourceFailure(
+          'Choisissez un modèle 3D disponible pour cette bordure.',
+        );
+      }
+      result.add(
+        BorderResourcePrimitive(
+          draft: _withModelSettings(
+            manifest,
+            request,
+            BorderPrimitiveDraft(
+              id: role.name,
+              sourceModelId: modelId,
+              role: role,
+              authoredOrientation: BorderPrimitiveOrientation.east,
+              weight: 1000,
+              transforms: BorderTransformPolicy(
+                allowFlipX: false,
+                allowedQuarterTurns: const [0, 1, 2, 3],
+              ),
+            ),
+          ),
+          frames: const [],
+        ),
+      );
+    }
+    return result;
+  }
+  for (final (role, elementId, modelId) in chosen) {
+    if (modelId != null) {
+      if (elementId != null ||
+          manifest.settings.dimension != ProjectDimension.threeD ||
+          !manifest.models3d.any((model) => model.id == modelId) ||
+          !manifest.resourceLibraryCatalog.availableForMap(
+            'model3d',
+            modelId,
+            mapId ?? '',
+          )) {
+        throw const ResourceFailure(
+          'Choisissez un modèle 3D disponible pour cette bordure.',
+        );
+      }
+      final original = manifest.borderCatalog
+          .recordById(request.blueprintId ?? '')
+          ?.draft
+          .definition
+          .primitives
+          .where(
+            (primitive) =>
+                primitive.role == role && primitive.sourceModelId == modelId,
+          )
+          .firstOrNull;
+      result.add(
+        BorderResourcePrimitive(
+          draft: _withModelSettings(
+            manifest,
+            request,
+            original ??
+                BorderPrimitiveDraft(
+                  id: role.name,
+                  sourceModelId: modelId,
+                  role: role,
+                  authoredOrientation: BorderPrimitiveOrientation.east,
+                  weight: 1000,
+                  transforms: BorderTransformPolicy(
+                    allowFlipX: false,
+                    allowedQuarterTurns: const [0, 1, 2, 3],
+                  ),
+                ),
+          ),
+          frames: const [],
+        ),
+      );
+      continue;
+    }
     if (elementId == null) continue;
+    if (manifest.settings.dimension != ProjectDimension.twoD) {
+      throw const ResourceFailure(
+        'Cette bordure 3D doit utiliser uniquement des modèles.',
+      );
+    }
     final element = manifest.elements
         .where((candidate) => candidate.id == elementId)
         .firstOrNull;

@@ -194,6 +194,7 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
           if (_searchExpanded) ...[
             const SizedBox(height: 8),
             StudioSearchField(
+              key: const ValueKey('map-library-search'),
               controller: _search,
               label: 'Rechercher une carte',
               onChanged: (_) => setState(() {}),

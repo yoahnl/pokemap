@@ -869,6 +869,7 @@ class _SmartTileVariantEditorState extends State<_SmartTileVariantEditor> {
   String _candidateSourceLabel(SmartTileCandidate candidate) {
     final source = candidate.parts.firstOrNull?.source;
     return switch (source) {
+      SmartTileModel3dSource() => 'Modèle 3D',
       SmartTileFrameSource() => 'Cellule de l’atlas',
       SmartTileAnimationSource(:final animationId) =>
         'Animation « ${widget.animationNames[animationId] ?? 'indisponible'} »',
@@ -943,7 +944,7 @@ class _SmartTileVisualPartEditorState
   Widget build(BuildContext context) {
     final frame = switch (widget.part.source) {
       SmartTileFrameSource(:final frame) => frame,
-      SmartTileAnimationSource() => null,
+      SmartTileAnimationSource() || SmartTileModel3dSource() => null,
     };
     return PokeMapPanel(
       padding: const EdgeInsets.all(10),
@@ -952,7 +953,9 @@ class _SmartTileVisualPartEditorState
         children: <Widget>[
           PokeMapSectionHeader(
             title: 'Géométrie visuelle ${widget.partIndex + 1}',
-            description: frame == null
+            description: widget.part.source is SmartTileModel3dSource
+                ? 'Modèle 3D : placement défini dans les outils 3D.'
+                : frame == null
                 ? 'Animation : la géométrie s’applique à toutes ses frames.'
                 : 'Découpe atlas ${frame.columnSpan} × ${frame.rowSpan} · '
                     'colonne ${frame.column + 1}, ligne ${frame.row + 1}.',

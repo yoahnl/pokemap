@@ -174,7 +174,10 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
                 project: widget.project,
                 visuals: widget.visuals,
                 onChosen: widget.onTerrain,
-                onImport: widget.onImport,
+                onImport:
+                    widget.project.settings.dimension == ProjectDimension.threeD
+                    ? widget.onImportModel
+                    : widget.onImport,
               );
             },
             ResourceLibraryFamily.borders => () => run(widget.onCreateBorder),

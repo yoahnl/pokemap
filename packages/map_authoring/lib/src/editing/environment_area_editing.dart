@@ -46,7 +46,19 @@ MapData _attach(
   MapData map, {
   required String layerId,
   required String? targetTileLayerId,
+  bool targetsSpatialTerrain = false,
 }) {
+  if (targetsSpatialTerrain && map.spatialScene == null) {
+    throw semanticFailure('environment.spatial_scene_missing',
+        'A spatial Environment needs a native spatial terrain.');
+  }
+  final original = _environmentLayer(map, layerId);
+  if (original.content.hasGeneratedPlacements &&
+      (original.content.targetTileLayerId != targetTileLayerId ||
+          original.content.targetsSpatialTerrain != targetsSpatialTerrain)) {
+    throw semanticFailure('environment.target_has_placements',
+        'Clear generated placements before changing their target surface.');
+  }
   if (targetTileLayerId != null) {
     final target = map.layers
         .where((candidate) => candidate.id == targetTileLayerId)
@@ -65,6 +77,7 @@ MapData _attach(
     (layer) => layer.copyWith(
       content: EnvironmentLayerContent(
         targetTileLayerId: targetTileLayerId,
+        targetsSpatialTerrain: targetsSpatialTerrain,
         areas: layer.content.areas,
       ),
     ),
@@ -93,6 +106,7 @@ MapData _createArea(
         return layer.copyWith(
           content: EnvironmentLayerContent(
             targetTileLayerId: layer.content.targetTileLayerId,
+            targetsSpatialTerrain: layer.content.targetsSpatialTerrain,
             areas: [
               ...layer.content.areas,
               EnvironmentArea(
@@ -130,18 +144,14 @@ MapData _deleteArea(
     );
   }
   final tracked = area.generatedPlacementIds.toSet();
-  final withoutPlacements = map.copyWith(
-    placedElements: [
-      for (final placement in map.placedElements)
-        if (!tracked.contains(placement.id)) placement,
-    ],
-  );
+  final withoutPlacements = _removeTrackedPlacements(map, layer, tracked);
   return _replaceEnvironmentLayer(
     withoutPlacements,
     layerId,
     (current) => current.copyWith(
       content: EnvironmentLayerContent(
         targetTileLayerId: current.content.targetTileLayerId,
+        targetsSpatialTerrain: current.content.targetsSpatialTerrain,
         areas: [
           for (final candidate in current.content.areas)
             if (candidate.id != areaId) candidate,
@@ -172,6 +182,7 @@ MapData _replaceArea(
         return layer.copyWith(
           content: EnvironmentLayerContent(
             targetTileLayerId: layer.content.targetTileLayerId,
+            targetsSpatialTerrain: layer.content.targetsSpatialTerrain,
             areas: [
               for (final area in layer.content.areas)
                 if (area.id == areaId) update(area) else area,
@@ -189,6 +200,7 @@ EnvironmentArea _copyArea(
   EnvironmentGenerationParams? paramsOverride,
   bool clearParamsOverride = false,
   List<String>? generatedPlacementIds,
+  List<String>? manualPlacementIds,
 }) =>
     EnvironmentArea(
       id: area.id,
@@ -200,6 +212,7 @@ EnvironmentArea _copyArea(
           clearParamsOverride ? null : paramsOverride ?? area.paramsOverride,
       generatedPlacementIds:
           generatedPlacementIds ?? area.generatedPlacementIds,
+      manualPlacementIds: manualPlacementIds ?? area.manualPlacementIds,
     );
 
 MapData _replaceEnvironmentLayer(

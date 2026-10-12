@@ -11,6 +11,7 @@ enum EnvironmentPresetDiagnosticSeverity {
 enum EnvironmentPresetDiagnosticKind {
   duplicatePresetId,
   missingPaletteElement,
+  missingPaletteModel,
   unknownTemplateId,
   forcedCollisionWithoutProfile,
 }
@@ -183,18 +184,19 @@ EnvironmentPresetDiagnosticsReport diagnoseProjectEnvironmentPresets(
   final elementsById = <String, ProjectElementEntry>{
     for (final e in manifest.elements) e.id: e,
   };
+  final modelIds = manifest.models3d.map((model) => model.id).toSet();
 
   for (final preset in presets) {
     for (final item in preset.palette) {
-      if (!elementsById.containsKey(item.elementId)) {
+      if (item.isSpatial ? !modelIds.contains(item.modelId) : !elementsById.containsKey(item.elementId)) {
         diagnostics.add(
           EnvironmentPresetDiagnostic(
             severity: EnvironmentPresetDiagnosticSeverity.error,
-            kind: EnvironmentPresetDiagnosticKind.missingPaletteElement,
+            kind: item.isSpatial ? EnvironmentPresetDiagnosticKind.missingPaletteModel : EnvironmentPresetDiagnosticKind.missingPaletteElement,
             presetId: preset.id,
             elementId: item.elementId,
             message:
-                'Environment preset "${preset.id}" references missing element "${item.elementId}".',
+                'Environment preset "${preset.id}" references missing ${item.visualKind.name} "${item.resourceId}".',
           ),
         );
       }

@@ -9,6 +9,33 @@ import 'tileset_actions.dart';
 final class ResourceLibraryActions {
   const ResourceLibraryActions();
 
+  static const maximumClassificationsPerBatch = 100;
+
+  static final _classificationSchema = {
+    'type': 'object',
+    'additionalProperties': false,
+    'required': ['resourceKind', 'resourceId'],
+    'properties': {
+      'resourceKind': {
+        'type': 'string',
+        'enum': ResourceLibraryCatalog.resourceKinds.toList()
+      },
+      'resourceId': {'type': 'string', 'minLength': 1},
+      'familyId': {
+        'type': ['string', 'null'],
+        'minLength': 1
+      },
+      'mapId': {
+        'type': ['string', 'null'],
+        'minLength': 1
+      },
+      'role': {
+        'type': 'string',
+        'enum': ResourceLibraryRole.values.map((role) => role.name).toList()
+      },
+    },
+  };
+
   static final descriptors = [
     for (final operation in ['create', 'update', 'delete'])
       visualLibraryDescriptor(
@@ -34,6 +61,10 @@ final class ResourceLibraryActions {
           }),
     visualLibraryDescriptor('resource.classify',
         'Classify one typed resource and configure its project or map scope',
+        resourceKinds: const ['project', 'resourceLibraryEntry'],
+        inputSchema: _classificationSchema),
+    visualLibraryDescriptor('resource.classify_batch',
+        'Atomically classify up to 100 typed resources and configure their project or map scope',
         resourceKinds: const [
           'project',
           'resourceLibraryEntry'
@@ -41,20 +72,13 @@ final class ResourceLibraryActions {
         inputSchema: {
           'type': 'object',
           'additionalProperties': false,
-          'required': ['resourceKind', 'resourceId'],
+          'required': ['entries'],
           'properties': {
-            'resourceKind': {
-              'type': 'string',
-              'enum': ResourceLibraryCatalog.resourceKinds.toList()
-            },
-            'resourceId': {'type': 'string', 'minLength': 1},
-            'familyId': {
-              'type': ['string', 'null'],
-              'minLength': 1
-            },
-            'mapId': {
-              'type': ['string', 'null'],
-              'minLength': 1
+            'entries': {
+              'type': 'array',
+              'minItems': 1,
+              'maxItems': maximumClassificationsPerBatch,
+              'items': _classificationSchema,
             },
           },
         }),
@@ -69,30 +93,35 @@ final class ResourceLibraryActions {
     final ResourceLibraryCatalog next;
     try {
       if (action == 'resource.classify') {
-        parameters
-            .allow(const {'resourceKind', 'resourceId', 'familyId', 'mapId'});
-        final kind = parameters.string('resourceKind');
-        final id = parameters.string('resourceId');
-        if (!resourceLibraryResourceExists(project, kind, id)) {
-          throw VisualLibraryException('resource_library.resource_unknown',
-              'The typed resource does not exist.');
+        next = _classify(project, catalog, values);
+      } else if (action == 'resource.classify_batch') {
+        parameters.allow(const {'entries'});
+        final entries = values['entries'];
+        if (entries is! List ||
+            entries.isEmpty ||
+            entries.length > maximumClassificationsPerBatch) {
+          throw VisualLibraryException('resource_library.batch_invalid',
+              'A classification batch needs between 1 and 100 entries.');
         }
-        final previous = catalog.entryFor(kind, id);
-        final entry = ResourceLibraryEntry(
-          resourceKind: kind,
-          resourceId: id,
-          familyId: values.containsKey('familyId')
-              ? _nullableIdentifier(values['familyId'])
-              : previous?.familyId,
-          mapId: values.containsKey('mapId')
-              ? _nullableIdentifier(values['mapId'])
-              : previous?.mapId,
-        );
-        next = ResourceLibraryCatalog(families: catalog.families, entries: [
-          for (final existing in catalog.entries)
-            if (existing.identity != entry.identity) existing,
-          if (entry.familyId != null || entry.mapId != null) entry,
-        ]);
+        final identities = <String>{};
+        var current = catalog;
+        for (final value in entries) {
+          if (value is! Map || value.keys.any((key) => key is! String)) {
+            throw VisualLibraryException('resource_library.batch_invalid',
+                'Each classification entry must be an object.');
+          }
+          final entry = Map<String, Object?>.from(value);
+          final fields = VisualLibraryParameters(entry);
+          final identity =
+              '${fields.string('resourceKind')}:${fields.string('resourceId')}';
+          if (!identities.add(identity)) {
+            throw VisualLibraryException('resource_library.batch_duplicate',
+                'Each typed resource can occur only once in a classification batch.',
+                details: {'identity': identity});
+          }
+          current = _classify(project, current, entry);
+        }
+        next = current;
       } else {
         parameters.allow(action == 'resource.family.delete'
             ? const {'familyId'}
@@ -156,6 +185,41 @@ final class ResourceLibraryActions {
           'resource_library.invalid', error.message.toString());
     }
   }
+}
+
+ResourceLibraryCatalog _classify(ProjectManifest project,
+    ResourceLibraryCatalog catalog, Map<String, Object?> values) {
+  final parameters = VisualLibraryParameters(values);
+  parameters
+      .allow(const {'resourceKind', 'resourceId', 'familyId', 'mapId', 'role'});
+  final kind = parameters.string('resourceKind');
+  final id = parameters.string('resourceId');
+  if (!resourceLibraryResourceExists(project, kind, id)) {
+    throw VisualLibraryException('resource_library.resource_unknown',
+        'The typed resource does not exist.');
+  }
+  final previous = catalog.entryFor(kind, id);
+  final entry = ResourceLibraryEntry(
+    resourceKind: kind,
+    resourceId: id,
+    familyId: values.containsKey('familyId')
+        ? _nullableIdentifier(values['familyId'])
+        : previous?.familyId,
+    mapId: values.containsKey('mapId')
+        ? _nullableIdentifier(values['mapId'])
+        : previous?.mapId,
+    role: values.containsKey('role')
+        ? ResourceLibraryRole.values.byName(parameters.string('role'))
+        : previous?.role ?? ResourceLibraryRole.standard,
+  );
+  return ResourceLibraryCatalog(families: catalog.families, entries: [
+    for (final existing in catalog.entries)
+      if (existing.identity != entry.identity) existing,
+    if (entry.familyId != null ||
+        entry.mapId != null ||
+        entry.role != ResourceLibraryRole.standard)
+      entry,
+  ]);
 }
 
 String? _nullableIdentifier(Object? value) {

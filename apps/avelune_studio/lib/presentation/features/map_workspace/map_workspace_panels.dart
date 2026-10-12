@@ -198,6 +198,11 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
                           return;
                         }
                         if (e.border != null || e.environment != null) return;
+                        if (e.terrain != null) {
+                          view.prepareTerrainPainting(e.terrain!);
+                          widget.onChanged();
+                          return;
+                        }
                         view.brush = e.element;
                         view.model3d = e.model3d;
                         view.tile = null;
@@ -232,6 +237,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
       resources,
       activeMapId: map.id,
       forMapPicker: true,
+      showComponents: view.resourceFilters.showComponents,
     );
     void filtersChanged() {
       setState(() {});
@@ -249,8 +255,8 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
               'Décors',
               'Terrains',
               if (map.spatialScene == null) 'Tuiles',
-              if (map.spatialScene == null) 'Bordures',
-              if (map.spatialScene == null) 'Environnements',
+              'Bordures',
+              'Environnements',
               'Personnages',
               'Passages',
             ],

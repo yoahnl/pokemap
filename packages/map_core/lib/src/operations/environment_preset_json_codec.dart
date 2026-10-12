@@ -3,15 +3,14 @@
 // Aucun toJson/fromJson sur les modèles Environment (classes finales hors Freezed).
 
 import '../models/environment.dart';
+import '../models/project_model3d.dart';
 
 Map<String, dynamic> _stringKeyMapFrom(Object mapLike) {
   final map = mapLike as Map<dynamic, dynamic>;
   return Map<String, dynamic>.from(
     map.map(
-      (dynamic key, dynamic value) => MapEntry(
-        key is String ? key : key.toString(),
-        value,
-      ),
+      (dynamic key, dynamic value) =>
+          MapEntry(key is String ? key : key.toString(), value),
     ),
   );
 }
@@ -55,9 +54,7 @@ List<EnvironmentPreset> decodeEnvironmentPresets(Object? json) {
 List<Map<String, dynamic>> encodeEnvironmentPresets(
   List<EnvironmentPreset> presets,
 ) {
-  return [
-    for (final p in presets) encodeEnvironmentPreset(p),
-  ];
+  return [for (final p in presets) encodeEnvironmentPreset(p)];
 }
 
 /// JSON objet unique ; `null` est refusé (utiliser [decodeEnvironmentPresets] pour liste).
@@ -80,7 +77,8 @@ EnvironmentPreset decodeEnvironmentPreset(Object? json) {
     ]) {
       if (!map.containsKey(key)) {
         throw FormatException(
-            'EnvironmentPreset JSON missing required key "$key"');
+          'EnvironmentPreset JSON missing required key "$key"',
+        );
       }
     }
   }
@@ -157,8 +155,9 @@ Map<String, dynamic> encodeEnvironmentPreset(EnvironmentPreset preset) {
     'palette': [
       for (final item in preset.palette) encodeEnvironmentPaletteItem(item),
     ],
-    'defaultParams':
-        encodeEnvironmentGenerationParamsJson(preset.defaultParams),
+    'defaultParams': encodeEnvironmentGenerationParamsJson(
+      preset.defaultParams,
+    ),
     'sortOrder': preset.sortOrder,
   };
   if (preset.categoryId != null) {
@@ -174,14 +173,28 @@ EnvironmentPaletteItem decodeEnvironmentPaletteItem(Object? json) {
     );
   }
   final map = _stringKeyMapFrom(json);
-  if (!map.containsKey('elementId') || !map.containsKey('weight')) {
+  if (map.keys.any(
+        (key) => !const {
+          'elementId',
+          'modelId',
+          'cellOffsetWorld',
+          'weight',
+          'collisionMode',
+          'tags',
+        }.contains(key),
+      ) ||
+      map.containsKey('elementId') == map.containsKey('modelId') ||
+      !map.containsKey('weight')) {
     throw FormatException(
       'EnvironmentPaletteItem JSON missing elementId or weight',
     );
   }
   final elementId = map['elementId'];
+  final modelId = map['modelId'];
   final weightRaw = map['weight'];
-  if (elementId is! String) {
+  if (map.containsKey('elementId')
+      ? elementId is! String
+      : modelId is! String) {
     throw FormatException('EnvironmentPaletteItem.elementId must be a String');
   }
   if (weightRaw is! int) {
@@ -224,8 +237,18 @@ EnvironmentPaletteItem decodeEnvironmentPaletteItem(Object? json) {
   }
 
   try {
+    final rawOffset = map['cellOffsetWorld'];
+    if (rawOffset != null && rawOffset is! Map) {
+      throw const FormatException(
+        'EnvironmentPaletteItem.cellOffsetWorld must be an object or null',
+      );
+    }
     return EnvironmentPaletteItem(
-      elementId: elementId,
+      elementId: elementId as String?,
+      modelId: modelId as String?,
+      cellOffsetWorld: rawOffset == null
+          ? null
+          : Model3dVector3.fromJson(_stringKeyMapFrom(rawOffset)),
       weight: weightRaw,
       collisionMode: collisionMode,
       tags: tags,
@@ -238,7 +261,10 @@ EnvironmentPaletteItem decodeEnvironmentPaletteItem(Object? json) {
 Map<String, dynamic> encodeEnvironmentPaletteItem(EnvironmentPaletteItem item) {
   final tagsList = item.tags.toList()..sort();
   return <String, dynamic>{
-    'elementId': item.elementId,
+    if (item.elementId != null) 'elementId': item.elementId,
+    if (item.modelId != null) 'modelId': item.modelId,
+    if (item.cellOffsetWorld != null)
+      'cellOffsetWorld': item.cellOffsetWorld!.toJson(),
     'weight': item.weight,
     'collisionMode': _collisionModeToJson(item.collisionMode),
     'tags': tagsList,
@@ -255,7 +281,8 @@ EnvironmentCollisionMode _decodeCollisionMode(String value) {
       return EnvironmentCollisionMode.forceDisabled;
     default:
       throw FormatException(
-          'Unknown EnvironmentPaletteItem.collisionMode: $value');
+        'Unknown EnvironmentPaletteItem.collisionMode: $value',
+      );
   }
 }
 
@@ -273,7 +300,8 @@ String _collisionModeToJson(EnvironmentCollisionMode mode) {
 /// Même contrat strict que le codec Environment Layer (Ent. 4-review) :
 /// densités : `int` ou `double` JSON ; `minSpacingCells` : littéral `int` uniquement.
 EnvironmentGenerationParams decodeEnvironmentGenerationParamsJson(
-    Object? json) {
+  Object? json,
+) {
   if (json == null || json is! Map) {
     throw FormatException(
       'EnvironmentGenerationParams JSON must be a Map, got ${json.runtimeType}',

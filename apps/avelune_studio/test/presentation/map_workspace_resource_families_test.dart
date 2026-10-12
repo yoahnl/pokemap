@@ -292,6 +292,17 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final project = _project().copyWith(
           settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+          environmentPresets: [
+            ..._project().environmentPresets,
+            EnvironmentPreset(
+              id: 'spatial-grove',
+              name: 'Bosquet spatial',
+              templateId: 'manual',
+              sortOrder: 0,
+              palette: [EnvironmentPaletteItem(modelId: 'door', weight: 1)],
+              defaultParams: EnvironmentGenerationParams.standard(),
+            ),
+          ],
         );
         final view = MapWorkspaceViewState()..paletteTab = 'Terrains';
         final search = TextEditingController();
@@ -322,9 +333,28 @@ void main() {
           await tester.tap(find.byTooltip('Changer la palette'));
           await tester.pumpAndSettle();
         }
-        expect(find.text('Bordures'), findsNothing);
-        expect(find.text('Environnements'), findsNothing);
+        expect(find.text('Bordures'), findsOneWidget);
+        expect(find.text('Environnements'), findsOneWidget);
         expect(find.text('Tuiles'), findsNothing);
+        if (dock) {
+          await tester.tap(find.text('Environnements'));
+          await tester.pumpAndSettle();
+        } else {
+          view.paletteTab = 'Environnements';
+          await tester.pumpWidget(
+            _palette(dock, project, document, view, search),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(
+          find.byKey(const ValueKey('environment-spatial-grove')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('environment-garden')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('environment-garden-other')),
+          findsNothing,
+        );
         expect(tester.takeException(), isNull);
       },
     );

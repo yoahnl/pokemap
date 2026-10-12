@@ -15,6 +15,10 @@ EnvironmentLayerContent decodeEnvironmentLayerContent(Object? json) {
     );
   }
   final map = Map<String, dynamic>.from(json);
+  final rawSpatial = map['targetsSpatialTerrain'];
+  if (rawSpatial != null && rawSpatial is! bool) {
+    throw const FormatException('targetsSpatialTerrain must be a boolean.');
+  }
 
   final rawTarget = map['targetTileLayerId'];
   final String? targetTileLayerId;
@@ -55,6 +59,7 @@ EnvironmentLayerContent decodeEnvironmentLayerContent(Object? json) {
   try {
     return EnvironmentLayerContent(
       targetTileLayerId: targetTileLayerId,
+      targetsSpatialTerrain: rawSpatial == true,
       areas: areas,
     );
   } on ArgumentError catch (e) {
@@ -69,6 +74,7 @@ Map<String, dynamic> encodeEnvironmentLayerContent(
   return <String, dynamic>{
     if (content.targetTileLayerId != null)
       'targetTileLayerId': content.targetTileLayerId,
+    if (content.targetsSpatialTerrain) 'targetsSpatialTerrain': true,
     'areas': content.areas.map(encodeEnvironmentArea).toList(growable: false),
   };
 }
@@ -105,6 +111,7 @@ EnvironmentArea decodeEnvironmentArea(Map<String, dynamic> json) {
       seed: seed,
       paramsOverride: paramsOverride,
       generatedPlacementIds: generatedPlacementIds,
+      manualPlacementIds: _decodeGeneratedPlacementIdsField(json['manualPlacementIds']),
     );
   } on ArgumentError catch (e) {
     throw FormatException('Invalid EnvironmentArea: ${e.message}');
@@ -156,6 +163,7 @@ Map<String, dynamic> encodeEnvironmentArea(EnvironmentArea area) {
     if (area.paramsOverride != null)
       'paramsOverride': encodeEnvironmentGenerationParams(area.paramsOverride!),
     'generatedPlacementIds': area.generatedPlacementIds.toList(growable: false),
+    if (area.manualPlacementIds.isNotEmpty) 'manualPlacementIds': area.manualPlacementIds,
   };
 }
 

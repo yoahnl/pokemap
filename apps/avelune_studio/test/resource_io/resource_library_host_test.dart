@@ -4,11 +4,75 @@ import 'package:avelune_studio/presentation/features/resources/resource_library_
 import 'package:avelune_studio/presentation/features/resources/resource_management_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/uwu_resource_host.dart';
 
 void main() {
+  testWidgets(
+    'component classification persists and library hides it until requested',
+    (tester) async {
+      final host = await UwUResourceHost.open(tester);
+      final item = resourceCatalog(host.navigation.workspace.project!)
+          .singleWhere(
+            (item) => item.canonicalKind == 'element' && item.id == 'arbre',
+          );
+      final mapsBefore = {
+        for (final entry in host.fixture.controller.documents.entries)
+          entry.key: entry.value.current,
+      };
+      final pending = classifyResource(
+        tester.element(find.byType(Scaffold).first),
+        host.navigation,
+        item,
+      );
+      await pumpIo(tester);
+      await host.choose('resource-classify-role', 'Composant réutilisable');
+      await host.tap('resource-management-save');
+      await pending;
+      final reopened = await host.reopen();
+      expect(
+        reopened.resourceLibraryCatalog.entryFor('element', 'arbre')?.role,
+        ResourceLibraryRole.component,
+      );
+      expect(
+        find.byKey(const ValueKey('resource-card-element:arbre')),
+        findsNothing,
+      );
+      await host.tap('resource-filter-button');
+      await host.tap('resource-filter-components');
+      await host.tap('resource-filter-apply');
+      expect(
+        find.byKey(const ValueKey('resource-filter-tag-components')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('resource-card-element:arbre')),
+        findsOneWidget,
+      );
+      final second = classifyResource(
+        tester.element(find.byType(Scaffold).first),
+        host.navigation,
+        item,
+      );
+      await pumpIo(tester);
+      await host.choose('resource-classify-role', 'Ressource standard');
+      await host.tap('resource-management-save');
+      await second;
+      expect(
+        (await host.reopen()).resourceLibraryCatalog.entryFor(
+          'element',
+          'arbre',
+        ),
+        isNull,
+      );
+      for (final entry in host.fixture.controller.documents.entries) {
+        expect(entry.value.current, mapsBefore[entry.key]);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets('an open classification form cannot overwrite a newer change', (
     tester,
   ) async {

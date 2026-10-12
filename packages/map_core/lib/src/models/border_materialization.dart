@@ -36,12 +36,7 @@ final class BorderSpriteTransform {
 }
 
 /// Fixed V1 draw bands for resolved Border placements.
-enum BorderDrawBand {
-  outerAccent,
-  structure,
-  innerFinish,
-  accent,
-}
+enum BorderDrawBand { outerAccent, structure, innerFinish, accent }
 
 /// Explicit persisted V1 ordering. This deliberately does not use enum index.
 const List<BorderDrawBand> borderDrawBandV1Order = <BorderDrawBand>[
@@ -53,11 +48,11 @@ const List<BorderDrawBand> borderDrawBandV1Order = <BorderDrawBand>[
 
 /// Returns the stable persisted V1 index for [band].
 int borderDrawBandV1Index(BorderDrawBand band) => switch (band) {
-      BorderDrawBand.outerAccent => 0,
-      BorderDrawBand.structure => 1,
-      BorderDrawBand.innerFinish => 2,
-      BorderDrawBand.accent => 3,
-    };
+  BorderDrawBand.outerAccent => 0,
+  BorderDrawBand.structure => 1,
+  BorderDrawBand.innerFinish => 2,
+  BorderDrawBand.accent => 3,
+};
 
 extension BorderDrawBandStableV1Index on BorderDrawBand {
   /// Stable persisted V1 index independent of enum declaration mechanics.
@@ -75,14 +70,8 @@ final class BorderStableOrderKey implements Comparable<BorderStableOrderKey> {
     required this.ordinalLocal,
     required this.slotKey,
   }) {
-    _requireNonNegative(
-      drawBandIndex,
-      'BorderStableOrderKey.drawBandIndex',
-    );
-    _requireNonNegative(
-      anchorRowMajor,
-      'BorderStableOrderKey.anchorRowMajor',
-    );
+    _requireNonNegative(drawBandIndex, 'BorderStableOrderKey.drawBandIndex');
+    _requireNonNegative(anchorRowMajor, 'BorderStableOrderKey.anchorRowMajor');
     _requireNonNegative(passIndex, 'BorderStableOrderKey.passIndex');
     _requireNonNegative(rank, 'BorderStableOrderKey.rank');
     _requireNonNegative(ordinalLocal, 'BorderStableOrderKey.ordinalLocal');
@@ -134,13 +123,13 @@ final class BorderStableOrderKey implements Comparable<BorderStableOrderKey> {
 
   @override
   int get hashCode => Object.hash(
-        drawBandIndex,
-        anchorRowMajor,
-        passIndex,
-        rank,
-        ordinalLocal,
-        slotKey,
-      );
+    drawBandIndex,
+    anchorRowMajor,
+    passIndex,
+    rank,
+    ordinalLocal,
+    slotKey,
+  );
 }
 
 /// One final immutable visual placement consumed by editor and runtime.
@@ -196,17 +185,17 @@ final class BorderResolvedPlacement {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        slotKey,
-        primitiveId,
-        visualSnapshotId,
-        anchorCell,
-        topLeftWorldPx,
-        opaqueWorldBoundsPx,
-        transform,
-        drawBand,
-        stableOrderKey,
-      );
+    id,
+    slotKey,
+    primitiveId,
+    visualSnapshotId,
+    anchorCell,
+    topLeftWorldPx,
+    opaqueWorldBoundsPx,
+    transform,
+    drawBand,
+    stableOrderKey,
+  );
 }
 
 /// One final ground cell consumed from persisted Border materialization.
@@ -255,21 +244,12 @@ final class BorderInputFingerprints {
     required this.visualSnapshots,
   }) {
     _requireSha256(blueprint, 'BorderInputFingerprints.blueprint');
-    _requireSha256(
-      geometryAndSeed,
-      'BorderInputFingerprints.geometryAndSeed',
-    );
+    _requireSha256(geometryAndSeed, 'BorderInputFingerprints.geometryAndSeed');
     _requireSha256(parameters, 'BorderInputFingerprints.parameters');
     _requireSha256(overrides, 'BorderInputFingerprints.overrides');
-    _requireSha256(
-      keepOutRegions,
-      'BorderInputFingerprints.keepOutRegions',
-    );
+    _requireSha256(keepOutRegions, 'BorderInputFingerprints.keepOutRegions');
     _requireSha256(mapContext, 'BorderInputFingerprints.mapContext');
-    _requireSha256(
-      visualSnapshots,
-      'BorderInputFingerprints.visualSnapshots',
-    );
+    _requireSha256(visualSnapshots, 'BorderInputFingerprints.visualSnapshots');
   }
 
   final String blueprint;
@@ -294,14 +274,14 @@ final class BorderInputFingerprints {
 
   @override
   int get hashCode => Object.hash(
-        blueprint,
-        geometryAndSeed,
-        parameters,
-        overrides,
-        keepOutRegions,
-        mapContext,
-        visualSnapshots,
-      );
+    blueprint,
+    geometryAndSeed,
+    parameters,
+    overrides,
+    keepOutRegions,
+    mapContext,
+    visualSnapshots,
+  );
 }
 
 /// Persisted evidence that identifies a resolver run and its exact output.
@@ -352,24 +332,69 @@ final class BorderResolutionReceipt {
 
   @override
   int get hashCode => Object.hash(
-        resolverVersion,
-        blueprintRevision,
-        components,
-        inputFingerprint,
-        outputFingerprint,
-      );
+    resolverVersion,
+    blueprintRevision,
+    components,
+    inputFingerprint,
+    outputFingerprint,
+  );
 }
 
 /// Final persisted outputs. List order is the runtime drawing contract.
+@immutable
+final class BorderSpatialPlacement {
+  BorderSpatialPlacement({
+    required this.slotKey,
+    required this.primitiveId,
+    required this.instanceId,
+  }) {
+    _requireStableId(slotKey, 'BorderSpatialPlacement.slotKey');
+    _requireStableId(primitiveId, 'BorderSpatialPlacement.primitiveId');
+    _requireStableId(instanceId, 'BorderSpatialPlacement.instanceId');
+  }
+  final String slotKey;
+  final String primitiveId;
+  final String instanceId;
+  @override
+  bool operator ==(Object other) =>
+      other is BorderSpatialPlacement &&
+      slotKey == other.slotKey &&
+      primitiveId == other.primitiveId &&
+      instanceId == other.instanceId;
+  @override
+  int get hashCode => Object.hash(slotKey, primitiveId, instanceId);
+}
+
 @immutable
 final class BorderMaterialization {
   BorderMaterialization({
     required this.receipt,
     required List<BorderResolvedGroundCell> ground,
     required List<BorderResolvedPlacement> placements,
-  })  : _ground = List<BorderResolvedGroundCell>.unmodifiable(ground),
-        _placements = List<BorderResolvedPlacement>.unmodifiable(placements) {
-    if (_ground.isEmpty && _placements.isEmpty) {
+    this.targetsSpatialScene = false,
+    List<BorderSpatialPlacement> spatialPlacements = const [],
+  }) : _ground = List<BorderResolvedGroundCell>.unmodifiable(ground),
+       _placements = List<BorderResolvedPlacement>.unmodifiable(placements),
+       spatialPlacements = List<BorderSpatialPlacement>.unmodifiable(
+         spatialPlacements,
+       ) {
+    if (targetsSpatialScene && (_ground.isNotEmpty || _placements.isNotEmpty) ||
+        !targetsSpatialScene && spatialPlacements.isNotEmpty) {
+      throw const ValidationException(
+        'Border materialization cannot mix spatial and sprite outputs',
+      );
+    }
+    final ids = <String>{};
+    final slots = <String>{};
+    if (spatialPlacements.any(
+      (placement) =>
+          !ids.add(placement.instanceId) || !slots.add(placement.slotKey),
+    )) {
+      throw const ValidationException(
+        'Spatial Border placements require unique instance IDs and slot keys',
+      );
+    }
+    if (!targetsSpatialScene && _ground.isEmpty && _placements.isEmpty) {
       throw const ValidationException(
         'BorderMaterialization must contain ground or placements',
       );
@@ -381,6 +406,8 @@ final class BorderMaterialization {
   final BorderResolutionReceipt receipt;
   final List<BorderResolvedGroundCell> _ground;
   final List<BorderResolvedPlacement> _placements;
+  final bool targetsSpatialScene;
+  final List<BorderSpatialPlacement> spatialPlacements;
 
   List<BorderResolvedGroundCell> get ground => _ground;
 
@@ -391,15 +418,19 @@ final class BorderMaterialization {
       identical(this, other) ||
       other is BorderMaterialization &&
           receipt == other.receipt &&
+          targetsSpatialScene == other.targetsSpatialScene &&
+          _listsEqual(spatialPlacements, other.spatialPlacements) &&
           _listsEqual(_ground, other._ground) &&
           _listsEqual(_placements, other._placements);
 
   @override
   int get hashCode => Object.hash(
-        receipt,
-        Object.hashAll(_ground),
-        Object.hashAll(_placements),
-      );
+    receipt,
+    targetsSpatialScene,
+    Object.hashAll(spatialPlacements),
+    Object.hashAll(_ground),
+    Object.hashAll(_placements),
+  );
 }
 
 /// Caller-supplied file and metadata integrity for one immutable snapshot.
@@ -411,10 +442,7 @@ final class BorderVisualSnapshotIntegrity {
     required this.filesPresent,
     required this.contentFingerprintMatches,
   }) {
-    _requireSnapshotId(
-      snapshotId,
-      'BorderVisualSnapshotIntegrity.snapshotId',
-    );
+    _requireSnapshotId(snapshotId, 'BorderVisualSnapshotIntegrity.snapshotId');
   }
 
   final String snapshotId;
@@ -436,19 +464,14 @@ final class BorderVisualSnapshotIntegrity {
 
   @override
   int get hashCode => Object.hash(
-        snapshotId,
-        metadataValid,
-        filesPresent,
-        contentFingerprintMatches,
-      );
+    snapshotId,
+    metadataValid,
+    filesPresent,
+    contentFingerprintMatches,
+  );
 }
 
-enum BorderMaterializationState {
-  fresh,
-  stale,
-  unmaterialized,
-  invalid,
-}
+enum BorderMaterializationState { fresh, stale, unmaterialized, invalid }
 
 enum BorderStalenessReason {
   blueprintNewer,
@@ -496,11 +519,11 @@ final class BorderMaterializationFreshness {
 
   @override
   int get hashCode => Object.hash(
-        state,
-        Object.hashAllUnordered(_reasons),
-        isRenderable,
-        canRegenerate,
-      );
+    state,
+    Object.hashAllUnordered(_reasons),
+    isRenderable,
+    canRegenerate,
+  );
 }
 
 void _validateGround(List<BorderResolvedGroundCell> ground) {
@@ -577,7 +600,7 @@ void _validatePlacementInternals(BorderResolvedPlacement placement) {
 void _validateFreshness(BorderMaterializationFreshness freshness) {
   final shouldBeRenderable =
       freshness.state == BorderMaterializationState.fresh ||
-          freshness.state == BorderMaterializationState.stale;
+      freshness.state == BorderMaterializationState.stale;
   if (freshness.isRenderable != shouldBeRenderable) {
     throw const ValidationException(
       'BorderMaterializationFreshness.isRenderable contradicts state',

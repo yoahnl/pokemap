@@ -58,7 +58,7 @@ const _referenceFields = {
     'speakerCharacterId',
     'defaultPlayerCharacterId'
   },
-  'model3d': {'modelId'},
+  'model3d': {'modelId', 'sourceModelId'},
   'dialogue': {'dialogueId'},
   'script': {'scriptId'},
   'scene': {'sceneId'},

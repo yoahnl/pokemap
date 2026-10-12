@@ -8,7 +8,7 @@ void main() {
           ProjectBorderCatalog.formatVersionV1);
       expect(
         ProjectBorderCatalog.latestSupportedFormatVersion,
-        ProjectBorderCatalog.formatVersionV4,
+        ProjectBorderCatalog.formatVersionV5,
       );
       expect(
         ProjectBorderCatalog.currentFormatVersion,
@@ -69,13 +69,14 @@ void main() {
         ProjectBorderCatalog.formatVersionV2,
         ProjectBorderCatalog.formatVersionV3,
         ProjectBorderCatalog.formatVersionV4,
+        ProjectBorderCatalog.formatVersionV5,
       ]) {
         expect(
           ProjectBorderCatalog(formatVersion: version).formatVersion,
           version,
         );
       }
-      for (final version in <int>[0, 5]) {
+      for (final version in <int>[0, 6]) {
         expect(
           () => ProjectBorderCatalog(formatVersion: version),
           throwsA(isA<ValidationException>()),

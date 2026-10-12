@@ -19,6 +19,321 @@ import 'package:path/path.dart' as p;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('spatial Border runtime readiness', () {
+    test('accepts passive native placements without sprite metadata', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      final original = fixture.bundle;
+      final prepared = await prepareBorderRuntimeBundle(original);
+      expect(prepared.map, original.map);
+      expect(prepared.manifest, original.manifest);
+      expect(
+        prepared.borderRuntimePreparation!.assetCollection.snapshots,
+        isEmpty,
+      );
+      expect(prepared.borderRuntimePreparation!.snapshotIntegrity, isEmpty);
+      expect(
+        prepared.borderRuntimePreparation!.featureFreshness.single.state,
+        BorderMaterializationState.fresh,
+      );
+      expect(
+        prepared.borderRuntimePreparation!.featureFreshness.single.isRenderable,
+        isTrue,
+      );
+      final path = await fixture.writeProject();
+      final loaded = await loadRuntimeMapBundle(
+        projectFilePath: path,
+        mapId: 'map',
+      );
+      expect(loaded.map, original.map);
+      expect(
+        loaded.borderRuntimePreparation!.featureFreshness.single.state,
+        BorderMaterializationState.fresh,
+      );
+    });
+
+    for (final part in ['input', 'output', 'resolver']) {
+      test('rejects a native $part receipt alteration', () async {
+        final fixture = await _SpatialFixture.create();
+        addTearDown(fixture.dispose);
+        final original = fixture.feature.materialization!;
+        final oldReceipt = original.receipt;
+        final version =
+            oldReceipt.resolverVersion + (part == 'resolver' ? 1 : 0);
+        final receipt = BorderResolutionReceipt(
+          resolverVersion: version,
+          blueprintRevision: oldReceipt.blueprintRevision,
+          components: oldReceipt.components,
+          inputFingerprint: part == 'input'
+              ? 'sha256:${'a' * 64}'
+              : computeBorderAggregateInputFingerprint(
+                  resolverVersion: version,
+                  blueprintRevision: oldReceipt.blueprintRevision,
+                  components: oldReceipt.components,
+                ),
+          outputFingerprint: part == 'output'
+              ? 'sha256:${'b' * 64}'
+              : oldReceipt.outputFingerprint,
+        );
+        await expectLater(
+          prepareBorderRuntimeBundle(
+            fixture.withMaterialization(
+              BorderMaterialization(
+                receipt: receipt,
+                ground: const [],
+                placements: const [],
+                targetsSpatialScene: true,
+                spatialPlacements: original.spatialPlacements,
+              ),
+            ),
+          ),
+          throwsA(
+            isA<BorderRuntimeReadinessException>().having(
+              (error) => error.state,
+              'state',
+              BorderMaterializationState.invalid,
+            ),
+          ),
+        );
+      });
+    }
+
+    for (final missing in [true, false]) {
+      test(
+        'rejects a ${missing ? 'missing' : 'moved'} owned native instance',
+        () async {
+          final fixture = await _SpatialFixture.create();
+          addTearDown(fixture.dispose);
+          final scene = fixture.bundle.map.spatialScene!;
+          final altered = fixture.bundle.map.copyWith(
+            spatialScene: scene.copyWith(
+              instances: missing
+                  ? scene.instances.skip(1).toList()
+                  : [
+                      scene.instances.first.copyWith(
+                        position: Model3dVector3(x: 1.125, y: 1, z: 1),
+                      ),
+                      ...scene.instances.skip(1),
+                    ],
+            ),
+          );
+          await expectLater(
+            prepareBorderRuntimeBundle(fixture.bundle.copyWith(map: altered)),
+            throwsA(
+              isA<BorderRuntimeReadinessException>().having(
+                (error) => error.state,
+                'state',
+                BorderMaterializationState.invalid,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    test('rejects an unavailable native model', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      await expectLater(
+        prepareBorderRuntimeBundle(
+          fixture.bundle.copyWith(
+            manifest: fixture.bundle.manifest.copyWith(models3d: const []),
+          ),
+        ),
+        throwsA(
+          isA<BorderRuntimeReadinessException>().having(
+            (error) => error.state,
+            'state',
+            BorderMaterializationState.invalid,
+          ),
+        ),
+      );
+    });
+
+    test('rejects an unavailable native blueprint', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      await expectLater(
+        prepareBorderRuntimeBundle(
+          fixture.bundle.copyWith(
+            manifest: fixture.bundle.manifest.copyWith(
+              borderCatalog: ProjectBorderCatalog(),
+            ),
+          ),
+        ),
+        throwsA(
+          isA<BorderRuntimeReadinessException>().having(
+            (error) => error.reasons,
+            'reasons',
+            contains(BorderStalenessReason.blueprintMissing),
+          ),
+        ),
+      );
+    });
+
+    test('rejects a native slot with a foreign primitive', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      final original = fixture.feature.materialization!;
+      final first = original.spatialPlacements.first;
+      await expectLater(
+        prepareBorderRuntimeBundle(
+          fixture.withMaterialization(
+            BorderMaterialization(
+              receipt: original.receipt,
+              ground: const [],
+              placements: const [],
+              targetsSpatialScene: true,
+              spatialPlacements: [
+                BorderSpatialPlacement(
+                  slotKey: first.slotKey,
+                  primitiveId: 'unknown',
+                  instanceId: first.instanceId,
+                ),
+                ...original.spatialPlacements.skip(1),
+              ],
+            ),
+          ),
+        ),
+        throwsA(
+          isA<BorderRuntimeReadinessException>().having(
+            (error) => error.state,
+            'state',
+            BorderMaterializationState.invalid,
+          ),
+        ),
+      );
+    });
+
+    test('rejects duplicate native ownership across features', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      final own = fixture.feature;
+      final duplicate = BorderFeature(
+        id: 'duplicate',
+        name: 'Duplicate',
+        blueprintId: own.blueprintId,
+        seed: own.seed,
+        geometry: own.geometry,
+        overrides: const [],
+        keepOutRegions: const [],
+        materialization: own.materialization,
+      );
+      final map = upsertBorderFeature(
+        fixture.bundle.map,
+        layerId: 'border',
+        feature: duplicate,
+      );
+      await expectLater(
+        prepareBorderRuntimeBundle(fixture.bundle.copyWith(map: map)),
+        throwsA(
+          isA<BorderRuntimeReadinessException>().having(
+            (error) => error.state,
+            'state',
+            BorderMaterializationState.invalid,
+          ),
+        ),
+      );
+    });
+
+    test('rejects hidden unmaterialized native features', () async {
+      final fixture = await _SpatialFixture.create();
+      addTearDown(fixture.dispose);
+      await expectLater(
+        prepareBorderRuntimeBundle(
+          fixture.withMaterialization(null, isVisible: false),
+        ),
+        throwsA(
+          isA<BorderRuntimeReadinessException>().having(
+            (error) => error.state,
+            'state',
+            BorderMaterializationState.unmaterialized,
+          ),
+        ),
+      );
+    });
+
+    test(
+      'retains native output and reports a changed terrain context as stale',
+      () async {
+        final fixture = await _SpatialFixture.create();
+        addTearDown(fixture.dispose);
+        final scene = fixture.bundle.map.spatialScene!;
+        final changed = fixture.bundle.map.copyWith(
+          spatialScene: scene.copyWith(
+            heightLevels: List<int>.of(scene.heightLevels)..[0] = 2,
+          ),
+        );
+        final prepared = await prepareBorderRuntimeBundle(
+          fixture.bundle.copyWith(map: changed),
+        );
+        expect(prepared.map, changed);
+        final freshness =
+            prepared.borderRuntimePreparation!.featureFreshness.single;
+        expect(freshness.state, BorderMaterializationState.stale);
+        expect(freshness.isRenderable, isTrue);
+        expect(
+          freshness.reasons,
+          contains(BorderStalenessReason.mapContextChanged),
+        );
+      },
+    );
+
+    test(
+      'retains native output and detects changed model configuration',
+      () async {
+        final fixture = await _SpatialFixture.create();
+        addTearDown(fixture.dispose);
+        final changed = fixture.bundle.copyWith(
+          manifest: fixture.bundle.manifest.copyWith(
+            models3d: [
+              fixture.bundle.manifest.models3d.single.copyWith(scale: 2),
+            ],
+          ),
+        );
+        final prepared = await prepareBorderRuntimeBundle(changed);
+        expect(prepared.map, changed.map);
+        final freshness =
+            prepared.borderRuntimePreparation!.featureFreshness.single;
+        expect(freshness.state, BorderMaterializationState.stale);
+        expect(freshness.isRenderable, isTrue);
+        expect(
+          freshness.reasons,
+          contains(BorderStalenessReason.visualSnapshotMissingOrCorrupt),
+        );
+      },
+    );
+
+    test(
+      'ignores unrelated native instances when verifying the persisted output',
+      () async {
+        final fixture = await _SpatialFixture.create();
+        addTearDown(fixture.dispose);
+        final scene = fixture.bundle.map.spatialScene!;
+        final changed = fixture.bundle.map.copyWith(
+          spatialScene: scene.copyWith(
+            instances: [
+              ...scene.instances,
+              SpatialModelInstance(
+                id: 'foreign',
+                modelId: 'unit',
+                position: Model3dVector3(x: 4, y: 1, z: 4),
+              ),
+            ],
+          ),
+        );
+        final prepared = await prepareBorderRuntimeBundle(
+          fixture.bundle.copyWith(map: changed),
+        );
+        expect(prepared.map, changed);
+        expect(
+          prepared.borderRuntimePreparation!.featureFreshness.single.state,
+          BorderMaterializationState.fresh,
+        );
+      },
+    );
+  });
+
   group('prepareBorderRuntimeBundle', () {
     test('accepts fresh materialization and ignores an unused corrupt snapshot',
         () async {
@@ -424,6 +739,223 @@ void main() {
       );
     });
   });
+}
+
+final class _SpatialFixture {
+  _SpatialFixture(this.root, this.bundle);
+
+  final Directory root;
+  final RuntimeMapBundle bundle;
+
+  BorderFeature get feature =>
+      (bundle.map.layers.single as BorderLayer).content.features.single;
+
+  RuntimeMapBundle withMaterialization(
+    BorderMaterialization? materialization, {
+    bool isVisible = true,
+  }) {
+    final own = feature;
+    return bundle.copyWith(
+      map: bundle.map.copyWith(
+        layers: [
+          MapLayer.border(
+            id: 'border',
+            name: 'Border',
+            isVisible: isVisible,
+            content: BorderLayerContent(
+              formatVersion: 4,
+              features: [
+                BorderFeature(
+                  id: own.id,
+                  name: own.name,
+                  blueprintId: own.blueprintId,
+                  seed: own.seed,
+                  geometry: own.geometry,
+                  lineSide: own.lineSide,
+                  spatialOffsetWorld: own.spatialOffsetWorld,
+                  paramsOverride: own.paramsOverride,
+                  overrides: own.overrides,
+                  keepOutRegions: own.keepOutRegions,
+                  materialization: materialization,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Future<_SpatialFixture> create() async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap_spatial_border_readiness_',
+    );
+    final defaults = BorderGenerationParams(
+      irregularityPermille: 0,
+      detailDensityPermille: 0,
+      variationPermille: 0,
+      maxOverlapPx: 0,
+      gapTolerancePx: 0,
+      depthRows: 1,
+    );
+    final transforms = BorderTransformPolicy(
+      allowFlipX: false,
+      allowedQuarterTurns: const [0, 1, 2, 3],
+    );
+    const roles = [
+      BorderPrimitiveRole.lineCap,
+      BorderPrimitiveRole.lineStraight,
+      BorderPrimitiveRole.lineCorner,
+    ];
+    final draft = BorderBlueprintDraftDefinition(
+      name: 'Native fence',
+      previewSeed: BorderSignedInt64.zero,
+      template: BorderBlueprintTemplate.connectedLine,
+      primitives: [
+        for (final role in roles)
+          BorderPrimitiveDraft(
+            id: role.name,
+            sourceModelId: 'unit',
+            role: role,
+            weight: 1,
+            transforms: transforms,
+          ),
+      ],
+      defaults: defaults,
+      sortOrder: 0,
+    );
+    final revision = BorderBlueprintRevision(
+      revision: 1,
+      definition: BorderBlueprintPublishedDefinition(
+        name: draft.name,
+        previewSeed: draft.previewSeed,
+        template: draft.template,
+        primitives: [
+          for (final role in roles)
+            BorderPublishedPrimitive(
+              id: role.name,
+              sourceModelId: 'unit',
+              role: role,
+              weight: 1,
+              transforms: transforms,
+            ),
+        ],
+        defaults: defaults,
+        sortOrder: 0,
+      ),
+    );
+    final manifest = ProjectManifest(
+      name: 'Native Border readiness',
+      version: ProjectVersion.v9,
+      maps: const [
+        ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+      ],
+      tilesets: const [],
+      settings: ProjectSettings(
+        dimension: ProjectDimension.threeD,
+        spatialCamera: SpatialCameraProfile(),
+      ),
+      models3d: [
+        ProjectModel3dEntry(
+          id: 'unit',
+          name: 'Fence unit',
+          sourceAssetId: 'unit-source',
+          relativePath: 'assets/models3d/unit.glb',
+          inspection: Model3dInspection(
+            bounds: Model3dBounds(
+              min: Model3dVector3.zero,
+              max: Model3dVector3(x: 1, y: 1, z: 1),
+            ),
+            meshCount: 1,
+            triangleCount: 1,
+          ),
+        ),
+      ],
+      borderCatalog: ProjectBorderCatalog(
+        formatVersion: 5,
+        records: [
+          BorderBlueprintRecord(
+            id: 'fence',
+            draft: BorderBlueprintDraft(baseRevision: 1, definition: draft),
+            latestPublished: revision,
+          ),
+        ],
+      ),
+    );
+    final feature = BorderFeature(
+      id: 'fence',
+      name: 'Fence',
+      blueprintId: 'fence',
+      seed: BorderSignedInt64.zero,
+      geometry: BorderStrokeGeometry(
+        strokes: [
+          BorderStroke(
+            id: 'line',
+            points: const [
+              GridPos(x: 1, y: 1),
+              GridPos(x: 2, y: 1),
+              GridPos(x: 3, y: 1),
+              GridPos(x: 3, y: 2),
+              GridPos(x: 3, y: 3),
+            ],
+            closed: false,
+          ),
+        ],
+      ),
+      overrides: const [],
+      keepOutRegions: const [],
+    );
+    final source = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 6, height: 6),
+      spatialScene: MapSpatialScene(
+        width: 6,
+        depth: 6,
+        heightLevels: List.filled(36, 1),
+      ),
+      layers: [
+        MapLayer.border(
+          id: 'border',
+          name: 'Border',
+          content: BorderLayerContent(formatVersion: 4, features: [feature]),
+        ),
+      ],
+    );
+    final resolved = resolveSpatialBorderFeature(
+      manifest: manifest,
+      map: source,
+      layerId: 'border',
+      featureId: 'fence',
+    );
+    expect(resolved.result.canApply, isTrue);
+    final map = applySpatialBorderFeaturePreview(
+      source,
+      manifest: manifest,
+      proposedResult: resolved,
+    );
+    return _SpatialFixture(
+      root,
+      RuntimeMapBundle(
+        manifest: manifest,
+        map: map,
+        projectRootDirectory: root.path,
+        tilesetAbsolutePathsById: const {},
+      ),
+    );
+  }
+
+  Future<String> writeProject() async {
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final mapFile = File(p.join(root.path, 'maps/map.json'));
+    await mapFile.parent.create(recursive: true);
+    await projectFile.writeAsString(jsonEncode(bundle.manifest.toJson()));
+    await mapFile.writeAsString(jsonEncode(bundle.map.toJson()));
+    return projectFile.path;
+  }
+
+  Future<void> dispose() => root.delete(recursive: true);
 }
 
 Future<ui.Image> _render(

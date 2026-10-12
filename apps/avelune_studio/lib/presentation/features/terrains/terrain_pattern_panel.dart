@@ -8,6 +8,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'terrain_pattern_guide.dart';
 import 'terrain_scratch_view.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 
 class TerrainPatternPanel extends StatelessWidget {
   const TerrainPatternPanel({
@@ -20,6 +21,7 @@ class TerrainPatternPanel extends StatelessWidget {
     required this.missingOnly,
     required this.onMissingOnly,
     this.selectedSource,
+    this.partBuilder,
   });
 
   final TerrainDraftController model;
@@ -30,6 +32,7 @@ class TerrainPatternPanel extends StatelessWidget {
   final bool missingOnly;
   final ValueChanged<bool> onMissingOnly;
   final TilesetSourceRect? selectedSource;
+  final Widget Function(SmartTileVisualPart part, double size)? partBuilder;
 
   static const mainPattern = <int>[6, 14, 12, 7, 15, 13, 3, 11, 9];
   static const outerCorners = <int>[16, 17, 18, 19];
@@ -44,11 +47,13 @@ class TerrainPatternPanel extends StatelessWidget {
 
   Widget _slot(BuildContext context, int rule) {
     final frame = model.frameFor(rule);
+    final part = model.partFor(rule);
     final selected = model.selectedRule == rule;
     final color = Theme.of(context).colorScheme;
-    final label = terrainConnectionNames[rule]
-        .replaceFirst('Extrémité vers le ', 'Vers le ')
-        .replaceFirst('Extrémité vers la ', 'Vers la ');
+    final label =
+        (model.uniform ? 'Pièce unitaire' : terrainConnectionNames[rule])
+            .replaceFirst('Extrémité vers le ', 'Vers le ')
+            .replaceFirst('Extrémité vers la ', 'Vers la ');
     return DragTarget<TilesetSourceRect>(
       onAcceptWithDetails: (details) => _select(rule, details.data),
       builder: (context, candidates, rejects) => Material(
@@ -73,7 +78,9 @@ class TerrainPatternPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: Center(
-                    child: frame == null
+                    child: model.spatial && part != null && partBuilder != null
+                        ? partBuilder!(part, 56)
+                        : frame == null
                         ? TerrainPatternGuide(rule: rule)
                         : frameBuilder(frame, 56),
                   ),
@@ -95,7 +102,7 @@ class TerrainPatternPanel extends StatelessWidget {
 
   Widget _grid(BuildContext context, List<int> rules, int columns) {
     final visible = missingOnly
-        ? rules.where((rule) => model.frameFor(rule) == null).toList()
+        ? rules.where((rule) => model.partFor(rule) == null).toList()
         : rules;
     if (visible.isEmpty) {
       return const Padding(
@@ -126,9 +133,26 @@ class TerrainPatternPanel extends StatelessWidget {
         '${model.assignedCount} / ${model.draft.rules.length} pièces associées',
       ),
       const SizedBox(height: 4),
-      const Text(
-        'Choisissez une case de l’image, puis sa place dans le patron. Vous pouvez aussi la glisser depuis la pièce sélectionnée.',
+      Text(
+        model.spatial
+            ? 'Choisissez une forme puis le modèle qui la représente. Les cases peintes déterminent sa présence sur la carte.'
+            : 'Choisissez une case de l’image, puis sa place dans le patron. Vous pouvez aussi la glisser depuis la pièce sélectionnée.',
       ),
+      if (model.spatial) ...[
+        const SizedBox(height: 8),
+        StudioSelect(
+          label: 'Assemblage',
+          value: model.uniform ? 'uniform' : 'connections',
+          options: const {
+            'uniform': 'Une pièce par case',
+            'connections': 'Raccords selon les voisins',
+          },
+          onChanged: (value) {
+            model.setSpatialConnections(value == 'connections');
+            onChanged();
+          },
+        ),
+      ],
       const SizedBox(height: 8),
       Wrap(
         spacing: 6,
@@ -175,28 +199,34 @@ class TerrainPatternPanel extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),
-              _grid(context, mainPattern, 3),
-              const SizedBox(height: 16),
-              Text(
-                'Coins extérieurs',
-                style: Theme.of(context).textTheme.titleSmall,
+              _grid(
+                context,
+                model.uniform ? [0] : mainPattern,
+                model.uniform ? 1 : 3,
               ),
-              const SizedBox(height: 4),
-              Text(
-                model.draft.rules.length == 16
-                    ? 'Optionnels pour ce modèle. La première pièce active les quatre raccords diagonaux.'
-                    : 'Ces quatre pièces dessinent les coins rentrants dans le chemin.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              _grid(context, outerCorners, 2),
-              const SizedBox(height: 16),
-              Text(
-                'Extrémités et passages',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              _grid(context, otherShapes, 3),
+              if (!model.uniform) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Coins extérieurs',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  model.draft.rules.length == 16
+                      ? 'Optionnels pour ce modèle. La première pièce active les quatre raccords diagonaux.'
+                      : 'Ces quatre pièces dessinent les coins rentrants dans le chemin.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                _grid(context, outerCorners, 2),
+                const SizedBox(height: 16),
+                Text(
+                  'Extrémités et passages',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                _grid(context, otherShapes, 3),
+              ],
             ],
           ),
         ),
@@ -214,7 +244,7 @@ class TerrainPatternPanel extends StatelessWidget {
         label: 'Retirer cette pièce',
         icon: Icons.remove_circle_outline,
         secondary: true,
-        onPressed: model.frameFor(model.selectedRule) == null
+        onPressed: model.partFor(model.selectedRule) == null
             ? null
             : () {
                 model.removeAssignment();

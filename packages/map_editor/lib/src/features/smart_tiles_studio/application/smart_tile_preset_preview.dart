@@ -7,6 +7,8 @@ SmartTileFrameRef? firstSmartTileFrameOf(
 }) {
   for (final part in candidate.parts) {
     switch (part.source) {
+      case SmartTileModel3dSource():
+        continue;
       case SmartTileFrameSource(frame: final frame):
         return frame;
       case SmartTileAnimationSource(animationId: final animationId):

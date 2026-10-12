@@ -91,7 +91,7 @@ void main() {
         throwsFormatException,
       );
       expect(
-        () => MapSpatialScene(width: 1, depth: 1, heightLevels: [33]),
+        () => MapSpatialScene(width: 1, depth: 1, heightLevels: [65]),
         throwsFormatException,
       );
       expect(

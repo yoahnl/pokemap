@@ -45,17 +45,20 @@ class ResourceCatalogFilterState {
     this.scope = ResourceCatalogScope.all,
     this.usage = ResourceCatalogUsage.all,
     this.query = '',
+    this.showComponents = false,
   });
   String familyId;
   ResourceCatalogScope scope;
   ResourceCatalogUsage usage;
   String query;
+  bool showComponents;
 
   ResourceCatalogFilterState copy() => ResourceCatalogFilterState(
     familyId: familyId,
     scope: scope,
     usage: usage,
     query: query,
+    showComponents: showComponents,
   );
 
   void copyFrom(ResourceCatalogFilterState value) {
@@ -63,6 +66,7 @@ class ResourceCatalogFilterState {
     scope = value.scope;
     usage = value.usage;
     query = value.query;
+    showComponents = value.showComponents;
   }
 
   void reset() {
@@ -70,6 +74,7 @@ class ResourceCatalogFilterState {
     scope = ResourceCatalogScope.all;
     usage = ResourceCatalogUsage.all;
     query = '';
+    showComponents = false;
   }
 }
 
@@ -115,7 +120,13 @@ class ResourceItem {
   String get identity => '$canonicalKind:$id';
   Set<ResourceCatalogUsage> get usages => switch (canonicalKind) {
     'element' => {ResourceCatalogUsage.place, ResourceCatalogUsage.scatter},
-    'model3d' || 'character' => {ResourceCatalogUsage.place},
+    'model3d' => {
+      ResourceCatalogUsage.place,
+      ResourceCatalogUsage.paint,
+      ResourceCatalogUsage.trace,
+      ResourceCatalogUsage.scatter,
+    },
+    'character' => {ResourceCatalogUsage.place},
     'smartTilePreset' || 'tileset' => {ResourceCatalogUsage.paint},
     'borderBlueprint' => {ResourceCatalogUsage.trace},
     'environmentPreset' => {ResourceCatalogUsage.scatter},
@@ -138,10 +149,23 @@ class ResourceItem {
 
   bool compatibleWith(ProjectDimension dimension) => switch (canonicalKind) {
     'model3d' => dimension == ProjectDimension.threeD,
-    'element' ||
-    'borderBlueprint' ||
-    'environmentPreset' ||
-    'tileset' => dimension == ProjectDimension.twoD,
+    'smartTilePreset' =>
+      dimension == ProjectDimension.threeD ||
+          terrain?.rules.every(
+                (rule) => rule.candidates.every(
+                  (candidate) => candidate.parts.every(
+                    (part) => part.source is! SmartTileModel3dSource,
+                  ),
+                ),
+              ) ==
+              true,
+    'environmentPreset' =>
+      environment?.isSpatial == (dimension == ProjectDimension.threeD),
+    'borderBlueprint' =>
+      (border?.latestPublished?.definition.isSpatial ??
+              border?.draft.definition.isSpatial) ==
+          (dimension == ProjectDimension.threeD),
+    'element' || 'tileset' => dimension == ProjectDimension.twoD,
     _ => true,
   };
 
@@ -336,6 +360,10 @@ List<ResourceItem> filterResourceCatalog(
   final query = filters.query.trim().toLowerCase();
   return items.where((item) {
     final entry = item.metadata(manifest);
+    if (!filters.showComponents &&
+        entry?.role == ResourceLibraryRole.component) {
+      return false;
+    }
     final mapId = entry?.mapId;
     if (forMapPicker &&
         (!item.compatibleWith(manifest.settings.dimension) ||

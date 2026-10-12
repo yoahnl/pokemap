@@ -52,6 +52,50 @@ void steps(SpatialMovementController player, int count,
 }
 
 void main() {
+  test('tree canopy permits passage while the authored trunk blocks movement',
+      () {
+    final model = ProjectModel3dEntry.fromJson({
+      ...ProjectModel3dEntry(
+        id: 'tree',
+        name: 'Tree',
+        sourceAssetId: 'tree-source',
+        relativePath: 'assets/models3d/tree.glb',
+        pivot: Model3dVector3(x: 1, y: 0, z: 1),
+        scale: 2,
+        inspection: Model3dInspection(
+          bounds: Model3dBounds(
+            min: Model3dVector3(x: 0, y: 0, z: 0),
+            max: Model3dVector3(x: 2, y: 3, z: 2),
+          ),
+          meshCount: 1,
+          triangleCount: 10,
+        ),
+      ).toJson(),
+      'collisionBounds': {
+        'min': {'x': .8, 'y': 0.0, 'z': .8},
+        'max': {'x': 1.2, 'y': 1.0, 'z': 1.2},
+      },
+    });
+    final instance = SpatialModelInstance(
+      id: 'tree-1',
+      modelId: 'tree',
+      position: Model3dVector3(x: 8, y: 0, z: 9),
+      rotationDegrees: 90,
+      scale: .5,
+    );
+    final trunk = SpatialMovementController(
+      scene: plateau(instances: [instance]),
+      models: [model],
+    );
+    steps(trunk, 18);
+    expect(trunk.z, greaterThan(9));
+    final canopy = SpatialMovementController(
+      scene: plateau(spawnX: 9, instances: [instance]),
+      models: [model],
+    );
+    steps(canopy, 20);
+    expect(canopy.z, lessThan(9));
+  });
   for (final elevated in [false, true]) {
     for (final direction in [
       (name: 'north', x: 0, z: -1, spawnX: 2.5, spawnZ: 4.5),

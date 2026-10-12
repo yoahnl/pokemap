@@ -20,6 +20,10 @@ final class EnvironmentActions extends EnvironmentEditing {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     semanticActionDescriptor(
+      'environment.attach_to_spatial_terrain',
+      'Attach an Environment layer to native spatial terrain',
+    ),
+    semanticActionDescriptor(
       'environment.attach_to_tile_layer',
       'Attach an Environment layer to a Tile layer',
     ),
@@ -87,7 +91,58 @@ final class EnvironmentActions extends EnvironmentEditing {
       'environment.generated_placements_clear',
       'Clear every tracked placement for an Environment area',
     ),
-  ]);
+  ].map((descriptor) => AuthoringActionDescriptor.fromJson({
+        ...descriptor.toJson(),
+        'resourceKinds': ['map', 'environmentPreset', 'element', 'model3d'],
+        'extensions': {
+          ...descriptor.extensions,
+          'visualKinds': ['element', 'model3d'],
+          if (descriptor.id == 'environment.attach_to_spatial_terrain')
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['mapId', 'layerId'],
+              'properties': {
+                'mapId': {'type': 'string', 'minLength': 1},
+                'layerId': {'type': 'string', 'minLength': 1},
+              },
+            },
+          if (descriptor.id == 'environment.generated_placement_add')
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': [
+                'mapId',
+                'layerId',
+                'areaId',
+                'placementId',
+                'x',
+                'y'
+              ],
+              'oneOf': [
+                {
+                  'required': ['elementId']
+                },
+                {
+                  'required': ['modelId']
+                }
+              ],
+              'properties': {
+                for (final id in [
+                  'mapId',
+                  'layerId',
+                  'areaId',
+                  'placementId',
+                  'elementId',
+                  'modelId'
+                ])
+                  id: {'type': 'string', 'minLength': 1},
+                'x': {'type': 'integer', 'minimum': 0},
+                'y': {'type': 'integer', 'minimum': 0},
+              },
+            },
+        },
+      })));
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
@@ -96,7 +151,9 @@ final class EnvironmentActions extends EnvironmentEditing {
           'layerId',
           'targetTileLayerId',
         },
-      'environment.detach_from_tile_layer' => const {'layerId'},
+      'environment.detach_from_tile_layer' ||
+      'environment.attach_to_spatial_terrain' =>
+        const {'layerId'},
       'environment.area_create' => const {
           'layerId',
           'areaId',
@@ -153,6 +210,7 @@ final class EnvironmentActions extends EnvironmentEditing {
           'areaId',
           'placementId',
           'elementId',
+          'modelId',
           'x',
           'y',
         },
@@ -185,6 +243,8 @@ final class EnvironmentActions extends EnvironmentEditing {
     final extraPreview = <String, Object?>{};
 
     switch (actionId) {
+      case 'environment.attach_to_spatial_terrain':
+        updated = attachToSpatialTerrain(context.map, layerId: layerId);
       case 'environment.attach_to_tile_layer':
         updated = attachToTileLayer(
           context.map,
@@ -334,7 +394,8 @@ final class EnvironmentActions extends EnvironmentEditing {
           layerId: layerId,
           areaId: parameters.string('areaId'),
           placementId: parameters.string('placementId'),
-          elementId: parameters.string('elementId'),
+          elementId: parameters.optionalString('elementId'),
+          modelId: parameters.optionalString('modelId'),
           pos: GridPos(
             x: parameters.integer('x'),
             y: parameters.integer('y'),

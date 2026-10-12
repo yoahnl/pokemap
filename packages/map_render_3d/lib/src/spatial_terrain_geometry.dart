@@ -115,6 +115,7 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
       positions: patch.corners,
       uvs: [Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0)],
     );
+    if (!scene.generateCliffs) continue;
     final a = patch.left, b = patch.top, c = patch.right, d = patch.bottom;
     for (final edge in [
       ((a, b), (a, d), (-1.0, 0.0)),

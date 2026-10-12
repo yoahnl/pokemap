@@ -26,30 +26,30 @@ MapData addMapLayer(
   final cellCount = map.size.width * map.size.height;
   final newLayer = switch (kind) {
     MapLayerKind.tile => MapLayer.tile(
-        id: normalizedId,
-        name: normalizedName,
-        cells: List<int>.filled(cellCount, 0, growable: false),
-      ),
+      id: normalizedId,
+      name: normalizedName,
+      cells: List<int>.filled(cellCount, 0, growable: false),
+    ),
     MapLayerKind.collision => MapLayer.collision(
-        id: normalizedId,
-        name: normalizedName,
-        collisions: List<bool>.filled(cellCount, false, growable: false),
-      ),
+      id: normalizedId,
+      name: normalizedName,
+      collisions: List<bool>.filled(cellCount, false, growable: false),
+    ),
     MapLayerKind.smartTile => throw const ValidationException(
-        'Use addSmartTileLayer to create a native Smart Tile layer',
-      ),
+      'Use addSmartTileLayer to create a native Smart Tile layer',
+    ),
     MapLayerKind.object => MapLayer.object(
-        id: normalizedId,
-        name: normalizedName,
-      ),
+      id: normalizedId,
+      name: normalizedName,
+    ),
     MapLayerKind.environment => MapLayer.environment(
-        id: normalizedId,
-        name: normalizedName,
-      ),
+      id: normalizedId,
+      name: normalizedName,
+    ),
     MapLayerKind.border => MapLayer.border(
-        id: normalizedId,
-        name: normalizedName,
-      ),
+      id: normalizedId,
+      name: normalizedName,
+    ),
   };
 
   var targetIndex = insertIndex ?? _resolveDefaultInsertIndex(map, kind);
@@ -66,8 +66,8 @@ MapData addMapLayer(
 
 int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) =>
     kind == MapLayerKind.border
-        ? resolveAuthoredLayerInsertIndex(map, activeLayerId: null)
-        : map.layers.length;
+    ? resolveAuthoredLayerInsertIndex(map, activeLayerId: null)
+    : map.layers.length;
 
 MapData renameMapLayer(
   MapData map, {
@@ -92,10 +92,7 @@ MapData renameMapLayer(
   return map.copyWith(layers: updatedLayers);
 }
 
-MapData removeMapLayer(
-  MapData map, {
-  required String layerId,
-}) {
+MapData removeMapLayer(MapData map, {required String layerId}) {
   final layerIndex = map.layers.indexWhere((layer) => layer.id == layerId);
   if (layerIndex < 0) {
     throw ValidationException('Layer not found: $layerId');
@@ -106,16 +103,46 @@ MapData removeMapLayer(
   final updatedPlacedElements = map.placedElements
       .where((instance) => instance.layerId != layerId)
       .toList(growable: false);
+  final removedLayer = map.layers[layerIndex];
+  final ownedIds = switch (removedLayer) {
+    BorderLayer() =>
+      removedLayer.content.features
+          .expand((feature) => feature.generatedPlacementIds)
+          .toSet(),
+    EnvironmentLayer() =>
+      removedLayer.content.areas
+          .expand((area) => area.generatedPlacementIds)
+          .toSet(),
+    _ => const <String>{},
+  };
   return map.copyWith(
     layers: updatedLayers,
     placedElements: updatedPlacedElements,
+    spatialScene: map.spatialScene?.copyWith(
+      instances: map.spatialScene!.instances.where(
+        (instance) => !ownedIds.contains(instance.id),
+      ),
+    ),
   );
 }
 
 MapData removeAllMapLayers(MapData map) {
+  final ownedIds = <String>{
+    for (final layer in map.layers.whereType<BorderLayer>())
+      ...layer.content.features.expand(
+        (feature) => feature.generatedPlacementIds,
+      ),
+    for (final layer in map.layers.whereType<EnvironmentLayer>())
+      ...layer.content.areas.expand((area) => area.generatedPlacementIds),
+  };
   return map.copyWith(
     layers: const [],
     placedElements: const [],
+    spatialScene: map.spatialScene?.copyWith(
+      instances: map.spatialScene!.instances.where(
+        (instance) => !ownedIds.contains(instance.id),
+      ),
+    ),
   );
 }
 
@@ -195,7 +222,8 @@ MapData setMapLayerOpacity(
 }) {
   if (opacity < 0 || opacity > 1) {
     throw ValidationException(
-        'Layer opacity must be between 0 and 1: $opacity');
+      'Layer opacity must be between 0 and 1: $opacity',
+    );
   }
 
   final layerIndex = map.layers.indexWhere((layer) => layer.id == layerId);
@@ -225,8 +253,8 @@ MapData setMapLayerPurpose(
     TileLayer value => value.copyWith(purpose: purpose),
     ObjectLayer value => value.copyWith(purpose: purpose),
     _ => throw ValidationException(
-        'Only literal tile and object layers can declare a data purpose: $layerId',
-      ),
+      'Only literal tile and object layers can declare a data purpose: $layerId',
+    ),
   };
   final updatedLayers = List<MapLayer>.from(map.layers, growable: false)
     ..[layerIndex] = updated;
@@ -292,7 +320,8 @@ MapData setEnvironmentLayerContent(
   final existing = map.layers[layerIndex];
   if (existing is! EnvironmentLayer) {
     throw ValidationException(
-        'Layer is not an environment layer: $normalizedId');
+      'Layer is not an environment layer: $normalizedId',
+    );
   }
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: false);

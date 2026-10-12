@@ -442,6 +442,7 @@ List<_VisualKey>? _candidateBaseVisuals(
     return null;
   }
   return switch (part.source) {
+    SmartTileModel3dSource() => null,
     SmartTileFrameSource(:final frame) => <_VisualKey>[
         if (_frameVisual(
           frame,

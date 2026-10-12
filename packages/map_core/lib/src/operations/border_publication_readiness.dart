@@ -13,6 +13,7 @@ import 'border_coverage.dart';
 import 'border_rle_codec.dart';
 import 'border_template_capabilities.dart';
 import 'narrative_event_canonical_json.dart';
+import 'spatial_border_resolution.dart';
 
 const List<int> _requiredQuarterTurns = <int>[0, 1, 2, 3];
 final BigInt _maximumPortableJsonInteger = BigInt.parse('9007199254740991');
@@ -475,6 +476,15 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
   required BorderPublicationGalleryReport canonicalGalleryReport,
 }) {
   _requireStableId(blueprintId, 'blueprintId');
+  if (definition.isSpatial) {
+    return BorderPublicationReadinessResult._(
+      diagnosticReport: validateSpatialBorderBlueprint(
+        blueprintId: blueprintId,
+        definition: definition,
+        manifest: project,
+      ),
+    );
+  }
   if (resolverVersion < 1) {
     throw const ValidationException('resolverVersion must be >= 1');
   }
@@ -2004,6 +2014,7 @@ Object _publicationCandidateProjection(
     'sortOrder': definition.sortOrder.toString(),
     'previewSeed': definition.previewSeed.toString(),
     'template': _templateV1WireName(definition.template),
+    if (definition.straightOnly) 'straightOnly': 'true',
     'defaults': <String, Object?>{
       'irregularityPermille':
           definition.defaults.irregularityPermille.toString(),
@@ -2033,6 +2044,20 @@ Object _publicationCandidateProjection(
 Map<String, Object?> _publishedPrimitiveProjection(
   BorderPublishedPrimitive primitive,
 ) {
+  if (primitive.isSpatial) {
+    return <String, Object?>{
+      'id': primitive.id,
+      'sourceModelId': primitive.sourceModelId,
+      'anchorWorld': primitive.anchorWorld?.toJson(),
+      'role': borderPrimitiveRoleV1WireName(primitive.role),
+      'authoredOrientation': primitive.authoredOrientation.name,
+      'weight': primitive.weight.toString(),
+      'transforms': <String, Object?>{
+        'allowFlipX': primitive.transforms.allowFlipX,
+        'allowedQuarterTurns': primitive.transforms.allowedQuarterTurns,
+      },
+    };
+  }
   final metrics = primitive.publishedMetrics;
   return <String, Object?>{
     'id': primitive.id,

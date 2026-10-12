@@ -70,10 +70,10 @@ final class SmartTileLayerVisualWorkCounts {
   });
 
   const SmartTileLayerVisualWorkCounts.empty()
-      : requestedCellCount = 0,
-        ownerCellVisits = 0,
-        patternStrokeCellVisits = 0,
-        resolvedVisualCount = 0;
+    : requestedCellCount = 0,
+      ownerCellVisits = 0,
+      patternStrokeCellVisits = 0,
+      resolvedVisualCount = 0;
 
   final int requestedCellCount;
   final int ownerCellVisits;
@@ -89,8 +89,8 @@ final class SmartTileLayerVisualBatch {
   }) : visuals = List<SmartTileLayerVisual>.unmodifiable(visuals);
 
   const SmartTileLayerVisualBatch.empty()
-      : visuals = const <SmartTileLayerVisual>[],
-        work = const SmartTileLayerVisualWorkCounts.empty();
+    : visuals = const <SmartTileLayerVisual>[],
+      work = const SmartTileLayerVisualWorkCounts.empty();
 
   final List<SmartTileLayerVisual> visuals;
   final SmartTileLayerVisualWorkCounts work;
@@ -101,11 +101,12 @@ typedef _SmartTilePatternOwner = ({
   ProjectSmartTilePattern pattern,
 });
 
-typedef SmartTileCellContextResolver = SmartTileCellContext Function({
-  required ProjectSmartTilePreset preset,
-  required int x,
-  required int y,
-});
+typedef SmartTileCellContextResolver =
+    SmartTileCellContext Function({
+      required ProjectSmartTilePreset preset,
+      required int x,
+      required int y,
+    });
 
 /// Sparse, reusable ownership projection for pattern strokes in one layer.
 ///
@@ -119,8 +120,8 @@ final class SmartTilePatternOwnerIndex {
     required this.mapHeight,
     required Map<int, _SmartTilePatternOwner> owners,
     required Iterable<ProjectSmartTilePattern> patterns,
-  })  : _owners = Map<int, _SmartTilePatternOwner>.unmodifiable(owners),
-        _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns);
+  }) : _owners = Map<int, _SmartTilePatternOwner>.unmodifiable(owners),
+       _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns);
 
   factory SmartTilePatternOwnerIndex.build({
     required MapData map,
@@ -201,25 +202,24 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   double sourceCellHeight = 32,
   SmartTileGeometryRect? viewportBounds,
   SmartTilePatternOwnerIndex? patternOwnerIndex,
-}) =>
-    resolveSmartTileLayerVisualBatch(
-      map: map,
-      layer: layer,
-      catalog: catalog,
-      pass: pass,
-      projectSeed: projectSeed,
-      elapsedMs: elapsedMs,
-      startX: startX,
-      startY: startY,
-      endX: endX,
-      endY: endY,
-      destinationCellWidth: destinationCellWidth,
-      destinationCellHeight: destinationCellHeight,
-      sourceCellWidth: sourceCellWidth,
-      sourceCellHeight: sourceCellHeight,
-      viewportBounds: viewportBounds,
-      patternOwnerIndex: patternOwnerIndex,
-    ).visuals;
+}) => resolveSmartTileLayerVisualBatch(
+  map: map,
+  layer: layer,
+  catalog: catalog,
+  pass: pass,
+  projectSeed: projectSeed,
+  elapsedMs: elapsedMs,
+  startX: startX,
+  startY: startY,
+  endX: endX,
+  endY: endY,
+  destinationCellWidth: destinationCellWidth,
+  destinationCellHeight: destinationCellHeight,
+  sourceCellWidth: sourceCellWidth,
+  sourceCellHeight: sourceCellHeight,
+  viewportBounds: viewportBounds,
+  patternOwnerIndex: patternOwnerIndex,
+).visuals;
 
 /// Profiled form of [resolveSmartTileLayerVisuals].
 ///
@@ -270,7 +270,8 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
   final patterns = <String, ProjectSmartTilePattern>{
     for (final pattern in catalog.patterns) pattern.id: pattern,
   };
-  final reusablePatternIndex = patternOwnerIndex != null &&
+  final reusablePatternIndex =
+      patternOwnerIndex != null &&
       patternOwnerIndex._supports(map: map, layer: layer, catalog: catalog);
   final patternOwners = reusablePatternIndex
       ? patternOwnerIndex._owners
@@ -306,12 +307,14 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
     requestedStartY,
     map.size.height,
   );
-  final hasRequestedViewport = viewportBounds != null ||
+  final hasRequestedViewport =
+      viewportBounds != null ||
       startX != 0 ||
       startY != 0 ||
       endX != null ||
       endY != null;
-  final requestedViewport = viewportBounds ??
+  final requestedViewport =
+      viewportBounds ??
       (hasRequestedViewport
           ? SmartTileGeometryRect(
               left: requestedStartX * destinationCellWidth,
@@ -349,11 +352,8 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
   for (var y = scan.startY; y < scan.endY; y++) {
     for (var x = scan.startX; x < scan.endX; x++) {
       ownerCellVisits += 1;
-      final context = cellContextResolver?.call(
-            preset: preset,
-            x: x,
-            y: y,
-          ) ??
+      final context =
+          cellContextResolver?.call(preset: preset, x: x, y: y) ??
           smartTileCellContextForLayerCell(
             layer: layer,
             map: map,
@@ -361,11 +361,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
             x: x,
             y: y,
           );
-      final resolution = resolver.resolve(
-        context: context,
-        x: x,
-        y: y,
-      );
+      final resolution = resolver.resolve(context: context, x: x, y: y);
       final candidate = resolution.candidate;
       if (candidate != null && resolution.ruleId != null) {
         for (final part in candidate.parts) {
@@ -643,6 +639,7 @@ SmartTileLayerVisual? _buildPartVisual({
     candidateId: candidateId,
     channel: part.channel,
     isAnimated: part.source.map(
+      model3d: (_) => false,
       frame: (_) => false,
       animation: (_) => true,
     ),
@@ -676,10 +673,22 @@ SmartTileGeometryRect _patternVisualEnvelope({
     for (final part in cell.parts) {
       if (!_channelBelongsToPass(part.channel, pass)) continue;
       final atlasIds = part.source.when(
+        model3d:
+            (
+              modelId,
+              scale,
+              offsetX,
+              offsetY,
+              offsetZ,
+              animationIndex,
+              followTerrain,
+              replacesGround,
+            ) => <String>{},
         frame: (frame) => <String>{frame.atlasId},
         animation: (animationId) => <String>{
-          for (final frame in animations[animationId]?.frames ??
-              const <ProjectSmartTileAnimationFrame>[])
+          for (final frame
+              in animations[animationId]?.frames ??
+                  const <ProjectSmartTileAnimationFrame>[])
             frame.frame.atlasId,
         },
       );
@@ -704,8 +713,9 @@ SmartTileGeometryRect _patternVisualEnvelope({
           anchorY: part.anchorY,
           transform: part.transform,
         ).visualBounds;
-        envelope =
-            envelope == null ? bounds : _unionGeometryRects(envelope, bounds);
+        envelope = envelope == null
+            ? bounds
+            : _unionGeometryRects(envelope, bounds);
       }
     }
   }
@@ -753,10 +763,22 @@ SmartTileGeometryRect _presetVisualEnvelope({
       for (final part in candidate.parts) {
         if (!_channelBelongsToPass(part.channel, pass)) continue;
         final atlasIds = part.source.when(
+          model3d:
+              (
+                modelId,
+                scale,
+                offsetX,
+                offsetY,
+                offsetZ,
+                animationIndex,
+                followTerrain,
+                replacesGround,
+              ) => <String>{},
           frame: (frame) => <String>{frame.atlasId},
           animation: (animationId) => <String>{
-            for (final frame in animations[animationId]?.frames ??
-                const <ProjectSmartTileAnimationFrame>[])
+            for (final frame
+                in animations[animationId]?.frames ??
+                    const <ProjectSmartTileAnimationFrame>[])
               frame.frame.atlasId,
           },
         );
@@ -793,13 +815,15 @@ SmartTileGeometryRect _presetVisualEnvelope({
                         ? envelope.left
                         : bounds.left,
                     top: envelope.top < bounds.top ? envelope.top : bounds.top,
-                    width: (envelope.right > bounds.right
+                    width:
+                        (envelope.right > bounds.right
                             ? envelope.right
                             : bounds.right) -
                         (envelope.left < bounds.left
                             ? envelope.left
                             : bounds.left),
-                    height: (envelope.bottom > bounds.bottom
+                    height:
+                        (envelope.bottom > bounds.bottom
                             ? envelope.bottom
                             : bounds.bottom) -
                         (envelope.top < bounds.top ? envelope.top : bounds.top),
@@ -832,16 +856,16 @@ SmartTileFrameRef _sampleVisualFrame({
   final (columnOffset, rowOffset) = switch (sampling) {
     SmartTileFrameSampling.fullFrame => (0, 0),
     SmartTileFrameSampling.tessellated => (
-        _positiveModulo(cellX, frame.columnSpan),
-        _positiveModulo(cellY, frame.rowSpan),
-      ),
+      _positiveModulo(cellX, frame.columnSpan),
+      _positiveModulo(cellY, frame.rowSpan),
+    ),
     SmartTileFrameSampling.stableRandom => () {
-        final index = _positiveModulo(
-          deterministicHash,
-          frame.columnSpan * frame.rowSpan,
-        );
-        return (index % frame.columnSpan, index ~/ frame.columnSpan);
-      }(),
+      final index = _positiveModulo(
+        deterministicHash,
+        frame.columnSpan * frame.rowSpan,
+      );
+      return (index % frame.columnSpan, index ~/ frame.columnSpan);
+    }(),
   };
   return frame.copyWith(
     column: frame.column + columnOffset,
@@ -879,6 +903,7 @@ SmartTileFrameRef? _resolveVisualFrame({
   required int deterministicHash,
 }) {
   return source.map(
+    model3d: (_) => null,
     frame: (source) => source.frame,
     animation: (source) {
       final animation = animations[source.animationId];
@@ -963,7 +988,8 @@ SmartTileLayerVisualPlan buildSmartTileLayerVisualPlan({
   final animations = <String, ProjectSmartTileAnimation>{
     for (final animation in catalog.animations) animation.id: animation,
   };
-  final reusablePatternIndex = patternOwnerIndex != null &&
+  final reusablePatternIndex =
+      patternOwnerIndex != null &&
       patternOwnerIndex._supports(map: map, layer: layer, catalog: catalog);
   Map<int, _SmartTilePatternOwner> patternOwners;
   Iterable<ProjectSmartTilePattern> usedPatterns;
@@ -1053,35 +1079,35 @@ final class SmartTileLayerVisualPlan {
     required double destinationCellHeight,
     required double sourceCellWidth,
     required double sourceCellHeight,
-  })  : _map = map,
-        _layer = layer,
-        _preset = preset,
-        _projectSeed = projectSeed,
-        _atlases = atlases,
-        _animations = animations,
-        _patternOwners = patternOwners,
-        _resolver = resolver,
-        _envelope = envelope,
-        _destinationCellWidth = destinationCellWidth,
-        _destinationCellHeight = destinationCellHeight,
-        _sourceCellWidth = sourceCellWidth,
-        _sourceCellHeight = sourceCellHeight;
+  }) : _map = map,
+       _layer = layer,
+       _preset = preset,
+       _projectSeed = projectSeed,
+       _atlases = atlases,
+       _animations = animations,
+       _patternOwners = patternOwners,
+       _resolver = resolver,
+       _envelope = envelope,
+       _destinationCellWidth = destinationCellWidth,
+       _destinationCellHeight = destinationCellHeight,
+       _sourceCellWidth = sourceCellWidth,
+       _sourceCellHeight = sourceCellHeight;
 
   SmartTileLayerVisualPlan._inert({required MapData map})
-      : _map = map,
-        _layer = null,
-        _preset = null,
-        pass = SmartTileVisualPass.background,
-        _projectSeed = 0,
-        _atlases = const <String, ProjectSmartTileAtlas>{},
-        _animations = const <String, ProjectSmartTileAnimation>{},
-        _patternOwners = const <int, _SmartTilePatternOwner>{},
-        _resolver = null,
-        _envelope = null,
-        _destinationCellWidth = 1,
-        _destinationCellHeight = 1,
-        _sourceCellWidth = 1,
-        _sourceCellHeight = 1;
+    : _map = map,
+      _layer = null,
+      _preset = null,
+      pass = SmartTileVisualPass.background,
+      _projectSeed = 0,
+      _atlases = const <String, ProjectSmartTileAtlas>{},
+      _animations = const <String, ProjectSmartTileAnimation>{},
+      _patternOwners = const <int, _SmartTilePatternOwner>{},
+      _resolver = null,
+      _envelope = null,
+      _destinationCellWidth = 1,
+      _destinationCellHeight = 1,
+      _sourceCellWidth = 1,
+      _sourceCellHeight = 1;
 
   static const List<_PlannedSmartTileVisual> _emptyCellPlan =
       <_PlannedSmartTileVisual>[];
@@ -1138,7 +1164,8 @@ final class SmartTileLayerVisualPlan {
       for (var x = startX; x < endX; x++) {
         ownerCellVisits += 1;
         final items = _plannedByCellIndex[rowBase + x] ??= _planCell(x, y);
-        final cellElapsedMs = animationElapsedMsForCell?.call(
+        final cellElapsedMs =
+            animationElapsedMsForCell?.call(
               cellX: x,
               cellY: y,
               elapsedMs: elapsedMs,
@@ -1242,23 +1269,24 @@ final class SmartTileLayerVisualPlan {
     required int drawOrder,
   }) {
     SmartTileLayerVisual? build(SmartTileFrameRef frame) => _buildPartVisual(
-          frame: frame,
-          part: part,
-          atlases: _atlases,
-          cellX: cellX,
-          cellY: cellY,
-          deterministicHash: deterministicHash,
-          transform: transform,
-          ruleId: ruleId,
-          candidateId: candidateId,
-          drawOrder: drawOrder,
-          destinationCellWidth: _destinationCellWidth,
-          destinationCellHeight: _destinationCellHeight,
-          sourceCellWidth: _sourceCellWidth,
-          sourceCellHeight: _sourceCellHeight,
-        );
+      frame: frame,
+      part: part,
+      atlases: _atlases,
+      cellX: cellX,
+      cellY: cellY,
+      deterministicHash: deterministicHash,
+      transform: transform,
+      ruleId: ruleId,
+      candidateId: candidateId,
+      drawOrder: drawOrder,
+      destinationCellWidth: _destinationCellWidth,
+      destinationCellHeight: _destinationCellHeight,
+      sourceCellWidth: _sourceCellWidth,
+      sourceCellHeight: _sourceCellHeight,
+    );
 
     return part.source.map(
+      model3d: (_) => null,
       frame: (source) {
         final visual = build(source.frame);
         return visual == null ? null : _PlannedSmartTileVisual.fixed(visual);
@@ -1301,22 +1329,23 @@ final class SmartTileLayerVisualPlan {
   }
 }
 
-typedef SmartTileAnimationElapsedMsForCell = int Function({
-  required int cellX,
-  required int cellY,
-  required int elapsedMs,
-});
+typedef SmartTileAnimationElapsedMsForCell =
+    int Function({
+      required int cellX,
+      required int cellY,
+      required int elapsedMs,
+    });
 
 /// One planned cell part: either a fixed visual or prebuilt animation
 /// variants selected by elapsed time, mirroring [_resolveVisualFrame].
 final class _PlannedSmartTileVisual {
   const _PlannedSmartTileVisual.fixed(SmartTileLayerVisual visual)
-      : _fixed = visual,
-        _variants = null,
-        _cumulativeMs = const <int>[],
-        totalDurationMs = 0,
-        syncOffsetMs = 0,
-        loopOnce = false;
+    : _fixed = visual,
+      _variants = null,
+      _cumulativeMs = const <int>[],
+      totalDurationMs = 0,
+      syncOffsetMs = 0,
+      loopOnce = false;
 
   const _PlannedSmartTileVisual.animated({
     required List<SmartTileLayerVisual?> variants,
@@ -1324,9 +1353,9 @@ final class _PlannedSmartTileVisual {
     required this.totalDurationMs,
     required this.syncOffsetMs,
     required this.loopOnce,
-  })  : _fixed = null,
-        _variants = variants,
-        _cumulativeMs = cumulativeMs;
+  }) : _fixed = null,
+       _variants = variants,
+       _cumulativeMs = cumulativeMs;
 
   final SmartTileLayerVisual? _fixed;
   final List<SmartTileLayerVisual?>? _variants;

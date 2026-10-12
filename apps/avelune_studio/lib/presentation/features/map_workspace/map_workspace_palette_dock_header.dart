@@ -41,8 +41,8 @@ class MapWorkspacePaletteDockHeader extends StatelessWidget {
               'Décors',
               'Terrains',
               if (!spatial) 'Tuiles',
-              if (!spatial) 'Bordures',
-              if (!spatial) 'Environnements',
+              'Bordures',
+              'Environnements',
               'Personnages',
               'Passages',
             ])

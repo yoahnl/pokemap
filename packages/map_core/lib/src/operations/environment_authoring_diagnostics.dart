@@ -22,6 +22,7 @@ enum EnvironmentAuthoringDiagnosticSource {
 enum EnvironmentAuthoringDiagnosticKind {
   duplicatePresetId,
   missingPaletteElement,
+  missingPaletteModel,
   unknownTemplateId,
   forcedCollisionWithoutProfile,
   missingAreaPreset,
@@ -31,6 +32,8 @@ enum EnvironmentAuthoringDiagnosticKind {
   areaMaskSizeMismatch,
   emptyAreaMask,
   missingGeneratedPlacement,
+  spatialTerrainMissing,
+  duplicateGeneratedOwnership,
 }
 
 /// Ligne de diagnostic prête pour agrégation / UI.
@@ -335,6 +338,7 @@ EnvironmentAuthoringDiagnosticKind _mapPresetKind(
       EnvironmentAuthoringDiagnosticKind.duplicatePresetId,
     EnvironmentPresetDiagnosticKind.missingPaletteElement =>
       EnvironmentAuthoringDiagnosticKind.missingPaletteElement,
+    EnvironmentPresetDiagnosticKind.missingPaletteModel => EnvironmentAuthoringDiagnosticKind.missingPaletteModel,
     EnvironmentPresetDiagnosticKind.unknownTemplateId =>
       EnvironmentAuthoringDiagnosticKind.unknownTemplateId,
     EnvironmentPresetDiagnosticKind.forcedCollisionWithoutProfile =>
@@ -383,6 +387,8 @@ EnvironmentAuthoringDiagnosticKind _mapUsageKind(
       EnvironmentAuthoringDiagnosticKind.emptyAreaMask,
     EnvironmentLayerUsageDiagnosticKind.missingGeneratedPlacement =>
       EnvironmentAuthoringDiagnosticKind.missingGeneratedPlacement,
+    EnvironmentLayerUsageDiagnosticKind.spatialTerrainMissing => EnvironmentAuthoringDiagnosticKind.spatialTerrainMissing,
+    EnvironmentLayerUsageDiagnosticKind.duplicateGeneratedOwnership => EnvironmentAuthoringDiagnosticKind.duplicateGeneratedOwnership,
   };
 }
 

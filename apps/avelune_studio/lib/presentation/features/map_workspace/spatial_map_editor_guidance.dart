@@ -12,6 +12,29 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
         ? ''
         : 'case ${hit.cell.$1 + 1}, ${hit.cell.$2 + 1}';
     final pose = placementPreview;
+    if (widget.view.tool == StudioMapTool.border) {
+      final failure = widget.view.borderDraftErrorFor(
+        widget.document.current,
+        widget.project,
+      );
+      if (failure != null) return failure;
+      if (borderPreviewError != null) return borderPreviewError;
+      return widget.view.borderDraft == null
+          ? 'Bordures · Choisissez un modèle puis cliquez pour commencer le tracé.'
+          : 'Bordures · Clic : ajouter un angle · Départ : fermer · Entrée : appliquer · Échap : annuler';
+    }
+    if (widget.view.tool == StudioMapTool.environment) {
+      final session = widget.view.environment;
+      if (session == null) {
+        return 'Choisissez un environnement dans la palette, puis dessinez sa zone.';
+      }
+      final mode = switch (session.tool) {
+        EnvironmentPaintTool.brush => 'peindre la zone',
+        EnvironmentPaintTool.rectangle => 'dessiner un rectangle',
+        EnvironmentPaintTool.erase => 'retirer des cases',
+      };
+      return 'Environnement · ${hit == null ? "Pointez puis glissez" : cell}\nGlissez pour $mode ; relâchez pour valider. Préparez l’aperçu avant d’appliquer. Échap : annuler';
+    }
     if (widget.view.tool == StudioMapTool.place) {
       final model = widget.view.model3d;
       if (model == null) return 'Choisissez un décor à placer. $cameraHelp';
@@ -72,7 +95,9 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
     final scene = widget.document.current.spatialScene!;
     final stroke = reliefStroke;
     final targets = <(int, int)>{};
-    if (stroke != null &&
+    if (widget.view.tool == StudioMapTool.environment) {
+      if (hover != null && environmentGesture == null) targets.add(hover!.cell);
+    } else if (stroke != null &&
         stroke.mode == SpatialTerrainMode.ramp &&
         !stroke.erase) {
       for (

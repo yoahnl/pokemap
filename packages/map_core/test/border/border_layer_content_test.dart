@@ -8,7 +8,7 @@ void main() {
           BorderLayerContent.formatVersionV1);
       expect(
         BorderLayerContent.latestSupportedFormatVersion,
-        BorderLayerContent.formatVersionV3,
+        BorderLayerContent.formatVersionV4,
       );
       expect(
         BorderLayerContent.currentFormatVersion,
@@ -67,13 +67,14 @@ void main() {
       for (final version in <int>[
         BorderLayerContent.formatVersionV2,
         BorderLayerContent.formatVersionV3,
+        BorderLayerContent.formatVersionV4,
       ]) {
         expect(
           BorderLayerContent(formatVersion: version).formatVersion,
           version,
         );
       }
-      for (final version in <int>[0, 4]) {
+      for (final version in <int>[0, 5]) {
         expect(
           () => BorderLayerContent(formatVersion: version),
           throwsA(isA<ValidationException>()),

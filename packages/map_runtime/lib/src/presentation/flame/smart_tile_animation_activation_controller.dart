@@ -4,16 +4,16 @@ final class SmartTileAnimationActivationController {
   SmartTileAnimationActivationController({
     required MapData map,
     required ProjectSmartTileCatalog catalog,
-  })  : _mapSize = map.size,
-        _layerById = <String, SmartTileLayer>{
-          for (final layer in map.layers.whereType<SmartTileLayer>())
-            layer.id: layer,
-        },
-        _cycleDurationMsByLayerId = _cycleDurationsByLayer(
-          map: map,
-          catalog: catalog,
-        ),
-        _patternCellIndicesByLayerId = _patternCellIndicesByLayer(map);
+  }) : _mapSize = map.size,
+       _layerById = <String, SmartTileLayer>{
+         for (final layer in map.layers.whereType<SmartTileLayer>())
+           layer.id: layer,
+       },
+       _cycleDurationMsByLayerId = _cycleDurationsByLayer(
+         map: map,
+         catalog: catalog,
+       ),
+       _patternCellIndicesByLayerId = _patternCellIndicesByLayer(map);
 
   final GridSize _mapSize;
   final Map<String, SmartTileLayer> _layerById;
@@ -66,9 +66,10 @@ final class SmartTileAnimationActivationController {
         cellY >= _mapSize.height) {
       return false;
     }
-    return _startedAtMsByCell.containsKey(
-      (layerId, cellY * _mapSize.width + cellX),
-    );
+    return _startedAtMsByCell.containsKey((
+      layerId,
+      cellY * _mapSize.width + cellX,
+    ));
   }
 
   int elapsedMsForCell({
@@ -154,6 +155,7 @@ int _maximumPresetAnimationDuration(
     for (final candidate in rule.candidates) {
       for (final part in candidate.parts) {
         part.source.map(
+          model3d: (_) {},
           frame: (_) {},
           animation: (source) {
             final animation = animationById[source.animationId];

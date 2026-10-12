@@ -264,7 +264,7 @@ BorderStrokeGeometry _decodeStrokeGeometry(
 }
 
 void _requireSupportedGeometryFormatVersion(int value, String path) {
-  if (value < 1 || value > 3) {
+  if (value < 1 || value > 4) {
     throw FormatException('$path: unsupported Border geometry format version');
   }
 }

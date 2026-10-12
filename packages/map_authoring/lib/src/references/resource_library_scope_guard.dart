@@ -141,6 +141,7 @@ AuthoringMutationDraft guardResourceLibraryMutation(
   final original = context.snapshot;
   if (original.manifest.resourceLibraryCatalog.isEmpty &&
       context.request.actionId != 'resource.classify' &&
+      context.request.actionId != 'resource.classify_batch' &&
       draft.projectedProject?.resourceLibraryCatalog.isEmpty != false &&
       !draft.changeSet.changes
           .any((change) => change.resource.kind == 'project')) {
@@ -204,7 +205,8 @@ AuthoringMutationDraft guardResourceLibraryMutation(
           resourceKind: 'element',
           resourceId: newId,
           familyId: source.familyId,
-          mapId: source.mapId));
+          mapId: source.mapId,
+          role: source.role));
     }
   }
   if (staleEntries.isNotEmpty || inheritedEntries.isNotEmpty) {

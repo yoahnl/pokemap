@@ -268,6 +268,7 @@ final class ProjectModel3dEntry {
     required this.inspection,
     num scale = 1,
     Model3dVector3? pivot,
+    this.collisionBounds,
   }) : id = _id(id),
        name = _name(name),
        sourceAssetId = _id(sourceAssetId, maximumLength: 160),
@@ -283,6 +284,13 @@ final class ProjectModel3dEntry {
         'Model source must use its canonical project path.',
       );
     }
+    final collisionSize = collisionBounds?.size;
+    if (collisionSize != null &&
+        (collisionSize.x <= 0 ||
+            collisionSize.y <= 0 ||
+            collisionSize.z <= 0)) {
+      throw const FormatException('Model collision bounds must have volume.');
+    }
   }
   final String id;
   final String name;
@@ -291,11 +299,14 @@ final class ProjectModel3dEntry {
   final Model3dInspection inspection;
   final double scale;
   final Model3dVector3 pivot;
+  final Model3dBounds? collisionBounds;
 
   ProjectModel3dEntry copyWith({
     String? name,
     num? scale,
     Model3dVector3? pivot,
+    Model3dBounds? collisionBounds,
+    bool clearCollisionBounds = false,
   }) => ProjectModel3dEntry(
     id: id,
     name: name ?? this.name,
@@ -304,6 +315,9 @@ final class ProjectModel3dEntry {
     inspection: inspection,
     scale: scale ?? this.scale,
     pivot: pivot ?? this.pivot,
+    collisionBounds: clearCollisionBounds
+        ? null
+        : collisionBounds ?? this.collisionBounds,
   );
 
   @override
@@ -316,7 +330,8 @@ final class ProjectModel3dEntry {
           other.relativePath == relativePath &&
           other.inspection == inspection &&
           other.scale == scale &&
-          other.pivot == pivot;
+          other.pivot == pivot &&
+          other.collisionBounds == collisionBounds;
   @override
   int get hashCode => Object.hash(
     id,
@@ -326,6 +341,7 @@ final class ProjectModel3dEntry {
     inspection,
     scale,
     pivot,
+    collisionBounds,
   );
 
   factory ProjectModel3dEntry.fromJson(Map<String, dynamic> json) {
@@ -337,6 +353,7 @@ final class ProjectModel3dEntry {
       'inspection',
       'scale',
       'pivot',
+      if (json.containsKey('collisionBounds')) 'collisionBounds',
     });
     return ProjectModel3dEntry(
       id: json['id'] as String,
@@ -346,6 +363,9 @@ final class ProjectModel3dEntry {
       inspection: Model3dInspection.fromJson(_object(json['inspection'])),
       scale: _number(json['scale']),
       pivot: Model3dVector3.fromJson(_object(json['pivot'])),
+      collisionBounds: json['collisionBounds'] == null
+          ? null
+          : Model3dBounds.fromJson(_object(json['collisionBounds'])),
     );
   }
   Map<String, dynamic> toJson() => {
@@ -356,6 +376,7 @@ final class ProjectModel3dEntry {
     'inspection': inspection.toJson(),
     'scale': scale,
     'pivot': pivot.toJson(),
+    if (collisionBounds != null) 'collisionBounds': collisionBounds!.toJson(),
   };
 }
 

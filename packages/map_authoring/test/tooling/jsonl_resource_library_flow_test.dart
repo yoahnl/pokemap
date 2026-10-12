@@ -2,12 +2,178 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../domains/assets/resource_information_fixture.dart';
+import '../domains/maps/map_catalog_fixture.dart' show catalogMap;
 
 void main() {
   for (final direct in [true, false]) {
+    test(
+        'role-only changes preserve family and map through ${direct ? 'direct API' : 'JSONL'}',
+        () async {
+      final fixture =
+          await ResourceInformationFixture.create(smartInformationFixture());
+      addTearDown(fixture.dispose);
+      final map = catalogMap('a');
+      await Directory('${fixture.root.path}/maps').create();
+      await File('${fixture.root.path}/maps/a.json')
+          .writeAsString(jsonEncode(map.toJson()));
+      final project = (await fixture.read()).copyWith(
+        maps: const [
+          ProjectMapEntry(id: 'a', name: 'A', relativePath: 'maps/a.json')
+        ],
+        resourceLibraryCatalog: ResourceLibraryCatalog(entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'decor',
+            familyId: 'trees',
+            mapId: 'a',
+          )
+        ]),
+      );
+      final file = File('${fixture.root.path}/project.json');
+      await file.writeAsString(jsonEncode(project.toJson()));
+      await _mutate(fixture, direct, 'resource.classify', {
+        'resourceKind': 'element',
+        'resourceId': 'decor',
+        'role': 'component',
+      });
+      await _mutate(fixture, direct, 'resource.classify_batch', {
+        'entries': [
+          {'resourceKind': 'element', 'resourceId': 'decor', 'role': 'standard'}
+        ],
+      });
+      expect(
+          (await fixture.read()).resourceLibraryCatalog.entries.single.toJson(),
+          {
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'familyId': 'trees',
+            'mapId': 'a',
+          });
+      final source = jsonDecode(await file.readAsString()) as Map;
+      await _expectUnrelatedPayload(file, project.toJson());
+      expect(source['maps'], project.toJson()['maps']);
+    });
+    test(
+        'classification batch is atomic idempotent undoable and reopens through ${direct ? 'direct API' : 'JSONL'}',
+        () async {
+      final fixture =
+          await ResourceInformationFixture.create(smartInformationFixture());
+      addTearDown(fixture.dispose);
+      final file = File('${fixture.root.path}/project.json');
+      final raw = jsonDecode(await file.readAsString()) as Map;
+      (raw['smartTileCatalog'] as Map)['extensionData'] = {
+        'authored': 'preserved'
+      };
+      await file.writeAsString(jsonEncode(raw));
+      final before = await file.readAsBytes();
+      final snapshot =
+          await fixture.snapshots.load(ProjectHandle(fixture.project));
+      AuthoringRequest request(String id, {bool dryRun = false}) =>
+          AuthoringRequest(
+            requestId: id,
+            actionId: 'resource.classify_batch',
+            actionVersion: 1,
+            workspaceHandle: fixture.workspace,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: id,
+            dryRun: dryRun,
+            parameters: const {
+              'entries': [
+                {
+                  'resourceKind': 'element',
+                  'resourceId': 'decor',
+                  'familyId': 'trees',
+                  'role': 'component',
+                },
+                {
+                  'resourceKind': 'smartTilePreset',
+                  'resourceId': 'ground',
+                  'familyId': 'ground'
+                },
+              ]
+            },
+          );
+      Future<Map<String, Object?>> plan(AuthoringRequest request) async {
+        if (direct) {
+          return fixture.mutations
+              .plan(ProjectHandle(fixture.project), request);
+        }
+        final result = await fixture.command('plan',
+            {'projectHandle': fixture.project, 'request': request.toJson()});
+        expect(result.status, AuthoringResultStatus.success,
+            reason: '${result.toJson()}');
+        return result.data;
+      }
+
+      Future<Map<String, Object?>> apply(Map<String, Object?> planned) async {
+        if (direct) {
+          return fixture.mutations.apply(ProjectHandle(fixture.project),
+              planId: planned['planId'] as String, operationId: 'batch');
+        }
+        final result = await fixture.command('apply', {
+          'projectHandle': fixture.project,
+          'planId': planned['planId'],
+          'operationId': 'batch'
+        });
+        expect(result.status, AuthoringResultStatus.success,
+            reason: '${result.toJson()}');
+        return result.data;
+      }
+
+      expect(
+          (await plan(
+              request('dry-batch', dryRun: true)))['nonApplicableReason'],
+          'dry_run');
+      expect(await file.readAsBytes(), before);
+      final planned = await plan(request('batch'));
+      expect(await file.readAsBytes(), before);
+      final applied = await apply(planned);
+      expect((await apply(planned))['receipt'], applied['receipt']);
+      final manifest = await fixture.read();
+      expect(manifest.resourceLibraryCatalog.entries, hasLength(2));
+      expect(manifest.resourceLibraryCatalog.entryFor('element', 'decor')!.role,
+          ResourceLibraryRole.component);
+      await _expectUnrelatedPayload(file, raw);
+      expect((jsonDecode(await file.readAsString()) as Map)['smartTileCatalog'],
+          raw['smartTileCatalog']);
+      final history = await fixture.mutations
+          .history(ProjectHandle(fixture.project), limit: 100);
+      expect(history['entries'], hasLength(1));
+      final saved = await file.readAsBytes();
+      await fixture.command('close', {'projectHandle': fixture.project});
+      final reopened =
+          await fixture.command('open', {'projectRoot': fixture.root.path});
+      expect(reopened.status, AuthoringResultStatus.success);
+      final query = await fixture.command('query', {
+        'projectHandle': reopened.data['projectHandle'],
+        'request': AuthoringQueryRequest(
+                resourceKind: 'resourceLibraryEntry',
+                operation: AuthoringQueryOperation.list,
+                view: AuthoringQueryView.detail)
+            .toJson(),
+      });
+      expect(query.status, AuthoringResultStatus.success);
+      expect(query.data['items'], hasLength(2));
+      expect(
+          (query.data['items'] as List)
+              .cast<Map>()
+              .singleWhere((item) => item['resourceKind'] == 'element')['role'],
+          'component');
+      final entry = (history['entries'] as List).single as Map;
+      await fixture.mutations.undo(
+          ProjectHandle(reopened.data['projectHandle'] as String),
+          entryId: entry['entryId'] as String,
+          idempotencyKey: 'undo-batch');
+      await fixture
+          .command('close', {'projectHandle': reopened.data['projectHandle']});
+      expect(await file.readAsBytes(), before);
+      expect(saved, isNot(before));
+    });
+
     test(
         'resource library persists and reopens through ${direct ? 'direct API' : 'JSONL'} with exact unrelated payload',
         () async {
@@ -130,6 +296,98 @@ void main() {
     expect(refused.status, AuthoringResultStatus.failure);
     expect(await file.readAsBytes(), stable);
     expect(before, isNot(stable));
+  });
+
+  test(
+      'JSONL rejects a late invalid batch entry and stale batch without partial writes',
+      () async {
+    final fixture =
+        await ResourceInformationFixture.create(smartInformationFixture());
+    addTearDown(fixture.dispose);
+    final file = File('${fixture.root.path}/project.json');
+    final before = await file.readAsBytes();
+    for (final invalid in [
+      {'resourceKind': 'tileset', 'resourceId': 'missing'},
+      {'resourceKind': 'tileset', 'resourceId': 'sheet', 'familyId': 'missing'},
+      {'resourceKind': 'tileset', 'resourceId': 'sheet', 'mapId': 'missing'},
+    ]) {
+      final refused = await fixture.plan('resource.classify_batch', {
+        'entries': [
+          {
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'familyId': 'trees'
+          },
+          invalid,
+        ]
+      });
+      expect(refused.status, AuthoringResultStatus.failure);
+      expect(await file.readAsBytes(), before);
+      expect(
+          (await fixture.mutations
+              .history(ProjectHandle(fixture.project), limit: 100))['entries'],
+          isEmpty);
+    }
+    final planned = await fixture.plan('resource.classify_batch', {
+      'entries': [
+        {'resourceKind': 'element', 'resourceId': 'decor', 'familyId': 'trees'},
+        {'resourceKind': 'tileset', 'resourceId': 'sheet', 'familyId': 'props'},
+      ]
+    });
+    expect(planned.status, AuthoringResultStatus.success);
+    await fixture.mutate(
+        'resource.family.create', {'familyId': 'fresh', 'name': 'Fresh'});
+    final stable = await file.readAsBytes();
+    expect(
+        (await fixture.apply(planned)).status, AuthoringResultStatus.failure);
+    expect(await file.readAsBytes(), stable);
+    expect((await fixture.read()).resourceLibraryCatalog.entries, isEmpty);
+  });
+
+  test(
+      'JSONL batch rejects transitive scope conflict without partial classification',
+      () async {
+    final fixture =
+        await ResourceInformationFixture.create(smartInformationFixture());
+    addTearDown(fixture.dispose);
+    final file = File('${fixture.root.path}/project.json');
+    final maps = [
+      catalogMap('a'),
+      catalogMap('b').copyWith(placedElements: const [
+        MapPlacedElement(
+            id: 'placed',
+            layerId: 'base',
+            elementId: 'decor',
+            pos: GridPos(x: 1, y: 1)),
+      ])
+    ];
+    final project = (await fixture.read()).copyWith(maps: [
+      for (final map in maps)
+        ProjectMapEntry(
+            id: map.id, name: map.name, relativePath: 'maps/${map.id}.json'),
+    ]);
+    await Directory('${fixture.root.path}/maps').create();
+    for (final map in maps) {
+      await File('${fixture.root.path}/maps/${map.id}.json')
+          .writeAsString(jsonEncode(map.toJson()));
+    }
+    await file.writeAsString(jsonEncode(project.toJson()));
+    final before = await file.readAsBytes();
+    final refused = await fixture.plan('resource.classify_batch', {
+      'entries': [
+        {'resourceKind': 'element', 'resourceId': 'decor', 'familyId': 'trees'},
+        {'resourceKind': 'tileset', 'resourceId': 'sheet', 'mapId': 'a'},
+      ]
+    });
+    expect(refused.status, AuthoringResultStatus.failure);
+    expect(refused.error!.details['domainCode'],
+        'resource_library.scope_conflict');
+    expect(await file.readAsBytes(), before);
+    expect((await fixture.read()).resourceLibraryCatalog.entries, isEmpty);
+    expect(
+        (await fixture.mutations
+            .history(ProjectHandle(fixture.project), limit: 100))['entries'],
+        isEmpty);
   });
 
   test(

@@ -144,7 +144,7 @@ void _requireSupportedVersion(int value, String path) {
   if (value != ProjectBorderCatalog.formatVersionV1 &&
       value != ProjectBorderCatalog.formatVersionV2 &&
       value != ProjectBorderCatalog.formatVersionV3 &&
-      value != ProjectBorderCatalog.formatVersionV4) {
+      value != ProjectBorderCatalog.formatVersionV4 && value != ProjectBorderCatalog.formatVersionV5) {
     throw FormatException(
       '$path: expected ProjectBorderCatalog format version 1, 2, 3, or 4',
     );

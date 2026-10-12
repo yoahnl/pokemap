@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
+
 import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../../features/terrains/domain/terrain_connections.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/atlas_selection_view.dart';
 import 'terrain_scratch_view.dart';
+import '../map_workspace/map_workspace_visuals.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_source_list.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+import 'terrain_model_part_controls.dart';
 
 class TerrainSourcePanel extends StatelessWidget {
   const TerrainSourcePanel({
@@ -17,6 +24,8 @@ class TerrainSourcePanel extends StatelessWidget {
     required this.onAssign,
     required this.frameBuilder,
     this.selectedSource,
+    this.visuals,
+    this.onAssignModel,
   });
   final TerrainDraftController model;
   final TextEditingController name;
@@ -26,9 +35,104 @@ class TerrainSourcePanel extends StatelessWidget {
   final ValueChanged<TilesetSourceRect> onAssign;
   final TerrainFrameBuilder frameBuilder;
   final TilesetSourceRect? selectedSource;
+  final MapWorkspaceVisuals? visuals;
+  final ValueChanged<ProjectModel3dEntry>? onAssignModel;
 
   @override
   Widget build(BuildContext context) {
+    if (model.spatial) {
+      final part = model.partFor(model.selectedRule);
+      final source = part?.source;
+      final selected = source is SmartTileModel3dSource ? source.modelId : null;
+      return StudioPanel(
+        title: 'Ressource source',
+        compact: true,
+        children: [
+          TextField(
+            key: const ValueKey('terrain-name'),
+            controller: name,
+            decoration: const InputDecoration(labelText: 'Nom du terrain'),
+            onChanged: (value) {
+              model.rename(value);
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Raccord sélectionné : ${model.uniform ? 'Pièce unitaire' : terrainConnectionNames[model.selectedRule]}',
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Choisissez le modèle à placer dans chaque case peinte. Le sol reste indépendant.',
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: visuals == null
+                ? const StudioNotice('Aperçu indisponible')
+                : ResourceSourceList(
+                    project: model.manifest,
+                    visuals: visuals!,
+                    activeMapId: model.manifest.resourceLibraryCatalog
+                        .entryFor('smartTilePreset', model.draft.targetPresetId)
+                        ?.mapId,
+                    selectedIdentity: selected == null
+                        ? null
+                        : 'model3d:$selected',
+                    items: resourceCatalog(model.manifest)
+                        .where((item) => item.model3d != null)
+                        .toList(),
+                    onPick: (item) {
+                      if (onAssignModel != null) {
+                        onAssignModel!(item.model3d!);
+                      } else {
+                        model.assignModel(item.model3d!);
+                        onChanged();
+                      }
+                    },
+                  ),
+          ),
+          if (source is SmartTileModel3dSource && part != null) ...[
+            const SizedBox(height: 12),
+            TerrainModelPartControls(
+              key: ValueKey('model-part-${model.selectedRule}'),
+              part: part,
+              onApply: (scale, offsetX, offsetY, offsetZ, turns) {
+                model.assignModel(
+                  model.manifest.models3d.firstWhere(
+                    (model) => model.id == selected,
+                  ),
+                  scale: scale,
+                  offsetX: offsetX,
+                  offsetY: offsetY,
+                  offsetZ: offsetZ,
+                  quarterTurns: turns,
+                );
+                onChanged();
+              },
+            ),
+            if (!model.uniform)
+              StudioButton(
+                label: 'Utiliser pour tous les raccords',
+                secondary: true,
+                onPressed: () {
+                  model.assignModel(
+                    model.manifest.models3d.firstWhere(
+                      (model) => model.id == selected,
+                    ),
+                    all: true,
+                    scale: source.scale,
+                    offsetX: source.offsetX,
+                    offsetY: source.offsetY,
+                    offsetZ: source.offsetZ,
+                    quarterTurns: part.transform.quarterTurns,
+                  );
+                  onChanged();
+                },
+              ),
+          ],
+        ],
+      );
+    }
     final tileset = model.manifest.tilesets
         .where((t) => t.id == model.atlas.tilesetId)
         .firstOrNull;

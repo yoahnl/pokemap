@@ -28,6 +28,27 @@ mixin ResourceNavigationTerrain on ChangeNotifier {
       }
       return;
     }
+    if (item.model3d case final model?) {
+      if (workspace.project!.settings.dimension != ProjectDimension.threeD ||
+          item.metadata(workspace.project!)?.mapId != null) {
+        error =
+            'Créez ce chemin à partir d’un modèle partagé dans un projet 3D.';
+        showLibrary(item);
+        return;
+      }
+      final id =
+          'terrain-${DateTime.now().microsecondsSinceEpoch}-${++_terrainSequence}';
+      terrain = TerrainDraftController.spatial(
+        manifest: workspace.project!,
+        model: model,
+        id: id,
+      );
+      terrains[terrain!.draft.id] = terrain!;
+      error = null;
+      page = ResourcePage.terrain;
+      notifyListeners();
+      return;
+    }
     final tileset = item.tileset;
     if (tileset == null) return;
     final problem = terrainSourceCompatibilityProblem(tileset);

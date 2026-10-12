@@ -14,6 +14,7 @@ import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_navigation.dart';
 import 'model_animation_controls.dart';
+import 'model_collision_controls.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
@@ -347,6 +348,15 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     'Origine : ${model.pivot.x.toStringAsFixed(2)}, ${model.pivot.y.toStringAsFixed(2)}, ${model.pivot.z.toStringAsFixed(2)}',
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              ModelCollisionControls(
+                model: model,
+                busy: n.busy,
+                onSave: (bounds) => n.mutate('model3d.configure', {
+                  'modelId': model.id,
+                  'collisionBounds': bounds?.toJson(),
+                }),
               ),
               if (model.inspection.animations.isNotEmpty) ...[
                 const SizedBox(height: 16),

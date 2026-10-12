@@ -252,6 +252,56 @@ void main() {
   });
 
   testWidgets(
+    'a failed child load rejects replacement and keeps the old scene',
+    (tester) async {
+      final game = await _mountedGame(tester);
+      final scene = SpatialSceneComponents(game.world);
+      final rendered = <String>[];
+      final initial = scene.replace([_SceneProbe('old', rendered)]);
+      await tester.runAsync(game.ready);
+      await tester.runAsync(() => initial);
+      final gate = Completer<void>();
+      final failure = StateError('Scene child could not load');
+      final failed = _SceneProbe('failed', rendered, loading: gate);
+      final observedLoad = failed.loaded.catchError((Object _) {});
+      var committed = false;
+      final replacing = scene.replace([
+        failed,
+      ], onCommit: () => committed = true);
+      final loading = game.ready().catchError((Object _) {});
+      final outcome = replacing.then<Object>(
+        (value) => value,
+        onError: (Object error) => error,
+      );
+      try {
+        game.update(0);
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        gate.completeError(failure);
+        await tester.runAsync(
+          () => observedLoad.timeout(const Duration(seconds: 1)),
+        );
+        final result = await tester.runAsync(
+          () => outcome.timeout(
+            const Duration(milliseconds: 200),
+            onTimeout: () => TimeoutException('Replacement did not settle'),
+          ),
+        );
+        expect(result, same(failure));
+        await tester.runAsync(() => loading);
+        expect(committed, isFalse);
+        expect(_render(game.world, rendered), ['old']);
+        final next = scene.replace([_SceneProbe('recovered', rendered)]);
+        await tester.runAsync(game.ready);
+        expect(await tester.runAsync(() => next), isTrue);
+        expect(_render(game.world, rendered), ['recovered']);
+      } finally {
+        scene.cancelPending();
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets(
     'scene replacement preserves actors and removes animated ground',
     (tester) async {
       final game = await _mountedGame(tester);

@@ -70,6 +70,77 @@ void main() {
   });
 
   group('Smart Tile pattern gestures', () {
+    test(
+      'selected ownership erase preserves overlapping strokes and support',
+      () {
+        const lower = SmartTilePatternStroke(
+          id: 'lower',
+          patternId: 'pattern',
+          phaseX: 1,
+          phaseY: 2,
+          cells: [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+        );
+        const upper = SmartTilePatternStroke(
+          id: 'upper',
+          patternId: 'pattern',
+          phaseX: 3,
+          phaseY: 4,
+          cells: [GridPos(x: 0, y: 0)],
+        );
+        final layer = _layer().copyWith(patternStrokes: [lower, upper]);
+        final erased = eraseSmartTilePatternCells(
+          layer,
+          mapSize: const GridSize(width: 5, height: 4),
+          cells: const [GridPos(x: 0, y: 0)],
+          strokeIds: const ['upper'],
+        );
+        expect(erased.patternStrokes, [lower]);
+        expect(erased.field, layer.field);
+        expect(erased.materialPalette, layer.materialPalette);
+        expect(layer.patternStrokes, [lower, upper]);
+        expect(
+          eraseSmartTilePatternCells(
+            layer,
+            mapSize: const GridSize(width: 5, height: 4),
+            cells: const [GridPos(x: 0, y: 0)],
+          ).patternStrokes.single.cells,
+          const [GridPos(x: 1, y: 0)],
+        );
+      },
+    );
+
+    test('selected ownership erase rejects invalid identities atomically', () {
+      final layer = _layer().copyWith(
+        patternStrokes: const [
+          SmartTilePatternStroke(
+            id: 'upper',
+            patternId: 'pattern',
+            phaseX: 0,
+            phaseY: 0,
+            cells: [GridPos(x: 0, y: 0)],
+          ),
+        ],
+      );
+      for (final ids in <List<String>>[
+        [],
+        ['upper', 'upper'],
+        ['unknown'],
+        ['upper', 'unknown'],
+        [' upper'],
+      ]) {
+        expect(
+          () => eraseSmartTilePatternCells(
+            layer,
+            mapSize: const GridSize(width: 5, height: 4),
+            cells: const [GridPos(x: 0, y: 0)],
+            strokeIds: ids,
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+        expect(layer.patternStrokes.single.id, 'upper');
+      }
+    });
+
     test('stamp aligns the authored anchor and reports collision updates', () {
       final result = applySmartTilePatternGesture(
         _layer(),

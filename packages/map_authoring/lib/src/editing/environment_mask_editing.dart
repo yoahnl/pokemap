@@ -108,6 +108,7 @@ MapData _editMask(
           seed: area.seed,
           paramsOverride: area.paramsOverride,
           generatedPlacementIds: area.generatedPlacementIds,
+          manualPlacementIds: area.manualPlacementIds,
         );
       },
     );
@@ -140,6 +141,7 @@ MapData _editMaskCells(
           seed: area.seed,
           paramsOverride: area.paramsOverride,
           generatedPlacementIds: area.generatedPlacementIds,
+          manualPlacementIds: area.manualPlacementIds,
         );
       },
     );
@@ -165,5 +167,6 @@ MapData _clearMask(
         seed: area.seed,
         paramsOverride: area.paramsOverride,
         generatedPlacementIds: area.generatedPlacementIds,
+        manualPlacementIds: area.manualPlacementIds,
       ),
     );

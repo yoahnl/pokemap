@@ -10,6 +10,7 @@ import '../models/project_manifest.dart';
 import '../models/smart_tile.dart';
 import '../operations/border_materialization_freshness.dart';
 import '../operations/border_rle_codec.dart';
+import '../operations/spatial_border_resolution.dart';
 
 enum BorderBlueprintValidationPurpose {
   authoring,
@@ -45,6 +46,27 @@ BorderDiagnosticsReport diagnoseBorderBlueprint(
       for (final element in project.elements) element.id
     };
     for (final primitive in draft.primitives) {
+      if (primitive.isSpatial) {
+        if (!project.models3d.any(
+          (model) => model.id == primitive.sourceModelId,
+        )) {
+          diagnostics.add(
+            _diagnostic(
+              code: 'border.spatial.source_model_missing',
+              severity: BorderDiagnosticSeverity.error,
+              phase: phase,
+              scope: BorderDiagnosticScope.primitive,
+              blueprintId: record.id,
+              parameters: {
+                'primitiveId': primitive.id,
+                'sourceModelId': primitive.sourceModelId,
+              },
+              action: 'border.action.select_existing_source_model',
+            ),
+          );
+        }
+        continue;
+      }
       if (!elementIds.contains(primitive.sourceElementId)) {
         diagnostics.add(_diagnostic(
           code: 'border.blueprint.source_element_missing',
@@ -106,6 +128,16 @@ BorderDiagnosticsReport diagnoseBorderBlueprint(
     }
   } else {
     final definition = published.definition;
+    if (definition.isSpatial) {
+      diagnostics.addAll(
+        validateSpatialBorderBlueprint(
+          blueprintId: record.id,
+          definition: definition,
+          manifest: project,
+        ).diagnostics,
+      );
+      return BorderDiagnosticsReport(diagnostics: diagnostics);
+    }
     _diagnoseDuplicatePrimitiveIds(
       definition.primitives,
       idOf: (primitive) => primitive.id,

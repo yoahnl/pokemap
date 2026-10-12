@@ -100,6 +100,20 @@ class MapWorkspaceLayout extends StatelessWidget {
       final project = controller.project;
       final ready =
           doc != null && project != null && visuals != null && view != null;
+      final borderDraftError =
+          ready &&
+              activeSpace == 'map' &&
+              resourceContent == null &&
+              controller.error == null &&
+              visuals is SpatialWorkspaceVisuals &&
+              !doc.saving &&
+              !controller.catalogLocks(doc.base.mapId)
+          ? view!.borderDraftErrorFor(doc.current, project)
+          : null;
+      final errorInBorderFooter =
+          error != null &&
+          error == doc?.error &&
+          error == borderDraftError;
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
       final compactInspector = availableWidth < 1200 || largeText;
@@ -257,7 +271,8 @@ class MapWorkspaceLayout extends StatelessWidget {
         child: Column(
           children: [
             if (!headerBar && toolbar != null) toolbar,
-            if (error != null) StudioNotice(error!, isError: true, maxLines: 2),
+            if (error != null && !errorInBorderFooter)
+              StudioNotice(error!, isError: true, maxLines: 2),
             if (error == null && movingHint != null)
               StudioNotice(movingHint!, maxLines: 2),
             Expanded(

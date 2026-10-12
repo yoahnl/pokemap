@@ -19,10 +19,26 @@ Widget resourcePreview(
   double size = 80,
   bool terrainPattern = false,
 }) {
-  if (item.model3d != null) {
+  final model =
+      item.model3d ??
+      project.models3d
+          .where(
+            (model) =>
+                model.id ==
+                (item.environment?.palette.firstOrNull?.modelId ??
+                    item
+                        .border
+                        ?.draft
+                        .definition
+                        .primitives
+                        .firstOrNull
+                        ?.sourceModelId),
+          )
+          .firstOrNull;
+  if (model != null) {
     return SizedBox.square(
       dimension: size,
-      child: _ModelResourcePreview(model: item.model3d!, visuals: visuals),
+      child: _ModelResourcePreview(model: model, visuals: visuals),
     );
   }
   if (item.element != null) return visuals.thumbnail(item.element!, size: size);
@@ -77,6 +93,17 @@ Widget resourcePreview(
     for (final rule in preset.rules) {
       for (final candidate in rule.candidates) {
         for (final part in candidate.parts) {
+          if (part.source case SmartTileModel3dSource(:final modelId)) {
+            final model = project.models3d
+                .where((model) => model.id == modelId)
+                .firstOrNull;
+            if (model != null) {
+              return SizedBox.square(
+                dimension: size,
+                child: _ModelResourcePreview(model: model, visuals: visuals),
+              );
+            }
+          }
           if (part.source case SmartTileFrameSource(:final frame)) {
             final atlas = project.smartTileCatalog.atlases
                 .where((a) => a.id == frame.atlasId)

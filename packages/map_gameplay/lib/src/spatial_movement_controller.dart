@@ -723,7 +723,8 @@ final class SpatialMovementController {
     if (model == null) {
       throw StateError('Modèle de collision absent : ${instance.modelId}');
     }
-    final geometry = spatialModelWorldGeometry(instance, model);
+    final geometry =
+        spatialModelWorldGeometry(instance, model, useCollisionBounds: true);
     final actorHeight = scene.worldHeightAt(
         rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
         rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);

@@ -502,6 +502,7 @@ final class MapMutationDispatcher {
     final result = _registration(context.request.actionId).build(context);
     if (context.request.actionId.startsWith('resource.family.') ||
         context.request.actionId == 'resource.classify' ||
+        context.request.actionId == 'resource.classify_batch' ||
         MapLifecycleActions.descriptors
             .any((descriptor) => descriptor.id == context.request.actionId)) {
       return result;

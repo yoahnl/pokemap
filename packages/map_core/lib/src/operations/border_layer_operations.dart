@@ -18,9 +18,7 @@ MapData addBorderLayer(
 }) {
   if (insertIndex != null &&
       (insertIndex < 0 || insertIndex > map.layers.length)) {
-    throw ValidationException(
-      'Invalid Border layer insertIndex: $insertIndex',
-    );
+    throw ValidationException('Invalid Border layer insertIndex: $insertIndex');
   }
   return addMapLayer(
     map,
@@ -37,18 +35,21 @@ MapData setBorderLayerContent(
   required String layerId,
   required BorderLayerContent content,
 }) {
+  if (map.spatialScene == null && content.features.any((feature) => feature.spatialOffsetWorld != null)) {
+    throw const ValidationException('A spatial Border offset requires a 3D map');
+  }
   return _updateBorderLayer(
     map,
     layerId: layerId,
-    update: (layer) => layer.copyWith(
-      content: _contentForCompleteWrite(content),
-    ),
+    update: (layer) =>
+        layer.copyWith(content: _contentForCompleteWrite(content)),
   );
 }
 
 BorderLayerContent _contentForCompleteWrite(BorderLayerContent content) {
-  final minimumVersion =
-      minimumBorderLayerFormatVersionForFeatures(content.features);
+  final minimumVersion = minimumBorderLayerFormatVersionForFeatures(
+    content.features,
+  );
   if (content.formatVersion >= minimumVersion) {
     return content;
   }
@@ -66,13 +67,17 @@ MapData upsertBorderFeature(
   required BorderFeature feature,
   BorderBlueprintTemplate? template,
 }) {
+  if (map.spatialScene == null && feature.spatialOffsetWorld != null) {
+    throw const ValidationException('A spatial Border offset requires a 3D map');
+  }
   return _updateBorderLayer(
     map,
     layerId: layerId,
     update: (layer) {
       final features = List<BorderFeature>.from(layer.content.features);
-      final index =
-          features.indexWhere((candidate) => candidate.id == feature.id);
+      final index = features.indexWhere(
+        (candidate) => candidate.id == feature.id,
+      );
       if (index < 0) {
         features.add(feature);
       } else {
@@ -101,8 +106,11 @@ int _formatVersionForFeatureWrite(
       ? BorderLayerContent.formatVersionV1
       : minimumBorderCatalogFormatVersionForTemplate(template);
   final featureVersion = minimumBorderLayerFormatVersionForFeatures(features);
-  return <int>[content.formatVersion, templateVersion, featureVersion]
-      .reduce((left, right) => left > right ? left : right);
+  return <int>[
+    content.formatVersion,
+    templateVersion,
+    featureVersion,
+  ].reduce((left, right) => left > right ? left : right);
 }
 
 /// Removes one feature while preserving every other feature in authored order.
@@ -111,7 +119,17 @@ MapData removeBorderFeature(
   required String layerId,
   required String featureId,
 }) {
-  return _updateBorderLayer(
+  final ownedIds =
+      map.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == layerId)
+          .firstOrNull
+          ?.content
+          .featureById(featureId)
+          ?.generatedPlacementIds
+          .toSet() ??
+      const <String>{};
+  final updated = _updateBorderLayer(
     map,
     layerId: layerId,
     update: (layer) {
@@ -133,6 +151,16 @@ MapData removeBorderFeature(
       );
     },
   );
+  final scene = updated.spatialScene;
+  return scene == null || ownedIds.isEmpty
+      ? updated
+      : updated.copyWith(
+          spatialScene: scene.copyWith(
+            instances: scene.instances.where(
+              (instance) => !ownedIds.contains(instance.id),
+            ),
+          ),
+        );
 }
 
 /// Moves one feature to the strict final [newIndex].
@@ -156,9 +184,7 @@ MapData reorderBorderFeature(
         );
       }
       if (newIndex < 0 || newIndex >= features.length) {
-        throw ValidationException(
-          'Invalid Border feature newIndex: $newIndex',
-        );
+        throw ValidationException('Invalid Border feature newIndex: $newIndex');
       }
 
       final feature = features.removeAt(oldIndex);
@@ -182,9 +208,7 @@ MapData _updateBorderLayer(
   if (normalizedLayerId.isEmpty) {
     throw const ValidationException('Layer ID cannot be empty');
   }
-  final index = map.layers.indexWhere(
-    (layer) => layer.id == normalizedLayerId,
-  );
+  final index = map.layers.indexWhere((layer) => layer.id == normalizedLayerId);
   if (index < 0) {
     throw ValidationException('Layer not found: $normalizedLayerId');
   }
@@ -198,7 +222,9 @@ MapData _updateBorderLayer(
   final layers = List<MapLayer>.from(map.layers, growable: false);
   layers[index] = update(layer);
   return map.copyWith(
-    version: ProjectVersion.v8,
+    version: map.version == ProjectVersion.v9
+        ? ProjectVersion.v9
+        : ProjectVersion.v8,
     layers: layers,
   );
 }

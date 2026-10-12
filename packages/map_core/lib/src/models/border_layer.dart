@@ -13,7 +13,8 @@ final class BorderLayerContent {
   static const int formatVersionV1 = 1;
   static const int formatVersionV2 = 2;
   static const int formatVersionV3 = 3;
-  static const int latestSupportedFormatVersion = formatVersionV3;
+  static const int formatVersionV4 = 4;
+  static const int latestSupportedFormatVersion = formatVersionV4;
 
   /// Backward-compatible alias for [latestSupportedFormatVersion].
   ///
@@ -33,9 +34,10 @@ final class BorderLayerContent {
   }) : _features = List<BorderFeature>.unmodifiable(features) {
     if (formatVersion != formatVersionV1 &&
         formatVersion != formatVersionV2 &&
-        formatVersion != formatVersionV3) {
+        formatVersion != formatVersionV3 &&
+        formatVersion != formatVersionV4) {
       throw ValidationException(
-        'BorderLayerContent.formatVersion must be 1, 2, or 3',
+        'BorderLayerContent.formatVersion must be between 1 and 4',
       );
     }
 

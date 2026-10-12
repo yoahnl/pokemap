@@ -227,6 +227,34 @@ Map<String, dynamic> _$SmartTileAnimationSourceToJson(
   'kind': instance.$type,
 };
 
+SmartTileModel3dSource _$SmartTileModel3dSourceFromJson(
+  Map<String, dynamic> json,
+) => SmartTileModel3dSource(
+  modelId: json['modelId'] as String,
+  scale: (json['scale'] as num?)?.toDouble() ?? 1,
+  offsetX: (json['offsetX'] as num?)?.toDouble() ?? 0,
+  offsetY: (json['offsetY'] as num?)?.toDouble() ?? 0,
+  offsetZ: (json['offsetZ'] as num?)?.toDouble() ?? 0,
+  animationIndex: (json['animationIndex'] as num?)?.toInt(),
+  followTerrain: json['followTerrain'] as bool? ?? true,
+  replacesGround: json['replacesGround'] as bool? ?? false,
+  $type: json['kind'] as String?,
+);
+
+Map<String, dynamic> _$SmartTileModel3dSourceToJson(
+  SmartTileModel3dSource instance,
+) => <String, dynamic>{
+  'modelId': instance.modelId,
+  'scale': instance.scale,
+  'offsetX': instance.offsetX,
+  'offsetY': instance.offsetY,
+  'offsetZ': instance.offsetZ,
+  'animationIndex': instance.animationIndex,
+  'followTerrain': instance.followTerrain,
+  'replacesGround': instance.replacesGround,
+  'kind': instance.$type,
+};
+
 _SmartTileVisualPart _$SmartTileVisualPartFromJson(
   Map<String, dynamic> json,
 ) => _SmartTileVisualPart(

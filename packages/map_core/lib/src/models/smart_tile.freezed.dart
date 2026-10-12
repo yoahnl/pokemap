@@ -2238,6 +2238,10 @@ SmartTileVisualSource _$SmartTileVisualSourceFromJson(
           return SmartTileAnimationSource.fromJson(
             json
           );
+                case 'model3d':
+          return SmartTileModel3dSource.fromJson(
+            json
+          );
 
           default:
             throw CheckedFromJsonException(
@@ -2296,12 +2300,13 @@ extension SmartTileVisualSourcePatterns on SmartTileVisualSource {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SmartTileFrameSource value)?  frame,TResult Function( SmartTileAnimationSource value)?  animation,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SmartTileFrameSource value)?  frame,TResult Function( SmartTileAnimationSource value)?  animation,TResult Function( SmartTileModel3dSource value)?  model3d,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case SmartTileFrameSource() when frame != null:
 return frame(_that);case SmartTileAnimationSource() when animation != null:
-return animation(_that);case _:
+return animation(_that);case SmartTileModel3dSource() when model3d != null:
+return model3d(_that);case _:
   return orElse();
 
 }
@@ -2319,12 +2324,13 @@ return animation(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SmartTileFrameSource value)  frame,required TResult Function( SmartTileAnimationSource value)  animation,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SmartTileFrameSource value)  frame,required TResult Function( SmartTileAnimationSource value)  animation,required TResult Function( SmartTileModel3dSource value)  model3d,}){
 final _that = this;
 switch (_that) {
 case SmartTileFrameSource():
 return frame(_that);case SmartTileAnimationSource():
-return animation(_that);}
+return animation(_that);case SmartTileModel3dSource():
+return model3d(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -2338,12 +2344,13 @@ return animation(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SmartTileFrameSource value)?  frame,TResult? Function( SmartTileAnimationSource value)?  animation,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SmartTileFrameSource value)?  frame,TResult? Function( SmartTileAnimationSource value)?  animation,TResult? Function( SmartTileModel3dSource value)?  model3d,}){
 final _that = this;
 switch (_that) {
 case SmartTileFrameSource() when frame != null:
 return frame(_that);case SmartTileAnimationSource() when animation != null:
-return animation(_that);case _:
+return animation(_that);case SmartTileModel3dSource() when model3d != null:
+return model3d(_that);case _:
   return null;
 
 }
@@ -2360,11 +2367,12 @@ return animation(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SmartTileFrameRef frame)?  frame,TResult Function( String animationId)?  animation,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SmartTileFrameRef frame)?  frame,TResult Function( String animationId)?  animation,TResult Function( String modelId,  double scale,  double offsetX,  double offsetY,  double offsetZ,  int? animationIndex,  bool followTerrain,  bool replacesGround)?  model3d,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SmartTileFrameSource() when frame != null:
 return frame(_that.frame);case SmartTileAnimationSource() when animation != null:
-return animation(_that.animationId);case _:
+return animation(_that.animationId);case SmartTileModel3dSource() when model3d != null:
+return model3d(_that.modelId,_that.scale,_that.offsetX,_that.offsetY,_that.offsetZ,_that.animationIndex,_that.followTerrain,_that.replacesGround);case _:
   return orElse();
 
 }
@@ -2382,11 +2390,12 @@ return animation(_that.animationId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SmartTileFrameRef frame)  frame,required TResult Function( String animationId)  animation,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SmartTileFrameRef frame)  frame,required TResult Function( String animationId)  animation,required TResult Function( String modelId,  double scale,  double offsetX,  double offsetY,  double offsetZ,  int? animationIndex,  bool followTerrain,  bool replacesGround)  model3d,}) {final _that = this;
 switch (_that) {
 case SmartTileFrameSource():
 return frame(_that.frame);case SmartTileAnimationSource():
-return animation(_that.animationId);}
+return animation(_that.animationId);case SmartTileModel3dSource():
+return model3d(_that.modelId,_that.scale,_that.offsetX,_that.offsetY,_that.offsetZ,_that.animationIndex,_that.followTerrain,_that.replacesGround);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2400,11 +2409,12 @@ return animation(_that.animationId);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SmartTileFrameRef frame)?  frame,TResult? Function( String animationId)?  animation,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SmartTileFrameRef frame)?  frame,TResult? Function( String animationId)?  animation,TResult? Function( String modelId,  double scale,  double offsetX,  double offsetY,  double offsetZ,  int? animationIndex,  bool followTerrain,  bool replacesGround)?  model3d,}) {final _that = this;
 switch (_that) {
 case SmartTileFrameSource() when frame != null:
 return frame(_that.frame);case SmartTileAnimationSource() when animation != null:
-return animation(_that.animationId);case _:
+return animation(_that.animationId);case SmartTileModel3dSource() when model3d != null:
+return model3d(_that.modelId,_that.scale,_that.offsetX,_that.offsetY,_that.offsetZ,_that.animationIndex,_that.followTerrain,_that.replacesGround);case _:
   return null;
 
 }
@@ -2561,6 +2571,93 @@ class _$SmartTileAnimationSourceCopyWithImpl<$Res>
   return _then(SmartTileAnimationSource(
 animationId: null == animationId ? _self.animationId : animationId // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class SmartTileModel3dSource implements SmartTileVisualSource {
+  const SmartTileModel3dSource({required this.modelId, this.scale = 1, this.offsetX = 0, this.offsetY = 0, this.offsetZ = 0, this.animationIndex, this.followTerrain = true, this.replacesGround = false, final  String? $type}): $type = $type ?? 'model3d';
+  factory SmartTileModel3dSource.fromJson(Map<String, dynamic> json) => _$SmartTileModel3dSourceFromJson(json);
+
+ final  String modelId;
+@JsonKey() final  double scale;
+@JsonKey() final  double offsetX;
+@JsonKey() final  double offsetY;
+@JsonKey() final  double offsetZ;
+ final  int? animationIndex;
+@JsonKey() final  bool followTerrain;
+@JsonKey() final  bool replacesGround;
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+/// Create a copy of SmartTileVisualSource
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SmartTileModel3dSourceCopyWith<SmartTileModel3dSource> get copyWith => _$SmartTileModel3dSourceCopyWithImpl<SmartTileModel3dSource>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SmartTileModel3dSourceToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileModel3dSource&&(identical(other.modelId, modelId) || other.modelId == modelId)&&(identical(other.scale, scale) || other.scale == scale)&&(identical(other.offsetX, offsetX) || other.offsetX == offsetX)&&(identical(other.offsetY, offsetY) || other.offsetY == offsetY)&&(identical(other.offsetZ, offsetZ) || other.offsetZ == offsetZ)&&(identical(other.animationIndex, animationIndex) || other.animationIndex == animationIndex)&&(identical(other.followTerrain, followTerrain) || other.followTerrain == followTerrain)&&(identical(other.replacesGround, replacesGround) || other.replacesGround == replacesGround));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,modelId,scale,offsetX,offsetY,offsetZ,animationIndex,followTerrain,replacesGround);
+
+@override
+String toString() {
+  return 'SmartTileVisualSource.model3d(modelId: $modelId, scale: $scale, offsetX: $offsetX, offsetY: $offsetY, offsetZ: $offsetZ, animationIndex: $animationIndex, followTerrain: $followTerrain, replacesGround: $replacesGround)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SmartTileModel3dSourceCopyWith<$Res> implements $SmartTileVisualSourceCopyWith<$Res> {
+  factory $SmartTileModel3dSourceCopyWith(SmartTileModel3dSource value, $Res Function(SmartTileModel3dSource) _then) = _$SmartTileModel3dSourceCopyWithImpl;
+@useResult
+$Res call({
+ String modelId, double scale, double offsetX, double offsetY, double offsetZ, int? animationIndex, bool followTerrain, bool replacesGround
+});
+
+
+
+
+}
+/// @nodoc
+class _$SmartTileModel3dSourceCopyWithImpl<$Res>
+    implements $SmartTileModel3dSourceCopyWith<$Res> {
+  _$SmartTileModel3dSourceCopyWithImpl(this._self, this._then);
+
+  final SmartTileModel3dSource _self;
+  final $Res Function(SmartTileModel3dSource) _then;
+
+/// Create a copy of SmartTileVisualSource
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? modelId = null,Object? scale = null,Object? offsetX = null,Object? offsetY = null,Object? offsetZ = null,Object? animationIndex = freezed,Object? followTerrain = null,Object? replacesGround = null,}) {
+  return _then(SmartTileModel3dSource(
+modelId: null == modelId ? _self.modelId : modelId // ignore: cast_nullable_to_non_nullable
+as String,scale: null == scale ? _self.scale : scale // ignore: cast_nullable_to_non_nullable
+as double,offsetX: null == offsetX ? _self.offsetX : offsetX // ignore: cast_nullable_to_non_nullable
+as double,offsetY: null == offsetY ? _self.offsetY : offsetY // ignore: cast_nullable_to_non_nullable
+as double,offsetZ: null == offsetZ ? _self.offsetZ : offsetZ // ignore: cast_nullable_to_non_nullable
+as double,animationIndex: freezed == animationIndex ? _self.animationIndex : animationIndex // ignore: cast_nullable_to_non_nullable
+as int?,followTerrain: null == followTerrain ? _self.followTerrain : followTerrain // ignore: cast_nullable_to_non_nullable
+as bool,replacesGround: null == replacesGround ? _self.replacesGround : replacesGround // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

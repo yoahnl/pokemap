@@ -44,13 +44,20 @@ final class SpatialSceneComponents {
     final pending = _PendingScene(staged);
     _pending = pending;
     try {
-      parent.addAll(staged);
       final ready = parent.isMounted
           ? Future.wait([
-              for (final batch in staged) batch.mounted,
-              for (final child in descendants) child.mounted,
-            ]).then((_) => true)
+                  for (final batch in staged) batch.loaded,
+                  for (final child in descendants) child.loaded,
+                ], eagerError: true)
+                .then(
+                  (_) => Future.wait([
+                    for (final batch in staged) batch.mounted,
+                    for (final child in descendants) child.mounted,
+                  ]),
+                )
+                .then((_) => true)
           : Future.value(true);
+      parent.addAll(staged);
       final mounted = await Future.any([ready, pending.cancelled.future]);
       if (!mounted ||
           !identical(_pending, pending) ||

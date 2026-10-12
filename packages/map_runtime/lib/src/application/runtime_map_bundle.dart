@@ -5,12 +5,17 @@ import '../border/border_runtime_preparation.dart';
 class RuntimeMapBundle {
   RuntimeMapBundle({
     required this.manifest,
-    required this.map,
+    required MapData map,
     required this.projectRootDirectory,
     required this.tilesetAbsolutePathsById,
     this.characterAnimationAbsolutePathsByAssetId = const <String, String>{},
     this.borderRuntimePreparation,
-  });
+  }) : map = projectSpatialSmartTileModels(
+         map: map,
+         catalog: manifest.smartTileCatalog,
+         sourceCellWidth: manifest.settings.tileWidth,
+         sourceCellHeight: manifest.settings.tileHeight,
+       );
 
   final ProjectManifest manifest;
   final MapData map;
@@ -20,10 +25,10 @@ class RuntimeMapBundle {
   final BorderRuntimePreparation? borderRuntimePreparation;
 
   Map<String, String> get runtimeImageAbsolutePathsById => <String, String>{
-        ...tilesetAbsolutePathsById,
-        for (final entry in characterAnimationAbsolutePathsByAssetId.entries)
-          'character-animation:${entry.key}': entry.value,
-      };
+    ...tilesetAbsolutePathsById,
+    for (final entry in characterAnimationAbsolutePathsByAssetId.entries)
+      'character-animation:${entry.key}': entry.value,
+  };
 
   RuntimeMapBundle copyWith({
     ProjectManifest? manifest,
@@ -37,7 +42,8 @@ class RuntimeMapBundle {
     final nextManifest = manifest ?? this.manifest;
     final nextMap = map ?? this.map;
     final nextProjectRoot = projectRootDirectory ?? this.projectRootDirectory;
-    final preparationInputsChanged = !identical(nextManifest, this.manifest) ||
+    final preparationInputsChanged =
+        !identical(nextManifest, this.manifest) ||
         !identical(nextMap, this.map) ||
         nextProjectRoot != this.projectRootDirectory;
     return RuntimeMapBundle(
@@ -48,11 +54,11 @@ class RuntimeMapBundle {
           tilesetAbsolutePathsById ?? this.tilesetAbsolutePathsById,
       characterAnimationAbsolutePathsByAssetId:
           characterAnimationAbsolutePathsByAssetId ??
-              this.characterAnimationAbsolutePathsByAssetId,
+          this.characterAnimationAbsolutePathsByAssetId,
       borderRuntimePreparation:
           clearBorderRuntimePreparation || preparationInputsChanged
-              ? null
-              : borderRuntimePreparation ?? this.borderRuntimePreparation,
+          ? null
+          : borderRuntimePreparation ?? this.borderRuntimePreparation,
     );
   }
 

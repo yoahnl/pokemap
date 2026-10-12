@@ -136,7 +136,8 @@ SmartTileCoverageReport analyzeSmartTileCoverage({
     diagnostics.add(
       const SmartTileCoverageDiagnostic(
         code: 'smart_tiles.coverage.explicit_scenarios_required',
-        message: 'Multi-material exact Wang coverage requires a crossed '
+        message:
+            'Multi-material exact Wang coverage requires a crossed '
             'explicit scenario.',
       ),
     );
@@ -189,11 +190,7 @@ SmartTileCoverageReport analyzeSmartTileCoverage({
   final cases = <SmartTileCoverageCase>[];
   for (var index = 0; index < selected.length; index += 1) {
     final input = selected[index];
-    final resolution = resolver.resolve(
-      context: input.context,
-      x: index,
-      y: 0,
-    );
+    final resolution = resolver.resolve(context: input.context, x: index, y: 0);
     final status = _coverageStatus(
       resolution,
       atlasById: atlasById,
@@ -295,12 +292,11 @@ List<_CoverageInput>? _templateCoverageInputs({
 bool _hasExplicitCenterMaterialRule(
   ProjectSmartTilePreset preset,
   String materialId,
-) =>
-    preset.rules.any(
-      (rule) =>
-          rule.centerMatch.kind == SmartTileMatchKind.material &&
-          rule.centerMatch.materialId == materialId,
-    );
+) => preset.rules.any(
+  (rule) =>
+      rule.centerMatch.kind == SmartTileMatchKind.material &&
+      rule.centerMatch.materialId == materialId,
+);
 
 _CoverageInput _templateCoverageInput({
   required int mask,
@@ -389,7 +385,8 @@ List<_CoverageInput>? _unionCoverageInputs(
     diagnostics.add(
       SmartTileCoverageDiagnostic(
         code: 'smart_tiles.coverage.scenario_id_collision',
-        message: 'Coverage scenario id "${input.id}" has conflicting '
+        message:
+            'Coverage scenario id "${input.id}" has conflicting '
             'content.',
         scenarioId: input.id,
       ),
@@ -450,8 +447,10 @@ List<Set<String>> _multiMaterialExactWangMaterialSets(
   for (final rule in preset.rules) {
     if (rule.id == preset.fallbackRuleId) continue;
     final materials = <String>{};
-    for (final match
-        in _activeSignatureMatches(rule.signature, preset.topology)) {
+    for (final match in _activeSignatureMatches(
+      rule.signature,
+      preset.topology,
+    )) {
       final materialId = match.materialId;
       if (match.kind == SmartTileMatchKind.material && materialId != null) {
         materials.add(materialId);
@@ -499,29 +498,28 @@ Iterable<SmartTileSlotMatch> _activeSignatureMatches(
   return switch (topology) {
     SmartTileTopology.uniform => const <SmartTileSlotMatch>[],
     SmartTileTopology.cardinal4 ||
-    SmartTileTopology.wangEdge4 =>
-      <SmartTileSlotMatch>[
-        signature.northEdge,
-        signature.eastEdge,
-        signature.southEdge,
-        signature.westEdge,
-      ],
+    SmartTileTopology.wangEdge4 => <SmartTileSlotMatch>[
+      signature.northEdge,
+      signature.eastEdge,
+      signature.southEdge,
+      signature.westEdge,
+    ],
     SmartTileTopology.wangCorner4 => <SmartTileSlotMatch>[
-        signature.northEastCorner,
-        signature.southEastCorner,
-        signature.southWestCorner,
-        signature.northWestCorner,
-      ],
+      signature.northEastCorner,
+      signature.southEastCorner,
+      signature.southWestCorner,
+      signature.northWestCorner,
+    ],
     SmartTileTopology.blob8 || SmartTileTopology.wang8 => <SmartTileSlotMatch>[
-        signature.northEdge,
-        signature.northEastCorner,
-        signature.eastEdge,
-        signature.southEastCorner,
-        signature.southEdge,
-        signature.southWestCorner,
-        signature.westEdge,
-        signature.northWestCorner,
-      ],
+      signature.northEdge,
+      signature.northEastCorner,
+      signature.eastEdge,
+      signature.southEastCorner,
+      signature.southEdge,
+      signature.southWestCorner,
+      signature.westEdge,
+      signature.northWestCorner,
+    ],
   };
 }
 
@@ -548,10 +546,28 @@ SmartTileCoverageStatus _coverageStatus(
   var outOfAtlasGrid = false;
   for (final part in candidate.parts) {
     final result = part.source.when(
-      frame: (frame) => _validateFrame(
-        frame,
-        atlasById: atlasById,
-      ),
+      model3d:
+          (
+            modelId,
+            scale,
+            offsetX,
+            offsetY,
+            offsetZ,
+            animationIndex,
+            followTerrain,
+            replacesGround,
+          ) =>
+              modelId.trim().isNotEmpty &&
+                  scale.isFinite &&
+                  scale > 0 &&
+                  scale <= 1000 &&
+                  offsetX.isFinite &&
+                  offsetZ.isFinite &&
+                  offsetY.isFinite &&
+                  (animationIndex == null || animationIndex >= 0)
+              ? _VisualValidation.valid
+              : _VisualValidation.missingSource,
+      frame: (frame) => _validateFrame(frame, atlasById: atlasById),
       animation: (animationId) {
         final animation = animationById[animationId];
         if (animation == null || animation.frames.isEmpty) {
@@ -559,10 +575,7 @@ SmartTileCoverageStatus _coverageStatus(
         }
         var animationOutOfGrid = false;
         for (final frame in animation.frames) {
-          final result = _validateFrame(
-            frame.frame,
-            atlasById: atlasById,
-          );
+          final result = _validateFrame(frame.frame, atlasById: atlasById);
           if (result == _VisualValidation.missingSource) return result;
           if (result == _VisualValidation.outOfAtlasGrid) {
             animationOutOfGrid = true;
@@ -612,8 +625,7 @@ String? _diagnosticCode(
 }) {
   return switch (status) {
     SmartTileCoverageStatus.exact ||
-    SmartTileCoverageStatus.transformed =>
-      null,
+    SmartTileCoverageStatus.transformed => null,
     SmartTileCoverageStatus.fallback =>
       allowFallback ? null : 'smart_tiles.coverage.fallback_only',
     SmartTileCoverageStatus.missing => 'smart_tiles.coverage.incomplete',

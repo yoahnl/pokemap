@@ -164,6 +164,7 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
           'map3d.animation@1',
+          'map3d.terrain-appearance@1',
         },
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions(),

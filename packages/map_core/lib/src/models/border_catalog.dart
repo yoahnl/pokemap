@@ -11,7 +11,8 @@ final class ProjectBorderCatalog {
   static const int formatVersionV2 = 2;
   static const int formatVersionV3 = 3;
   static const int formatVersionV4 = 4;
-  static const int latestSupportedFormatVersion = formatVersionV4;
+  static const int formatVersionV5 = 5;
+  static const int latestSupportedFormatVersion = formatVersionV5;
 
   /// Backward-compatible alias for [latestSupportedFormatVersion].
   ///
@@ -20,23 +21,25 @@ final class ProjectBorderCatalog {
   static const int currentFormatVersion = latestSupportedFormatVersion;
 
   const ProjectBorderCatalog.empty()
-      : formatVersion = formatVersionV1,
-        _records = const <BorderBlueprintRecord>[],
-        _visualSnapshots = const <BorderVisualSnapshot>[];
+    : formatVersion = formatVersionV1,
+      _records = const <BorderBlueprintRecord>[],
+      _visualSnapshots = const <BorderVisualSnapshot>[];
 
   ProjectBorderCatalog({
     this.formatVersion = formatVersionV1,
     List<BorderBlueprintRecord> records = const <BorderBlueprintRecord>[],
     List<BorderVisualSnapshot> visualSnapshots = const <BorderVisualSnapshot>[],
-  })  : _records = List<BorderBlueprintRecord>.unmodifiable(records),
-        _visualSnapshots =
-            List<BorderVisualSnapshot>.unmodifiable(visualSnapshots) {
+  }) : _records = List<BorderBlueprintRecord>.unmodifiable(records),
+       _visualSnapshots = List<BorderVisualSnapshot>.unmodifiable(
+         visualSnapshots,
+       ) {
     if (formatVersion != formatVersionV1 &&
         formatVersion != formatVersionV2 &&
         formatVersion != formatVersionV3 &&
-        formatVersion != formatVersionV4) {
+        formatVersion != formatVersionV4 &&
+        formatVersion != formatVersionV5) {
       throw ValidationException(
-        'ProjectBorderCatalog.formatVersion must be 1, 2, 3, or 4',
+        'ProjectBorderCatalog.formatVersion must be between 1 and 5',
       );
     }
     _rejectDuplicateIds<BorderBlueprintRecord>(
@@ -95,10 +98,10 @@ final class ProjectBorderCatalog {
 
   @override
   int get hashCode => Object.hash(
-        formatVersion,
-        Object.hashAll(_records),
-        Object.hashAll(_visualSnapshots),
-      );
+    formatVersion,
+    Object.hashAll(_records),
+    Object.hashAll(_visualSnapshots),
+  );
 }
 
 void _rejectDuplicateIds<T>(

@@ -7,6 +7,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
+import 'spatial_ramp_editor.dart';
 
 class SpatialTerrainControls extends StatelessWidget {
   const SpatialTerrainControls({
@@ -47,7 +48,7 @@ class SpatialTerrainControls extends StatelessWidget {
             label: 'Hauteur du relief',
             value: '${view.spatialTerrainLevel}',
             options: {
-              for (var level = 0; level <= 32; level++)
+              for (var level = 0; level <= MapSpatialScene.maximumTerrainLevel; level++)
                 '$level': level == 0
                     ? 'Sol · 0 bloc'
                     : '$level ${level == 1 ? "bloc" : "blocs"}',
@@ -69,11 +70,48 @@ class SpatialTerrainControls extends StatelessWidget {
           Text(
             '${scene.navigation.ramps.length} ${scene.navigation.ramps.length == 1 ? "pente" : "pentes"} · La gomme retire une pente.',
           ),
+          const SizedBox(height: 12),
+          SpatialRampEditor(
+            document: document,
+            view: view,
+            onChanged: onChanged,
+          ),
         ] else
           const StudioNotice(
             'Le sol et les chemins suivent le relief et les pentes. Leur peinture ne change pas la hauteur.',
           ),
         const SizedBox(height: 16),
+        StudioSelect(
+          label: 'Parois du relief',
+          value: scene.generateCliffs ? 'generated' : 'models',
+          options: const {
+            'generated': 'Générées avec le terrain',
+            'models': 'Réalisées avec des décors 3D',
+          },
+          onChanged: document.saving
+              ? null
+              : (value) {
+                  try {
+                    document.commit(
+                      const SpatialMapOperations().configureTerrainAppearance(
+                        document.current,
+                        cliffFrame: scene.cliffFrame,
+                        generateCliffs: value == 'generated',
+                      ),
+                    );
+                  } on Object catch (failure) {
+                    document.error = failure.toString();
+                  }
+                  onChanged();
+                },
+        ),
+        if (!scene.generateCliffs) ...[
+          const SizedBox(height: 8),
+          const StudioNotice(
+            'Les décors 3D dessinent les falaises. Le relief continue de gérer les hauteurs et les collisions.',
+          ),
+        ],
+        const SizedBox(height: 12),
         StudioSelect(
           label: 'Texture des falaises',
           value: frame?.atlasId ?? 'none',

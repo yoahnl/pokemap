@@ -22,6 +22,15 @@ final class SpatialGroundPlan {
     final materials = {
       for (final material in catalog.materials) material.id: material,
     };
+    final replacements = resolveSpatialSmartTileModelProjection(
+      map: map,
+      catalog: catalog,
+      sourceCellWidth: project.settings.tileWidth,
+      sourceCellHeight: project.settings.tileHeight,
+    ).groundReplacements;
+    groundReplacementCells = Set.unmodifiable({
+      for (final cells in replacements.values) ...cells,
+    });
     final bridgeCells = <(int, int)>{};
     if (scene?.cliffFrame case final frame?) {
       _addFrame(frame, catalog);
@@ -78,6 +87,7 @@ final class SpatialGroundPlan {
         ),
       );
       _opacities.add(layer.opacity);
+      _layerIds.add(layer.id);
       for (final rule in preset.rules) {
         for (final candidate in rule.candidates) {
           for (final part in candidate.parts) {
@@ -99,13 +109,22 @@ final class SpatialGroundPlan {
       }
     }
     this.bridgeCells = Set.unmodifiable(bridgeCells);
+    final covered = <(int, int)>{};
+    for (var index = _layerIds.length - 1; index >= 0; index--) {
+      covered.addAll(replacements[_layerIds[index]] ?? const {});
+      _layerExclusions.insert(0, Set<(int, int)>.unmodifiable(covered));
+    }
   }
 
   final MapSpatialScene? scene;
   late final Set<(int, int)> bridgeCells;
+  late final Set<(int, int)> groundReplacementCells;
   ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
   final _plans = <SmartTileLayerVisualPlan>[];
   final _opacities = <double>[];
+  final _layerIds = <String>[];
+  final _layerExclusions = <Set<(int, int)>>[];
+  final _visualExclusions = <SmartTileLayerVisual, Set<(int, int)>>{};
   final imageIds = <String>{};
   bool animated = false;
   List<SpatialGroundVisual>? _static;
@@ -123,15 +142,23 @@ final class SpatialGroundPlan {
                 x < part.visual.geometry.visualBounds.right.ceil();
                 x++
               )
-                if (x >= 0 && z >= 0 && x < scene!.width && z < scene!.depth)
+                if (x >= 0 &&
+                    z >= 0 &&
+                    x < scene!.width &&
+                    z < scene!.depth &&
+                    !excludedCellsFor(part.visual).contains((x, z)))
                   (x, z),
         });
+
+  Set<(int, int)> excludedCellsFor(SmartTileLayerVisual visual) =>
+      _visualExclusions[visual] ?? const {};
 
   void _addSource(
     SmartTileVisualSource source,
     ProjectSmartTileCatalog catalog,
   ) {
     source.map(
+      model3d: (_) {},
       frame: (source) => _addFrame(source.frame, catalog),
       animation: (source) {
         animated = true;
@@ -160,12 +187,14 @@ final class SpatialGroundPlan {
 
   List<SpatialGroundVisual> resolve(int elapsedMs) {
     if (!animated && _static != null) return _static!;
+    _visualExclusions.clear();
     final result = <SpatialGroundVisual>[];
     for (var index = 0; index < _plans.length; index++) {
       final visuals = _plans[index].resolveBatch(elapsedMs: elapsedMs).visuals;
       final ranks = _groundPaintRanks(visuals);
       final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
       for (var part = 0; part < visuals.length; part++) {
+        _visualExclusions[visuals[part]] = _layerExclusions[index];
         result.add((
           visual: visuals[part],
           height: .001 * (index + 1 + ranks[part] / (maximum + 1)),
@@ -213,13 +242,20 @@ List<Vertex> spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
   MapSpatialScene? scene,
-}) => _spatialGroundVertices(geometry, height: height, scene: scene);
+  Set<(int, int)> excludedCells = const {},
+}) => _spatialGroundVertices(
+  geometry,
+  height: height,
+  scene: scene,
+  excludedCells: excludedCells,
+);
 
 List<Vertex> _spatialGroundVertices(
   SmartTileSpriteGeometry geometry, {
   double height = 0,
   MapSpatialScene? scene,
   ({SmartTileSourceRect sourceRect, Texture texture})? atlasFrame,
+  Set<(int, int)> excludedCells = const {},
 }) {
   Vector2 textureUv(Vector2 uv) {
     final frame = atlasFrame;
@@ -277,11 +313,12 @@ List<Vertex> _spatialGroundVertices(
       right: geometry.visualBounds.right,
       bottom: geometry.visualBounds.bottom,
     ))
-      for (final point in patch.corners)
-        Vertex(
-          position: point + Vector3(0, height, 0),
-          texCoord: textureUv(uvAt(point)),
-        ),
+      if (!excludedCells.contains(patch.cell))
+        for (final point in patch.corners)
+          Vertex(
+            position: point + Vector3(0, height, 0),
+            texCoord: textureUv(uvAt(point)),
+          ),
   ];
 }
 
@@ -289,6 +326,7 @@ Iterable<Mesh> spatialGroundMeshes(
   List<SpatialGroundVisual> visuals,
   Map<String, Texture> textures, {
   MapSpatialScene? scene,
+  Set<(int, int)> Function(SmartTileLayerVisual visual)? excludedCellsFor,
 }) sync* {
   var mesh = Mesh();
   (String, double)? previous;
@@ -336,6 +374,7 @@ Iterable<Mesh> spatialGroundMeshes(
       height: item.height,
       scene: scene,
       atlasFrame: (sourceRect: rect, texture: texture),
+      excludedCells: excludedCellsFor?.call(visual) ?? const {},
     );
     for (var offset = 0; offset < quads.length; offset += 4) {
       final base = vertices.length;

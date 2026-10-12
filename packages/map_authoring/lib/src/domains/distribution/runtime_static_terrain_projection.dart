@@ -326,11 +326,17 @@ bool _isStaticRule(SmartTileRule rule) {
   final part = rule.candidates.single.parts.single;
   return part.frameSampling == SmartTileFrameSampling.tessellated &&
       part.source.when(
+          model3d: (modelId, scale, offsetX, offsetY, offsetZ, animationIndex,
+                  followTerrain, replacesGround) =>
+              false,
           frame: (frame) => frame.columnSpan == 1 && frame.rowSpan == 1,
           animation: (_) => false);
 }
 
 SmartTileFrameRef _frame(SmartTileVisualPart part) => part.source.when(
+      model3d: (modelId, scale, offsetX, offsetY, offsetZ, animationIndex,
+              followTerrain, replacesGround) =>
+          throw StateError('Static terrain cannot use a model'),
       frame: (frame) => frame,
       animation: (_) => throw StateError('Static terrain cannot use animation'),
     );

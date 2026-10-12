@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'terrain_scratch_view.dart';
+import '../map_workspace/map_workspace_visuals.dart';
 
 class TerrainTrialPanel extends StatelessWidget {
   const TerrainTrialPanel({
@@ -13,12 +15,14 @@ class TerrainTrialPanel extends StatelessWidget {
     required this.onTool,
     required this.frameBuilder,
     required this.onChanged,
+    this.visuals,
   });
   final TerrainDraftController model;
   final String tool;
   final ValueChanged<String> onTool;
   final TerrainFrameBuilder frameBuilder;
   final VoidCallback onChanged;
+  final MapWorkspaceVisuals? visuals;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +31,7 @@ class TerrainTrialPanel extends StatelessWidget {
       frameBuilder: frameBuilder,
       onChanged: onChanged,
       tool: tool,
+      visuals: visuals,
     );
     final actions = [
       Wrap(

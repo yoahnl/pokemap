@@ -9,9 +9,12 @@ import 'package:map_core/map_core.dart';
   double cos,
   double sin,
 }) spatialModelWorldGeometry(
-    SpatialModelInstance instance, ProjectModel3dEntry model) {
+    SpatialModelInstance instance, ProjectModel3dEntry model,
+    {bool useCollisionBounds = false}) {
   final scale = model.scale * instance.scale;
-  final bounds = model.inspection.bounds;
+  final bounds = useCollisionBounds
+      ? model.collisionBounds ?? model.inspection.bounds
+      : model.inspection.bounds;
   final angle = instance.rotationDegrees * math.pi / 180;
   final cos = math.cos(angle), sin = math.sin(angle);
   return (

@@ -7,6 +7,17 @@ import 'package:map_editor/src/features/border_map_editing/application/border_pr
 import 'package:map_editor/src/features/border_map_editing/presentation/border_diagnostic_presentation.dart';
 
 void main() {
+  test('explains native border side inversion and how to recover', () {
+    final diagnostic = _diagnostic(
+      code: 'border.spatial.line_side_inversion_unsupported',
+      severity: BorderDiagnosticSeverity.error,
+    );
+    expect(localizeEditorBorderDiagnostic(diagnostic),
+        'Le côté inversé nécessite une bordure droite répétant la même pièce, '
+        'avec deux extrémités opposées et une ancre commune. '
+        'Pour cette bordure, utilisez le côté principal.');
+  });
+
   test('localizes known diagnostics and never exposes a raw fallback code', () {
     final known = _diagnostic(
       code: 'border.resolution.region_empty',

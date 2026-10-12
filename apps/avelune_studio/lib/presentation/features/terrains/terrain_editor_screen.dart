@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
+
 import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
@@ -9,6 +10,9 @@ import 'terrain_pattern_panel.dart';
 import 'terrain_scratch_view.dart';
 import 'terrain_source_panel.dart';
 import 'terrain_trial_panel.dart';
+import '../map_workspace/map_workspace_visuals.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_preview.dart';
 
 class TerrainEditorScreen extends StatefulWidget {
   const TerrainEditorScreen({
@@ -20,6 +24,7 @@ class TerrainEditorScreen extends StatefulWidget {
     required this.onUse,
     required this.onClose,
     this.canPaint = true,
+    this.visuals,
   });
   final TerrainDraftController controller;
   final Widget image;
@@ -28,6 +33,7 @@ class TerrainEditorScreen extends StatefulWidget {
   final ValueChanged<ProjectSmartTilePreset> onUse;
   final VoidCallback onClose;
   final bool canPaint;
+  final MapWorkspaceVisuals? visuals;
   @override
   State<TerrainEditorScreen> createState() => _TerrainEditorScreenState();
 }
@@ -78,6 +84,39 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
     model.assign(rect.x, rect.y);
     if (_advance && wasMissing) model.selectNextMissing();
     setState(() {});
+  }
+
+  void _assignModel(ProjectModel3dEntry source) {
+    final wasMissing = model.partFor(model.selectedRule) == null;
+    model.assignModel(source);
+    if (_advance && wasMissing) model.selectNextMissing();
+    setState(() {});
+  }
+
+  Widget _partPreview(SmartTileVisualPart part, double size) {
+    final source = part.source;
+    if (source is SmartTileFrameSource) {
+      return widget.frameBuilder(source.frame, size);
+    }
+    if (source is SmartTileModel3dSource && widget.visuals != null) {
+      final model = this.model.manifest.models3d
+          .where((model) => model.id == source.modelId)
+          .firstOrNull;
+      if (model != null) {
+        return resourcePreview(
+          ResourceItem(
+            id: model.id,
+            name: model.name,
+            kind: ResourceKind.decors,
+            model3d: model,
+          ),
+          this.model.manifest,
+          widget.visuals!,
+          size: size,
+        );
+      }
+    }
+    return const StudioNotice('Aperçu indisponible');
   }
 
   @override
@@ -131,10 +170,13 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
                 onAssign: _assign,
                 selectedSource: _selectedSource,
                 frameBuilder: widget.frameBuilder,
+                visuals: widget.visuals,
+                onAssignModel: _assignModel,
               );
               final rules = TerrainPatternPanel(
                 model: model,
                 frameBuilder: widget.frameBuilder,
+                partBuilder: _partPreview,
                 onChanged: _refresh,
                 advance: _advance,
                 onAdvance: (value) => setState(() => _advance = value),
@@ -147,6 +189,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
                 tool: _tool,
                 onTool: (value) => setState(() => _tool = value),
                 frameBuilder: widget.frameBuilder,
+                visuals: widget.visuals,
                 onChanged: () {
                   if (_tool == 'Examiner') _missingOnly = false;
                   setState(() {});

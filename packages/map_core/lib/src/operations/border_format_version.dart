@@ -12,6 +12,7 @@ bool borderFeatureRequiresFormatV2(BorderFeature feature) =>
     feature.paramsOverride?.allowAutoRotation == false;
 
 int minimumBorderLayerFormatVersionForFeature(BorderFeature feature) {
+  if (feature.spatialOffsetWorld != null || feature.materialization?.targetsSpatialScene == true || feature.overrides.any((override) => override.lockedInstanceId != null)) return BorderLayerContent.formatVersionV4;
   if (feature.geometry case final BorderStrokeGeometry geometry
       when geometry.alignment == BorderStrokeAlignment.gridEdges) {
     return BorderLayerContent.formatVersionV3;
@@ -61,6 +62,7 @@ int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
     record.draft.definition,
     if (record.latestPublished != null) record.latestPublished!.definition,
   ]) {
+    if (definition.isSpatial) return ProjectBorderCatalog.formatVersionV5;
     final minimum = minimumBorderCatalogFormatVersionForTemplate(
       definition.template,
     );

@@ -542,6 +542,8 @@ void main() {
                 EnvironmentAuthoringDiagnosticKind.duplicatePresetId,
               EnvironmentPresetDiagnosticKind.missingPaletteElement =>
                 EnvironmentAuthoringDiagnosticKind.missingPaletteElement,
+              EnvironmentPresetDiagnosticKind.missingPaletteModel =>
+                EnvironmentAuthoringDiagnosticKind.missingPaletteModel,
               EnvironmentPresetDiagnosticKind.unknownTemplateId =>
                 EnvironmentAuthoringDiagnosticKind.unknownTemplateId,
               EnvironmentPresetDiagnosticKind.forcedCollisionWithoutProfile =>
@@ -563,6 +565,10 @@ void main() {
                 EnvironmentAuthoringDiagnosticKind.emptyAreaMask,
               EnvironmentLayerUsageDiagnosticKind.missingGeneratedPlacement =>
                 EnvironmentAuthoringDiagnosticKind.missingGeneratedPlacement,
+              EnvironmentLayerUsageDiagnosticKind.spatialTerrainMissing =>
+                EnvironmentAuthoringDiagnosticKind.spatialTerrainMissing,
+              EnvironmentLayerUsageDiagnosticKind.duplicateGeneratedOwnership =>
+                EnvironmentAuthoringDiagnosticKind.duplicateGeneratedOwnership,
             }),
         ...usageB.diagnostics.map((d) => switch (d.kind) {
               EnvironmentLayerUsageDiagnosticKind.missingAreaPreset =>
@@ -579,6 +585,10 @@ void main() {
                 EnvironmentAuthoringDiagnosticKind.emptyAreaMask,
               EnvironmentLayerUsageDiagnosticKind.missingGeneratedPlacement =>
                 EnvironmentAuthoringDiagnosticKind.missingGeneratedPlacement,
+              EnvironmentLayerUsageDiagnosticKind.spatialTerrainMissing =>
+                EnvironmentAuthoringDiagnosticKind.spatialTerrainMissing,
+              EnvironmentLayerUsageDiagnosticKind.duplicateGeneratedOwnership =>
+                EnvironmentAuthoringDiagnosticKind.duplicateGeneratedOwnership,
             }),
       ];
       expect(kinds, expectedKinds);

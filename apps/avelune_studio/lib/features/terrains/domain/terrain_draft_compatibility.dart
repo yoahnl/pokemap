@@ -1,6 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
 import 'terrain_connections.dart';
+import 'terrain_spatial_draft.dart';
 
 const advancedTerrainPreparationMessage =
     'Ce terrain utilise une préparation avancée, conservée et utilisable sur la carte.';
@@ -14,6 +15,14 @@ ProjectSmartTileAuthoringDraft? terrainDraftForPreset(
         draft.id == 'draft-${preset.id}' && draft.targetPresetId != preset.id,
   )) {
     return null;
+  }
+  if (preset.rules.any(
+    (rule) => rule.candidates.any(
+      (candidate) =>
+          candidate.parts.any((part) => part.source is SmartTileModel3dSource),
+    ),
+  )) {
+    return spatialTerrainDraftForPreset(manifest, preset);
   }
   final atlasIds = <String>{};
   for (final rule in preset.rules) {
@@ -118,6 +127,9 @@ String? terrainDraftCompatibilityProblem(
   ProjectManifest manifest,
   ProjectSmartTileAuthoringDraft draft,
 ) {
+  if (terrainDraftIsSpatial(draft)) {
+    return spatialTerrainCompatibilityProblem(manifest, draft);
+  }
   final extended =
       draft.guideId == 'avelune-path20-v1' &&
       draft.topology == SmartTileTopology.blob8 &&

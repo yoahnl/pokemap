@@ -2,6 +2,7 @@ import '../models/border_blueprint.dart';
 import '../models/border_signed_int64.dart';
 import '../models/border_value_objects.dart';
 import '../models/border_ground_variant_role.dart';
+import '../models/project_model3d.dart';
 import 'border_json_codec_helpers.dart';
 import 'border_visual_snapshot_json_codec.dart';
 
@@ -23,6 +24,7 @@ const Set<String> _definitionRequiredKeys = <String>{
 const Set<String> _definitionOptionalKeys = <String>{
   'ground',
   'categoryId',
+  'straightOnly',
 };
 const Set<String> _draftPrimitiveKeys = <String>{
   'id',
@@ -43,9 +45,7 @@ const Set<String> _publishedPrimitiveKeys = <String>{
   'transforms',
   'publishedMetrics',
 };
-const Set<String> _primitiveOptionalKeysV4 = <String>{
-  'authoredOrientation',
-};
+const Set<String> _primitiveOptionalKeysV4 = <String>{'authoredOrientation'};
 const Set<String> _transformKeys = <String>{
   'allowFlipX',
   'allowedQuarterTurns',
@@ -243,13 +243,16 @@ BorderGenerationParams decodeBorderGenerationParamsJson(
     value,
     path: path,
     requiredKeys: _generationParamKeys,
-    optionalKeys:
-        formatVersion >= 2 ? _generationParamOptionalKeysV2 : const <String>{},
+    optionalKeys: formatVersion >= 2
+        ? _generationParamOptionalKeysV2
+        : const <String>{},
   );
 
   final irregularityPath = borderJsonPropertyPath(path, 'irregularityPermille');
-  final detailDensityPath =
-      borderJsonPropertyPath(path, 'detailDensityPermille');
+  final detailDensityPath = borderJsonPropertyPath(
+    path,
+    'detailDensityPermille',
+  );
   final variationPath = borderJsonPropertyPath(path, 'variationPermille');
   final maxOverlapPath = borderJsonPropertyPath(path, 'maxOverlapPx');
   final gapTolerancePath = borderJsonPropertyPath(path, 'gapTolerancePx');
@@ -334,11 +337,7 @@ BorderBlueprintDraft _decodeDraft(
   int formatVersion,
 ) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _draftKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _draftKeys);
   final baseRevisionPath = borderJsonPropertyPath(path, 'baseRevision');
   final baseRevision = borderJsonRequireInt(
     borderJsonRequireField(value, 'baseRevision', path),
@@ -359,6 +358,12 @@ BorderBlueprintDraft _decodeDraft(
     ),
   );
 }
+
+Map<String, Object?> encodeBorderBlueprintRevisionJson(
+  BorderBlueprintRevision value, {
+  String path = r'$',
+  int formatVersion = 1,
+}) => _encodeRevision(value, path, formatVersion);
 
 Map<String, Object?> _encodeRevision(
   BorderBlueprintRevision value,
@@ -385,11 +390,7 @@ BorderBlueprintRevision _decodeRevision(
   int formatVersion,
 ) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _revisionKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _revisionKeys);
   final revisionPath = borderJsonPropertyPath(path, 'revision');
   final revision = borderJsonRequireInt(
     borderJsonRequireField(value, 'revision', path),
@@ -442,6 +443,7 @@ Map<String, Object?> _encodeDraftDefinition(
       borderJsonPropertyPath(path, 'previewSeed'),
     ),
     'template': template,
+    if (value.straightOnly) 'straightOnly': true,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
@@ -488,6 +490,7 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       name: name,
       previewSeed: previewSeed,
       template: template,
+      straightOnly: _decodeStraightOnly(value, path),
       primitives: primitives,
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
@@ -532,6 +535,7 @@ Map<String, Object?> _encodePublishedDefinition(
       borderJsonPropertyPath(path, 'previewSeed'),
     ),
     'template': template,
+    if (value.straightOnly) 'straightOnly': true,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
@@ -578,6 +582,7 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       name: name,
       previewSeed: previewSeed,
       template: template,
+      straightOnly: _decodeStraightOnly(value, path),
       primitives: primitives,
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
@@ -601,6 +606,14 @@ BorderJsonObject _decodeDefinitionObject(Object? json, String path) {
   );
   return value;
 }
+
+bool _decodeStraightOnly(BorderJsonObject value, String path) =>
+    value.containsKey('straightOnly')
+    ? borderJsonRequireBool(
+        value['straightOnly'],
+        borderJsonPropertyPath(path, 'straightOnly'),
+      )
+    : false;
 
 String _decodeDefinitionName(BorderJsonObject value, String path) {
   final namePath = borderJsonPropertyPath(path, 'name');
@@ -683,9 +696,26 @@ Map<String, Object?> _encodeDraftPrimitive(
   String path,
   int formatVersion,
 ) {
+  if (value.isSpatial) {
+    return _encodeSpatialPrimitive(
+      path: path,
+      formatVersion: formatVersion,
+      id: value.id,
+      sourceModelId: value.sourceModelId!,
+      role: value.role,
+      authoredOrientation: value.authoredOrientation,
+      weight: value.weight,
+      transforms: value.transforms,
+      anchorWorld: value.anchorWorld,
+      animationIndex: value.animationIndex,
+      animationLoop: value.animationLoop,
+      animationSpeed: value.animationSpeed,
+      blocksMovement: value.blocksMovement,
+    );
+  }
   _validatePrimitiveIdentityAndWeight(
     id: value.id,
-    sourceElementId: value.sourceElementId,
+    sourceElementId: value.sourceElementId!,
     weight: value.weight,
     minimumWeight: 0,
     path: path,
@@ -723,12 +753,62 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
   int formatVersion,
 ) {
   final value = borderJsonRequireObject(json, path);
+  if (value.containsKey('sourceModelId')) {
+    _validateSpatialPrimitiveJson(value, path, formatVersion);
+    return borderJsonConstructAtPath(
+      path,
+      () => BorderPrimitiveDraft(
+        id: borderJsonRequireString(value['id'], '$path.id'),
+        sourceModelId: borderJsonRequireString(
+          value['sourceModelId'],
+          '$path.sourceModelId',
+        ),
+        role: _decodePrimitiveRoleField(value, path, formatVersion),
+        authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        weight: borderJsonRequireInt(value['weight'], '$path.weight'),
+        animationIndex: value['animationIndex'] == null
+            ? null
+            : borderJsonRequireInt(
+                value['animationIndex'],
+                '$path.animationIndex',
+              ),
+        animationLoop: value.containsKey('animationLoop')
+            ? borderJsonRequireBool(
+                value['animationLoop'],
+                '$path.animationLoop',
+              )
+            : true,
+        animationSpeed: _decodeSpatialAnimationSpeed(value, path),
+        blocksMovement: value.containsKey('blocksMovement')
+            ? borderJsonRequireBool(
+                value['blocksMovement'],
+                '$path.blocksMovement',
+              )
+            : true,
+        transforms: _decodeTransformPolicy(
+          value['transforms'],
+          '$path.transforms',
+        ),
+        anchorWorld: value['anchorWorld'] == null
+            ? null
+            : Model3dVector3.fromJson(
+                Map<String, dynamic>.from(
+                  borderJsonRequireObject(
+                    value['anchorWorld'],
+                    '$path.anchorWorld',
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
   borderJsonRequireExactKeys(
     value,
     path: path,
     requiredKeys: _draftPrimitiveKeys,
-    optionalKeys:
-        formatVersion >= 4 ? _primitiveOptionalKeysV4 : const <String>{},
+    optionalKeys: formatVersion >= 4
+        ? _primitiveOptionalKeysV4
+        : const <String>{},
   );
   final identity = _decodePrimitiveIdentityAndWeight(
     value,
@@ -764,9 +844,26 @@ Map<String, Object?> _encodePublishedPrimitive(
   String path,
   int formatVersion,
 ) {
+  if (value.isSpatial) {
+    return _encodeSpatialPrimitive(
+      path: path,
+      formatVersion: formatVersion,
+      id: value.id,
+      sourceModelId: value.sourceModelId!,
+      role: value.role,
+      authoredOrientation: value.authoredOrientation,
+      weight: value.weight,
+      transforms: value.transforms,
+      anchorWorld: value.anchorWorld,
+      animationIndex: value.animationIndex,
+      animationLoop: value.animationLoop,
+      animationSpeed: value.animationSpeed,
+      blocksMovement: value.blocksMovement,
+    );
+  }
   _validatePrimitiveIdentityAndWeight(
     id: value.id,
-    sourceElementId: value.sourceElementId,
+    sourceElementId: value.sourceElementId!,
     weight: value.weight,
     minimumWeight: 1,
     path: path,
@@ -809,12 +906,62 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
   int formatVersion,
 ) {
   final value = borderJsonRequireObject(json, path);
+  if (value.containsKey('sourceModelId')) {
+    _validateSpatialPrimitiveJson(value, path, formatVersion);
+    return borderJsonConstructAtPath(
+      path,
+      () => BorderPublishedPrimitive(
+        id: borderJsonRequireString(value['id'], '$path.id'),
+        sourceModelId: borderJsonRequireString(
+          value['sourceModelId'],
+          '$path.sourceModelId',
+        ),
+        role: _decodePrimitiveRoleField(value, path, formatVersion),
+        authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        weight: borderJsonRequireInt(value['weight'], '$path.weight'),
+        animationIndex: value['animationIndex'] == null
+            ? null
+            : borderJsonRequireInt(
+                value['animationIndex'],
+                '$path.animationIndex',
+              ),
+        animationLoop: value.containsKey('animationLoop')
+            ? borderJsonRequireBool(
+                value['animationLoop'],
+                '$path.animationLoop',
+              )
+            : true,
+        animationSpeed: _decodeSpatialAnimationSpeed(value, path),
+        blocksMovement: value.containsKey('blocksMovement')
+            ? borderJsonRequireBool(
+                value['blocksMovement'],
+                '$path.blocksMovement',
+              )
+            : true,
+        transforms: _decodeTransformPolicy(
+          value['transforms'],
+          '$path.transforms',
+        ),
+        anchorWorld: value['anchorWorld'] == null
+            ? null
+            : Model3dVector3.fromJson(
+                Map<String, dynamic>.from(
+                  borderJsonRequireObject(
+                    value['anchorWorld'],
+                    '$path.anchorWorld',
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
   borderJsonRequireExactKeys(
     value,
     path: path,
     requiredKeys: _publishedPrimitiveKeys,
-    optionalKeys:
-        formatVersion >= 4 ? _primitiveOptionalKeysV4 : const <String>{},
+    optionalKeys: formatVersion >= 4
+        ? _primitiveOptionalKeysV4
+        : const <String>{},
   );
   final identity = _decodePrimitiveIdentityAndWeight(
     value,
@@ -852,8 +999,77 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
   );
 }
 
+Map<String, Object?> _encodeSpatialPrimitive({
+  required String path,
+  required int formatVersion,
+  required String id,
+  required String sourceModelId,
+  required BorderPrimitiveRole role,
+  required BorderPrimitiveOrientation authoredOrientation,
+  required int weight,
+  required BorderTransformPolicy transforms,
+  Model3dVector3? anchorWorld,
+  required int? animationIndex,
+  required bool animationLoop,
+  required double animationSpeed,
+  required bool blocksMovement,
+}) {
+  if (formatVersion < 5) {
+    throw FormatException(
+      '$path: spatial primitives require catalog format version 5',
+    );
+  }
+  return <String, Object?>{
+    'id': id,
+    'sourceModelId': sourceModelId,
+    'role': _encodePrimitiveRole(role, formatVersion, '$path.role'),
+    'authoredOrientation': authoredOrientation.name,
+    'weight': weight,
+    'transforms': _encodeTransformPolicy(transforms, '$path.transforms'),
+    if (anchorWorld != null) 'anchorWorld': anchorWorld.toJson(),
+    'animationIndex': animationIndex,
+    'animationLoop': animationLoop,
+    'animationSpeed': animationSpeed,
+    'blocksMovement': blocksMovement,
+  };
+}
+
+void _validateSpatialPrimitiveJson(
+  BorderJsonObject value,
+  String path,
+  int formatVersion,
+) {
+  if (formatVersion < 5) {
+    throw FormatException(
+      '$path: spatial primitives require catalog format version 5',
+    );
+  }
+  borderJsonRequireExactKeys(
+    value,
+    path: path,
+    requiredKeys: const {'id', 'sourceModelId', 'role', 'weight', 'transforms'},
+    optionalKeys: const {
+      'authoredOrientation',
+      'anchorWorld',
+      'animationIndex',
+      'animationLoop',
+      'animationSpeed',
+      'blocksMovement',
+    },
+  );
+}
+
+double _decodeSpatialAnimationSpeed(BorderJsonObject value, String path) {
+  if (!value.containsKey('animationSpeed')) return 1;
+  final speed = value['animationSpeed'];
+  if (speed is! num) {
+    throw FormatException('$path.animationSpeed: expected a number');
+  }
+  return speed.toDouble();
+}
+
 ({String id, String sourceElementId, int weight})
-    _decodePrimitiveIdentityAndWeight(
+_decodePrimitiveIdentityAndWeight(
   BorderJsonObject value,
   String path, {
   required int minimumWeight,
@@ -952,8 +1168,8 @@ BorderPrimitiveOrientation _decodeAuthoredOrientationField(
     'west' => BorderPrimitiveOrientation.west,
     'north' => BorderPrimitiveOrientation.north,
     _ => throw FormatException(
-        '$orientationPath: unknown Border primitive orientation',
-      ),
+      '$orientationPath: unknown Border primitive orientation',
+    ),
   };
 }
 
@@ -970,11 +1186,7 @@ Map<String, Object?> _encodeTransformPolicy(
 
 BorderTransformPolicy _decodeTransformPolicy(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _transformKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _transformKeys);
   final turnsPath = borderJsonPropertyPath(path, 'allowedQuarterTurns');
   final rawTurns = borderJsonRequireList(
     borderJsonRequireField(value, 'allowedQuarterTurns', path),
@@ -1021,16 +1233,14 @@ void _validateQuarterTurns(List<int> turns, String transformPath) {
   }
 }
 
-Map<String, Object?> _encodePixelPos(BorderPixelPos value) =>
-    <String, Object?>{'x': value.x, 'y': value.y};
+Map<String, Object?> _encodePixelPos(BorderPixelPos value) => <String, Object?>{
+  'x': value.x,
+  'y': value.y,
+};
 
 BorderPixelPos _decodePixelPos(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _pixelPosKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _pixelPosKeys);
   return BorderPixelPos(
     x: borderJsonRequireInt(
       borderJsonRequireField(value, 'x', path),
@@ -1043,10 +1253,7 @@ BorderPixelPos _decodePixelPos(Object? json, String path) {
   );
 }
 
-Map<String, Object?> _encodeDraftGround(
-  BorderGroundDraft value,
-  String path,
-) {
+Map<String, Object?> _encodeDraftGround(BorderGroundDraft value, String path) {
   _validateGroundFields(
     value.sourceSmartTilePresetId,
     value.edgeBandCells,
@@ -1060,11 +1267,7 @@ Map<String, Object?> _encodeDraftGround(
 
 BorderGroundDraft _decodeDraftGround(Object? json, String path) {
   final value = borderJsonRequireObject(json, path);
-  borderJsonRequireExactKeys(
-    value,
-    path: path,
-    requiredKeys: _draftGroundKeys,
-  );
+  borderJsonRequireExactKeys(value, path: path, requiredKeys: _draftGroundKeys);
   final fields = _decodeGroundFields(value, path);
   return borderJsonConstructAtPath(
     path,
@@ -1085,10 +1288,7 @@ Map<String, Object?> _encodePublishedGround(
     path,
   );
   final snapshotsPath = borderJsonPropertyPath(path, 'visualSnapshotIdsByRole');
-  _validatePublishedGroundRoleMap(
-    value.visualSnapshotIdsByRole,
-    snapshotsPath,
-  );
+  _validatePublishedGroundRoleMap(value.visualSnapshotIdsByRole, snapshotsPath);
   final snapshots = <String, Object?>{};
   for (final role in standardBorderGroundVariantRoleOrder) {
     snapshots[_encodeBorderGroundRole(role)] =
@@ -1319,15 +1519,14 @@ BorderPrimitiveRole _decodePrimitiveRole(
 }
 
 bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
-      BorderPrimitiveRole.lineCap ||
-      BorderPrimitiveRole.lineStraight ||
-      BorderPrimitiveRole.lineCorner =>
-        true,
-      _ => false,
-    };
+  BorderPrimitiveRole.lineCap ||
+  BorderPrimitiveRole.lineStraight ||
+  BorderPrimitiveRole.lineCorner => true,
+  _ => false,
+};
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value < 1 || value > 4) {
+  if (value < 1 || value > 5) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }

@@ -1,13 +1,13 @@
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
 
 import '../domain/terrain_connections.dart';
 import '../domain/terrain_draft_compatibility.dart';
+import '../domain/terrain_spatial_draft.dart';
 
-typedef MutateTerrainResource =
-    Future<ProjectManifest> Function(
-      String actionId,
-      Map<String, Object?> parameters,
-    );
+typedef MutateTerrainResource = Future<ProjectManifest> Function(
+  String actionId,
+  Map<String, Object?> parameters,
+);
 
 class TerrainDraftController {
   TerrainDraftController({
@@ -23,6 +23,15 @@ class TerrainDraftController {
     final problem = terrainDraftCompatibilityProblem(manifest, draft);
     if (problem != null) throw StateError(problem);
     _saved = draft;
+    example();
+  }
+  TerrainDraftController.spatial({
+    required this.manifest,
+    required ProjectModel3dEntry model,
+    required String id,
+  }) : draft = createSpatialTerrainDraft(model, id) {
+    final problem = terrainDraftCompatibilityProblem(manifest, draft);
+    if (problem != null) throw StateError(problem);
     example();
   }
 
@@ -65,6 +74,12 @@ class TerrainDraftController {
       ? 'Modifications non publiées'
       : 'Version publiée';
   bool get complete => draft.rules.every((rule) => rule.candidates.isNotEmpty);
+  bool get spatial => terrainDraftIsSpatial(draft);
+  bool get uniform => spatial && draft.rules.length == 1;
+  SmartTileVisualPart? partFor(int rule) =>
+      rule < 0 || rule >= draft.rules.length
+      ? null
+      : draft.rules[rule].candidates.firstOrNull?.parts.firstOrNull;
   ProjectSmartTileAtlas get atlas =>
       draft.atlases.firstWhere((a) => a.id == draft.primaryAtlasId);
   SmartTileFrameRef? frameFor(int rule) {
@@ -91,6 +106,7 @@ class TerrainDraftController {
     if (!canUndo) return;
     _redo.add(draft);
     draft = _undo.removeLast();
+    selectedRule = selectedRule.clamp(0, draft.rules.length - 1);
     error = null;
     publicationFailedAfterSave = false;
     _resolve();
@@ -100,6 +116,7 @@ class TerrainDraftController {
     if (!canRedo) return;
     _undo.add(draft);
     draft = _redo.removeLast();
+    selectedRule = selectedRule.clamp(0, draft.rules.length - 1);
     error = null;
     publicationFailedAfterSave = false;
     _resolve();
@@ -142,11 +159,138 @@ class TerrainDraftController {
     );
   }
 
+  void assignModel(
+    ProjectModel3dEntry model, {
+    bool all = false,
+    double scale = 1,
+    double? offsetX,
+    double offsetY = 0,
+    double? offsetZ,
+    int quarterTurns = 0,
+  }) {
+    final owner = manifest.resourceLibraryCatalog
+        .entryFor('smartTilePreset', draft.targetPresetId)
+        ?.mapId;
+    if (!spatial ||
+        !scale.isFinite ||
+        scale <= 0 ||
+        !offsetY.isFinite ||
+        (offsetX != null && !offsetX.isFinite) ||
+        (offsetZ != null && !offsetZ.isFinite) ||
+        quarterTurns < 0 ||
+        quarterTurns > 3 ||
+        !manifest.models3d.any((entry) => entry.id == model.id) ||
+        !manifest.resourceLibraryCatalog.availableForMap(
+          'model3d',
+          model.id,
+          owner ?? '',
+        )) {
+      return;
+    }
+    final previous = partFor(selectedRule);
+    final previousSource = previous?.source;
+    final source =
+        previousSource is SmartTileModel3dSource &&
+            previousSource.modelId == model.id
+        ? previousSource.copyWith(
+            scale: scale,
+            offsetX: offsetX ?? previousSource.offsetX,
+            offsetY: offsetY,
+            offsetZ: offsetZ ?? previousSource.offsetZ,
+          )
+        : SmartTileVisualSource.model3d(
+            modelId: model.id,
+            scale: scale,
+            offsetX: offsetX ?? 0,
+            offsetY: offsetY,
+            offsetZ: offsetZ ?? 0,
+          );
+    final transform = SmartTileSpriteTransform(quarterTurns: quarterTurns);
+    final part = previous == null
+        ? SmartTileVisualPart(source: source, transform: transform)
+        : previous.copyWith(source: source, transform: transform);
+    final expanded = selectedRule >= 16 && draft.rules.length == 16;
+    final rules = <SmartTileRule>[
+      ...draft.rules,
+      if (expanded)
+        for (var index = 16; index < 20; index++)
+          spatialTerrainRule(
+            index,
+            null,
+            draft.defaultMaterialId!,
+            uniform: false,
+          ),
+    ];
+    _record(
+      draft.copyWith(
+        rules: [
+          for (var index = 0; index < rules.length; index++)
+            if (all || index == selectedRule)
+              rules[index].candidates.isEmpty
+                  ? spatialTerrainRule(
+                      index,
+                      part,
+                      draft.defaultMaterialId!,
+                      uniform: uniform,
+                    )
+                  : rules[index].copyWith(
+                      candidates: [
+                        rules[index].candidates.single.copyWith(parts: [part]),
+                      ],
+                    )
+            else
+              rules[index],
+        ],
+        topology: expanded ? SmartTileTopology.blob8 : draft.topology,
+        templateHint: expanded
+            ? SmartTileTemplateHint.blob47
+            : draft.templateHint,
+        guideId: expanded ? 'avelune-spatial-path20-v1' : draft.guideId,
+        transformPolicy: quarterTurns == 0
+            ? draft.transformPolicy
+            : draft.transformPolicy.copyWith(allowQuarterTurns: true),
+      ),
+    );
+  }
+
+  void setSpatialConnections(bool connections) {
+    if (!spatial || connections == !uniform) return;
+    final part = partFor(selectedRule);
+    selectedRule = 0;
+    _record(
+      draft.copyWith(
+        rules: [
+          for (var index = 0; index < (connections ? 16 : 1); index++)
+            spatialTerrainRule(
+              index,
+              part,
+              draft.defaultMaterialId!,
+              uniform: !connections,
+            ),
+        ],
+        topology: connections
+            ? SmartTileTopology.cardinal4
+            : SmartTileTopology.uniform,
+        templateHint: connections
+            ? SmartTileTemplateHint.edge16
+            : SmartTileTemplateHint.simple,
+        coveragePolicy: connections
+            ? SmartTileCoveragePolicy.sparse
+            : SmartTileCoveragePolicy.complete,
+        guideId: connections
+            ? 'avelune-spatial-cardinal4-v1'
+            : 'avelune-spatial-uniform-v1',
+      ),
+    );
+  }
+
   void removeAssignment([int? rule]) {
     final index = rule ?? selectedRule;
     if (index >= draft.rules.length) return;
     final rules = List<SmartTileRule>.of(draft.rules);
-    rules[index] = index < 16
+    rules[index] = spatial
+        ? rules[index].copyWith(candidates: [])
+        : index < 16
         ? terrainConnectionRule(index, null, draft.defaultMaterialId!)
         : terrainOuterCornerRule(index, null, draft.defaultMaterialId!);
     _record(draft.copyWith(rules: rules));
@@ -208,11 +352,13 @@ class TerrainDraftController {
 
   void inspect(GridPos position) {
     if (!scratch.contains(position)) return;
-    selectedRule = terrainRuleAt(
-      scratch,
-      position,
-      withOuterCorners: draft.rules.length == 20,
-    );
+    selectedRule = uniform
+        ? 0
+        : terrainRuleAt(
+            scratch,
+            position,
+            withOuterCorners: draft.rules.length == 20,
+          );
   }
 
   void _resolve() {

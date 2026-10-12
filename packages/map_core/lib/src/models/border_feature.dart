@@ -5,6 +5,7 @@ import 'border_geometry.dart';
 import 'border_materialization.dart';
 import 'border_signed_int64.dart';
 import 'border_value_objects.dart';
+import 'project_model3d.dart';
 
 /// Integer pixel delta applied to one generated Border slot.
 @immutable
@@ -32,6 +33,7 @@ final class BorderSlotOverride {
     required this.suppressed,
     required this.locked,
     this.lockedPlacement,
+    this.lockedInstanceId,
     this.replacementPrimitiveId,
     this.offsetDeltaPx,
     this.transformOverride,
@@ -44,13 +46,20 @@ final class BorderSlotOverride {
         'BorderSlotOverride.replacementPrimitiveId',
       );
     }
-    if (locked != (lockedPlacement != null)) {
+    if (locked != (lockedPlacement != null || lockedInstanceId != null) ||
+        (lockedPlacement != null && lockedInstanceId != null)) {
       throw const ValidationException(
         'BorderSlotOverride.locked must be true exactly when '
         'lockedPlacement is present',
       );
     }
     final placement = lockedPlacement;
+    if (lockedInstanceId != null) {
+      _requireStableText(
+        lockedInstanceId!,
+        'BorderSlotOverride.lockedInstanceId',
+      );
+    }
     if (placement != null && placement.slotKey != slotKey) {
       throw const ValidationException(
         'BorderSlotOverride.lockedPlacement.slotKey must match slotKey',
@@ -59,6 +68,7 @@ final class BorderSlotOverride {
     if (suppressed &&
         (locked ||
             placement != null ||
+            lockedInstanceId != null ||
             replacement != null ||
             offsetDeltaPx != null ||
             transformOverride != null)) {
@@ -74,6 +84,7 @@ final class BorderSlotOverride {
   final bool suppressed;
   final bool locked;
   final BorderResolvedPlacement? lockedPlacement;
+  final String? lockedInstanceId;
   final String? replacementPrimitiveId;
   final BorderPixelOffset? offsetDeltaPx;
   final BorderSpriteTransform? transformOverride;
@@ -87,21 +98,23 @@ final class BorderSlotOverride {
           suppressed == other.suppressed &&
           locked == other.locked &&
           lockedPlacement == other.lockedPlacement &&
+          lockedInstanceId == other.lockedInstanceId &&
           replacementPrimitiveId == other.replacementPrimitiveId &&
           offsetDeltaPx == other.offsetDeltaPx &&
           transformOverride == other.transformOverride;
 
   @override
   int get hashCode => Object.hash(
-        slotKey,
-        variationSalt,
-        suppressed,
-        locked,
-        lockedPlacement,
-        replacementPrimitiveId,
-        offsetDeltaPx,
-        transformOverride,
-      );
+    slotKey,
+    variationSalt,
+    suppressed,
+    locked,
+    lockedPlacement,
+    lockedInstanceId,
+    replacementPrimitiveId,
+    offsetDeltaPx,
+    transformOverride,
+  );
 }
 
 /// One named Border intent and its last explicitly applied visual output.
@@ -114,18 +127,27 @@ final class BorderFeature {
     required this.seed,
     required this.geometry,
     this.lineSide = BorderLineSide.primary,
+    this.spatialOffsetWorld,
     this.paramsOverride,
     required List<BorderSlotOverride> overrides,
     required List<BorderKeepOutRegion> keepOutRegions,
     this.materialization,
-  })  : _overrides = List<BorderSlotOverride>.unmodifiable(overrides),
-        _keepOutRegions =
-            List<BorderKeepOutRegion>.unmodifiable(keepOutRegions) {
+  }) : _overrides = List<BorderSlotOverride>.unmodifiable(overrides),
+       _keepOutRegions = List<BorderKeepOutRegion>.unmodifiable(
+         keepOutRegions,
+       ) {
     _requireStableText(id, 'BorderFeature.id');
     _requireStableText(name, 'BorderFeature.name');
     _requireStableText(blueprintId, 'BorderFeature.blueprintId');
     _requireUniqueOverrideSlotKeys(_overrides);
     _requireUniqueKeepOutIds(_keepOutRegions);
+    if (spatialOffsetWorld != null &&
+        materialization != null &&
+        !materialization!.targetsSpatialScene) {
+      throw const ValidationException(
+        'A spatial Border offset requires native materialization',
+      );
+    }
   }
 
   final String id;
@@ -134,6 +156,7 @@ final class BorderFeature {
   final BorderSignedInt64 seed;
   final BorderFeatureGeometry geometry;
   final BorderLineSide lineSide;
+  final Model3dVector3? spatialOffsetWorld;
   final BorderGenerationParams? paramsOverride;
   final List<BorderSlotOverride> _overrides;
   final List<BorderKeepOutRegion> _keepOutRegions;
@@ -142,6 +165,12 @@ final class BorderFeature {
   List<BorderSlotOverride> get overrides => _overrides;
 
   List<BorderKeepOutRegion> get keepOutRegions => _keepOutRegions;
+  List<String> get generatedPlacementIds => List<String>.unmodifiable(
+    materialization?.spatialPlacements.map(
+          (placement) => placement.instanceId,
+        ) ??
+        const <String>[],
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -153,6 +182,7 @@ final class BorderFeature {
           seed == other.seed &&
           geometry == other.geometry &&
           lineSide == other.lineSide &&
+          spatialOffsetWorld == other.spatialOffsetWorld &&
           paramsOverride == other.paramsOverride &&
           _listsEqual(_overrides, other._overrides) &&
           _listsEqual(_keepOutRegions, other._keepOutRegions) &&
@@ -160,17 +190,18 @@ final class BorderFeature {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        blueprintId,
-        seed,
-        geometry,
-        lineSide,
-        paramsOverride,
-        Object.hashAll(_overrides),
-        Object.hashAll(_keepOutRegions),
-        materialization,
-      );
+    id,
+    name,
+    blueprintId,
+    seed,
+    geometry,
+    lineSide,
+    spatialOffsetWorld,
+    paramsOverride,
+    Object.hashAll(_overrides),
+    Object.hashAll(_keepOutRegions),
+    materialization,
+  );
 }
 
 void _requireUniqueOverrideSlotKeys(List<BorderSlotOverride> overrides) {

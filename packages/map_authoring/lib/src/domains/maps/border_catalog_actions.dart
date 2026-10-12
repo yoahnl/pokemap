@@ -31,15 +31,22 @@ final class BorderCatalogActions {
       ),
       _descriptor(
         'border.blueprint.draft.upsert',
-        'Create or replace one Border blueprint draft',
+        'Create or replace one Border blueprint draft, including straight-only native profiles and explicit 3D animationIndex, animationLoop, animationSpeed and blocksMovement settings',
+        resourceKinds: const [
+          'project',
+          'borderBlueprint',
+          'element',
+          'model3d'
+        ],
       ),
       _descriptor(
         'border.blueprint.publish',
-        'Publish one Border blueprint with immutable visual snapshots',
+        'Publish one Border blueprint with sprite snapshots or live 3D sources preserving explicit animation and collision settings; null animationIndex does not start a clip',
         resourceKinds: const <String>[
           'project',
           'borderBlueprint',
           'borderSnapshot',
+          'model3d',
         ],
       ),
       _descriptor(
@@ -83,6 +90,13 @@ final class BorderCatalogActions {
       allowed: const <String>{'record'},
     );
     final incoming = _decodeRecord(parameters.object('record'));
+    if (incoming.draft.definition.isSpatial &&
+        incoming.draft.definition.primitives.any((primitive) => !planning
+            .snapshot.manifest.models3d
+            .any((model) => model.id == primitive.sourceModelId))) {
+      throw semanticFailure('border.spatial.source_model_missing',
+          'A spatial Border draft requires existing project models.');
+    }
     if (incoming.latestPublished != null || incoming.isDeprecated) {
       throw semanticFailure(
         'border.blueprint.draft_payload_invalid',
@@ -265,6 +279,18 @@ final class BorderCatalogActions {
       );
     }
 
+    if (current.draft.definition.isSpatial) {
+      if ((parameters.contains('primitiveSources') &&
+              parameters.list('primitiveSources').isNotEmpty) ||
+          (parameters.contains('groundSources') &&
+              parameters.list('groundSources').isNotEmpty) ||
+          (parameters.contains('acceptedWarningCodes') &&
+              parameters.list('acceptedWarningCodes').isNotEmpty)) {
+        throw semanticFailure('border.spatial.sprite_sources_unsupported',
+            'A spatial Border publishes live model references without sprite sources.');
+      }
+      return _publishSpatial(planning, current);
+    }
     final primitiveSources = await _preparePrimitiveSources(
       parameters.list('primitiveSources'),
       current,
@@ -350,6 +376,7 @@ final class BorderCatalogActions {
       name: draftDefinition.name,
       previewSeed: draftDefinition.previewSeed,
       template: draftDefinition.template,
+      straightOnly: draftDefinition.straightOnly,
       primitives: publishedPrimitives,
       defaults: draftDefinition.defaults,
       ground: publishedGround,
@@ -510,7 +537,7 @@ final class BorderCatalogActions {
         path: 'primitiveSources[$index]',
       );
       result[primitiveId] = snapshotCompiler.prepare(
-        sourceElementId: primitive.sourceElementId,
+        sourceElementId: primitive.sourceElementId!,
         anchorPx: primitive.anchorPx,
         frames:
             await _sourceFrames(source['frames'], 'primitiveSources[$index]'),
@@ -611,6 +638,70 @@ final class BorderCatalogActions {
     }
     return result;
   }
+}
+
+AuthoringMutationDraft _publishSpatial(
+    AuthoringPlanningContext planning, BorderBlueprintRecord current) {
+  final draft = current.draft.definition;
+  final definition = BorderBlueprintPublishedDefinition(
+      name: draft.name,
+      previewSeed: draft.previewSeed,
+      template: draft.template,
+      straightOnly: draft.straightOnly,
+      primitives: [
+        for (final primitive in draft.primitives)
+          if (primitive.weight > 0)
+            BorderPublishedPrimitive(
+              id: primitive.id,
+              sourceModelId: primitive.sourceModelId,
+              role: primitive.role,
+              authoredOrientation: primitive.authoredOrientation,
+              weight: primitive.weight,
+              transforms: primitive.transforms,
+              anchorWorld: primitive.anchorWorld,
+              animationIndex: primitive.animationIndex,
+              animationLoop: primitive.animationLoop,
+              animationSpeed: primitive.animationSpeed,
+              blocksMovement: primitive.blocksMovement,
+            )
+      ],
+      defaults: draft.defaults,
+      sortOrder: draft.sortOrder,
+      categoryId: draft.categoryId);
+  final diagnostics = validateSpatialBorderBlueprint(
+      blueprintId: current.id,
+      definition: definition,
+      manifest: planning.snapshot.manifest);
+  if (diagnostics.hasErrors) {
+    throw semanticFailure('border.blueprint.publication_invalid',
+        'The spatial Border blueprint requires a complete native model kit.',
+        details: {
+          'diagnostics': [
+            for (final diagnostic in diagnostics.diagnostics)
+              _diagnosticJson(diagnostic)
+          ]
+        });
+  }
+  final revision = (current.latestPublished?.revision ?? 0) + 1;
+  final after = BorderBlueprintRecord(
+      id: current.id,
+      draft: BorderBlueprintDraft(baseRevision: revision, definition: draft),
+      latestPublished:
+          BorderBlueprintRevision(revision: revision, definition: definition),
+      isDeprecated: current.isDeprecated);
+  final projected = _replaceCatalog(planning.snapshot.manifest,
+      records: [
+        for (final record in planning.snapshot.manifest.borderCatalog.records)
+          if (record.id == current.id) after else record
+      ],
+      visualSnapshots:
+          planning.snapshot.manifest.borderCatalog.visualSnapshots);
+  return _publicationMutation(planning,
+      projected: projected,
+      before: current,
+      after: after,
+      preparations: const [],
+      diagnostics: diagnostics.diagnostics);
 }
 
 BorderPublishedGround? _publishedGround(
@@ -751,7 +842,11 @@ AuthoringMutationDraft _publicationMutation(
       'publishedRevision': after.latestPublished!.revision,
       'primitiveSnapshotIdsByPrimitiveId': <String, Object?>{
         for (final primitive in after.latestPublished!.definition.primitives)
-          primitive.id: primitive.visualSnapshotId,
+          if (!primitive.isSpatial) primitive.id: primitive.visualSnapshotId,
+      },
+      'primitiveModelIdsByPrimitiveId': <String, Object?>{
+        for (final primitive in after.latestPublished!.definition.primitives)
+          if (primitive.isSpatial) primitive.id: primitive.sourceModelId,
       },
       'groundSnapshotIdsByRole': <String, Object?>{
         for (final entry in after.latestPublished!.definition.ground

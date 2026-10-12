@@ -1,4 +1,4 @@
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
 
 class EnvironmentDraft {
   EnvironmentDraft({EnvironmentPreset? original})
@@ -34,12 +34,51 @@ class EnvironmentDraft {
   final String? categoryId;
   final int sortOrder;
   final _weightInputs = <String, String>{};
+  final _offsetInputs = <String, Map<String, String>>{};
   String? _spacingInput;
 
   String weightInput(String id) =>
       _weightInputs[id] ??
-      '${palette.firstWhere((item) => item.elementId == id).weight}';
+      '${palette.firstWhere((item) => item.resourceId == id).weight}';
   String get spacingInput => _spacingInput ?? '${params.minSpacingCells}';
+
+  String offsetInput(String id, String axis) {
+    final offset =
+        palette.firstWhere((item) => item.resourceId == id).cellOffsetWorld ??
+        Model3dVector3.zero;
+    return _offsetInputs[id]?[axis] ??
+        '${switch (axis) {
+          'x' => offset.x,
+          'y' => offset.y,
+          _ => offset.z,
+        }}';
+  }
+
+  void setOffsetInput(String id, String axis, String input) {
+    final values = _offsetInputs.putIfAbsent(
+      id,
+      () => {
+        for (final name in ['x', 'y', 'z']) name: offsetInput(id, name),
+      },
+    );
+    values[axis] = input;
+    final coordinates = [
+      for (final name in ['x', 'y', 'z'])
+        double.tryParse(values[name]!.trim().replaceAll(',', '.')),
+    ];
+    if (coordinates.every(
+      (coordinate) => coordinate != null && coordinate.isFinite,
+    )) {
+      setItem(
+        id,
+        cellOffset: Model3dVector3(
+          x: coordinates[0]!,
+          y: coordinates[1]!,
+          z: coordinates[2]!,
+        ),
+      );
+    }
+  }
 
   void setWeightInput(String id, String input) {
     _weightInputs[id] = input;
@@ -68,28 +107,45 @@ class EnvironmentDraft {
     }
   }
 
-  void add(String elementId) {
-    if (palette.any((item) => item.elementId == elementId)) return;
+  void add(String resourceId, {bool spatial = false}) {
+    if (palette.any((item) => item.resourceId == resourceId)) return;
+    if (palette.isNotEmpty && palette.first.isSpatial != spatial) {
+      throw const FormatException(
+        'Utilisez une palette de décors 2D ou de modèles 3D.',
+      );
+    }
     palette = [
       ...palette,
-      EnvironmentPaletteItem(elementId: elementId, weight: 1),
+      EnvironmentPaletteItem(
+        elementId: spatial ? null : resourceId,
+        modelId: spatial ? resourceId : null,
+        weight: 1,
+      ),
     ];
   }
 
-  void remove(String elementId) {
-    palette = palette.where((item) => item.elementId != elementId).toList();
-    _weightInputs.remove(elementId);
+  void remove(String resourceId) {
+    palette = palette.where((item) => item.resourceId != resourceId).toList();
+    _weightInputs.remove(resourceId);
+    _offsetInputs.remove(resourceId);
   }
 
-  void setItem(String id, {int? weight, EnvironmentCollisionMode? collision}) {
+  void setItem(
+    String id, {
+    int? weight,
+    EnvironmentCollisionMode? collision,
+    Model3dVector3? cellOffset,
+  }) {
     palette = [
       for (final item in palette)
-        if (item.elementId == id)
+        if (item.resourceId == id)
           EnvironmentPaletteItem(
-            elementId: id,
+            elementId: item.elementId,
+            modelId: item.modelId,
             weight: weight ?? item.weight,
             collisionMode: collision ?? item.collisionMode,
             tags: item.tags,
+            cellOffsetWorld: cellOffset ?? item.cellOffsetWorld,
           )
         else
           item,
@@ -97,6 +153,16 @@ class EnvironmentDraft {
   }
 
   EnvironmentPreset build() {
+    for (final values in _offsetInputs.values) {
+      for (final input in values.values) {
+        final coordinate = double.tryParse(input.trim().replaceAll(',', '.'));
+        if (coordinate == null || !coordinate.isFinite) {
+          throw const FormatException(
+            'Chaque décalage doit être un nombre fini en unités de carte.',
+          );
+        }
+      }
+    }
     for (final input in _weightInputs.values) {
       final value = int.tryParse(input);
       if (value == null || value < 1) {

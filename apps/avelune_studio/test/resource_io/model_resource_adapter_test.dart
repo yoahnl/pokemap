@@ -101,4 +101,24 @@ void main() {
       );
     },
   );
+  test('Studio persists and clears collision bounds independently of visual bounds', () async {
+    final fixture = await ResourceFixture.create();
+    addTearDown(fixture.dispose);
+    final input = File('${fixture.root.path}/source.glb');
+    await input.writeAsBytes(triangleGlb());
+    final imported = await fixture.resources.importModel(sourcePath: input.path, name: 'Arbre');
+    final model = imported.manifest.models3d.single;
+    final mapBefore = await fixture.mapFile.readAsBytes();
+    final bounds = {'min': {'x': .1, 'y': 0.0, 'z': .1}, 'max': {'x': .3, 'y': .8, 'z': .3}};
+    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': bounds});
+    final reopened = await LocalMapWorkspaceAdapter().loadProject(fixture.session);
+    expect(reopened.models3d.single.collisionBounds?.toJson(), bounds);
+    expect(reopened.models3d.single.inspection.bounds, model.inspection.bounds);
+    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': null});
+    final cleared = await LocalMapWorkspaceAdapter().loadProject(fixture.session);
+    expect(cleared.models3d.single.collisionBounds, isNull);
+    expect(cleared.models3d.single.inspection.bounds, model.inspection.bounds);
+    expect(await fixture.mapFile.readAsBytes(), mapBefore);
+  });
+
 }

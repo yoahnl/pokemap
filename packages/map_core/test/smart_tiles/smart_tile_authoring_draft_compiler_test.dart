@@ -113,7 +113,58 @@ void main() {
       );
 
       expect(
-          _failureCodes(result), contains('smart_tiles.draft.atlas_missing'));
+        _failureCodes(result),
+        contains('smart_tiles.draft.atlas_missing'),
+      );
+    });
+
+    test('publishes a model-only path without a bitmap atlas', () {
+      final draft =
+          _uniformDraft(
+            usage: SmartTileUsage.path,
+            rules: [
+              _uniformRule(
+                parts: const [
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.model3d(modelId: 'tree'),
+                  ),
+                ],
+              ),
+            ],
+          ).copyWith(
+            atlases: const [],
+            primaryAtlasId: null,
+            sourceTilesetIds: const [],
+          );
+      final model = ProjectModel3dEntry(
+        id: 'tree',
+        name: 'Tree',
+        sourceAssetId: 'tree',
+        relativePath: 'assets/models3d/tree.glb',
+        inspection: Model3dInspection(
+          bounds: Model3dBounds(
+            min: Model3dVector3.zero,
+            max: Model3dVector3(x: 1, y: 1, z: 1),
+          ),
+          meshCount: 1,
+          triangleCount: 12,
+          materials: [Model3dMaterial(index: 0, name: 'Tree')],
+        ),
+      );
+      final result = compileSmartTileAuthoringDraft(
+        draft: draft,
+        catalog: const ProjectSmartTileCatalog.empty(),
+        manifest: _manifest().copyWith(
+          settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+          models3d: [model],
+        ),
+      );
+      expect(result, isA<SmartTileDraftCompilationSuccess>());
+      expect((result as SmartTileDraftCompilationSuccess).atlases, isEmpty);
+      expect(
+        result.preset.rules.single.candidates.single.parts.single.source,
+        isA<SmartTileModel3dSource>(),
+      );
     });
 
     test('fails explicitly when the default material is absent', () {
@@ -193,17 +244,17 @@ const _material = ProjectSmartTileMaterial(
 );
 
 ProjectManifest _manifest() => const ProjectManifest(
-      name: 'Project',
-      version: ProjectVersion.v8,
-      maps: <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'tileset',
-          name: 'Tileset',
-          relativePath: 'tileset.png',
-        ),
-      ],
-    );
+  name: 'Project',
+  version: ProjectVersion.v8,
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'tileset',
+      name: 'Tileset',
+      relativePath: 'tileset.png',
+    ),
+  ],
+);
 
 ProjectSmartTileAuthoringDraft _uniformDraft({
   SmartTileUsage usage = SmartTileUsage.terrain,
@@ -243,8 +294,9 @@ ProjectSmartTileAuthoringDraft _corner16Draft() {
     topology: SmartTileTopology.wangCorner4,
     templateHint: SmartTileTemplateHint.corner16,
     rules: <SmartTileRule>[
-      for (final mask
-          in smartTileCanonicalMasks(SmartTileTemplateHint.corner16))
+      for (final mask in smartTileCanonicalMasks(
+        SmartTileTemplateHint.corner16,
+      ))
         SmartTileRule(
           id: smartTileCanonicalRuleId(mask),
           centerMatch: const SmartTileSlotMatch.any(),
@@ -274,21 +326,21 @@ ProjectSmartTileAuthoringDraft _corner16Draft() {
 }
 
 ProjectSmartTilePreset _publishedPreset() => ProjectSmartTilePreset(
-      id: 'grass',
-      name: 'Grass',
-      usage: SmartTileUsage.terrain,
-      topology: SmartTileTopology.uniform,
-      templateHint: SmartTileTemplateHint.simple,
-      status: SmartTilePresetStatus.published,
-      coveragePolicy: SmartTileCoveragePolicy.complete,
-      coverageProfile: const SmartTileCoverageProfile(
-        mode: SmartTileCoverageMode.template,
-      ),
-      transformPolicy: const SmartTileTransformPolicy(),
-      defaultMaterialId: 'grass',
-      allowedMaterialIds: const <String>['grass'],
-      rules: <SmartTileRule>[_uniformRule()],
-    );
+  id: 'grass',
+  name: 'Grass',
+  usage: SmartTileUsage.terrain,
+  topology: SmartTileTopology.uniform,
+  templateHint: SmartTileTemplateHint.simple,
+  status: SmartTilePresetStatus.published,
+  coveragePolicy: SmartTileCoveragePolicy.complete,
+  coverageProfile: const SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.template,
+  ),
+  transformPolicy: const SmartTileTransformPolicy(),
+  defaultMaterialId: 'grass',
+  allowedMaterialIds: const <String>['grass'],
+  rules: <SmartTileRule>[_uniformRule()],
+);
 
 SmartTileRule _uniformRule({List<SmartTileVisualPart>? parts}) {
   return SmartTileRule(
@@ -297,15 +349,12 @@ SmartTileRule _uniformRule({List<SmartTileVisualPart>? parts}) {
     candidates: <SmartTileCandidate>[
       SmartTileCandidate(
         id: 'uniform-candidate',
-        parts: parts ??
+        parts:
+            parts ??
             const <SmartTileVisualPart>[
               SmartTileVisualPart(
                 source: SmartTileVisualSource.frame(
-                  frame: SmartTileFrameRef(
-                    atlasId: 'atlas',
-                    column: 0,
-                    row: 0,
-                  ),
+                  frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
                 ),
               ),
             ],
@@ -316,8 +365,7 @@ SmartTileRule _uniformRule({List<SmartTileVisualPart>? parts}) {
 
 Set<String> _failureCodes(SmartTileDraftCompilationResult result) {
   expect(result, isA<SmartTileDraftCompilationFailure>());
-  return (result as SmartTileDraftCompilationFailure)
-      .diagnostics
+  return (result as SmartTileDraftCompilationFailure).diagnostics
       .map((item) => item.code)
       .toSet();
 }

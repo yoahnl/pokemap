@@ -79,7 +79,7 @@ void main() {
         1.0,
         '1',
         0,
-        4,
+        5,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(

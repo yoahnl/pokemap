@@ -351,6 +351,7 @@ BorderFeature _resizeFeature({
     seed: feature.seed,
     geometry: resizedGeometry,
     lineSide: feature.lineSide,
+    spatialOffsetWorld: feature.spatialOffsetWorld,
     paramsOverride: feature.paramsOverride,
     overrides: feature.overrides,
     keepOutRegions: resizedKeepOutRegions,

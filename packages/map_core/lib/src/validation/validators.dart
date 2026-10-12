@@ -27,6 +27,8 @@ import '../operations/map_entities.dart';
 import '../operations/map_gameplay_zones.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
+import '../operations/environment_spatial_ownership.dart';
+import '../operations/spatial_border_resolution.dart';
 import '../operations/smart_tile_catalog_validation.dart';
 import '../operations/smart_tile_layer_operations.dart';
 import 'dialogue_validation.dart';
@@ -106,25 +108,40 @@ class ProjectValidator {
       );
     }
     if (spatial && manifest.settings.spatialCamera == null) {
-      throw const ValidationException('A 3D project requires its camera profile.');
+      throw const ValidationException(
+        'A 3D project requires its camera profile.',
+      );
     }
     if (!spatial && manifest.settings.spatialCamera != null) {
-      throw const ValidationException('A 2D project cannot define a 3D camera.');
+      throw const ValidationException(
+        'A 2D project cannot define a 3D camera.',
+      );
     }
     if (maps != null) {
       for (final map in maps) {
         if ((map.spatialScene != null) != spatial) {
-          throw const ValidationException('A project cannot mix 2D and 3D maps.');
+          throw const ValidationException(
+            'A project cannot mix 2D and 3D maps.',
+          );
         }
       }
     }
     _validateCinematicLibrary(manifest);
-    if (manifest.models3d.map((model) => model.id).toSet().length != manifest.models3d.length) {
+    if (manifest.models3d.map((model) => model.id).toSet().length !=
+        manifest.models3d.length) {
       throw const ValidationException('3D model identities must be unique.');
     }
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
       catalog: manifest.smartTileCatalog,
       projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
+      projectModelIds: manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in manifest.models3d)
+          model.id: model.inspection.animations
+              .map((clip) => clip.index)
+              .toSet(),
+      },
+      spatial: manifest.settings.dimension == ProjectDimension.threeD,
     );
     for (final diagnostic in smartTileDiagnostics) {
       if (diagnostic.isError) {
@@ -2562,7 +2579,8 @@ class MapValidator {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     if (projectDialogueContext != null &&
         (map.spatialScene != null) !=
-            (projectDialogueContext.settings.dimension == ProjectDimension.threeD)) {
+            (projectDialogueContext.settings.dimension ==
+                ProjectDimension.threeD)) {
       throw const ValidationException(
         'The map dimension must match its project.',
       );
@@ -2583,25 +2601,38 @@ class MapValidator {
         final frame = map.spatialScene!.cliffFrame;
         if (frame != null) {
           final atlas = project.smartTileCatalog.atlases
-              .where((atlas) => atlas.id == frame.atlasId).firstOrNull;
-          if (atlas == null || frame.column < 0 || frame.row < 0 ||
-              frame.columnSpan <= 0 || frame.rowSpan <= 0 ||
+              .where((atlas) => atlas.id == frame.atlasId)
+              .firstOrNull;
+          if (atlas == null ||
+              frame.column < 0 ||
+              frame.row < 0 ||
+              frame.columnSpan <= 0 ||
+              frame.rowSpan <= 0 ||
               frame.column + frame.columnSpan > atlas.columns ||
               frame.row + frame.rowSpan > atlas.rows) {
             throw ValidationException(
               'Map $mapId has an invalid spatial cliff atlas frame.',
               code: 'map3d.cliff_frame_invalid',
-              details: {'mapId': mapId, 'path': 'spatialScene.cliffFrame',
-                'atlasId': frame.atlasId, 'frame': frame.toJson()},
+              details: {
+                'mapId': mapId,
+                'path': 'spatialScene.cliffFrame',
+                'atlasId': frame.atlasId,
+                'frame': frame.toJson(),
+              },
             );
           }
         }
         final models = {for (final model in project.models3d) model.id: model};
         for (final instance in map.spatialScene!.instances) {
           final model = models[instance.modelId];
-          if (model == null || (instance.animationIndex != null &&
-              !model.inspection.animations.any((clip) => clip.index == instance.animationIndex))) {
-            throw const ValidationException('A 3D placement references a missing model or animation.');
+          if (model == null ||
+              (instance.animationIndex != null &&
+                  !model.inspection.animations.any(
+                    (clip) => clip.index == instance.animationIndex,
+                  ))) {
+            throw const ValidationException(
+              'A 3D placement references a missing model or animation.',
+            );
           }
         }
       }
@@ -3857,14 +3888,100 @@ class MapValidator {
               '(${area.mask.width}x${area.mask.height}) must match map size (${mapWidth}x$mapHeight)',
             );
           }
+          if (environmentLayer.content.targetsSpatialTerrain) {
+            for (final instance in map.spatialScene!.instances.where((instance) =>
+                area.generatedPlacementIds.contains(instance.id) &&
+                !area.manualPlacementIds.contains(instance.id))) {
+              final anchor = environmentSpatialPlacementAnchor(placementId: instance.id,
+                  layerId: environmentLayer.id, areaId: area.id, modelId: instance.modelId);
+              if (anchor.x >= mapWidth || anchor.y >= mapHeight) {
+                throw const ValidationException('The spatial Environment ownership anchor is outside the map.',
+                    code: 'environment.placement_anchor_invalid');
+              }
+            }
+          }
+          if (environmentLayer.content.targetsSpatialTerrain &&
+              projectContext != null) {
+            final presets = projectContext.environmentPresets.where(
+              (preset) => preset.id == area.presetId,
+            );
+            if (presets.length != 1 ||
+                !presets.single.isSpatial ||
+                presets.single.palette.any(
+                  (item) => !projectContext.models3d.any(
+                    (model) => model.id == item.modelId,
+                  ),
+                )) {
+              throw ValidationException(
+                'A spatial Environment area requires one model palette with existing project models.',
+                code: 'environment.spatial_preset_invalid',
+                details: {
+                  'mapId': map.id,
+                  'layerId': layerId,
+                  'areaId': area.id,
+                  'presetId': area.presetId,
+                },
+              );
+            }
+          }
         }
       },
       border: (borderLayer) {
+        if (map.spatialScene == null && borderLayer.content.features.any((feature) => feature.spatialOffsetWorld != null)) {
+          throw const ValidationException('A spatial Border offset requires a 3D map', code: 'border.spatial.map_required');
+        }
         for (final key in borderLayer.properties.keys) {
           if (key.trim().isEmpty) {
             throw ValidationException(
               'Border layer $layerId has an empty property key',
             );
+          }
+        }
+        if (map.spatialScene != null) {
+          for (final feature in borderLayer.content.features) {
+            final definition = projectContext?.borderCatalog
+                .recordById(feature.blueprintId)
+                ?.latestPublished
+                ?.definition;
+            if (projectContext != null &&
+                (definition == null || !definition.isSpatial)) {
+              throw const ValidationException(
+                'A spatial Border feature requires a published native model blueprint.',
+              );
+            }
+            if (definition != null &&
+                definition.primitives.any(
+                  (primitive) => !projectContext!.models3d.any(
+                    (model) => model.id == primitive.sourceModelId,
+                  ),
+                )) {
+              throw const ValidationException(
+                'A spatial Border blueprint references an unavailable model.',
+              );
+            }
+            if (definition != null && validateSpatialBorderFeatureGeometry(
+                blueprintId: feature.blueprintId, featureId: feature.id,
+                definition: definition, geometry: feature.geometry).hasErrors) {
+              throw const ValidationException('This spatial Border profile requires straight strokes',
+                  code: 'border.spatial.straight_only_geometry_required');
+            }
+            for (final placement
+                in feature.materialization?.spatialPlacements ?? []) {
+              final instance = map.spatialScene!.instances
+                  .where((instance) => instance.id == placement.instanceId)
+                  .firstOrNull;
+              final primitive = definition?.primitives
+                  .where((primitive) => primitive.id == placement.primitiveId)
+                  .firstOrNull;
+              if (instance == null ||
+                  definition != null &&
+                      (primitive == null ||
+                          instance.modelId != primitive.sourceModelId)) {
+                throw const ValidationException(
+                  'A spatial Border slot requires its native primitive instance.',
+                );
+              }
+            }
           }
         }
       },

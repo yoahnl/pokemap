@@ -86,20 +86,23 @@ class ResourceWorkspacePane extends StatelessWidget {
       );
     } else if (n.page == ResourcePage.terrain &&
         n.terrain != null &&
-        visuals is ResourceWorkspaceVisuals) {
+        (n.terrain!.spatial || visuals is ResourceWorkspaceVisuals)) {
       final model = n.terrain!;
-      final tileset = project.tilesets.firstWhere(
-        (t) => t.id == model.atlas.tilesetId,
-      );
-      final source = tileset.source as ProjectRegularAtlasTilesetSource;
+      final tileset = model.spatial
+          ? null
+          : project.tilesets.firstWhere((t) => t.id == model.atlas.tilesetId);
+      final source = tileset?.source as ProjectRegularAtlasTilesetSource?;
       content = TerrainEditorScreen(
         key: ValueKey(model),
         controller: model,
-        image: (visuals as ResourceWorkspaceVisuals).atlasPreview(tileset.id),
+        visuals: visuals,
+        image: tileset == null
+            ? const SizedBox.shrink()
+            : (visuals as ResourceWorkspaceVisuals).atlasPreview(tileset.id),
         frameBuilder: (frame, size) => n.visuals.tileThumbnail(
           TileLayerPaletteEntry(
-            tilesetId: tileset.id,
-            localTileId: frame.row * source.columns + frame.column,
+            tilesetId: tileset!.id,
+            localTileId: frame.row * source!.columns + frame.column,
           ),
           size: size,
         ),

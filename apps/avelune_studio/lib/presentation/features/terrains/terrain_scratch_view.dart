@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/terrains/application/terrain_draft_controller.dart';
+import '../../../features/terrains/domain/terrain_spatial_preview_map.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+import '../map_workspace/map_workspace_visuals.dart';
+import 'terrain_spatial_preview.dart';
 
-typedef TerrainFrameBuilder =
-    Widget Function(SmartTileFrameRef frame, double size);
+typedef TerrainFrameBuilder = Widget Function(
+  SmartTileFrameRef frame,
+  double size,
+);
 
 class TerrainScratchView extends StatefulWidget {
   const TerrainScratchView({
@@ -13,11 +19,13 @@ class TerrainScratchView extends StatefulWidget {
     required this.frameBuilder,
     required this.onChanged,
     required this.tool,
+    this.visuals,
   });
   final TerrainDraftController controller;
   final TerrainFrameBuilder frameBuilder;
   final VoidCallback onChanged;
   final String tool;
+  final MapWorkspaceVisuals? visuals;
 
   @override
   State<TerrainScratchView> createState() => _TerrainScratchViewState();
@@ -27,8 +35,61 @@ class _TerrainScratchViewState extends State<TerrainScratchView> {
   GridPos? _previous;
   TerrainDraftController get controller => widget.controller;
 
+  void _act(GridPos point) {
+    if (widget.tool == 'Examiner') {
+      controller.inspect(point);
+    } else {
+      controller.paintLine(
+        _previous ?? point,
+        point,
+        erase: widget.tool == 'Gommer',
+      );
+    }
+    _previous = point;
+    widget.onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (controller.spatial) {
+      try {
+        final preview = terrainSpatialPreviewMap(
+          project: controller.manifest,
+          preset: controller.previewPreset,
+          size: TerrainDraftController.scratchSize,
+          cells: controller.scratch,
+          materials: controller.draft.materials,
+        );
+        return AspectRatio(
+          aspectRatio: 1,
+          child: widget.visuals == null
+              ? const StudioNotice('Aperçu 3D indisponible')
+              : TerrainSpatialPreview(
+                  key: const ValueKey('terrain-scratch'),
+                  map: preview.map,
+                  project: preview.project,
+                  visuals: widget.visuals!,
+                  onCell: (x, z) {
+                    _previous = null;
+                    _act(GridPos(x: x, y: z));
+                    _previous = null;
+                  },
+                  onDragStart: (x, z, _) {
+                    _previous = null;
+                    _act(GridPos(x: x, y: z));
+                    return true;
+                  },
+                  onDragUpdate: (cell) => _act(GridPos(x: cell.$1, y: cell.$2)),
+                  onDragEnd: () => _previous = null,
+                  onDragCancel: () => _previous = null,
+                ),
+        );
+      } on FormatException {
+        return const StudioNotice(
+          'Une pièce dépasse le terrain d’essai. Vérifiez ses points d’appui et ses décalages.',
+        );
+      }
+    }
     final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {

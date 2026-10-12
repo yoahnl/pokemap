@@ -5,10 +5,12 @@ class _EnvironmentDecorPicker extends StatefulWidget {
     required this.project,
     required this.visuals,
     required this.excluded,
+    this.activeMapId,
   });
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
   final Set<String> excluded;
+  final String? activeMapId;
   @override
   State<_EnvironmentDecorPicker> createState() =>
       _EnvironmentDecorPickerState();
@@ -16,6 +18,22 @@ class _EnvironmentDecorPicker extends StatefulWidget {
 
 class _EnvironmentDecorPickerState extends State<_EnvironmentDecorPicker> {
   final search = TextEditingController();
+  final filters = ResourceCatalogFilterState(showComponents: true);
+  List<ResourceItem> get candidates => resourceCatalog(widget.project)
+      .where(
+        (item) =>
+            !widget.excluded.contains(item.identity) &&
+            (item.element != null || item.model3d != null),
+      )
+      .toList();
+  List<ResourceItem> visible(ResourceCatalogFilterState state) =>
+      filterResourceCatalog(
+        widget.project,
+        candidates,
+        state,
+        activeMapId: widget.activeMapId,
+        forMapPicker: true,
+      );
   @override
   void dispose() {
     search.dispose();
@@ -24,13 +42,22 @@ class _EnvironmentDecorPickerState extends State<_EnvironmentDecorPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final elements = widget.project.elements
-        .where(
-          (element) =>
-              !widget.excluded.contains(element.id) &&
-              element.name.toLowerCase().contains(search.text.toLowerCase()),
-        )
-        .toList();
+    final resources = visible(filters);
+    final tree = ResourceFamilyTree(
+      widget.project,
+      candidates,
+      activeMapId: widget.activeMapId,
+      forMapPicker: true,
+      showComponents: filters.showComponents,
+    );
+    final familyLabel =
+        tree.nodes
+            .where((node) => node.id == filters.familyId)
+            .firstOrNull
+            ?.name ??
+        (filters.familyId == unclassifiedResourceFamily
+            ? 'Sans famille'
+            : null);
     final size = MediaQuery.sizeOf(context);
     return Dialog(
       child: SizedBox(
@@ -48,24 +75,72 @@ class _EnvironmentDecorPickerState extends State<_EnvironmentDecorPicker> {
               const SizedBox(height: 16),
               StudioSearchField(
                 controller: search,
-                onChanged: (_) => setState(() {}),
+                onChanged: (value) => setState(() => filters.query = value),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  StudioButton(
+                    key: const ValueKey('environment-decor-families'),
+                    label: familyLabel ?? 'Familles',
+                    icon: Icons.folder_outlined,
+                    secondary: true,
+                    onPressed: () => showWorkspaceCompactPanel(
+                      context,
+                      title: 'Familles',
+                      builder: (context, refresh, close) => Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: ResourceFamilyTreeView(
+                          tree: tree,
+                          selectedFamilyId: filters.familyId,
+                          compact: true,
+                          onChanged: (value) {
+                            close();
+                            setState(() => filters.familyId = value);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  ResourceFilterButton(
+                    filters: filters,
+                    forMapPicker: true,
+                    onChanged: () => setState(() {}),
+                    countResults: (draft, _) => visible(draft).length,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ResourceFilterTags(
+                filters: filters,
+                familyLabel: familyLabel,
+                forMapPicker: true,
+                onChanged: () => setState(() {}),
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: elements.isEmpty
+                child: resources.isEmpty
                     ? const Center(child: Text('Aucun autre décor disponible.'))
                     : ListView.builder(
-                        itemCount: elements.length,
+                        itemCount: resources.length,
                         itemBuilder: (context, index) {
-                          final element = elements[index];
+                          final resource = resources[index];
                           return StudioChoice(
-                            key: ValueKey('environment-decor-${element.id}'),
-                            label: element.name,
-                            leading: widget.visuals.thumbnail(
-                              element,
+                            key: ValueKey('environment-decor-${resource.id}'),
+                            label: resource.name,
+                            subtitle: resourceCatalogScopeLabel(
+                              widget.project,
+                              resource,
+                            ),
+                            leading: resourcePreview(
+                              resource,
+                              widget.project,
+                              widget.visuals,
                               size: 64,
                             ),
-                            onTap: () => Navigator.pop(context, element),
+                            onTap: () => Navigator.pop(context, resource),
                           );
                         },
                       ),

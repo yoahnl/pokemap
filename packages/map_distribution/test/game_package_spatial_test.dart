@@ -8,6 +8,30 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('requires the terrain appearance capability for custom cliff meshes', () {
+    final files = spatialPayload();
+    final map = MapData.fromJson(jsonDecode(
+        utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(
+      spatialScene: map.spatialScene!.copyWith(generateCliffs: false),
+    ).toJson()));
+    expect(
+      () => const GamePackageBuilder().build(
+        manifest: spatialManifest(), payloadFiles: files,
+      ),
+      throwsA(isA<GamePackageFormatException>().having(
+        (error) => error.message, 'message', contains('map3d.terrain-appearance@1'),
+      )),
+    );
+    final built = const GamePackageBuilder().build(
+      manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.terrain-appearance@1']),
+      payloadFiles: files,
+    );
+    final inspected = const GamePackageInspector().inspect(built.packageBytes);
+    expect(inspected.manifest.compatibility.requiredCapabilities,
+      contains('map3d.terrain-appearance@1'));
+  });
+
   test('packages flat Smart Tile surfaces and closes their texture assets', () {
     final files = spatialPayload();
     var project = ProjectManifest.fromJson(

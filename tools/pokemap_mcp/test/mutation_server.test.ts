@@ -1024,6 +1024,218 @@ test("MCP paints and erases flat 3D surfaces with canonical Smart Tile actions",
   }
 });
 
+for (const animated of [false, true]) {
+  test(`MCP 3D raster ${animated ? "animation" : "frame"} pattern preserves ground through erase and reopen`, async () => {
+    const fixture = await mutationFixture({ withSpatialSmartTile: true });
+    try {
+      const described = await toolData(fixture.client, "pokemap_describe", {});
+      const ids = (described.mutationActions as JsonRecord[]).map((action) => action.id);
+      for (const id of ["smart_tile.pattern.upsert", "smart_tile.pattern.paint", "smart_tile.pattern.erase"]) {
+        assert.ok(ids.includes(id));
+      }
+      let opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+      let projectHandle = String(opened.projectHandle);
+      let revision = String((await toolData(fixture.client, "pokemap_validate", { projectHandle })).snapshotRevision);
+      async function apply(actionId: string, parameters: JsonRecord, sequence: string): Promise<void> {
+        revision = await applyMutation(fixture.client, {
+          projectHandle,
+          workspaceHandle: String(opened.workspaceHandle),
+          expectedRevision: revision,
+          actionId,
+          parameters,
+          sequence: `raster-${sequence}`,
+        });
+      }
+      async function currentMap(): Promise<JsonRecord> {
+        const query = await toolData(fixture.client, "pokemap_query", {
+          projectHandle, resourceKind: "map", operation: "batch_get", ids: ["native_v5"], view: "detail",
+        });
+        assert.equal((query.items as unknown[]).length, 1);
+        return record((query.items as unknown[])[0]);
+      }
+      const before = await currentMap();
+      const baseLayer = (before.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+      assert.equal((record(baseLayer.field).semanticCells as number[])[0], 1);
+      await apply("smart_tile.atlas.upsert", {
+        atlas: { id: "raster-atlas", name: "Ground motifs", tilesetId: "smart_tileset", cellWidth: 1, cellHeight: 1, columns: 1, rows: 1 },
+      }, "atlas");
+      const frame = { atlasId: "raster-atlas", column: 0, row: 0 };
+      if (animated) {
+        await apply("smart_tile.animation.upsert", {
+          animation: { id: "raster-cycle", name: "Ground cycle", frames: [{ frame, durationMs: 100 }] },
+        }, "animation");
+      }
+      const source = animated ? { kind: "animation", animationId: "raster-cycle" } : { kind: "frame", frame };
+      await apply("smart_tile.pattern.upsert", {
+        pattern: { id: "raster-motif", name: "Ground motif", usage: "path", width: 1, height: 1,
+          repeatMode: "stamp", cells: [{ x: 0, y: 0, parts: [{ source, channel: "ground" }] }] },
+      }, "pattern");
+      await apply("smart_tile.pattern.paint", {
+        mapId: "native_v5", layerId: "smart", patternId: "raster-motif", strokeId: "raster-stroke",
+        selection: { kind: "stamp", anchor: { x: 0, y: 0 } },
+      }, "paint");
+      const painted = await currentMap();
+      const paintedLayer = (painted.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+      assert.deepEqual(paintedLayer.field, baseLayer.field);
+      assert.equal(record((paintedLayer.patternStrokes as unknown[])[0]).patternId, "raster-motif");
+      assert.deepEqual(painted.spatialScene, before.spatialScene);
+      await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+      opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+      projectHandle = String(opened.projectHandle);
+      revision = String((await toolData(fixture.client, "pokemap_validate", { projectHandle })).snapshotRevision);
+      const reopened = await currentMap();
+      assert.deepEqual(reopened.layers, painted.layers);
+      assert.deepEqual(reopened.spatialScene, painted.spatialScene);
+      await apply("smart_tile.pattern.erase", {
+        mapId: "native_v5", layerId: "smart", cells: [{ x: 0, y: 0 }],
+      }, "erase");
+      const erased = await currentMap();
+      const erasedLayer = (erased.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+      assert.deepEqual(erasedLayer.field, baseLayer.field);
+      assert.deepEqual(erasedLayer.patternStrokes, baseLayer.patternStrokes);
+      assert.deepEqual(erased.spatialScene, before.spatialScene);
+      await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    } finally {
+      await fixture.client.close();
+      await fixture.server.close();
+      await fixture.authoring.close();
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+}
+
+test("MCP targeted 3D pattern erase preserves an overlapping stamp and ground through reopen", async () => {
+  const fixture = await mutationFixture({ withSpatialSmartTile: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const eraseAction = (described.mutationActions as JsonRecord[])
+      .find((action) => action.id === "smart_tile.pattern.erase")!;
+    assert.ok(eraseAction);
+    const eraseExtensions = record(eraseAction.extensions);
+    assert.equal(eraseExtensions.optionalEraseStrokeIds, true);
+    assert.deepEqual(eraseExtensions.eraseStrokeIdsSchema, {
+      type: "array", minItems: 1, uniqueItems: true, items: { type: "string", minLength: 1 },
+    });
+    assert.equal(eraseExtensions.eraseWithoutStrokeIds, "all_overlapping_strokes");
+    let opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    let projectHandle = String(opened.projectHandle);
+    let revision = String((await toolData(fixture.client, "pokemap_validate", { projectHandle })).snapshotRevision);
+    async function apply(actionId: string, parameters: JsonRecord, sequence: string): Promise<void> {
+      revision = await applyMutation(fixture.client, {
+        projectHandle, workspaceHandle: String(opened.workspaceHandle), expectedRevision: revision,
+        actionId, parameters, sequence: `targeted-stamp-${sequence}`,
+      });
+    }
+    async function currentMap(): Promise<JsonRecord> {
+      const query = await toolData(fixture.client, "pokemap_query", {
+        projectHandle, resourceKind: "map", operation: "batch_get", ids: ["native_v5"], view: "detail",
+      });
+      assert.equal((query.items as unknown[]).length, 1);
+      return record((query.items as unknown[])[0]);
+    }
+    async function reopen(): Promise<void> {
+      await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+      opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+      projectHandle = String(opened.projectHandle);
+      revision = String((await toolData(fixture.client, "pokemap_validate", { projectHandle })).snapshotRevision);
+    }
+    const document = {
+      asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+      buffers: [{ byteLength: 36 }], bufferViews: [{ buffer: 0, byteLength: 36 }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3", min: [0, 0, 0], max: [1, 0, 1] }],
+    };
+    const json = Buffer.from(JSON.stringify(document));
+    const jsonLength = Math.ceil(json.length / 4) * 4;
+    const model = Buffer.alloc(28 + jsonLength + 36);
+    model.writeUInt32LE(0x46546c67, 0);
+    model.writeUInt32LE(2, 4);
+    model.writeUInt32LE(model.length, 8);
+    model.writeUInt32LE(jsonLength, 12);
+    model.writeUInt32LE(0x4e4f534a, 16);
+    model.fill(32, 20, 20 + jsonLength);
+    json.copy(model, 20);
+    model.writeUInt32LE(36, 20 + jsonLength);
+    model.writeUInt32LE(0x004e4942, 24 + jsonLength);
+    [0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((value, index) => model.writeFloatLE(value, 28 + jsonLength + index * 4));
+    const sourcePath = join(fixture.root, "stamp.glb");
+    await writeFile(sourcePath, model);
+    const artifact = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath, declaredMediaType: "model/gltf-binary",
+    });
+    await apply("model3d.import", { modelId: "stamp-model", name: "Ground stamp", artifactHandle: artifact.artifactHandle }, "model");
+    await apply("map3d.terrain.set_levels", { mapId: "native_v5", cells: [{ x: 0, z: 0, level: 2 }] }, "relief");
+    const before = await currentMap();
+    const baseLayer = (before.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+    const terrainLayer = (before.layers as JsonRecord[]).find((layer) => layer.id === "terrain")!;
+    assert.equal((record(baseLayer.field).semanticCells as number[])[0], 1);
+    assert.deepEqual(record(before.spatialScene).heightLevels, [2, 0, 0, 0]);
+    await apply("smart_tile.pattern.upsert", {
+      pattern: { id: "model-stamp", name: "Ground model stamp", usage: "path", width: 1, height: 1,
+        repeatMode: "stamp", cells: [{ x: 0, y: 0, parts: [{ source: { kind: "model3d", modelId: "stamp-model", followTerrain: true }, channel: "ground" }] }] },
+    }, "pattern");
+    for (const strokeId of ["lower", "upper"]) {
+      await apply("smart_tile.pattern.paint", {
+        mapId: "native_v5", layerId: "smart", patternId: "model-stamp", strokeId,
+        selection: { kind: "stamp", anchor: { x: 0, y: 0 } },
+      }, `paint-${strokeId}`);
+    }
+    const painted = await currentMap();
+    const paintedLayer = (painted.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+    const lower = (paintedLayer.patternStrokes as JsonRecord[]).find((stroke) => stroke.id === "lower")!;
+    assert.ok(lower);
+    assert.deepEqual((paintedLayer.patternStrokes as JsonRecord[]).map((stroke) => stroke.id), ["lower", "upper"]);
+    const mapPath = join(fixture.root, "maps/native_v5.json");
+    const beforeRejectedErase = await readFile(mapPath);
+    const beforeRejectedManifest = await readFile(join(fixture.root, "project.json"));
+    for (const [index, strokeIds] of [[], ["upper", "upper"], ["missing"]].entries()) {
+      const id = `targeted-stamp-invalid-${index}`;
+      const rejected = await fixture.client.callTool({ name: "pokemap_plan", arguments: {
+        projectHandle, request: { requestId: id, actionId: "smart_tile.pattern.erase", actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle, expectedRevision: revision, idempotencyKey: id, dryRun: false,
+          parameters: { mapId: "native_v5", layerId: "smart", strokeIds, cells: [{ x: 0, y: 0 }] } },
+      } });
+      assert.equal(rejected.isError, true);
+      assert.equal(record(rejected.structuredContent).ok, false);
+      assert.deepEqual(await readFile(mapPath), beforeRejectedErase);
+      assert.deepEqual(await readFile(join(fixture.root, "project.json")), beforeRejectedManifest);
+    }
+    await apply("smart_tile.pattern.erase", {
+      mapId: "native_v5", layerId: "smart", strokeIds: ["upper"], cells: [{ x: 0, y: 0 }],
+    }, "erase-upper");
+    const erased = await currentMap();
+    const erasedLayer = (erased.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+    assert.deepEqual(erasedLayer.patternStrokes, [lower]);
+    assert.deepEqual(erasedLayer.field, baseLayer.field);
+    assert.deepEqual((erased.layers as JsonRecord[]).find((layer) => layer.id === "terrain"), terrainLayer);
+    assert.deepEqual(erased.spatialScene, before.spatialScene);
+    await reopen();
+    const restored = await currentMap();
+    assert.deepEqual(restored.layers, erased.layers);
+    assert.deepEqual(restored.spatialScene, erased.spatialScene);
+    await apply("smart_tile.pattern.paint", {
+      mapId: "native_v5", layerId: "smart", patternId: "model-stamp", strokeId: "upper",
+      selection: { kind: "stamp", anchor: { x: 0, y: 0 } },
+    }, "repaint-upper");
+    await apply("smart_tile.pattern.erase", {
+      mapId: "native_v5", layerId: "smart", cells: [{ x: 0, y: 0 }],
+    }, "erase-default");
+    await reopen();
+    const cleared = await currentMap();
+    const clearedLayer = (cleared.layers as JsonRecord[]).find((layer) => layer.id === "smart")!;
+    assert.deepEqual(clearedLayer.patternStrokes, baseLayer.patternStrokes);
+    assert.deepEqual(clearedLayer.field, baseLayer.field);
+    assert.deepEqual((cleared.layers as JsonRecord[]).find((layer) => layer.id === "terrain"), terrainLayer);
+    assert.deepEqual(cleared.spatialScene, before.spatialScene);
+    await toolData(fixture.client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
   const fixture = await mutationFixture();
   try {
