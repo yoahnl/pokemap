@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -10,11 +12,86 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/native_writer_fixture.dart';
+import 'support/original_asset_fixture.dart';
 
 Matcher get _nativeFailure => isA<NativeWriteException>()
     .having((error) => error.code, 'code', startsWith('native.'));
 
 void main() {
+  test('AC-08 canonical JSON artifact retains immutable exact content', () {
+    final json = canonicalJsonOf({
+      'kind': 'approvedAssetLibraryProvenance',
+      'version': 1,
+      'candidateHash': 'a' * 64,
+    });
+    final bytes = utf8.encode(json);
+    final artifact = NativeArtifact(
+        bytes: bytes,
+        mediaType: 'application/json',
+        expectedSha256: nativeFixtureHash(bytes));
+    bytes[0] = 0;
+    expect(artifact.reference.mediaType, 'application/json');
+    expect(utf8.decode(artifact.bytes), json);
+    expect(artifact.rawSha256, nativeFixtureHash(utf8.encode(json)));
+    expect(() => artifact.bytes[0] = 0, throwsUnsupportedError);
+  });
+
+  test('AC-08 native artifact media types are closed', () {
+    expect(
+        () => NativeArtifact(bytes: const [1, 2], mediaType: 'text/plain'),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.artifact.media')));
+  });
+
+  test('AC-08 JSON artifacts reject noncanonical and nonobject payloads', () {
+    for (final payload in [
+      '{"z":1,"a":2}',
+      '{"a":1,"a":2}',
+      '{ "a":1}',
+      '[1,2]',
+      '{"value":1e999}',
+      '{"value":',
+    ]) {
+      expect(
+          () => NativeArtifact(
+              bytes: utf8.encode(payload), mediaType: 'application/json'),
+          throwsA(_nativeFailure),
+          reason: payload);
+    }
+    expect(
+        () => NativeArtifact(
+            bytes: const [0xc3, 0x28], mediaType: 'application/json'),
+        throwsA(_nativeFailure));
+  });
+
+  test('AC-08 JSON preflight rejects excessive nesting and values', () {
+    expect(
+        () => NativeArtifact(
+            bytes: utf8.encode('{"a":{"b":{"c":1}}}'),
+            mediaType: 'application/json',
+            limits: const NativeWriteLimits(
+                jsonLimits: ContractLimits(maxDepth: 2))),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.artifact.json')));
+    expect(
+        () => NativeArtifact(
+            bytes: utf8.encode('{"a":[1,2,3]}'),
+            mediaType: 'application/json',
+            limits: const NativeWriteLimits(
+                jsonLimits: ContractLimits(maxNodes: 4))),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.artifact.json')));
+  });
+
+  test('AC-08 companion JSON has an independent byte cap before copying', () {
+    expect(
+        () => NativeArtifact(
+            bytes: List<int>.filled(1048577, 32),
+            mediaType: 'application/json'),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.artifact')));
+  });
+
   late Directory root;
   late Directory output;
   late NativeWriterFixture fixture;
@@ -59,6 +136,421 @@ void main() {
     expect(await _treeShape(output.path), beforeShape);
     await sourceUnchanged();
   }
+
+  NativeProjectDraft withSourceArtifacts(List<NativeArtifact> witnesses,
+          {NativeWriteLimits limits = const NativeWriteLimits()}) =>
+      NativeProjectDraft(
+          source: fixture.draft.source,
+          projectName: fixture.draft.projectName,
+          parentPath: fixture.draft.parentPath,
+          folderName: fixture.draft.folderName,
+          sourceRootPath: fixture.draft.sourceRootPath,
+          mapIds: fixture.draft.mapIds,
+          artifacts: fixture.draft.artifacts,
+          sourceArtifacts: witnesses,
+          mutations: fixture.draft.mutations,
+          compositionEvidence: fixture.draft.compositionEvidence,
+          limits: limits);
+
+  test('AC-08 source PNG witnesses alter approval binding and are immutable',
+      () {
+    final witnesses = [NativeArtifact(bytes: fixture.atlasBytes)];
+    final draft = withSourceArtifacts(witnesses);
+    expect(draft.canonicalHash, isNot(fixture.draft.canonicalHash));
+    witnesses.clear();
+    expect(draft.sourceArtifacts, hasLength(1));
+    expect(() => draft.sourceArtifacts.clear(), throwsUnsupportedError);
+  });
+
+  test('AC-08 source witnesses consume aggregate artifact counts and bytes',
+      () {
+    final witnesses = [NativeArtifact(bytes: fixture.atlasBytes)];
+    expect(
+        () => withSourceArtifacts(witnesses,
+            limits: const NativeWriteLimits(maxArtifacts: 1)),
+        throwsA(_nativeFailure));
+    expect(
+        () => withSourceArtifacts(witnesses,
+            limits: NativeWriteLimits(
+                maxTotalArtifactBytes: fixture.atlasBytes.length)),
+        throwsA(_nativeFailure));
+  });
+
+  test(
+      'AC-08 source witnesses without a bound library are refused before stage',
+      () async {
+    await refuseBeforeStage(
+        withSourceArtifacts([NativeArtifact(bytes: fixture.atlasBytes)]));
+  });
+
+  Future<
+          (
+            OriginalAssetFixture,
+            ApprovedAssetLibraryComposition,
+            NativeProjectDraft,
+            NativeFixtureApproval
+          )>
+      assetLibraryFixture(
+          {AssetOutputMode mode = AssetOutputMode.standaloneObjects}) async {
+    final original = await OriginalAssetFixture.create(
+        sourceRootPath: '${root.path}/asset-source');
+    final literal = await original.compose(parentPath: output.path);
+    final candidates = [
+      original.treeCandidate(outputMode: mode),
+      if (mode == AssetOutputMode.standaloneObjects)
+        original.houseCandidate(outputMode: mode),
+    ].map(_approvedLibraryCandidate).toList();
+    final decisions = _libraryDecisions(original, candidates);
+    final library = await const ApprovedAssetLibraryComposer().compose(
+        source: original.literalFixture.source,
+        files: original.literalFixture.files,
+        candidates: candidates,
+        approvedCandidateHashes: {
+          for (final candidate in candidates)
+            candidate.candidateId: candidate.canonicalHash,
+        },
+        decisions: decisions,
+        outputMode: mode);
+    expect(library.canExport, isTrue);
+    final base = literal.draft!;
+    final artifacts = {
+      for (final artifact in [...base.artifacts, ...library.artifacts])
+        artifact.handle: artifact,
+    };
+    final draft = _copyLibraryDraft(base,
+        artifacts: artifacts.values.toList(),
+        sourceArtifacts: library.sourceArtifacts,
+        mutations: [
+          ...base.mutations,
+          ...library.mutations
+        ],
+        evidence: {
+          ...base.compositionEvidence,
+          'assetLibrary': library.evidence
+        });
+    return (
+      original,
+      library,
+      draft,
+      _approveLibraryDraft(draft, candidates, decisions)
+    );
+  }
+
+  test(
+      'AC-08 approved library persists native resources and exact literal maps',
+      () async {
+    final (original, library, draft, approval) = await assetLibraryFixture();
+    final before = await _treeBytes(original.literalFixture.sourceRootPath!);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, draft);
+    final opened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await opened.load();
+      expect(snapshot.manifest.elements, hasLength(2));
+      expect(snapshot.manifest.elementCategories, hasLength(2));
+      expect(snapshot.manifest.tilesets, hasLength(3));
+      for (final binding in library.candidateBindings) {
+        final element = snapshot.manifest.elements
+            .singleWhere((entry) => entry.id == binding.nativeElementId);
+        expect(element.collisionProfile, isNull);
+        expect(element.frames, hasLength(1));
+        expect(element.frames.single.durationMs, isNull);
+        final companion = library.artifacts.singleWhere(
+            (artifact) => artifact.handle == binding.companionArtifactHandle);
+        expect(
+            await opened.handles
+                .resolveProject(opened.project)
+                .readBytes(binding.record['companionLogicalPath'] as String),
+            companion.bytes);
+        expect(
+            await opened.snapshots
+                .readRetainedAssetBlob(opened.project, companion.reference),
+            companion.bytes);
+      }
+      for (final mutation
+          in draft.mutations.where((value) => value.actionId == 'map.save')) {
+        final raw = mutation.parameters['map'] as Map;
+        expect(snapshot.mapById(raw['id'] as String)!.toJson(), raw);
+      }
+      expect(receipt.verified, isTrue);
+      expect(receipt.published, isFalse);
+      expect(receipt.assetHashes, hasLength(5));
+    } finally {
+      await opened.close();
+    }
+    expect(await _treeBytes(original.literalFixture.sourceRootPath!), before);
+  });
+
+  test('AC-08 shared library retains original atlas and literal maps',
+      () async {
+    final (_, library, draft, approval) =
+        await assetLibraryFixture(mode: AssetOutputMode.sharedAtlas);
+    final binding = library.candidateBindings.single;
+    final png = library.artifacts.singleWhere(
+        (artifact) => artifact.handle == binding.pngArtifactHandle);
+    expect(png.bytes, draft.sourceArtifacts.single.bytes);
+    final receipt = await const NativeProjectWriter()
+        .write(approval.plan, approval.context, draft);
+    final opened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await opened.load();
+      expect(snapshot.manifest.elements, hasLength(1));
+      expect(snapshot.manifest.tilesets, hasLength(2));
+      expect(
+          snapshot.resourceBytes('assetLogical:${binding.nativeImageAssetId}'),
+          png.bytes);
+      for (final mutation
+          in draft.mutations.where((value) => value.actionId == 'map.save')) {
+        final raw = mutation.parameters['map'] as Map;
+        expect(snapshot.mapById(raw['id'] as String)!.toJson(), raw);
+      }
+    } finally {
+      await opened.close();
+    }
+  });
+
+  test('AC-08 missing and foreign source witnesses fail before staging',
+      () async {
+    final (_, _, draft, approval) = await assetLibraryFixture();
+    for (final witnesses in [
+      <NativeArtifact>[],
+      [NativeArtifact(bytes: fixture.atlasBytes)],
+      [...draft.sourceArtifacts, NativeArtifact(bytes: fixture.atlasBytes)],
+    ]) {
+      final changed = _copyLibraryDraft(draft, sourceArtifacts: witnesses);
+      await refuseBeforeStage(changed,
+          approval: _approveLibraryDraft(changed, approval.context.candidates,
+              approval.context.decisions));
+    }
+  });
+
+  test('AC-08 rehashed library metadata contradictions fail before staging',
+      () async {
+    final (_, _, draft, approval) = await assetLibraryFixture();
+    for (final field in [
+      'canvasSize',
+      'anchor',
+      'parts',
+      'sourceHashes',
+      'nativeSourceRect',
+      'padding',
+      'nativeElementId',
+      'pixelPolicy'
+    ]) {
+      final evidence = jsonDecode(canonicalJsonOf(draft.compositionEvidence))
+          as Map<String, dynamic>;
+      final library = evidence['assetLibrary'] as Map;
+      final record = library['record'] as Map;
+      final binding = (record['candidates'] as List).first as Map;
+      binding[field] = field == 'nativeElementId' ? 'forged_element' : null;
+      library['compositionHash'] = canonicalHashOf(record).value;
+      final changed = _copyLibraryDraft(draft, evidence: evidence);
+      await refuseBeforeStage(changed,
+          approval: _approveLibraryDraft(changed, approval.context.candidates,
+              approval.context.decisions));
+    }
+  });
+
+  test('AC-08 rehashed and reapproved false PNG fails real source reraster',
+      () async {
+    final (_, library, draft, approval) = await assetLibraryFixture();
+    final binding = library.candidateBindings.first;
+    final oldPng = library.artifacts.singleWhere(
+        (artifact) => artifact.handle == binding.pngArtifactHandle);
+    final pixels = image.decodePng(Uint8List.fromList(oldPng.bytes))!;
+    pixels.setPixelRgba(0, 0, 199, 17, 83, 255);
+    final forged = _replaceLibraryPng(draft, binding, image.encodePng(pixels));
+    expect(forged.canonicalHash, isNot(draft.canonicalHash));
+    await refuseBeforeStage(forged,
+        approval: _approveLibraryDraft(
+            forged, approval.context.candidates, approval.context.decisions));
+  });
+
+  test('AC-08 witnesses and logical copies share bounded preflight budgets',
+      () async {
+    final (_, _, draft, approval) = await assetLibraryFixture();
+    await refuseBeforeStage(draft,
+        approval: approval,
+        limits: const NativeWriteLimits(maxImagePixels: 90000));
+    await refuseBeforeStage(draft,
+        approval: approval,
+        limits: NativeWriteLimits(
+            maxTotalArtifactBytes: draft.artifacts
+                .fold<int>(0, (sum, artifact) => sum + artifact.bytes.length)));
+    await refuseBeforeStage(draft,
+        approval: approval,
+        limits: NativeWriteLimits(maxArtifacts: draft.artifacts.length));
+  });
+
+  test('AC-08 real reraster cancellation has no staging effects', () async {
+    final (_, _, draft, approval) = await assetLibraryFixture();
+    final cancellation = ScanCancellation();
+    Timer.run(cancellation.cancel);
+    final stages = <NativeWriteStage>[];
+    await expectLater(
+        NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+            .write(approval.plan, approval.context, draft,
+                cancellation: cancellation),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.cancelled')));
+    expect(stages, isEmpty);
+    expect(await _treeShape(output.path), isEmpty);
+  });
+
+  test(
+      'AC-08 unbound library actions and wrong candidate consumers fail preflight',
+      () async {
+    final (_, library, draft, approval) = await assetLibraryFixture();
+    final first = library.mutations.first;
+    final wrong = NativeMutation(
+        operationId: first.operationId,
+        actionId: first.actionId,
+        sourceEntityIds: [fixture.draft.mutations.first.sourceEntityIds.first],
+        targetEntityIds: first.targetEntityIds,
+        parameters: first.parameters);
+    final unbound = NativeMutation(
+        operationId: ConverterId('unbound:element'),
+        actionId: 'element.upsert',
+        sourceEntityIds: first.sourceEntityIds,
+        targetEntityIds: [
+          ConverterId('unbound_element')
+        ],
+        parameters: {
+          'element': {
+            ...(library.mutations
+                .firstWhere((mutation) => mutation.actionId == 'element.upsert')
+                .parameters['element'] as Map),
+            'id': 'unbound_element'
+          }
+        });
+    for (final mutations in [
+      [
+        for (final mutation in draft.mutations)
+          if (mutation.operationId == first.operationId) wrong else mutation
+      ],
+      [...draft.mutations, unbound],
+      [...draft.mutations.reversed],
+    ]) {
+      final changed = _copyLibraryDraft(draft, mutations: mutations);
+      await refuseBeforeStage(changed,
+          approval: _approveLibraryDraft(changed, approval.context.candidates,
+              approval.context.decisions));
+    }
+  });
+
+  test(
+      'AC-08 library candidates cannot consume unbound atlas timeline mutations',
+      () async {
+    final (_, library, draft, approval) = await assetLibraryFixture();
+    final binding = library.candidateBindings.first;
+    final atlasImport = library.mutations
+        .firstWhere((mutation) => mutation.actionId == 'tileset.import_image');
+    final size = binding.record['paddedSize'] as Map;
+    final timeline = NativeMutation(
+        operationId: ConverterId('unbound_library_timeline'),
+        actionId: 'tileset.upsert',
+        sourceEntityIds: atlasImport.sourceEntityIds,
+        targetEntityIds: [
+          ConverterId(binding.nativeTilesetId)
+        ],
+        parameters: {
+          'tileset': ProjectTilesetEntry(
+              id: binding.nativeTilesetId,
+              name: atlasImport.parameters['name'] as String,
+              relativePath: 'assets/studio/${binding.nativeTilesetId}.png',
+              source: ProjectRegularAtlasTilesetSource(
+                  assetId: binding.nativeImageAssetId,
+                  pixelWidth: size['width'] as int,
+                  pixelHeight: size['height'] as int,
+                  tileWidth: 32,
+                  tileHeight: 32,
+                  tileAnimations: const [
+                    ProjectRegularAtlasTileAnimation(tileId: 0, frames: [
+                      ProjectImageCollectionAnimationFrame(
+                          tileId: 0, durationMs: 250),
+                      ProjectImageCollectionAnimationFrame(
+                          tileId: 1, durationMs: 250)
+                    ])
+                  ])).toJson()
+        });
+    final ids =
+        library.mutations.map((mutation) => mutation.operationId).toSet();
+    final literal = draft.mutations
+        .where((mutation) => !ids.contains(mutation.operationId));
+    final changed = _copyLibraryDraft(draft, mutations: [
+      ...literal.where((mutation) => mutation.actionId.startsWith('tileset.')),
+      ...library.mutations,
+      timeline,
+      ...literal.where((mutation) => !mutation.actionId.startsWith('tileset.')),
+    ]);
+    await refuseBeforeStage(changed,
+        approval: _approveLibraryDraft(
+            changed, approval.context.candidates, approval.context.decisions));
+  });
+
+  for (final corruption in [
+    'companion',
+    'companion blob',
+    'catalog',
+    'element',
+    'category'
+  ]) {
+    test('AC-08 fresh native verification rejects altered $corruption',
+        () async {
+      final (_, library, draft, approval) = await assetLibraryFixture();
+      final binding = library.candidateBindings.first;
+      var verified = false;
+      await expectLater(
+          NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
+            if (stage == NativeWriteStage.afterNativeVerify) verified = true;
+            if (stage != NativeWriteStage.beforeNativeVerify) return;
+            if (corruption == 'companion' || corruption == 'companion blob') {
+              final artifact = library.artifacts.singleWhere(
+                  (entry) => entry.handle == binding.companionArtifactHandle);
+              final relative = corruption == 'companion'
+                  ? binding.record['companionLogicalPath'] as String
+                  : assetBlobStorageKey(artifact.reference);
+              await File('$projectPath/$relative').writeAsString('{}');
+            } else if (corruption == 'catalog') {
+              final file = File('$projectPath/$assetCatalogStorageKey');
+              final raw = jsonDecode(await file.readAsString()) as Map;
+              for (final row in raw['records'] as List) {
+                if ((row as Map)['id'] == binding.companionAssetId) {
+                  row['tags'] = ['forged'];
+                }
+              }
+              await file.writeAsString(jsonEncode(raw));
+            } else {
+              final file = File('$projectPath/project.json');
+              final raw = jsonDecode(await file.readAsString()) as Map;
+              final rows = raw[corruption == 'element'
+                  ? 'elements'
+                  : 'elementCategories'] as List;
+              (rows.first as Map)['name'] = 'Forged native library';
+              await file.writeAsString(jsonEncode(raw));
+            }
+          }).write(approval.plan, approval.context, draft),
+          throwsA(_nativeFailure));
+      expect(verified, isFalse);
+    });
+  }
+
+  test('AC-08 logical companion drift after verification prevents success',
+      () async {
+    final (_, library, draft, approval) = await assetLibraryFixture();
+    final binding = library.candidateBindings.first;
+    var verified = false;
+    await expectLater(
+        NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
+          if (stage != NativeWriteStage.afterNativeVerify) return;
+          verified = true;
+          await File('$projectPath/${binding.record['companionLogicalPath']}')
+              .writeAsString('{}');
+        }).write(approval.plan, approval.context, draft),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.verify.changed')));
+    expect(verified, isTrue);
+  });
 
   test('controlled source and admission are valid before the native writer',
       () {
@@ -914,6 +1406,159 @@ Future<List<String>> _treeShape(String path) async {
     });
   }
   return result..sort();
+}
+
+AssetCandidate _approvedLibraryCandidate(AssetCandidate candidate) =>
+    AssetCandidate.fromJson({
+      ...candidate.toJson(),
+      'state': 'approved',
+      'approvedRevision': candidate.revision,
+    });
+
+ReviewDecisions _libraryDecisions(
+        OriginalAssetFixture fixture, List<AssetCandidate> candidates) =>
+    ReviewDecisions.fromJson({
+      'schemaVersion': '1.0',
+      'kind': 'reviewDecisions',
+      'exampleOnly': false,
+      'sessionId': 'original-writer-library-session',
+      'sourceSnapshotHash': fixture.literalFixture.snapshot.canonicalHash.value,
+      'revision': 1,
+      'decisions': [
+        for (final candidate in candidates)
+          {
+            'decisionId': 'approve:${candidate.candidateId.value}',
+            'candidateId': candidate.candidateId.value,
+            'candidateRevision': candidate.revision,
+            'action': 'approve',
+            'humanConfirmed': true,
+            'replacementCandidateIds': <String>[],
+            'note': 'Controlled original fixture test approval only',
+          }
+      ],
+    });
+
+NativeFixtureApproval _approveLibraryDraft(NativeProjectDraft draft,
+    List<AssetCandidate> candidates, ReviewDecisions decisions) {
+  final base = approveNativeFixtureDraft(draft);
+  final plan = ConversionPlan.fromJson({
+    ...base.plan.toJson(),
+    'decisionsHash': decisions.canonicalHash.value,
+    'decisionRevision': decisions.revision,
+    'outputPolicy': {
+      ...(base.plan.toJson()['outputPolicy'] as Map),
+      'assetOutputMode': candidates.first.outputMode.name,
+    },
+    'operations': [
+      for (final raw in base.plan.toJson()['operations'] as List)
+        {
+          ...(raw as Map),
+          'domain': (raw['targetActionId'] as String).startsWith('map.')
+              ? 'maps'
+              : 'assets',
+        }
+    ],
+  });
+  return NativeFixtureApproval(
+      plan,
+      PlanContext(
+          logicalProjectNamespace: base.context.logicalProjectNamespace,
+          sourceSnapshotHash: base.context.sourceSnapshotHash,
+          sessionId: decisions.sessionId,
+          targetCapabilities: base.context.targetCapabilities,
+          rulesHash: base.context.rulesHash,
+          decisions: decisions,
+          candidates: candidates,
+          converterVersion: base.context.converterVersion,
+          approvedPlanHash: plan.canonicalHash,
+          sourceMapIds: base.context.sourceMapIds,
+          sourceEntityIds: base.context.sourceEntityIds,
+          targetEntityIds: base.context.targetEntityIds,
+          actionCapabilities: base.context.actionCapabilities,
+          approvedCandidateHashes: {
+            for (final candidate in candidates)
+              candidate.candidateId: candidate.canonicalHash,
+          }));
+}
+
+NativeProjectDraft _copyLibraryDraft(NativeProjectDraft draft,
+        {List<NativeArtifact>? artifacts,
+        List<NativeArtifact>? sourceArtifacts,
+        List<NativeMutation>? mutations,
+        Map<String, Object?>? evidence}) =>
+    NativeProjectDraft(
+        source: draft.source,
+        projectName: draft.projectName,
+        parentPath: draft.parentPath,
+        folderName: draft.folderName,
+        sourceRootPath: draft.sourceRootPath,
+        mapIds: draft.mapIds,
+        artifacts: artifacts ?? draft.artifacts,
+        sourceArtifacts: sourceArtifacts ?? draft.sourceArtifacts,
+        mutations: mutations ?? draft.mutations,
+        compositionEvidence: evidence ?? draft.compositionEvidence,
+        defaultMapWidth: draft.defaultMapWidth,
+        defaultMapHeight: draft.defaultMapHeight);
+
+NativeProjectDraft _replaceLibraryPng(NativeProjectDraft draft,
+    ApprovedAssetCandidateBinding binding, List<int> bytes) {
+  final png = NativeArtifact(bytes: bytes);
+  final pixels = image.decodePng(Uint8List.fromList(bytes))!;
+  final evidence = jsonDecode(canonicalJsonOf(draft.compositionEvidence))
+      as Map<String, dynamic>;
+  final library = evidence['assetLibrary'] as Map;
+  final record = library['record'] as Map;
+  final row = (record['candidates'] as List).cast<Map>().singleWhere(
+      (entry) => entry['candidateId'] == binding.candidateId.value);
+  row['pngArtifactHandle'] = png.handle;
+  row['pngSha256'] = png.rawSha256.value;
+  row['rgbaSha256'] =
+      nativeFixtureHash(pixels.getBytes(order: image.ChannelOrder.rgba)).value;
+  final companionRecord = Map<String, Object?>.from(row)
+    ..remove('companionArtifactHandle')
+    ..remove('companionSha256');
+  final companion = NativeArtifact(
+      bytes: utf8.encode(canonicalJsonOf({
+        'type': 'approvedAssetLibraryEntry',
+        'version': 1,
+        ...companionRecord
+      })),
+      mediaType: 'application/json');
+  row['companionArtifactHandle'] = companion.handle;
+  row['companionSha256'] = companion.rawSha256.value;
+  library['compositionHash'] = canonicalHashOf(record).value;
+  return _copyLibraryDraft(draft,
+      artifacts: [
+        for (final artifact in draft.artifacts)
+          if (artifact.handle == binding.pngArtifactHandle)
+            png
+          else if (artifact.handle == binding.companionArtifactHandle)
+            companion
+          else
+            artifact
+      ],
+      mutations: [
+        for (final mutation in draft.mutations)
+          if (mutation.parameters['artifactHandle'] ==
+                  binding.pngArtifactHandle ||
+              mutation.parameters['artifactHandle'] ==
+                  binding.companionArtifactHandle)
+            NativeMutation(
+                operationId: mutation.operationId,
+                actionId: mutation.actionId,
+                sourceEntityIds: mutation.sourceEntityIds,
+                targetEntityIds: mutation.targetEntityIds,
+                parameters: {
+                  ...mutation.parameters,
+                  'artifactHandle': mutation.parameters['artifactHandle'] ==
+                          binding.pngArtifactHandle
+                      ? png.handle
+                      : companion.handle
+                })
+          else
+            mutation
+      ],
+      evidence: evidence);
 }
 
 final class _RecordingCreation implements ProjectCreationPort {

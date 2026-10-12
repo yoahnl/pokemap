@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path/path.dart' as path;
 
 import 'desktop_services.dart';
+import 'asset_review_panel.dart';
 import 'map_comparison.dart';
 
 class ConverterApp extends StatelessWidget {
@@ -88,6 +89,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
   final _search = TextEditingController();
   final _selectedMaps = <int>{};
   final _decisions = <LiteralDependencyDecision>[];
+  final _assetReviews = <ConverterId, ConverterAssetReview>{};
+  AssetOutputMode _assetOutputMode = AssetOutputMode.sharedAtlas;
+  PreparedStudy? _reviewPreview;
   StreamSubscription<ConverterWorkflowEvent>? _subscription;
   int _step = 0;
   int? _previewMap;
@@ -100,7 +104,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   ConverterWorkflowState get _state => _workflow.state;
   bool get _busy => _state.isBusy;
-  PreparedStudy? get _prepared => _state.prepared;
+  PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   (String, String, String, String) get _formValues =>
       (_source.text, _parent.text, _name.text, _folder.text);
   String get _sourceRoot {
@@ -184,6 +188,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _studyAcknowledged = false;
         _allowFirstFrameAutotiles = false;
+        _assetReviews.clear();
+        _reviewPreview = null;
         _step = 0;
       });
     }
@@ -195,6 +201,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _studyAcknowledged = false;
       _allowFirstFrameAutotiles = false;
       _decisions.clear();
+      _assetReviews.clear();
+      _assetOutputMode = AssetOutputMode.sharedAtlas;
+      _reviewPreview = null;
     });
     final snapshot = await _workflow.scanSource(
       ConverterSourceSelection(
@@ -229,6 +238,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       ),
       dependencyDecisions: _decisions,
       allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
+      assetOutputMode: _assetOutputMode,
+      assetReviews: _assetReviews.values.toList(),
     );
   }
 
@@ -238,6 +249,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (!mounted) return;
     setState(() {
       _dirty = false;
+      _reviewPreview = null;
       final ids = prepared.normalizedSource.maps
           .map((value) => value.map.sourceMapId)
           .toList();
@@ -249,10 +261,44 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Future<void> _prepare() => _run(_prepareCurrent);
 
+  void _editAsset(ConverterId candidateId) {
+    setState(() {
+      _reviewPreview ??= _state.prepared;
+      _assetReviews.remove(candidateId);
+      _dirty = true;
+    });
+    _workflow.invalidatePrepared();
+  }
+
+  void _reviewAsset(ConverterAssetReview review) => unawaited(
+    _run(() async {
+      setState(() {
+        _reviewPreview ??= _prepared;
+        _assetReviews[review.candidateId] = review;
+        _dirty = true;
+      });
+      await _prepareCurrent();
+    }),
+  );
+
+  void _changeAssetOutputMode(AssetOutputMode mode) => unawaited(
+    _run(() async {
+      setState(() {
+        _reviewPreview ??= _prepared;
+        _assetOutputMode = mode;
+        _assetReviews.clear();
+        _dirty = true;
+      });
+      await _prepareCurrent();
+    }),
+  );
+
   void _changeSelection(int id, bool selected) {
     setState(() {
       selected ? _selectedMaps.add(id) : _selectedMaps.remove(id);
       _decisions.clear();
+      _assetReviews.clear();
+      _reviewPreview = null;
       _dirty = true;
     });
   }
@@ -263,6 +309,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   ) {
     final prepared = _prepared!;
     setState(() {
+      _assetReviews.clear();
+      _reviewPreview = null;
       _decisions.removeWhere(
         (value) =>
             canonicalHashOf(value.locator.toJson()) ==
@@ -301,7 +349,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
             children: [
               Text(
                 '${prepared.composition.nativeMaps.length} carte(s), '
-                '${prepared.composition.tilesetIds.length} atlas.',
+                '${prepared.composition.tilesetIds.length} atlas et '
+                '${prepared.assetLibrary?.candidateBindings.length ?? 0} objet(s) approuvé(s) pour la bibliothèque.',
               ),
               const SizedBox(height: 12),
               const Text('Destination prévue'),
@@ -319,7 +368,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
               const SizedBox(height: 12),
               StudioToggleRow(
                 key: const ValueKey('approve-plan'),
-                label: 'J’approuve les cartes, les dépendances et les limites de ce plan.',
+                label: 'J’approuve les cartes, les objets, les dépendances et les limites de ce plan.',
                 value: confirmed,
                 onChanged: (value) => update(() => confirmed = value),
               ),
@@ -735,7 +784,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const StudioNotice(
-          'Les tuiles gardent leurs placements source. La reconnaissance en objets et les propositions IA ne sont pas disponibles dans cette version.',
+          'Les tuiles gardent leurs placements source. Les objets approuvés sont ajoutés à la bibliothèque après une vérification de leurs images source.',
         ),
         const SizedBox(height: 24),
         for (final tileset in prepared.normalizedSource.tilesets)
@@ -752,7 +801,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 ),
                 for (final reference in tileset.images)
                   Text(
-                    '${reference.sourceName} — ${reference.sourceFile == null ? 'image manquante' : 'image référencée'}',
+                    reference.sourceName.isEmpty
+                        ? 'Emplacement de ressource optionnelle inutilisé'
+                        : '${reference.sourceName} — ${reference.sourceFile == null ? 'image manquante' : 'image référencée'}',
                   ),
                 if (prepared.composition.draft != null)
                   ConverterAtlasPreview(
@@ -784,6 +835,26 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   ),
               ],
             ),
+          ),
+        ConverterAssetReviewPanel(
+          proposals: prepared.assetProposals?.candidates ?? const [],
+          reviewedCandidates: prepared.assetCandidates,
+          artifacts: prepared.composition.draft?.artifacts ?? const [],
+          limits: prepared.settings.writeLimits,
+          outputMode: _assetOutputMode,
+          enabled: !_busy && _sourceRoot == _state.source?.rootPath,
+          onModeChanged: _changeAssetOutputMode,
+          onEditing: _editAsset,
+          onReview: _reviewAsset,
+        ),
+        for (final diagnostic in prepared.assetProposalDiagnostics)
+          StudioNotice(_assetIssueMessage(diagnostic.code, diagnostic.message)),
+        for (final diagnostic
+            in prepared.assetLibrary?.diagnostics ??
+                <ApprovedAssetLibraryDiagnostic>[])
+          StudioNotice(
+            _assetIssueMessage(diagnostic.code, diagnostic.message),
+            isError: diagnostic.blocksExport,
           ),
         _issuesPanel(),
       ],
@@ -913,7 +984,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ),
           const SizedBox(height: 16),
           Text(
-            '${result.receipt.mapHashes.length} cartes et ${result.receipt.assetHashes.length} images vérifiées.',
+            '${result.receipt.mapHashes.length} cartes et ${result.receipt.assetHashes.length} ressources vérifiées.',
           ),
           const SizedBox(height: 16),
           const Text('Dossier du projet'),
@@ -947,7 +1018,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       radius: 16,
       children: [
         Text(
-          '${prepared.composition.nativeMaps.length} cartes et ${prepared.composition.tilesetIds.length} atlas dans cette préparation.',
+          '${prepared.composition.nativeMaps.length} cartes, ${prepared.composition.tilesetIds.length} atlas et ${prepared.assetLibrary?.candidateBindings.length ?? 0} objet(s) approuvé(s) pour la bibliothèque.',
         ),
         const SizedBox(height: 16),
         const Text('Destination prévue'),
@@ -970,7 +1041,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           const StudioNotice(
             'Votre sélection ou vos choix ont changé. Une nouvelle préparation est nécessaire avant création.',
           ),
-        if (!prepared.composition.canWrite)
+        if (prepared.nativeDraft == null)
           const StudioNotice(
             'Les problèmes bloquants doivent être résolus avant création.',
             isError: true,
@@ -1022,6 +1093,24 @@ class _ConverterWindowState extends State<ConverterWindow> {
               message: value.message,
               locator: jsonEncode(value.locator),
               blocking: value.blocksPlanning,
+            ),
+          for (final value
+              in _prepared?.assetProposalDiagnostics ??
+                  <LocalAssetProposalDiagnostic>[])
+            (
+              code: value.code,
+              message: _assetIssueMessage(value.code, value.message),
+              locator: jsonEncode(value.toJson()),
+              blocking: false,
+            ),
+          for (final value
+              in _prepared?.assetLibrary?.diagnostics ??
+                  <ApprovedAssetLibraryDiagnostic>[])
+            (
+              code: value.code,
+              message: _assetIssueMessage(value.code, value.message),
+              locator: jsonEncode(value.locator?.toJson()),
+              blocking: value.blocksExport,
             ),
         ];
     return StudioPanel(
@@ -1237,6 +1326,7 @@ String _failureMessage(Object error) {
 }
 
 String _issueTitle(String code, bool blocking) {
+  if (code.startsWith('library.')) return 'Objet proposé à vérifier';
   if (code.contains('autotile')) return 'Autotiles à prendre en charge';
   if (code.contains('depend') || code.contains('transfer')) {
     return 'Carte dépendante à examiner';
@@ -1249,4 +1339,27 @@ String _issueTitle(String code, bool blocking) {
     return 'Comportement non certifié';
   }
   return blocking ? 'Donnée bloquant la conversion' : 'Limite ou observation';
+}
+
+String _assetIssueMessage(String code, String fallback) {
+  if (code == 'asset.proposal.quota') {
+    return 'La reconnaissance locale dépasse le budget de cette sélection. '
+        'Aucune proposition partielle n’a été conservée. Les cartes à tuiles '
+        'restent disponibles ; vous pouvez sélectionner moins de cartes pour revoir les objets.';
+  }
+  if (code == 'asset.proposal.animated_deferred' ||
+      code == 'library.animation.unsupported') {
+    return 'Cette ressource animée reste dans sa représentation littérale. '
+        'Son extraction comme objet de bibliothèque demande une prise en charge supplémentaire.';
+  }
+  if (code == 'asset.proposal.ambiguous' ||
+      code == 'library.candidate.uncertainty') {
+    return 'Le regroupement de ces morceaux et leur fonction restent à vérifier. '
+        'L’approbation conserve les incertitudes avec les métadonnées source.';
+  }
+  if (code == 'library.shared_atlas.geometry') {
+    return 'Ces morceaux ne forment pas un rectangle utilisable dans l’atlas source. '
+        'Choisissez « Une image par objet », puis examinez et approuvez la nouvelle proposition.';
+  }
+  return fallback;
 }

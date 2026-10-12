@@ -8,11 +8,12 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ffi/ffi.dart';
 import 'package:image/image.dart' as image;
-import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as path;
 
 import 'literal_autotile_composer.dart';
+import 'approved_asset_library.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -58,12 +59,18 @@ final class NativeWriteLimits {
 final class NativeArtifact {
   factory NativeArtifact({
     required List<int> bytes,
+    String mediaType = 'image/png',
     Sha256Hash? expectedSha256,
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
+    if (mediaType != 'image/png' && mediaType != 'application/json') {
+      throw const NativeWriteException(
+          'native.artifact.media', 'Unsupported native artifact media type');
+    }
     final byteLength = bytes.length;
-    if (byteLength > limits.maxArtifactBytes) {
+    if (byteLength > limits.maxArtifactBytes ||
+        (mediaType == 'application/json' && byteLength > 1048576)) {
       throw const NativeWriteException(
           'native.quota.artifact', 'Artifact byte budget exceeded');
     }
@@ -77,13 +84,16 @@ final class NativeArtifact {
       owned[i] = value;
     }
     final frozen = owned.asUnmodifiableView();
+    if (mediaType == 'application/json') {
+      _validateNativeArtifactJson(frozen, limits.jsonLimits);
+    }
     final hash = Sha256Hash(sha256.convert(frozen).toString());
     if (expectedSha256 != null && expectedSha256 != hash) {
       throw const NativeWriteException(
           'native.artifact.hash', 'Artifact hash mismatch');
     }
     return NativeArtifact._(frozen, hash,
-        ContentArtifactRef.fromBytes(frozen, mediaType: 'image/png'));
+        ContentArtifactRef.fromBytes(frozen, mediaType: mediaType));
   }
 
   const NativeArtifact._(this.bytes, this.rawSha256, this.reference);
@@ -91,6 +101,70 @@ final class NativeArtifact {
   final Sha256Hash rawSha256;
   final ContentArtifactRef reference;
   String get handle => reference.handle;
+}
+
+Map<String, Object?> _validateNativeArtifactJson(
+    List<int> bytes, ContractLimits limits) {
+  try {
+    final text = utf8.decode(bytes, allowMalformed: false);
+    final containers = <int>[];
+    var quoted = false;
+    var escaped = false;
+    var expectingValue = true;
+    var nodes = 0;
+    void value() {
+      if (++nodes > limits.maxNodes || containers.length > limits.maxDepth) {
+        throw const FormatException('JSON structure budget exceeded');
+      }
+      expectingValue = false;
+    }
+
+    for (final unit in text.codeUnits) {
+      if (quoted) {
+        if (escaped) {
+          escaped = false;
+        } else if (unit == 92) {
+          escaped = true;
+        } else if (unit == 34) {
+          quoted = false;
+          expectingValue = false;
+        }
+        continue;
+      }
+      if (unit == 34) {
+        if (expectingValue) value();
+        quoted = true;
+      } else if (unit == 123 || unit == 91) {
+        if (expectingValue) value();
+        if (containers.length > limits.maxDepth) {
+          throw const FormatException('JSON nesting budget exceeded');
+        }
+        containers.add(unit);
+        expectingValue = unit == 91;
+      } else if (unit == 125 || unit == 93) {
+        if (containers.isEmpty ||
+            containers.removeLast() != (unit == 125 ? 123 : 91)) {
+          throw const FormatException('Unbalanced JSON structure');
+        }
+        expectingValue = false;
+      } else if (unit == 58) {
+        expectingValue = true;
+      } else if (unit == 44) {
+        expectingValue = containers.isNotEmpty && containers.last == 91;
+      } else if (unit != 32 && unit != 9 && unit != 10 && unit != 13) {
+        if (expectingValue) value();
+      }
+    }
+    final decoded = jsonDecode(text);
+    if (decoded is! Map<String, Object?> ||
+        canonicalJsonOf(decoded, limits: limits) != text) {
+      throw const FormatException('A canonical JSON object is required');
+    }
+    return decoded;
+  } on FormatException {
+    throw const NativeWriteException('native.artifact.json',
+        'A bounded canonical inert JSON object is required');
+  }
 }
 
 final class NativeMutation {
@@ -157,6 +231,7 @@ final class NativeProjectDraft {
     required String folderName,
     required Map<int, String> mapIds,
     required List<NativeArtifact> artifacts,
+    List<NativeArtifact> sourceArtifacts = const [],
     required List<NativeMutation> mutations,
     Map<String, Object?> compositionEvidence = const {},
     String? sourceRootPath,
@@ -166,13 +241,13 @@ final class NativeProjectDraft {
   }) {
     limits._validate();
     if (mapIds.length > limits.maxMutations ||
-        artifacts.length > limits.maxArtifacts ||
+        artifacts.length + sourceArtifacts.length > limits.maxArtifacts ||
         mutations.length > limits.maxMutations) {
       throw const NativeWriteException(
           'native.quota.draft', 'Draft entry budget exceeded');
     }
     var total = 0;
-    for (final artifact in artifacts) {
+    for (final artifact in [...artifacts, ...sourceArtifacts]) {
       total += artifact.bytes.length;
       if (artifact.bytes.length > limits.maxArtifactBytes ||
           total > limits.maxTotalArtifactBytes) {
@@ -213,6 +288,13 @@ final class NativeProjectDraft {
                 'rawSha256': artifact.rawSha256.value
               })
           .toList(),
+      if (sourceArtifacts.isNotEmpty)
+        'sourceArtifacts': sourceArtifacts
+            .map((artifact) => {
+                  'reference': artifact.reference.toJson(),
+                  'rawSha256': artifact.rawSha256.value
+                })
+            .toList(),
       'mutations': [
         for (var i = 0; i < mutations.length; i++) mutations[i].toJson(i)
       ],
@@ -228,6 +310,7 @@ final class NativeProjectDraft {
         defaultMapHeight,
         Map.unmodifiable(mapIds),
         List.unmodifiable(artifacts),
+        List.unmodifiable(sourceArtifacts),
         List.unmodifiable(mutations),
         normalizedHash,
         frozenComposition,
@@ -245,6 +328,7 @@ final class NativeProjectDraft {
       this.defaultMapHeight,
       this.mapIds,
       this.artifacts,
+      this.sourceArtifacts,
       this.mutations,
       this.normalizedSourceHash,
       this.compositionEvidence,
@@ -260,12 +344,20 @@ final class NativeProjectDraft {
   final int defaultMapHeight;
   final Map<int, String> mapIds;
   final List<NativeArtifact> artifacts;
+  final List<NativeArtifact> sourceArtifacts;
   final List<NativeMutation> mutations;
   final Sha256Hash normalizedSourceHash;
   final Map<String, Object?> compositionEvidence;
   final Sha256Hash canonicalHash;
   final Map<String, Object?> _binding;
   String get bindingEvidence => 'native-draft-sha256:${canonicalHash.value}';
+
+  void validateResourceBudget({
+    NativeWriteLimits limits = const NativeWriteLimits(),
+  }) {
+    limits._validate();
+    _preflightNativeResourceBudget(this, limits);
+  }
 }
 
 enum NativeWriteStage {
@@ -330,7 +422,8 @@ final class NativeProjectWriter {
       admitPlan(plan, context);
       limits._validate();
       _checkCancelled(cancellation);
-      final prepared = _prepareNativeDraft(plan, draft, limits);
+      final prepared =
+          await _prepareNativeDraft(plan, context, draft, limits, cancellation);
       final creator = creation ?? const LocalProjectCreationService();
       final requested = _creationRequest(draft, draft.parentPath);
       requested.validate();
@@ -374,8 +467,8 @@ final class NativeProjectWriter {
       final api = session.mutations!;
       for (final artifact in draft.artifacts) {
         _checkCancelled(cancellation);
-        final stored = await api.artifacts
-            .put(artifact.bytes, declaredMediaType: 'image/png');
+        final stored = await api.artifacts.put(artifact.bytes,
+            declaredMediaType: artifact.reference.mediaType);
         if (stored.reference != artifact.reference) {
           throw const NativeWriteException('native.artifact.stage',
               'Native artifact staging changed the content reference');
@@ -472,6 +565,15 @@ final class NativeProjectWriter {
         mapHashes[entry.key] = Sha256Hash(sha256.convert(bytes).toString());
       }
       final assetHashes = <String, Sha256Hash>{};
+      final actualCatalog = AssetCatalog.fromJson(jsonDecode(
+              utf8.decode(snapshot.resourceBytes(assetCatalogResourceIdentity)))
+          as Map<String, dynamic>);
+      if (canonicalJsonOf(actualCatalog.toJson(), limits: limits.jsonLimits) !=
+          canonicalJsonOf(prepared.catalog.toJson(),
+              limits: limits.jsonLimits)) {
+        throw const NativeWriteException('native.verify.catalog',
+            'Fresh native asset catalog differs from the approved draft');
+      }
       for (final entry in prepared.tilesets.entries) {
         _checkCancelled(cancellation);
         final assetId = 'image_${entry.key}';
@@ -506,6 +608,29 @@ final class NativeProjectWriter {
         }
         assetHashes[assetId] = hash;
       }
+      for (final entry in prepared.companions.entries) {
+        _checkCancelled(cancellation);
+        final bytes = await session.readCompanion(
+            prepared.catalog.require(entry.key).logicalPath, entry.value,
+            errorCode: 'native.verify.companion');
+        final hash = Sha256Hash(sha256.convert(bytes).toString());
+        final artifact = entry.value;
+        if (bytes.length != artifact.bytes.length ||
+            hash != artifact.rawSha256) {
+          throw const NativeWriteException('native.verify.companion',
+              'Native provenance bytes differ from the approved companion');
+        }
+        _validateNativeArtifactJson(bytes, limits.jsonLimits);
+        final blob = await session.snapshots
+            .readRetainedAssetBlob(session.project, artifact.reference);
+        if (blob == null ||
+            blob.length != bytes.length ||
+            Sha256Hash(sha256.convert(blob).toString()) != hash) {
+          throw const NativeWriteException('native.verify.blob',
+              'Native retained companion blob differs from the approved bytes');
+        }
+        assetHashes[entry.key] = hash;
+      }
       await checkpoint?.call(
           NativeWriteStage.afterNativeVerify, stagingRoot, projectPath);
       _checkCancelled(cancellation);
@@ -515,6 +640,12 @@ final class NativeProjectWriter {
       if (finalSnapshot.revision != snapshot.revision) {
         throw const NativeWriteException('native.verify.changed',
             'Native staging project changed after verification');
+      }
+      for (final entry in prepared.companions.entries) {
+        _checkCancelled(cancellation);
+        await session.readCompanion(
+            prepared.catalog.require(entry.key).logicalPath, entry.value,
+            errorCode: 'native.verify.changed');
       }
       return NativeWriteReceipt._(
           stagingRoot: stagingRoot,
@@ -542,16 +673,98 @@ final class NativeProjectWriter {
 }
 
 final class _PreparedNativeDraft {
-  const _PreparedNativeDraft(
-      this.bootstrap, this.manifest, this.maps, this.tilesets);
+  const _PreparedNativeDraft(this.bootstrap, this.manifest, this.maps,
+      this.tilesets, this.companions, this.catalog);
   final ProjectManifest bootstrap;
   final ProjectManifest manifest;
   final Map<String, MapData> maps;
   final Map<String, NativeArtifact> tilesets;
+  final Map<String, NativeArtifact> companions;
+  final AssetCatalog catalog;
 }
 
-_PreparedNativeDraft _prepareNativeDraft(
-    ConversionPlan plan, NativeProjectDraft draft, NativeWriteLimits limits) {
+({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
+    _preflightNativeResourceBudget(
+        NativeProjectDraft draft, NativeWriteLimits limits) {
+  if (draft.artifacts.length + draft.sourceArtifacts.length >
+      limits.maxArtifacts) {
+    throw const NativeWriteException('native.quota.draft',
+        'Retained artifact and source witness count exceeds the budget');
+  }
+  final artifacts = <String, NativeArtifact>{};
+  final dimensions = <String, (int, int)>{};
+  final witnessHandles = <String>{};
+  var totalBytes = 0;
+  var totalPixels = 0;
+  for (final entry in [
+    for (final artifact in draft.artifacts) (artifact, false),
+    for (final artifact in draft.sourceArtifacts) (artifact, true),
+  ]) {
+    final artifact = entry.$1;
+    final witness = entry.$2;
+    totalBytes += artifact.bytes.length;
+    if (artifact.bytes.length > limits.maxArtifactBytes ||
+        totalBytes > limits.maxTotalArtifactBytes) {
+      throw const NativeWriteException('native.quota.artifact',
+          'Retained artifact and source witness byte budget exceeded');
+    }
+    if (witness
+        ? !witnessHandles.add(artifact.handle)
+        : artifacts.containsKey(artifact.handle)) {
+      throw const NativeWriteException('native.artifact.duplicate',
+          'Duplicate artifact handles are not admitted');
+    }
+    if (artifact.reference.mediaType == 'image/png') {
+      final size = _pngHeaderDimensions(artifact.bytes, limits);
+      totalPixels += size.$1 * size.$2;
+      if (totalPixels > limits.maxImagePixels) {
+        throw const NativeWriteException('native.quota.image',
+            'Aggregate retained image pixel budget exceeded');
+      }
+      if (!witness) dimensions[artifact.handle] = size;
+    } else if (witness || artifact.reference.mediaType != 'application/json') {
+      throw const NativeWriteException('native.library.witness',
+          'Source witnesses must be exact admitted PNG images');
+    } else {
+      _validateNativeArtifactJson(artifact.bytes, limits.jsonLimits);
+    }
+    if (!witness) artifacts[artifact.handle] = artifact;
+  }
+  var importBytes = 0;
+  var importPixels = 0;
+  for (final mutation in draft.mutations) {
+    if (mutation.actionId != 'tileset.import_image' &&
+        mutation.actionId != 'asset.import') {
+      continue;
+    }
+    final handle = mutation.parameters['artifactHandle'];
+    final artifact = artifacts[handle];
+    final size = dimensions[handle];
+    if (artifact == null ||
+        (mutation.actionId == 'tileset.import_image' && size == null)) {
+      throw const NativeWriteException('native.tileset.invalid',
+          'An imported resource must name an admitted artifact');
+    }
+    importBytes += artifact.bytes.length;
+    if (size != null) importPixels += size.$1 * size.$2;
+    if (importBytes > limits.maxTotalArtifactBytes) {
+      throw const NativeWriteException('native.quota.artifact',
+          'Aggregate logical import byte budget exceeded');
+    }
+    if (importPixels > limits.maxImagePixels) {
+      throw const NativeWriteException('native.quota.image',
+          'Aggregate logical image import pixel budget exceeded');
+    }
+  }
+  return (artifacts: artifacts, dimensions: dimensions);
+}
+
+Future<_PreparedNativeDraft> _prepareNativeDraft(
+    ConversionPlan plan,
+    PlanContext context,
+    NativeProjectDraft draft,
+    NativeWriteLimits limits,
+    ScanCancellation? cancellation) async {
   if (!plan.outputPolicy.offline ||
       !plan.outputPolicy.destinationMustBeNew ||
       plan.outputPolicy.destinationFolderName != draft.folderName) {
@@ -567,7 +780,8 @@ _PreparedNativeDraft _prepareNativeDraft(
     throw const NativeWriteException('native.source.context',
         'Normalized source differs from the approved plan context');
   }
-  if (draft.artifacts.length > limits.maxArtifacts ||
+  if (draft.artifacts.length + draft.sourceArtifacts.length >
+          limits.maxArtifacts ||
       draft.mutations.length > limits.maxMutations ||
       draft.mapIds.length > limits.maxMutations) {
     throw const NativeWriteException(
@@ -591,6 +805,11 @@ _PreparedNativeDraft _prepareNativeDraft(
         'Native map identities differ from the approved source selection');
   }
   _verifyLiteralCompositionBinding(plan, draft, limits);
+  if (draft.sourceArtifacts.isNotEmpty &&
+      !draft.compositionEvidence.containsKey('assetLibrary')) {
+    throw const NativeWriteException('native.library.evidence',
+        'Source witnesses require an exact approved asset library binding');
+  }
   final planned = plan.operations
       .where((operation) => operation.status == OperationStatus.planned)
       .toList();
@@ -602,9 +821,9 @@ _PreparedNativeDraft _prepareNativeDraft(
   for (var i = 0; i < draft.mutations.length; i++) {
     final mutation = draft.mutations[i];
     final operation = planned[i];
-    final domain = mutation.actionId.startsWith('tileset.')
-        ? OperationDomain.assets
-        : OperationDomain.maps;
+    final domain = mutation.actionId.startsWith('map.')
+        ? OperationDomain.maps
+        : OperationDomain.assets;
     if (mutation.operationId != operation.operationId ||
         mutation.actionId != operation.targetActionId ||
         mutation.actionVersion != 1 ||
@@ -619,64 +838,41 @@ _PreparedNativeDraft _prepareNativeDraft(
       throw const NativeWriteException('native.operation.binding',
           'Native operation differs from its exact approved action, references or draft evidence');
     }
-    if (!const {
+    final ordinary = const {
       'tileset.import_image',
       'tileset.upsert',
       'map.create',
       'map.save'
-    }.contains(mutation.actionId)) {
+    }.contains(mutation.actionId);
+    final library = draft.compositionEvidence.containsKey('assetLibrary') &&
+        const {'element_category.upsert', 'element.upsert', 'asset.import'}
+            .contains(mutation.actionId);
+    if (!ordinary && !library) {
       throw const NativeWriteException('native.action.unsupported',
           'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
   }
-  final artifacts = <String, NativeArtifact>{};
-  var totalBytes = 0;
-  var totalPixels = 0;
-  final dimensions = <String, (int, int)>{};
-  for (final artifact in draft.artifacts) {
-    totalBytes += artifact.bytes.length;
-    if (artifact.bytes.length > limits.maxArtifactBytes ||
-        totalBytes > limits.maxTotalArtifactBytes) {
-      throw const NativeWriteException(
-          'native.quota.artifact', 'Artifact byte budget exceeded');
-    }
-    if (artifacts.containsKey(artifact.handle)) {
-      throw const NativeWriteException('native.artifact.duplicate',
-          'Duplicate artifact handles are not admitted');
-    }
-    final size = _pngHeaderDimensions(artifact.bytes, limits);
-    totalPixels += size.$1 * size.$2;
-    if (totalPixels > limits.maxImagePixels) {
-      throw const NativeWriteException(
-          'native.quota.image', 'Aggregate image pixel budget exceeded');
-    }
-    artifacts[artifact.handle] = artifact;
-    dimensions[artifact.handle] = size;
-  }
-  var importBytes = 0;
-  var importPixels = 0;
+  final budget = _preflightNativeResourceBudget(draft, limits);
+  final artifacts = budget.artifacts;
+  final dimensions = budget.dimensions;
+  final library = await _verifyApprovedAssetLibrary(
+      plan, context, draft, limits, cancellation);
+  final candidateIds =
+      context.candidates.map((candidate) => candidate.candidateId).toSet();
   for (final mutation in draft.mutations) {
-    if (mutation.actionId != 'tileset.import_image') continue;
-    final handle = mutation.parameters['artifactHandle'];
-    final artifact = artifacts[handle];
-    final size = dimensions[handle];
-    if (artifact == null || size == null) {
-      throw const NativeWriteException('native.tileset.invalid',
-          'An imported atlas must name an admitted artifact');
-    }
-    importBytes += artifact.bytes.length;
-    importPixels += size.$1 * size.$2;
-    if (importBytes > limits.maxTotalArtifactBytes) {
-      throw const NativeWriteException('native.quota.artifact',
-          'Aggregate logical image import byte budget exceeded');
-    }
-    if (importPixels > limits.maxImagePixels) {
-      throw const NativeWriteException('native.quota.image',
-          'Aggregate logical image import pixel budget exceeded');
+    if (mutation.sourceEntityIds.any(candidateIds.contains) &&
+        !library.operationIds.contains(mutation.operationId)) {
+      throw const NativeWriteException('native.library.consumer',
+          'Candidate-consuming mutations require their exact approved library binding');
     }
   }
   for (final artifact in draft.artifacts) {
-    _pngDimensions(artifact.bytes, limits);
+    if (artifact.reference.mediaType == 'image/png') {
+      _pngDimensions(artifact.bytes, limits);
+    } else if (!library.artifactHandles.contains(artifact.handle)) {
+      throw const NativeWriteException('native.library.companion',
+          'JSON artifacts require an exact approved companion binding');
+    }
   }
   final bootstrap = ProjectManifest(
       name: draft.projectName.trim(),
@@ -698,6 +894,10 @@ _PreparedNativeDraft _prepareNativeDraft(
   final createdMaps = <String, Map<String, Object?>>{};
   final animatedTilesets = <String>{};
   final usedArtifacts = <String>{};
+  final companions = <String, NativeArtifact>{};
+  final categories = <ProjectElementCategory>[];
+  final elements = <ProjectElementEntry>[];
+  final assetRecords = <AssetRecord>[];
   var mapCells = 0;
   for (var i = 0; i < draft.mutations.length; i++) {
     final mutation = draft.mutations[i];
@@ -719,6 +919,7 @@ _PreparedNativeDraft _prepareNativeDraft(
             !RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(id) ||
             tilesets.keys.any((key) => key.toLowerCase() == id.toLowerCase()) ||
             artifact == null ||
+            artifact.reference.mediaType != 'image/png' ||
             parameters['tileWidth'] != 32 ||
             parameters['tileHeight'] != 32 ||
             !_targetIds(mutation.targetEntityIds, {id, 'image_$id'})) {
@@ -732,6 +933,11 @@ _PreparedNativeDraft _prepareNativeDraft(
         }
         tilesets[id] = artifact;
         usedArtifacts.add(handle);
+        assetRecords.add(AssetRecord(
+            id: 'image_$id',
+            logicalPath: 'assets/studio/$id.png',
+            artifact: artifact.reference,
+            usages: const ['tileset']));
         tilesetEntries.add(ProjectTilesetEntry(
             id: id,
             name: name,
@@ -780,6 +986,57 @@ _PreparedNativeDraft _prepareNativeDraft(
               'An animation upsert must retain the imported identity, image, geometry and properties');
         }
         tilesetEntries[index] = next;
+      case 'element_category.upsert':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {'category'});
+        final category = ProjectElementCategory.fromJson(
+            Map<String, dynamic>.from(parameters['category'] as Map));
+        if (categories.any((entry) => entry.id == category.id) ||
+            !_targetIds(mutation.targetEntityIds, {category.id})) {
+          throw const NativeWriteException('native.library.category',
+              'Library categories must be unique approved native identities');
+        }
+        categories.add(category);
+      case 'element.upsert':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {'element'});
+        final element = ProjectElementEntry.fromJson(
+            Map<String, dynamic>.from(parameters['element'] as Map));
+        if (elements.any((entry) => entry.id == element.id) ||
+            !categories.any((entry) => entry.id == element.categoryId) ||
+            !tilesets.containsKey(element.tilesetId) ||
+            !_targetIds(mutation.targetEntityIds, {element.id})) {
+          throw const NativeWriteException('native.library.element',
+              'Library elements require their exact preceding category and atlas');
+        }
+        elements.add(element);
+      case 'asset.import':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {
+          'artifactHandle',
+          'assetId',
+          'logicalPath',
+          'tags',
+          'usages'
+        });
+        final id = _string(parameters, 'assetId');
+        final handle = _string(parameters, 'artifactHandle');
+        final artifact = artifacts[handle];
+        if (artifact == null ||
+            artifact.reference.mediaType != 'application/json' ||
+            companions.containsKey(id) ||
+            !_targetIds(mutation.targetEntityIds, {id})) {
+          throw const NativeWriteException('native.library.companion',
+              'Only unique exact approved JSON provenance companions may be imported');
+        }
+        companions[id] = artifact;
+        usedArtifacts.add(handle);
+        assetRecords.add(AssetRecord(
+            id: id,
+            logicalPath: _string(parameters, 'logicalPath'),
+            artifact: artifact.reference,
+            tags: (parameters['tags'] as List).cast<String>(),
+            usages: (parameters['usages'] as List).cast<String>()));
       case 'map.create':
         _allowParameters(parameters, const {
           'mapId',
@@ -873,14 +1130,179 @@ _PreparedNativeDraft _prepareNativeDraft(
         'The approved draft must account for every artifact and every final map');
   }
   tilesetEntries.sort((left, right) => left.id.compareTo(right.id));
-  final manifest =
-      bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries);
+  elements.sort((left, right) => left.id.compareTo(right.id));
+  final manifest = bootstrap.copyWith(
+      maps: mapEntries,
+      tilesets: tilesetEntries,
+      elements: elements,
+      elementCategories: categories);
   ProjectValidator.validate(manifest, maps: maps.values);
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
-  _verifyLiteralCompositionContents(draft, maps, limits);
-  return _PreparedNativeDraft(bootstrap, manifest, maps, tilesets);
+  _verifyLiteralCompositionContents(draft, maps, limits, library);
+  return _PreparedNativeDraft(bootstrap, manifest, maps, tilesets, companions,
+      AssetCatalog(records: assetRecords));
+}
+
+final class _VerifiedAssetLibrary {
+  const _VerifiedAssetLibrary(this.operationIds, this.artifactHandles);
+  final Set<ConverterId> operationIds;
+  final Set<String> artifactHandles;
+}
+
+final class _WitnessSourceFiles implements SourceFilePort {
+  const _WitnessSourceFiles(this.bytes);
+  final Map<ConverterId, List<int>> bytes;
+
+  @override
+  Future<List<int>> read(ConverterId fileId) async =>
+      bytes[fileId] ??
+      (throw const NativeWriteException('native.library.witness',
+          'A source image is not present among the declared witnesses'));
+}
+
+Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
+    ConversionPlan plan,
+    PlanContext context,
+    NativeProjectDraft draft,
+    NativeWriteLimits limits,
+    ScanCancellation? cancellation) async {
+  final raw = draft.compositionEvidence['assetLibrary'];
+  if (raw == null) {
+    if (draft.sourceArtifacts.isNotEmpty ||
+        context.approvedCandidateHashes.isNotEmpty) {
+      throw const NativeWriteException('native.library.evidence',
+          'Approved candidates and source witnesses require library evidence');
+    }
+    return const _VerifiedAssetLibrary({}, {});
+  }
+  if (raw is! Map<String, Object?>) {
+    throw const NativeWriteException('native.library.evidence',
+        'Approved library evidence must be an exact bounded object');
+  }
+  final candidates = context.candidates
+      .where((candidate) =>
+          context.approvedCandidateHashes.containsKey(candidate.candidateId))
+      .toList();
+  if (candidates.isEmpty ||
+      candidates.length != context.approvedCandidateHashes.length) {
+    throw const NativeWriteException('native.library.approval',
+        'Every library candidate requires its exact context approval receipt');
+  }
+  final witnesses = <Sha256Hash, NativeArtifact>{};
+  for (final witness in draft.sourceArtifacts) {
+    if (witness.reference.mediaType != 'image/png' ||
+        witnesses.containsKey(witness.rawSha256)) {
+      throw const NativeWriteException('native.library.witness',
+          'Source witnesses must contain each exact PNG content once');
+    }
+    witnesses[witness.rawSha256] = witness;
+  }
+  final files = <ConverterId, List<int>>{};
+  final usedWitnesses = <Sha256Hash>{};
+  for (final candidate in candidates) {
+    for (final sourceImage in candidate.sources) {
+      final entries = draft.source.snapshot.entries
+          .where((entry) => entry.fileId == sourceImage.fileId);
+      final witness = witnesses[sourceImage.contentHash];
+      if (entries.length != 1 ||
+          witness == null ||
+          entries.single.kind != SourceNodeKind.file ||
+          entries.single.sha256 != witness.rawSha256 ||
+          entries.single.byteLength != witness.bytes.length) {
+        throw const NativeWriteException('native.library.witness',
+            'Every witness must match the exact snapshot file and candidate source');
+      }
+      files[sourceImage.fileId] = witness.bytes;
+      usedWitnesses.add(witness.rawSha256);
+    }
+  }
+  if (usedWitnesses.length != witnesses.length) {
+    throw const NativeWriteException('native.library.witness',
+        'Every declared source witness must be consumed by an approved candidate');
+  }
+  _checkCancelled(cancellation);
+  final ApprovedAssetLibraryComposition regenerated;
+  try {
+    regenerated = await const ApprovedAssetLibraryComposer().compose(
+        source: draft.source,
+        files: _WitnessSourceFiles(files),
+        candidates: candidates,
+        approvedCandidateHashes: context.approvedCandidateHashes,
+        decisions: context.decisions,
+        outputMode: plan.outputPolicy.assetOutputMode,
+        limits: limits,
+        cancellation: cancellation);
+  } on ApprovedAssetLibraryFailure catch (error) {
+    _checkCancelled(cancellation);
+    throw NativeWriteException('native.${error.code}', error.message);
+  } on ContractError {
+    _checkCancelled(cancellation);
+    rethrow;
+  }
+  _checkCancelled(cancellation);
+  if (!regenerated.canExport ||
+      canonicalJsonOf(raw, limits: limits.jsonLimits) !=
+          canonicalJsonOf(regenerated.evidence, limits: limits.jsonLimits) ||
+      canonicalJsonOf(_artifactBindings(draft.sourceArtifacts),
+              limits: limits.jsonLimits) !=
+          canonicalJsonOf(_artifactBindings(regenerated.sourceArtifacts),
+              limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.library.contents',
+        'Approved library evidence differs from the bounded original-source recomposition');
+  }
+  final supplied = {
+    for (final artifact in draft.artifacts) artifact.handle: artifact
+  };
+  for (final artifact in regenerated.artifacts) {
+    final actual = supplied[artifact.handle];
+    if (actual == null ||
+        actual.reference != artifact.reference ||
+        actual.rawSha256 != artifact.rawSha256 ||
+        actual.bytes.length != artifact.bytes.length) {
+      throw const NativeWriteException('native.library.artifact',
+          'Library artifacts must equal the exact original-source recomposition');
+    }
+  }
+  final operationIds =
+      regenerated.mutations.map((mutation) => mutation.operationId).toSet();
+  final actualMutations = draft.mutations
+      .where((mutation) => operationIds.contains(mutation.operationId))
+      .toList();
+  if (actualMutations.length != regenerated.mutations.length ||
+      canonicalJsonOf([
+            for (var i = 0; i < actualMutations.length; i++)
+              actualMutations[i].toJson(i)
+          ], limits: limits.jsonLimits) !=
+          canonicalJsonOf([
+            for (var i = 0; i < regenerated.mutations.length; i++)
+              regenerated.mutations[i].toJson(i)
+          ], limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.library.mutation',
+        'Every library mutation must equal its exact approved candidate operation');
+  }
+  return _VerifiedAssetLibrary(operationIds,
+      regenerated.artifacts.map((artifact) => artifact.handle).toSet());
+}
+
+List<Map<String, Object?>> _artifactBindings(List<NativeArtifact> artifacts) =>
+    [
+      for (final artifact in artifacts)
+        {
+          'handle': artifact.handle,
+          'reference': artifact.reference.toJson(),
+          'rawSha256': artifact.rawSha256.value
+        }
+    ]..sort((left, right) =>
+        (left['handle'] as String).compareTo(right['handle'] as String));
+
+void _requireLibraryMutation(
+    _VerifiedAssetLibrary library, NativeMutation mutation) {
+  if (!library.operationIds.contains(mutation.operationId)) {
+    throw const NativeWriteException('native.library.mutation',
+        'Native library actions require their exact regenerated candidate binding');
+  }
 }
 
 void _verifyLiteralCompositionBinding(
@@ -956,8 +1378,11 @@ void _verifyLiteralCompositionBinding(
   }
 }
 
-void _verifyLiteralCompositionContents(NativeProjectDraft draft,
-    Map<String, MapData> maps, NativeWriteLimits limits) {
+void _verifyLiteralCompositionContents(
+    NativeProjectDraft draft,
+    Map<String, MapData> maps,
+    NativeWriteLimits limits,
+    _VerifiedAssetLibrary library) {
   if (draft.compositionEvidence.isEmpty) return;
   final composition =
       draft.compositionEvidence['composition'] as Map<String, Object?>;
@@ -1000,8 +1425,11 @@ void _verifyLiteralCompositionContents(NativeProjectDraft draft,
     autotileEvidence[row['nativeTilesetId'] as String] = row;
   }
   final seenAutotiles = <String>{};
+  final literalArtifactHandles = <String>{};
   for (final mutation in draft.mutations) {
+    if (library.operationIds.contains(mutation.operationId)) continue;
     if (mutation.actionId != 'tileset.import_image') continue;
+    literalArtifactHandles.add(mutation.parameters['artifactHandle'] as String);
     final identities = draft.source.tilesets
         .where((entry) => mutation.sourceEntityIds.contains(entry.identity));
     if (identities.length != 1) {
@@ -1067,7 +1495,9 @@ void _verifyLiteralCompositionContents(NativeProjectDraft draft,
   };
   final artifacts = [
     for (final artifact in draft.artifacts)
-      {'handle': artifact.handle, 'rawSha256': artifact.rawSha256.value},
+      if (!library.artifactHandles.contains(artifact.handle) ||
+          literalArtifactHandles.contains(artifact.handle))
+        {'handle': artifact.handle, 'rawSha256': artifact.rawSha256.value},
   ]..sort((a, b) => a['handle']!.compareTo(b['handle']!));
   if (canonicalJsonOf(composition['mapIds'], limits: limits.jsonLimits) !=
           canonicalJsonOf(mapIds, limits: limits.jsonLimits) ||
@@ -1344,12 +1774,13 @@ void _checkCancelled(ScanCancellation? cancellation) {
 
 final class _NativeSession {
   _NativeSession._(this.opener, this.snapshots, this.project, this.workspace,
-      this.mutations);
+      this.mutations, this.handles);
   final ProjectOpenService opener;
   final ProjectSnapshotLoader snapshots;
   final ProjectHandle project;
   final WorkspaceHandle workspace;
   final LocalMapAuthoringMutationApi? mutations;
+  final WorkspaceHandleStore handles;
 
   static Future<_NativeSession> open(String root,
       {required String allowedRoot, required bool mutable}) async {
@@ -1372,11 +1803,30 @@ final class _NativeSession {
             projectHandle: opened.projectHandle);
       }
       return _NativeSession._(opener, snapshots, opened.projectHandle,
-          opened.workspaceHandle, mutations);
+          opened.workspaceHandle, mutations, handles);
     } catch (_) {
       opener.closeWorkspace(opened.workspaceHandle);
       rethrow;
     }
+  }
+
+  Future<List<int>> readCompanion(String logicalPath, NativeArtifact expected,
+      {required String errorCode}) async {
+    final access = handles.resolveProject(project);
+    final before = await access.readResourceIdentity(logicalPath);
+    if (before == null || before.byteLength != expected.bytes.length) {
+      throw NativeWriteException(errorCode,
+          'Native provenance size differs from the approved companion');
+    }
+    final bytes = await access.readBytes(logicalPath);
+    final after = await access.readResourceIdentity(logicalPath);
+    if (after != before ||
+        bytes.length != expected.bytes.length ||
+        Sha256Hash(sha256.convert(bytes).toString()) != expected.rawSha256) {
+      throw NativeWriteException(errorCode,
+          'Native provenance bytes differ from the approved companion');
+    }
+    return bytes;
   }
 
   Future<void> close() async {

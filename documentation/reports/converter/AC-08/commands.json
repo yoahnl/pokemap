@@ -1,0 +1,1334 @@
+{
+  "schemaVersion": 1,
+  "lot": "AC-08",
+  "scope": "Local proposals and human-approved native asset library; literal maps preserved",
+  "status": "verified_pending_scoped_commit",
+  "baseHead": "3a1209a6f8344d9826f0d5abbc509989ad4acab5",
+  "initialGit": {
+    "branch": "main",
+    "foreignPaths": 259,
+    "indexEmpty": true,
+    "baselineReceipt": "/private/tmp/avelune-converter-ac08-initial-guard-1791784237155.json"
+  },
+  "qualificationSnapshot": {
+    "repository": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository",
+    "receipt": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/snapshot_receipt.json",
+    "postSnapshotTestOnlyDelta": {
+      "path": "packages/avelune_converter_adapters/test/asset_review_test.dart",
+      "reason": "Replace relative lib import by public package barrel; product unchanged",
+      "finalSha256": "9d1b220f32c0fb28b8eb764fa01777536e9239627290af008de88a2a5a2c943f",
+      "requalifiedBy": "ac08.publicApiReviewReceipt"
+    },
+    "hostAndSnapshotProductPinsEqual": true
+  },
+  "rootRuns": [
+    {
+      "key": "ac08.isolatedPubGetReceipt",
+      "classification": "green",
+      "command": [
+        "dart",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.163,
+      "runnerPid": 57489,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-jwe_m9xs.log",
+      "logSha256": "17da7b29823bf5b12575e16f775ea3bc69aac9163190e835a2ce8835f27f6604",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-jwe_m9xs.log.json",
+      "observedProcessCount": 1,
+      "outputTail": "Resolving dependencies...\nDownloading packages...\n+ _fe_analyzer_shared 109.0.0\n+ analyzer 14.5.0\n+ archive 4.0.9 (4.4.0 available)\n+ args 2.7.0\n+ async 2.13.1\n+ avelune_converter_core 0.1.0 from path ../avelune_converter_core\n+ boolean_selector 2.1.2\n+ characters 1.4.1\n+ cli_config 0.2.0\n+ collection 1.19.1\n+ convert 3.1.2\n+ coverage 1.15.1\n+ crypto 3.0.7\n+ ffi 2.2.0\n+ file 7.0.1\n+ fixnum 1.1.1\n+ freezed_annotation 3.1.0\n+ frontend_server_client 4.1.0\n+ glob 2.2.0\n+ http_multi_server 3.2.2\n+ http_parser 4.1.2\n+ image 4.10.1 (4.11.0 available)\n+ io 1.1.0\n+ json_annotation 4.12.0\n+ lints 6.1.0\n+ logging 1.3.0\n+ map_authoring 0.1.0 from path ../map_authoring\n+ map_core 0.1.0 from path ../map_core\n+ map_distribution 0.1.0 from path ../map_distribution\n+ matcher 0.12.20\n+ meta 1.19.0\n+ mime 2.1.0\n+ node_preamble 2.0.2\n+ package_config 3.0.0\n+ path 1.9.1\n+ petitparser 7.1.0\n+ pool 1.5.3\n+ posix 6.5.2\n+ pub_semver 2.2.1\n+ shelf 1.4.2\n+ shelf_packages_handler 3.0.2\n+ shelf_static 1.1.3\n+ shelf_web_socket 3.0.0\n+ source_map_stack_trace 2.1.2\n+ source_maps 0.10.14\n+ source_span 1.10.2\n+ stack_trace 1.12.2\n+ stream_channel 2.1.4\n+ string_scanner 1.4.1\n+ term_glyph 1.2.2\n+ test 1.33.0\n+ test_api 0.7.15\n+ test_core 0.6.21\n+ typed_data 1.4.0\n+ unorm_dart 0.3.3\n+ uuid 4.6.0\n+ vm_service 15.3.0\n+ watcher 1.2.1\n+ web 1.1.1\n+ web_socket 1.0.1\n+ web_socket_channel 3.0.3\n+ webkit_inspection_protocol 1.2.1\n+ xml 7.1.0\n+ yaml 3.1.4\nChanged 64 dependencies!\n2 packages have newer versions incompatible with dependency constraints.\nTry `dart pub outdated` for more information.\n"
+    },
+    {
+      "key": "ac08.isolatedAdaptersFullReceipt",
+      "classification": "green",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 54.177,
+      "runnerPid": 57962,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ldhkdnv4.log",
+      "logSha256": "924c76f4693117ecb03d3186d9f5a257bfbc0dcf0e0a3a1f624743e7be155e3f",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ldhkdnv4.log.json",
+      "observedProcessCount": 5,
+      "outputTail": "-cancelled write has no filesystem effects\n00:45 +295 ~8: test/native_project_writer_test.dart: cancellation after bootstrap retains staging and never verifies\n00:45 +296 ~8: test/native_project_writer_test.dart: native verification refuses map introduced in staging\n00:45 +297 ~8: test/native_project_writer_test.dart: native verification refuses logical PNG introduced in staging\n00:45 +298 ~8: test/native_project_writer_test.dart: native verification refuses blob PNG introduced in staging\n00:45 +299 ~8: test/native_project_writer_test.dart: native verification refuses missing image introduced in staging\n00:45 +300 ~8: test/native_project_writer_test.dart: missing and unreferenced artifacts are rejected before staging\n00:45 +301 ~8: test/native_project_writer_test.dart: aggregate pixel quota precedes decoding of a malformed second PNG\n00:45 +302 ~8: test/native_project_writer_test.dart: one approved artifact cannot bypass output budgets through two imports\n00:45 +303 ~8: test/native_project_writer_test.dart: malformed PNG and invalid palette map cannot return verified success\n00:45 +304 ~8: test/native_project_writer_test.dart: effective writer quota preflights before filesystem allocation [2, 16777216, 67108864, 16777216, 1048576]\n00:45 +305 ~8: test/native_project_writer_test.dart: effective writer quota preflights before filesystem allocation [256, 8, 67108864, 16777216, 1048576]\n00:45 +306 ~8: test/native_project_writer_test.dart: effective writer quota preflights before filesystem allocation [256, 16777216, 8, 16777216, 1048576]\n00:45 +307 ~8: test/native_project_writer_test.dart: effective writer quota preflights before filesystem allocation [256, 16777216, 67108864, 2047, 1048576]\n00:45 +308 ~8: test/native_project_writer_test.dart: effective writer quota preflights before filesystem allocation [256, 16777216, 67108864, 16777216, 8]\n00:45 +309 ~8: test/native_project_writer_test.dart: draft inputs and nested collections are immutable after approval\n00:45 +310 ~8: loading test/asset_review_test.dart\n00:46 +310 ~8: test/asset_review_test.dart: review approves the exact proposal geometry and current revision\n00:46 +311 ~8: test/asset_review_test.dart: keep literal records the decision without approving a library asset\n00:46 +312 ~8: test/asset_review_test.dart: stale or foreign proposals cannot reuse a human decision\n00:46 +313 ~8: test/asset_review_test.dart: review requires explicit confirmation and classification\n00:46 +314 ~8: test/asset_review_test.dart: name and category changes produce a different reviewed hash\n00:46 +315 ~8: All tests passed!\n"
+    },
+    {
+      "key": "ac08.publicApiReviewReceipt",
+      "classification": "green",
+      "command": [
+        "dart",
+        "test",
+        "test/asset_review_test.dart",
+        "--reporter",
+        "expanded"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 1.751,
+      "runnerPid": 60692,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-958vev22.log",
+      "logSha256": "885b707f519cc8e79fe7dfbd53ca3aef8b7a703c259b0f6661997a5a1b8b295f",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-958vev22.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "00:00 +0: loading test/asset_review_test.dart\n00:00 +0: review approves the exact proposal geometry and current revision\n00:00 +1: keep literal records the decision without approving a library asset\n00:00 +2: stale or foreign proposals cannot reuse a human decision\n00:00 +3: review requires explicit confirmation and classification\n00:00 +4: name and category changes produce a different reviewed hash\n00:00 +5: All tests passed!\n"
+    },
+    {
+      "key": "ac08.isolatedAdaptersAnalyzeFinalReceipt",
+      "classification": "green",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 2.858,
+      "runnerPid": 61281,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-hdbob0hq.log",
+      "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-hdbob0hq.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "Analyzing avelune_converter_adapters...\nNo issues found!\n"
+    },
+    {
+      "key": "ac08.isolatedAppPubGetReceipt",
+      "classification": "green",
+      "command": [
+        "flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 1.728,
+      "runnerPid": 62177,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-i6dc4t1d.log",
+      "logSha256": "994369d5997c0f6cc2b62658a8ed1c82fcdda79c9de13db8fa0c48fc55f42c50",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-i6dc4t1d.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "Resolving dependencies...\nDownloading packages...\n  archive 4.0.9 (4.4.0 available)\n  gamepads 0.1.11 (0.1.12 available)\n  image 4.10.1 (4.11.0 available)\n  package_info_plus 9.0.1 (10.2.1 available)\n  package_info_plus_platform_interface 3.2.1 (4.1.0 available)\n  test_api 0.7.12 (0.7.15 available)\n  win32 5.15.0 (6.4.0 available)\nGot dependencies!\n7 packages have newer versions incompatible with dependency constraints.\nTry `flutter pub outdated` for more information.\n"
+    },
+    {
+      "key": "ac08.isolatedAppTestsReceipt",
+      "classification": "green",
+      "command": [
+        "flutter",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 30.781,
+      "runnerPid": 63143,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-nrhbyayi.log",
+      "logSha256": "0abf044224f2789158403135a97ce00996ca7d88f93d349c80142c4ee86e389e",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-nrhbyayi.log.json",
+      "observedProcessCount": 17,
+      "outputTail": "tory/apps/avelune_converter/test/asset_review_panel_test.dart: preview uses disjoint source parts and preserves the transparent canvas hole\n00:03 +6: loading /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart\n00:06 +6: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: starts with five steps and an unavailable analysis action\n00:06 +7: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: caret and selection keep the prepared plan, text edits invalidate it\n00:10 +8: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: real project requires both study acknowledgement and exact plan approval\n00:11 +9: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: cancelled native creation exposes recovery and asks for approval on retry\n00:13 +10: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: inaccessible source has a useful error and can be retried\n00:13 +11: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: long paths and map names remain usable at 1280.0x800.0\n00:14 +12: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: long paths and map names remain usable at 1600.0x1000.0\n00:15 +13: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/converter_app_test.dart: keyboard traversal reaches all five steps and text shortcuts stay in fields\n00:16 +14: loading /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/map_comparison_autotile_test.dart\n00:16 +14: /private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter/test/map_comparison_autotile_test.dart: original source pixels remain independent when native autotile pixels change\n00:19 +15: All tests passed!\n"
+    },
+    {
+      "key": "ac08.isolatedAppAnalyzeReceipt",
+      "classification": "green",
+      "command": [
+        "flutter",
+        "analyze"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/apps/avelune_converter",
+      "exitCode": 0,
+      "elapsedSeconds": 6.763,
+      "runnerPid": 65245,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_z7zmh53.log",
+      "logSha256": "cb1e94ff79117aa2e96195fb6d97ca202a203c0cd0e9b34db03461d30bf4d204",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_z7zmh53.log.json",
+      "observedProcessCount": 3,
+      "outputTail": "Resolving dependencies...\nDownloading packages...\n  archive 4.0.9 (4.5.1 available)\n  cross_file 0.3.5+5 (0.4.0 available)\n  dbus 0.7.15 (0.8.0 available)\n  file_picker 11.0.3 (13.1.0 available)\n  gamepads 0.1.11 (0.1.12 available)\n  image 4.10.1 (4.12.0 available)\n  marionette_flutter 0.6.0 (0.7.0 available)\n  material_color_utilities 0.13.0 (0.13.1 available)\n  package_info_plus 9.0.1 (10.2.2 available)\n  package_info_plus_platform_interface 3.2.1 (4.1.0 available)\n  test_api 0.7.12 (0.7.15 available)\n  win32 5.15.0 (6.4.0 available)\nGot dependencies!\n12 packages have newer versions incompatible with dependency constraints.\nTry `flutter pub outdated` for more information.\nAnalyzing avelune_converter...                                  \nNo issues found! (ran in 5.3s)\n"
+    },
+    {
+      "key": "ac08.budgetCombinedGreenReceipt",
+      "classification": "green",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--reporter",
+        "expanded",
+        "--name",
+        "valid wider native budgets|combined literal"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 0,
+      "elapsedSeconds": 5.158,
+      "runnerPid": 27805,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-v0vizj42.log",
+      "logSha256": "6d2622250c95fa2acf808e3cfeb1ac8450ba275db7103766d636f6674c2bf60f",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-v0vizj42.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "00:00 +0: loading test/converter_asset_workflow_test.dart\n00:00 +0: valid wider native budgets retain bounded local recognition\n00:02 +1: combined literal and witness pixels are refused before approval\n00:03 +2: All tests passed!\n"
+    },
+    {
+      "key": "ac08.budgetCombinedFunctionalRedReceipt",
+      "classification": "functional_red_closed",
+      "command": [
+        "dart",
+        "test",
+        "test/converter_asset_workflow_test.dart",
+        "--reporter",
+        "expanded",
+        "--name",
+        "valid wider native budgets|combined literal"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 5.189,
+      "runnerPid": 20555,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-4ihci2x8.log",
+      "logSha256": "53cf5194c8b2b7005f996004eac7ffeb20ce359fe0f4a8dfff583d38cc3ea50c",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-4ihci2x8.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "00:00 +0: loading test/converter_asset_workflow_test.dart\n00:00 +0: valid wider native budgets retain bounded local recognition\n00:02 +1: combined literal and witness pixels are refused before approval\n00:03 +1 -1: combined literal and witness pixels are refused before approval [E]\n  Expected: throws <Instance of 'ConverterWorkflowFailure'> with `code`: 'native.quota.image'\n    Actual: <Instance of 'Future<PreparedStudy>'>\n     Which: emitted <Instance of 'PreparedStudy'>\n  \n  test/converter_asset_workflow_test.dart 115:5  main.<fn>\n  \n00:03 +1 -1: Some tests failed.\n\nFailing tests:\n  test/converter_asset_workflow_test.dart: combined literal and witness pixels are refused before approval\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+    },
+    {
+      "key": "ac08.adaptersFullReceipt",
+      "classification": "host_environment_failure",
+      "command": [
+        "dart",
+        "test",
+        "--reporter",
+        "expanded",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+      "exitCode": 1,
+      "elapsedSeconds": 5.125,
+      "runnerPid": 43744,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_2ot09k6.log",
+      "logSha256": "b94c8f1230c0cbc4135f2e199b3969e1bf023db837dc26986d7449393e16a8e7",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_2ot09k6.log.json",
+      "observedProcessCount": 2,
+      "outputTail": "t defined for the type 'SmartTileModel3dSource'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n  Try correcting the name to the name of an existing getter, or defining a getter or field named 'replacesGround'.\n    if (source.replacesGround) {\n               ^^^^^^^^^^^^^^\n00:00 +0 -8: loading test/local_asset_proposer_test.dart\n00:00 +0 -9: loading test/local_asset_proposer_test.dart [E]\n  Failed to load \"test/local_asset_proposer_test.dart\":\n  ../map_core/lib/src/models/smart_tile.dart:483:8: Error: The constructor function type 'SmartTileModel3dSource Function({String? $type, int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, double scale})' isn't a subtype of 'SmartTileVisualSource Function({int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, bool replacesGround, double scale})'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n   - 'SmartTileVisualSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n    }) = SmartTileModel3dSource;\n         ^\n  ../map_core/lib/src/operations/spatial_smart_tile_models.dart:255:14: Error: The getter 'replacesGround' isn't defined for the type 'SmartTileModel3dSource'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n  Try correcting the name to the name of an existing getter, or defining a getter or field named 'replacesGround'.\n    if (source.replacesGround) {\n               ^^^^^^^^^^^^^^\n00:00 +0 -9: loading test/native_project_writer_test.dart\n00:00 +0 -10: loading test/native_project_writer_test.dart [E]\n  Failed to load \"test/native_project_writer_test.dart\":\n  ../map_core/lib/src/models/smart_tile.dart:483:8: Error: The constructor function type 'SmartTileModel3dSource Function({String? $type, int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, double scale})' isn't a subtype of 'SmartTileVisualSource Function({int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, bool replacesGround, double scale})'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n   - 'SmartTileVisualSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n    }) = SmartTileModel3dSource;\n         ^\n  ../map_core/lib/src/operations/spatial_smart_tile_models.dart:255:14: Error: The getter 'replacesGround' isn't defined for the type 'SmartTileModel3dSource'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n  Try correcting the name to the name of an existing getter, or defining a getter or field named 'replacesGround'.\n    if (source.replacesGround) {\n               ^^^^^^^^^^^^^^\n00:00 +0 -10: loading test/asset_review_test.dart\n00:00 +0 -11: loading test/asset_review_test.dart [E]\n  Failed to load \"test/asset_review_test.dart\":\n  ../map_core/lib/src/models/smart_tile.dart:483:8: Error: The constructor function type 'SmartTileModel3dSource Function({String? $type, int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, double scale})' isn't a subtype of 'SmartTileVisualSource Function({int? animationIndex, bool followTerrain, required String modelId, double offsetX, double offsetY, double offsetZ, bool replacesGround, double scale})'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n   - 'SmartTileVisualSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n    }) = SmartTileModel3dSource;\n         ^\n  ../map_core/lib/src/operations/spatial_smart_tile_models.dart:255:14: Error: The getter 'replacesGround' isn't defined for the type 'SmartTileModel3dSource'.\n   - 'SmartTileModel3dSource' is from 'package:map_core/src/models/smart_tile.dart' ('../map_core/lib/src/models/smart_tile.dart').\n  Try correcting the name to the name of an existing getter, or defining a getter or field named 'replacesGround'.\n    if (source.replacesGround) {\n               ^^^^^^^^^^^^^^\n00:00 +0 -11: Some tests failed.\n\nFailing tests:\n  test/approved_asset_library_test.dart: loading test/approved_asset_library_test.dart\n  test/asset_review_test.dart: loading test/asset_review_test.dart\n  test/converter_asset_workflow_test.dart: loading test/converter_asset_workflow_test.dart\n  test/converter_workflow_test.dart: loading test/converter_workflow_test.dart\n  ... and 7 more\n"
+    },
+    {
+      "key": "ac08.mcpTestsReceipt",
+      "classification": "host_environment_failure",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp",
+      "exitCode": 1,
+      "elapsedSeconds": 681.678,
+      "runnerPid": 32119,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "logPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-1q9hovji.log",
+      "logSha256": "cbb36cbcac983c40355931f15b85afab350a4ea8642a2578c740dd8106c364d0",
+      "receiptPath": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-1q9hovji.log.json",
+      "observedProcessCount": 194,
+      "outputTail": " - expected\n  \n  + true\n  - undefined\n  \n      at tool (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/runtime_server.test.ts:32:10)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async runtimeFixture (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/runtime_server.test.ts:135:18)\n      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/runtime_server.test.ts:298:19)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at test/runtime_server.test.ts:1:8790\n✖ retry rebuilds and revalidates a fresh Pokemon projection (6593.015875ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"data\":{},\"artifacts\":[],\"error\":{\"code\":\"worker.exited\",\"message\":\"The canonical Authoring worker exited unexpectedly (code 254).\",\"retryable\":false,\"remediation\":[],\"details\":{\"exitCode\":254}}}\n  + actual - expected\n  \n  + true\n  - undefined\n  \n      at tool (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/runtime_server.test.ts:32:10)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async…433 tokens truncated… MCP imports and publishes a verified large native draft without widening request limits (6859.268792ms)\n  AssertionError [ERR_ASSERTION]: {\"ok\":false,\"data\":{},\"artifacts\":[],\"error\":{\"code\":\"worker.exited\",\"message\":\"The canonical Authoring worker exited unexpectedly (code 254).\",\"retryable\":false,\"remediation\":[],\"details\":{\"exitCode\":254}}}\n  + actual - expected\n  \n  + true\n  - undefined\n  \n      at call (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/smart_tile_draft_artifact_stdio.test.ts:25:12)\n      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/smart_tile_draft_artifact_stdio.test.ts:31:21)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: true,\n    expected: undefined,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at test/spatial_game_export_stdio.test.ts:1:641\n✖ authored 3D exploration and gameplay exports cross fresh MCP stdio and canonical worker (5.867125ms)\n  Error: ENOENT: no such file or directory, lstat '/Users/karim/Project/pokemonProject/apps/hgss_first_map'\n      at async lstat (node:internal/fs/promises:1677:18)\n      at async Promise.all (index 0)\n      at async checkPaths (node:internal/fs/cp/cp:77:39)\n      at async cpFn (node:internal/fs/cp/cp:66:17)\n      at async TestContext.<anonymous> (/Users/karim/Project/pokemonProject/tools/pokemap_mcp/test/spatial_game_export_stdio.test.ts:22:3)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    errno: -2,\n    code: 'ENOENT',\n    syscall: 'lstat',\n    path: '/Users/karim/Project/pokemonProject/apps/hgss_first_map'\n  }\n"
+    }
+  ],
+  "externalFinalRuns": [
+    {
+      "path": "/private/tmp/avelune-converter-ac08-proposer-third-green-receipt.json",
+      "receiptSha256": "683720b56264358a980057baa137c6668cea89a868410a6c39586d3ff48e54ba",
+      "keys": [
+        "command",
+        "argv",
+        "cwd",
+        "startedUtc",
+        "exitCode",
+        "elapsedSeconds",
+        "stdout",
+        "runnerPid",
+        "runner",
+        "observedDescendants",
+        "confirmedSurvivors",
+        "signals",
+        "fileHashesBefore",
+        "fileHashesAfter"
+      ],
+      "runs": [
+        {
+          "command": "dart test test/local_asset_proposer_test.dart --reporter expanded --concurrency 1",
+          "argv": [
+            "dart",
+            "test",
+            "test/local_asset_proposer_test.dart",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 10.111,
+          "runnerPid": 99925,
+          "outputTail": "placement are refused before decode\n00:03 +14: foreign normalized source cannot consume an old literal composition\n00:03 +15: proposal collections and candidate geometry are deeply immutable\n00:03 +16: All tests passed!\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        }
+      ]
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-proposer-analyze-receipt.json",
+      "receiptSha256": "73c74b9e336bb631ea14790f7fb864b5333344c62989e45fad023224d39143aa",
+      "keys": [
+        "command",
+        "argv",
+        "cwd",
+        "startedUtc",
+        "exitCode",
+        "elapsedSeconds",
+        "stdout",
+        "runnerPid",
+        "runner",
+        "observedDescendants",
+        "confirmedSurvivors",
+        "signals",
+        "fileHashesBefore",
+        "fileHashesAfter"
+      ],
+      "runs": [
+        {
+          "command": "dart analyze lib/src/local_asset_proposer.dart test/local_asset_proposer_test.dart test/support/original_asset_fixture.dart",
+          "argv": [
+            "dart",
+            "analyze",
+            "lib/src/local_asset_proposer.dart",
+            "test/local_asset_proposer_test.dart",
+            "test/support/original_asset_fixture.dart"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 2.11,
+          "runnerPid": 432,
+          "outputTail": "Analyzing local_asset_proposer.dart, local_asset_proposer_test.dart, original_asset_fixture.dart...\nNo issues found!\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        }
+      ]
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-native-writer-final-receipt.json",
+      "receiptSha256": "fcee851256ff6fc3100e601e60ad48990f382bb04ced3acd5a8844f4767f574c",
+      "keys": [
+        "sourcesAfter",
+        "runs",
+        "sourcesBeforeFinalGreen",
+        "finalSourceHashesEqual",
+        "finalTestCount",
+        "focusedAc08TestCount",
+        "uiObserved",
+        "published",
+        "outputConfinement",
+        "ownedFiles"
+      ],
+      "runs": [
+        {
+          "command": [
+            "dart",
+            "test",
+            "test/native_project_writer_test.dart",
+            "--name",
+            "AC-08 approved library persists",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 1,
+          "elapsedSeconds": 4.97687483401387,
+          "runnerPid": 13944,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-native-library-functional-red-2.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "command": [
+            "dart",
+            "test",
+            "test/native_project_writer_test.dart",
+            "--name",
+            "AC-08.*(timeline mutations|reraster cancellation)",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 1,
+          "elapsedSeconds": 6.535611667000921,
+          "runnerPid": 30092,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-library-consumer-cancel-red.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "command": [
+            "dart",
+            "test",
+            "test/native_project_writer_test.dart",
+            "--name",
+            "AC-08 logical companion drift",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 1,
+          "elapsedSeconds": 6.482225749990903,
+          "runnerPid": 32503,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-companion-final-drift-red.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "command": [
+            "dart",
+            "test",
+            "test/native_project_writer_test.dart",
+            "--name",
+            "AC-08",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 14.982138541992754,
+          "runnerPid": 33968,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-library-focused-green-2.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "command": [
+            "dart",
+            "test",
+            "test/native_project_writer_test.dart",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 18.510501375014428,
+          "runnerPid": 38439,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-native-writer-final-green.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "command": [
+            "dart",
+            "analyze",
+            "lib/src/native_project_writer.dart",
+            "test/native_project_writer_test.dart"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 1.5887604579911567,
+          "runnerPid": 38101,
+          "logPath": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-native-writer-final-analyze.log",
+          "outputTail": "",
+          "survivorCount": 0,
+          "signalCount": 0
+        }
+      ]
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac08-library-gnc8tzgr/exporter-operation-id-fix-final-receipt.json",
+      "receiptSha256": "9540a40f53c90fd9652ba3a4da77776c590765ac8565568e0e67772de62c9ba0",
+      "keys": [
+        "scope",
+        "recordedUtc",
+        "priorExporterReceipt",
+        "priorExporterReceiptSha256",
+        "redEvidence",
+        "nativeContract",
+        "change",
+        "finalFileHashes",
+        "runs",
+        "finalMeasuredExporterTests",
+        "markdownHygiene",
+        "finalGitStatusPath",
+        "finalGitStatusSha256",
+        "ownGitStatus",
+        "gitWrites",
+        "sourceCorpusWrites",
+        "signals",
+        "remainingLimitations"
+      ],
+      "runs": [
+        {
+          "argv": [
+            "dart",
+            "test",
+            "test/approved_asset_library_test.dart",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1",
+            "--name",
+            "operation IDs satisfy native transaction gateway grammar"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 4.374,
+          "runnerPid": 28277,
+          "outputTail": "00:00 +0: loading test/approved_asset_library_test.dart\n00:00 +0: AST-04 operation IDs satisfy native transaction gateway grammar\n00:02 +1: All tests passed!\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "argv": [
+            "dart",
+            "test",
+            "test/approved_asset_library_test.dart",
+            "--reporter",
+            "expanded",
+            "--concurrency",
+            "1"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 5.127,
+          "runnerPid": 28459,
+          "outputTail": "tion after asynchronous source read yields no output\n00:03 +37: AST-04 async inputs and nested evidence are immutable\n00:03 +38: AST-02 approved disjoint house exports exact independent RGBA\n00:03 +39: All tests passed!\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "argv": [
+            "dart",
+            "analyze",
+            "lib/src/approved_asset_library.dart",
+            "test/approved_asset_library_test.dart"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject/packages/avelune_converter_adapters",
+          "exitCode": 0,
+          "elapsedSeconds": 2.485,
+          "runnerPid": 28693,
+          "outputTail": "Analyzing approved_asset_library.dart, approved_asset_library_test.dart...\nNo issues found!\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        },
+        {
+          "argv": [
+            "bash",
+            "tools/scripts/check_markdown_hygiene.sh"
+          ],
+          "cwd": "/Users/karim/Project/pokemonProject",
+          "exitCode": 0,
+          "outputTail": "Markdown hygiene: no new Markdown files.\n",
+          "survivorCount": 0,
+          "signalCount": 0
+        }
+      ]
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production-main-macos-build-receipt.json",
+      "receiptSha256": "fec52ef8cbae529d1417fdc23e05b7459cdf1370bc43949a819e34e7d4930121",
+      "keys": [
+        "argv",
+        "cwd",
+        "startedUtc",
+        "exitCode",
+        "elapsedSeconds",
+        "runnerPid",
+        "observedProcesses",
+        "confirmedSurvivors",
+        "signals",
+        "stdout",
+        "fileHashesBefore",
+        "fileHashesAfter"
+      ],
+      "runs": [
+        {
+          "argv": [
+            "env",
+            "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/flutter-config",
+            "FLUTTER_XCODE_PRODUCT_BUNDLE_IDENTIFIER=com.yoahnl.avelune.converter.ac08qualification",
+            "/opt/homebrew/bin/flutter",
+            "build",
+            "macos",
+            "--debug",
+            "--no-pub",
+            "-t",
+            "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production_main_probe.dart"
+          ],
+          "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+          "exitCode": 0,
+          "elapsedSeconds": 37.401,
+          "runnerPid": 70993,
+          "outputTail": "ery build by unchecking \"Based on dependency analysis\" in the script phase. (in target 'Flutter Assemble' from project 'Runner')\n✓ Built .dart_tool/ac08_ui_build_6a236af4/macos/Build/Products/Debug/Avelune Converter.app\n",
+          "survivorCount": 3,
+          "signalCount": 0
+        }
+      ]
+    }
+  ],
+  "nativeUiCommands": [
+    {
+      "label": "qa-flutter-config",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-flutter-config-receipt.json",
+      "receiptSha256": "b050680a8712ae52d11c6c8ee1ef4a5cc56304198e6ff7caf0f09b56ca28acbb",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "config",
+        "--build-dir=.dart_tool/ac08_ui_build_6a236af4"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 0.722,
+      "runnerPid": 67824,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-flutter-config.log",
+      "stdoutSha256": "caae0b4f49151f1f3218a07fe531d1149b198fb3222d36b7377fe45a1c118756"
+    },
+    {
+      "label": "qa-host-pub-get",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-host-pub-get-receipt.json",
+      "receiptSha256": "dac0aa20aab0345895703fe6d01675b126663c464d7d74768c28f7743b48f13c",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 1.748,
+      "runnerPid": 67952,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-host-pub-get.log",
+      "stdoutSha256": "ecbbd0e5ff4744d366e46c038890326b3c45b936fc2a346bbed6d2ae04985e7e"
+    },
+    {
+      "label": "qa-flutter-devices",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-flutter-devices-receipt.json",
+      "receiptSha256": "17289e0438b2ecea7cae65f2cc9c90e55195f7e072d8e855b907da8c75c863ed",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/flutter-config",
+        "/opt/homebrew/bin/flutter",
+        "devices",
+        "--machine"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 8.345,
+      "runnerPid": 68114,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-flutter-devices.log",
+      "stdoutSha256": "053146b74fbb8d432cc731ffcbbe35c3c6a3d591c673376ff4cce4fa4f18c1b9"
+    },
+    {
+      "label": "qa-source-generator",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-source-generator-receipt.json",
+      "receiptSha256": "e36f8648a998f898fac11535df9310924d7f53bf802e4210ed542e4afdbe7472",
+      "argv": [
+        "/opt/homebrew/bin/dart",
+        "--packages=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/create_original_asset_source.dart",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qualification-config.json"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 9.773,
+      "runnerPid": 68498,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qa-source-generator.log",
+      "stdoutSha256": "d0a4f6a87726844f1573c2f0717cde6443eaaf5c610673f8c67175ab1dce1361"
+    },
+    {
+      "label": "production-main-macos-build",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production-main-macos-build-receipt.json",
+      "receiptSha256": "fec52ef8cbae529d1417fdc23e05b7459cdf1370bc43949a819e34e7d4930121",
+      "argv": [
+        "env",
+        "XDG_CONFIG_HOME=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/flutter-config",
+        "FLUTTER_XCODE_PRODUCT_BUNDLE_IDENTIFIER=com.yoahnl.avelune.converter.ac08qualification",
+        "/opt/homebrew/bin/flutter",
+        "build",
+        "macos",
+        "--debug",
+        "--no-pub",
+        "-t",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production_main_probe.dart"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 37.401,
+      "runnerPid": 70993,
+      "confirmedSurvivors": [
+        {
+          "pid": 71525,
+          "ppid": 1,
+          "startTime": "Mon Oct 12 08:15:20 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        },
+        {
+          "pid": 71526,
+          "ppid": 1,
+          "startTime": "Mon Oct 12 08:15:20 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        },
+        {
+          "pid": 72309,
+          "ppid": 1,
+          "startTime": "Mon Oct 12 08:15:40 2026",
+          "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+        }
+      ],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production-main-macos-build.log",
+      "stdoutSha256": "97a7919f9585d5e37761ba39aa5be6dfb3862da491c0226bbb687743f95d337f"
+    },
+    {
+      "label": "native-fresh-readback",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-fresh-readback-receipt.json",
+      "receiptSha256": "2eea554b58d2877a8ddaf335331b9738f5f7f0a96f23f2671e9de02a321cd62f",
+      "argv": [
+        "/opt/homebrew/bin/dart",
+        "--packages=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/readback_native.dart",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qualification-config.json",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/final-export-state.json"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 254,
+      "elapsedSeconds": 7.246,
+      "runnerPid": 97378,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-fresh-readback.log",
+      "stdoutSha256": "1f0d2fa25fa5256075c98ebbf6cc887c78d07ad4f74267d2b261fba2a84369a3"
+    },
+    {
+      "label": "native-fresh-readback-corrected",
+      "receiptPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-fresh-readback-corrected-receipt.json",
+      "receiptSha256": "bfab06decd1db030ac2627f00da38f4b35fdb6db52b99034bc19598aad7de6d1",
+      "argv": [
+        "/opt/homebrew/bin/dart",
+        "--packages=/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host/.dart_tool/package_config.json",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/readback_native.dart",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/qualification-config.json",
+        "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/final-export-state.json"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-host",
+      "exitCode": 0,
+      "elapsedSeconds": 8.684,
+      "runnerPid": 99428,
+      "confirmedSurvivors": [],
+      "signals": [],
+      "stdoutPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-fresh-readback-corrected.log",
+      "stdoutSha256": "14e69bc0451e9238db9fbc45d55e69406023be32dd3b903ab205a858604167a9"
+    }
+  ],
+  "nativeUiReceipt": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ac08-native-ui-final-receipt.json",
+  "nativeUiCaptures": [
+    {
+      "label": "initial1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-003-0.png",
+      "sha256": "8288a30a419faedb0dc42be7841a5260c5f353df5afba625079f3976a9efe386"
+    },
+    {
+      "label": "approvedHouseShared1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-028-0.png",
+      "sha256": "8bb64c94333021637572b91fae6c5b87fddfb548084f09a4f89d55eb03367fbc"
+    },
+    {
+      "label": "disjointSharedBlocked1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-033-0.png",
+      "sha256": "7d029782f275a9bd223fb7de049de4a008b4095046b858ec74bf235bb363c2b0"
+    },
+    {
+      "label": "unclassifiedCorrectVisualAndApprovedTree1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-059-0.png",
+      "sha256": "17606848bad48b5989bc9e14c332407954938a940869b850f8cf128ce618eb8a"
+    },
+    {
+      "label": "keepLiteralVisible1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-066-0.png",
+      "sha256": "8f2e45220d803f5f356a768ab72c556c119d297610f27caefc9f38da0a26f257"
+    },
+    {
+      "label": "comparison1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-068-0.png",
+      "sha256": "e2d2f7c77bd4982f0616692a31ac314e5324ef23cc43b109a226d25cfb574e86"
+    },
+    {
+      "label": "comparison1280",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-070-0.png",
+      "sha256": "e83c5abbae54dc5d9eccc3adf20901ff2d25a2f5b9920b908eff1ff40f0e1d4b"
+    },
+    {
+      "label": "explicitApprovalDialog1280",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-075-0.png",
+      "sha256": "96b1bc59c995f45ceb3ddc92280fbab51bbbdaf72410a7dd32b8e220e4656d2a"
+    },
+    {
+      "label": "verifiedResult1280",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-078-0.png",
+      "sha256": "77067721274ec0ab5cee077c916b8b9fcb7492d5e841f3f0a16817c7f3a16555"
+    },
+    {
+      "label": "verifiedResult1600",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-080-0.png",
+      "sha256": "d1c51fa6a2594aa64eb674627f9a8d4aba60a0f9d2939e5c95588da9fffd1d1d"
+    },
+    {
+      "label": "approvedHouseResources1280",
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ui-1-084-0.png",
+      "sha256": "5e91ce0da1dce5a030afa74c87ba9a81e9faf3d4e72d0659a06bc5ae010bd81e"
+    }
+  ],
+  "nativeUiCleanup": {
+    "uiSurvivors": [],
+    "uiSignals": [],
+    "productionBuildOwnedIbtooldCleanupPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production-main-build-artifacts-and-cleanup.json",
+    "productionBuildOwnedIbtooldSIGTERMPids": [
+      71525,
+      71526,
+      72309
+    ],
+    "finalOwnedSurvivors": []
+  },
+  "productionMain": {
+    "path": "/Users/karim/Project/pokemonProject/apps/avelune_converter/lib/main.dart",
+    "sha256": "c00bd58f868b6b57ed3fe17d19ca7afda1dccf33311306497ab10e0157387a2d",
+    "marionetteImportPresent": false,
+    "buildCommandIndex": 4,
+    "directMainForwarderPath": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production_main_probe.dart"
+  },
+  "parityCommands": [
+    {
+      "name": "npm-ci-offline",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-ci-offline-receipt.json",
+        "sha256": "904a19a5ff3bf217ac8d2526479cf9d0d6f4bbaa6fcec71074c1628cba879009",
+        "byteLength": 4905
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-ci-offline.log",
+        "sha256": "410dcaa1863157d69e78246ee7c43932ca6b88af7541d2d23874385b4e678b7c",
+        "byteLength": 143
+      },
+      "command": [
+        "npm",
+        "ci",
+        "--offline",
+        "--ignore-scripts"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/tools/pokemap_mcp",
+      "runnerPid": 6051,
+      "elapsedSeconds": 1.1601706669898704,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    },
+    {
+      "name": "npm-check",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-check-receipt.json",
+        "sha256": "918dd73f90e9fb5b0052c16cc377d15466845c8d51dd72f47f271bfa6ce3a334",
+        "byteLength": 5178
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-check.log",
+        "sha256": "7ad59dca3cb8e6445397c9e867326ddeac3b0ef771b0a5278fb8beb66f69ab0b",
+        "byteLength": 68
+      },
+      "command": [
+        "npm",
+        "run",
+        "check"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/tools/pokemap_mcp",
+      "runnerPid": 7048,
+      "elapsedSeconds": 1.4127407080086414,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    },
+    {
+      "name": "npm-build",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-build-receipt.json",
+        "sha256": "2ade673ba1b63b77cdf2432a1733784d32972bb351366a132338d0a748f25e5d",
+        "byteLength": 5169
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/npm-build.log",
+        "sha256": "627a16613be7704d2b4572a60c3a60c65e6811d680aa85f8a3573bf8375ecd88",
+        "byteLength": 59
+      },
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/tools/pokemap_mcp",
+      "runnerPid": 7360,
+      "elapsedSeconds": 1.2811821250070352,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    },
+    {
+      "name": "prepare-copies",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/prepare-copies-receipt.json",
+        "sha256": "e8e48471f01c9b29208f50bd54d622d63103072f9a5ba62902565de36fa61cc7",
+        "byteLength": 5468
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/prepare-copies.log",
+        "sha256": "61bd6fc576bd69fe0b11edc030808089243a4f61d52c06d10bb4524d2662e4a8",
+        "byteLength": 474
+      },
+      "command": [
+        "node",
+        "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/library_probe.mjs",
+        "prepare",
+        "/Users/karim/Library/Containers/com.yoahnl.avelune.converter.ac08qualification/Data/Documents/avelune-converter-ac08-qualification-6a236af4-cb00-4f58-8288-dfc79ce5836f/output/.avelune-converter-stage-cnuc5l/avelune-study"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/tools/pokemap_mcp",
+      "runnerPid": 7775,
+      "elapsedSeconds": 0.5842696670151781,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    },
+    {
+      "name": "worker-pub-get-offline",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/worker-pub-get-offline-receipt.json",
+        "sha256": "8317e39cf8a5657bef0ba1b0a300e905bc84093cae6349a36f351e821cf7cba1",
+        "byteLength": 4980
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/worker-pub-get-offline.log",
+        "sha256": "acbc81e6a3f3bcd97eb5a10c45551af16b535a84dd654625fac629a9ac28f373",
+        "byteLength": 296
+      },
+      "command": [
+        "dart",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/packages/map_authoring",
+      "runnerPid": 12270,
+      "elapsedSeconds": 0.9430040839943103,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    },
+    {
+      "name": "library-parity-pinned",
+      "receipt": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/library-parity-pinned-receipt.json",
+        "sha256": "2135d23844960cad5a941fdbb920b67e26c31c5067c3cfe5d2e5830664337ff9",
+        "byteLength": 7618
+      },
+      "log": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/library-parity-pinned.log",
+        "sha256": "ae38b7ea8e69956baeb51f194856e6da2e4b4b0d9aec31cf986723ad7a38eee0",
+        "byteLength": 971
+      },
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/library_parity.test.mjs"
+      ],
+      "cwd": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/repository/tools/pokemap_mcp",
+      "runnerPid": 12843,
+      "elapsedSeconds": 17.460457041015616,
+      "exitCode": 0,
+      "signals": [],
+      "survivingOwnedProcesses": [],
+      "protectedIdentitiesEqual": true
+    }
+  ],
+  "parityResults": {
+    "jsonl": {
+      "facts": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/jsonl-library-facts.json",
+        "sha256": "88095e3b37a2de8c8ca3728f595c749066cf5cb205336f077c0bf8055ded2308",
+        "byteLength": 87888
+      },
+      "transcript": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/jsonl-library-transcript.json",
+        "sha256": "1386303f2d63da61937d87b68f92c99877d81f05cd767aadaf586a0a05d687d7",
+        "byteLength": 1302268
+      },
+      "calls": 46,
+      "queries": {
+        "asset": 5,
+        "element": 2,
+        "elementCategory": 2,
+        "tileset": 3
+      },
+      "initialRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+      "operations": [
+        {
+          "step": "rename",
+          "actionId": "element.upsert",
+          "requestId": "ac08-jsonl-rename",
+          "planId": "plan_a99b0563d86b597c9473f2e9a3f974a278744408166831d2",
+          "operationId": "ac08-jsonl-rename-apply",
+          "manifestSha256": "32dd2bf853f2dada84a9c50607c07ee0210448a83a010afbf63890bfd88944e3",
+          "resultingRevision": "sha256:a553b7654920aa57d9f06e848715619ed82d21c329416d40b61240d8b7a9960a",
+          "reopenedRevision": "sha256:a553b7654920aa57d9f06e848715619ed82d21c329416d40b61240d8b7a9960a",
+          "planDidNotWrite": true,
+          "idempotentApply": true,
+          "structureValid": true,
+          "referencesValid": true
+        },
+        {
+          "step": "restore",
+          "actionId": "element.upsert",
+          "requestId": "ac08-jsonl-restore",
+          "planId": "plan_31126a0fa8ddf72045ab4e6908a861d061321a1189edd810",
+          "operationId": "ac08-jsonl-restore-apply",
+          "manifestSha256": "44914ed1526e3247a94bd7f6590cc2a0e51b8cf401f5b7185ac073cb836b7ae8",
+          "resultingRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+          "reopenedRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+          "planDidNotWrite": true,
+          "idempotentApply": true,
+          "structureValid": true,
+          "referencesValid": true
+        }
+      ],
+      "workspaceClosed": true
+    },
+    "mcp": {
+      "facts": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/mcp-library-facts.json",
+        "sha256": "f95126568da1a851aa9b80667a283db51899eae186e6a3c5aadd059f2abad651",
+        "byteLength": 87856
+      },
+      "transcript": {
+        "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/mcp-library-transcript.json",
+        "sha256": "8e187fef6fd10e63eef94a824bb9bc49352a28d109d0369e0f4919d5c686aba4",
+        "byteLength": 2149658
+      },
+      "calls": 46,
+      "queries": {
+        "asset": 5,
+        "element": 2,
+        "elementCategory": 2,
+        "tileset": 3
+      },
+      "initialRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+      "operations": [
+        {
+          "step": "rename",
+          "actionId": "element.upsert",
+          "requestId": "ac08-mcp-rename",
+          "planId": "plan_68e9e0e5d88125344d2e6de08a5a671a7364595f93be3940",
+          "operationId": "ac08-mcp-rename-apply",
+          "manifestSha256": "32dd2bf853f2dada84a9c50607c07ee0210448a83a010afbf63890bfd88944e3",
+          "resultingRevision": "sha256:a553b7654920aa57d9f06e848715619ed82d21c329416d40b61240d8b7a9960a",
+          "reopenedRevision": "sha256:a553b7654920aa57d9f06e848715619ed82d21c329416d40b61240d8b7a9960a",
+          "planDidNotWrite": true,
+          "idempotentApply": true,
+          "structureValid": true,
+          "referencesValid": true
+        },
+        {
+          "step": "restore",
+          "actionId": "element.upsert",
+          "requestId": "ac08-mcp-restore",
+          "planId": "plan_2e5e101ea72b425ec916382f4e9f90f076e14b567fd80845",
+          "operationId": "ac08-mcp-restore-apply",
+          "manifestSha256": "44914ed1526e3247a94bd7f6590cc2a0e51b8cf401f5b7185ac073cb836b7ae8",
+          "resultingRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+          "reopenedRevision": "sha256:ed3c0df62123a116257c662b1df031105803fa421d152801eaac67292d1a7468",
+          "planDidNotWrite": true,
+          "idempotentApply": true,
+          "structureValid": true,
+          "referencesValid": true
+        }
+      ],
+      "workspaceClosed": true
+    }
+  },
+  "parityReceipt": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/ac08-library-parity-final-receipt.json",
+  "qaWorkerDependencies": {
+    "ledger": {
+      "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/worker-dependency-ledger.json",
+      "sha256": "7c4dee1f125f6a96a16c434dc19f00a2975369b91a2878b031a70db7c4d56397",
+      "byteLength": 5896
+    },
+    "qaOverrideOnly": true,
+    "image": "4.10.1",
+    "archive": "4.0.9",
+    "pubspecUnchanged": true,
+    "firstAttempt": {
+      "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/first-attempt-worker-resolution-failure",
+      "classification": "harness worker dependency resolution failure before describe, no business RED",
+      "image": "4.11.0",
+      "archive": "4.0.9",
+      "message": "ZLibDecoder.decodeLazy is absent in archive4.0.9",
+      "runnerPid": 8026,
+      "exitCode": 1,
+      "tests": 3,
+      "pass": 0,
+      "fail": 3
+    }
+  },
+  "externalEvidenceReferences": [
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-jwe_m9xs.log.json",
+      "sha256": "063de9e6d29571ee93de7d1971807bb0d98785902d83b2c42fa325153290e2ea",
+      "bytes": 2321
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-ldhkdnv4.log.json",
+      "sha256": "533502ff44ed73b2f23a0e1cc2e53c5d2d8bfe9d6b640e65f32dd6f904c97a31",
+      "bytes": 40224
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-958vev22.log.json",
+      "sha256": "5e34d6e6ca78ff693cc3a5fe660eff69a7619205386763b58b109261a2bf2b12",
+      "bytes": 2290
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-hdbob0hq.log.json",
+      "sha256": "bae37b87190264e34728b1dd327db0b96375b8ff46d5ee61dd168735be2040cb",
+      "bytes": 1206
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-i6dc4t1d.log.json",
+      "sha256": "2d0994bfbf2cd0ea6d2ab60b7c97e2f0f7a5730ed46132d6ada98530874a635e",
+      "bytes": 1709
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-nrhbyayi.log.json",
+      "sha256": "815fd5e1ed376a0d86bf32a214e4bbc4255a0d66928acdb8c68b51bfae523ae1",
+      "bytes": 31378
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_z7zmh53.log.json",
+      "sha256": "6f5b7e12f852c047c1b239570d95bf4b359c25948563bcf1fada4cb98632c6f3",
+      "bytes": 2189
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-v0vizj42.log.json",
+      "sha256": "36929bb9eb6921b85749cd202d21d5eeb3b1d5057c76d2b9227c8ef759d161b1",
+      "bytes": 2126
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-4ihci2x8.log.json",
+      "sha256": "549a379dbfb84985fe541201c0a813c403bf8b5e66e949f0d35fb0904a6ddcdb",
+      "bytes": 2737
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-_2ot09k6.log.json",
+      "sha256": "3e4553eb41b70f8050e30e85c577f194fd34884cebcf8f4c57d784d0b3337bd6",
+      "bytes": 17331
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac06-run-1q9hovji.log.json",
+      "sha256": "fcab9f8d922aee8fe298e90a6cb086adffe42d56c11d367d9f65c63e19169757",
+      "bytes": 164244
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-proposer-third-green-receipt.json",
+      "sha256": "683720b56264358a980057baa137c6668cea89a868410a6c39586d3ff48e54ba",
+      "bytes": 3899
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-proposer-analyze-receipt.json",
+      "sha256": "73c74b9e336bb631ea14790f7fb864b5333344c62989e45fad023224d39143aa",
+      "bytes": 2396
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac07-runtime-contracts-20261012/ac08-native-writer-final-receipt.json",
+      "sha256": "fcee851256ff6fc3100e601e60ad48990f382bb04ced3acd5a8844f4767f574c",
+      "bytes": 13682
+    },
+    {
+      "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac08-library-gnc8tzgr/exporter-operation-id-fix-final-receipt.json",
+      "sha256": "9540a40f53c90fd9652ba3a4da77776c590765ac8565568e0e67772de62c9ba0",
+      "bytes": 13448
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/production-main-macos-build-receipt.json",
+      "sha256": "fec52ef8cbae529d1417fdc23e05b7459cdf1370bc43949a819e34e7d4930121",
+      "bytes": 667372
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-initial-guard-1791784237155.json",
+      "sha256": "05952e7c11ade9083e7f2bd0fc6e114200bc2065facedd299f5bac77f8be4ccf",
+      "bytes": 47861
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/snapshot_receipt.json",
+      "sha256": "4c3b989def076804599d97717dca7091b2859e1169fcb3e3a202ad212b097e06",
+      "bytes": 14216
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-isolated-snapshot-runtime-9cg0yf11/snapshot_manifest.json",
+      "sha256": "28c9c54d00a9e0769ea221e6d1da7f5d95d8ea3f25ffb332c8040e83198351ca",
+      "bytes": 1470415
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/ac08-native-ui-final-receipt.json",
+      "sha256": "fc649906c01b652647e1c2a35c09a9a896e76a1250afe6536ddd7c836781c25a",
+      "bytes": 34640
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-ui-z2k0qe22/native-fresh-readback.json",
+      "sha256": "8d66a01dff50e6e87ffb83ec83a9ffdf21e5d03fe9b82ef6036ffff8ccca360b",
+      "bytes": 22047
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/ac08-library-parity-final-receipt.json",
+      "sha256": "78949859ec79db17ff6b93bc2238235a6cd1e35dce718c39570bfdb83ad34f6b",
+      "bytes": 17773
+    },
+    {
+      "path": "/private/tmp/avelune-converter-ac08-parity-h_2os0tu/worker-dependency-ledger.json",
+      "sha256": "7c4dee1f125f6a96a16c434dc19f00a2975369b91a2878b031a70db7c4d56397",
+      "bytes": 5896
+    }
+  ],
+  "processDiscipline": {
+    "protectedPids": [
+      6272,
+      82303,
+      61161
+    ],
+    "foreignOldQaPidUntouched": 28620,
+    "unitAndParityFinalOwnedSurvivors": 0,
+    "unitAndParityFinalSignals": 0,
+    "uiOwnedSurvivors": 0,
+    "uiShutdownSignals": 0,
+    "buildOnlyOwnedIbtooldSigtermPids": [
+      71525,
+      71526,
+      72309
+    ]
+  },
+  "limitations": [
+    "Native debug QA host uses separate entrypoint and sandbox identity; production main compilation proved separately, no distributable release certification.",
+    "Isolated HEAD plus exact AC08 overlay state qualifies AC08 without the unrelated concurrent 3D worktree changes.",
+    "Native library only, no placement substitutions, event/gameplay/anchor placement/publication certification.",
+    "Comparison at fit scale is visual inspection, not screen-pixel equality certification.",
+    "Source/destination picker paths injected only by QA entrypoint; normal native picker flow not exercised.",
+    "MCP/JSONL transport parity and actual Studio UI library editing are distinct gates owned by other passes.",
+    "The successful direct worker resolution uses an explicit local QA image4.10.1 override; image4.11.0/archive4.0.9 was not qualified.",
+    "Only element.upsert was mutated through JSONL/MCP; the other six native action contracts were discovered and the native UI exported artifact state was read and preserved.",
+    "No global MCP suite, source engine execution, new runtime/playability certification, publication, or UI observation by this transport pass.",
+    "Eight optional AC07 local Kanto clock tests skipped without AVELUNE_AUTOTILE_SCRIPTS_PATH; not full Kanto qualification.",
+    "No new Studio screen/command; visible editing of this new library in Studio not observed by AC08."
+  ],
+  "finalCritique": {
+    "verdict": "PASS",
+    "critic": "test_validation",
+    "lastCorrection": "Remove global catalog count; pinned and live host catalogs have distinct scope, only seven native contracts claimed.",
+    "productDefectsOpen": 0,
+    "reportDivergencesOpen": 0,
+    "qaReceiptSha256": "fc649906c01b652647e1c2a35c09a9a896e76a1250afe6536ddd7c836781c25a",
+    "parityReceiptSha256": "78949859ec79db17ff6b93bc2238235a6cd1e35dce718c39570bfdb83ad34f6b"
+  },
+  "hygiene": {
+    "argv": [
+      "bash",
+      "tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "environment": {
+      "POKEMAP_MARKDOWN_MAX_NEW": "1"
+    },
+    "exitCode": 0,
+    "result": "Markdown hygiene: 1 new Markdown file(s), all in canonical locations.",
+    "authorization": "One consolidated Markdown Evidence Pack per signed lot kit"
+  },
+  "scopedDiffCheck": {
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "apps/avelune_converter",
+      "packages/avelune_converter_adapters",
+      "documentation/reports/converter/AC-08"
+    ],
+    "exitCode": 0
+  },
+  "jsonLedgersValid": true,
+  "preCommitGuard": {
+    "path": "/private/tmp/avelune-converter-ac08-precommit-guard-root-1791788369147.json",
+    "head": "3a1209a6f8344d9826f0d5abbc509989ad4acab5",
+    "indexEmpty": true,
+    "statusRecords": 277,
+    "ownedPaths": 17,
+    "foreignPaths": 260,
+    "foreignInitialByteIdentical": 244,
+    "concurrentForeignDeltas": 15,
+    "newForeignPaths": 1,
+    "allFrozenSourcePinsMatch": true,
+    "sha256": "cccca950395d2d0e35e9c66f35c12778e1c6ea4defe74d530fd7b680ed0a420d"
+  }
+}
