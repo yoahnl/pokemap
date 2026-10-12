@@ -13,3 +13,6 @@ export 'src/vision_local_store.dart';
 export 'src/vision_http_transport.dart';
 export 'src/vision_crop_verifier.dart';
 export 'src/vision_assistance_service.dart';
+export 'src/source_player_character_import.dart';
+export 'src/source_semantics_projection.dart';
+export 'src/source_semantic_study_composer.dart';

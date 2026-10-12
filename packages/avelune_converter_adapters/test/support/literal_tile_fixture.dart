@@ -138,10 +138,12 @@ final class LiteralTileFixture {
     bool reverseManifest = false,
     Map<String, List<int>> autotilePngs = const {},
     List<int>? scriptsBytes,
+    Map<String, List<int>> extraFiles = const {},
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
     final bytes = <String, List<int>>{
+      ...extraFiles,
       if (scriptsBytes != null)
         'Data/Scripts.rxdata': List<int>.unmodifiable(scriptsBytes),
       'README.md':

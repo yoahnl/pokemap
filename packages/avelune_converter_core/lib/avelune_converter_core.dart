@@ -22,3 +22,4 @@ part 'src/marshal_decoder.dart';
 part 'src/bounded_zlib.dart';
 part 'src/source_archive.dart';
 part 'src/source_normalization.dart';
+part 'src/source_semantics.dart';

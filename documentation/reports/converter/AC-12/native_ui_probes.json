@@ -1,0 +1,51 @@
+{
+  "kind": "nativeStudioRealKeyboardProof",
+  "input": "CUA real Down200ms and Right90ms",
+  "runtimeReadOnlyProbes": [
+    {
+      "label": "ac12Run2Spawn",
+      "toolResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"activeProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"configuredProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"operation\":\"readOnly\",\"gameMounted\":true,\"gameLoaded\":true,\"gameFocusFound\":false,\"grid\":{\"x\":35,\"y\":22},\"renderedFeet\":{\"x\":35,\"y\":22},\"worldTopLeft\":[2240.0,1408.0],\"screenFoot\":[666.6666259765625,426.0],\"stepping\":false,\"inputLocked\":false,\"saveInfo\":{\"mapId\":\"map_35e885d2ecdb186a86d710638cb63ee105a337b2fce9687956f5c6c4\",\"x\":35,\"y\":22},\"projectDataModified\":false}"
+          }
+        ]
+      }
+    },
+    {
+      "label": "ac12Run2BlockedDown",
+      "toolResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"activeProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"configuredProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"operation\":\"readOnly\",\"gameMounted\":true,\"gameLoaded\":true,\"gameFocusFound\":false,\"grid\":{\"x\":35,\"y\":22},\"renderedFeet\":{\"x\":35,\"y\":22},\"worldTopLeft\":[2240.0,1408.0],\"screenFoot\":[666.6666259765625,426.0],\"stepping\":false,\"inputLocked\":false,\"saveInfo\":{\"mapId\":\"map_35e885d2ecdb186a86d710638cb63ee105a337b2fce9687956f5c6c4\",\"x\":35,\"y\":22},\"projectDataModified\":false}"
+          }
+        ]
+      }
+    },
+    {
+      "label": "ac12Run2Right",
+      "toolResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"activeProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"configuredProject\":\"/Users/karim/Library/Containers/com.yoahnl.avelune.studio.converterqualification/Data/Documents/converter-qa-b4ce8fee-472e-451a-9dba-f086687f7e7c/project\",\"operation\":\"readOnly\",\"gameMounted\":true,\"gameLoaded\":true,\"gameFocusFound\":false,\"grid\":{\"x\":36,\"y\":22},\"renderedFeet\":{\"x\":36,\"y\":22},\"worldTopLeft\":[2304.0,1408.0],\"screenFoot\":[666.6666259765625,426.0],\"stepping\":false,\"inputLocked\":false,\"saveInfo\":{\"mapId\":\"map_35e885d2ecdb186a86d710638cb63ee105a337b2fce9687956f5c6c4\",\"x\":36,\"y\":22},\"projectDataModified\":false}"
+          }
+        ]
+      }
+    }
+  ],
+  "frontBehindPoses": {
+    "behind": [
+      2,
+      6
+    ],
+    "front": [
+      2,
+      8
+    ],
+    "controlled": true
+  },
+  "projectDataEnriched": false
+}

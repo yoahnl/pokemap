@@ -14,6 +14,8 @@ import 'package:path/path.dart' as path;
 
 import 'literal_autotile_composer.dart';
 import 'approved_asset_library.dart';
+import 'literal_tile_composer.dart';
+import 'source_semantic_study_composer.dart';
 
 final class NativeWriteLimits {
   const NativeWriteLimits({
@@ -722,7 +724,7 @@ final class _PreparedNativeDraft {
             'Aggregate retained image pixel budget exceeded');
       }
       if (!witness) dimensions[artifact.handle] = size;
-    } else if (witness || artifact.reference.mediaType != 'application/json') {
+    } else if (artifact.reference.mediaType != 'application/json') {
       throw const NativeWriteException('native.library.witness',
           'Source witnesses must be exact admitted PNG images');
     } else {
@@ -806,7 +808,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   _verifyLiteralCompositionBinding(plan, draft, limits);
   if (draft.sourceArtifacts.isNotEmpty &&
-      !draft.compositionEvidence.containsKey('assetLibrary')) {
+      !draft.compositionEvidence.containsKey('assetLibrary') &&
+      !draft.compositionEvidence.containsKey('sourceSemantics')) {
     throw const NativeWriteException('native.library.evidence',
         'Source witnesses require an exact approved asset library binding');
   }
@@ -847,7 +850,15 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     final library = draft.compositionEvidence.containsKey('assetLibrary') &&
         const {'element_category.upsert', 'element.upsert', 'asset.import'}
             .contains(mutation.actionId);
-    if (!ordinary && !library) {
+    final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
+        const {
+          'element_category.upsert',
+          'element.upsert',
+          'characterStudio.character.create',
+          'characterStudio.animationClip.upsert',
+          'characterStudio.character.setDefault',
+        }.contains(mutation.actionId);
+    if (!ordinary && !library && !semantic) {
       throw const NativeWriteException('native.action.unsupported',
           'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
@@ -855,8 +866,20 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final budget = _preflightNativeResourceBudget(draft, limits);
   final artifacts = budget.artifacts;
   final dimensions = budget.dimensions;
+  final semantics = await _verifySourceSemantics(draft, limits, cancellation);
   final library = await _verifyApprovedAssetLibrary(
-      plan, context, draft, limits, cancellation);
+      plan, context, draft, limits, cancellation, semantics);
+  if (semantics.verified &&
+      (draft.mutations.any((mutation) =>
+              !semantics.regeneratedOperationIds
+                  .contains(mutation.operationId) &&
+              !library.operationIds.contains(mutation.operationId)) ||
+          draft.artifacts.any((artifact) =>
+              !semantics.artifactHandles.contains(artifact.handle) &&
+              !library.artifactHandles.contains(artifact.handle)))) {
+    throw const NativeWriteException('native.semantics.regeneration',
+        'Every semantic study operation and output artifact requires exact regeneration');
+  }
   final candidateIds =
       context.candidates.map((candidate) => candidate.candidateId).toSet();
   for (final mutation in draft.mutations) {
@@ -897,6 +920,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final companions = <String, NativeArtifact>{};
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
+  final characters = <ProjectCharacterEntry>[];
+  String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
   for (var i = 0; i < draft.mutations.length; i++) {
@@ -979,15 +1004,18 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         final unchangedSource = Map<String, Object?>.from(atlas.toJson())
           ..remove('tileAnimations');
         unchanged['source'] = unchangedSource;
-        if (canonicalJsonOf(unchanged, limits: limits.jsonLimits) !=
-            canonicalJsonOf(tilesetEntries[index].toJson(),
-                limits: limits.jsonLimits)) {
+        if (!semantics.operationIds.contains(mutation.operationId) &&
+            canonicalJsonOf(unchanged, limits: limits.jsonLimits) !=
+                canonicalJsonOf(tilesetEntries[index].toJson(),
+                    limits: limits.jsonLimits)) {
           throw const NativeWriteException('native.tileset.animation',
               'An animation upsert must retain the imported identity, image, geometry and properties');
         }
         tilesetEntries[index] = next;
       case 'element_category.upsert':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {'category'});
         final category = ProjectElementCategory.fromJson(
             Map<String, dynamic>.from(parameters['category'] as Map));
@@ -998,7 +1026,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }
         categories.add(category);
       case 'element.upsert':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {'element'});
         final element = ProjectElementEntry.fromJson(
             Map<String, dynamic>.from(parameters['element'] as Map));
@@ -1010,6 +1040,53 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Library elements require their exact preceding category and atlas');
         }
         elements.add(element);
+      case 'characterStudio.character.create':
+        semantics.requireOperation(mutation);
+        final name = _string(parameters, 'name');
+        final id = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+        if (characters.isNotEmpty ||
+            !tilesets.containsKey(parameters['tilesetId']) ||
+            !_targetIds(mutation.targetEntityIds, {id})) {
+          throw const NativeWriteException('native.semantics.character',
+              'Semantic player identity must follow its exact imported atlas');
+        }
+        characters.add(ProjectCharacterEntry(
+            id: id,
+            name: name,
+            tilesetId: parameters['tilesetId'] as String,
+            frameWidth: parameters['frameWidth'] as int,
+            frameHeight: parameters['frameHeight'] as int,
+            tags: (parameters['tags'] as List).cast<String>()));
+      case 'characterStudio.animationClip.upsert':
+        semantics.requireOperation(mutation);
+        final id = _string(parameters, 'characterId');
+        final index = characters.indexWhere((entry) => entry.id == id);
+        if (index < 0) {
+          throw const NativeWriteException('native.semantics.character',
+              'Semantic player clips require their preceding identity');
+        }
+        final clip = CharacterAnimation(
+            state: CharacterAnimationState.values
+                .singleWhere((entry) => entry.name == parameters['state']),
+            direction: EntityFacing.values
+                .singleWhere((entry) => entry.name == parameters['direction']),
+            sourceAssetId: parameters['sourceAssetId'] as String,
+            loop: parameters['loop'] as bool,
+            frames: [
+              for (final frame in parameters['frames'] as List)
+                CharacterAnimationFrame.fromJson(
+                    Map<String, dynamic>.from(frame)),
+            ]);
+        characters[index] = characters[index]
+            .copyWith(animations: [...characters[index].animations, clip]);
+      case 'characterStudio.character.setDefault':
+        semantics.requireOperation(mutation);
+        final id = _string(parameters, 'characterId');
+        if (!characters.any((entry) => entry.id == id)) {
+          throw const NativeWriteException('native.semantics.character',
+              'Semantic player default requires its preceding character');
+        }
+        defaultPlayerCharacterId = id;
       case 'asset.import':
         _requireLibraryMutation(library, mutation);
         _allowParameters(parameters, const {
@@ -1135,12 +1212,17 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       maps: mapEntries,
       tilesets: tilesetEntries,
       elements: elements,
-      elementCategories: categories);
+      elementCategories: categories,
+      characters: characters,
+      settings: bootstrap.settings
+          .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
   ProjectValidator.validate(manifest, maps: maps.values);
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
-  _verifyLiteralCompositionContents(draft, maps, limits, library);
+  if (!semantics.verified) {
+    _verifyLiteralCompositionContents(draft, maps, limits, library);
+  }
   return _PreparedNativeDraft(bootstrap, manifest, maps, tilesets, companions,
       AssetCatalog(records: assetRecords));
 }
@@ -1162,15 +1244,238 @@ final class _WitnessSourceFiles implements SourceFilePort {
           'A source image is not present among the declared witnesses'));
 }
 
+final class _VerifiedSourceSemantics {
+  const _VerifiedSourceSemantics(this.verified, this.operationIds,
+      this.regeneratedOperationIds, this.artifactHandles, this.witnessHandles);
+
+  final bool verified;
+  final Set<ConverterId> operationIds;
+  final Set<ConverterId> regeneratedOperationIds;
+  final Set<String> artifactHandles;
+  final Set<String> witnessHandles;
+
+  void requireOperation(NativeMutation mutation) {
+    if (!verified || !operationIds.contains(mutation.operationId)) {
+      throw const NativeWriteException('native.semantics.consumer',
+          'Source semantic operations require exact bounded regeneration');
+    }
+  }
+}
+
+Future<_VerifiedSourceSemantics> _verifySourceSemantics(
+    NativeProjectDraft draft,
+    NativeWriteLimits limits,
+    ScanCancellation? cancellation) async {
+  final raw = draft.compositionEvidence['sourceSemantics'];
+  if (raw == null) {
+    return const _VerifiedSourceSemantics(false, {}, {}, {}, {});
+  }
+  if (raw is! Map<String, Object?> ||
+      raw['kind'] != 'sourceSemanticStudy' ||
+      raw['version'] != 1 ||
+      raw['witnesses'] is! List ||
+      (raw['witnesses'] as List).length > limits.maxArtifacts ||
+      !SourceSemanticResolver.forProject(draft.source).profile.isQualified) {
+    throw const NativeWriteException('native.semantics.evidence',
+        'Source semantics require an admitted profile and exact witness evidence');
+  }
+  final supplied = {
+    for (final artifact in draft.sourceArtifacts) artifact.handle: artifact
+  };
+  final entries = {
+    for (final entry in draft.source.snapshot.entries) entry.fileId.value: entry
+  };
+  final files = <ConverterId, List<int>>{};
+  final witnessHandles = <String>{};
+  var decodedByteBudget = 0;
+  var witnessReferenceCount = 0;
+  for (final row in raw['witnesses'] as List) {
+    if (row is! Map || row['fileId'] is! String) {
+      throw const NativeWriteException('native.semantics.witness',
+          'Source semantic witnesses must address inventoried files');
+    }
+    final entry = entries[row['fileId']];
+    if (entry == null ||
+        entry.sha256 == null ||
+        entry.kind != SourceNodeKind.file ||
+        entry.relativePath != row['relativePath'] ||
+        entry.byteLength != row['byteLength'] ||
+        entry.sha256!.value != row['rawSha256'] ||
+        files.containsKey(entry.fileId)) {
+      throw const NativeWriteException('native.semantics.witness',
+          'Source semantic witnesses must bind exact unique snapshot entries');
+    }
+    final referenceCount = row['encoding'] == 'png'
+        ? 1
+        : row['chunks'] is List
+            ? (row['chunks'] as List).length
+            : 0;
+    if (entry.byteLength > limits.maxArtifactBytes ||
+        decodedByteBudget + entry.byteLength > limits.maxTotalArtifactBytes ||
+        witnessReferenceCount + referenceCount > limits.maxArtifacts) {
+      throw const NativeWriteException('native.semantics.witness_quota',
+          'Decoded semantic source witnesses exceed the cumulative budget');
+    }
+    decodedByteBudget += entry.byteLength;
+    witnessReferenceCount += referenceCount;
+    List<int> bytes;
+    if (row['encoding'] == 'png' && row['artifactHandle'] is String) {
+      final artifact = supplied[row['artifactHandle']];
+      if (artifact == null || artifact.reference.mediaType != 'image/png') {
+        throw const NativeWriteException(
+            'native.semantics.witness', 'Source image witness is missing');
+      }
+      bytes = artifact.bytes;
+      witnessHandles.add(artifact.handle);
+    } else if (row['encoding'] == 'canonicalJsonBase64Chunks' &&
+        row['chunks'] is List) {
+      final chunks = row['chunks'] as List;
+      if (chunks.isEmpty || chunks.length > limits.maxArtifacts) {
+        throw const NativeWriteException('native.semantics.witness',
+            'Source byte witnesses require bounded ordered chunks');
+      }
+      final restored = BytesBuilder(copy: false);
+      for (final chunk in chunks) {
+        _checkCancelled(cancellation);
+        if (chunk is! Map ||
+            chunk['artifactHandle'] is! String ||
+            chunk['offset'] != restored.length ||
+            chunk['byteLength'] is! int ||
+            (chunk['byteLength'] as int) < 0 ||
+            (chunk['byteLength'] as int) >
+                SourceSemanticWitnessFiles.chunkSize ||
+            restored.length + (chunk['byteLength'] as int) > entry.byteLength) {
+          throw const NativeWriteException('native.semantics.witness',
+              'Source byte chunks must cover the admitted file in order');
+        }
+        final artifact = supplied[chunk['artifactHandle']];
+        if (artifact == null ||
+            artifact.reference.mediaType != 'application/json') {
+          throw const NativeWriteException('native.semantics.witness',
+              'Source byte witness chunk is missing');
+        }
+        final payload =
+            _validateNativeArtifactJson(artifact.bytes, limits.jsonLimits);
+        if (payload['kind'] != 'sourceSemanticByteChunk' ||
+            payload['version'] != 1 ||
+            payload['offset'] != restored.length ||
+            payload['bytesBase64'] is! String ||
+            payload.length != 4) {
+          throw const NativeWriteException('native.semantics.witness',
+              'Source byte chunks require the exact bounded canonical envelope');
+        }
+        try {
+          final decoded = base64Decode(payload['bytesBase64'] as String);
+          if (decoded.length != chunk['byteLength']) {
+            throw const FormatException();
+          }
+          restored.add(decoded);
+        } on FormatException {
+          throw const NativeWriteException('native.semantics.witness',
+              'Source witness chunk encoding is invalid');
+        }
+        witnessHandles.add(artifact.handle);
+      }
+      bytes = restored.takeBytes();
+    } else {
+      throw const NativeWriteException('native.semantics.witness',
+          'Semantic source witness encoding is unsupported');
+    }
+    if (bytes.length != entry.byteLength ||
+        sha256.convert(bytes).toString() != entry.sha256!.value) {
+      throw const NativeWriteException('native.semantics.witness',
+          'Semantic source bytes differ from their admitted snapshot');
+    }
+    files[entry.fileId] = bytes;
+  }
+  _checkCancelled(cancellation);
+  final NativeProjectDraft expected;
+  try {
+    final composition = draft.compositionEvidence['composition'] as Map;
+    final base = await const LiteralTileComposer().compose(
+        source: draft.source,
+        files: _WitnessSourceFiles(files),
+        selectedSourceMapIds:
+            (composition['selectedSourceMapIds'] as List).cast<int>(),
+        projectName: draft.projectName,
+        parentPath: draft.parentPath,
+        folderName: draft.folderName,
+        sourceRootPath: draft.sourceRootPath,
+        dependencyDecisions: sourceSemanticDependencyDecisions(
+            draft.source, composition['decisions'] as List),
+        allowFirstFrameAutotiles:
+            composition['allowFirstFrameAutotiles'] == true,
+        limits: limits,
+        cancellation: cancellation);
+    final regenerated = await const SourceSemanticStudyComposer().compose(
+        source: draft.source,
+        base: base,
+        files: _WitnessSourceFiles(files),
+        limits: limits,
+        cancellation: cancellation);
+    if (regenerated == null) {
+      throw const FormatException('Missing semantic draft');
+    }
+    expected = regenerated;
+  } catch (_) {
+    _checkCancelled(cancellation);
+    throw const NativeWriteException('native.semantics.regeneration',
+        'Source semantic draft could not be regenerated from its exact source witnesses');
+  }
+  final expectedIds =
+      expected.mutations.map((mutation) => mutation.operationId).toSet();
+  final actual = draft.mutations
+      .where((mutation) => expectedIds.contains(mutation.operationId))
+      .toList();
+  final evidence = Map<String, Object?>.from(draft.compositionEvidence)
+    ..remove('assetLibrary');
+  final artifacts = {
+    for (final artifact in draft.artifacts) artifact.handle: artifact
+  };
+  if (canonicalJsonOf(evidence, limits: limits.jsonLimits) !=
+          canonicalJsonOf(expected.compositionEvidence,
+              limits: limits.jsonLimits) ||
+      canonicalJsonOf(
+              [for (var i = 0; i < actual.length; i++) actual[i].toJson(i)],
+              limits: limits.jsonLimits) !=
+          canonicalJsonOf([
+            for (var i = 0; i < expected.mutations.length; i++)
+              expected.mutations[i].toJson(i)
+          ], limits: limits.jsonLimits) ||
+      expected.artifacts.any((artifact) =>
+          artifacts[artifact.handle]?.rawSha256 != artifact.rawSha256) ||
+      canonicalJsonOf(_artifactBindings(expected.sourceArtifacts),
+              limits: limits.jsonLimits) !=
+          canonicalJsonOf(
+              _artifactBindings(draft.sourceArtifacts
+                  .where((artifact) => witnessHandles.contains(artifact.handle))
+                  .toList()),
+              limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.semantics.regeneration',
+        'Source semantic mutations, pixels and evidence differ from deterministic regeneration');
+  }
+  final semanticIds = ((expected.compositionEvidence['sourceSemantics']
+          as Map)['operationIds'] as List)
+      .cast<String>();
+  return _VerifiedSourceSemantics(
+      true,
+      semanticIds.map(ConverterId.new).toSet(),
+      expectedIds,
+      expected.artifacts.map((artifact) => artifact.handle).toSet(),
+      witnessHandles);
+}
+
 Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
     ConversionPlan plan,
     PlanContext context,
     NativeProjectDraft draft,
     NativeWriteLimits limits,
-    ScanCancellation? cancellation) async {
+    ScanCancellation? cancellation,
+    _VerifiedSourceSemantics semantics) async {
   final raw = draft.compositionEvidence['assetLibrary'];
   if (raw == null) {
-    if (draft.sourceArtifacts.isNotEmpty ||
+    if (draft.sourceArtifacts.any((artifact) =>
+            !semantics.witnessHandles.contains(artifact.handle)) ||
         context.approvedCandidateHashes.isNotEmpty) {
       throw const NativeWriteException('native.library.evidence',
           'Approved candidates and source witnesses require library evidence');
@@ -1191,7 +1496,15 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
         'Every library candidate requires its exact context approval receipt');
   }
   final witnesses = <Sha256Hash, NativeArtifact>{};
+  final expectedHashes = candidates
+      .expand(
+          (candidate) => candidate.sources.map((image) => image.contentHash))
+      .toSet();
   for (final witness in draft.sourceArtifacts) {
+    if (!expectedHashes.contains(witness.rawSha256) &&
+        semantics.witnessHandles.contains(witness.handle)) {
+      continue;
+    }
     if (witness.reference.mediaType != 'image/png' ||
         witnesses.containsKey(witness.rawSha256)) {
       throw const NativeWriteException('native.library.witness',
@@ -1245,7 +1558,7 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
   if (!regenerated.canExport ||
       canonicalJsonOf(raw, limits: limits.jsonLimits) !=
           canonicalJsonOf(regenerated.evidence, limits: limits.jsonLimits) ||
-      canonicalJsonOf(_artifactBindings(draft.sourceArtifacts),
+      canonicalJsonOf(_artifactBindings(witnesses.values.toList()),
               limits: limits.jsonLimits) !=
           canonicalJsonOf(_artifactBindings(regenerated.sourceArtifacts),
               limits: limits.jsonLimits)) {

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 
 import 'approved_asset_library.dart';
 import 'literal_tile_composer.dart';
+import 'source_semantic_study_composer.dart';
 import 'local_asset_proposer.dart';
 import 'macos_source_tree.dart';
 import 'native_project_writer.dart';
@@ -804,7 +805,7 @@ final class ConverterWorkflow {
 
 const _keep = Object();
 int _workflowSequence = 0;
-const _converterVersion = 'avelune-converter-ac07-study-v1';
+const _converterVersion = 'avelune-converter-ac12-study-v1';
 
 enum _WorkerKind { scan, prepare, write }
 
@@ -1200,7 +1201,13 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 outputMode: settings.assetOutputMode,
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
-        final draft = _mergeAssetLibrary(composition.draft, library,
+        final semantic = await const SourceSemanticStudyComposer().compose(
+            source: normalized,
+            base: composition,
+            files: files,
+            limits: settings.writeLimits,
+            cancellation: relay.cancellation);
+        final draft = _mergeAssetLibrary(semantic ?? composition.draft, library,
             limits: settings.writeLimits);
         relay.finish(
             done: composition.crops
@@ -1511,7 +1518,9 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'autotileAnimation':
           'attested-source-clock-or-explicit-first-frame-study',
       'assetLibrary': 'human-reviewed-static-parts-with-original-png-witnesses',
-      'assetPlacements': 'literal-unchanged-library-only',
+      'assetPlacements': 'attested-static-priority-elements',
+      'sourceSemantics': 'kanto-profile-walking-cardinal-closed-unqualified',
+      'sourcePlayer': 'attested-original-pixels-padded-without-resampling',
       'dimension': 'twoD',
       'template': 'empty',
       'tileSize': 32,
@@ -1583,13 +1592,16 @@ const _nativeStudyActions = [
   'element_category.upsert',
   'element.upsert',
   'asset.import',
+  'characterStudio.character.create',
+  'characterStudio.animationClip.upsert',
+  'characterStudio.character.setDefault',
 ];
 
 TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac08-v1',
+      'profileId': 'avelune-converter-native-study-ac12-v1',
       'repository': 'yoahnl/pokemap',
       'revision': '3a1209a6f8344d9826f0d5abbc509989ad4acab5',
       'capabilities': [
@@ -1631,7 +1643,7 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
             ],
             'limitations': [
               'Study staging only; published=false and playableCertified=false.',
-              'No native events, gameplay priority, or collision conversion certification.',
+              'Native events and complete gameplay remain uncertified. Static passages and occlusion require the admitted AC-12 source profile.',
               'Library anchors and disjoint parts are preserved in companion metadata; native placement replacement is not certified.',
               'Autotile animation requires source clock attestation; a first-frame study is explicitly degraded.',
               'The source profile remains observed or requires confirmation; acknowledging study does not confirm a version.',
@@ -1822,9 +1834,5 @@ PlanContext _planContext(
       approvedCandidateHashes: prepared.approvedCandidateHashes);
 }
 
-String _mutationDomain(String action) => action.startsWith('tileset.') ||
-        action.startsWith('element.') ||
-        action.startsWith('element_category.') ||
-        action.startsWith('asset.')
-    ? 'assets'
-    : 'maps';
+String _mutationDomain(String action) =>
+    action.startsWith('map.') ? 'maps' : 'assets';

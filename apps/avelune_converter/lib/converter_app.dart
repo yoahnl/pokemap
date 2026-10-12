@@ -1421,7 +1421,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
               'Visuel : comparaison des tuiles ci-dessous ; fidélité du moteur source non certifiée.',
             ),
             const SizedBox(height: 8),
-            const Text('Comportement : événements et gameplay non certifiés.'),
+            Text(
+              prepared.nativeDraft?.compositionEvidence['sourceSemantics'] !=
+                      null
+                  ? 'Comportement : passages et profondeur des décors calculés automatiquement sans IA pour la marche prise en charge. Les sauts, les modes dynamiques et les événements restent à convertir.'
+                  : 'Comportement : événements et gameplay non certifiés.',
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -1536,7 +1541,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ),
           const SizedBox(height: 16),
           const StudioNotice(
-            'Dans Avelune Studio, ouvrez ce dossier pour examiner et éditer les cartes. Le projet reste en préparation ; publication et gameplay ne sont pas certifiés.',
+            'Dans Avelune Studio, ouvrez ce dossier pour examiner et éditer les cartes, puis choisissez « Tester la carte » pour les essayer. Le projet reste en préparation ; publication et gameplay complet ne sont pas certifiés.',
           ),
         ],
       );
@@ -1577,14 +1582,20 @@ class _ConverterWindowState extends State<ConverterWindow> {
           const StudioNotice(
             'Votre sélection ou vos choix ont changé. Une nouvelle préparation est nécessaire avant création.',
           ),
+        if (_semanticProjection?['qualified'] == false)
+          const StudioNotice(
+            'Qualification partielle : certains passages ou effets de décor restent non pris en charge. Consultez les observations avant de créer le projet.',
+          ),
         if (prepared.nativeDraft == null)
           const StudioNotice(
             'Les problèmes bloquants doivent être résolus avant création.',
             isError: true,
           ),
         const SizedBox(height: 16),
-        const Text(
-          'La création conserve les tuiles littérales. Aucun événement, collision ou comportement non pris en charge n’est présenté comme converti.',
+        Text(
+          prepared.nativeDraft?.compositionEvidence['sourceSemantics'] != null
+              ? 'La création importe le personnage source, les passages pris en charge et les décors avec leur profondeur, sans IA. Les passages non qualifiés sont fermés et signalés ; les événements restent à convertir.'
+              : 'La création conserve les tuiles littérales. Aucun événement, collision ou comportement non pris en charge n’est présenté comme converti.',
         ),
         const SizedBox(height: 16),
         StudioSection(
@@ -1597,13 +1608,33 @@ class _ConverterWindowState extends State<ConverterWindow> {
             Text('Révision : ${prepared.sessionRevision}'),
           ],
         ),
+        const SizedBox(height: 24),
+        _issuesPanel(),
       ],
     );
   }
 
+  Map<String, Object?>? get _semanticProjection {
+    final semantics =
+        _prepared?.nativeDraft?.compositionEvidence['sourceSemantics'];
+    if (semantics is! Map<String, Object?>) return null;
+    final projection = semantics['projection'];
+    return projection is Map<String, Object?> ? projection : null;
+  }
+
   Widget _issuesPanel() {
+    final gaps = (_semanticProjection?['gaps'] as List?) ?? const [];
     final issues =
         <({String code, String message, String locator, bool blocking})>[
+          for (final gap in gaps.whereType<Map<String, Object?>>())
+            (
+              code: gap['code'] as String,
+              message: _semanticIssueMessage(gap),
+              locator: gap['sourceMapId'] is int
+                  ? _mapName(gap['sourceMapId'] as int)
+                  : 'Sélection actuelle',
+              blocking: false,
+            ),
           for (final value
               in _state.snapshot?.diagnostics ?? <SourceScanDiagnostic>[])
             (
@@ -1866,6 +1897,7 @@ String _failureMessage(Object error) {
 }
 
 String _issueTitle(String code, bool blocking) {
+  if (code.startsWith('semantics.')) return 'Comportement source à vérifier';
   if (code.startsWith('library.')) return 'Objet proposé à vérifier';
   if (code.contains('autotile')) return 'Autotiles à prendre en charge';
   if (code.contains('depend') || code.contains('transfer')) {
@@ -1903,3 +1935,13 @@ String _assetIssueMessage(String code, String fallback) {
   }
   return fallback;
 }
+
+String _semanticIssueMessage(Map<String, Object?> gap) => switch (gap['code']) {
+  'semantics.passage.unqualified' =>
+    '${gap['unqualifiedTransitionCount']} passage(s) dépendent de règles non prises en charge, par exemple les sauts. Ils restent fermés dans ce projet.',
+  'semantics.render.reflections.unqualified' =>
+    '${gap['sourceTileCount']} tuile(s) utilisent des reflets ou un ordre de rendu particulier. Leurs pixels sont conservés, mais cet effet reste non certifié.',
+  'semantics.occlusion.geometry' => 'Ce morceau de décor ne peut pas encore recevoir une profondeur fidèle à sa position. Il reste dans sa couche source.',
+  'semantics.preview_spawn.unavailable' => 'Aucun point de départ sûr n’a été trouvé pour le test. Le démarrage de cette carte reste à définir dans Studio.',
+  _ => 'Ce comportement source reste à qualifier avant de pouvoir être testé fidèlement.',
+};

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter/converter_app.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
@@ -40,6 +42,62 @@ void main() {
     expect(rect.height, greaterThanOrEqualTo(44));
     expect(tester.takeException(), isNull);
   });
+
+  final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+  testWidgets('semantic losses are visible before native creation', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(
+      () async => _OriginalSource.create(
+        scriptsBytes: await File(scriptsPath!).readAsBytes(),
+        extraFiles: {
+          'PBS/metadata.txt': utf8.encode(
+            '[1]\nWalkCharset = OriginalPlayer\n',
+          ),
+          'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+            image.Image(width: 128, height: 192, numChannels: 4),
+          ),
+        },
+        maps: [
+          LiteralFixtureMap(
+            id: 1,
+            layers: const [
+              [384, 391, 392],
+              [0, 0, 0],
+              [0, 0, 0],
+            ],
+          ),
+          LiteralFixtureMap(id: 8),
+        ],
+        tilesets: [
+          LiteralFixtureTileset(id: 1, terrainTags: {391: 20}),
+        ],
+      ),
+    ))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(find.textContaining('Qualification partielle :'), findsOneWidget);
+      expect(find.text('Comportement source à vérifier'), findsWidgets);
+      await tester.ensureVisible(
+        find.text('Comportement source à vérifier').first,
+      );
+      await tester.tap(find.text('Comportement source à vérifier').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Ils restent fermés dans ce projet.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      expect(source.nativeStages, isEmpty);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
 
   testWidgets(
     'caret and selection keep the prepared plan, text edits invalidate it',
@@ -568,12 +626,18 @@ final class _OriginalSource {
     NativeWriteCheckpoint? checkpoint,
     String sourceSuffix = 'source',
     List<LiteralFixtureMap>? maps,
+    List<int>? scriptsBytes,
+    Map<String, List<int>> extraFiles = const {},
+    List<LiteralFixtureTileset>? tilesets,
   }) async {
     final root = await Directory.systemTemp.createTemp('ac09-original-widget-');
     try {
       final output = await Directory('${root.path}/output').create();
       final fixture = await LiteralTileFixture.create(
         sourceRootPath: '${root.path}/$sourceSuffix',
+        scriptsBytes: scriptsBytes,
+        extraFiles: extraFiles,
+        tilesets: tilesets,
         maps: maps ?? [LiteralFixtureMap(id: 1), LiteralFixtureMap(id: 8)],
       );
       final stages = <NativeWriteStage>[];
