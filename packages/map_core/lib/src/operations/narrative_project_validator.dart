@@ -1958,6 +1958,7 @@ bool _sceneEdgeIsStaticallyTraversable(
           : const <bool>{false};
     case SceneConditionSourceKind.storyStepActive:
     case SceneConditionSourceKind.inventoryItem:
+    case SceneConditionSourceKind.badge:
     case SceneConditionSourceKind.partyState:
     case SceneConditionSourceKind.trainerDefeated:
     case SceneConditionSourceKind.dialogueOutcome:

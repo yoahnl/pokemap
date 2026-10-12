@@ -18,6 +18,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.markEventConsumed,
     NarrativeCommandIds.completeStoryStep,
     NarrativeCommandIds.giveItem,
+    NarrativeCommandIds.giveItemGift,
     NarrativeCommandIds.takeItem,
     NarrativeCommandIds.giveMoney,
     NarrativeCommandIds.givePokemon,
@@ -42,6 +43,7 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
+    SceneConditionSourceKind.badge,
     SceneConditionSourceKind.inventoryItem,
     SceneConditionSourceKind.fact,
     SceneConditionSourceKind.factLikeStoryFlag,
@@ -154,7 +156,11 @@ abstract final class SpatialGameplayCapabilities {
         payload.consequence != null
             ? commandIds.contains(payload.consequence!.kind.name)
             : payload.interactiveCommand != null
-            ? commandIds.contains(payload.interactiveCommand!.kind.name)
+            ? commandIds.contains(
+                NarrativeCommandIds.forInteractiveCommand(
+                  payload.interactiveCommand!,
+                ),
+              )
             : profile == SceneExecutionProfile.preSession &&
                   payload.preSessionInteraction != null,
       SceneBattlePayload() => const {

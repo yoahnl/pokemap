@@ -2124,6 +2124,12 @@ buildEventBuilderV2TemplateActionPickerOptions({
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
     ],
+    NarrativeCommandParameterKind.movingPlatform: [
+      for (final map in maps)
+        for (final platform in map.movingPlatforms)
+          SceneActionPickerOption(id: '${map.id}::${platform.id}',
+              label: '${map.name} · Plateforme ${map.movingPlatforms.indexOf(platform) + 1}'),
+    ],
     NarrativeCommandParameterKind.npc: [
       for (final map in maps)
         for (final entity in map.entities)

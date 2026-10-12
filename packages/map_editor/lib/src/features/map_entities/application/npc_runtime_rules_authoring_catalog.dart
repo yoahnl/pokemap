@@ -43,12 +43,14 @@ class NpcRuntimeAuthoringCatalog {
     required this.steps,
     required this.chapters,
     required this.cutscenes,
+    this.badges = const [],
   });
 
   final List<NpcRuntimePickOption> flags;
   final List<NpcRuntimePickOption> steps;
   final List<NpcRuntimePickOption> chapters;
   final List<NpcRuntimePickOption> cutscenes;
+  final List<NpcRuntimePickOption> badges;
 }
 
 /// Valeur sentinelle du menu « aucune cible sélectionnée ».
@@ -69,6 +71,10 @@ NpcRuntimeAuthoringCatalog buildNpcRuntimeAuthoringCatalog(
       .toList(growable: false);
 
   return NpcRuntimeAuthoringCatalog(
+    badges: [
+      for (final badge in project.badges)
+        NpcRuntimePickOption(id: badge.id, pickerLabel: badge.label),
+    ],
     flags: flags,
     steps: _collectStepOptions(project),
     chapters: _collectChapterOptions(project),

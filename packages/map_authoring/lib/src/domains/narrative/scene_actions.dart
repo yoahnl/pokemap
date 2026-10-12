@@ -31,6 +31,24 @@ final class SceneActions {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
+      'scene.graph.patch',
+      'Atomically edit selected Scene nodes and links while preserving layout',
+      resourceKinds: const ['project', 'scene'],
+      extensions: const {'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds']},
+    ),
+    narrativeActionDescriptor(
+      'scene.condition.set',
+      'Configure one typed Scene condition without replacing its graph',
+      resourceKinds: const ['project', 'scene'],
+      extensions: const {'parameters': ['sceneId', 'nodeId', 'conditionSource']},
+    ),
+    narrativeActionDescriptor(
+      'scene.interactive_command.set',
+      'Configure one typed interactive Scene command and validate its routes',
+      resourceKinds: const ['project', 'scene'],
+      extensions: const {'parameters': ['sceneId', 'nodeId', 'command']},
+    ),
+    narrativeActionDescriptor(
       'scene.dialogue.lineFeedback.update',
       'Configure one compiled dialogue line text, cadence and bounded media feedback',
       resourceKinds: const ['project', 'scene', 'dialogue'],
@@ -64,6 +82,26 @@ final class SceneActions {
       'scene.upsert',
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
+      extensions: const {
+        'badgeCondition': {
+          'sourceKind': 'badge',
+          'sourceId': 'projectBadgeId',
+          'operators': ['isTrue', 'isFalse'],
+          'runtimeSource': 'trainerProfile.badgeIds',
+        },
+        'movingPlatform': {
+          'interactiveCommandKind': 'movePlatform',
+          'parameters': ['mapId', 'platformId', 'motion'],
+          'motions': ['forward', 'backward', 'rotateClockwise'],
+          'outputPorts': ['moved', 'blocked', 'notRiding', 'rotationRequiresPivot'],
+        },
+        'itemGift': {
+          'interactiveCommandKind': 'giveItem',
+          'parameters': ['itemId', 'quantity'],
+          'outputPorts': ['received', 'bagFull'],
+          'retry': 'routeBagFullToRetryableEndOrAuthoredRetry',
+        },
+      },
     ),
     narrativeActionDescriptor(
       'scene.delete',
@@ -135,6 +173,10 @@ final class SceneActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
     switch (context.request.actionId) {
+      case 'scene.graph.patch':
+      case 'scene.condition.set':
+      case 'scene.interactive_command.set':
+        return _buildGraphEdit(context);
       case 'scene.dialogue.lineFeedback.update':
         rejectUnknownNarrativeParameters(parameters, const {'sceneId', 'nodeId', 'linePolicy'});
         final sceneId = narrativeStringParameter(parameters, 'sceneId');
@@ -689,6 +731,247 @@ final class SceneActions {
         else candidate],
       edges: scene.graph.edges,
     )));
+  }
+
+  AuthoringMutationDraft _buildGraphEdit(AuthoringPlanningContext context) {
+    final parameters = context.request.parameters;
+    final action = context.request.actionId;
+    final sceneId = narrativeStringParameter(parameters, 'sceneId');
+    final before = _requireDialoguePolicyScene(
+      context.snapshot.manifest,
+      sceneId,
+    );
+    late ProjectManifest projected;
+    if (action == 'scene.graph.patch') {
+      rejectUnknownNarrativeParameters(parameters, const {
+        'sceneId',
+        'upsertNodes',
+        'removeNodeIds',
+        'upsertEdges',
+        'removeEdgeIds',
+      });
+      List<T> objects<T>(String key, T Function(Map<String, dynamic>) decode) {
+        final value = parameters[key] ?? const <Object?>[];
+        if (value is! List || value.any((item) => item is! Map)) {
+          throw NarrativeAuthoringException(
+            'scene.graph.invalid_patch',
+            'Expected a list of typed graph objects.',
+            details: {'field': key},
+          );
+        }
+        return [
+          for (final item in value)
+            decode(Map<String, dynamic>.from(item as Map)),
+        ];
+      }
+
+      List<String> ids(String key) {
+        final value = parameters[key] ?? const <String>[];
+        if (value is! List ||
+            value.any(
+              (item) =>
+                  item is! String || item.trim().isEmpty || item.trim() != item,
+            )) {
+          throw NarrativeAuthoringException(
+            'scene.graph.invalid_patch',
+            'Expected a list of graph identities.',
+            details: {'field': key},
+          );
+        }
+        return value.cast<String>();
+      }
+
+      try {
+        projected = patchGraph(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          upsertNodes: objects('upsertNodes', SceneNode.fromJson),
+          upsertEdges: objects('upsertEdges', SceneEdge.fromJson),
+          removeNodeIds: ids('removeNodeIds'),
+          removeEdgeIds: ids('removeEdgeIds'),
+        );
+      } on FormatException {
+        throw NarrativeAuthoringException(
+          'scene.graph.invalid_patch',
+          'The graph patch payload is invalid.',
+          details: {'sceneId': sceneId},
+        );
+      } on ArgumentError {
+        throw NarrativeAuthoringException(
+          'scene.graph.invalid_patch',
+          'The graph patch payload is invalid.',
+          details: {'sceneId': sceneId},
+        );
+      } on ValidationException {
+        throw NarrativeAuthoringException(
+          'scene.graph.invalid_patch',
+          'The graph patch payload is invalid.',
+          details: {'sceneId': sceneId},
+        );
+      }
+    } else {
+      final condition = action == 'scene.condition.set';
+      rejectUnknownNarrativeParameters(parameters, {
+        'sceneId',
+        'nodeId',
+        condition ? 'conditionSource' : 'command',
+      });
+      final nodeId = narrativeStringParameter(parameters, 'nodeId');
+      final node = before.graph.nodes
+          .where((node) => node.id == nodeId)
+          .firstOrNull;
+      if (node == null ||
+          node.kind !=
+              (condition ? SceneNodeKind.condition : SceneNodeKind.action)) {
+        throw NarrativeAuthoringException(
+          'scene.graph.node_kind_required',
+          'The selected node has an incompatible kind.',
+          details: {'sceneId': sceneId, 'nodeId': nodeId},
+        );
+      }
+      late SceneNodePayload payload;
+      try {
+        payload = condition
+            ? SceneConditionPayload(
+                conditionSource: SceneConditionSource.fromJson(
+                  narrativeObjectParameter(parameters, 'conditionSource'),
+                ),
+              )
+            : SceneActionPayload.interactive(
+                SceneInteractiveCommand.fromJson(
+                  narrativeObjectParameter(parameters, 'command'),
+                ),
+              );
+      } on FormatException {
+        throw NarrativeAuthoringException(
+          'scene.graph.payload_invalid',
+          'The typed node payload is invalid.',
+          details: {'sceneId': sceneId, 'nodeId': nodeId},
+        );
+      } on ArgumentError {
+        throw NarrativeAuthoringException(
+          'scene.graph.payload_invalid',
+          'The typed node payload is invalid.',
+          details: {'sceneId': sceneId, 'nodeId': nodeId},
+        );
+      } on ValidationException {
+        throw NarrativeAuthoringException(
+          'scene.graph.payload_invalid',
+          'The typed node payload is invalid.',
+          details: {'sceneId': sceneId, 'nodeId': nodeId},
+        );
+      }
+      projected = patchGraph(
+        context.snapshot.manifest,
+        maps: context.snapshot.maps,
+        sceneId: sceneId,
+        upsertNodes: [
+          SceneNode(
+            id: node.id,
+            kind: node.kind,
+            title: node.title,
+            description: node.description,
+            payload: payload,
+          ),
+        ],
+      );
+    }
+    final after = projected.scenes.singleWhere((scene) => scene.id == sceneId);
+    _validateSceneDialoguePolicies(context.snapshot, after);
+    return narrativeProjectDraft(
+      context.snapshot,
+      projected,
+      operation: action,
+      path: '/scenes/$sceneId/graph',
+      before: before.graph.toJson(),
+      after: after.graph.toJson(),
+    );
+  }
+
+  ProjectManifest patchGraph(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    List<SceneNode> upsertNodes = const [],
+    List<String> removeNodeIds = const [],
+    List<SceneEdge> upsertEdges = const [],
+    List<String> removeEdgeIds = const [],
+  }) {
+    final scene = _requireDialoguePolicyScene(project, sceneId);
+    void validateIds(
+      String field,
+      List<String> additions,
+      List<String> removals,
+      Set<String> existing,
+    ) {
+      if (additions.toSet().length != additions.length ||
+          removals.toSet().length != removals.length ||
+          removals.any(
+            (id) => !existing.contains(id) || additions.contains(id),
+          )) {
+        throw NarrativeAuthoringException(
+          'scene.graph.identity_conflict',
+          'Graph edits contain conflicting or unknown identities.',
+          details: {'sceneId': sceneId, 'field': field},
+        );
+      }
+    }
+
+    validateIds(
+      'nodes',
+      upsertNodes.map((node) => node.id).toList(),
+      removeNodeIds,
+      scene.graph.nodes.map((node) => node.id).toSet(),
+    );
+    validateIds(
+      'edges',
+      upsertEdges.map((edge) => edge.id).toList(),
+      removeEdgeIds,
+      scene.graph.edges.map((edge) => edge.id).toSet(),
+    );
+    final nodeUpdates = {for (final node in upsertNodes) node.id: node};
+    final edgeUpdates = {for (final edge in upsertEdges) edge.id: edge};
+    final nodes = [
+      for (final node in scene.graph.nodes)
+        if (!removeNodeIds.contains(node.id))
+          nodeUpdates.remove(node.id) ?? node,
+      ...nodeUpdates.values,
+    ];
+    final edges = [
+      for (final edge in scene.graph.edges)
+        if (!removeEdgeIds.contains(edge.id))
+          edgeUpdates.remove(edge.id) ?? edge,
+      ...edgeUpdates.values,
+    ];
+    late SceneAsset updated;
+    try {
+      updated = SceneAsset.fromJson({
+        ...scene.toJson(),
+        'graph': SceneGraph(
+          startNodeId: scene.graph.startNodeId,
+          nodes: nodes,
+          edges: edges,
+        ).toJson(),
+        'layout': SceneGraphLayout(
+          nodeLayouts: [
+            for (final item in scene.layout.nodeLayouts)
+              if (!removeNodeIds.contains(item.nodeId)) item,
+          ],
+          edgeLayouts: [
+            for (final item in scene.layout.edgeLayouts)
+              if (!removeEdgeIds.contains(item.edgeId)) item,
+          ],
+        ).toJson(),
+      });
+    } on ValidationException {
+      throw NarrativeAuthoringException(
+        'scene.graph.invalid_patch',
+        'Graph edits would leave invalid references.',
+        details: {'sceneId': sceneId},
+      );
+    }
+    return upsert(project, maps: maps, scene: updated);
   }
 
   ProjectManifest upsert(

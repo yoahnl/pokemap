@@ -227,6 +227,8 @@ List<String> _declaredOutcomePortsForNode(SceneNode node) {
           ? const <String>['victory', 'defeat']
           : declaredOutcomes,
     SceneConditionPayload() => const <String>['true', 'false'],
+    SceneActionPayload(:final interactiveCommand?) =>
+      interactiveCommand.outputPortIds,
     SceneActionPayload(:final preSessionInteraction?) =>
       preSessionInteraction.outputPortIds,
     SceneStartPayload() ||

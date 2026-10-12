@@ -971,6 +971,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
           relevantConsumedEventIds.add(source.sourceId);
         case SceneConditionSourceKind.storyStepActive:
         case SceneConditionSourceKind.inventoryItem:
+        case SceneConditionSourceKind.badge:
         case SceneConditionSourceKind.partyState:
         case SceneConditionSourceKind.trainerDefeated:
         case SceneConditionSourceKind.dialogueOutcome:
@@ -1160,6 +1161,8 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
             case SceneConditionSourceKind.fact:
             case SceneConditionSourceKind.factLikeStoryFlag:
               reads.add('fact:${source.sourceId}');
+            case SceneConditionSourceKind.badge:
+              reads.add('badge:${source.sourceId}');
             case SceneConditionSourceKind.storyStepCompletion:
               reads.add('step:${source.sourceId}');
             case SceneConditionSourceKind.consumedEvent:
@@ -1432,7 +1435,9 @@ NarrativeSymbolicState _applyAction({
   }
 
   final interactive = payload.interactiveCommand;
-  final commandId = interactive?.kind.name ?? payload.actionKind;
+  final commandId = interactive == null
+      ? payload.actionKind
+      : NarrativeCommandIds.forInteractiveCommand(interactive);
   if (payload.preSessionInteraction == null &&
       (interactive == null && consequence == null || interactive != null)) {
     final descriptor = commandId == null ? null : catalog.byId(commandId);
@@ -1554,6 +1559,11 @@ bool? _sceneConditionValue(
       } on Object {
         return null;
       }
+    case SceneConditionSourceKind.badge:
+      final expected = source.badgeOwnershipExpected;
+      return expected == null
+          ? null
+          : state.badgeIds.contains(source.sourceId) == expected;
     case SceneConditionSourceKind.storyStepCompletion:
       final completed = state.completedStepIds.contains(source.sourceId);
       return _boolConditionValue(source, completed);

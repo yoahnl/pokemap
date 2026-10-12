@@ -1,9 +1,99 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/narrative/narrative_action_support.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('modern narrative authoring', () {
+    test('diagnostic delta keeps multiplicity and treats severity as identity',
+        () {
+      ModernNarrativeDiagnostic diagnostic(
+              ModernNarrativeDiagnosticSeverity severity, String message) =>
+          ModernNarrativeDiagnostic(
+            code: 'referenceMissing',
+            severity: severity,
+            message: message,
+            resourceKind: 'scene',
+            resourceId: 'scene',
+            path: 'nodes.condition',
+          );
+      final error = diagnostic(ModernNarrativeDiagnosticSeverity.error, 'Old');
+      final changedMessage =
+          diagnostic(ModernNarrativeDiagnosticSeverity.error, 'New wording');
+      final warning =
+          diagnostic(ModernNarrativeDiagnosticSeverity.warning, 'Warning');
+      final delta = modernNarrativeDiagnosticDelta(
+        before: [error, error],
+        after: [warning, changedMessage],
+      );
+      expect(delta['introduced'], [warning.toJson()]);
+      expect(delta['resolved'], [error.toJson()]);
+      expect(delta['unchanged'], [changedMessage.toJson()]);
+      expect(
+        modernNarrativeDiagnosticDelta(
+            before: [error, error], after: [changedMessage, warning]),
+        delta,
+      );
+    });
+
+    test('project plan separates introduced resolved and unchanged diagnostics',
+        () {
+      SceneAsset broken(String id) => SceneAsset(
+            id: id,
+            name: id,
+            graph: SceneGraph(
+              startNodeId: 'start',
+              nodes: [SceneNode(id: 'start', kind: SceneNodeKind.start)],
+              edges: const [],
+            ),
+          );
+      final before = _manifest(scenes: [broken('common'), broken('old')]);
+      final after = _manifest(scenes: [broken('new'), broken('common')]);
+      final bytes = utf8.encode(jsonEncode(before.toJson()));
+      final revision =
+          computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json');
+      final snapshot = ProjectSnapshot(
+        projectHandle: const ProjectHandle('test'),
+        revision: revision,
+        manifest: before,
+        maps: const [],
+        resourceFingerprints: {'project': revision},
+        resourceBytes: {'project': bytes},
+      );
+      final inspection = const ModernNarrativeInspector()
+          .inspect(project: after, maps: const []).toJson();
+      final draft = narrativeProjectDraft(snapshot, after,
+          operation: 'scene.upsert', path: '/scenes/new', preview: inspection);
+      expect(draft.preview['canPublish'], isFalse);
+      expect(draft.preview['diagnostics'], inspection['diagnostics']);
+      final delta = draft.preview['diagnosticDelta'] as Map<String, Object?>;
+      List<Map<String, Object?>> diagnostics(String key) =>
+          (delta[key]! as List).cast<Map<String, Object?>>();
+      expect(diagnostics('introduced'), isNotEmpty);
+      expect(diagnostics('resolved'), isNotEmpty);
+      expect(diagnostics('unchanged'), isNotEmpty);
+      expect(diagnostics('introduced').every((d) => d['resourceId'] == 'new'),
+          isTrue);
+      expect(diagnostics('resolved').every((d) => d['resourceId'] == 'old'),
+          isTrue);
+      expect(diagnostics('unchanged').every((d) => d['resourceId'] == 'common'),
+          isTrue);
+      for (final diagnostic in [
+        ...diagnostics('introduced'),
+        ...diagnostics('resolved'),
+        ...diagnostics('unchanged'),
+      ]) {
+        expect(diagnostic['code'], isA<String>());
+        expect(diagnostic['severity'], isIn(['error', 'warning', 'info']));
+        expect(diagnostic['resourceKind'], 'scene');
+      }
+      final repeated = narrativeProjectDraft(snapshot, after,
+          operation: 'scene.upsert', path: '/scenes/new', preview: inspection);
+      expect(repeated.preview['diagnosticDelta'], delta);
+    });
+
     test('publication gate uses canonical Scene and runtime diagnostics', () {
       final project = _manifest(
         scenes: [

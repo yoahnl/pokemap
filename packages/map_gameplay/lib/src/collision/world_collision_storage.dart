@@ -16,6 +16,8 @@ final class WorldCollisionStorage {
     required List<bool> tileCollisionCells,
     required List<bool> placedElementCollisionCells,
     required Map<(int, int), Uint32List> pixelMaskWordsByChunk,
+    required this.supportableTerrainCellsByLayer,
+    required this.supportRectsByLayer,
   })  : _tileCollisionCells = tileCollisionCells,
         _placedElementCollisionCells = placedElementCollisionCells,
         _pixelMaskWordsByChunk = pixelMaskWordsByChunk;
@@ -27,6 +29,8 @@ final class WorldCollisionStorage {
   final List<bool> _tileCollisionCells;
   final List<bool> _placedElementCollisionCells;
   final Map<(int, int), Uint32List> _pixelMaskWordsByChunk;
+  final Map<String, List<bool>> supportableTerrainCellsByLayer;
+  final Map<String, List<PixelRect>> supportRectsByLayer;
 
   int get widthPx => widthCells * tileWidthPx;
   int get heightPx => heightCells * tileHeightPx;
@@ -86,6 +90,15 @@ final class WorldCollisionStorage {
       return true;
     }
 
+    for (final entry in supportableTerrainCellsByLayer.entries) {
+      if (_valueAt(entry.value, cellIndex) &&
+          !(supportRectsByLayer[entry.key]?.any((rect) =>
+              x >= rect.leftPx && x < rect.leftPx + rect.widthPx &&
+              y >= rect.topPx && y < rect.topPx + rect.heightPx) ?? false)) {
+        return true;
+      }
+    }
+
     final chunk = _pixelMaskWordsByChunk[(
       x ~/ WorldCollisionStorageBuilder.chunkSize,
       y ~/ WorldCollisionStorageBuilder.chunkSize
@@ -108,6 +121,8 @@ final class WorldCollisionStorageBuilder {
     required int tileHeightPx,
     required this.tileCollisionCells,
     required this.placedElementCollisionCells,
+    this.supportableTerrainCellsByLayer = const {},
+    this.supportRectsByLayer = const {},
   })  : tileWidthPx = tileWidthPx <= 0 ? 16 : tileWidthPx,
         tileHeightPx = tileHeightPx <= 0 ? 16 : tileHeightPx;
 
@@ -119,6 +134,8 @@ final class WorldCollisionStorageBuilder {
   final int tileHeightPx;
   final List<bool> tileCollisionCells;
   final List<bool> placedElementCollisionCells;
+  final Map<String, List<bool>> supportableTerrainCellsByLayer;
+  final Map<String, List<PixelRect>> supportRectsByLayer;
   final Map<(int, int), Uint32List> _pixelMaskWordsByChunk =
       <(int, int), Uint32List>{};
 
@@ -227,6 +244,14 @@ final class WorldCollisionStorageBuilder {
       tileWidthPx: tileWidthPx,
       tileHeightPx: tileHeightPx,
       tileCollisionCells: List<bool>.unmodifiable(tileCollisionCells),
+      supportableTerrainCellsByLayer: Map.unmodifiable({
+        for (final entry in supportableTerrainCellsByLayer.entries)
+          entry.key: List<bool>.unmodifiable(entry.value),
+      }),
+      supportRectsByLayer: Map.unmodifiable({
+        for (final entry in supportRectsByLayer.entries)
+          entry.key: List<PixelRect>.unmodifiable(entry.value),
+      }),
       placedElementCollisionCells:
           List<bool>.unmodifiable(placedElementCollisionCells),
       // Copy the mutable construction chunks so a discarded builder can never

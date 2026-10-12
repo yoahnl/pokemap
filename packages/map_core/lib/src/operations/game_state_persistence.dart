@@ -1,6 +1,7 @@
 import '../models/game_state.dart';
 import '../models/save_data.dart';
 import '../models/spatial_world_state.dart';
+import '../models/moving_platform.dart';
 
 Map<String, dynamic> strictGameStateSaveJson(GameState state) {
   final normalized = normalizeLoadedGameState(state);
@@ -17,6 +18,11 @@ GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
     throw const FormatException('The save is missing its spatial world state.');
   }
   SpatialWorldState.fromJson(Map<String, dynamic>.from(spatial));
+  final platforms = json['movingPlatformWorldState'];
+  if (platforms is! Map) {
+    throw const FormatException('The save is missing its moving platform world state.');
+  }
+  MovingPlatformWorldState.fromJson(Map<String, dynamic>.from(platforms));
   return normalizeLoadedGameState(GameState.fromJson(json));
 }
 
@@ -36,8 +42,10 @@ GameState gameStateFromSaveData(SaveData saveData) {
     saveId: normalizedSaveData.saveId,
     currentMapId: normalizedSaveData.currentMapId,
     playerPosition: normalizedSaveData.playerPosition,
+    playerPixelPosition: normalizedSaveData.playerPixelPosition,
     playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
     spatialWorldState: normalizedSaveData.spatialWorldState,
+    movingPlatformWorldState: normalizedSaveData.movingPlatformWorldState,
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
     party: normalizedSaveData.party,
@@ -78,8 +86,10 @@ SaveData saveDataFromGameState(GameState gameState) {
     saveId: normalizedGameState.saveId,
     currentMapId: normalizedGameState.currentMapId,
     playerPosition: normalizedGameState.playerPosition,
+    playerPixelPosition: normalizedGameState.playerPixelPosition,
     playerSpatialPosition: normalizedGameState.playerSpatialPosition,
     spatialWorldState: normalizedGameState.spatialWorldState,
+    movingPlatformWorldState: normalizedGameState.movingPlatformWorldState,
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,
     party: normalizedGameState.party,

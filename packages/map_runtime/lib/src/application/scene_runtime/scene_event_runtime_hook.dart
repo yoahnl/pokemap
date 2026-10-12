@@ -1,9 +1,11 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_consequence_runtime_writer.dart';
 import 'scene_consequence_runtime_write_result.dart';
 import 'scene_runtime_host_callbacks.dart';
 import 'scene_runtime_hook_result.dart';
+import 'scene_fact_condition_runtime_resolver.dart';
 
 final class SceneEventRuntimeHook {
   SceneEventRuntimeHook({
@@ -44,7 +46,8 @@ final class SceneEventRuntimeHook {
       return SceneEventRuntimeHookResult.failed(
         errorCode: SceneEventRuntimeHookErrorCode.sceneTargetMissingScene,
         sceneId: sceneId,
-        message: 'Scene V1 "$sceneId" referenced by event "${event.id}" '
+        message:
+            'Scene V1 "$sceneId" referenced by event "${event.id}" '
             'on map "${map.id}" was not found.',
       );
     }
@@ -58,7 +61,8 @@ final class SceneEventRuntimeHook {
       return SceneEventRuntimeHookResult.failed(
         errorCode: SceneEventRuntimeHookErrorCode.sceneTargetDiagnosticsFailed,
         sceneId: sceneId,
-        message: 'Scene V1 "$sceneId" referenced by event "${event.id}" '
+        message:
+            'Scene V1 "$sceneId" referenced by event "${event.id}" '
             'on map "${map.id}" has blocking diagnostics.',
       );
     }
@@ -68,7 +72,8 @@ final class SceneEventRuntimeHook {
       return SceneEventRuntimeHookResult.failed(
         errorCode: SceneEventRuntimeHookErrorCode.sceneTargetRuntimePlanFailed,
         sceneId: sceneId,
-        message: 'Scene V1 "$sceneId" referenced by event "${event.id}" '
+        message:
+            'Scene V1 "$sceneId" referenced by event "${event.id}" '
             'on map "${map.id}" cannot build a runtime plan.',
       );
     }
@@ -76,15 +81,96 @@ final class SceneEventRuntimeHook {
     final pendingConsequences = <SceneConsequence>[];
     final pendingPokemonGrantOperationIds = <String?>[];
     final pendingRailProgressionOperationIds = <String?>[];
-    final writer = consequenceWriter ??
+    final writer =
+        consequenceWriter ??
         SceneConsequenceRuntimeWriter(
           project: project,
           mapsById: {map.id: map},
         );
     var validationState = currentGameState?.call() ?? gameState;
     SceneConsequenceRuntimeWriteResult? rejectedConsequenceWrite;
+    GameState projectedState() {
+      final base = currentGameState?.call() ?? gameState;
+      if (base == null) {
+        throw StateError('The Scene requires a GameState for its item gift.');
+      }
+      final projected = writer.applyAll(
+        base,
+        pendingConsequences,
+        pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+        railProgressionOperationIds: pendingRailProgressionOperationIds,
+      );
+      if (!projected.success) {
+        throw StateError(projected.message ?? 'Scene state projection failed.');
+      }
+      return projected.gameState;
+    }
+
+    final transactionalCallbacks = SceneRuntimeHostCallbacks(
+      evaluateCondition: (intent) {
+        final source = intent.conditionSource;
+        if (pendingConsequences.isEmpty ||
+            source == null ||
+            (source.sourceKind != SceneConditionSourceKind.badge &&
+                source.sourceKind != SceneConditionSourceKind.inventoryItem &&
+                source.sourceKind != SceneConditionSourceKind.fact)) {
+          return callbacks.evaluateCondition(intent);
+        }
+        final projected = projectedState();
+        final matched = switch (source.sourceKind) {
+          SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
+            source: source,
+            gameState: projected,
+          ),
+          SceneConditionSourceKind.inventoryItem =>
+            evaluateSceneInventoryCondition(
+              source: source,
+              gameState: projected,
+            ),
+          _ => evaluateCanonicalNarrativeFactSceneCondition(
+            source: source,
+            gameState: projected,
+            resolver: NarrativeFactRuntimeResolver.fromFacts(project.facts),
+          ),
+        };
+        return matched ? 'true' : 'false';
+      },
+      showDialogue: callbacks.showDialogue,
+      startBattle: callbacks.startBattle,
+      playCinematic: callbacks.playCinematic,
+      playPresentationCinematic: callbacks.playPresentationCinematic,
+      requestStructuredInteraction: callbacks.requestStructuredInteraction,
+      executeInteractiveCommand: (intent) async {
+        final command = intent.interactiveCommand;
+        if (command is! SceneGiveItemInteractiveCommand) {
+          final callback = callbacks.executeInteractiveCommand;
+          if (callback == null) {
+            throw StateError(
+              'No interactive Scene command executor is installed.',
+            );
+          }
+          return callback(intent);
+        }
+        final result = executeSceneItemGift(
+          command: command,
+          gameState: projectedState(),
+        );
+        if (result.outcome == SceneItemGiftOutcome.received) {
+          validationState = result.gameState;
+          pendingConsequences.add(
+            SceneConsequence.giveItem(
+              itemId: command.itemId,
+              quantity: command.quantity,
+            ),
+          );
+          pendingPokemonGrantOperationIds.add(null);
+          pendingRailProgressionOperationIds.add(null);
+        }
+        return result.outcome.name;
+      },
+    );
     final executionResult = await SceneRuntimeExecutor(
-      callbacks: callbacks.toExecutionCallbacks(
+      callbacks: transactionalCallbacks.toExecutionCallbacks(
         applyConsequence: (consequence) {
           throw UnsupportedError('Scene node id is required for consequences.');
         },
@@ -140,7 +226,8 @@ final class SceneEventRuntimeHook {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
           sceneId: sceneId,
-          message: 'Scene V1 "$sceneId" produced consequences but no '
+          message:
+              'Scene V1 "$sceneId" produced consequences but no '
               'GameState was provided for a controlled commit.',
           executionResult: executionResult,
         );
@@ -156,7 +243,8 @@ final class SceneEventRuntimeHook {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
           sceneId: sceneId,
-          message: writeResult.message ??
+          message:
+              writeResult.message ??
               'Scene V1 "$sceneId" consequence commit failed.',
           executionResult: executionResult,
           consequenceWriteResult: writeResult,
@@ -176,7 +264,8 @@ final class SceneEventRuntimeHook {
       return SceneEventRuntimeHookResult.failed(
         errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
         sceneId: sceneId,
-        message: rejectedWrite.message ??
+        message:
+            rejectedWrite.message ??
             'Scene V1 "$sceneId" consequence validation failed.',
         executionResult: executionResult,
         consequenceWriteResult: rejectedWrite,
@@ -186,7 +275,8 @@ final class SceneEventRuntimeHook {
     return SceneEventRuntimeHookResult.failed(
       errorCode: SceneEventRuntimeHookErrorCode.sceneExecutionFailed,
       sceneId: sceneId,
-      message: executionResult.message ??
+      message:
+          executionResult.message ??
           'Scene V1 "$sceneId" referenced by event "${event.id}" '
               'on map "${map.id}" failed during execution.',
       executionResult: executionResult,

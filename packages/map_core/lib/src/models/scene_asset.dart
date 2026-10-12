@@ -66,6 +66,7 @@ enum SceneConditionSourceKind {
   consumedEvent,
   storyStepActive,
   inventoryItem,
+  badge,
   partyState,
   trainerDefeated,
   dialogueOutcome,
@@ -207,6 +208,19 @@ final class SceneConditionSource {
   final String? debugTechnicalLabel;
   final NarrativeFactOperator? factOperator;
   final NarrativeValue? expectedFactValue;
+
+  bool? get badgeOwnershipExpected {
+    if (sourceKind != SceneConditionSourceKind.badge ||
+        field != null ||
+        value != null) {
+      return null;
+    }
+    return switch (operator) {
+      SceneConditionOperator.isTrue => true,
+      SceneConditionOperator.isFalse => false,
+      SceneConditionOperator.equals => null,
+    };
+  }
 
   int? get inventoryQuantityThreshold {
     if (sourceKind != SceneConditionSourceKind.inventoryItem ||

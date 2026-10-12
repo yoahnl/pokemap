@@ -82,9 +82,13 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     callbacks: SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) {
         final source = intent.conditionSource;
-        if ((source?.sourceKind != SceneConditionSourceKind.inventoryItem &&
-                source?.sourceKind != SceneConditionSourceKind.fact) ||
-            pendingConsequences.isEmpty) {
+        if (pendingConsequences.isEmpty ||
+            source == null ||
+            !const {
+              SceneConditionSourceKind.inventoryItem,
+              SceneConditionSourceKind.badge,
+              SceneConditionSourceKind.fact,
+            }.contains(source.sourceKind)) {
           return callbacks.evaluateCondition(intent);
         }
         final projected = writer.applyAll(
@@ -98,16 +102,21 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
             projected.message ?? 'Scene condition projection failed.',
           );
         }
-        final matched = source!.sourceKind == SceneConditionSourceKind.fact
-            ? evaluateCanonicalNarrativeFactSceneCondition(
-                source: source,
-                gameState: projected.gameState,
-                resolver: factResolver,
-              )
-            : evaluateSceneInventoryCondition(
-                source: source,
-                gameState: projected.gameState,
-              );
+        final matched = switch (source.sourceKind) {
+          SceneConditionSourceKind.badge => evaluateSceneBadgeCondition(
+              source: source,
+              gameState: projected.gameState,
+            ),
+          SceneConditionSourceKind.fact => evaluateCanonicalNarrativeFactSceneCondition(
+              source: source,
+              gameState: projected.gameState,
+              resolver: factResolver,
+            ),
+          _ => evaluateSceneInventoryCondition(
+              source: source,
+              gameState: projected.gameState,
+            ),
+        };
         return matched ? 'true' : 'false';
       },
       showDialogue: callbacks.showDialogue,
@@ -136,7 +145,44 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       },
       playCinematic: callbacks.playCinematic,
       playPresentationCinematic: callbacks.playPresentationCinematic,
-      executeInteractiveCommand: callbacks.executeInteractiveCommand,
+      executeInteractiveCommand: (intent) async {
+            final command = intent.interactiveCommand;
+            if (command is! SceneGiveItemInteractiveCommand) {
+              final callback = callbacks.executeInteractiveCommand;
+              if (callback == null) {
+                throw StateError(
+                  'No interactive Scene command executor is installed.',
+                );
+              }
+              return callback(intent);
+            }
+            final projected = writer.applyAll(
+              currentGameState(),
+              pendingConsequences,
+              pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+              railProgressionOperationIds: pendingRailProgressionOperationIds,
+            );
+            if (!projected.success) {
+              throw StateError(
+                projected.message ?? 'Item gift projection failed.',
+              );
+            }
+            final result = executeSceneItemGift(
+              command: command,
+              gameState: projected.gameState,
+            );
+            if (result.outcome == SceneItemGiftOutcome.received) {
+              pendingConsequences.add(
+                SceneConsequence.giveItem(
+                  itemId: command.itemId,
+                  quantity: command.quantity,
+                ),
+              );
+              pendingPokemonGrantOperationIds.add(null);
+              pendingRailProgressionOperationIds.add(null);
+            }
+            return result.outcome.name;
+          },
       requestStructuredInteraction: callbacks.requestStructuredInteraction,
     ).toExecutionCallbacks(
       applyConsequence: (consequence) {
@@ -211,6 +257,10 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   }
 
   final sceneOutcomeId = execution.sceneOutcomeId;
+  final retryableEnd = planResult.plan!.nodes.any(
+    (node) => node.id == execution.finalNodeId &&
+        node.intent.outcomePolicy == SceneOutcomePolicy.retryable,
+  );
   var completedState = writeResult.gameState;
   for (final tableId in consumedUniqueTableIds) {
     completedState = const GameStateMutations().setFlag(
@@ -221,7 +271,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   return NarrativeSceneExecutionResult.completed(
     updatedGameState: completedState,
     gameCompletion: writeResult.gameCompletion,
-    consumeOneShot: uniqueBattleConsumed ?? true,
+    consumeOneShot: !retryableEnd && (uniqueBattleConsumed ?? true),
     qualifiedOutcomes: <NarrativeOutcomeRef>[
       ...hostedBattleOutcomes,
       if (sceneOutcomeId != null)

@@ -413,6 +413,18 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Scene',
         summary: 'Project-owned executable narrative graph',
+        extensions: {
+          'queryActions': ['scene.simulate'],
+          'simulation': {
+            'operation': 'get',
+            'parameters': ['portsByNodeId', 'maxSteps'],
+            'maxSteps': {'minimum': 1, 'maximum': 1000, 'default': 100},
+            'portsByNodeId': 'Explicit declared outputs for visited external-input nodes; unused inputs fail simulation.',
+            'proofKind': 'simulation',
+            'mountedPlayer': false,
+            'effects': 'proposedOnly',
+          },
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'eventV2',

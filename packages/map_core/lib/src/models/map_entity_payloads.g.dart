@@ -42,6 +42,8 @@ const _$MapEntityRuntimePredicateKindEnumMap = {
   MapEntityRuntimePredicateKind.chapterNotCompleted: 'chapterNotCompleted',
   MapEntityRuntimePredicateKind.cutsceneCompleted: 'cutsceneCompleted',
   MapEntityRuntimePredicateKind.cutsceneNotCompleted: 'cutsceneNotCompleted',
+  MapEntityRuntimePredicateKind.badgeOwned: 'badgeOwned',
+  MapEntityRuntimePredicateKind.badgeNotOwned: 'badgeNotOwned',
 };
 
 _MapEntityNpcVisibilityRule _$MapEntityNpcVisibilityRuleFromJson(

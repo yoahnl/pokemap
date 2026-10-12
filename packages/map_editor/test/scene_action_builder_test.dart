@@ -6,6 +6,33 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('platform action uses guided platform and motion pickers', (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.movePlatform,
+        options: const {NarrativeCommandParameterKind.movingPlatform: [
+          SceneActionPickerOption(id: 'gym::bridge', label: 'Arène · Plateforme centrale'),
+        ]}, onSubmit: (payload) => submitted = payload);
+    expect(find.text('Arène · Plateforme centrale'), findsOneWidget);
+    expect(find.text('Avancer'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+    expect((submitted! as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.movePlatform(mapId: 'gym', platformId: 'bridge', motion: MovingPlatformMotion.forward));
+  });
+  testWidgets('guided gift action exposes received and bagFull without raw IDs', (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.giveItemGift,
+      options: const {NarrativeCommandParameterKind.item: [SceneActionPickerOption(id: 'tm23', label: 'CT23') ]},
+      onSubmit: (payload) => submitted = payload);
+    expect(find.text('Interactif'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+    final payload = submitted! as SceneActionPayload;
+    expect(payload.consequence, isNull);
+    expect(payload.interactiveCommand, SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1));
+    expect(payload.interactiveCommand!.outputPortIds, ['received', 'bagFull']);
+  });
   testWidgets('builds a persistent action from guided picker values', (
     tester,
   ) async {

@@ -167,6 +167,9 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   NarrativeCommandIds.giveItem: () => SceneActionPayload.consequence(
     SceneConsequence.giveItem(itemId: 'potion', quantity: 1),
   ),
+  NarrativeCommandIds.giveItemGift: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.giveItem(itemId: 'potion', quantity: 1),
+  ),
   NarrativeCommandIds.takeItem: () => SceneActionPayload.consequence(
     SceneConsequence.takeItem(itemId: 'ticket', quantity: 1),
   ),
@@ -232,6 +235,13 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       SceneActionPayload.interactive(SceneInteractiveCommand.openHeal()),
   NarrativeCommandIds.openPc: () =>
       SceneActionPayload.interactive(SceneInteractiveCommand.openPc()),
+  NarrativeCommandIds.movePlatform: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.movePlatform(
+      mapId: 'map_port',
+      platformId: 'ferry',
+      motion: MovingPlatformMotion.forward,
+    ),
+  ),
   NarrativeCommandIds.moveNpc: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.moveNpc(
       mapId: 'map_port',
@@ -300,6 +310,10 @@ SceneAsset _sceneFor(String commandId, SceneNodePayload payload) {
   final (port, edgeKind) = switch (payload) {
     SceneBattlePayload() => ('victory', SceneEdgeKind.battleVictory),
     SceneCinematicPayload() => ('completed', SceneEdgeKind.cinematicCompleted),
+    SceneActionPayload(:final interactiveCommand?) => (
+      interactiveCommand.outputPortIds.first,
+      SceneEdgeKind.actionCompleted,
+    ),
     SceneActionPayload() => ('completed', SceneEdgeKind.actionCompleted),
     _ => ('completed', SceneEdgeKind.defaultFlow),
   };
@@ -321,13 +335,18 @@ SceneAsset _sceneFor(String commandId, SceneNodePayload payload) {
           toNodeId: 'command',
           kind: SceneEdgeKind.defaultFlow,
         ),
-        SceneEdge(
-          id: 'command-end',
-          fromNodeId: 'command',
-          fromPortId: port,
-          toNodeId: 'end',
-          kind: edgeKind,
-        ),
+        for (final outputPort in switch (payload) {
+          SceneActionPayload(:final interactiveCommand?) =>
+            interactiveCommand.outputPortIds,
+          _ => [port],
+        })
+          SceneEdge(
+            id: 'command-end-$outputPort',
+            fromNodeId: 'command',
+            fromPortId: outputPort,
+            toNodeId: 'end',
+            kind: edgeKind,
+          ),
       ],
     ),
     layout: SceneGraphLayout(
@@ -430,6 +449,36 @@ MapData _map() => MapData(
   id: 'map_port',
   name: 'Port',
   size: const GridSize(width: 4, height: 4),
+  movingPlatforms: [
+    MovingPlatformDefinition(
+      id: 'ferry',
+      placedElementId: 'ferry_visual',
+      initialPose: MovingPlatformPose(leftPx: 0, topPx: 0, quarterTurns: 0),
+      translationDistanceCells: 1,
+      lattice: MovingPlatformLattice(
+        widthPx: 32,
+        heightPx: 32,
+        originLeftPx: 0,
+        originTopPx: 0,
+        cellOffsetLeftPx: 0,
+        cellOffsetTopPx: 0,
+      ),
+      variants: [
+        for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++)
+          MovingPlatformVariant(
+            elementId: 'ferry_$quarterTurns',
+            anchorOffsetPx: const GridPos(x: 0, y: 0),
+            supportCells: const [GridPos(x: 0, y: 0)],
+            clearanceCells: const [GridPos(x: 0, y: 0)],
+            rotationClearanceCells: const [GridPos(x: 0, y: 0)],
+            forwardClearanceCells: const [GridPos(x: 0, y: 0)],
+            backwardClearanceCells: const [GridPos(x: 0, y: 0)],
+          ),
+      ],
+      terrainLayerIds: {'base'},
+      travelCells: const [GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+    ),
+  ],
   events: [
     MapEventDefinition(
       id: 'event_gate',

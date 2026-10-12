@@ -1,6 +1,51 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 enum ModernNarrativeDiagnosticSeverity { error, warning, info }
+
+Map<String, Object?> modernNarrativeDiagnosticDelta({
+  required Iterable<ModernNarrativeDiagnostic> before,
+  required Iterable<ModernNarrativeDiagnostic> after,
+}) {
+  Map<String, List<ModernNarrativeDiagnostic>> group(
+    Iterable<ModernNarrativeDiagnostic> diagnostics,
+  ) {
+    final grouped = <String, List<ModernNarrativeDiagnostic>>{};
+    for (final diagnostic in diagnostics) {
+      final key = jsonEncode([
+        diagnostic.code,
+        diagnostic.resourceKind,
+        diagnostic.resourceId,
+        diagnostic.path,
+        diagnostic.severity.name,
+      ]);
+      grouped.putIfAbsent(key, () => []).add(diagnostic);
+    }
+    return grouped;
+  }
+
+  final previous = group(before);
+  final projected = group(after);
+  final keys = {...previous.keys, ...projected.keys}.toList()..sort();
+  final introduced = <Map<String, Object?>>[];
+  final resolved = <Map<String, Object?>>[];
+  final unchanged = <Map<String, Object?>>[];
+  for (final key in keys) {
+    final oldItems = previous[key] ?? const [];
+    final newItems = projected[key] ?? const [];
+    final sharedCount =
+        oldItems.length < newItems.length ? oldItems.length : newItems.length;
+    unchanged.addAll(newItems.take(sharedCount).map((d) => d.toJson()));
+    introduced.addAll(newItems.skip(sharedCount).map((d) => d.toJson()));
+    resolved.addAll(oldItems.skip(sharedCount).map((d) => d.toJson()));
+  }
+  return {
+    'introduced': introduced,
+    'resolved': resolved,
+    'unchanged': unchanged,
+  };
+}
 
 final class ModernNarrativeDiagnostic {
   const ModernNarrativeDiagnostic({

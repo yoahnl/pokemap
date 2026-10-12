@@ -10,6 +10,7 @@ import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
+import 'moving_platform.dart';
 import 'map_visual_stack_config.dart';
 import 'map_spatial_scene.dart';
 import 'smart_tile_gameplay_zone_provenance.dart';
@@ -33,6 +34,7 @@ abstract class MapData with _$MapData {
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
     @Default([]) List<MapPlacedElement> placedElements,
+    @Default([]) List<MovingPlatformDefinition> movingPlatforms,
     @Default([]) List<MapEntity> entities,
     @Default([]) List<MapConnection> connections,
     @Default([]) List<MapWarp> warps,

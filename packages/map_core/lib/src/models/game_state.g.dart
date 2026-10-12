@@ -73,6 +73,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   playerPosition: json['playerPosition'] == null
       ? const GridPos(x: 0, y: 0)
       : GridPos.fromJson(json['playerPosition'] as Map<String, dynamic>),
+  playerPixelPosition: json['playerPixelPosition'] == null
+      ? null
+      : PixelOffset.fromJson(
+          json['playerPixelPosition'] as Map<String, dynamic>,
+        ),
   playerSpatialPosition: json['playerSpatialPosition'] == null
       ? null
       : PlayerSpatialPosition.fromJson(
@@ -82,6 +87,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
       ? const SpatialWorldState.empty()
       : SpatialWorldState.fromJson(
           json['spatialWorldState'] as Map<String, dynamic>,
+        ),
+  movingPlatformWorldState: json['movingPlatformWorldState'] == null
+      ? const MovingPlatformWorldState.empty()
+      : MovingPlatformWorldState.fromJson(
+          json['movingPlatformWorldState'] as Map<String, dynamic>,
         ),
   playerFacing:
       $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
@@ -163,8 +173,10 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'saveId': instance.saveId,
       'currentMapId': instance.currentMapId,
       'playerPosition': instance.playerPosition.toJson(),
+      'playerPixelPosition': instance.playerPixelPosition?.toJson(),
       'playerSpatialPosition': instance.playerSpatialPosition?.toJson(),
       'spatialWorldState': instance.spatialWorldState.toJson(),
+      'movingPlatformWorldState': instance.movingPlatformWorldState.toJson(),
       'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
       'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
       'party': instance.party.toJson(),

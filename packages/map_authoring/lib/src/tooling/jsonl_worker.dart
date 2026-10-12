@@ -397,22 +397,14 @@ final class JsonlWorker {
         message: error.message,
       );
     } on NarrativeAuthoringException catch (error) {
-      final dialoguePolicyError = error.code.startsWith('scene.dialogue.choice_policy.') ||
-          error.code.startsWith('scene.dialogue.line_feedback.') ||
-          error.code.startsWith('scene.dialogue.audio_media.') ||
-          error.code == 'dialogue.scene_choice_policy_references_blocking' ||
-          error.code == 'dialogue.scene_line_policy_references_blocking';
-      result = dialoguePolicyError ? _failure(
+      result = _failure(
         requestId,
         code: AuthoringErrorCode.validationFailed,
         domainCode: error.code,
-        message: error.message,
-        details: _safeDetails(error.details),
-      ) : _failure(
-        requestId,
-        code: AuthoringErrorCode.internal,
-        domainCode: 'worker.internal',
-        message: 'The command failed unexpectedly.',
+        message: _safeNarrativeText(error.message),
+        details: Map<String, Object?>.from(
+          _withoutNarrativeTraces(_safeDetails(error.details))! as Map,
+        )..remove('domainCode'),
       );
     } on Object {
       result = _failure(
@@ -1005,6 +997,32 @@ AuthoringErrorCode _visualDomainErrorCode(String code) => switch (code) {
 Map<String, Object?> _safeDetails(Map<String, Object?> details) {
   final redacted = const AuthoringOutputRedactor().redact(details);
   return redacted is Map<String, Object?> ? redacted : const {};
+}
+
+String _safeNarrativeText(String value) {
+  if (_containsNarrativeTrace(value)) {
+    return 'The narrative operation was rejected safely.';
+  }
+  return const AuthoringOutputRedactor().redact(value)! as String;
+}
+
+bool _containsNarrativeTrace(String value) =>
+    value.toLowerCase().contains('stack trace') ||
+    RegExp(r'(?:^|\n)\s*#\d+\s').hasMatch(value);
+
+Object? _withoutNarrativeTraces(Object? value) {
+  if (value is String && _containsNarrativeTrace(value)) return '[REDACTED]';
+  if (value is List) return value.map(_withoutNarrativeTraces).toList();
+  if (value is Map<String, Object?>) {
+    return {
+      for (final entry in value.entries)
+        if (!const {'stack', 'trace', 'stacktrace'}.contains(
+          entry.key.replaceAll(RegExp(r'[_\-\s]'), '').toLowerCase(),
+        ))
+          entry.key: _withoutNarrativeTraces(entry.value),
+    };
+  }
+  return value;
 }
 
 final class _CapabilityInput {

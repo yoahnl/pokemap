@@ -11,6 +11,9 @@ void main() {
       expect(
         SceneActions.descriptors.map((descriptor) => descriptor.id).toSet(),
         const {
+          'scene.graph.patch',
+          'scene.condition.set',
+          'scene.interactive_command.set',
           'scene.upsert',
           'scene.dialogue.choicePolicy.update',
           'scene.dialogue.lineFeedback.update',

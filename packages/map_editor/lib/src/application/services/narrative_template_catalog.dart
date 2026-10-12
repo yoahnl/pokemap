@@ -557,6 +557,10 @@ List<String> _diagnoseParameterValues(
         if (!ScenePostGamePolicy.values.any((policy) => policy.name == value)) {
           diagnostics.add('${parameter.label} est inconnue.');
         }
+      case NarrativeCommandParameterKind.movingPlatformMotion:
+        if (!MovingPlatformMotion.values.any((motion) => motion.name == value)) {
+          diagnostics.add('${parameter.label} est inconnu.');
+        }
       case NarrativeCommandParameterKind.railJourneyOperation:
         if (!SceneRailJourneyOperation.values.any(
           (operation) => operation.name == value,

@@ -8,6 +8,67 @@ import 'package:test/test.dart';
 
 void main() {
   group('JsonlWorker', () {
+    test('preserves canonical narrative diagnostics without exposing secrets',
+        () async {
+      final worker = JsonlWorker(
+        api: _ThrowingNarrativeReadApi(
+          NarrativeAuthoringException(
+            'event_v2.validation_failed',
+            'Event validation failed at /Users/private/project.json Bearer secret',
+            details: {
+              'diagnostics': [
+                {
+                  'code': 'narrativeEventFactTypeMismatch',
+                  'path':
+                      'eventRegistry.records.event.conditions.0.expectedValue',
+                  'message': 'Expected int, received bool.',
+                },
+              ],
+              'sourcePath': '/Users/private/project.json',
+              'authorization': 'Bearer secret',
+              'domainCode': 'spoofed.code',
+              'nested': {
+                'stackTrace': '#0 private frame',
+                'expectedType': 'int'
+              },
+            },
+          ),
+        ),
+      );
+      final result = await _request(worker,
+          id: 'narrative-diagnostic', command: 'describe');
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(result.error?.code, AuthoringErrorCode.validationFailed);
+      expect(result.error?.details['domainCode'], 'event_v2.validation_failed');
+      expect(result.error?.details['diagnostics'], [
+        {
+          'code': 'narrativeEventFactTypeMismatch',
+          'path': 'eventRegistry.records.event.conditions.0.expectedValue',
+          'message': 'Expected int, received bool.',
+        },
+      ]);
+      expect(result.error?.details['sourcePath'], '<absolute-path>');
+      expect(result.error?.details['nested'], {'expectedType': 'int'});
+      expect(result.error?.retryable, isFalse);
+      final serialized = jsonEncode(result.toJson());
+      expect(serialized, isNot(contains('/Users/private')));
+      expect(serialized, isNot(contains('secret')));
+      expect(serialized, isNot(contains('#0 private frame')));
+    });
+
+    test('keeps unexpected exceptions behind the worker boundary', () async {
+      final result = await _request(
+        JsonlWorker(
+          api: _ThrowingNarrativeReadApi(StateError('/Users/private/internal')),
+        ),
+        id: 'unexpected',
+        command: 'describe',
+      );
+      expect(result.error?.code, AuthoringErrorCode.internal);
+      expect(result.error?.details['domainCode'], 'worker.internal');
+      expect(jsonEncode(result.toJson()), isNot(contains('/Users/private')));
+    });
+
     test('routes game_export through the configured export API', () async {
       final exportApi = _RecordingGamePackageExportApi();
       final worker = JsonlWorker(
@@ -1021,6 +1082,18 @@ AuthoringResult _decode(String line) {
   return AuthoringResult.fromJson(
     Map<String, dynamic>.from(decoded as Map),
   );
+}
+
+final class _ThrowingNarrativeReadApi implements AuthoringReadApiPort {
+  _ThrowingNarrativeReadApi(this.error);
+
+  final Object error;
+
+  @override
+  Map<String, Object?> describe() => throw error;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 final class _DelayedReadApi implements AuthoringReadApiPort {

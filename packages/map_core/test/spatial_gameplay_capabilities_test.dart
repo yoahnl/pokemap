@@ -15,6 +15,7 @@ void main() {
       expect(SpatialGameplayCapabilities.productionExportEnabled, false);
       expect(SpatialGameplayCapabilities.conditionSources, {
         SceneConditionSourceKind.inventoryItem,
+        SceneConditionSourceKind.badge,
         SceneConditionSourceKind.fact,
         SceneConditionSourceKind.factLikeStoryFlag,
         SceneConditionSourceKind.storyStepCompletion,

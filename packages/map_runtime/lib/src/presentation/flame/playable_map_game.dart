@@ -2245,6 +2245,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       : _gameState.copyWith(
           currentMapId: _activeMapId,
           playerPosition: _world.player.pos,
+          playerPixelPosition: PixelOffset(
+            x: _world.player.playerPositionPx.leftPx,
+            y: _world.player.playerPositionPx.topPx,
+          ),
           playerFacing: _world.player.facing.asFacing,
           playerMovementMode: _world.player.movementMode,
         );
@@ -3190,7 +3194,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final mapId = mapIdOverride ?? _activeMapId;
     _gameState = _gameState.copyWith(
       currentMapId: mapId,
+      movingPlatformWorldState: initializeMovingPlatformWorldState(
+        map: _world.map, worldState: _gameState.movingPlatformWorldState),
       playerPosition: _world.player.pos,
+      playerPixelPosition: PixelOffset(
+        x: _world.player.playerPositionPx.leftPx,
+        y: _world.player.playerPositionPx.topPx,
+      ),
       playerFacing: _world.player.facing.asFacing,
       playerMovementMode: _world.player.movementMode,
     );
@@ -3907,6 +3917,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = await prepareBorderRuntimeBundle(_bundle);
       if (_isRemoved) return;
       _runtimeBundleByMapId[_bundle.map.id] = _bundle;
+      await _validateMovingPlatformSave(_bundle, _gameState);
+      _gameState = _gameState.copyWith(
+        movingPlatformWorldState: initializeMovingPlatformWorldState(
+          map: _bundle.map,
+          worldState: _gameState.movingPlatformWorldState,
+        ),
+      );
+      _bundle = await prepareBorderRuntimeBundle(
+        _projectMovingPlatformBundle(_bundle, _gameState),
+      );
       final hydratedGameState =
           _hydrateOwnedPlayerPokemonProgression(_gameState);
       final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
@@ -3956,6 +3976,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           );
         }
         _world = GameplayWorldState.initial(
+          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                  ?.gameState.movingPlatformWorldState ??
+              _gameState.movingPlatformWorldState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -3973,6 +3996,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       } else if (_isProjectNewGameBoot) {
         _world = GameplayWorldState.initial(
+          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                  ?.gameState.movingPlatformWorldState ??
+              _gameState.movingPlatformWorldState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -3994,6 +4020,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
           _world = GameplayWorldState.fromMap(
             _bundle.map,
+            movingPlatformWorldState: _gameState.movingPlatformWorldState,
             project: _bundle.manifest,
             tileWidth: _bundle.manifest.settings.tileWidth,
             tileHeight: _bundle.manifest.settings.tileHeight,
@@ -4008,6 +4035,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           debugPrint(
               '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
           _world = GameplayWorldState.initial(
+            movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                    ?.gameState.movingPlatformWorldState ??
+                _gameState.movingPlatformWorldState,
             map: _bundle.map,
             playerPos: const GridPos(x: 0, y: 0),
             project: _bundle.manifest,
@@ -4018,6 +4048,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                 _mapEntityPresencePredicateFor(_bundle.manifest),
           );
         }
+      }
+      if (initialMapActivationReason == MapActivationReason.saveRestore) {
+        _world = _restorePlayerPixelPosition(_world, _gameState);
       }
       debugPrint(
         '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
@@ -6848,6 +6881,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final updatedMap = _world.map.copyWith(entities: updatedEntities);
     final playerState = _world.player;
     _world = GameplayWorldState.initial(
+      movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+              ?.gameState.movingPlatformWorldState ??
+          _gameState.movingPlatformWorldState,
       map: updatedMap,
       playerPos: playerState.pos,
       playerFacing: playerState.facing,
@@ -7165,6 +7201,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final updatedMap = _world.map.copyWith(entities: updatedEntities);
     final playerState = _world.player;
     _world = GameplayWorldState.initial(
+      movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+              ?.gameState.movingPlatformWorldState ??
+          _gameState.movingPlatformWorldState,
       map: updatedMap,
       playerPos: playerState.pos,
       playerFacing: playerState.facing,
@@ -7609,6 +7648,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     final updatedMap = _world.map.copyWith(entities: updatedEntities);
     return GameplayWorldState.initial(
+      movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+              ?.gameState.movingPlatformWorldState ??
+          _gameState.movingPlatformWorldState,
       map: updatedMap,
       playerPos: _world.player.pos,
       playerFacing: _world.player.facing,
@@ -9736,6 +9778,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _gameState = recovery.state.copyWith(
           currentMapId: sourceMapId,
           playerPosition: _world.player.pos,
+          playerPixelPosition: PixelOffset(
+            x: _world.player.playerPositionPx.leftPx,
+            y: _world.player.playerPositionPx.topPx,
+          ),
           playerFacing: _world.player.facing.asFacing,
         );
         _setFlowPhase(_RuntimeFlowPhase.overworld);
@@ -10296,6 +10342,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           command,
           currentGameState: currentGameState,
         ),
+        movePlatform: (command) => _executeSceneMovePlatformCommand(
+          command,
+          currentGameState: currentGameState,
+        ),
         openWorldService: _executeSceneWorldServiceRequest,
         railJourney: (command) => _executeSceneRailJourneyCommand(
           command,
@@ -10557,6 +10607,161 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     return _activeMapId == transition.destinationMapId &&
         _world.player.pos == transition.destinationPosition;
+  }
+
+  Future<void> _validateMovingPlatformSave(
+    RuntimeMapBundle activeBundle,
+    GameState state,
+  ) async {
+    final maps = <String, MapData>{activeBundle.map.id: activeBundle.map};
+    for (final mapId in state.movingPlatformWorldState.platformsByMap.keys) {
+      if (!activeBundle.manifest.maps.any((entry) => entry.id == mapId)) {
+        throw StateError('Saved moving platform references an unknown map.');
+      }
+      if (!maps.containsKey(mapId))
+        maps[mapId] = (await _loadRuntimeMapBundleCached(mapId)).map;
+    }
+    validateGameplayMovingPlatformWorldState(
+      project: activeBundle.manifest,
+      maps: maps.values,
+      worldState: state.movingPlatformWorldState,
+      npcMapPresencePredicate: _npcPresencePredicateFor(
+        activeBundle.manifest,
+        gameStateOverride: state,
+      ),
+      mapEntityPresencePredicate: _mapEntityPresencePredicateFor(
+        activeBundle.manifest,
+        gameStateOverride: state,
+      ),
+    );
+  }
+
+  RuntimeMapBundle _projectMovingPlatformBundle(
+    RuntimeMapBundle bundle,
+    GameState state,
+  ) {
+    return bundle.copyWith(
+      map: applyMovingPlatformWorldStateToMap(
+        map: bundle.map,
+        worldState: state.movingPlatformWorldState,
+        tileSize: PixelSize(
+          width: bundle.manifest.settings.tileWidth,
+          height: bundle.manifest.settings.tileHeight,
+        ),
+      ),
+    );
+  }
+
+  GameplayWorldState _restorePlayerPixelPosition(
+    GameplayWorldState world,
+    GameState state,
+  ) {
+    final offset = state.playerPixelPosition;
+    if (offset == null) return world;
+    final player = world.player.copyWith(
+      playerPositionPx: PixelPosition(leftPx: offset.x, topPx: offset.y),
+    );
+    final projected = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+      playerCollisionRectPx: player.playerCollisionRectPx,
+      tileWidthPx: world.tileWidthPx,
+      tileHeightPx: world.tileHeightPx,
+      mapWidthCells: world.map.size.width,
+      mapHeightCells: world.map.size.height,
+    );
+    final restored = world.withPlayer(player);
+    if (projected != state.playerPosition ||
+        restored.worldStaticObstaclesCollidePlayerCollisionRect()) {
+      throw StateError(
+        'Saved player pixel position does not match a traversable world position.',
+      );
+    }
+    return restored;
+  }
+
+  void _applyMovingPlatformFrame(GameplayWorldState worldState) {
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded == null) {
+      throw StateError('The moving platform map is not mounted.');
+    }
+    final ids = worldState.map.movingPlatforms
+        .map((platform) => platform.placedElementId)
+        .toSet();
+    final visuals = worldState.map.placedElements
+        .where((element) => ids.contains(element.id))
+        .toList();
+    loaded.backgroundLayers.setRuntimePlacedElementState(visuals);
+    loaded.foregroundLayers.setRuntimePlacedElementState(visuals);
+    _world = worldState;
+    _player.syncState(worldState.player, snapToGrid: true);
+    _syncCameraToPlayer();
+  }
+
+  Future<String> _executeSceneMovePlatformCommand(
+    SceneInteractiveCommand command, {
+    required GameState Function() currentGameState,
+  }) async {
+    if (command is! SceneMovePlatformInteractiveCommand ||
+        !isLoaded ||
+        command.mapId != _activeMapId) {
+      return 'blocked';
+    }
+    final session = _activeNarrativeSceneWorkingSession;
+    if (session == null) {
+      throw StateError('Platform movement requires a Scene transaction.');
+    }
+    final originalWorld = _world;
+    final originalState = session.gameState;
+    final result = moveGameplayPlatform(
+      world: _world,
+      project: _bundle.manifest,
+      worldState: currentGameState().movingPlatformWorldState,
+      platformId: command.platformId,
+      motion: command.motion,
+    );
+    final token = _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.scriptedMovement,
+      surface: RuntimeInputSurface.cinematic,
+    );
+    _clearPressedMovementControls();
+    _publishInputAuthoritySnapshot();
+    var committed = false;
+    try {
+      for (final frame in result.frames) {
+        if (_isRemoved || _activeMapId != command.mapId) {
+          throw StateError('Platform movement was interrupted.');
+        }
+        _applyMovingPlatformFrame(frame.world);
+        await Future<void>.delayed(const Duration(milliseconds: 8));
+      }
+      _applyMovingPlatformFrame(result.finalWorld);
+      if (result.outcome == MovingPlatformMoveOutcome.moved) {
+        session.registerCompensation(() async {
+          session.gameState = originalState;
+          if (!_isRemoved && _activeMapId == command.mapId) {
+            _applyMovingPlatformFrame(originalWorld);
+          }
+        });
+        session.gameState = session.gameState.copyWith(
+          movingPlatformWorldState: result.finalWorldState,
+          playerPosition: result.finalWorld.player.pos,
+          playerPixelPosition: PixelOffset(
+            x: result.finalWorld.player.playerPositionPx.leftPx,
+            y: result.finalWorld.player.playerPositionPx.topPx,
+          ),
+        );
+      }
+      committed = true;
+      return result.outcome.name;
+    } finally {
+      if (!committed && !_isRemoved && _activeMapId == command.mapId) {
+        _applyMovingPlatformFrame(originalWorld);
+      }
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.scriptedMovement,
+        token: token,
+      );
+      _publishInputAuthoritySnapshot();
+    }
   }
 
   Future<String> _executeSceneMoveNpcCommand(
@@ -11089,6 +11294,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           : 'false';
     }
 
+    if (source.sourceKind == SceneConditionSourceKind.badge) {
+      return evaluateSceneBadgeCondition(source: source, gameState: gameState)
+          ? 'true'
+          : 'false';
+    }
+
     if (source.sourceKind == SceneConditionSourceKind.fact) {
       return evaluateCanonicalNarrativeFactSceneCondition(
         source: source,
@@ -11561,6 +11772,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         enabled: enabled,
       );
       _world = GameplayWorldState.initial(
+        movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                ?.gameState.movingPlatformWorldState ??
+            _gameState.movingPlatformWorldState,
         map: updatedMap,
         playerPos: _world.player.pos,
         playerFacing: _world.player.facing,
@@ -12520,12 +12734,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     BorderRuntimeAssetBundle newBorderAssets;
     GameplayWorldState preparedWorld;
     try {
+      await _validateMovingPlatformSave(newBundle, loadedState);
       newImages = await _loadTilesetImagesCached(
         newBundle.runtimeImageAbsolutePathsById,
         manifest: newBundle.manifest,
       );
       newBorderAssets = await _loadBorderRuntimeAssets(newBundle);
-      newBundle = await prepareBorderRuntimeBundle(newBundle);
+      newBundle = await prepareBorderRuntimeBundle(
+        _projectMovingPlatformBundle(newBundle, loadedState),
+      );
       if (!_isWithinMapBounds(newBundle.map, loadedState.playerPosition)) {
         throw StateError(
           'Saved player position ${loadedState.playerPosition} is outside '
@@ -12533,6 +12750,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       }
       preparedWorld = GameplayWorldState.initial(
+        movingPlatformWorldState: loadedState.movingPlatformWorldState,
         map: newBundle.map,
         project: newBundle.manifest,
         playerPos: loadedState.playerPosition,
@@ -12551,10 +12769,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           mapOverride: newBundle.map,
         ),
       );
-      if (preparedWorld.isBlocked(
-        loadedState.playerPosition.x,
-        loadedState.playerPosition.y,
-      )) {
+      preparedWorld = _restorePlayerPixelPosition(preparedWorld, loadedState);
+      if (preparedWorld.worldStaticObstaclesCollidePlayerCollisionRect()) {
         throw StateError(
           'Saved player position ${loadedState.playerPosition} is blocked '
           'on ${newBundle.map.id}.',
@@ -12898,6 +13114,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'warp',
         'worldInitial',
         () => GameplayWorldState.initial(
+          movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                  ?.gameState.movingPlatformWorldState ??
+              _gameState.movingPlatformWorldState,
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: sourceFacing,
@@ -13165,6 +13384,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ? preferredPos
         : const GridPos(x: 0, y: 0);
     final world = GameplayWorldState.initial(
+      movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+              ?.gameState.movingPlatformWorldState ??
+          _gameState.movingPlatformWorldState,
       map: map,
       playerPos: safePos,
       playerFacing: fallbackFacing,
@@ -13181,6 +13403,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     try {
       final spawn = resolveInitialPlayerSpawn(map);
       final spawnWorld = GameplayWorldState.initial(
+        movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                ?.gameState.movingPlatformWorldState ??
+            _gameState.movingPlatformWorldState,
         map: map,
         playerPos: spawn.pos,
         playerFacing: fallbackFacing,
@@ -13199,6 +13424,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       for (var x = 0; x < map.size.width; x++) {
         if (!world.isBlocked(x, y)) {
           return GameplayWorldState.initial(
+            movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                    ?.gameState.movingPlatformWorldState ??
+                _gameState.movingPlatformWorldState,
             map: map,
             playerPos: GridPos(x: x, y: y),
             playerFacing: fallbackFacing,
@@ -13283,6 +13511,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[connection] computed entry pos=(${targetPos.x}, ${targetPos.y})',
       );
       final newWorld = GameplayWorldState.initial(
+        movingPlatformWorldState: _activeNarrativeSceneWorkingSession
+                ?.gameState.movingPlatformWorldState ??
+            _gameState.movingPlatformWorldState,
         map: target.bundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
@@ -13677,7 +13908,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) async {
-    final preparedBundle = await prepareBorderRuntimeBundle(bundle);
+    final preparedBundle = await prepareBorderRuntimeBundle(
+      _projectMovingPlatformBundle(
+        bundle,
+        _activeNarrativeSceneWorkingSession?.gameState ?? _gameState,
+      ),
+    );
     final resolvedBorderAssets =
         borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle);
     final npcPred = _npcPresencePredicateFor(preparedBundle.manifest);

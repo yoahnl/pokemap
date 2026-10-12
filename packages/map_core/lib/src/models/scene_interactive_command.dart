@@ -2,10 +2,13 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'rail_journey.dart';
+import 'moving_platform.dart';
 
 enum SceneInteractiveCommandKind {
+  giveItem,
   warp,
   moveNpc,
+  movePlatform,
   openShop,
   openHeal,
   openPc,
@@ -26,6 +29,11 @@ enum SceneRailJourneyAdvanceEvent {
 abstract base class SceneInteractiveCommand {
   const SceneInteractiveCommand();
 
+  factory SceneInteractiveCommand.giveItem({
+    required String itemId,
+    required int quantity,
+  }) = SceneGiveItemInteractiveCommand;
+
   factory SceneInteractiveCommand.warp({
     required String destinationMapId,
     required String warpId,
@@ -36,6 +44,12 @@ abstract base class SceneInteractiveCommand {
     required String entityId,
     required String warpId,
   }) = SceneMoveNpcInteractiveCommand;
+
+  factory SceneInteractiveCommand.movePlatform({
+    required String mapId,
+    required String platformId,
+    required MovingPlatformMotion motion,
+  }) = SceneMovePlatformInteractiveCommand;
 
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
@@ -75,6 +89,12 @@ abstract base class SceneInteractiveCommand {
       ),
     );
     return switch (kind) {
+      SceneInteractiveCommandKind.giveItem => SceneGiveItemInteractiveCommand(
+        itemId: _required(json, 'itemId'),
+        quantity: json['quantity'] is int
+            ? json['quantity'] as int
+            : throw const FormatException('Item quantity must be an integer.'),
+      ),
       SceneInteractiveCommandKind.warp => SceneWarpInteractiveCommand(
         destinationMapId: _required(json, 'destinationMapId'),
         warpId: _required(json, 'warpId'),
@@ -83,6 +103,10 @@ abstract base class SceneInteractiveCommand {
         mapId: _required(json, 'mapId'),
         entityId: _required(json, 'entityId'),
         warpId: _required(json, 'warpId'),
+      ),
+      SceneInteractiveCommandKind.movePlatform => SceneMovePlatformInteractiveCommand(
+        mapId: _required(json, 'mapId'), platformId: _required(json, 'platformId'),
+        motion: _requiredEnum(json, 'motion', MovingPlatformMotion.values),
       ),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
         shopId: _required(json, 'shopId'),
@@ -139,6 +163,63 @@ abstract base class SceneInteractiveCommand {
   SceneInteractiveCommandKind get kind;
   List<String> get outputPortIds;
   Map<String, dynamic> toJson();
+}
+
+@immutable
+final class SceneMovePlatformInteractiveCommand extends SceneInteractiveCommand {
+  SceneMovePlatformInteractiveCommand({required String mapId,
+      required String platformId, required this.motion})
+      : mapId = _normalize(mapId, 'mapId'), platformId = _normalize(platformId, 'platformId');
+
+  final String mapId, platformId;
+  final MovingPlatformMotion motion;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.movePlatform;
+  @override
+  List<String> get outputPortIds => const ['moved', 'blocked', 'notRiding', 'rotationRequiresPivot'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'mapId': mapId,
+    'platformId': platformId, 'motion': motion.name};
+  @override
+  bool operator ==(Object other) => other is SceneMovePlatformInteractiveCommand &&
+      other.mapId == mapId && other.platformId == platformId && other.motion == motion;
+  @override
+  int get hashCode => Object.hash(mapId, platformId, motion);
+}
+
+@immutable
+final class SceneGiveItemInteractiveCommand extends SceneInteractiveCommand {
+  SceneGiveItemInteractiveCommand({required String itemId, required this.quantity})
+      : itemId = _normalize(itemId, 'itemId') {
+    if (quantity <= 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'Must be positive.');
+    }
+  }
+
+  final String itemId;
+  final int quantity;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.giveItem;
+
+  @override
+  List<String> get outputPortIds => const ['received', 'bagFull'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': kind.name,
+        'itemId': itemId,
+        'quantity': quantity,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneGiveItemInteractiveCommand &&
+      other.itemId == itemId && other.quantity == quantity;
+
+  @override
+  int get hashCode => Object.hash(itemId, quantity);
 }
 
 @immutable

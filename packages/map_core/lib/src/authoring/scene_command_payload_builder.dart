@@ -3,6 +3,7 @@ import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_finish_game_contract.dart';
 import '../models/rail_journey.dart';
+import '../models/moving_platform.dart';
 import '../models/enums.dart';
 import '../models/project_presentation_profile.dart';
 import '../runtime/character_custom_animation_runtime_contract.dart';
@@ -36,6 +37,12 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       SceneConsequence.giveItem(
         itemId: parameters['itemId']!,
         quantity: integer('quantity'),
+      ),
+    ),
+    NarrativeCommandIds.giveItemGift => SceneActionPayload.interactive(
+      SceneInteractiveCommand.giveItem(
+        itemId: parameters['itemId']!,
+        quantity: int.parse(parameters['quantity']!),
       ),
     ),
     NarrativeCommandIds.takeItem => SceneActionPayload.consequence(
@@ -135,6 +142,14 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           storageId: storageId,
         ),
         null => SceneInteractiveCommand.openPc(),
+      },
+    ),
+    NarrativeCommandIds.movePlatform => SceneActionPayload.interactive(
+      switch (_parseNpcRef(parameters['platformRef'])) {
+        (final mapId, final platformId) => SceneInteractiveCommand.movePlatform(
+          mapId: mapId, platformId: platformId,
+          motion: MovingPlatformMotion.values.byName(parameters['motion']!),
+        ),
       },
     ),
     NarrativeCommandIds.moveNpc => SceneActionPayload.interactive(

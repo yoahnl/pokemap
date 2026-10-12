@@ -2601,6 +2601,17 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
     );
   }
 
+  for (final badge in project.badges) {
+    add(
+      SceneConditionSourcePickerOption(
+        sourceKind: SceneConditionSourceKind.badge,
+        sourceId: badge.id,
+        label: badge.label,
+        debugTechnicalLabel: badge.id,
+      ),
+    );
+  }
+
   for (final fact in project.facts) {
     add(
       SceneConditionSourcePickerOption(
@@ -4981,6 +4992,11 @@ _buildSceneActionPickerOptions(
     NarrativeCommandParameterKind.map: [
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
+    ],
+    NarrativeCommandParameterKind.movingPlatform: [
+      for (final platform in activeMap?.movingPlatforms ?? const <MovingPlatformDefinition>[])
+        SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}',
+            label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}'),
     ],
     NarrativeCommandParameterKind.npc: [
       for (final entity in activeMap?.entities ?? const <MapEntity>[])

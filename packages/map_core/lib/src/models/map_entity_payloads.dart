@@ -68,6 +68,10 @@ enum MapEntityRuntimePredicateKind {
   cutsceneCompleted,
   @JsonValue('cutsceneNotCompleted')
   cutsceneNotCompleted,
+  @JsonValue('badgeOwned')
+  badgeOwned,
+  @JsonValue('badgeNotOwned')
+  badgeNotOwned,
 }
 
 @freezed

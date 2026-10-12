@@ -419,6 +419,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ),
         SceneActionPickerOption(id: 'returnToHub', label: 'Retourner au Hub'),
       ],
+      NarrativeCommandParameterKind.movingPlatformMotion => const [
+        SceneActionPickerOption(id: 'forward', label: 'Avancer'),
+        SceneActionPickerOption(id: 'backward', label: 'Reculer'),
+        SceneActionPickerOption(id: 'rotateClockwise', label: 'Tourner vers la droite'),
+      ],
       NarrativeCommandParameterKind.characterDirection => const [
         SceneActionPickerOption(id: 'south', label: 'Sud'),
         SceneActionPickerOption(id: 'north', label: 'Nord'),

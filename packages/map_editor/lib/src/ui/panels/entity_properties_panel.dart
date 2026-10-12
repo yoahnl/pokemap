@@ -607,6 +607,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         return const [];
       }
       return switch (k) {
+        MapEntityRuntimePredicateKind.badgeOwned ||
+        MapEntityRuntimePredicateKind.badgeNotOwned => catalog.badges,
         MapEntityRuntimePredicateKind.storyFlagSet ||
         MapEntityRuntimePredicateKind.storyFlagUnset => catalog.flags,
         MapEntityRuntimePredicateKind.stepCompleted ||
@@ -865,6 +867,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         return const [];
       }
       return switch (k) {
+        MapEntityRuntimePredicateKind.badgeOwned ||
+        MapEntityRuntimePredicateKind.badgeNotOwned => catalog.badges,
         MapEntityRuntimePredicateKind.storyFlagSet ||
         MapEntityRuntimePredicateKind.storyFlagUnset => catalog.flags,
         MapEntityRuntimePredicateKind.stepCompleted ||

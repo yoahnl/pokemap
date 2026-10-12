@@ -8,12 +8,14 @@ void main() {
     final calls = <SceneInteractiveCommandKind>[];
     Future<String> handler(SceneInteractiveCommand command) async {
       calls.add(command.kind);
-      return 'completed';
+      return command.outputPortIds.first;
     }
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
+      giveItem: handler,
       warp: handler,
       moveNpc: handler,
+      movePlatform: handler,
       openShop: handler,
       openHeal: handler,
       openPc: handler,
@@ -22,6 +24,7 @@ void main() {
       railJourney: handler,
     );
     for (final command in <SceneInteractiveCommand>[
+      SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1),
       SceneInteractiveCommand.warp(
         destinationMapId: 'map.port',
         warpId: 'warp.arrival',
@@ -30,6 +33,11 @@ void main() {
         mapId: 'map.port',
         entityId: 'npc.guard',
         warpId: 'warp.arrival',
+      ),
+      SceneInteractiveCommand.movePlatform(
+        mapId: 'map.port',
+        platformId: 'platform',
+        motion: MovingPlatformMotion.forward,
       ),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
@@ -57,7 +65,7 @@ void main() {
       final result = await executor.execute(
         SceneRuntimePlanIntent.executeInteractiveCommand(command: command),
       );
-      expect(result, 'completed');
+      expect(result, command.outputPortIds.first);
     }
 
     expect(calls, SceneInteractiveCommandKind.values);

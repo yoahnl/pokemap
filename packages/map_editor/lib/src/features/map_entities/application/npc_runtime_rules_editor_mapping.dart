@@ -22,6 +22,8 @@ enum NpcRuntimeVisibilityUiMode {
 /// Libellés FR pour le menu « type de condition » (flags, steps, etc.).
 String npcRuntimePredicateKindLabelFr(MapEntityRuntimePredicateKind k) {
   return switch (k) {
+    MapEntityRuntimePredicateKind.badgeOwned => 'Un badge est obtenu',
+    MapEntityRuntimePredicateKind.badgeNotOwned => 'Un badge n’est pas obtenu',
     MapEntityRuntimePredicateKind.storyFlagSet => 'Un flag est actif',
     MapEntityRuntimePredicateKind.storyFlagUnset => 'Un flag n’est pas actif',
     MapEntityRuntimePredicateKind.stepCompleted => 'Une step est terminée',

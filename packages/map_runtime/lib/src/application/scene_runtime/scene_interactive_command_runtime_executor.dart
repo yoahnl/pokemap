@@ -16,7 +16,9 @@ typedef SceneWorldServiceRequestHandler = Future<String> Function(
 final class SceneInteractiveCommandRuntimeExecutor {
   const SceneInteractiveCommandRuntimeExecutor({
     required this.warp,
+    this.giveItem,
     this.moveNpc,
+    this.movePlatform,
     this.openShop,
     this.openHeal,
     this.openPc,
@@ -27,7 +29,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
   });
 
   final SceneInteractiveCommandHandler warp;
+  final SceneInteractiveCommandHandler? giveItem;
   final SceneInteractiveCommandHandler? moveNpc;
+  final SceneInteractiveCommandHandler? movePlatform;
   final SceneInteractiveCommandHandler? openShop;
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
@@ -49,7 +53,12 @@ final class SceneInteractiveCommandRuntimeExecutor {
       throw StateError('Interactive Scene intent has no command payload.');
     }
     final output = switch (command.kind) {
+      SceneInteractiveCommandKind.giveItem => await _executeRequired(
+          command,
+          handler: giveItem,
+        ),
       SceneInteractiveCommandKind.warp => await warp(command),
+      SceneInteractiveCommandKind.movePlatform => await _executeRequired(command, handler: movePlatform),
       SceneInteractiveCommandKind.moveNpc => await _executeRequired(
           command,
           handler: moveNpc,

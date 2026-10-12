@@ -1939,6 +1939,15 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
         );
       }
       return;
+    case SceneConditionSourceKind.badge:
+      if (source.badgeOwnershipExpected == null) {
+        throw ArgumentError.value(
+          source,
+          'source',
+          'Badge conditions require isTrue/isFalse without a field or value.',
+        );
+      }
+      return;
     case SceneConditionSourceKind.inventoryItem:
       if (source.inventoryQuantityThreshold == null) {
         throw ArgumentError.value(

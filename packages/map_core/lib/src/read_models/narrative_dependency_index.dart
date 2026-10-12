@@ -758,6 +758,11 @@ final class _NarrativeDependencyIndexBuilder {
           sourceKind: 'map',
         );
       }
+      for (final platform in map.movingPlatforms) {
+        _definition(NarrativeDependencyTargetKind.sourceMap, platform.id, platform.id,
+            owner: mapKey, path: 'maps[${map.id}].movingPlatforms[${platform.id}]',
+            scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
+      }
       for (final instance in map.spatialScene?.instances ?? const []) {
         final owner = _definition(
           NarrativeDependencyTargetKind.sourceMap,
@@ -1029,6 +1034,17 @@ final class _NarrativeDependencyIndexBuilder {
     final sourceId = predicate.refId.trim();
     if (sourceId.isEmpty) return;
     switch (kind) {
+      case MapEntityRuntimePredicateKind.badgeOwned:
+      case MapEntityRuntimePredicateKind.badgeNotOwned:
+        _usage(
+          target: NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.badge,
+            sourceId,
+          ),
+          owner: owner,
+          path: '$path.refId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
       case MapEntityRuntimePredicateKind.storyFlagSet:
       case MapEntityRuntimePredicateKind.storyFlagUnset:
         _collectLegacyFactRef(sourceId, owner, '$path.refId');
@@ -1438,8 +1454,8 @@ final class _NarrativeDependencyIndexBuilder {
     NarrativeEventCondition condition,
     int index,
   ) {
-    condition.when<void>(
-      fact: (factId, _) {
+    condition.whenTyped<void>(
+      fact: (factId, _, _) {
         _usage(
           target: NarrativeDependencyKey(
             NarrativeDependencyTargetKind.fact,
@@ -2288,6 +2304,11 @@ final class _NarrativeDependencyIndexBuilder {
             criticality: NarrativeDependencyCriticality.runtimeBlocking,
           );
         }
+      case SceneMovePlatformInteractiveCommand(:final mapId, :final platformId):
+        _usage(target: _mapKey(mapId), owner: owner, path: '$path.mapId',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        _usage(target: _mapSourceChildKey(mapId, 'movingPlatform', platformId), owner: owner,
+            path: '$path.platformId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
       case SceneMoveNpcInteractiveCommand(
         :final mapId,
         :final entityId,
@@ -2335,6 +2356,14 @@ final class _NarrativeDependencyIndexBuilder {
           criticality: NarrativeDependencyCriticality.authoringWarning,
           resolution: NarrativeDependencyResolution.legacyExternal,
         );
+      case SceneGiveItemInteractiveCommand(:final itemId):
+        _usage(
+          target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, itemId),
+          owner: owner,
+          path: '$path.itemId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        break;
       case SceneOpenHealInteractiveCommand():
         break;
       case SceneOpenPcInteractiveCommand():
@@ -2369,6 +2398,10 @@ final class _NarrativeDependencyIndexBuilder {
       return;
     }
     final target = switch (source.sourceKind) {
+      SceneConditionSourceKind.badge => NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.badge,
+        source.sourceId,
+      ),
       SceneConditionSourceKind.inventoryItem => NarrativeDependencyKey(
         NarrativeDependencyTargetKind.item,
         source.sourceId,
@@ -2401,6 +2434,7 @@ final class _NarrativeDependencyIndexBuilder {
       ),
     };
     final usesCanonicalResolution =
+        source.sourceKind == SceneConditionSourceKind.badge ||
         source.sourceKind == SceneConditionSourceKind.inventoryItem ||
         source.sourceKind == SceneConditionSourceKind.fact ||
         source.sourceKind == SceneConditionSourceKind.storyStepCompletion ||

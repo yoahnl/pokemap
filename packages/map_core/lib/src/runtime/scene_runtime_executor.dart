@@ -3,6 +3,7 @@ import 'dart:async';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
+import '../models/scene_interactive_command.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
@@ -473,11 +474,16 @@ final class SceneRuntimeExecutor {
       intent.declaredOutputPortIds.toSet(),
     );
     if (result.errorCode != null || result.outputPortId == null) return result;
+    final updatedContext = context
+          .recordOutcome(nodeId: nodeId, outcome: result.outputPortId!);
+    final giftRejected =
+        intent.interactiveCommand is SceneGiveItemInteractiveCommand &&
+        result.outputPortId == 'bagFull';
     return _OutputPortResult(
       outputPortId: result.outputPortId,
-      context: context
-          .recordOutcome(nodeId: nodeId, outcome: result.outputPortId!)
-          .markPersistentNodeApplied(nodeId),
+      context: giftRejected
+          ? updatedContext
+          : updatedContext.markPersistentNodeApplied(nodeId),
     );
   }
 

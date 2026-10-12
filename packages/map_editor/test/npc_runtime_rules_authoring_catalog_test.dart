@@ -4,6 +4,22 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/map_entities/application/npc_runtime_rules_authoring_catalog.dart';
 
 void main() {
+  test('badge picker uses project badges instead of shadow flags', () {
+    final catalog = buildNpcRuntimeAuthoringCatalog(
+      const ProjectManifest(
+        name: 'Johto',
+        maps: [],
+        tilesets: [],
+        badges: [BadgeDefinition(id: 'mineral', label: 'Badge Mineral')],
+      ),
+    );
+    expect(catalog.badges.single.id, 'mineral');
+    expect(catalog.badges.single.pickerLabel, 'Badge Mineral');
+    expect(
+      catalog.flags.map((option) => option.id),
+      isNot(contains('mineral')),
+    );
+  });
   test('knownStoryFlagIds dans globalProperties enrichit le catalogue flags',
       () {
     const project = ProjectManifest(

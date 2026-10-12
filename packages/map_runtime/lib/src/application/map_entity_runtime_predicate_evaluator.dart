@@ -43,6 +43,10 @@ class MapEntityRuntimePredicateEvaluator {
       return false;
     }
     return switch (predicate.kind) {
+      MapEntityRuntimePredicateKind.badgeOwned =>
+        gameState.trainerProfile.badgeIds.contains(ref),
+      MapEntityRuntimePredicateKind.badgeNotOwned =>
+        !gameState.trainerProfile.badgeIds.contains(ref),
       MapEntityRuntimePredicateKind.storyFlagSet => _flags.contains(ref),
       MapEntityRuntimePredicateKind.storyFlagUnset => !_flags.contains(ref),
       MapEntityRuntimePredicateKind.stepCompleted =>

@@ -7,6 +7,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
+import 'modern_narrative_inspection.dart';
 
 AuthoringActionDescriptor narrativeActionDescriptor(
   String id,
@@ -49,6 +50,15 @@ AuthoringMutationDraft narrativeProjectDraft(
     id: 'project',
     revision: snapshot.resourceFingerprints['project'],
   );
+  final inspector = const ModernNarrativeInspector();
+  final beforeInspection = inspector.inspect(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+  );
+  final afterInspection = inspector.inspect(
+    project: projected,
+    maps: snapshot.maps,
+  );
   return AuthoringMutationDraft(
     projectedProject: projected,
     changeSet: AuthoringChangeSet(
@@ -75,7 +85,15 @@ AuthoringMutationDraft narrativeProjectDraft(
         ),
       ]),
     ),
-    preview: {'operation': operation, 'path': path, ...preview},
+    preview: {
+      'operation': operation,
+      'path': path,
+      ...preview,
+      'diagnosticDelta': modernNarrativeDiagnosticDelta(
+        before: beforeInspection.diagnostics,
+        after: afterInspection.diagnostics,
+      ),
+    },
   );
 }
 

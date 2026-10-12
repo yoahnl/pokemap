@@ -2,6 +2,54 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('item gift declares separate received and bagFull routes', () {
+    final command = SceneInteractiveCommand.fromJson({
+      'kind': 'giveItem',
+      'itemId': 'tm23',
+      'quantity': 1,
+    });
+    expect(command.outputPortIds, ['received', 'bagFull']);
+    expect(SceneInteractiveCommand.fromJson(command.toJson()), command);
+    expect(
+      () => SceneInteractiveCommand.fromJson({
+        'kind': 'giveItem',
+        'itemId': 'tm23',
+        'quantity': 0,
+      }),
+      throwsArgumentError,
+    );
+  });
+
+  test('no-code gift command builds the canonical retryable payload', () {
+    final payload =
+        buildScenePayloadForNarrativeCommand(
+              commandId: 'giveItemGift',
+              parameters: {'itemId': 'tm23', 'quantity': '1'},
+            )
+            as SceneActionPayload;
+    expect(payload.interactiveCommand!.kind.name, 'giveItem');
+    expect(payload.interactiveCommand!.outputPortIds, ['received', 'bagFull']);
+    expect(
+      diagnoseInteractiveCommand(
+        command: payload.interactiveCommand!,
+        project: const ProjectManifest(name: 'Gift', maps: [], tilesets: []),
+      ),
+      isEmpty,
+    );
+  });
+
+  test('gift item reference is indexed once with its editable command path', () {
+    final project = ProjectManifest(name: 'Gift', maps: const [], tilesets: const [], scenes: [
+      SceneAsset(id: 'gift', name: 'Gift', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'gift', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1))),
+      ])),
+    ]);
+    final references = buildProjectItemReferenceIndex(project: project).referencesFor('tm23');
+    expect(references, hasLength(1));
+    expect(references.single.kind, ProjectItemReferenceKind.sceneGive);
+    expect(references.single.editablePath, 'scenes[gift].graph.nodes[1].payload.interactiveCommand.itemId');
+  });
   test('interactive commands round-trip with explicit output ports', () {
     final commands = <SceneInteractiveCommand>[
       SceneInteractiveCommand.warp(
@@ -68,10 +116,7 @@ void main() {
         });
 
     expect(
-      () => decode(<String, dynamic>{
-        'operation': 'begin',
-        'doorSide': 'west',
-      }),
+      () => decode(<String, dynamic>{'operation': 'begin', 'doorSide': 'west'}),
       throwsArgumentError,
     );
     expect(
@@ -126,9 +171,11 @@ void main() {
     final action = roundTrip.graph.nodes[1].payload as SceneActionPayload;
 
     expect(
-        action.interactiveCommand,
-        scene.graph.nodes[1].payload.let(
-            (payload) => (payload as SceneActionPayload).interactiveCommand));
+      action.interactiveCommand,
+      scene.graph.nodes[1].payload.let(
+        (payload) => (payload as SceneActionPayload).interactiveCommand,
+      ),
+    );
     final plan = buildSceneRuntimePlan(roundTrip);
     expect(plan.canBuild, isTrue);
     expect(
@@ -155,46 +202,46 @@ void main() {
 }
 
 SceneAsset _interactiveScene() => SceneAsset(
-      id: 'scene.shop',
-      name: 'Boutique',
-      graph: SceneGraph(
-        startNodeId: 'start',
-        nodes: [
-          SceneNode(id: 'start', kind: SceneNodeKind.start),
-          SceneNode(
-            id: 'shop',
-            kind: SceneNodeKind.action,
-            payload: SceneActionPayload.interactive(
-              SceneInteractiveCommand.openShop(shopId: 'shop.port'),
-            ),
-          ),
-          SceneNode(id: 'end', kind: SceneNodeKind.end),
-        ],
-        edges: [
-          SceneEdge(
-            id: 'start-shop',
-            fromNodeId: 'start',
-            fromPortId: 'completed',
-            toNodeId: 'shop',
-            kind: SceneEdgeKind.defaultFlow,
-          ),
-          SceneEdge(
-            id: 'shop-end',
-            fromNodeId: 'shop',
-            fromPortId: 'completed',
-            toNodeId: 'end',
-            kind: SceneEdgeKind.actionCompleted,
-          ),
-          SceneEdge(
-            id: 'shop-cancelled',
-            fromNodeId: 'shop',
-            fromPortId: 'cancelled',
-            toNodeId: 'end',
-            kind: SceneEdgeKind.actionCompleted,
-          ),
-        ],
+  id: 'scene.shop',
+  name: 'Boutique',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'shop',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+        ),
       ),
-    );
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ],
+    edges: [
+      SceneEdge(
+        id: 'start-shop',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'shop',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'shop-end',
+        fromNodeId: 'shop',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+      SceneEdge(
+        id: 'shop-cancelled',
+        fromNodeId: 'shop',
+        fromPortId: 'cancelled',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+    ],
+  ),
+);
 
 extension<T> on T {
   R let<R>(R Function(T value) transform) => transform(this);

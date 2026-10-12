@@ -1,10 +1,12 @@
 import '../models/narrative_command_descriptor.dart';
+import '../models/scene_interactive_command.dart';
 
 abstract final class NarrativeCommandIds {
   static const setFact = 'setFact';
   static const markEventConsumed = 'markEventConsumed';
   static const completeStoryStep = 'completeStoryStep';
   static const giveItem = 'giveItem';
+  static const giveItemGift = 'giveItemGift';
   static const takeItem = 'takeItem';
   static const giveMoney = 'giveMoney';
   static const grantRailCurrency = 'grantRailCurrency';
@@ -27,9 +29,13 @@ abstract final class NarrativeCommandIds {
   static const setPauseMenuEntryVisibility =
       'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
+  static const movePlatform = 'movePlatform';
   static const playCharacterAnimation = 'playCharacterAnimation';
   static const playModelAnimation = 'playModelAnimation';
   static const railJourney = 'railJourney';
+
+  static String forInteractiveCommand(SceneInteractiveCommand command) =>
+      command is SceneGiveItemInteractiveCommand ? giveItemGift : command.kind.name;
 }
 
 final class NarrativeCommandCatalog {
@@ -58,7 +64,9 @@ final class NarrativeCommandCatalog {
       String id,
       String label,
       String lot,
-      List<NarrativeCommandParameterDescriptor> parameters,
+      List<NarrativeCommandParameterDescriptor> parameters, {
+      String? wireId,
+    }
     ) =>
         NarrativeCommandDescriptor(
           id: id,
@@ -67,7 +75,7 @@ final class NarrativeCommandCatalog {
           backend: NarrativeCommandBackend.interactiveRuntimeCommand,
           capabilities: supported,
           fgLotId: lot,
-          wireId: 'SceneInteractiveCommand.$id',
+          wireId: wireId ?? 'SceneInteractiveCommand.$id',
           parameters: parameters,
           isAwaitable: true,
         );
@@ -124,6 +132,16 @@ final class NarrativeCommandCatalog {
           NarrativeCommandParameterKind.integer,
         ),
       ]),
+      interactive(
+        NarrativeCommandIds.giveItemGift,
+        'Remettre un objet avec reprise',
+        'FG-083',
+        [
+          _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
+          _parameter('quantity', 'Quantité', NarrativeCommandParameterKind.integer),
+        ],
+        wireId: 'SceneInteractiveCommand.giveItem',
+      ),
       consequence(NarrativeCommandIds.takeItem, 'Retirer un objet', 'FG-083', [
         _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
         _parameter(
@@ -397,6 +415,10 @@ final class NarrativeCommandCatalog {
         'FG-091',
         const [],
       ),
+      interactive(NarrativeCommandIds.movePlatform, 'Déplacer une plateforme', 'FG-120', [
+        _parameter('platformRef', 'Plateforme', NarrativeCommandParameterKind.movingPlatform),
+        _parameter('motion', 'Mouvement', NarrativeCommandParameterKind.movingPlatformMotion),
+      ]),
       interactive(NarrativeCommandIds.moveNpc, 'Déplacer un PNJ', 'FG-092', [
         _parameter('npcRef', 'PNJ', NarrativeCommandParameterKind.npc),
         _parameter('warpId', 'Destination', NarrativeCommandParameterKind.warp),

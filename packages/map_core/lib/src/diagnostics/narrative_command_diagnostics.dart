@@ -51,7 +51,9 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
   NarrativeCommandCatalog? catalog,
 }) {
   final canonical = catalog ?? NarrativeCommandCatalog.canonical();
-  final descriptor = canonical.byId(command.kind.name);
+  final descriptor = canonical.byId(
+    NarrativeCommandIds.forInteractiveCommand(command),
+  );
   if (descriptor == null || !descriptor.isPublishable) {
     return [
       NarrativeCommandDiagnostic(

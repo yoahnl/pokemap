@@ -21,6 +21,8 @@ enum NarrativeCommandParameterKind {
   starter,
   map,
   modelInstance,
+  movingPlatform,
+  movingPlatformMotion,
   modelAnimation,
   npc,
   warp,

@@ -15,6 +15,7 @@ void main() {
       NarrativeCommandIds.markEventConsumed,
       NarrativeCommandIds.completeStoryStep,
       NarrativeCommandIds.giveItem,
+      NarrativeCommandIds.giveItemGift,
       NarrativeCommandIds.takeItem,
       NarrativeCommandIds.giveMoney,
       NarrativeCommandIds.grantRailCurrency,
@@ -36,6 +37,7 @@ void main() {
       NarrativeCommandIds.setNpcPresence,
       NarrativeCommandIds.setPauseMenuEntryVisibility,
       NarrativeCommandIds.moveNpc,
+      NarrativeCommandIds.movePlatform,
       NarrativeCommandIds.playCharacterAnimation,
       NarrativeCommandIds.playModelAnimation,
       NarrativeCommandIds.railJourney,
@@ -75,16 +77,33 @@ void main() {
     }
   });
 
-  test('interactive commands match the runtime command kinds exactly', () {
-    final declared =
-        withBackend(NarrativeCommandBackend.interactiveRuntimeCommand)
-            .map((command) => command.id)
-            .toSet();
+  test('interactive command wires match the runtime kinds exactly', () {
+    final published = {
+      for (final command
+          in withBackend(NarrativeCommandBackend.interactiveRuntimeCommand))
+        command.id: command.wireId,
+    };
 
+    expect(published, {
+      NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
+      NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',
+      NarrativeCommandIds.moveNpc: 'SceneInteractiveCommand.moveNpc',
+      NarrativeCommandIds.movePlatform: 'SceneInteractiveCommand.movePlatform',
+      NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',
+      NarrativeCommandIds.openHeal: 'SceneInteractiveCommand.openHeal',
+      NarrativeCommandIds.openPc: 'SceneInteractiveCommand.openPc',
+      NarrativeCommandIds.playCharacterAnimation:
+          'SceneInteractiveCommand.playCharacterAnimation',
+      NarrativeCommandIds.playModelAnimation:
+          'SceneInteractiveCommand.playModelAnimation',
+      NarrativeCommandIds.railJourney: 'SceneInteractiveCommand.railJourney',
+    });
     expect(
-      declared,
-      SceneInteractiveCommandKind.values.map((kind) => kind.name).toSet(),
-      reason: 'the interactive catalog and the runtime kinds must not drift',
+      published.values.toSet(),
+      SceneInteractiveCommandKind.values
+          .map((kind) => 'SceneInteractiveCommand.${kind.name}')
+          .toSet(),
+      reason: 'the interactive wires and the runtime kinds must not drift',
     );
   });
 

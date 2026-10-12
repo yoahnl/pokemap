@@ -938,6 +938,8 @@ void _collectRuntimePredicateReads(
     case MapEntityRuntimePredicateKind.chapterNotCompleted:
     case MapEntityRuntimePredicateKind.cutsceneCompleted:
     case MapEntityRuntimePredicateKind.cutsceneNotCompleted:
+    case MapEntityRuntimePredicateKind.badgeOwned:
+    case MapEntityRuntimePredicateKind.badgeNotOwned:
       break;
   }
 }

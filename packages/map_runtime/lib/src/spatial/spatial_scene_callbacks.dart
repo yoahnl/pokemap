@@ -63,6 +63,11 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
+    if (source.sourceKind == SceneConditionSourceKind.badge) {
+      return evaluateSceneBadgeCondition(source: source, gameState: state)
+          ? 'true'
+          : 'false';
+    }
     if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
       return evaluateSceneInventoryCondition(source: source, gameState: state)
           ? 'true'

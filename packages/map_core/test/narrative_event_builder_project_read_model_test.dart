@@ -9,6 +9,93 @@ const _eventC = 'evt_00000000-0000-7000-8000-000000000003';
 
 void main() {
   group('NS-EVENT-V2 Phase D D3 unified project read model', () {
+    for (final value in [
+      NarrativeValue.integer(2),
+      const NarrativeValue.string('ouvert'),
+    ]) {
+      test('accepts ${value.kind.wireName} Fact conditions without a bool cast',
+          () {
+        final project = _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_progress',
+              label: 'Progression du port',
+              initialValue: value,
+            ),
+          ],
+          records: [
+            _configured(
+              _eventA,
+              'Rencontre au port',
+              NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa'),
+              enabled: true,
+              conditions: [
+                NarrativeEventCondition.factValue(
+                  'fact_progress',
+                  operator: NarrativeFactOperator.equals,
+                  expectedValue: value,
+                ),
+              ],
+            ),
+          ],
+        );
+        final before = jsonEncode(project.toJson());
+        final catalog = buildNarrativeEventProjectCatalog(
+          project: project,
+          maps: [_map()],
+        );
+        expect(catalog.events.single.contextuallyValid, isTrue);
+        expect(catalog.diagnostics, isEmpty);
+        final model = buildNarrativeEventBuilderProjectReadModel(
+          project: project,
+          maps: [_map()],
+        );
+        expect(model.events.single.status,
+            NarrativeEventProjectStatus.configuredEnabledReady);
+        expect(model.events.single.conditions.valid, isTrue);
+        final dependencies = buildNarrativeDependencyIndex(
+          project: project,
+          maps: [_map()],
+        );
+        expect(
+          dependencies.usagesFor(const NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.fact,
+            'fact_progress',
+          )),
+          hasLength(1),
+        );
+        expect(jsonEncode(project.toJson()), before);
+      });
+    }
+
+    test('reports an incompatible Fact condition type instead of casting', () {
+      final catalog = buildNarrativeEventProjectCatalog(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_progress',
+              label: 'Progression du port',
+              initialValue: NarrativeValue.integer(0),
+            ),
+          ],
+          records: [
+            _configured(
+              _eventA,
+              'Rencontre au port',
+              NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa'),
+              enabled: true,
+              conditions: [NarrativeEventCondition.fact('fact_progress', true)],
+            ),
+          ],
+        ),
+        maps: [_map()],
+      );
+      expect(catalog.events.single.contextuallyValid, isFalse);
+      expect(catalog.diagnostics.single.code, 'narrativeEventFactTypeMismatch');
+      expect(catalog.diagnostics.single.path,
+          'eventRegistry.records.$_eventA.conditions.0.expectedValue');
+    });
+
     test('keeps enabled and disabled Events sharing one source separate', () {
       final source = NarrativeEventSourceRef.entityInteract(
         'map_port',

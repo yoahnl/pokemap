@@ -8,9 +8,11 @@ GameState _state({
   Set<String> flags = const {},
   List<String> completedSteps = const [],
   List<String> completedCutscenes = const [],
+  List<String> badgeIds = const [],
 }) {
   return GameState(
     saveId: 't',
+    trainerProfile: TrainerProfile(name: 'Johto', badgeIds: badgeIds),
     storyFlags: StoryFlags(activeFlags: flags),
     progression: PlayerProgression(
       completedStepIds: completedSteps,
@@ -30,6 +32,64 @@ MapEntity _npc(MapEntityNpcData npc) {
 
 void main() {
   const emptyChapters = GlobalStoryChapterStepIndex(chapterIdToStepIds: {});
+
+  for (final owned in [false, true]) {
+    test(
+      'NPC badge conditions read the same persisted trainer profile owned=$owned',
+      () {
+        final state = _state(
+          badgeIds: owned ? ['mineral'] : [],
+          flags: owned ? {} : {'mineral'},
+        );
+        final evaluator = MapEntityRuntimePredicateEvaluator(
+          gameState: GameState.fromJson(state.toJson()),
+          chapterIndex: emptyChapters,
+        );
+        expect(
+          evaluator.evaluatePredicate(
+            const MapEntityRuntimePredicate(
+              kind: MapEntityRuntimePredicateKind.badgeOwned,
+              refId: 'mineral',
+            ),
+          ),
+          owned,
+        );
+        expect(
+          evaluator.evaluatePredicate(
+            const MapEntityRuntimePredicate(
+              kind: MapEntityRuntimePredicateKind.badgeNotOwned,
+              refId: 'mineral',
+            ),
+          ),
+          !owned,
+        );
+        final npc = MapEntityNpcData(
+          dialogue: const DialogueRef(dialogueId: 'before'),
+          conditionalDialogues: const [
+            MapEntityConditionalDialogue(
+              when: MapEntityRuntimePredicate(
+                kind: MapEntityRuntimePredicateKind.badgeOwned,
+                refId: 'mineral',
+              ),
+              dialogue: DialogueRef(dialogueId: 'after'),
+            ),
+          ],
+          visibilityRule: const MapEntityNpcVisibilityRule(
+            mode: MapEntityNpcVisibilityMode.visibleWhen,
+            predicate: MapEntityRuntimePredicate(
+              kind: MapEntityRuntimePredicateKind.badgeOwned,
+              refId: 'mineral',
+            ),
+          ),
+        );
+        expect(evaluator.isNpcPresentOnMap(_npc(npc)), owned);
+        expect(
+          evaluator.resolveNpcDialogue(npc)!.dialogueId,
+          owned ? 'after' : 'before',
+        );
+      },
+    );
+  }
 
   test('flag actif → visibleWhen true', () {
     final ev = MapEntityRuntimePredicateEvaluator(

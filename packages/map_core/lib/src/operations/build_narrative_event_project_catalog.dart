@@ -171,20 +171,35 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     }
     final eventDependencies = <_EventDependency>[];
     for (var index = 0; index < definition.conditions.length; index++) {
-      definition.conditions[index].when<void>(
-        fact: (factId, _) {
+      definition.conditions[index].whenTyped<void>(
+        fact: (factId, _, expectedValue) {
           final matches = factsById[factId] ?? const [];
-          if (matches.length == 1) return;
-          valid = false;
-          _recordEventIssue(
-            diagnostics: diagnostics,
-            code: matches.isEmpty
-                ? 'narrativeEventFactMissing'
-                : 'narrativeEventFactAmbiguous',
-            message: 'Le Fact référencé doit exister exactement une fois.',
-            eventId: record.id,
-            suffix: 'conditions.$index.factId',
-          );
+          if (matches.length != 1) {
+            valid = false;
+            _recordEventIssue(
+              diagnostics: diagnostics,
+              code: matches.isEmpty
+                  ? 'narrativeEventFactMissing'
+                  : 'narrativeEventFactAmbiguous',
+              message: 'Le Fact référencé doit exister exactement une fois.',
+              eventId: record.id,
+              suffix: 'conditions.$index.factId',
+            );
+            return;
+          }
+          final fact = matches.single.fact;
+          if (expectedValue.kind != fact.valueKind) {
+            valid = false;
+            _recordEventIssue(
+              diagnostics: diagnostics,
+              code: 'narrativeEventFactTypeMismatch',
+              message: 'La condition attend une valeur de type '
+                  '${fact.valueKind.wireName}, mais reçoit '
+                  '${expectedValue.kind.wireName}.',
+              eventId: record.id,
+              suffix: 'conditions.$index.expectedValue',
+            );
+          }
         },
         narrativeEventConsumed: (eventId, _) {
           eventDependencies.add(

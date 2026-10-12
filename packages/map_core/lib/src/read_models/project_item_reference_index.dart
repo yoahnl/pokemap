@@ -6,6 +6,7 @@ import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/script_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/items/project_item_catalog.dart';
@@ -215,6 +216,16 @@ final class _ProjectItemReferenceIndexBuilder {
         final payload = scene.graph.nodes[index].payload;
         final prefix = 'scenes[${scene.id}].graph.nodes[$index].payload';
         if (payload is SceneActionPayload) {
+          final command = payload.interactiveCommand;
+          if (command is SceneGiveItemInteractiveCommand) {
+            _add(
+              itemId: command.itemId,
+              kind: ProjectItemReferenceKind.sceneGive,
+              sourceKind: 'scene',
+              sourceId: scene.id,
+              editablePath: '$prefix.interactiveCommand.itemId',
+            );
+          }
           final consequence = payload.consequence;
           if (consequence is SceneGiveItemConsequence) {
             _add(
@@ -389,6 +400,11 @@ final class _ProjectItemReferenceIndexBuilder {
     );
     for (final usage in narrativeIndex.usages) {
       if (usage.target.kind != NarrativeDependencyTargetKind.item) continue;
+      if (_references.any((reference) =>
+          reference.itemId == usage.target.id &&
+          reference.editablePath == usage.path)) {
+        continue;
+      }
       _add(
         itemId: usage.target.id,
         kind: ProjectItemReferenceKind.condition,

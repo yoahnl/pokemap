@@ -156,6 +156,7 @@ class MapLayersComponent extends PositionComponent {
   };
   final Map<String, List<MapPlacedElement>> _laterOverlappingById = {};
   MapPlacedElement? _preview;
+  Map<String, MapPlacedElement> _runtimePlacements = {};
   final _placedPlans = QuarterTurnPixelPlanCache();
   int get debugPlacedElementPlanPreparationCount =>
       _placedPlans.preparationCount;
@@ -194,7 +195,7 @@ class MapLayersComponent extends PositionComponent {
   }
 
   MapPlacedElement _effective(MapPlacedElement instance) =>
-      _preview?.id == instance.id ? _preview! : instance;
+      _preview?.id == instance.id ? _preview! : (_runtimePlacements[instance.id] ?? instance);
 
   Rect _collisionBounds(MapPlacedElement instance) {
     final element = _elementById[instance.elementId];
@@ -230,19 +231,31 @@ class MapLayersComponent extends PositionComponent {
           bucketHeight: bundle.cellHeight * 16);
 
   List<MapPlacedElement> _placedCandidates(Rect? rect) {
-    final preview = _preview;
+    final overrides = {..._runtimePlacements, ...?(_preview == null ? null : {_preview!.id: _preview!})};
     final originals = _placedElementSpatialIndex.query(rect);
-    if (preview == null) return originals;
     final result = [
-      for (final item in originals)
-        if (item.id != preview.id) item
+      for (final item in originals) if (!overrides.containsKey(item.id)) item,
+      for (final item in overrides.values) if (rect == null || _intersects(_visualBounds(item), rect)) item,
     ];
-    if (rect == null || _intersects(_visualBounds(preview), rect)) {
-      result.add(preview);
-    }
     result.sort((a, b) => _placedElementOrderById[a.id]!
         .compareTo(_placedElementOrderById[b.id]!));
     return result;
+  }
+
+  void setRuntimePlacedElementState(List<MapPlacedElement> instances) {
+    final next = <String, MapPlacedElement>{};
+    for (final instance in instances) {
+      final index = _placedElementOrderById[instance.id];
+      final original = index == null ? null : _orderedPlacedElements[index];
+      if (original == null || original.layerId != instance.layerId ||
+          !_elementById.containsKey(instance.elementId) || next.containsKey(instance.id)) {
+        throw ArgumentError('Runtime placement must identify an existing visual and resource.');
+      }
+      _geometry(instance, _elementById[instance.elementId]!);
+      next[instance.id] = instance;
+    }
+    _runtimePlacements = next;
+    _laterOverlappingById.clear();
   }
 
   void setPlacedElementPreview(MapPlacedElement? instance) {
@@ -2122,14 +2135,12 @@ class MapLayersComponent extends PositionComponent {
         0,
         bundle.map.size.width * bundle.cellWidth,
         bundle.map.size.height * bundle.cellHeight);
-    final preview = _preview;
+    final overrides = {..._runtimePlacements, ...?(_preview == null ? null : {_preview!.id: _preview!})};
     final candidates = [
       for (final original in _collisionSpatialIndex.query(_visibleLocalRect))
-        if (original.id != preview?.id) original,
-      if (preview != null &&
-          (_visibleLocalRect == null ||
-              _collisionBounds(preview).overlaps(_visibleLocalRect!)))
-        preview,
+        if (!overrides.containsKey(original.id)) original,
+      for (final instance in overrides.values)
+        if (_visibleLocalRect == null || _collisionBounds(instance).overlaps(_visibleLocalRect!)) instance,
     ];
     for (final instance in candidates) {
       final element = _elementById[instance.elementId];

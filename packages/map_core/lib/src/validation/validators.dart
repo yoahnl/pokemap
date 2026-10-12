@@ -11,6 +11,7 @@ import '../models/map_spatial_scene.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/map_placed_element_origin.dart';
+import '../models/moving_platform.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
@@ -24,6 +25,7 @@ import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import '../operations/map_entities.dart';
+import '../operations/moving_platform_operations.dart';
 import '../operations/map_gameplay_zones.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
@@ -2584,6 +2586,19 @@ class MapValidator {
       throw const ValidationException(
         'The map dimension must match its project.',
       );
+    }
+    if (map.movingPlatforms.isNotEmpty) {
+      final project = projectDialogueContext;
+      if (project != null) {
+        try {
+          validateMovingPlatformMapState(map: map, project: project,
+              worldState: const MovingPlatformWorldState.empty(),
+              tileSize: PixelSize(width: project.settings.tileWidth, height: project.settings.tileHeight));
+        } on FormatException catch (error) {
+          throw ValidationException(error.message.toString(), code: 'map.platform_invalid',
+              details: {'mapId': mapId, 'path': 'movingPlatforms'});
+        }
+      }
     }
     _requireNonBlank(map.name, 'Map name cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {

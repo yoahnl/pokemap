@@ -32,6 +32,7 @@ enum SceneDiagnosticCode {
   conditionUsesRawTechnicalId,
   conditionSourceMigratesToFactRegistry,
   conditionFactRefUnknown,
+  conditionBadgeRefUnknown,
   conditionWorldRuleRefUnknown,
   consequenceUnknownFact,
   consequenceUnknownEvent,
@@ -41,6 +42,7 @@ enum SceneDiagnosticCode {
   consequenceUnknownBadge,
   consequenceUnknownNpc,
   commandUnknownNpc,
+  commandUnknownPlatform,
   commandUnknownWarp,
   commandUnknownRailJourney,
   commandUnknownMap,
@@ -627,6 +629,20 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
             ),
           );
         }
+        if (source.sourceKind == SceneConditionSourceKind.badge &&
+            !badgeIds.contains(source.sourceId)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.conditionBadgeRefUnknown,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'La condition référence un badge absent du projet.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir un badge existant.',
+            ),
+          );
+        }
         if (source.sourceKind == SceneConditionSourceKind.worldState &&
             !worldRuleIds.contains(source.sourceId)) {
           diagnostics.add(
@@ -1099,6 +1115,16 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir un décor et une animation existants.',
         ),
       );
+    }
+  }
+  if (interactiveCommand is SceneMovePlatformInteractiveCommand) {
+    final map = mapsById[interactiveCommand.mapId];
+    if (map == null || !map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId)) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPlatform,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La commande movePlatform cible une plateforme absente du projet.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir une plateforme de la carte.'));
     }
   }
   if (interactiveCommand is SceneMoveNpcInteractiveCommand) {
@@ -1848,6 +1874,8 @@ List<String> _outcomePortIdsForBranchSource(SceneNode node) {
           ? const <String>['victory', 'defeat']
           : declaredOutcomes,
     SceneConditionPayload() => const <String>['true', 'false'],
+    SceneActionPayload(:final interactiveCommand?) =>
+      interactiveCommand.outputPortIds,
     SceneActionPayload(:final preSessionInteraction?) =>
       preSessionInteraction.outputPortIds,
     SceneStartPayload() ||
@@ -1918,6 +1946,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
     SceneConditionSourceKind.inventoryItem ||
+    SceneConditionSourceKind.badge ||
     SceneConditionSourceKind.consumedEvent => true,
     SceneConditionSourceKind.storyStepActive ||
     SceneConditionSourceKind.partyState ||
@@ -1948,6 +1977,7 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
           source.operator == SceneConditionOperator.isFalse,
     SceneConditionSourceKind.storyStepCompletion =>
       source.operator == SceneConditionOperator.equals,
+    SceneConditionSourceKind.badge => source.badgeOwnershipExpected != null,
     SceneConditionSourceKind.inventoryItem =>
       source.inventoryQuantityThreshold != null,
     SceneConditionSourceKind.storyStepActive ||

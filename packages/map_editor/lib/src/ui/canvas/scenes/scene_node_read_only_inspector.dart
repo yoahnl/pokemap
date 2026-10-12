@@ -2632,6 +2632,14 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
+                if (_optionsForKind(SceneConditionSourceKind.badge).isNotEmpty)
+                  _conditionButton(
+                    key: const ValueKey('scene-condition-source-kind-badge'),
+                    label: 'Badge',
+                    selected: _sourceKind == SceneConditionSourceKind.badge,
+                    onPressed: () =>
+                        _selectSourceKind(SceneConditionSourceKind.badge),
+                  ),
                 if (_optionsForKind(SceneConditionSourceKind.fact).isNotEmpty)
                   _conditionButton(
                     key: const ValueKey(
@@ -2777,7 +2785,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     return [
       _conditionButton(
         key: const ValueKey('scene-condition-operator-isTrue'),
-        label: 'Est vrai',
+        label: _sourceKind == SceneConditionSourceKind.badge
+            ? 'Obtenu'
+            : 'Est vrai',
         selected: _operator == SceneConditionOperator.isTrue,
         onPressed: () => setState(() {
           _operator = SceneConditionOperator.isTrue;
@@ -2786,7 +2796,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       ),
       _conditionButton(
         key: const ValueKey('scene-condition-operator-isFalse'),
-        label: 'Est faux',
+        label: _sourceKind == SceneConditionSourceKind.badge
+            ? 'Non obtenu'
+            : 'Est faux',
         selected: _operator == SceneConditionOperator.isFalse,
         onPressed: () => setState(() {
           _operator = SceneConditionOperator.isFalse;
@@ -2983,6 +2995,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
   SceneConditionSourceKind _firstAvailableKind() {
     for (final kind in const [
       SceneConditionSourceKind.fact,
+      SceneConditionSourceKind.badge,
       SceneConditionSourceKind.factLikeStoryFlag,
       SceneConditionSourceKind.storyStepCompletion,
       SceneConditionSourceKind.consumedEvent,
@@ -2997,6 +3010,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
       SceneConditionSourceKind.newGameDraft => false,
+      SceneConditionSourceKind.badge ||
       SceneConditionSourceKind.factLikeStoryFlag ||
       SceneConditionSourceKind.fact ||
       SceneConditionSourceKind.storyStepCompletion ||
@@ -3378,6 +3392,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
       SceneConditionOperator.equals,
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
+    SceneConditionSourceKind.badge ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
       SceneConditionOperator.isTrue,
@@ -3399,6 +3414,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
       SceneConditionValues.completed,
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
+    SceneConditionSourceKind.badge ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent ||
     SceneConditionSourceKind.storyStepActive ||
