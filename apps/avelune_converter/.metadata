@@ -1,0 +1,23 @@
+
+version:
+  revision: "6a19cca56475dbfba1478ee68d7bd0c2ef891da1"
+  channel: "stable"
+
+project_type: app
+
+migration:
+  platforms:
+    - platform: root
+      create_revision: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
+      base_revision: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
+    - platform: macos
+      create_revision: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
+      base_revision: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
+
+
+  unmanaged_files:
+    - 'lib/main.dart'
+    - 'macos/Runner/MainFlutterWindow.swift'
+    - 'macos/Runner/Configs/AppInfo.xcconfig'
+    - 'macos/Runner/DebugProfile.entitlements'
+    - 'macos/Runner/Release.entitlements'

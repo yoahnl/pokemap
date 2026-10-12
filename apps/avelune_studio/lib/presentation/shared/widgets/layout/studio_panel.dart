@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../theme/studio_tokens.dart';
 
 class StudioPanel extends StatelessWidget {
@@ -8,18 +9,20 @@ class StudioPanel extends StatelessWidget {
     this.title,
     this.actions = const [],
     this.compact = false,
+    this.radius = StudioMetrics.panelRadius,
   });
   final List<Widget> children;
   final String? title;
   final List<Widget> actions;
   final bool compact;
+  final double radius;
 
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surface,
     shape: RoundedRectangleBorder(
       side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+      borderRadius: BorderRadius.circular(radius),
     ),
     child: Padding(
       padding: EdgeInsets.all(compact ? 12 : StudioMetrics.panelPadding),

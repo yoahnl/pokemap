@@ -59,6 +59,72 @@ void main() {
     expect(tree.rootPath, await root.resolveSymbolicLinks());
   });
 
+  test('opens and scans a readable source below a search-only ancestor',
+      () async {
+    final ancestor = await Directory('${root.path}/search-only').create();
+    final source = await Directory('${ancestor.path}/source').create();
+    final payload = [0, 1, 2, 255];
+    final file = await File('${source.path}/sample.bin').writeAsBytes(payload);
+    MacOsSourceTree? selected;
+    try {
+      final leafMode = await Process.run('/bin/chmod', ['700', source.path]);
+      expect(leafMode.exitCode, 0, reason: '${leafMode.stderr}');
+      final parentMode =
+          await Process.run('/bin/chmod', ['111', ancestor.path]);
+      expect(parentMode.exitCode, 0, reason: '${parentMode.stderr}');
+      expect((await ancestor.stat()).mode & 0x1ff, 0x49);
+      expect((await source.stat()).mode & 0x1ff, 0x1c0);
+      await expectLater(
+          ancestor.list().toList(), throwsA(isA<FileSystemException>()));
+      expect(await file.readAsBytes(), payload);
+
+      selected = await MacOsSourceTree.open(source.path);
+      final entries = await selected
+          .walk(policy: SourceScanPolicy(), cancellation: ScanCancellation())
+          .toList();
+      expect(entries.single.relativePath, 'sample.bin');
+      expect(
+          (await selected
+                  .read(entries.single,
+                      maxBytes: payload.length,
+                      cancellation: ScanCancellation())
+                  .toList())
+              .expand((chunk) => chunk),
+          payload);
+      final snapshot = await SourceScanner().scan(
+          source: selected,
+          logicalProjectNamespace: ConverterId('search-only-ancestor'));
+      expect(snapshot.state, SourceScanState.complete);
+      expect(snapshot.diagnostics, isEmpty);
+      final scannedFile = snapshot.entries.single;
+      expect(scannedFile.relativePath, 'sample.bin');
+      expect(scannedFile.byteLength, payload.length);
+      expect(scannedFile.sha256, isNotNull);
+      expect(await file.readAsBytes(), payload);
+    } finally {
+      await selected?.close();
+      final restored = await Process.run('/bin/chmod', ['700', ancestor.path]);
+      expect(restored.exitCode, 0, reason: '${restored.stderr}');
+    }
+  });
+
+  test('still refuses a selected source that has no directory read permission',
+      () async {
+    final source = await Directory('${root.path}/unreadable-source').create();
+    await File('${source.path}/sample.bin').writeAsBytes([0, 1, 2, 255]);
+    try {
+      final restricted = await Process.run('/bin/chmod', ['111', source.path]);
+      expect(restricted.exitCode, 0, reason: '${restricted.stderr}');
+      await expectLater(
+          source.list().toList(), throwsA(isA<FileSystemException>()));
+      await expectLater(MacOsSourceTree.open(source.path),
+          throwsA(code('source.root_invalid')));
+    } finally {
+      final restored = await Process.run('/bin/chmod', ['700', source.path]);
+      expect(restored.exitCode, 0, reason: '${restored.stderr}');
+    }
+  });
+
   test('does not follow a file or directory symlink outside the source',
       () async {
     final outside =

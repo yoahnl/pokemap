@@ -271,6 +271,7 @@ final class MacOsSourceTree implements SourceTreePort {
 }
 
 const _directoryFlags = 0x00100000 | 0x00000100 | 0x01000000;
+const _rootDirectoryFlags = 0x00100000 | 0x01000000 | 0x20000000;
 const _fileFlags = 0x00000100 | 0x01000000 | 0x00000004;
 const _chunkBytes = 65536;
 final _native = _MacOsNative();
@@ -279,24 +280,13 @@ String _sourceToken(String path, String ancestry, _MacStat stat) =>
     jsonEncode([path, ancestry, stat.token]);
 
 int _openRootDirectory(String canonical) {
-  var fd = _withPath('/', (path) => _native.open(path, _directoryFlags));
+  final fd =
+      _withPath(canonical, (path) => _native.open(path, _rootDirectoryFlags));
   if (fd < 0) {
     throw ContractError('source.root_invalid', r'$',
         'The selected source directory cannot be opened safely.');
   }
-  try {
-    for (final segment
-        in canonical.split('/').where((part) => part.isNotEmpty)) {
-      final child = _openDirectory(fd, segment, '');
-      _native.close(fd);
-      fd = child;
-    }
-    return fd;
-  } catch (_) {
-    _native.close(fd);
-    throw ContractError('source.root_invalid', r'$',
-        'The selected source directory cannot be opened safely.');
-  }
+  return fd;
 }
 
 int _openDirectory(int parent, String name, String path) {
