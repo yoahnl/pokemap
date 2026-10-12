@@ -74,6 +74,8 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
       _borderEraseTransform == widget.view.transform.value;
   int? _panPointer;
   Offset? _panPosition;
+  PointerDownEvent? _secondaryPanStart;
+  bool _secondaryPan = false;
   MapEncounterCellStroke? _encounterStroke;
   MapEncounterCellStroke? _environmentStroke;
   MapEnvironmentSession? _environmentOwner;
@@ -187,8 +189,14 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
       return;
     }
     if (_panPointer == event.pointer) {
-      _panPointer = null;
-      _panPosition = null;
+      final contextStart = _secondaryPanStart;
+      _cancel();
+      if (contextStart != null) {
+        final cell = _cell(contextStart.localPosition);
+        widget.document.stackPosition = cell;
+        widget.document.stackPixelPosition = _pixel(contextStart.localPosition);
+        widget.onContextMenu?.call(cell, contextStart.position);
+      }
       return;
     }
     if (_characterGesture != null) {

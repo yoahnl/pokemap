@@ -93,7 +93,7 @@ class MapTerrainInspector extends StatelessWidget {
           const ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.open_with),
-            title: Text('Espace + glisser pour déplacer la vue.'),
+            title: Text('Clic droit ou Espace + glisser pour déplacer la vue.'),
           ),
           if (preset != null)
             ExpansionTile(

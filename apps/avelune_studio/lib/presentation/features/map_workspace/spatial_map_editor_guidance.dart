@@ -2,7 +2,7 @@ part of 'spatial_map_editor.dart';
 
 extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
   String get cameraHelp =>
-      'Maj : placement précis · Maj + flèches : tourner la vue · Échap : annuler';
+      'Clic droit + glisser : déplacer la vue · Maj : placement précis · Maj + flèches : tourner la vue · Échap : annuler';
 
   String? get guidance {
     if (!showsHover) return null;
@@ -87,7 +87,7 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
           : ' · ${ramp.lowLevel} → ${ramp.highLevel} blocs';
       return '${stroke.error ?? "Pente$direction$height"} · Zone $width × $depth cases\nRelâchez pour valider. Maj + flèches : tourner la vue · Échap : annuler';
     }
-    return 'Sol · ${widget.view.terrain?.name ?? "Choisissez un terrain dans la palette"}${hit == null ? "" : " · $cell"}\nGlissez pour ${erase ? "effacer" : "peindre"}. Maj + flèches : tourner la vue · Échap : annuler';
+    return 'Sol · ${widget.view.terrain?.name ?? "Choisissez un terrain dans la palette"}${hit == null ? "" : " · $cell"}\nGlissez pour ${erase ? "effacer" : "peindre"}. Clic droit + glisser : déplacer la vue · Maj + flèches : tourner la vue · Échap : annuler';
   }
 
   List<SpatialCellOverlay> previewOverlays(ColorScheme colors) {

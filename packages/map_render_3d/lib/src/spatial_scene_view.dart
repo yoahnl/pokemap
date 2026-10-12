@@ -179,6 +179,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   SpatialContentDrag? contentDrag;
   double? contentDragHeight;
   double trackpadScale = 1;
+  int? navigationPointer;
+  Offset? navigationOrigin, navigationPosition;
+  bool navigationDragged = false, navigationSequence = false;
   Offset? hoverPosition;
   bool hoverRefreshPending = false;
   bool get zoomEnabled =>
@@ -226,7 +229,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 
   void hoverAt(Offset position) {
-    if (widget.onHover == null) return;
+    if (widget.onHover == null || navigationPointer != null) return;
     hoverPosition = position;
     enterHover();
     final game = this.game;
@@ -255,6 +258,74 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       game.placementRenderer.clear();
     }
     widget.onHover?.call(null);
+  }
+
+  void startNavigation(PointerEvent event, Offset origin) {
+    if (draggingContent) widget.onDragCancel?.call();
+    draggingContent = false;
+    contentDrag = null;
+    contentDragHeight = null;
+    navigationPointer = event.pointer;
+    navigationOrigin = navigationPosition = origin;
+    navigationDragged = false;
+    navigationSequence = true;
+    exitHover();
+    setState(() {});
+  }
+
+  void pointerDown(PointerDownEvent event) {
+    if (navigationPointer != null) return;
+    navigationSequence = false;
+    navigationDragged = false;
+    if (widget.onDragStart != null &&
+        event.kind == PointerDeviceKind.mouse &&
+        event.buttons & kSecondaryMouseButton != 0) {
+      startNavigation(event, event.localPosition);
+    }
+  }
+
+  void pointerMove(PointerMoveEvent event) {
+    if (widget.onDragStart == null || event.kind != PointerDeviceKind.mouse) {
+      return;
+    }
+    if (event.buttons & kSecondaryMouseButton == 0) {
+      endNavigation(event);
+      return;
+    }
+    if (navigationPointer == null) {
+      startNavigation(event, event.localPosition - event.localDelta);
+    }
+    if (navigationPointer != event.pointer) return;
+    if (!navigationDragged &&
+        (event.localPosition - navigationOrigin!).distance <=
+            kPrecisePointerPanSlop) {
+      return;
+    }
+    navigationDragged = true;
+    final delta = event.localPosition - navigationPosition!;
+    navigationPosition = event.localPosition;
+    final viewport = context.size;
+    if (viewport == null || viewport.isEmpty) return;
+    final yaw = switch (widget.controller.view) {
+      SpatialEditorView.game => widget.scene.camera.yawDegrees * math.pi / 180,
+      SpatialEditorView.top => 0.0,
+      SpatialEditorView.orbit => widget.controller.yaw,
+    };
+    final x =
+        -delta.dx / viewport.width * widget.scene.width * widget.controller.zoom;
+    final z =
+        -delta.dy / viewport.height * widget.scene.depth * widget.controller.zoom;
+    widget.controller.panBy(
+      x * math.cos(yaw) + z * math.sin(yaw),
+      -x * math.sin(yaw) + z * math.cos(yaw),
+    );
+  }
+
+  void endNavigation(PointerEvent event) {
+    if (navigationPointer != event.pointer) return;
+    navigationPointer = null;
+    navigationOrigin = navigationPosition = null;
+    setState(() {});
   }
 
   Future<void> initialize() async {
@@ -344,6 +415,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   Widget build(BuildContext context) {
     final game = this.game;
     return MouseRegion(
+      cursor: navigationPointer == null
+          ? MouseCursor.defer
+          : SystemMouseCursors.grabbing,
       onEnter: widget.placementPreview == null ? null : (_) => enterHover(),
       onHover: widget.onHover == null
           ? null
@@ -353,6 +427,10 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
           : (_) => exitHover(),
       child: Listener(
         behavior: HitTestBehavior.opaque,
+        onPointerDown: pointerDown,
+        onPointerMove: pointerMove,
+        onPointerUp: endNavigation,
+        onPointerCancel: endNavigation,
         onPointerSignal: (event) {
           if (event is PointerScrollEvent && zoomEnabled) {
             GestureBinding.instance.pointerSignalResolver.register(
@@ -378,6 +456,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                         ..remove(PointerDeviceKind.trackpad))
                     : null,
                 onSecondaryTapUp: (event) {
+                  if (navigationDragged) return;
                   final cell = game.pickContentCell(event.localPosition);
                   if (cell != null)
                     widget.onContextMenu?.call(
@@ -386,6 +465,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                     );
                 },
                 onPanStart: (event) {
+                  if (navigationSequence) return;
                   hoverAt(event.localPosition);
                   final orbit =
                       widget.controller.view == SpatialEditorView.orbit &&
@@ -430,6 +510,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                   contentDragHeight = null;
                 },
                 onPanUpdate: (event) {
+                  if (navigationSequence) return;
                   hoverAt(event.localPosition);
                   if (draggingContent) {
                     final cell = contentDragHeight == null
@@ -460,6 +541,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                   }
                 },
                 onTapUp: (event) {
+                  if (navigationSequence) return;
                   final hit = widget.selectContent
                       ? game.pickContent(event.localPosition)
                       : null;

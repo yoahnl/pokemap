@@ -20,6 +20,8 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _characterGesture = null;
     _panPointer = null;
     _panPosition = null;
+    _secondaryPanStart = null;
+    _secondaryPan = false;
     _decorDraft = null;
     _decorPointer = null;
     _nudgeKeys.clear();
@@ -63,6 +65,14 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
   }
 
   void _move(PointerMoveEvent event) {
+    if (event.kind == PointerDeviceKind.mouse &&
+        event.buttons & kSecondaryMouseButton != 0 &&
+        _panPointer != event.pointer) {
+      _cancel();
+      _panPointer = event.pointer;
+      _panPosition = event.position - event.delta;
+      _secondaryPan = true;
+    }
     if (_decorPointer == event.pointer && _decorDraft != null) {
       _decorDraft!.move(
         _pixelOffset(event.localPosition),
@@ -72,6 +82,18 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       return;
     }
     if (_panPointer == event.pointer && _panPosition != null) {
+      if (_secondaryPan && event.buttons & kSecondaryMouseButton == 0) {
+        _secondaryPanStart = null;
+        _panPosition = event.position;
+        return;
+      }
+      final start = _secondaryPanStart;
+      if (start != null) {
+        if ((event.position - start.position).distance <= kPrecisePointerPanSlop) {
+          return;
+        }
+        _secondaryPanStart = null;
+      }
       _translateViewport(event.position - _panPosition!);
       _panPosition = event.position;
       return;
@@ -124,6 +146,15 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
   }
 
   void _down(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.mouse &&
+        event.buttons & kSecondaryMouseButton != 0) {
+      _cancel();
+      _panPointer = event.pointer;
+      _panPosition = event.position;
+      _secondaryPanStart = event;
+      _secondaryPan = true;
+      return;
+    }
     if (event.buttons == kMiddleMouseButton ||
         (event.buttons == kPrimaryButton &&
             HardwareKeyboard.instance.isLogicalKeyPressed(
