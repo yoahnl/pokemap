@@ -29,12 +29,21 @@ void main() {
           find.byType(ConverterAssetReviewPanel),
         );
         final session = panel.session!;
+        final sourceMapId = saved.reviewSet.segments.entries
+            .singleWhere((entry) => entry.value.sessionId == session.sessionId)
+            .key;
         final candidate = session.activeCandidates.first;
         final corrected = session.editMetadata(
           candidateId: candidate.candidateId,
           expectedCandidateHash: candidate.canonicalHash,
           expectedSessionHash: session.canonicalHash,
           name: 'Correction locale non enregistrée',
+        );
+        final correctedSet = saved.reviewSet.replaceSegment(
+          sourceMapId: sourceMapId,
+          next: corrected,
+          expectedSetHash: saved.reviewSet.canonicalHash,
+          expectedSegmentHash: session.canonicalHash,
         );
         panel.onSessionChanged!(corrected, session.canonicalHash);
         await tester.pump();
@@ -68,16 +77,33 @@ void main() {
                   .isEmpty,
         );
         expect(
-          harness.workflow.state.prepared!.reviewSession!.canonicalHash,
-          corrected.canonicalHash,
+          harness.workflow.state.prepared!.reviewSet!.canonicalHash,
+          correctedSet.canonicalHash,
         );
         expect(
-          harness.workflow.state.settings!.reviewSession!.canonicalHash,
+          harness.workflow.state.settings!.reviewSet!.canonicalHash,
+          correctedSet.canonicalHash,
+        );
+        expect(
+          harness
+              .workflow
+              .state
+              .prepared!
+              .reviewSet!
+              .segments[sourceMapId]!
+              .canonicalHash,
           corrected.canonicalHash,
         );
         final stillSaved = (await tester.runAsync(harness.store.list))!.single;
         expect(stillSaved.canonicalHash, saved.canonicalHash);
-        expect(stillSaved.session.canonicalHash, session.canonicalHash);
+        expect(
+          stillSaved.reviewSet.canonicalHash,
+          saved.reviewSet.canonicalHash,
+        );
+        expect(
+          stillSaved.reviewSet.segments[sourceMapId]!.canonicalHash,
+          session.canonicalHash,
+        );
         expect(harness.workflow.state.approval, isNull);
         await tester.runAsync(harness.expectSourceUnchanged);
         expect(tester.takeException(), isNull);
@@ -206,7 +232,7 @@ void main() {
       );
       final saved = (await tester.runAsync(harness.store.list))!.single;
       expect(saved.resumeSettings.projectName, 'Kanto étude enregistrée');
-      expect(saved.session.activeCandidates, isNotEmpty);
+      expect(saved.reviewSet.activeCandidates, isNotEmpty);
       await tester.pumpWidget(const SizedBox());
       final resumedWorkflow = ConverterWorkflow();
       harness.workflows.add(resumedWorkflow);
@@ -217,12 +243,12 @@ void main() {
       await _wait(
         tester,
         () => find
-            .byKey(ValueKey('load-session-${saved.session.sessionId.value}'))
+            .byKey(ValueKey('load-session-${saved.reviewSet.sessionId.value}'))
             .evaluate()
             .isNotEmpty,
       );
       await tester.tap(
-        find.byKey(ValueKey('load-session-${saved.session.sessionId.value}')),
+        find.byKey(ValueKey('load-session-${saved.reviewSet.sessionId.value}')),
       );
       await _wait(
         tester,
@@ -231,8 +257,12 @@ void main() {
             !resumedWorkflow.state.isBusy,
       );
       expect(
-        resumedWorkflow.state.prepared!.reviewSession!.canonicalHash,
-        saved.session.canonicalHash,
+        resumedWorkflow.state.prepared!.reviewSet!.canonicalHash,
+        saved.reviewSet.canonicalHash,
+      );
+      expect(
+        resumedWorkflow.state.settings!.reviewSet!.canonicalHash,
+        saved.reviewSet.canonicalHash,
       );
       expect(
         resumedWorkflow.state.settings!.projectName,
@@ -287,8 +317,7 @@ void main() {
     ))!;
     try {
       await harness.pumpAndScan(tester);
-      final before =
-          harness.workflow.state.prepared!.reviewSession!.canonicalHash;
+      final before = harness.workflow.state.prepared!.reviewSet!.canonicalHash;
       final response = tester.binding.handleRequestAppExit();
       await tester.pumpAndSettle();
       await tester.tap(
@@ -299,10 +328,7 @@ void main() {
         () => find.text('Enregistrement impossible').evaluate().isNotEmpty,
       );
       expect(await response, AppExitResponse.cancel);
-      expect(
-        harness.workflow.state.prepared!.reviewSession!.canonicalHash,
-        before,
-      );
+      expect(harness.workflow.state.prepared!.reviewSet!.canonicalHash, before);
       expect(await tester.runAsync(harness.store.list), isEmpty);
       expect(find.text('Session enregistrée'), findsNothing);
       await tester.runAsync(harness.expectSourceUnchanged);

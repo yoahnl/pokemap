@@ -4,14 +4,85 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
 
 import 'support/original_asset_fixture.dart';
+import 'support/literal_tile_fixture.dart';
 
 void main() {
   late _AssetWorkflow harness;
   setUp(() async => harness = await _AssetWorkflow.create());
   tearDown(() async => harness.close());
+
+  test('segmented review retains 280 candidates under explicit total budget',
+      () async {
+    final root = await Directory.systemTemp.createTemp('ac15-segmented-');
+    final output = await Directory('${root.path}/destination').create();
+    final workflow = ConverterWorkflow();
+    addTearDown(() async {
+      await workflow.dispose();
+      await root.delete(recursive: true);
+    });
+    final raster = image.Image(width: 256, height: 1792, numChannels: 4);
+    for (var y = 0; y < raster.height; y++) {
+      for (var x = 0; x < raster.width; x++) {
+        raster.setPixelRgba(x, y, x % 251, y % 241, (x + y) % 239, 255);
+      }
+    }
+    final fixture = await LiteralTileFixture.create(
+        sourceRootPath: '${root.path}/source',
+        tilesets: [
+          LiteralFixtureTileset(
+              id: 1, metadataTileCount: 832, png: image.encodePng(raster))
+        ],
+        maps: [
+          for (final id in [1, 8])
+            LiteralFixtureMap(id: id, width: 140, height: 1, layers: [
+              List.generate(140, (index) => 384 + index),
+              List.filled(140, 0),
+              List.filled(140, 0),
+            ])
+        ]);
+    final snapshot = await workflow.scanSource(ConverterSourceSelection(
+        rootPath: fixture.sourceRootPath!,
+        logicalProjectNamespace: ConverterId('segmented-workflow')));
+    workflow.updateSettings(ConverterStudySettings(
+        projectName: 'Segmented resources',
+        parentPath: output.path,
+        folderName: 'output',
+        selectedSourceMapIds: const [1, 8],
+        profileAcknowledgement: SourceStudyAcknowledgement(
+            sourceSnapshotHash: snapshot.canonicalHash,
+            profileEvidenceHash: snapshot.profile.evidenceHash,
+            humanConfirmed: true,
+            reason: 'Original controlled fixture'),
+        writeLimits: const NativeWriteLimits(maxMutations: 512)));
+    final prepared = await workflow.prepareStudy();
+    expect(prepared.assetCandidates, hasLength(280));
+    expect(prepared.reviewSet!.segments.keys, [1, 8]);
+    expect(
+        prepared.reviewSet!.segments.values
+            .map((s) => s.activeCandidates.length),
+        [140, 140]);
+    expect(prepared.reviewSet!.limits.maxTotalCandidates, 512);
+    expect(
+        prepared.assetProposalDiagnostics
+            .where((d) => d.code == 'asset.proposal.quota'),
+        isEmpty);
+    expect(prepared.canApprove, isTrue);
+    workflow.updateSettings(ConverterStudySettings(
+        projectName: 'Segmented resources',
+        parentPath: output.path,
+        folderName: 'output',
+        selectedSourceMapIds: const [1, 8],
+        profileAcknowledgement: prepared.settings.profileAcknowledgement));
+    final bounded = await workflow.prepareStudy();
+    expect(bounded.reviewSet, isNull);
+    expect(bounded.assetCandidates, isEmpty);
+    expect(bounded.assetProposalDiagnostics.map((d) => d.code),
+        contains('asset.proposal.quota'));
+  });
 
   test(
       'guided terrain review publishes a native paintable path through workflow',
@@ -21,7 +92,8 @@ void main() {
     final initial =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
     var session = harness.seed(initial);
-    final source = initial.assetProposals!.sourceImages.single;
+    final source =
+        initial.assetProposalsByMap!.values.first.sourceImages.single;
     final original = harness.fixture.terrainCandidate();
     final manual = AssetCandidate.fromJson({
       ...original.toJson(),
@@ -67,20 +139,26 @@ void main() {
   test('AC-10 initial preparation creates an exact durable review seed',
       () async {
     final prepared = await harness.prepare();
-    expect(prepared.reviewSession, isNotNull);
-    expect(prepared.assetProposals!.candidates, hasLength(21));
+    expect(prepared.reviewSet, isNotNull);
+    expect(prepared.reviewSet!.segments.keys, [1, 8, 12, 20, 21]);
+    expect(prepared.assetProposalsByMap!.values.expand((p) => p.candidates),
+        hasLength(21));
     expect(
-        prepared.assetProposals!.candidates.every((c) => c.parts.length == 1),
+        prepared.assetProposalsByMap!.values
+            .expand((p) => p.candidates)
+            .every((c) => c.parts.length == 1),
         isTrue);
-    expect(prepared.assetProposals!.placementClaims.values.expand((c) => c),
+    expect(
+        prepared.assetProposalsByMap!.values
+            .expand((p) => p.placementClaims.values)
+            .expand((c) => c),
         hasLength(27));
-    expect(prepared.reviewSession!.baseProposalHashes, {
-      for (final candidate in prepared.assetProposals!.candidates)
+    expect(prepared.reviewSet!.segments[1]!.baseProposalHashes, {
+      for (final candidate in prepared.assetProposalsByMap![1]!.candidates)
         candidate.candidateId: candidate.canonicalHash,
     });
-    expect(prepared.reviewSession!.frames.first.outputMode,
-        AssetOutputMode.sharedAtlas);
-    expect(prepared.reviewSession!.activeDecisions.decisions, isEmpty);
+    expect(prepared.reviewSet!.seedOutputMode, AssetOutputMode.sharedAtlas);
+    expect(prepared.reviewSet!.activeDecisions.decisions, isEmpty);
     expect(prepared.settings.toJson().containsKey('assetReviews'), isFalse);
     expect(harness.stages, isEmpty);
   });
@@ -201,12 +279,9 @@ void main() {
       () async {
     final literal =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    var session = harness.groupMap(harness.seed(literal), 1);
-    session = harness.groupMap(session, 8);
-    final tree = session.activeCandidates
-        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 1));
-    final house = session.activeCandidates
-        .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
+    var session = harness.seed(literal);
+    final tree = session.activeCandidates.first;
+    final house = session.activeCandidates[1];
     session = harness.decide(session, tree);
     final parent = session.activeCandidates
         .singleWhere((c) => c.candidateId == tree.candidateId);
@@ -222,7 +297,7 @@ void main() {
           AssetUnionInput(
               candidateId: house.candidateId,
               expectedCandidateHash: house.canonicalHash,
-              offsetX: 64,
+              offsetX: 32,
               offsetY: 0),
         ],
         name: 'Groupe corrigé',
@@ -257,9 +332,59 @@ void main() {
       'proposalGenerationHash': '0' * 64,
     });
     await expectLater(
-        harness.prepare(session: forged),
+        harness.prepare(
+            reviewSet: ConverterAssetReviewSet.create(
+                sessionId: literal.reviewSet!.sessionId,
+                logicalProjectNamespace:
+                    literal.reviewSet!.logicalProjectNamespace,
+                sourceSnapshotHash: literal.sourceSnapshotHash,
+                normalizedSourceHash: literal.normalizedSource.canonicalHash,
+                selectedSourceMapIds: literal.settings.selectedSourceMapIds,
+                proposalSourceMapIds: literal.reviewSet!.proposalSourceMapIds,
+                segments: {...literal.reviewSet!.segments, 1: forged},
+                limits: literal.reviewSet!.limits)),
         throwsA(isA<ConverterWorkflowFailure>()
-            .having((e) => e.code, 'code', 'workflow.review_session.stale')));
+            .having((e) => e.code, 'code', 'workflow.review_set.stale')));
+    expect(harness.stages, isEmpty);
+  });
+
+  test('fresh source rejects a resigned seed with missing valid claims',
+      () async {
+    final prepared = await harness.prepare();
+    final original = prepared.reviewSet!;
+    final entry = original.segments.entries.firstWhere((e) => e
+        .value.frame.placementClaims.values
+        .any((claims) => claims.length > 1));
+    final child = entry.value;
+    final repeated = child.frame.placementClaims.entries
+        .firstWhere((e) => e.value.length > 1);
+    final forged = AssetReviewSession.create(
+        sessionId: child.sessionId,
+        logicalProjectNamespace: child.logicalProjectNamespace,
+        sourceSnapshotHash: child.sourceSnapshotHash,
+        selectedSourceMapIds: child.selectedSourceMapIds,
+        outputMode: child.outputMode,
+        proposalGenerationHash: child.proposalGenerationHash,
+        candidates: child.activeCandidates,
+        placementClaims: {
+          ...child.frame.placementClaims,
+          repeated.key: repeated.value.take(1).toList()
+        },
+        sourceMaps: prepared.normalizedSource.maps,
+        limits: child.limits);
+    final altered = ConverterAssetReviewSet.create(
+        sessionId: original.sessionId,
+        logicalProjectNamespace: original.logicalProjectNamespace,
+        sourceSnapshotHash: original.sourceSnapshotHash,
+        normalizedSourceHash: original.normalizedSourceHash,
+        selectedSourceMapIds: original.selectedSourceMapIds,
+        proposalSourceMapIds: original.proposalSourceMapIds,
+        segments: {...original.segments, entry.key: forged},
+        limits: original.limits);
+    await expectLater(
+        harness.prepare(reviewSet: altered),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((e) => e.code, 'code', 'workflow.review_set.stale')));
     expect(harness.stages, isEmpty);
   });
 
@@ -285,10 +410,8 @@ void main() {
             .singleWhere((c) => c.candidateId == candidate.candidateId)
             .name,
         'Correction conservée');
-    expect(prepared.reviewSession!.frames.first.outputMode,
-        AssetOutputMode.sharedAtlas);
-    expect(
-        prepared.reviewSession!.outputMode, AssetOutputMode.standaloneObjects);
+    expect(prepared.reviewSet!.seedOutputMode, AssetOutputMode.sharedAtlas);
+    expect(prepared.reviewSet!.outputMode, AssetOutputMode.standaloneObjects);
     expect(prepared.approvedCandidateHashes, isEmpty);
     expect(prepared.composition.nativeMaps, literal.composition.nativeMaps);
   });
@@ -315,12 +438,14 @@ void main() {
         'Nom conservé');
     expect(prepared.settings.projectName, 'Projet renommé');
     expect(prepared.settings.folderName, 'another-destination');
-    expect(prepared.reviewSession!.canonicalHash, session.canonicalHash);
+    expect(
+        prepared.reviewSet!.segments[1]!.canonicalHash, session.canonicalHash);
   });
 
   test('unreviewed proposals leave the literal draft unchanged', () async {
     final prepared = await harness.prepare();
-    expect(prepared.assetProposals!.candidates, isNotEmpty);
+    expect(prepared.assetProposalsByMap!.values.expand((p) => p.candidates),
+        isNotEmpty);
     expect(
         prepared.assetCandidates
             .every((c) => c.state == CandidateState.needsReview),
@@ -343,7 +468,8 @@ void main() {
       jsonLimits: ContractLimits(maxNodes: 2000000, maxTextCodeUnits: 8388608),
     ));
     expect(prepared.canApprove, isTrue);
-    expect(prepared.assetProposals!.candidates, isNotEmpty);
+    expect(prepared.assetProposalsByMap!.values.expand((p) => p.candidates),
+        isNotEmpty);
     expect(
         prepared.assetProposalDiagnostics
             .any((d) => d.code == 'asset.proposal.limits'),
@@ -446,7 +572,7 @@ void main() {
       'disjoint mixed-priority groups require a fresh explicit standalone choice',
       () async {
     final literal = await harness.prepare();
-    final seed = harness.groupMap(harness.seed(literal), 8);
+    final seed = harness.groupMap(harness.seed(literal, mapId: 8), 8);
     final house = seed.activeCandidates
         .singleWhere((c) => c.parts.every((p) => p.locator.mapId == 8));
     var session = harness.decide(seed, house, category: AssetCategory.building);
@@ -487,7 +613,7 @@ void main() {
   test('keep literal is an explicit decision with no library consumption',
       () async {
     final literal = await harness.prepare();
-    final proposal = literal.assetProposals!.candidates.first;
+    final proposal = literal.reviewSet!.segments[1]!.activeCandidates.first;
     final prepared = await harness.prepare(
         session: harness.decide(harness.seed(literal), proposal,
             action: ReviewAction.keepLiteral));
@@ -509,7 +635,7 @@ void main() {
       () async {
     final literal =
         await harness.prepare(mode: AssetOutputMode.standaloneObjects);
-    final proposal = literal.assetProposals!.candidates.first;
+    final proposal = literal.reviewSet!.segments[1]!.activeCandidates.first;
     final first = await harness.prepare(
         mode: AssetOutputMode.standaloneObjects,
         session: harness.decide(harness.seed(literal), proposal));
@@ -541,6 +667,7 @@ final class _AssetWorkflow {
   final OriginalAssetFixture fixture;
   final ConverterWorkflow workflow;
   final List<NativeWriteStage> stages;
+  ConverterAssetReviewSet? _currentSet;
 
   static Future<_AssetWorkflow> create(
       {bool includeTerrainPixels = false}) async {
@@ -564,10 +691,27 @@ final class _AssetWorkflow {
   Future<PreparedStudy> prepare(
       {AssetOutputMode mode = AssetOutputMode.sharedAtlas,
       AssetReviewSession? session,
+      ConverterAssetReviewSet? reviewSet,
       String projectName = 'Original asset library study',
       String folderName = 'original-library',
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     final snapshot = workflow.state.snapshot!;
+    var nextSet = reviewSet;
+    if (session != null) {
+      nextSet = _currentSet!;
+      if (nextSet.outputMode != session.outputMode) {
+        nextSet = nextSet.changeOutputMode(
+            outputMode: session.outputMode,
+            expectedSetHash: nextSet.canonicalHash);
+      }
+      final entry = nextSet.segments.entries
+          .singleWhere((e) => e.value.sessionId == session.sessionId);
+      nextSet = nextSet.replaceSegment(
+          sourceMapId: entry.key,
+          next: session,
+          expectedSetHash: nextSet.canonicalHash,
+          expectedSegmentHash: entry.value.canonicalHash);
+    }
     workflow.updateSettings(ConverterStudySettings(
       projectName: projectName,
       parentPath: output.path,
@@ -579,41 +723,18 @@ final class _AssetWorkflow {
           humanConfirmed: true,
           reason: 'Original controlled fixture; study only.'),
       assetOutputMode: mode,
-      reviewSession: session,
+      reviewSet: nextSet,
       writeLimits: limits,
     ));
-    return workflow.prepareStudy();
+    return workflow.prepareStudy().then((prepared) {
+      _currentSet = prepared.reviewSet;
+      return prepared;
+    });
   }
 
-  AssetReviewSession seed(PreparedStudy prepared) {
-    final proposals = prepared.assetProposals!;
-    return AssetReviewSession.create(
-        sessionId: ConverterId('original-review-session'),
-        logicalProjectNamespace:
-            prepared.normalizedSource.snapshot.logicalProjectNamespace,
-        sourceSnapshotHash: prepared.sourceSnapshotHash,
-        selectedSourceMapIds: prepared.settings.selectedSourceMapIds,
-        outputMode: prepared.settings.assetOutputMode,
-        proposalGenerationHash: canonicalHashOf({
-          'kind': 'reviewProposalGeneration',
-          'version': 1,
-          'sourceSnapshotHash': proposals.sourceSnapshotHash.value,
-          'normalizedSourceHash': proposals.normalizedSourceHash.value,
-          'selectedSourceMapIds': prepared.settings.selectedSourceMapIds,
-          'outputMode': prepared.settings.assetOutputMode.name,
-          'candidateHashes':
-              proposals.candidates.map((c) => c.canonicalHash.value).toList(),
-          'placementClaims': {
-            for (final e in proposals.placementClaims.entries)
-              e.key.value: e.value.map((claim) => claim.toJson()).toList(),
-          },
-          'sourceImages':
-              proposals.sourceImages.map((s) => s.toJson()).toList(),
-          'diagnostics': proposals.diagnostics.map((d) => d.toJson()).toList(),
-        }),
-        candidates: proposals.candidates,
-        placementClaims: proposals.placementClaims,
-        sourceMaps: prepared.normalizedSource.maps);
+  AssetReviewSession seed(PreparedStudy prepared, {int mapId = 1}) {
+    _currentSet = prepared.reviewSet!;
+    return _currentSet!.segments[mapId]!;
   }
 
   AssetReviewSession decide(

@@ -98,7 +98,7 @@ final class ConverterAssetReviewSet {
       'setHash'
     });
     _require(
-        json['schemaVersion'] == '1.0' &&
+        json['schemaVersion'] == '2.0' &&
             json['kind'] == 'converterAssetReviewSet',
         'review.set.document',
         'Unsupported review set format');
@@ -115,8 +115,9 @@ final class ConverterAssetReviewSet {
       final childLimits = _readReviewLimits(row['limits']);
       _within(_reviewLimitsJson(childLimits),
           _reviewLimitsJson(limits.segmentLimits));
-      final child =
-          AssetReviewSession.fromJson(row['session'], limits: childLimits);
+      final child = AssetReviewSession.fromJson(
+          _unpackReviewSession(row['session'], childLimits),
+          limits: childLimits);
       _require(child.canonicalHash.value == row['sessionHash'],
           'review.set.hash', 'Review segment hash differs');
       segments[id] = child;
@@ -267,7 +268,7 @@ final class ConverterAssetReviewSet {
           revision: revision + 1);
 
   Map<String, Object?> _json({required bool includeSessions}) => {
-        'schemaVersion': '1.0',
+        'schemaVersion': '2.0',
         'kind': 'converterAssetReviewSet',
         'sessionId': sessionId.value,
         'logicalProjectNamespace': logicalProjectNamespace.value,
@@ -284,7 +285,7 @@ final class ConverterAssetReviewSet {
               'sourceMapId': e.key,
               'limits': _reviewLimitsJson(e.value.limits),
               'sessionHash': e.value.canonicalHash.value,
-              if (includeSessions) 'session': e.value.toJson(),
+              if (includeSessions) 'session': _packReviewSession(e.value),
             }
         ],
       };
@@ -373,6 +374,111 @@ final class ConverterAssetReviewSet {
           'Review set cumulative budget exceeded');
     }
   }
+}
+
+Map<String, Object?> _packReviewSession(AssetReviewSession session) {
+  final raw = session.toJson();
+  final lists = _object(raw['placementClaimLists']);
+  final contexts = <String, List<Object?>>{};
+  for (final claims in lists.values) {
+    for (final value in _list(claims)) {
+      final claim = _object(value);
+      final context = <Object?>[
+        claim['sourceSnapshotHash'],
+        claim['sourceMapFileId'],
+        claim['sourceMapHash'],
+        claim['sourceMapId'],
+      ];
+      contexts[canonicalJsonOf(context)] = context;
+    }
+  }
+  final keys = contexts.keys.toList()..sort();
+  final indices = {for (final entry in keys.indexed) entry.$2: entry.$1};
+  return {
+    ...raw,
+    'placementClaimContexts': [for (final key in keys) contexts[key]],
+    'placementClaimLists': {
+      for (final entry in lists.entries)
+        entry.key: [
+          for (final value in _list(entry.value))
+            _packClaim(_object(value), indices),
+        ],
+    },
+  };
+}
+
+List<Object?> _packClaim(
+        Map<String, Object?> claim, Map<String, int> indices) =>
+    [
+      indices[canonicalJsonOf([
+        claim['sourceSnapshotHash'],
+        claim['sourceMapFileId'],
+        claim['sourceMapHash'],
+        claim['sourceMapId'],
+      ])],
+      claim['partId'],
+      claim['sourceZ'],
+      claim['tileId'],
+      claim['x'],
+      claim['y'],
+    ];
+
+Map<String, Object?> _unpackReviewSession(
+    Object? input, AssetReviewLimits limits) {
+  final raw = _object(input);
+  final contexts = _list(raw['placementClaimContexts']);
+  final lists = _object(raw['placementClaimLists']);
+  _require(contexts.length <= limits.maxTotalClaims, 'review.set.quota',
+      'Placement context budget exceeded');
+  for (final value in contexts) {
+    final context = _list(value);
+    _require(context.length == 4, 'review.set.document',
+        'Placement context requires four exact fields');
+    Sha256Hash(_string(context[0]));
+    ConverterId(_string(context[1]));
+    Sha256Hash(_string(context[2]));
+    _require(_integer(context[3]) > 0, 'review.set.document',
+        'Placement context map must be positive');
+  }
+  var count = 0;
+  for (final value in lists.values) {
+    count += _list(value).length;
+    _require(count <= limits.maxTotalClaims, 'review.set.quota',
+        'Placement claim budget exceeded');
+  }
+  return {
+    for (final entry in raw.entries)
+      if (entry.key != 'placementClaimContexts' &&
+          entry.key != 'placementClaimLists')
+        entry.key: entry.value,
+    'placementClaimLists': {
+      for (final entry in lists.entries)
+        entry.key: [
+          for (final value in _list(entry.value)) _unpackClaim(value, contexts),
+        ],
+    },
+  };
+}
+
+Map<String, Object?> _unpackClaim(Object? value, List<Object?> contexts) {
+  final claim = _list(value);
+  _require(claim.length == 6, 'review.set.document',
+      'Placement claim requires six exact fields');
+  final index = _integer(claim[0]);
+  _require(index >= 0 && index < contexts.length, 'review.set.document',
+      'Placement context index is unavailable');
+  final context = _list(contexts[index]);
+  return {
+    'sourceSnapshotHash': context[0],
+    'sourceMapFileId': context[1],
+    'sourceMapHash': context[2],
+    'sourceMapId': context[3],
+    'partId': _string(claim[1]),
+    'sourceZ': _integer(claim[2]),
+    'tileId': _integer(claim[3]),
+    'x': _integer(claim[4]),
+    'y': _integer(claim[5]),
+  };
 }
 
 List<int> _mapIds(List<int> values) {

@@ -9,23 +9,85 @@ import 'support/literal_tile_fixture.dart';
 import 'support/original_asset_fixture.dart';
 
 void main() {
+  test('segmented resume keeps edits and approvals of both maps independently',
+      () async {
+    final harness = await _ResumeHarness.create(selected: [1, 8]);
+    final initial = await harness.prepare();
+    var reviewed = initial.reviewSet!;
+    for (final mapId in [1, 8]) {
+      final child = reviewed.segments[mapId]!;
+      final candidate = child.activeCandidates.first;
+      final named = child.editMetadata(
+          candidateId: candidate.candidateId,
+          expectedCandidateHash: candidate.canonicalHash,
+          expectedSessionHash: child.canonicalHash,
+          name: 'Carte $mapId revue',
+          category: AssetCategory.nature);
+      final current = named.activeCandidates.first;
+      final approved = named.decide(
+          candidateId: current.candidateId,
+          expectedCandidateHash: current.canonicalHash,
+          expectedSessionHash: named.canonicalHash,
+          action: ReviewAction.approve,
+          humanConfirmed: true);
+      reviewed = reviewed.replaceSegment(
+          sourceMapId: mapId,
+          next: approved,
+          expectedSetHash: reviewed.canonicalHash,
+          expectedSegmentHash: child.canonicalHash);
+    }
+    final stored = await harness.save(initial, reviewSet: reviewed);
+    final fresh = harness.newWorkflow();
+    final prepared = await ConverterReviewSessionResumer.resume(
+        stored: stored, workflow: fresh);
+    expect(prepared.reviewSet!.toJson(), reviewed.toJson());
+    expect(prepared.reviewSet!.segments.keys, [1, 8]);
+    expect(prepared.approvedCandidateHashes, hasLength(2));
+    expect(prepared.assetLibrary!.candidateBindings, hasLength(2));
+    expect(fresh.state.approval, isNull);
+    await harness.expectSavedUnchanged(stored);
+    await harness.expectSourceUnchanged();
+    expect(harness.writeStages, isEmpty);
+  }, skip: !Platform.isMacOS);
+
+  test(
+      'segmented resume regenerates the seed mode before restoring a global mode change',
+      () async {
+    final harness = await _ResumeHarness.create(selected: [1, 8]);
+    final initial = await harness.prepare();
+    final set = initial.reviewSet!;
+    final changed = set.changeOutputMode(
+        outputMode: AssetOutputMode.sharedAtlas,
+        expectedSetHash: set.canonicalHash);
+    expect(changed.seedOutputMode, AssetOutputMode.standaloneObjects);
+    final stored = await harness.save(initial, reviewSet: changed);
+    final fresh = await ConverterReviewSessionResumer.resume(
+        stored: stored, workflow: harness.newWorkflow());
+    expect(fresh.reviewSet!.toJson(), changed.toJson());
+    expect(fresh.settings.assetOutputMode, AssetOutputMode.sharedAtlas);
+    expect(fresh.reviewSet!.seedOutputMode, AssetOutputMode.standaloneObjects);
+    expect(fresh.approvedCandidateHashes, isEmpty);
+    await harness.expectSavedUnchanged(stored);
+    await harness.expectSourceUnchanged();
+  }, skip: !Platform.isMacOS);
+
   test('AC-10 resumes exact review history in two fresh workflows', () async {
     final harness = await _ResumeHarness.create();
     final initial = await harness.prepare();
-    final reviewed = harness.approveCandidate(initial.reviewSession!);
-    final stored = await harness.save(initial, session: reviewed);
+    final reviewed = harness.approveCandidate(initial.reviewSet!);
+    final stored = await harness.save(initial, reviewSet: reviewed);
     await harness.first.dispose();
 
     for (var iteration = 0; iteration < 2; iteration++) {
       final fresh = harness.newWorkflow();
-      final reopened = await harness.store.load(stored.session.sessionId);
+      final reopened = await harness.store.load(stored.reviewSet.sessionId);
       final prepared = await ConverterReviewSessionResumer.resume(
           stored: reopened!, workflow: fresh);
-      expect(prepared.reviewSession!.toJson(), reviewed.toJson());
+      expect(prepared.reviewSet!.toJson(), reviewed.toJson());
       expect(prepared.assetCandidates.map((candidate) => candidate.toJson()),
           reviewed.activeCandidates.map((candidate) => candidate.toJson()));
-      expect(prepared.approvedCandidateHashes,
-          reviewed.frame.approvedCandidateHashes);
+      expect(
+          prepared.approvedCandidateHashes, reviewed.approvedCandidateHashes);
       expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
       expect(fresh.state.approval, isNull);
       expect(fresh.state.result, isNull);
@@ -42,16 +104,27 @@ void main() {
       () async {
     final harness = await _ResumeHarness.create();
     final initial = await harness.prepare();
-    final approved = harness.approveCandidate(initial.reviewSession!);
-    final stored = await harness.save(initial, session: approved);
-    final candidate = approved.activeCandidates.first;
-    final edited = approved.editMetadata(
+    final approved = harness.approveCandidate(initial.reviewSet!);
+    final stored = await harness.save(initial, reviewSet: approved);
+    final candidate = approved.activeCandidates.singleWhere(
+        (c) => approved.approvedCandidateHashes.containsKey(c.candidateId));
+    final selectedMapId = approved.segments.entries
+        .firstWhere((e) => e.value.activeCandidates
+            .any((c) => c.candidateId == candidate.candidateId))
+        .key;
+    final segment = approved.segments[selectedMapId]!;
+    final editedSegment = segment.editMetadata(
         candidateId: candidate.candidateId,
         expectedCandidateHash: candidate.canonicalHash,
-        expectedSessionHash: approved.canonicalHash,
+        expectedSessionHash: segment.canonicalHash,
         name: 'Arbre corrigé après sauvegarde');
+    final edited = approved.replaceSegment(
+        sourceMapId: selectedMapId,
+        next: editedSegment,
+        expectedSetHash: approved.canonicalHash,
+        expectedSegmentHash: segment.canonicalHash);
     final saved = await harness.store.compareAndSwap(
-        session: edited,
+        reviewSet: edited,
         resumeSettings: stored.resumeSettings,
         expectedStoredRevision: stored.storedRevision,
         expectedCanonicalHash: stored.canonicalHash);
@@ -59,9 +132,12 @@ void main() {
     final prepared = await ConverterReviewSessionResumer.resume(
         stored: saved, workflow: fresh);
     expect(saved.storedRevision, 2);
-    expect(prepared.reviewSession!.canonicalHash, edited.canonicalHash);
+    expect(prepared.reviewSet!.canonicalHash, edited.canonicalHash);
     expect(
-        prepared.assetCandidates.first.name, 'Arbre corrigé après sauvegarde');
+        prepared.assetCandidates
+            .singleWhere((c) => c.candidateId == candidate.candidateId)
+            .name,
+        'Arbre corrigé après sauvegarde');
     expect(prepared.approvedCandidateHashes, isEmpty);
     expect(prepared.assetLibrary, isNull);
     expect(fresh.state.approval, isNull);
@@ -73,22 +149,33 @@ void main() {
       () async {
     final harness = await _ResumeHarness.create();
     final initial = await harness.prepare();
-    final reviewed = harness.approveCandidate(initial.reviewSession!);
-    final undone = reviewed.undo(expectedSessionHash: reviewed.canonicalHash);
-    final stored = await harness.save(initial, session: undone);
+    final reviewed = harness.approveCandidate(initial.reviewSet!);
+    final mapId = reviewed.segments.keys.first;
+    final segment = reviewed.segments[mapId]!;
+    final undone = reviewed.replaceSegment(
+        sourceMapId: mapId,
+        next: segment.undo(expectedSessionHash: segment.canonicalHash),
+        expectedSetHash: reviewed.canonicalHash,
+        expectedSegmentHash: segment.canonicalHash);
+    final stored = await harness.save(initial, reviewSet: undone);
     final prepared = await ConverterReviewSessionResumer.resume(
         stored: stored, workflow: harness.newWorkflow());
-    final resumed = prepared.reviewSession!;
+    final resumed = prepared.reviewSet!;
     expect(resumed.toJson(), undone.toJson());
-    final redone = resumed.redo(expectedSessionHash: resumed.canonicalHash);
+    final resumedSegment = resumed.segments[mapId]!;
+    final redone = resumed.replaceSegment(
+        sourceMapId: mapId,
+        next: resumedSegment.redo(
+            expectedSessionHash: resumedSegment.canonicalHash),
+        expectedSetHash: resumed.canonicalHash,
+        expectedSegmentHash: resumedSegment.canonicalHash);
     expect(redone.activeCandidates.map((candidate) => candidate.toJson()),
         reviewed.activeCandidates.map((candidate) => candidate.toJson()));
     expect(
         redone.activeDecisions.decisions.map((decision) => decision.toJson()),
         reviewed.activeDecisions.decisions
             .map((decision) => decision.toJson()));
-    expect(redone.frame.approvedCandidateHashes,
-        reviewed.frame.approvedCandidateHashes);
+    expect(redone.approvedCandidateHashes, reviewed.approvedCandidateHashes);
     expect(redone.revision, greaterThan(resumed.revision));
     await harness.expectSavedUnchanged(stored);
   }, skip: !Platform.isMacOS);
@@ -110,10 +197,10 @@ void main() {
     final fresh = harness.newWorkflow();
     final prepared = await ConverterReviewSessionResumer.resume(
         stored: stored, workflow: fresh, sourceRootPath: relocated);
-    expect(prepared.sourceSnapshotHash, stored.session.sourceSnapshotHash);
+    expect(prepared.sourceSnapshotHash, stored.reviewSet.sourceSnapshotHash);
     expect(fresh.state.source!.rootPath, relocated);
     expect(fresh.state.source!.logicalProjectNamespace,
-        stored.session.logicalProjectNamespace);
+        stored.reviewSet.logicalProjectNamespace);
     expect(stored.resumeSettings.sourceRootPath, harness.sourcePath);
     await harness.expectSavedUnchanged(stored);
   }, skip: !Platform.isMacOS);
@@ -174,8 +261,7 @@ void main() {
       expect(rebound.canonicalHash, decision.canonicalHash);
       expect(prepared.composition.includedSourceMapIds,
           disposition == LiteralDependencyDisposition.include ? [1] : isEmpty);
-      expect(
-          prepared.reviewSession!.canonicalHash, stored.session.canonicalHash);
+      expect(prepared.reviewSet!.canonicalHash, stored.reviewSet.canonicalHash);
       await harness.expectSavedUnchanged(stored);
       await harness.expectSourceUnchanged();
     }, skip: !Platform.isMacOS);
@@ -217,7 +303,7 @@ void main() {
     expect(prepared.composition.selectedSourceMapIds, [8]);
     expect(prepared.composition.includedSourceMapIds, [1]);
     expect(prepared.composition.nativeMaps, hasLength(2));
-    expect(prepared.reviewSession!.canonicalHash, stored.session.canonicalHash);
+    expect(prepared.reviewSet!.canonicalHash, stored.reviewSet.canonicalHash);
     await harness.expectSavedUnchanged(stored);
   }, skip: !Platform.isMacOS);
 
@@ -358,8 +444,8 @@ void main() {
                 : LiteralDependencyDisposition.excludeStudy))
         .toList();
     final initial = await harness.prepare(decisions: decisions);
-    final reviewed = harness.approveCandidate(initial.reviewSession!);
-    final stored = await harness.save(initial, session: reviewed);
+    final reviewed = harness.approveCandidate(initial.reviewSet!);
+    final stored = await harness.save(initial, reviewSet: reviewed);
     final destination = await Directory(
             '${harness.output.path}/${stored.resumeSettings.folderName}')
         .create();
@@ -387,7 +473,7 @@ void main() {
             .toSet(),
         decisions.map((item) => item.canonicalHash).toSet());
     expect(prepared.composition.includedSourceMapIds, [1]);
-    expect(prepared.reviewSession!.canonicalHash, reviewed.canonicalHash);
+    expect(prepared.reviewSet!.canonicalHash, reviewed.canonicalHash);
     expect(prepared.settings.profileAcknowledgement.sourceSnapshotHash,
         stored.resumeSettings.profileAcknowledgement!.sourceSnapshotHash);
     expect(prepared.settings.profileAcknowledgement.profileEvidenceHash,
@@ -504,12 +590,12 @@ final class _ResumeHarness {
           reason: prepared.settings.profileAcknowledgement.reason);
 
   Future<StoredReviewSession> save(PreparedStudy prepared,
-          {AssetReviewSession? session,
+          {ConverterAssetReviewSet? reviewSet,
           List<LocalReviewDependencyDecision>? dependencies,
           LocalReviewProfileAcknowledgement? acknowledgement,
           bool overrideAcknowledgement = false}) =>
       store.create(
-          session: session ?? prepared.reviewSession!,
+          reviewSet: reviewSet ?? prepared.reviewSet!,
           resumeSettings: LocalReviewResumeSettings(
               sourceRootPath: sourcePath,
               destinationParentPath: output.path,
@@ -540,7 +626,10 @@ final class _ResumeHarness {
           targetSourceMapId: dependency.targetSourceMapId!,
           decision: disposition);
 
-  AssetReviewSession approveCandidate(AssetReviewSession session) {
+  ConverterAssetReviewSet approveCandidate(ConverterAssetReviewSet reviewSet) {
+    final entry = reviewSet.segments.entries
+        .firstWhere((e) => e.value.activeCandidates.isNotEmpty);
+    final session = entry.value;
     final candidate = session.activeCandidates.first;
     final named = session.editMetadata(
         candidateId: candidate.candidateId,
@@ -549,16 +638,21 @@ final class _ResumeHarness {
         name: 'Arbre relu',
         category: AssetCategory.nature);
     final current = named.activeCandidates.first;
-    return named.decide(
+    final approved = named.decide(
         candidateId: current.candidateId,
         expectedCandidateHash: current.canonicalHash,
         expectedSessionHash: named.canonicalHash,
         action: ReviewAction.approve,
         humanConfirmed: true);
+    return reviewSet.replaceSegment(
+        sourceMapId: entry.key,
+        next: approved,
+        expectedSetHash: reviewSet.canonicalHash,
+        expectedSegmentHash: session.canonicalHash);
   }
 
   Future<void> expectSavedUnchanged(StoredReviewSession stored) async {
-    final reopened = await store.load(stored.session.sessionId);
+    final reopened = await store.load(stored.reviewSet.sessionId);
     expect(reopened!.toJson(), stored.toJson());
     expect(reopened.canonicalHash, stored.canonicalHash);
     expect(reopened.storedRevision, stored.storedRevision);

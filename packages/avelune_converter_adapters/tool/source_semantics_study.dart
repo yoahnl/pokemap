@@ -225,8 +225,12 @@ Future<void> main(List<String> args) async {
     final prepared = await workflow.prepareStudy();
     await save('normalized-source.json', prepared.normalizedSource.toJson());
     await save('preview-plan.json', prepared.previewPlan?.toJson());
-    await save('review-session.json', prepared.reviewSession?.toJson());
-    await save('asset-proposals.json', prepared.assetProposals?.toJson());
+    await save('review-set.json', prepared.reviewSet?.toJson());
+    await save('asset-proposals.json', {
+      for (final e in prepared.assetProposalsByMap?.entries ??
+          <MapEntry<int, LocalAssetProposalSet>>[])
+        e.key.toString(): e.value.toJson()
+    });
     record['assetProposalDiagnostics'] =
         prepared.assetProposalDiagnostics.map((item) => item.toJson()).toList();
     record['assetCandidateCount'] = prepared.assetCandidates.length;

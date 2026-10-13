@@ -26,7 +26,7 @@ void main() {
       harness.workflow
           .updateSettings(harness.settings(snapshot, selected: [98]));
       final first = await harness.workflow.prepareStudy();
-      var session = first.reviewSession!;
+      var session = first.reviewSet!.segments[98]!;
       final seed = session.activeCandidates.first;
       session = session.editMetadata(
           candidateId: seed.candidateId,
@@ -41,8 +41,14 @@ void main() {
           expectedSessionHash: session.canonicalHash,
           action: ReviewAction.approve,
           humanConfirmed: true);
-      harness.workflow.updateSettings(
-          harness.settings(snapshot, selected: [98], reviewSession: session));
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [98],
+          reviewSet: first.reviewSet!.replaceSegment(
+              sourceMapId: 98,
+              next: session,
+              expectedSetHash: first.reviewSet!.canonicalHash,
+              expectedSegmentHash:
+                  first.reviewSet!.segments[98]!.canonicalHash)));
       final prepared = await harness.workflow.prepareStudy();
       expect(prepared.canApprove, isTrue);
       expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
@@ -352,8 +358,7 @@ void main() {
           expect(actual.mapMetadata.musicVolume, 0.64);
           expect(actual.mapMetadata.musicPath, isNotNull);
         }
-        expect(
-            expectedMaps.map((map) => map.mapMetadata.musicPath).toSet(),
+        expect(expectedMaps.map((map) => map.mapMetadata.musicPath).toSet(),
             hasLength(1));
       } finally {
         opener.closeWorkspace(opened.workspaceHandle);
@@ -1864,9 +1869,9 @@ final class _WorkflowHarness {
           SourceNormalizationLimits normalizationLimits =
               const SourceNormalizationLimits(),
           NativeWriteLimits writeLimits = const NativeWriteLimits(),
-          AssetReviewSession? reviewSession}) =>
+          ConverterAssetReviewSet? reviewSet}) =>
       ConverterStudySettings(
-        reviewSession: reviewSession,
+        reviewSet: reviewSet,
         projectName: projectName ?? 'Controlled original workflow study',
         parentPath: parentPath ?? output.path,
         folderName: folderName ?? 'original-study-project',

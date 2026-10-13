@@ -7,6 +7,8 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:path/path.dart' as path;
 
 import 'native_project_writer.dart';
+import 'converter_workflow.dart';
+import 'converter_asset_review_set.dart';
 import 'literal_tile_composer.dart';
 
 final class LocalReviewSessionStoreLimits {
@@ -15,7 +17,6 @@ final class LocalReviewSessionStoreLimits {
     this.maxTotalReadBytes = 33554432,
     this.maxSessions = 128,
     this.maxDirectoryEntries = 1024,
-    this.reviewLimits = const AssetReviewLimits(),
     this.jsonLimits = const ContractLimits(),
   });
 
@@ -23,7 +24,6 @@ final class LocalReviewSessionStoreLimits {
   final int maxTotalReadBytes;
   final int maxSessions;
   final int maxDirectoryEntries;
-  final AssetReviewLimits reviewLimits;
   final ContractLimits jsonLimits;
 }
 
@@ -282,17 +282,35 @@ final class LocalReviewResumeSettings {
 
 final class StoredReviewSession {
   factory StoredReviewSession({
-    required AssetReviewSession session,
+    required ConverterAssetReviewSet reviewSet,
     required LocalReviewResumeSettings resumeSettings,
     required int storedRevision,
-  }) {
-    _requireStore(storedRevision > 0 && storedRevision <= 2147483647,
-        'session.store.document', 'Invalid stored session revision.');
-    _validateContext(session, resumeSettings);
-    return StoredReviewSession._(session, resumeSettings, storedRevision);
-  }
+    LocalReviewSessionStoreLimits limits =
+        const LocalReviewSessionStoreLimits(),
+  }) =>
+      _readDocument(() {
+        _validateLimits(limits);
+        _requireStore(storedRevision > 0 && storedRevision <= 2147483647,
+            'session.store.document', 'Invalid stored session revision.');
+        final admitted = ConverterAssetReviewSet.fromJson(reviewSet.toJson(),
+            admissionLimits:
+                converterAssetReviewSetLimitsFor(resumeSettings.writeLimits));
+        _validateContext(admitted, resumeSettings);
+        final result = StoredReviewSession._(
+            admitted, resumeSettings, storedRevision, limits.jsonLimits);
+        _requireStore(
+            utf8
+                    .encode(canonicalJsonOf(result.toJson(),
+                        limits: limits.jsonLimits))
+                    .length <=
+                limits.maxFileBytes,
+            'session.store.quota',
+            'Stored session byte budget exceeded.');
+        return result;
+      });
 
-  StoredReviewSession._(this.session, this.resumeSettings, this.storedRevision);
+  StoredReviewSession._(this.reviewSet, this.resumeSettings,
+      this.storedRevision, this._jsonLimits);
 
   factory StoredReviewSession.fromJson(Object? input,
           {LocalReviewSessionStoreLimits limits =
@@ -305,35 +323,40 @@ final class StoredReviewSession {
           'kind',
           'version',
           'storedRevision',
-          'reviewSession',
+          'reviewSet',
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 1,
+            json['kind'] == 'localReviewSession' && json['version'] == 2,
             'session.store.document',
             'Unsupported stored review document.');
+        final settings =
+            LocalReviewResumeSettings.fromJson(json['resumeSettings']);
         return StoredReviewSession(
-          session: AssetReviewSession.fromJson(json['reviewSession'],
-              limits: limits.reviewLimits),
-          resumeSettings:
-              LocalReviewResumeSettings.fromJson(json['resumeSettings']),
+          reviewSet: ConverterAssetReviewSet.fromJson(json['reviewSet'],
+              admissionLimits:
+                  converterAssetReviewSetLimitsFor(settings.writeLimits)),
+          resumeSettings: settings,
           storedRevision: _integer(json['storedRevision']),
+          limits: limits,
         );
       });
 
-  final AssetReviewSession session;
+  final ConverterAssetReviewSet reviewSet;
   final LocalReviewResumeSettings resumeSettings;
   final int storedRevision;
+  final ContractLimits _jsonLimits;
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 1,
+        'version': 2,
         'storedRevision': storedRevision,
-        'reviewSession': session.toJson(),
+        'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),
       });
 
-  late final Sha256Hash canonicalHash = canonicalHashOf(toJson());
+  late final Sha256Hash canonicalHash =
+      canonicalHashOf(toJson(), limits: _jsonLimits);
 }
 
 enum LocalReviewSessionWriteStage { temporaryFlushed, beforePublish, published }
@@ -379,20 +402,23 @@ final class LocalReviewSessionStore {
   }
 
   Future<StoredReviewSession> create({
-    required AssetReviewSession session,
+    required ConverterAssetReviewSet reviewSet,
     required LocalReviewResumeSettings resumeSettings,
   }) async {
     _validateLimits(limits);
     final value = _admit(StoredReviewSession(
-        session: session, resumeSettings: resumeSettings, storedRevision: 1));
+        reviewSet: reviewSet,
+        resumeSettings: resumeSettings,
+        storedRevision: 1,
+        limits: limits));
     return _io(() async {
       final root = (await _root(forWrite: resumeSettings, create: true))!;
       return _withNamedLock(
           root,
           '.sessions',
-          () => _withLock(root, session.sessionId, () async {
+          () => _withLock(root, reviewSet.sessionId, () async {
                 _requireStore(
-                    await _load(root, session.sessionId) == null,
+                    await _load(root, reviewSet.sessionId) == null,
                     'session.store.exists',
                     'This review session is already stored.');
                 _requireStore(
@@ -406,7 +432,7 @@ final class LocalReviewSessionStore {
   }
 
   Future<StoredReviewSession> compareAndSwap({
-    required AssetReviewSession session,
+    required ConverterAssetReviewSet reviewSet,
     required LocalReviewResumeSettings resumeSettings,
     required int expectedStoredRevision,
     required Sha256Hash expectedCanonicalHash,
@@ -420,39 +446,40 @@ final class LocalReviewSessionStore {
       final root = await _root(forWrite: resumeSettings);
       _requireStore(root != null, 'session.store.conflict',
           'The saved session is unavailable.');
-      return _withLock(root!, session.sessionId, () async {
-        final current = await _load(root, session.sessionId);
+      return _withLock(root!, reviewSet.sessionId, () async {
+        final current = await _load(root, reviewSet.sessionId);
         _requireStore(
             current != null &&
                 current.storedRevision == expectedStoredRevision &&
                 current.canonicalHash == expectedCanonicalHash,
             'session.store.conflict',
             'The stored session changed; reopen its current version.');
-        final previous = current!.session;
+        final previous = current!.reviewSet;
         _requireStore(
-            previous.logicalProjectNamespace ==
-                    session.logicalProjectNamespace &&
-                previous.sourceSnapshotHash == session.sourceSnapshotHash &&
-                previous.proposalGenerationHash ==
-                    session.proposalGenerationHash &&
-                canonicalHashOf(previous.selectedSourceMapIds) ==
-                    canonicalHashOf(session.selectedSourceMapIds) &&
-                canonicalHashOf(previous.baseProposalHashes
-                        .map((id, hash) => MapEntry(id.value, hash.value))) ==
-                    canonicalHashOf(session.baseProposalHashes
-                        .map((id, hash) => MapEntry(id.value, hash.value))),
+            _reviewSourceContextHash(previous) ==
+                _reviewSourceContextHash(reviewSet),
             'session.store.source_changed',
-            'Use a new review session for a changed source context.');
+            'Use a new review set for a changed source context.');
+        for (final entry in previous.segments.entries) {
+          final next = reviewSet.segments[entry.key]!;
+          _requireStore(
+              next.revision >= entry.value.revision &&
+                  (next.revision != entry.value.revision ||
+                      next.canonicalHash == entry.value.canonicalHash),
+              'session.store.domain_revision',
+              'Review segment revisions must advance when segment content changes.');
+        }
         _requireStore(
-            session.revision >= previous.revision &&
-                (session.revision != previous.revision ||
-                    session.canonicalHash == previous.canonicalHash),
+            reviewSet.revision >= previous.revision &&
+                (reviewSet.revision != previous.revision ||
+                    reviewSet.canonicalHash == previous.canonicalHash),
             'session.store.domain_revision',
             'Review revisions must advance when review content changes.');
         final value = _admit(StoredReviewSession(
-            session: session,
+            reviewSet: reviewSet,
             resumeSettings: resumeSettings,
-            storedRevision: current.storedRevision + 1));
+            storedRevision: current.storedRevision + 1,
+            limits: limits));
         await _publish(root, value, expected: current);
         return value;
       });
@@ -533,7 +560,7 @@ final class LocalReviewSessionStore {
         'Stored sessions must be ordinary files.');
     final value = await _readFile(File(filePath));
     await _guardRoot(root);
-    _requireStore(value.session.sessionId == id, 'session.store.identity',
+    _requireStore(value.reviewSet.sessionId == id, 'session.store.identity',
         'Stored session identity does not match its file.');
     return value;
   }
@@ -569,14 +596,14 @@ final class LocalReviewSessionStore {
     for (final file in files) {
       final value = await _readFile(file);
       _requireStore(
-          file.path == _filePath(root, value.session.sessionId),
+          file.path == _filePath(root, value.reviewSet.sessionId),
           'session.store.identity',
           'Stored session identity does not match its file.');
       values.add(value);
     }
     await _guardRoot(root);
     values.sort((a, b) =>
-        a.session.sessionId.value.compareTo(b.session.sessionId.value));
+        a.reviewSet.sessionId.value.compareTo(b.reviewSet.sessionId.value));
     return List.unmodifiable(values);
   }
 
@@ -699,7 +726,7 @@ final class LocalReviewSessionStore {
           readback.canonicalHash == value.canonicalHash,
           'session.store.path',
           'The temporary session changed before publication.');
-      final current = await _load(root, value.session.sessionId);
+      final current = await _load(root, value.reviewSet.sessionId);
       _requireStore(
           expected == null
               ? current == null
@@ -707,7 +734,7 @@ final class LocalReviewSessionStore {
           'session.store.conflict',
           'The stored session changed before publication.');
       await _guardRoot(root);
-      await temporary.rename(_filePath(root, value.session.sessionId));
+      await temporary.rename(_filePath(root, value.reviewSet.sessionId));
       await checkpoint?.call(
           LocalReviewSessionWriteStage.published, temporary.path);
     } finally {
@@ -777,8 +804,37 @@ Future<String> _canonicalContextPath(String selected) async {
   return path.joinAll([canonical, ...suffix.reversed]);
 }
 
+Sha256Hash _reviewSourceContextHash(ConverterAssetReviewSet reviewSet) {
+  final json = reviewSet.toJson();
+  return canonicalHashOf({
+    'sessionId': reviewSet.sessionId.value,
+    'logicalProjectNamespace': reviewSet.logicalProjectNamespace.value,
+    'sourceSnapshotHash': reviewSet.sourceSnapshotHash.value,
+    'normalizedSourceHash': reviewSet.normalizedSourceHash.value,
+    'selectedSourceMapIds': reviewSet.selectedSourceMapIds,
+    'proposalSourceMapIds': reviewSet.proposalSourceMapIds,
+    'limits': json['limits'],
+    'segments': [
+      for (final entry in reviewSet.segments.entries)
+        {
+          'sourceMapId': entry.key,
+          'sessionId': entry.value.sessionId.value,
+          'proposalGenerationHash': entry.value.proposalGenerationHash.value,
+          'baseProposalHashes': {
+            for (final base in entry.value.baseProposalHashes.entries)
+              base.key.value: base.value.value,
+          },
+          'seedHash': entry.value.frames.first.canonicalHash.value,
+          'limits': (_list(json['segments'])
+                  .firstWhere((row) => _object(row)['sourceMapId'] == entry.key)
+              as Map)['limits'],
+        }
+    ],
+  });
+}
+
 void _validateContext(
-    AssetReviewSession session, LocalReviewResumeSettings settings) {
+    ConverterAssetReviewSet session, LocalReviewResumeSettings settings) {
   final selection = canonicalHashOf({
     'kind': 'literalSelection',
     'version': 1,

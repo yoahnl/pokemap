@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter/converter_app.dart';
+import 'package:avelune_converter/asset_review_panel.dart';
 import 'package:avelune_converter/desktop_services.dart';
+import 'package:avelune_converter/vision_panel.dart';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +18,309 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('segmented review selects one named source map at a time', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      await _showResources(tester);
+      expect(find.byKey(const ValueKey('review-map-selector')), findsOneWidget);
+      final selector = _reviewMapSelector(tester);
+      expect(selector.options, {'1': 'Original map 1', '8': 'Original map 8'});
+      expect(selector.value, '1');
+      final first = _reviewPanel(tester);
+      expect(first.session!.selectedSourceMapIds, [1, 8]);
+      expect(_claimedReviewMaps(first.session!), {1});
+      expect(first.session!.activeCandidates, isNotEmpty);
+      final firstKey = first.key;
+      await _selectReviewMap(tester, '8');
+      final second = _reviewPanel(tester);
+      expect(second.session!.selectedSourceMapIds, [1, 8]);
+      expect(_claimedReviewMaps(second.session!), {8});
+      expect(second.key, isNot(firstKey));
+      expect(
+        tester
+            .widget<ConverterVisionPanel>(find.byType(ConverterVisionPanel))
+            .session
+            .canonicalHash,
+        second.session!.canonicalHash,
+      );
+      expect(
+        second.availableSources.map((s) => s.fileId).toSet(),
+        second.session!.activeCandidates
+            .expand((c) => c.sources)
+            .map((s) => s.fileId)
+            .toSet(),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets(
+    'segmented review corrections preserve the other map and reject old callbacks',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await _scanAndPrepare(tester, source);
+        await _showResources(tester);
+        final first = _reviewPanel(tester);
+        final firstSession = first.session!;
+        expect(_claimedReviewMaps(firstSession), {1});
+        final firstNext = _renameReviewCandidate(
+          firstSession,
+          'Objet de la carte 1',
+        );
+        first.onSessionChanged!(firstNext, firstSession.canonicalHash);
+        await tester.pump();
+        await _selectReviewMap(tester, '8');
+        final second = _reviewPanel(tester);
+        final secondSession = second.session!;
+        final secondNext = _renameReviewCandidate(
+          secondSession,
+          'Objet de la carte 8',
+        );
+        second.onSessionChanged!(secondNext, secondSession.canonicalHash);
+        await tester.pump();
+        first.onSessionChanged!(
+          _renameReviewCandidate(firstSession, 'Ancien callback refusé'),
+          firstSession.canonicalHash,
+        );
+        await tester.pump();
+        expect(
+          _reviewPanel(tester).session!.canonicalHash,
+          secondNext.canonicalHash,
+        );
+        await _selectReviewMap(tester, '1');
+        expect(
+          _reviewPanel(tester).session!.canonicalHash,
+          firstNext.canonicalHash,
+        );
+        await _acknowledgeAndPrepare(tester, source);
+        final candidates = source.workflow.state.prepared!.assetCandidates;
+        expect(
+          candidates.where((c) => c.name == 'Objet de la carte 1'),
+          hasLength(1),
+        );
+        expect(
+          candidates.where((c) => c.name == 'Objet de la carte 8'),
+          hasLength(1),
+        );
+        expect(
+          candidates.where((c) => c.name == 'Ancien callback refusé'),
+          isEmpty,
+        );
+        expect(
+          source.workflow.state.prepared!.settings.assetOutputMode,
+          AssetOutputMode.sharedAtlas,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
+  testWidgets(
+    'segmented review drafts block map changes without losing the field',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await _scanAndPrepare(tester, source);
+        await _showResources(tester);
+        expect(
+          find.byKey(const ValueKey('review-map-selector')),
+          findsOneWidget,
+        );
+        final changeMap = _reviewMapSelector(tester).onChanged!;
+        final before = _reviewPanel(tester).session!.canonicalHash;
+        final field = find.descendant(
+          of: find.byKey(const ValueKey('asset-review-name')),
+          matching: find.byType(TextField),
+        );
+        if (field.evaluate().isEmpty) {
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('asset-open-inspector')),
+          );
+          await tester.tap(find.byKey(const ValueKey('asset-open-inspector')));
+          await tester.pumpAndSettle();
+        }
+        await tester.enterText(field, 'Brouillon conservé carte 1');
+        await tester.pump();
+        await tester.pump();
+        expect(_reviewMapSelector(tester).onChanged, isNull);
+        expect(_button(tester, 'save-review-session').onPressed, isNull);
+        changeMap('8');
+        await tester.pump();
+        expect(_reviewMapSelector(tester).value, '1');
+        expect(_reviewPanel(tester).session!.canonicalHash, before);
+        expect(
+          tester.widget<TextField>(field).controller!.text,
+          'Brouillon conservé carte 1',
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
+  testWidgets('segmented review output mode changes every map atomically', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      await _showResources(tester);
+      final first = _reviewPanel(tester);
+      expect(first.session!.selectedSourceMapIds, [1, 8]);
+      expect(_claimedReviewMaps(first.session!), {1});
+      first.onModeChanged(AssetOutputMode.standaloneObjects);
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared?.settings.assetOutputMode ==
+                AssetOutputMode.standaloneObjects &&
+            !source.workflow.state.isBusy,
+      );
+      expect(
+        _reviewPanel(tester).session!.outputMode,
+        AssetOutputMode.standaloneObjects,
+      );
+      await _selectReviewMap(tester, '8');
+      expect(
+        _reviewPanel(tester).session!.outputMode,
+        AssetOutputMode.standaloneObjects,
+      );
+      expect(
+        _reviewPanel(tester).outputMode,
+        AssetOutputMode.standaloneObjects,
+      );
+      final settings = source.workflow.state.prepared!.settings.toJson();
+      final reviewSet = settings['reviewSet']! as Map;
+      final segments = reviewSet['segments']! as List;
+      expect(segments, hasLength(2));
+      expect(
+        segments.every(
+          (row) => (row as Map)['session']['outputMode'] == 'standaloneObjects',
+        ),
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets(
+    'segmented review saves and resumes all corrected maps together',
+    (tester) async {
+      final source = (await tester.runAsync(_OriginalSource.create))!;
+      _setWindow(tester, const Size(1600, 1000));
+      final store = LocalReviewSessionStore(
+        rootPath: '${source.root.path}/sessions',
+      );
+      ConverterWorkflow? resumed;
+      try {
+        await _scanAndPrepare(tester, source, sessionStore: store);
+        await _showResources(tester);
+        final first = _reviewPanel(tester);
+        expect(first.session!.selectedSourceMapIds, [1, 8]);
+        expect(_claimedReviewMaps(first.session!), {1});
+        first.onSessionChanged!(
+          _renameReviewCandidate(first.session!, 'Carte 1 sauvegardée'),
+          first.session!.canonicalHash,
+        );
+        await tester.pump();
+        await _selectReviewMap(tester, '8');
+        final second = _reviewPanel(tester);
+        second.onSessionChanged!(
+          _renameReviewCandidate(second.session!, 'Carte 8 sauvegardée'),
+          second.session!.canonicalHash,
+        );
+        await tester.pump();
+        expect(_button(tester, 'save-review-session').onPressed, isNotNull);
+        await tester.tap(find.byKey(const ValueKey('save-review-session')));
+        await _waitFor(
+          tester,
+          () =>
+              find.text('Session enregistrée').evaluate().isNotEmpty ||
+              find.text('Enregistrement impossible').evaluate().isNotEmpty,
+          pumpDuration: const Duration(milliseconds: 10),
+        );
+        expect(find.text('Session enregistrée'), findsOneWidget);
+        final stored = (await tester.runAsync(store.list))!.single;
+        final document = stored.toJson();
+        expect(document['version'], 2);
+        final reviewSet = document['reviewSet']! as Map;
+        expect((reviewSet['segments']! as List), hasLength(2));
+        await tester.pumpWidget(const SizedBox());
+        resumed = ConverterWorkflow();
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: resumed,
+            sessionStore: store,
+            folderOpener: (_) async {},
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('load-review-session')));
+        await _waitFor(
+          tester,
+          () => find
+              .byKey(ValueKey('load-session-${reviewSet['sessionId']}'))
+              .evaluate()
+              .isNotEmpty,
+          pumpDuration: const Duration(milliseconds: 10),
+        );
+        await tester.tap(
+          find.byKey(ValueKey('load-session-${reviewSet['sessionId']}')),
+        );
+        await _waitFor(
+          tester,
+          () => find
+              .text('Session reprise · source vérifiée')
+              .evaluate()
+              .isNotEmpty,
+          pumpDuration: const Duration(milliseconds: 10),
+        );
+        expect(resumed.state.approval, isNull);
+        expect(
+          _reviewPanel(tester).session!.activeCandidates
+              .where((c) => c.name == 'Carte 1 sauvegardée'),
+          hasLength(1),
+        );
+        await _selectReviewMap(tester, '8');
+        expect(
+          _reviewPanel(tester).session!.activeCandidates
+              .where((c) => c.name == 'Carte 8 sauvegardée'),
+          hasLength(1),
+        );
+        expect(tester.takeException(), isNull);
+        await tester.runAsync(source.expectSourceUnchanged);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.runAsync(() async {
+          await resumed?.dispose();
+        });
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
   testWidgets('starts with five steps and an unavailable analysis action', (
     tester,
   ) async {
@@ -843,12 +1149,16 @@ Future<void> _tabTo(WidgetTester tester, Finder target) async {
   throw StateError('Keyboard traversal did not reach $target.');
 }
 
-Future<void> _waitFor(WidgetTester tester, bool Function() done) async {
+Future<void> _waitFor(
+  WidgetTester tester,
+  bool Function() done, {
+  Duration pumpDuration = Duration.zero,
+}) async {
   for (var attempt = 0; attempt < 1500 && !done(); attempt++) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
-    await tester.pump();
+    await tester.pump(pumpDuration);
   }
   if (!done()) {
     throw TimeoutException(
@@ -863,6 +1173,7 @@ Future<void> _scanAndPrepare(
   _OriginalSource source, {
   Future<void> Function(String)? folderOpener,
   ConverterPlanSavePicker? planSavePicker,
+  LocalReviewSessionStore? sessionStore,
 }) async {
   await tester.pumpWidget(
     ConverterApp(
@@ -871,6 +1182,7 @@ Future<void> _scanAndPrepare(
       initialParentPath: source.output.path,
       folderOpener: folderOpener ?? (_) async {},
       planSavePicker: planSavePicker ?? () async => null,
+      sessionStore: sessionStore,
     ),
   );
   await tester.tap(find.byKey(const ValueKey('analyse-project')));
@@ -881,6 +1193,47 @@ Future<void> _scanAndPrepare(
         source.workflow.state.prepared != null && !source.workflow.state.isBusy,
   );
   expect(source.workflow.state.prepared!.composition.nativeMaps, hasLength(2));
+}
+
+ConverterAssetReviewPanel _reviewPanel(WidgetTester tester) => tester
+    .widget<ConverterAssetReviewPanel>(find.byType(ConverterAssetReviewPanel));
+
+StudioSelect _reviewMapSelector(WidgetTester tester) => tester
+    .widget<StudioSelect>(find.byKey(const ValueKey('review-map-selector')));
+
+Future<void> _showResources(WidgetTester tester) async {
+  await tester.tap(find.text('Ressources'));
+  await tester.pump();
+}
+
+Future<void> _selectReviewMap(WidgetTester tester, String value) async {
+  final selector = _reviewMapSelector(tester);
+  await tester.ensureVisible(find.byKey(const ValueKey('review-map-selector')));
+  await tester.tap(find.byKey(const ValueKey('review-map-selector')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(selector.options[value]!).last);
+  await tester.pumpAndSettle();
+}
+
+Set<int> _claimedReviewMaps(AssetReviewSession session) => session
+    .frame
+    .placementClaims
+    .values
+    .expand((claims) => claims)
+    .map((claim) => claim.sourceMapId)
+    .toSet();
+
+AssetReviewSession _renameReviewCandidate(
+  AssetReviewSession session,
+  String name,
+) {
+  final candidate = session.activeCandidates.first;
+  return session.editMetadata(
+    candidateId: candidate.candidateId,
+    expectedCandidateHash: candidate.canonicalHash,
+    expectedSessionHash: session.canonicalHash,
+    name: name,
+  );
 }
 
 Future<void> _acknowledgeAndPrepare(

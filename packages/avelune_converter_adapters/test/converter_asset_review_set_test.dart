@@ -8,8 +8,7 @@ final _namespace = ConverterId('original-segmented-review');
 final _snapshot = Sha256Hash('a' * 64);
 final _normalized = Sha256Hash('b' * 64);
 
-String _mapPath(int id) =>
-    "Data/Map${id.toString().padLeft(3, '0')}.rxdata";
+String _mapPath(int id) => "Data/Map${id.toString().padLeft(3, '0')}.rxdata";
 
 SourceMapIr _sourceMap(int id) => SourceMapIr.fromJson({
       'schemaVersion': '1.0',
@@ -162,13 +161,18 @@ ConverterAssetReviewSet _set({
         segments: segments ?? {98: _session(98), 100: _session(100)},
         limits: limits);
 
-AssetReviewSession _manySession(int mapId, int count) {
+AssetReviewSession _manySession(int mapId, int count,
+    {int occurrencesPerCandidate = 1}) {
   final raw = jsonDecode(jsonEncode(_sourceMap(mapId).toJson()))
       as Map<String, dynamic>;
-  raw['map']['width'] = count;
-  raw['map']['layers'][0]['cells'] = List.filled(count, 384);
-  raw['map']['layers'][1]['cells'] = List.filled(count, 0);
-  raw['map']['layers'][2]['cells'] = List.filled(count, 0);
+  final cells = count * occurrencesPerCandidate;
+  raw['map']['width'] = cells;
+  if (occurrencesPerCandidate > 1) {
+    raw['map']['sourceFileId'] = 'file-$mapId-${'d' * 64}';
+  }
+  raw['map']['layers'][0]['cells'] = List.filled(cells, 384);
+  raw['map']['layers'][1]['cells'] = List.filled(cells, 0);
+  raw['map']['layers'][2]['cells'] = List.filled(cells, 0);
   final map = SourceMapIr.fromJson(raw);
   final candidates = [
     for (var i = 0; i < count; i++)
@@ -186,16 +190,19 @@ AssetReviewSession _manySession(int mapId, int count) {
       placementClaims: {
         for (var i = 0; i < count; i++)
           candidates[i].candidateId: [
-            SourcePlacementClaim(
-                sourceSnapshotHash: _snapshot,
-                sourceMapHash: map.canonicalHash,
-                sourceMapFileId: map.map.sourceFileId,
-                sourceMapId: mapId,
-                sourceZ: 0,
-                x: i,
-                y: 0,
-                tileId: 384,
-                partId: ConverterId('p0'))
+            for (var occurrence = 0;
+                occurrence < occurrencesPerCandidate;
+                occurrence++)
+              SourcePlacementClaim(
+                  sourceSnapshotHash: _snapshot,
+                  sourceMapHash: map.canonicalHash,
+                  sourceMapFileId: map.map.sourceFileId,
+                  sourceMapId: mapId,
+                  sourceZ: 0,
+                  x: i * occurrencesPerCandidate + occurrence,
+                  y: 0,
+                  tileId: 384,
+                  partId: ConverterId('p0'))
           ]
       });
 }
@@ -216,6 +223,85 @@ AssetReviewSession _rename(AssetReviewSession value) {
 }
 
 void main() {
+  test('compact claims preserve a dense two-map review under unchanged budgets',
+      () {
+    final initial = _set(segments: {
+      98: _manySession(98, 69, occurrencesPerCandidate: 90),
+      100: _manySession(100, 205, occurrencesPerCandidate: 30),
+    });
+    final changed = initial.changeOutputMode(
+        outputMode: AssetOutputMode.standaloneObjects,
+        expectedSetHash: initial.canonicalHash);
+    final loaded = ConverterAssetReviewSet.fromJson(changed.toJson(),
+        admissionLimits: initial.limits);
+    expect(utf8.encode(canonicalJsonOf(loaded.toJson())).length,
+        lessThan(2097152));
+    expect(loaded.activeCandidates, hasLength(274));
+    expect(loaded.toJson()['schemaVersion'], '2.0');
+    expect(loaded.segments[98]!.toJson(), changed.segments[98]!.toJson());
+    expect(loaded.segments[100]!.toJson(), changed.segments[100]!.toJson());
+    expect(loaded.canonicalHash, changed.canonicalHash);
+    expect(
+        loaded.segments.values
+            .expand((s) => s.frame.placementClaims.values)
+            .fold<int>(0, (sum, claims) => sum + claims.length),
+        12360);
+    expect(utf8.encode(canonicalJsonOf(loaded.toJson())).length,
+        lessThan(4194304));
+    expect(loaded.limits.jsonLimits.maxTextCodeUnits, 4194304);
+    expect(loaded.limits.segmentLimits.maxCandidates, 256);
+  });
+
+  test('compact claims reject malformed references and semantic tampering', () {
+    final value = _set();
+    final changes = <void Function(Map<String, dynamic>)>[
+      (raw) => raw.remove('placementClaimContexts'),
+      (raw) => raw['placementClaimContexts'][0].add('unknown'),
+      (raw) => raw['placementClaimContexts']
+          .add(List.from(raw['placementClaimContexts'][0])),
+      (raw) => raw['placementClaimContexts'][0][0] = 'f' * 64,
+      (raw) => raw['placementClaimContexts'][0][1] = 'different-source-file',
+      (raw) => raw['placementClaimContexts'][0][2] = 'e' * 64,
+      (raw) => raw['placementClaimContexts'][0][3] = 100,
+      (raw) => raw['placementClaimLists'].values.first[0][0] = -1,
+      (raw) => raw['placementClaimLists'].values.first[0][0] = 1,
+      (raw) => raw['placementClaimLists'].values.first[0].removeLast(),
+      (raw) => raw['placementClaimLists'].values.first[0].add(0),
+      (raw) => raw['placementClaimLists'].values.first[0][1] = 'different-part',
+      (raw) => raw['placementClaimLists'].values.first[0][2] = 1,
+      (raw) => raw['placementClaimLists'].values.first[0][3] =
+          (raw['placementClaimLists'].values.first[0][3] as int) + 1,
+      (raw) => raw['placementClaimLists'].values.first[0][4] =
+          (raw['placementClaimLists'].values.first[0][4] as int) + 1,
+      (raw) => raw['placementClaimLists'].values.first[0][5] = '0',
+    ];
+    for (final entry in changes.indexed) {
+      final raw = _raw(value);
+      entry.$2(raw['segments'][0]['session'] as Map<String, dynamic>);
+      expect(() => ConverterAssetReviewSet.fromJson(raw),
+          throwsA(isA<ContractError>()),
+          reason: 'mutation ${entry.$1}');
+    }
+  });
+
+  test('compact claims bound expansion before reconstructing core documents',
+      () {
+    final value = _set();
+    final raw = _raw(value);
+    raw['segments'][0]['limits']['maxTotalClaims'] = 1;
+    expect(() => ConverterAssetReviewSet.fromJson(raw),
+        _error('review.set.quota'));
+  });
+
+  test('compact review wire rejects the obsolete full-claim format', () {
+    final value = _set();
+    final raw = _raw(value);
+    raw['schemaVersion'] = '1.0';
+    raw['segments'][0]['session'] = value.segments[98]!.toJson();
+    raw['segments'][1]['session'] = value.segments[100]!.toJson();
+    expect(() => ConverterAssetReviewSet.fromJson(raw),
+        _error('review.set.document'));
+  });
   test('set preserves global context and strict source claims round trip', () {
     final value = _set();
     final loaded = ConverterAssetReviewSet.fromJson(value.toJson());
@@ -581,8 +667,7 @@ void main() {
     expect(
         () => _set(
             segments: {98: undo, 100: _session(100)},
-            limits:
-                const ConverterAssetReviewSetLimits(maxTotalCandidates: 4)),
+            limits: const ConverterAssetReviewSetLimits(maxTotalCandidates: 4)),
         _error('review.set.quota'));
     final admitted = _set(
         segments: {98: undo, 100: _session(100)},

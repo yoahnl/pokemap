@@ -119,7 +119,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   final _search = TextEditingController();
   final _selectedMaps = <int>{};
   final _decisions = <LiteralDependencyDecision>[];
-  AssetReviewSession? _reviewSession;
+  ConverterAssetReviewSet? _reviewSet;
+  int? _reviewMapId;
   StoredReviewSession? _storedReview;
   LocalReviewSessionStore? _sessionStore;
   late final AppLifecycleListener _lifecycle;
@@ -147,6 +148,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   bool get _busy =>
       _state.isBusy || _savingSession || _savingPlan || _loadingSession;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
+  AssetReviewSession? get _reviewSession => _reviewSet?.segments[_reviewMapId];
   (String, String, String, String) get _formValues =>
       (_source.text, _parent.text, _name.text, _folder.text);
   String get _sourceRoot {
@@ -261,11 +263,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   bool get _sessionUnsaved {
-    final session = _reviewSession;
-    if (session == null) return false;
+    final reviewSet = _reviewSet;
+    if (reviewSet == null) return false;
     final stored = _storedReview;
     if (stored == null ||
-        stored.session.canonicalHash != session.canonicalHash ||
+        stored.reviewSet.canonicalHash != reviewSet.canonicalHash ||
         !_formValid) {
       return true;
     }
@@ -277,8 +279,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _sessionStore ??= await openConverterReviewSessionStore();
 
   Future<bool> _saveReviewSession() async {
-    final session = _reviewSession;
-    if (session == null ||
+    final reviewSet = _reviewSet;
+    if (reviewSet == null ||
         !_formValid ||
         _unappliedDrafts ||
         _busy ||
@@ -296,9 +298,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
       final settings = _resumeSettings();
       final store = await _getSessionStore();
       final saved = stored == null
-          ? await store.create(session: session, resumeSettings: settings)
+          ? await store.create(reviewSet: reviewSet, resumeSettings: settings)
           : await store.compareAndSwap(
-              session: session,
+              reviewSet: reviewSet,
               resumeSettings: settings,
               expectedStoredRevision: stored.storedRevision,
               expectedCanonicalHash: stored.canonicalHash,
@@ -308,7 +310,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _storedReview = saved;
         _sessionNotice = 'Session enregistrée';
       });
-      return _reviewSession?.canonicalHash == saved.session.canonicalHash &&
+      return _reviewSet?.canonicalHash == saved.reviewSet.canonicalHash &&
           canonicalHashOf(_resumeSettings().toJson()) ==
               canonicalHashOf(saved.resumeSettings.toJson());
     } catch (error) {
@@ -371,11 +373,38 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() => _step = step);
   }
 
-  void _acceptReviewSession(
+  void _acceptReviewSegment(
     AssetReviewSession next,
+    Sha256Hash expectedSegmentHash,
+    Sha256Hash expectedSetHash,
+    int sourceMapId,
+  ) {
+    final current = _reviewSet;
+    if (current == null ||
+        sourceMapId != _reviewMapId ||
+        current.canonicalHash != expectedSetHash) {
+      return;
+    }
+    try {
+      _acceptReviewSet(
+        current.replaceSegment(
+          sourceMapId: sourceMapId,
+          next: next,
+          expectedSetHash: expectedSetHash,
+          expectedSegmentHash: expectedSegmentHash,
+        ),
+        expectedSetHash,
+      );
+    } on ContractError {
+      return;
+    }
+  }
+
+  void _acceptReviewSet(
+    ConverterAssetReviewSet next,
     Sha256Hash expectedPreviousHash,
   ) {
-    final current = _reviewSession;
+    final current = _reviewSet;
     if (_busy ||
         !_reviewSourceVerified ||
         current == null ||
@@ -383,17 +412,37 @@ class _ConverterWindowState extends State<ConverterWindow> {
         current.sessionId != next.sessionId ||
         next.revision <= current.revision ||
         current.sourceSnapshotHash != next.sourceSnapshotHash ||
-        current.proposalGenerationHash != next.proposalGenerationHash) {
+        current.normalizedSourceHash != next.normalizedSourceHash) {
       return;
     }
     setState(() {
       _reviewPreview ??= _prepared;
-      _reviewSession = next;
+      _reviewSet = next;
       _assetOutputMode = next.outputMode;
       _dirty = true;
       _sessionNotice = null;
     });
     _workflow.invalidatePrepared();
+  }
+
+  void _changeReviewMap(int sourceMapId) {
+    if (_busy ||
+        _unappliedDrafts ||
+        !_reviewSourceVerified ||
+        _sourceRoot != _state.source?.rootPath ||
+        _reviewSet?.segments.containsKey(sourceMapId) != true) {
+      return;
+    }
+    setState(() => _reviewMapId = sourceMapId);
+  }
+
+  void _reconcileReviewMap() {
+    final maps = _reviewSet?.segments.keys;
+    if (maps == null || maps.isEmpty) {
+      _reviewMapId = null;
+    } else if (!maps.contains(_reviewMapId)) {
+      _reviewMapId = maps.first;
+    }
   }
 
   Future<void> _chooseReviewSession() => _run(() async {
@@ -416,11 +465,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
               for (final stored in sessions)
                 StudioChoice(
                   key: ValueKey(
-                    'load-session-${stored.session.sessionId.value}',
+                    'load-session-${stored.reviewSet.sessionId.value}',
                   ),
                   label: stored.resumeSettings.projectName,
                   subtitle:
-                      '${stored.session.selectedSourceMapIds.length} carte(s) · ${stored.session.activeCandidates.length} proposition(s) · révision ${stored.storedRevision}',
+                      '${stored.reviewSet.selectedSourceMapIds.length} carte(s) · ${stored.reviewSet.activeCandidates.length} proposition(s) · révision ${stored.storedRevision}',
                   selected: false,
                   onTap: () => Navigator.pop(dialogContext, stored),
                 ),
@@ -451,11 +500,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _loadingSession = true;
       _storedReview = stored;
-      _reviewSession = stored.session;
-      _assetOutputMode = stored.session.outputMode;
+      _reviewSet = stored.reviewSet;
+      _reviewMapId = null;
+      _reconcileReviewMap();
+      _assetOutputMode = stored.reviewSet.outputMode;
       _selectedMaps
         ..clear()
-        ..addAll(stored.session.selectedSourceMapIds);
+        ..addAll(stored.reviewSet.selectedSourceMapIds);
       _decisions.clear();
       _studyAcknowledged =
           settings.profileAcknowledgement?.humanConfirmed ?? false;
@@ -547,7 +598,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _studyAcknowledged = false;
         _allowFirstFrameAutotiles = false;
         _reviewPreview = null;
-        _reviewSession = null;
+        _reviewSet = null;
+        _reviewMapId = null;
         _storedReview = null;
         _reviewSourceVerified = false;
         _sessionGeneration++;
@@ -565,7 +617,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _decisions.clear();
       _assetOutputMode = AssetOutputMode.sharedAtlas;
       _reviewPreview = null;
-      _reviewSession = null;
+      _reviewSet = null;
+      _reviewMapId = null;
       _storedReview = null;
       _reviewSourceVerified = false;
       _sessionGeneration++;
@@ -604,7 +657,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       dependencyDecisions: _decisions,
       allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
       assetOutputMode: _assetOutputMode,
-      reviewSession: _reviewSession,
+      reviewSet: _reviewSet,
       normalizationLimits:
           _storedReview?.resumeSettings.normalizationLimits ??
           const SourceNormalizationLimits(),
@@ -625,7 +678,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     final PreparedStudy prepared;
     if (stored != null && !_reviewSourceVerified) {
       final current = StoredReviewSession(
-        session: _reviewSession ?? stored.session,
+        reviewSet: _reviewSet ?? stored.reviewSet,
         resumeSettings: _resumeSettings(),
         storedRevision: stored.storedRevision,
       );
@@ -642,9 +695,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       prepared = await _workflow.prepareStudy();
     }
     if (!mounted || generation != _sessionGeneration) return;
-    if (_reviewSession != null &&
-        prepared.reviewSession?.canonicalHash !=
-            _reviewSession!.canonicalHash) {
+    if (_reviewSet != null &&
+        prepared.reviewSet?.canonicalHash != _reviewSet!.canonicalHash) {
       throw const ConverterWorkflowFailure(
         'workflow.review.mismatch',
         'Le plan ne correspond pas à la revue active. Préparez à nouveau la sélection.',
@@ -653,7 +705,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _dirty = false;
       _reviewPreview = null;
-      _reviewSession ??= prepared.reviewSession;
+      _reviewSet ??= prepared.reviewSet;
+      _reconcileReviewMap();
       _reviewSourceVerified = true;
       _decisions
         ..clear()
@@ -661,7 +714,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _studyAcknowledged =
           prepared.settings.profileAcknowledgement.humanConfirmed;
       _allowFirstFrameAutotiles = prepared.settings.allowFirstFrameAutotiles;
-      _assetOutputMode = _reviewSession?.outputMode ?? _assetOutputMode;
+      _assetOutputMode = _reviewSet?.outputMode ?? _assetOutputMode;
       final ids = prepared.normalizedSource.maps
           .map((value) => value.map.sourceMapId)
           .toList();
@@ -714,7 +767,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _sessionGeneration++;
         _storedReview = null;
-        _reviewSession = null;
+        _reviewSet = null;
+        _reviewMapId = null;
         _reviewPreview = null;
         _reviewSourceVerified = false;
         _unappliedDrafts = false;
@@ -734,7 +788,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       if (!mounted) return;
       setState(() {
         _dirty = false;
-        _reviewSession = prepared.reviewSession;
+        _reviewSet = prepared.reviewSet;
+        _reconcileReviewMap();
         _reviewSourceVerified = true;
         _previewMap = prepared.normalizedSource.maps.first.map.sourceMapId;
         _sessionNotice = 'Plan vérifié depuis la source actuelle. Une nouvelle approbation est nécessaire pour créer le projet.';
@@ -747,15 +802,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   void _changeAssetOutputMode(AssetOutputMode mode) => unawaited(
     _run(() async {
-      if (_unappliedDrafts) return;
-      final session = _reviewSession;
-      if (session != null) {
-        _acceptReviewSession(
-          session.changeOutputMode(
+      if (_busy || _unappliedDrafts || !_reviewSourceVerified) return;
+      final reviewSet = _reviewSet;
+      if (reviewSet != null) {
+        _acceptReviewSet(
+          reviewSet.changeOutputMode(
             outputMode: mode,
-            expectedSessionHash: session.canonicalHash,
+            expectedSetHash: reviewSet.canonicalHash,
           ),
-          session.canonicalHash,
+          reviewSet.canonicalHash,
         );
         await _prepareCurrent();
         return;
@@ -785,7 +840,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ..addAll(ids);
       _decisions.clear();
       _reviewPreview = null;
-      _reviewSession = null;
+      _reviewSet = null;
+      _reviewMapId = null;
       _storedReview = null;
       _reviewSourceVerified = false;
       _sessionGeneration++;
@@ -803,7 +859,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       if (!await _prepareForSessionChange() || !mounted) return;
       setState(() {
         _reviewPreview = null;
-        _reviewSession = null;
+        _reviewSet = null;
+        _reviewMapId = null;
         _storedReview = null;
         _reviewSourceVerified = false;
         _sessionGeneration++;
@@ -1031,9 +1088,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
         (_state.result?.published == true
             ? 'Projet d’étude publié et vérifié.'
             : _sessionNotice) ??
-        (_reviewSession != null && !_formValid
+        (_reviewSet != null && !_formValid
             ? 'Corrigez les champs du projet avant l’enregistrement.'
-            : _reviewSession == null
+            : _reviewSet == null
             ? 'Reprenez une session enregistrée ou analysez votre source.'
             : _unappliedDrafts
             ? 'Champs de revue à appliquer'
@@ -1068,7 +1125,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
         secondary: true,
         onPressed: _busy ? null : _chooseReviewSession,
       ),
-      if (_reviewSession != null)
+      if (_reviewSet != null)
         StudioButton(
           key: const ValueKey('save-review-session'),
           label: 'Enregistrer la session',
@@ -1345,7 +1402,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _resourcesPage() {
     final prepared = _prepared;
-    if (prepared == null && _reviewSession == null) {
+    final reviewSet = _reviewSet;
+    final sourceMapId = _reviewMapId;
+    final names = {
+      for (final source in prepared?.normalizedSource.maps ?? <SourceMapIr>[])
+        source.map.sourceMapId: source.map.name,
+    };
+    if (prepared == null && reviewSet == null) {
       return const StudioEmptyState(
         title: 'Les ressources apparaîtront après l’analyse',
         description: 'Les atlas affichés proviennent des fichiers du projet sélectionné.',
@@ -1358,10 +1421,34 @@ class _ConverterWindowState extends State<ConverterWindow> {
           'Les tuiles gardent leurs placements source. Les objets approuvés sont ajoutés à la bibliothèque après une vérification de leurs images source.',
         ),
         const SizedBox(height: 24),
+        if (reviewSet != null) ...[
+          StudioSelect(
+            key: const ValueKey('review-map-selector'),
+            label: 'Carte à revoir',
+            value: sourceMapId?.toString(),
+            options: {
+              for (final id in reviewSet.segments.keys)
+                id.toString(): names[id]?.trim().isNotEmpty == true
+                    ? names[id]!
+                    : 'Carte $id',
+            },
+            onChanged:
+                !_busy &&
+                    !_unappliedDrafts &&
+                    _reviewSourceVerified &&
+                    _sourceRoot == _state.source?.rootPath
+                ? (value) => _changeReviewMap(int.parse(value))
+                : null,
+          ),
+          const SizedBox(height: 16),
+        ],
         _assetReviewPanel(prepared),
         const SizedBox(height: 24),
         if (_reviewSession case final session?) ...[
           ConverterVisionPanel(
+            key: ValueKey(
+              'vision-review-$sourceMapId-${session.sessionId.value}',
+            ),
             session: session,
             enabled:
                 !_busy &&
@@ -1378,7 +1465,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   _validFolder(_folder.text.trim()))
                 path.join(_parent.text.trim(), _folder.text.trim()),
             ],
-            onSessionChanged: _acceptReviewSession,
+            onSessionChanged: (next, expectedHash) => _acceptReviewSegment(
+              next,
+              expectedHash,
+              reviewSet!.canonicalHash,
+              sourceMapId!,
+            ),
           ),
           const SizedBox(height: 24),
         ],
@@ -1448,35 +1540,51 @@ class _ConverterWindowState extends State<ConverterWindow> {
     );
   }
 
-  Widget _assetReviewPanel(PreparedStudy? prepared) =>
-      ConverterAssetReviewPanel(
-        artifacts: prepared?.composition.draft?.artifacts ?? const [],
-        limits:
-            prepared?.settings.writeLimits ??
-            _storedReview?.resumeSettings.writeLimits ??
-            sourceCatalogStudyWriteLimits,
-        outputMode: _assetOutputMode,
-        enabled:
-            !_busy &&
-            _reviewSourceVerified &&
-            _sourceRoot == _state.source?.rootPath,
-        session: _reviewSession,
-        onSessionChanged: _acceptReviewSession,
-        onUnappliedDraftsChanged: (value) {
-          if (mounted && value != _unappliedDrafts) {
-            setState(() => _unappliedDrafts = value);
-          }
-        },
-        sourceFilePaths: _reviewSourceVerified
-            ? {
-                for (final entry
-                    in _state.snapshot?.entries ?? <SourceFileEntry>[])
-                  if (entry.sha256 != null) entry.fileId: entry.relativePath,
-              }
-            : const {},
-        availableSources: prepared?.assetProposals?.sourceImages ?? const [],
-        onModeChanged: _changeAssetOutputMode,
-      );
+  Widget _assetReviewPanel(PreparedStudy? prepared) {
+    final reviewSet = _reviewSet;
+    final sourceMapId = _reviewMapId;
+    final session = _reviewSession;
+    return ConverterAssetReviewPanel(
+      key: ValueKey('asset-review-$sourceMapId-${session?.sessionId.value}'),
+      artifacts: prepared?.composition.draft?.artifacts ?? const [],
+      limits:
+          prepared?.settings.writeLimits ??
+          _storedReview?.resumeSettings.writeLimits ??
+          sourceCatalogStudyWriteLimits,
+      outputMode: _assetOutputMode,
+      enabled:
+          !_busy &&
+          _reviewSourceVerified &&
+          _sourceRoot == _state.source?.rootPath,
+      session: session,
+      onSessionChanged: reviewSet == null || sourceMapId == null
+          ? null
+          : (next, expectedHash) => _acceptReviewSegment(
+              next,
+              expectedHash,
+              reviewSet.canonicalHash,
+              sourceMapId,
+            ),
+      onUnappliedDraftsChanged: (value) {
+        if (mounted &&
+            _reviewMapId == sourceMapId &&
+            _reviewSet?.sessionId == reviewSet?.sessionId &&
+            value != _unappliedDrafts) {
+          setState(() => _unappliedDrafts = value);
+        }
+      },
+      sourceFilePaths: _reviewSourceVerified
+          ? {
+              for (final entry
+                  in _state.snapshot?.entries ?? <SourceFileEntry>[])
+                if (entry.sha256 != null) entry.fileId: entry.relativePath,
+            }
+          : const {},
+      availableSources:
+          prepared?.assetProposalsByMap?[sourceMapId]?.sourceImages ?? const [],
+      onModeChanged: _changeAssetOutputMode,
+    );
+  }
 
   Future<SourceFilePort> _visionSourceFiles() async {
     final source = _state.source;

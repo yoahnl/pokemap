@@ -15,7 +15,7 @@ final class ConverterReviewSessionResumer {
     String? folderName,
     String? projectName,
   }) async {
-    final session = stored.session;
+    final session = stored.reviewSet;
     final saved = stored.resumeSettings;
     final snapshot = await workflow.scanSource(ConverterSourceSelection(
         rootPath: sourceRootPath ?? saved.sourceRootPath,
@@ -111,7 +111,7 @@ final class ConverterReviewSessionResumer {
       String? folderName,
       String? projectName}) {
     final saved = stored.resumeSettings;
-    final session = stored.session;
+    final session = stored.reviewSet;
     return ConverterStudySettings(
         projectName: projectName ?? saved.projectName,
         parentPath: destinationParentPath ?? saved.destinationParentPath,
@@ -120,10 +120,9 @@ final class ConverterReviewSessionResumer {
         profileAcknowledgement: acknowledgement,
         dependencyDecisions: decisions,
         allowFirstFrameAutotiles: saved.allowFirstFrameAutotiles,
-        assetOutputMode: restoreReview
-            ? session.outputMode
-            : session.frames.first.outputMode,
-        reviewSession: restoreReview ? session : null,
+        assetOutputMode:
+            restoreReview ? session.outputMode : session.seedOutputMode,
+        reviewSet: restoreReview ? session : null,
         normalizationLimits: saved.normalizationLimits,
         writeLimits: saved.writeLimits);
   }

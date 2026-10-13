@@ -7,6 +7,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/original_asset_fixture.dart';
 
 void main() {
   late Directory root;
@@ -132,6 +133,170 @@ void main() {
     };
   }
 
+  ConverterStudyPlanRecipe pairRecipe(ConverterAssetReviewSet reviewSet) {
+    final settings = ConverterStudySettings(
+        projectName: 'Original segmented recipe',
+        parentPath: output.path,
+        folderName: 'original-study',
+        selectedSourceMapIds: [1, 8],
+        assetOutputMode: reviewSet.outputMode,
+        reviewSet: reviewSet,
+        writeLimits: const NativeWriteLimits(maxMutations: 512),
+        profileAcknowledgement: SourceStudyAcknowledgement(
+            sourceSnapshotHash: reviewSet.sourceSnapshotHash,
+            profileEvidenceHash: Sha256Hash('2' * 64),
+            humanConfirmed: true,
+            reason: 'Original segmented recipe fixture'));
+    return ConverterStudyPlanRecipe(
+        sessionId: ConverterId('segmented-study'),
+        sessionRevision: 3,
+        sourceSelection: ConverterSourceSelection(
+            rootPath: fixture.sourceRootPath!,
+            logicalProjectNamespace: reviewSet.logicalProjectNamespace),
+        settings: settings,
+        sourceSnapshotHash: reviewSet.sourceSnapshotHash,
+        profileEvidenceHash: Sha256Hash('2' * 64),
+        settingsHash: settings.canonicalHash,
+        nativeDraftHash: Sha256Hash('3' * 64),
+        preparationHash: Sha256Hash('4' * 64),
+        previewPlanHash: Sha256Hash('5' * 64),
+        approvedPlanHash: Sha256Hash('6' * 64),
+        targetCapabilitiesHash: Sha256Hash('7' * 64),
+        rulesHash: Sha256Hash('8' * 64),
+        converterVersion: 'original-segmented-codec');
+  }
+
+  test('segmented recipe keeps both full reviews and their compact identity',
+      () {
+    final reviewSet = _recipePairSet();
+    final recipe = pairRecipe(reviewSet);
+    final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+    expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
+    expect(decoded.settings.canonicalHash, recipe.settingsHash);
+    expect(decoded.canonicalHash, recipe.canonicalHash);
+    expect((recipe.toJson()['settings'] as Map)['version'], 2);
+    expect(
+        (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
+  });
+
+  test('segmented recipe rejects a resigned larger embedded set budget', () {
+    final recipe = pairRecipe(_recipePairSet());
+    final body = jsonDecode(recipe.encode()) as Map<String, dynamic>;
+    body.remove('canonicalHash');
+    final settings = body['settings'] as Map<String, dynamic>;
+    (settings['writeLimits'] as Map<String, dynamic>)['maxMutations'] = 256;
+    final identity = Map<String, Object?>.from(settings)..remove('reviewSet');
+    identity['reviewSetHash'] = recipe.settings.reviewSet!.canonicalHash.value;
+    body['settingsHash'] = canonicalHashOf(identity).value;
+    body['canonicalHash'] =
+        canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+            .value;
+    expect(() => ConverterStudyPlanRecipe.fromJson(body),
+        throwsA(isA<ConverterWorkflowFailure>()));
+  });
+
+  test('segmented recipe rejects changed content inside the other map', () {
+    final recipe = pairRecipe(_recipePairSet());
+    final body = jsonDecode(recipe.encode()) as Map<String, dynamic>;
+    final reviewSet = (body['settings'] as Map)['reviewSet'] as Map;
+    final row = (reviewSet['segments'] as List).last as Map;
+    final child = row['session'] as Map;
+    final candidates = child['candidateVersions'] as Map;
+    (candidates.values.first as Map)['name'] = 'Changed second map';
+    body.remove('canonicalHash');
+    body['canonicalHash'] =
+        canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+            .value;
+    expect(() => ConverterStudyPlanRecipe.fromJson(body),
+        throwsA(isA<ConverterWorkflowFailure>()));
+  });
+
+  test('segmented recipe refuses a resigned version 2 without a legacy reader',
+      () {
+    final body = jsonDecode(pairRecipe(_recipePairSet()).encode())
+        as Map<String, dynamic>;
+    body.remove('canonicalHash');
+    body['version'] = 2;
+    body['canonicalHash'] =
+        canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+            .value;
+    expect(() => ConverterStudyPlanRecipe.fromJson(body),
+        throwsA(isA<ConverterWorkflowFailure>()));
+  });
+
+  test('segmented recipe retains the portable 4 MiB UTF8 byte bound', () {
+    final reviewSet = _recipePairSet(uncertainty: '漢' * 1000, countPerMap: 12);
+    expect(utf8.encode(canonicalJsonOf(reviewSet.toJson())).length,
+        greaterThan(ConverterStudyPlanRecipe.maxFileBytes));
+    expect(
+        () => pairRecipe(reviewSet),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((e) => e.code, 'code', 'workflow.recipe.quota')));
+  });
+
+  test(
+      'segmented portable recipe restores approved reviews in a fresh workflow',
+      () async {
+    fixture = (await OriginalAssetFixture.create(
+            sourceRootPath: fixture.sourceRootPath!))
+        .literalFixture;
+    final snapshot = await original.scanSource(ConverterSourceSelection(
+        rootPath: fixture.sourceRootPath!,
+        logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace));
+    ConverterStudySettings settings({ConverterAssetReviewSet? reviewSet}) =>
+        ConverterStudySettings(
+            projectName: 'Original portable pair',
+            parentPath: output.path,
+            folderName: 'original-study',
+            selectedSourceMapIds: [1, 8],
+            assetOutputMode: AssetOutputMode.standaloneObjects,
+            reviewSet: reviewSet,
+            writeLimits: const NativeWriteLimits(maxMutations: 512),
+            profileAcknowledgement: SourceStudyAcknowledgement(
+                sourceSnapshotHash: snapshot.canonicalHash,
+                profileEvidenceHash: snapshot.profile.evidenceHash,
+                humanConfirmed: true,
+                reason: 'Original pair without external assets'));
+    original.updateSettings(settings());
+    final initial = await original.prepareStudy();
+    var reviewed = initial.reviewSet!;
+    for (final mapId in reviewed.segments.keys) {
+      final child = reviewed.segments[mapId]!;
+      final candidate = child.activeCandidates.first;
+      final named = child.editMetadata(
+          candidateId: candidate.candidateId,
+          expectedCandidateHash: candidate.canonicalHash,
+          expectedSessionHash: child.canonicalHash,
+          name: 'Reviewed map $mapId',
+          category: AssetCategory.nature);
+      final current = named.activeCandidates.first;
+      final approved = named.decide(
+          candidateId: current.candidateId,
+          expectedCandidateHash: current.canonicalHash,
+          expectedSessionHash: named.canonicalHash,
+          action: ReviewAction.approve,
+          humanConfirmed: true);
+      reviewed = reviewed.replaceSegment(
+          sourceMapId: mapId,
+          next: approved,
+          expectedSetHash: reviewed.canonicalHash,
+          expectedSegmentHash: child.canonicalHash);
+    }
+    original.updateSettings(settings(reviewSet: reviewed));
+    final prepared = await original.prepareStudy();
+    final recipe = ConverterStudyPlanRecipe.decode(
+        original.exportStudyPlanRecipe().encode());
+    final fresh = await restored.restoreStudyPlanRecipe(recipe);
+    expect(fresh.reviewSet!.toJson(), reviewed.toJson());
+    expect(
+        fresh.nativeDraft!.canonicalHash, prepared.nativeDraft!.canonicalHash);
+    expect(fresh.preparationHash, prepared.preparationHash);
+    expect(fresh.approvedCandidateHashes, reviewed.approvedCandidateHashes);
+    expect(fresh.approvedCandidateHashes, hasLength(2));
+    expect(restored.state.approval, isNull);
+    expect(await output.list().toList(), isEmpty);
+  }, skip: !Platform.isMacOS);
+
   test('draft JSON budget recipe roundtrip preserves the exact custom limit',
       () {
     for (final budget in [1, 67108864, 268435456]) {
@@ -153,8 +318,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('draft JSON budget recipe emits version 2', () {
-    expect(connectionRecipe(2).toJson()['version'], 2);
+  test('review set recipe emits breaking version 3', () {
+    expect(connectionRecipe(2).toJson()['version'], 3);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {
@@ -178,8 +343,8 @@ void main() {
         () {
       expect(
           () => ConverterStudyPlanRecipe.fromJson(changedDraftBudget(invalid)),
-          throwsA(isA<ConverterWorkflowFailure>()
-              .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+          throwsA(isA<ConverterWorkflowFailure>().having(
+              (error) => error.code, 'code', 'workflow.recipe.invalid')));
     });
   }
 
@@ -192,8 +357,8 @@ void main() {
         original.exportStudyPlanRecipe().encode());
     expect(recipe.settings.writeLimits.maxTotalDraftJsonBytes, 134217728);
     final fresh = await restored.restoreStudyPlanRecipe(recipe);
-    expect(restored.state.settings!.writeLimits.maxTotalDraftJsonBytes,
-        134217728);
+    expect(
+        restored.state.settings!.writeLimits.maxTotalDraftJsonBytes, 134217728);
     expect(fresh.preparationHash, prepared.preparationHash);
     expect(fresh.previewPlan!.canonicalHash, recipe.previewPlanHash);
     expect(fresh.nativeDraft!.canonicalHash, recipe.nativeDraftHash);
@@ -385,7 +550,7 @@ void main() {
             excludedSegments: ['.env', '.git'])));
     ConverterStudySettings settings(
             {List<LiteralDependencyDecision> decisions = const [],
-            AssetReviewSession? review}) =>
+            ConverterAssetReviewSet? review}) =>
         ConverterStudySettings(
             projectName: 'Original dependency study',
             parentPath: output.path,
@@ -397,7 +562,7 @@ void main() {
                 humanConfirmed: true,
                 reason: 'Original dependency fixture'),
             dependencyDecisions: decisions,
-            reviewSession: review,
+            reviewSet: review,
             normalizationLimits: const SourceNormalizationLimits(maxMaps: 4),
             writeLimits:
                 const NativeWriteLimits(maxArtifacts: 16, maxMutations: 96));
@@ -411,7 +576,7 @@ void main() {
         targetSourceMapId: 8,
         decision: LiteralDependencyDisposition.excludeStudy);
     original.updateSettings(
-        settings(decisions: [decision], review: initial.reviewSession));
+        settings(decisions: [decision], review: initial.reviewSet));
     final prepared = await original.prepareStudy();
     final recipe = ConverterStudyPlanRecipe.fromJson(
         original.exportStudyPlanRecipe().toJson());
@@ -543,3 +708,96 @@ Future<Map<String, List<int>>> _treeBytes(String root) async => {
         if (entry is File)
           entry.path.substring(root.length + 1): await entry.readAsBytes()
     };
+
+ConverterAssetReviewSet _recipePairSet(
+    {int countPerMap = 1, String uncertainty = ''}) {
+  final template = _recipeCandidate().toJson();
+  final children = <int, AssetReviewSession>{};
+  for (final mapId in [1, 8]) {
+    final candidates = <AssetCandidate>[];
+    for (var index = 0; index < countPerMap; index++) {
+      final body = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+      body['candidateId'] = 'map-$mapId-seed-$index';
+      if (uncertainty.isNotEmpty) {
+        body['uncertainties'] = List.filled(64, uncertainty);
+      }
+      final part = (body['parts'] as List).single as Map<String, dynamic>;
+      (part['locator'] as Map<String, dynamic>)['mapId'] = mapId;
+      (part['locator'] as Map<String, dynamic>)['file'] =
+          "Data/Map${mapId.toString().padLeft(3, '0')}.rxdata";
+      candidates.add(AssetCandidate.fromJson(body));
+    }
+    children[mapId] = AssetReviewSession.create(
+        sessionId: ConverterId('pair-map-$mapId'),
+        logicalProjectNamespace: ConverterId('original-project'),
+        sourceSnapshotHash: Sha256Hash('a' * 64),
+        selectedSourceMapIds: [1, 8],
+        outputMode: AssetOutputMode.standaloneObjects,
+        proposalGenerationHash: Sha256Hash(mapId == 1 ? 'b' * 64 : 'c' * 64),
+        candidates: candidates);
+  }
+  return ConverterAssetReviewSet.create(
+      sessionId: ConverterId('pair-review'),
+      logicalProjectNamespace: ConverterId('original-project'),
+      sourceSnapshotHash: Sha256Hash('a' * 64),
+      normalizedSourceHash: Sha256Hash('e' * 64),
+      selectedSourceMapIds: [1, 8],
+      proposalSourceMapIds: [1, 8],
+      segments: children,
+      limits: converterAssetReviewSetLimitsFor(
+          const NativeWriteLimits(maxMutations: 512)));
+}
+
+AssetCandidate _recipeCandidate() => AssetCandidate.fromJson({
+      'schemaVersion': '1.0',
+      'kind': 'assetCandidate',
+      'exampleOnly': false,
+      'candidateId': 'tree',
+      'revision': 1,
+      'logicalProjectNamespace': 'original-project',
+      'sourceSnapshotHash': 'a' * 64,
+      'sources': [
+        {
+          'fileId': 'image-original',
+          'contentHash': 'c' * 64,
+          'pixelWidth': 32,
+          'pixelHeight': 32
+        }
+      ],
+      'name': 'Arbre original',
+      'category': 'nature',
+      'state': 'needsReview',
+      'parts': [
+        {
+          'partId': 'part-original',
+          'sourceFileId': 'image-original',
+          'sourceRect': {'x': 0, 'y': 0, 'width': 32, 'height': 32},
+          'destinationOffset': {'x': 0, 'y': 0},
+          'sourceLayer': 0,
+          'sourcePriority': 0,
+          'quarterTurns': 0,
+          'reflected': false,
+          'locator': {
+            'file': 'Data/Map001.rxdata',
+            'mapId': 1,
+            'eventId': null,
+            'pageIndex': null,
+            'commandIndex': null,
+            'tileId': 384,
+            'line': null
+          }
+        }
+      ],
+      'canvasSize': {'width': 32, 'height': 32},
+      'anchor': {
+        'unit': 'pixel',
+        'x': 16,
+        'y': 32,
+        'convention': 'bottomCenter'
+      },
+      'integrationMode': 'libraryOnly',
+      'outputMode': 'standaloneObjects',
+      'evidence': <Object?>[],
+      'uncertainties': <String>[],
+      'approvedRevision': null,
+    });

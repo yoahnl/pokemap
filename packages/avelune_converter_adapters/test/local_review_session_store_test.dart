@@ -45,8 +45,8 @@ void main() {
   Map<String, Object?> changedResumeBudget(
       String group, String field, Object? value,
       {bool remove = false}) {
-    final body = jsonDecode(jsonEncode(settings.toJson()))
-        as Map<String, dynamic>;
+    final body =
+        jsonDecode(jsonEncode(settings.toJson())) as Map<String, dynamic>;
     final limits = body[group] as Map<String, dynamic>;
     if (remove) {
       limits.remove(field);
@@ -56,6 +56,151 @@ void main() {
     return body;
   }
 
+  LocalReviewResumeSettings segmentedSettings() => LocalReviewResumeSettings(
+      sourceRootPath: source.path,
+      destinationParentPath: destination.path,
+      projectName: settings.projectName,
+      folderName: settings.folderName,
+      writeLimits: const NativeWriteLimits(maxMutations: 512));
+
+  test('segmented store preserves 280 candidates without partial disk records',
+      () async {
+    final reviewSet = _pairSet(countPerMap: 140);
+    final created = await store()
+        .create(reviewSet: reviewSet, resumeSettings: segmentedSettings());
+    final loaded = (await store().load(reviewSet.sessionId))!;
+    expect(loaded.reviewSet.segments.keys, [1, 8]);
+    expect(loaded.reviewSet.activeCandidates, hasLength(280));
+    expect(loaded.toJson(), created.toJson());
+    expect(
+        loaded.canonicalHash,
+        canonicalHashOf(loaded.toJson(),
+            limits: const LocalReviewSessionStoreLimits().jsonLimits));
+    expect(
+        (await root.list().toList())
+            .where((f) => f.path.endsWith('.session.json')),
+        hasLength(1));
+  });
+
+  for (final rewind in [true, false]) {
+    test(
+        'segmented store CAS refuses ${rewind ? 'a lower' : 'an equal changed'} child revision despite global progress',
+        () async {
+      ConverterAssetReviewSet edit(
+          ConverterAssetReviewSet set, int mapId, String name) {
+        final child = set.segments[mapId]!;
+        final candidate = child.activeCandidates.single;
+        final edited = child.editMetadata(
+            candidateId: candidate.candidateId,
+            expectedCandidateHash: candidate.canonicalHash,
+            expectedSessionHash: child.canonicalHash,
+            name: name);
+        return set.replaceSegment(
+            sourceMapId: mapId,
+            next: edited,
+            expectedSetHash: set.canonicalHash,
+            expectedSegmentHash: child.canonicalHash);
+      }
+
+      final seed = _pairSet();
+      final reviewed = edit(seed, 1, 'Saved first map');
+      final created = await store()
+          .create(reviewSet: reviewed, resumeSettings: segmentedSettings());
+      var alternative = rewind ? seed : edit(seed, 1, 'Conflicting first map');
+      alternative = edit(alternative, 8, 'Other map progress');
+      if (rewind) {
+        alternative = edit(alternative, 8, 'Further other map progress');
+      }
+      expect(alternative.revision, greaterThan(reviewed.revision));
+      await expectLater(
+          store().compareAndSwap(
+              reviewSet: alternative,
+              resumeSettings: segmentedSettings(),
+              expectedStoredRevision: created.storedRevision,
+              expectedCanonicalHash: created.canonicalHash),
+          _error('session.store.domain_revision'));
+      expect(
+          (await store().load(reviewed.sessionId))!.toJson(), created.toJson());
+    });
+  }
+
+  test(
+      'segmented store CAS changes one segment and retains the other history exactly',
+      () async {
+    final original = _pairSet();
+    final first = original.segments[1]!;
+    final secondJson = original.segments[8]!.toJson();
+    final created = await store()
+        .create(reviewSet: original, resumeSettings: segmentedSettings());
+    final candidate = first.activeCandidates.single;
+    final edited = first.editMetadata(
+        candidateId: candidate.candidateId,
+        expectedCandidateHash: candidate.canonicalHash,
+        expectedSessionHash: first.canonicalHash,
+        name: 'Correction carte 1');
+    final next = original.replaceSegment(
+        sourceMapId: 1,
+        next: edited,
+        expectedSetHash: original.canonicalHash,
+        expectedSegmentHash: first.canonicalHash);
+    final saved = await store().compareAndSwap(
+        reviewSet: next,
+        resumeSettings: segmentedSettings(),
+        expectedStoredRevision: created.storedRevision,
+        expectedCanonicalHash: created.canonicalHash);
+    expect(saved.reviewSet.segments[1]!.toJson(), edited.toJson());
+    expect(saved.reviewSet.segments[8]!.toJson(), secondJson);
+    await expectLater(
+        store().compareAndSwap(
+            reviewSet: original,
+            resumeSettings: segmentedSettings(),
+            expectedStoredRevision: created.storedRevision,
+            expectedCanonicalHash: created.canonicalHash),
+        _error('session.store.conflict'));
+    expect((await store().load(original.sessionId))!.toJson(), saved.toJson());
+  });
+
+  test(
+      'segmented store refuses a larger embedded admission budget before writing',
+      () async {
+    await expectLater(
+        store().create(
+            reviewSet: _pairSet(countPerMap: 140), resumeSettings: settings),
+        _error('session.store.document'));
+    expect(await root.list().toList(), isEmpty);
+  });
+
+  test(
+      'segmented store applies caller JSON bounds to the full envelope before writing',
+      () async {
+    await expectLater(
+        store(
+                limits: const LocalReviewSessionStoreLimits(
+                    jsonLimits: ContractLimits(maxTextCodeUnits: 1000)))
+            .create(reviewSet: _pairSet(), resumeSettings: segmentedSettings()),
+        _error('session.store.quota'));
+    expect(await root.list().toList(), isEmpty);
+  });
+
+  test('segmented store refuses version 1 and preserves its bytes', () async {
+    final created = await store()
+        .create(reviewSet: _pairSet(), resumeSettings: segmentedSettings());
+    final file = await _sessionFile(root);
+    final old = jsonEncode({...created.toJson(), 'version': 1});
+    await file.writeAsString(old);
+    await expectLater(store().load(created.reviewSet.sessionId),
+        _error('session.store.document'));
+    expect(await file.readAsString(), old);
+  });
+
+  test('review set store emits breaking version 2', () {
+    final stored = StoredReviewSession(
+        reviewSet: _reviewSet(_session()),
+        resumeSettings: settings,
+        storedRevision: 1);
+    expect(stored.toJson()['version'], 2);
+  });
+
   test('draft JSON budget resume survives exact disk reopen', () async {
     final custom = LocalReviewResumeSettings(
         sourceRootPath: source.path,
@@ -64,11 +209,11 @@ void main() {
         folderName: settings.folderName,
         writeLimits:
             const NativeWriteLimits(maxTotalDraftJsonBytes: 134217728));
-    final created =
-        await store().create(session: _session(), resumeSettings: custom);
-    final loaded = (await store().load(created.session.sessionId))!;
-    expect(loaded.resumeSettings.writeLimits.maxTotalDraftJsonBytes,
-        134217728);
+    final created = await store().create(
+        reviewSet: _reviewSet(_session(), writeLimits: custom.writeLimits),
+        resumeSettings: custom);
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
+    expect(loaded.resumeSettings.writeLimits.maxTotalDraftJsonBytes, 134217728);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
   });
@@ -88,7 +233,7 @@ void main() {
 
   test('draft JSON budget resume envelope hashes distinguish limits', () {
     StoredReviewSession envelope(int budget) => StoredReviewSession(
-        session: _session(),
+        reviewSet: _reviewSet(_session()),
         storedRevision: 1,
         resumeSettings: LocalReviewResumeSettings(
             sourceRootPath: source.path,
@@ -96,7 +241,8 @@ void main() {
             projectName: settings.projectName,
             folderName: settings.folderName,
             writeLimits: NativeWriteLimits(maxTotalDraftJsonBytes: budget)));
-    expect(envelope(2).canonicalHash, isNot(envelope(3).canonicalHash));
+    expect(envelope(67108864).canonicalHash,
+        isNot(envelope(134217728).canonicalHash));
   });
 
   test('draft JSON budget resume refuses missing required field', () {
@@ -124,9 +270,10 @@ void main() {
         folderName: settings.folderName,
         normalizationLimits:
             const SourceNormalizationLimits(maxConnections: 2));
-    final created =
-        await store().create(session: _session(), resumeSettings: custom);
-    final loaded = (await store().load(created.session.sessionId))!;
+    final created = await store().create(
+        reviewSet: _reviewSet(_session(), writeLimits: custom.writeLimits),
+        resumeSettings: custom);
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
     expect(loaded.resumeSettings.normalizationLimits.maxConnections, 2);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
@@ -148,7 +295,7 @@ void main() {
 
   test('connection quota resume envelope hashes distinguish limits', () {
     StoredReviewSession envelope(int quota) => StoredReviewSession(
-        session: _session(),
+        reviewSet: _reviewSet(_session()),
         storedRevision: 1,
         resumeSettings: LocalReviewResumeSettings(
             sourceRootPath: source.path,
@@ -187,13 +334,13 @@ void main() {
         action: ReviewAction.approve,
         humanConfirmed: true);
     final undone = reviewed.undo(expectedSessionHash: reviewed.canonicalHash);
-    final created =
-        await store().create(session: undone, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(undone), resumeSettings: settings);
     final reopened = await store().load(undone.sessionId);
     expect(created.storedRevision, 1);
     expect(reopened, isNotNull);
-    expect(reopened!.session.toJson(), undone.toJson());
-    expect(reopened.session.canRedo, isTrue);
+    expect(reopened!.reviewSet.segments[1]!.toJson(), undone.toJson());
+    expect(reopened.reviewSet.segments[1]!.canRedo, isTrue);
     expect(reopened.resumeSettings.toJson(), settings.toJson());
     expect(reopened.toJson(), created.toJson());
     expect(reopened.canonicalHash, canonicalHashOf(reopened.toJson()));
@@ -203,10 +350,11 @@ void main() {
 
   test('create refuses existing session without overwriting it', () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     await expectLater(
-        store().create(session: session, resumeSettings: settings),
+        store()
+            .create(reviewSet: _reviewSet(session), resumeSettings: settings),
         _error('session.store.exists'));
     expect((await store().load(session.sessionId))!.canonicalHash,
         created.canonicalHash);
@@ -214,8 +362,8 @@ void main() {
 
   test('CAS keeps stored revision separate from the domain revision', () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final renamed = session.editMetadata(
         candidateId: ConverterId('tree'),
         expectedCandidateHash: session.activeCandidates.single.canonicalHash,
@@ -228,19 +376,19 @@ void main() {
         action: ReviewAction.approve,
         humanConfirmed: true);
     final saved = await store().compareAndSwap(
-        session: approved,
+        reviewSet: _reviewSet(approved),
         resumeSettings: settings,
         expectedStoredRevision: created.storedRevision,
         expectedCanonicalHash: created.canonicalHash);
     expect(saved.storedRevision, 2);
-    expect(saved.session.revision, 3);
+    expect(saved.reviewSet.segments[1]!.revision, 3);
     expect((await store().load(session.sessionId))!.toJson(), saved.toJson());
   });
 
   test('metadata-only CAS advances envelope revision and hash', () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final changed = LocalReviewResumeSettings(
         sourceRootPath: source.path,
         destinationParentPath: destination.path,
@@ -248,16 +396,16 @@ void main() {
         folderName: 'conversion',
         allowFirstFrameAutotiles: true);
     final saved = await store().compareAndSwap(
-        session: session,
+        reviewSet: _reviewSet(session),
         resumeSettings: changed,
         expectedStoredRevision: created.storedRevision,
         expectedCanonicalHash: created.canonicalHash);
-    expect(saved.session.canonicalHash, created.session.canonicalHash);
+    expect(saved.reviewSet.canonicalHash, created.reviewSet.canonicalHash);
     expect(saved.storedRevision, 2);
     expect(saved.canonicalHash, isNot(created.canonicalHash));
     await expectLater(
         store().compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -266,11 +414,11 @@ void main() {
 
   test('CAS rejects exact revision with a different envelope hash', () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     await expectLater(
         store().compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: Sha256Hash('0' * 64)),
@@ -287,11 +435,11 @@ void main() {
         expectedCandidateHash: session.activeCandidates.single.canonicalHash,
         expectedSessionHash: session.canonicalHash,
         name: 'Arbre corrigé');
-    final created =
-        await store().create(session: renamed, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(renamed), resumeSettings: settings);
     await expectLater(
         store().compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -318,7 +466,7 @@ void main() {
         name: 'Arbre corrigé');
     await expectLater(
         store().compareAndSwap(
-            session: changed,
+            reviewSet: _reviewSet(changed),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -328,12 +476,12 @@ void main() {
   test('two same-isolate instances cannot overwrite a concurrent CAS',
       () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     Future<Object> save(String name) async {
       try {
         return await store().compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: LocalReviewResumeSettings(
                 sourceRootPath: source.path,
                 destinationParentPath: destination.path,
@@ -373,7 +521,7 @@ void main() {
                   }
                 }
               : null,
-        ).create(session: _session(id), resumeSettings: settings);
+        ).create(reviewSet: _reviewSet(_session(id)), resumeSettings: settings);
       } on LocalReviewSessionStoreFailure catch (error) {
         return error;
       }
@@ -391,15 +539,15 @@ void main() {
       limits: const LocalReviewSessionStoreLimits(maxSessions: 1),
     ).list();
     expect(listed.single.canonicalHash, saved.canonicalHash);
-    expect((await store().load(saved.session.sessionId))!.canonicalHash,
+    expect((await store().load(saved.reviewSet.sessionId))!.canonicalHash,
         saved.canonicalHash);
   });
 
   test('failure before publication preserves the previous canonical file',
       () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final interrupted = store(checkpoint: (stage, _) {
       if (stage == LocalReviewSessionWriteStage.beforePublish) {
         throw StateError('controlled interruption');
@@ -407,7 +555,7 @@ void main() {
     });
     await expectLater(
         interrupted.compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -422,8 +570,8 @@ void main() {
   test('two processes cannot publish the same expected stored version',
       () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final script = File(path.join(temporary.path, 'cas_child.dart'));
     await script.writeAsString(_casChildScript);
     final children = <_CasChild>[];
@@ -473,7 +621,7 @@ void main() {
       ]) {
         final seed = File(path.join(temporary.path, '$mode.json'));
         await seed.writeAsString(jsonEncode(StoredReviewSession(
-          session: _session(id),
+          reviewSet: _reviewSet(_session(id)),
           resumeSettings: settings,
           storedRevision: 1,
         ).toJson()));
@@ -532,9 +680,10 @@ void main() {
           maxMaps: 3, maxEvents: 7, maxCommands: 13),
       writeLimits: const NativeWriteLimits(maxArtifacts: 4, maxMutations: 20),
     );
-    final created =
-        await store().create(session: _session(), resumeSettings: custom);
-    final loaded = (await store().load(created.session.sessionId))!;
+    final created = await store().create(
+        reviewSet: _reviewSet(_session(), writeLimits: custom.writeLimits),
+        resumeSettings: custom);
+    final loaded = (await store().load(created.reviewSet.sessionId))!;
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.resumeSettings.sourceScanPolicy.canonicalHash,
         custom.sourceScanPolicy.canonicalHash);
@@ -573,8 +722,8 @@ void main() {
       profileAcknowledgement: acknowledgement,
       dependencyDecisions: [receipt],
     );
-    final created =
-        await store().create(session: session, resumeSettings: withReceipts);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: withReceipts);
     final loaded = (await store().load(session.sessionId))!;
     expect(loaded.resumeSettings.toJson(), withReceipts.toJson());
     expect(loaded.resumeSettings.profileAcknowledgement!.toJson(),
@@ -617,7 +766,8 @@ void main() {
         dependencyDecisions: [receipt],
       );
       await expectLater(
-          store().create(session: session, resumeSettings: invalid),
+          store()
+              .create(reviewSet: _reviewSet(session), resumeSettings: invalid),
           _error('session.store.context'));
     }
     final invalidAcknowledgement = LocalReviewResumeSettings(
@@ -632,8 +782,9 @@ void main() {
           reason: 'Profil source étranger'),
     );
     await expectLater(
-        store()
-            .create(session: session, resumeSettings: invalidAcknowledgement),
+        store().create(
+            reviewSet: _reviewSet(session),
+            resumeSettings: invalidAcknowledgement),
         _error('session.store.context'));
     expect(await store().load(session.sessionId), isNull);
   });
@@ -641,21 +792,16 @@ void main() {
   test(
       'unknown credential fields are rejected and no credentials are serialized',
       () async {
-    final created =
-        await store().create(session: _session(), resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     final json = created.toJson();
-    expect(json.keys.toSet(), {
-      'kind',
-      'version',
-      'storedRevision',
-      'reviewSession',
-      'resumeSettings'
-    });
+    expect(json.keys.toSet(),
+        {'kind', 'version', 'storedRevision', 'reviewSet', 'resumeSettings'});
     expect(json['resumeSettings'] is Map, isTrue);
     final file = await _sessionFile(root);
     final hostile = {...json, 'apiKey': 'sk-session-secret-lure'};
     await file.writeAsString(jsonEncode(hostile));
-    await expectLater(store().load(created.session.sessionId),
+    await expectLater(store().load(created.reviewSet.sessionId),
         _error('session.store.document'));
     expect(
         () => LocalReviewResumeSettings.fromJson({
@@ -668,16 +814,16 @@ void main() {
 
   test('unsupported envelope versions and malformed JSON are not reset',
       () async {
-    final created =
-        await store().create(session: _session(), resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     final file = await _sessionFile(root);
     final unsupported = jsonEncode({...created.toJson(), 'version': 42});
     await file.writeAsString(unsupported);
-    await expectLater(store().load(created.session.sessionId),
+    await expectLater(store().load(created.reviewSet.sessionId),
         _error('session.store.document'));
     expect(await file.readAsString(), unsupported);
     await file.writeAsString('{"broken":');
-    await expectLater(store().load(created.session.sessionId),
+    await expectLater(store().load(created.reviewSet.sessionId),
         _error('session.store.document'));
     expect(await file.readAsString(), '{"broken":');
   });
@@ -685,22 +831,22 @@ void main() {
   test(
       'load and list preserve sessions while source and target are unavailable',
       () async {
-    final created =
-        await store().create(session: _session(), resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     await source.delete(recursive: true);
     await destination.delete(recursive: true);
-    expect((await store().load(created.session.sessionId))!.toJson(),
+    expect((await store().load(created.reviewSet.sessionId))!.toJson(),
         created.toJson());
     expect((await store().list()).single.toJson(), created.toJson());
   });
 
   test('list is deterministic and bounded', () async {
-    final first = await store()
-        .create(session: _session('session:z'), resumeSettings: settings);
-    final second = await store()
-        .create(session: _session('session:a'), resumeSettings: settings);
-    expect((await store().list()).map((item) => item.session.sessionId.value),
-        [second.session.sessionId.value, first.session.sessionId.value]);
+    final first = await store().create(
+        reviewSet: _reviewSet(_session('session:z')), resumeSettings: settings);
+    final second = await store().create(
+        reviewSet: _reviewSet(_session('session:a')), resumeSettings: settings);
+    expect((await store().list()).map((item) => item.reviewSet.sessionId.value),
+        [second.reviewSet.sessionId.value, first.reviewSet.sessionId.value]);
     await expectLater(
         store(limits: const LocalReviewSessionStoreLimits(maxSessions: 1))
             .list(),
@@ -735,23 +881,25 @@ void main() {
     }
     await expectLater(
         store(limits: const LocalReviewSessionStoreLimits(maxFileBytes: 0))
-            .create(session: _session(), resumeSettings: settings),
+            .create(
+                reviewSet: _reviewSet(_session()), resumeSettings: settings),
         _error('session.store.limits'));
     expect(await root.list().toList(), isEmpty);
   });
 
   test('read byte quotas reject the file before parsing', () async {
-    final created =
-        await store().create(session: _session(), resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     await expectLater(
         store(limits: const LocalReviewSessionStoreLimits(maxFileBytes: 16))
-            .load(created.session.sessionId),
+            .load(created.reviewSet.sessionId),
         _error('session.store.quota'));
   });
 
   test('list applies an aggregate byte budget across stored sessions',
       () async {
-    await store().create(session: _session(), resumeSettings: settings);
+    await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     await expectLater(
         store(
                 limits:
@@ -762,32 +910,34 @@ void main() {
 
   test('excessive JSON depth and mismatched session identity are rejected',
       () async {
-    final created =
-        await store().create(session: _session(), resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
     final file = await _sessionFile(root);
     await file.writeAsString('${'[' * 1000}0${']' * 1000}');
-    await expectLater(
-        store().load(created.session.sessionId), _error('session.store.quota'));
+    await expectLater(store().load(created.reviewSet.sessionId),
+        _error('session.store.quota'));
     final foreign = StoredReviewSession(
-        session: _session('another-session'),
+        reviewSet: _reviewSet(_session('another-session')),
         resumeSettings: settings,
         storedRevision: 1);
     await file.writeAsString(jsonEncode(foreign.toJson()));
-    await expectLater(store().load(created.session.sessionId),
+    await expectLater(store().load(created.reviewSet.sessionId),
         _error('session.store.identity'));
   });
 
   test('write quotas do not publish a partial session', () async {
     await expectLater(
         store(limits: const LocalReviewSessionStoreLimits(maxFileBytes: 16))
-            .create(session: _session(), resumeSettings: settings),
+            .create(
+                reviewSet: _reviewSet(_session()), resumeSettings: settings),
         _error('session.store.quota'));
     expect(await store().load(ConverterId('session:original')), isNull);
   });
 
   test('session and lock symlinks cannot redirect filesystem access', () async {
     final session = _session();
-    await store().create(session: session, resumeSettings: settings);
+    await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final file = await _sessionFile(root);
     final outside = File(path.join(temporary.path, 'outside'));
     await file.rename(outside.path);
@@ -807,7 +957,7 @@ void main() {
     final created = (await store().load(session.sessionId))!;
     await expectLater(
         store().compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -820,13 +970,13 @@ void main() {
       () async {
     final nested = await Directory(path.join(source.path, 'sessions')).create();
     await expectLater(
-        LocalReviewSessionStore(rootPath: nested.path)
-            .create(session: _session(), resumeSettings: settings),
+        LocalReviewSessionStore(rootPath: nested.path).create(
+            reviewSet: _reviewSet(_session()), resumeSettings: settings),
         _error('session.store.overlap'));
     expect(await nested.list().toList(), isEmpty);
     await expectLater(
-        LocalReviewSessionStore(rootPath: destination.path)
-            .create(session: _session(), resumeSettings: settings),
+        LocalReviewSessionStore(rootPath: destination.path).create(
+            reviewSet: _reviewSet(_session()), resumeSettings: settings),
         _error('session.store.overlap'));
     expect(await File(path.join(source.path, 'original')).readAsString(),
         'original');
@@ -834,8 +984,8 @@ void main() {
 
   test('a root replaced by a symlink is refused before publication', () async {
     final session = _session();
-    final created =
-        await store().create(session: session, resumeSettings: settings);
+    final created = await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     String? sourceSentinel;
     final replaced = store(checkpoint: (stage, temporaryPath) async {
       if (stage == LocalReviewSessionWriteStage.beforePublish) {
@@ -847,7 +997,7 @@ void main() {
     });
     await expectLater(
         replaced.compareAndSwap(
-            session: session,
+            reviewSet: _reviewSet(session),
             resumeSettings: settings,
             expectedStoredRevision: created.storedRevision,
             expectedCanonicalHash: created.canonicalHash),
@@ -860,11 +1010,78 @@ void main() {
 
   test('session filenames use a digest rather than business ID text', () async {
     final session = _session('session:namespace.with-punctuation');
-    await store().create(session: session, resumeSettings: settings);
+    await store()
+        .create(reviewSet: _reviewSet(session), resumeSettings: settings);
     final file = await _sessionFile(root);
     expect(path.basename(file.path), matches(r'^[a-f0-9]{64}\.session\.json$'));
     expect(path.basename(file.path), isNot(contains('namespace')));
   });
+}
+
+ConverterAssetReviewSet _pairSet({int countPerMap = 1}) {
+  final template = _session().activeCandidates.single.toJson();
+  final children = <int, AssetReviewSession>{};
+  for (final mapId in [1, 8]) {
+    final candidates = <AssetCandidate>[];
+    for (var index = 0; index < countPerMap; index++) {
+      final body = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+      body['candidateId'] = 'map-$mapId-seed-$index';
+      final part = (body['parts'] as List).single as Map<String, dynamic>;
+      (part['locator'] as Map<String, dynamic>)['mapId'] = mapId;
+      (part['locator'] as Map<String, dynamic>)['file'] =
+          "Data/Map${mapId.toString().padLeft(3, '0')}.rxdata";
+      candidates.add(AssetCandidate.fromJson(body));
+    }
+    children[mapId] = AssetReviewSession.create(
+        sessionId: ConverterId('pair-map-$mapId'),
+        logicalProjectNamespace: ConverterId('original-project'),
+        sourceSnapshotHash: Sha256Hash('a' * 64),
+        selectedSourceMapIds: [1, 8],
+        outputMode: AssetOutputMode.standaloneObjects,
+        proposalGenerationHash: Sha256Hash(mapId == 1 ? 'b' * 64 : 'c' * 64),
+        candidates: candidates);
+  }
+  return ConverterAssetReviewSet.create(
+      sessionId: ConverterId('pair-review'),
+      logicalProjectNamespace: ConverterId('original-project'),
+      sourceSnapshotHash: Sha256Hash('a' * 64),
+      normalizedSourceHash: Sha256Hash('e' * 64),
+      selectedSourceMapIds: [1, 8],
+      proposalSourceMapIds: [1, 8],
+      segments: children,
+      limits: converterAssetReviewSetLimitsFor(
+          const NativeWriteLimits(maxMutations: 512)));
+}
+
+ConverterAssetReviewSet _reviewSet(AssetReviewSession session,
+    {NativeWriteLimits writeLimits = const NativeWriteLimits()}) {
+  final frame = session.frames.first;
+  final seed = AssetReviewSession.create(
+      sessionId: session.sessionId,
+      logicalProjectNamespace: session.logicalProjectNamespace,
+      sourceSnapshotHash: session.sourceSnapshotHash,
+      selectedSourceMapIds: session.selectedSourceMapIds,
+      outputMode: frame.outputMode,
+      proposalGenerationHash: session.proposalGenerationHash,
+      candidates: frame.candidates,
+      placementClaims: frame.placementClaims,
+      limits: session.limits);
+  final set = ConverterAssetReviewSet.create(
+      sessionId: session.sessionId,
+      logicalProjectNamespace: session.logicalProjectNamespace,
+      sourceSnapshotHash: session.sourceSnapshotHash,
+      normalizedSourceHash: Sha256Hash('e' * 64),
+      selectedSourceMapIds: session.selectedSourceMapIds,
+      proposalSourceMapIds: [1],
+      segments: {1: seed},
+      limits: converterAssetReviewSetLimitsFor(writeLimits));
+  return session.canonicalHash == seed.canonicalHash
+      ? set
+      : set.replaceSegment(
+          sourceMapId: 1,
+          next: session,
+          expectedSetHash: set.canonicalHash,
+          expectedSegmentHash: seed.canonicalHash);
 }
 
 Matcher _error(String code) => throwsA(isA<LocalReviewSessionStoreFailure>()
@@ -1027,7 +1244,7 @@ Future<void> main(List<String> arguments) async {
     ...current.resumeSettings.toJson(), 'projectName': arguments[2],
   });
   try {
-    await store.compareAndSwap(session: current.session, resumeSettings: settings,
+    await store.compareAndSwap(reviewSet: current.reviewSet, resumeSettings: settings,
       expectedStoredRevision: current.storedRevision,
       expectedCanonicalHash: current.canonicalHash);
     stdout.writeln('saved');
@@ -1062,7 +1279,7 @@ Future<void> main(List<String> arguments) async {
       }
     } : null);
   try {
-    await store.create(session: seed.session, resumeSettings: seed.resumeSettings);
+    await store.create(reviewSet: seed.reviewSet, resumeSettings: seed.resumeSettings);
     stdout.writeln('saved');
   } on LocalReviewSessionStoreFailure catch (error) {
     stdout.writeln(error.code);

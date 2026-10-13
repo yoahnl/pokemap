@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'converter_workflow.dart';
+import 'converter_asset_review_set.dart';
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
 
@@ -79,7 +80,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 2) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 3) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -90,6 +91,21 @@ final class ConverterStudyPlanRecipe {
       final normalization = _object(settings['normalizationLimits']);
       final write = _object(settings['writeLimits']);
       final contract = _object(write['jsonLimits']);
+      if (settings['version'] != 2) throw _invalid();
+      final writeLimits = NativeWriteLimits(
+          maxArtifacts: _int(write['maxArtifacts']),
+          maxMutations: _int(write['maxMutations']),
+          maxArtifactBytes: _int(write['maxArtifactBytes']),
+          maxTotalArtifactBytes: _int(write['maxTotalArtifactBytes']),
+          maxTotalDraftJsonBytes: _int(write['maxTotalDraftJsonBytes']),
+          maxImagePixels: _int(write['maxImagePixels']),
+          maxMapCells: _int(write['maxMapCells']),
+          jsonLimits: ContractLimits(
+              maxDepth: _int(contract['maxDepth']),
+              maxNodes: _int(contract['maxNodes']),
+              maxStringCodeUnits: _int(contract['maxStringCodeUnits']),
+              maxTextCodeUnits: _int(contract['maxTextCodeUnits'])));
+      writeLimits.validate();
       final decoded = ConverterStudyPlanRecipe(
           sessionId: ConverterId(_string(json['sessionId'])),
           sessionRevision: _int(json['sessionRevision']),
@@ -128,9 +144,11 @@ final class ConverterStudyPlanRecipe {
                   _bool(settings['allowFirstFrameAutotiles']),
               assetOutputMode: AssetOutputMode.values
                   .byName(_string(settings['assetOutputMode'])),
-              reviewSession: settings['reviewSession'] == null
+              reviewSet: settings['reviewSet'] == null
                   ? null
-                  : AssetReviewSession.fromJson(settings['reviewSession']),
+                  : ConverterAssetReviewSet.fromJson(settings['reviewSet'],
+                      admissionLimits:
+                          converterAssetReviewSetLimitsFor(writeLimits)),
               dependencyDecisions:
                   _list(settings['dependencyDecisions']).map((value) {
                 final decision = _object(value);
@@ -159,19 +177,7 @@ final class ConverterStudyPlanRecipe {
                       _int(normalization['maxTotalTextCodeUnits']),
                   maxDiagnosticTextCodeUnits:
                       _int(normalization['maxDiagnosticTextCodeUnits'])),
-              writeLimits: NativeWriteLimits(
-                  maxArtifacts: _int(write['maxArtifacts']),
-                  maxMutations: _int(write['maxMutations']),
-                  maxArtifactBytes: _int(write['maxArtifactBytes']),
-                  maxTotalArtifactBytes: _int(write['maxTotalArtifactBytes']),
-                  maxTotalDraftJsonBytes: _int(write['maxTotalDraftJsonBytes']),
-                  maxImagePixels: _int(write['maxImagePixels']),
-                  maxMapCells: _int(write['maxMapCells']),
-                  jsonLimits: ContractLimits(
-                      maxDepth: _int(contract['maxDepth']),
-                      maxNodes: _int(contract['maxNodes']),
-                      maxStringCodeUnits: _int(contract['maxStringCodeUnits']),
-                      maxTextCodeUnits: _int(contract['maxTextCodeUnits'])))),
+              writeLimits: writeLimits),
           sourceSnapshotHash: Sha256Hash(_string(json['sourceSnapshotHash'])),
           profileEvidenceHash: Sha256Hash(_string(json['profileEvidenceHash'])),
           settingsHash: Sha256Hash(_string(json['settingsHash'])),
@@ -225,7 +231,7 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 2,
+        'version': 3,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {
