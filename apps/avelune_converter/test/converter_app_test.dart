@@ -165,6 +165,105 @@ void main() {
   }, skip: !Platform.isMacOS);
 
   final scriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+
+  testWidgets('export explains native ledges and exact preparation budgets', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(
+      () => _nativeLedgeSource(scriptsPath!),
+    ))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      final prepared = source.workflow.state.prepared!;
+      final draft = prepared.nativeDraft!;
+      final semantics = draft.compositionEvidence['sourceSemantics'] as Map;
+      expect((semantics['directedJumps'] as Map)['importedJumpCount'], 1);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(find.textContaining('Rebords : 1 importé(s)'), findsOneWidget);
+      expect(
+        find.textContaining('Le parcours animé reste à tester dans le Player.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          '${draft.artifacts.length + draft.sourceArtifacts.length} fichiers / ${prepared.settings.writeLimits.maxArtifacts}',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          '${draft.mutations.length} opérations / ${prepared.settings.writeLimits.maxMutations}',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          '${draft.validatedJsonByteLength} octets / ${prepared.settings.writeLimits.maxTotalDraftJsonBytes}',
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      expect(source.nativeStages, isEmpty);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+  testWidgets('an excluded ledge has a visible reason and exact source cell', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(
+      () => _nativeLedgeSource(scriptsPath!, eventFootprint: true),
+    ))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      final semantics =
+          source
+                  .workflow
+                  .state
+                  .prepared!
+                  .nativeDraft!
+                  .compositionEvidence['sourceSemantics']
+              as Map;
+      final jumps = semantics['directedJumps'] as Map;
+      expect(jumps['importedJumpCount'], 0);
+      expect(
+        (jumps['diagnostics'] as List).single['code'],
+        'jumps.source_event_footprint',
+      );
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(
+        find.textContaining(
+          'Rebords : 0 importé(s) automatiquement ; 1 conservé(s)',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Rebord à vérifier'), findsOneWidget);
+      await tester.ensureVisible(find.text('Rebord à vérifier'));
+      await tester.tap(find.text('Rebord à vérifier'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Un événement occupe le départ'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Original map 1 · 001 · case (2, 2) · vers le bas'),
+        findsOneWidget,
+      );
+      expect(source.nativeStages, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: scriptsPath == null || !Platform.isMacOS);
+
   testWidgets('qualified and quarantined events are visible before creation', (
     tester,
   ) async {
@@ -872,4 +971,58 @@ final class _OriginalSource {
     await workflow.dispose();
     await root.delete(recursive: true);
   }
+}
+
+Future<_OriginalSource> _nativeLedgeSource(
+  String scriptsPath, {
+  bool eventFootprint = false,
+}) async {
+  final atlas = image.Image(width: 256, height: 64, numChannels: 4);
+  for (var y = 0; y < 32; y++) {
+    for (var x = 0; x < 32; x++) {
+      atlas.setPixelRgba(x, y, 31, 41, 59, 255);
+    }
+  }
+  for (var y = 48; y < 64; y++) {
+    for (var x = 0; x < 32; x++) {
+      atlas.setPixelRgba(x, y, 73, 83, 97, 255);
+    }
+  }
+  final middle = List<int>.filled(25, 0)..[12] = 392;
+  return _OriginalSource.create(
+    scriptsBytes: await File(scriptsPath).readAsBytes(),
+    extraFiles: {
+      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+      'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+        image.Image(width: 128, height: 192, numChannels: 4),
+      ),
+    },
+    maps: [
+      LiteralFixtureMap(
+        id: 1,
+        width: 5,
+        height: 5,
+        layers: [List.filled(25, 384), middle, List.filled(25, 0)],
+        events: eventFootprint
+            ? const [
+                LiteralFixtureEvent(
+                  id: 11,
+                  x: 2,
+                  y: 2,
+                  pages: [LiteralFixtureEventPage(commands: [])],
+                ),
+              ]
+            : const [],
+      ),
+      LiteralFixtureMap(id: 8),
+    ],
+    tilesets: [
+      LiteralFixtureTileset(
+        id: 1,
+        png: image.encodePng(atlas),
+        passages: {392: 7},
+        terrainTags: {392: 1},
+      ),
+    ],
+  );
 }

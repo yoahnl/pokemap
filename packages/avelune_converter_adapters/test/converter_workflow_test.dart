@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
@@ -17,6 +16,272 @@ import 'support/source_map_music_fixture.dart';
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  final jumpScriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
+  test('AC15 workflow publishes native Borders with events and approved assets',
+      () async {
+    final harness = await _ledgeWorkflowHarness(jumpScriptsPath!);
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, selected: [98]));
+      final first = await harness.workflow.prepareStudy();
+      var session = first.reviewSession!;
+      final seed = session.activeCandidates.first;
+      session = session.editMetadata(
+          candidateId: seed.candidateId,
+          expectedCandidateHash: seed.canonicalHash,
+          expectedSessionHash: session.canonicalHash,
+          name: 'Original approved crop',
+          category: AssetCategory.nature);
+      final candidate = session.activeCandidates.first;
+      session = session.decide(
+          candidateId: candidate.candidateId,
+          expectedCandidateHash: candidate.canonicalHash,
+          expectedSessionHash: session.canonicalHash,
+          action: ReviewAction.approve,
+          humanConfirmed: true);
+      harness.workflow.updateSettings(
+          harness.settings(snapshot, selected: [98], reviewSession: session));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      expect(prepared.assetLibrary!.candidateBindings, hasLength(1));
+      final draft = prepared.nativeDraft!;
+      final actions = draft.mutations.map((m) => m.actionId).toList();
+      const borderActions = [
+        'border.blueprint.draft.upsert',
+        'border.blueprint.publish',
+        'border_layer.feature_create',
+        'border_layer.feature_set_replacement',
+        'border_layer.materialize_apply'
+      ];
+      expect(actions, containsAll(borderActions));
+      expect(actions.indexOf('border.blueprint.publish'),
+          lessThan(actions.indexOf('map.save')));
+      expect(actions.indexOf('border_layer.feature_create'),
+          greaterThan(actions.lastIndexOf('map.save')));
+      expect(actions.indexOf('border_layer.materialize_apply'),
+          lessThan(actions.indexOf('event_v2.record_upsert')));
+      final approval = harness.approve(prepared);
+      expect(
+          approval.approvedPlan.operations
+              .where((operation) =>
+                  operation.targetActionId?.startsWith('border_layer.') == true)
+              .every((operation) => operation.domain == OperationDomain.maps),
+          isTrue);
+      for (final action in borderActions) {
+        final capability = prepared.targetCapabilities.capabilities
+            .singleWhere((c) => c.capabilityId.value == 'native.study.$action');
+        expect(capability.status, CapabilityStatus.supported);
+        expect(capability.evidence, isNotEmpty);
+      }
+      final result = await harness.workflow.writeApproved(approval);
+      expect(result.published, isTrue);
+      expect(result.playableCertified, isFalse);
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [harness.output.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(result.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        final map = native.maps.single;
+        final border = map.layers.whereType<BorderLayer>().single;
+        expect(border.content.features.single.materialization!.placements,
+            hasLength(3));
+        final middle = map.layers
+            .whereType<TileLayer>()
+            .singleWhere((layer) => layer.id.endsWith('_z1'));
+        expect(middle.cells, everyElement(0));
+        expect(native.manifest.eventRegistry!.records, hasLength(1));
+        expect(native.manifest.dialogues, hasLength(1));
+        final binding = prepared.assetLibrary!.candidateBindings.single;
+        expect(
+            native.manifest.elements
+                .any((element) => element.id == binding.nativeElementId),
+            isTrue);
+        expect(native.manifest.borderCatalog.records, hasLength(1));
+        final borderPaths = {
+          for (final snapshot in native.manifest.borderCatalog.visualSnapshots)
+            for (final frame in snapshot.frames) frame.relativeAssetPath
+        };
+        expect(result.receipt.borderSnapshotFiles.keys.toSet(), borderPaths);
+        expect(result.receipt.borderSnapshotFiles, hasLength(3));
+        final catalog = AssetCatalog.fromJson(jsonDecode(
+                utf8.decode(native.resourceBytes(assetCatalogResourceIdentity)))
+            as Map<String, dynamic>);
+        for (final assetId in result.receipt.assetHashes.keys) {
+          expect(() => catalog.require(assetId), returnsNormally);
+        }
+        for (final entry in result.receipt.borderSnapshotFiles.entries) {
+          final bytes =
+              await File('${result.projectPath}/${entry.key}').readAsBytes();
+          expect(bytes.length, entry.value.byteLength);
+          expect(literalFixtureHash(bytes), entry.value.sha256);
+        }
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: jumpScriptsPath == null || !Platform.isMacOS);
+
+  test('AC15 workflow exposes preserved ledge footprint without runtime claims',
+      () async {
+    final harness =
+        await _ledgeWorkflowHarness(jumpScriptsPath!, eventFootprint: true);
+    try {
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, selected: [98]));
+      final prepared = await harness.workflow.prepareStudy();
+      final semantics =
+          prepared.nativeDraft!.compositionEvidence['sourceSemantics'] as Map;
+      final jumps = semantics['directedJumps'] as Map;
+      expect(jumps['importedJumpCount'], 2);
+      expect(jumps['sourceEventStateQualified'], isFalse);
+      expect(jumps['nativeAnimationQualified'], isFalse);
+      expect(jumps['runtimeJourneyQualified'], isFalse);
+      final summary = prepared.previewPlan!.findings.singleWhere(
+          (finding) => finding.code.value == 'workflow.jumps.summary');
+      expect(summary.message, contains('2 of 3'));
+      expect(summary.blocksStudy, isFalse);
+      expect(summary.blocksPlayableSlice, isTrue);
+      final gap = prepared.previewPlan!.findings.singleWhere(
+          (finding) => finding.code.value == 'jumps.source_event_footprint');
+      expect(gap.sourceLocator!.file, 'Data/Map098.rxdata');
+      expect(gap.sourceLocator!.mapId, 98);
+      expect(gap.message, contains('(2, 2)'));
+      expect(gap.message, contains('down'));
+      expect(gap.blocksStudy, isFalse);
+      expect(gap.blocksPlayableSlice, isTrue);
+      expect(prepared.canApprove, isTrue);
+      harness.approve(prepared);
+      expect(harness.nativeStages, isEmpty);
+    } finally {
+      await harness.close();
+    }
+  }, skip: jumpScriptsPath == null || !Platform.isMacOS);
+
+  test('AC15 workflow invalidates prior target capabilities and rules recipes',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final prepared = await harness.prepare();
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      const oldCapabilities =
+          '02fbf8f2710951323e1f2a13224b1639199c3d9919cda94a59514a6e42c6a2fe';
+      const oldRules =
+          '1da5525feefde10379b96ec84882e41e9e4d52c6405980e8058ef77a4344173a';
+      expect(prepared.targetCapabilities.canonicalHash.value,
+          isNot(oldCapabilities));
+      expect(recipe.rulesHash.value, isNot(oldRules));
+      expect(
+          prepared.targetCapabilities.capabilities.any((capability) =>
+              capability.capabilityId.value ==
+              'native.study.gameplay_zone.create'),
+          isFalse);
+      expect(
+          prepared.targetCapabilities.capabilities.any((capability) =>
+              capability.capabilityId.value ==
+              'native.study.border_layer.unknown'),
+          isFalse);
+      final approved = harness.approve(prepared).approvedPlan;
+      final unknown = ConversionPlan.fromJson({
+        ...approved.toJson(),
+        'operations': [
+          for (var index = 0; index < approved.operations.length; index++)
+            {
+              ...approved.operations[index].toJson(),
+              if (index == 0) 'targetActionId': 'border_layer.unknown'
+            }
+        ]
+      });
+      final draft = prepared.nativeDraft!;
+      final context = PlanContext(
+          logicalProjectNamespace:
+              prepared.normalizedSource.snapshot.logicalProjectNamespace,
+          sourceSnapshotHash: prepared.sourceSnapshotHash,
+          sessionId: prepared.reviewDecisions.sessionId,
+          targetCapabilities: prepared.targetCapabilities,
+          rulesHash: unknown.rulesHash,
+          decisions: prepared.reviewDecisions,
+          candidates: prepared.assetCandidates,
+          converterVersion: unknown.converterVersion,
+          approvedPlanHash: unknown.canonicalHash,
+          sourceMapIds: prepared.normalizedSource.selectedSourceMapIds.toSet(),
+          sourceEntityIds:
+              draft.mutations.expand((m) => m.sourceEntityIds).toSet(),
+          targetEntityIds:
+              draft.mutations.expand((m) => m.targetEntityIds).toSet(),
+          actionCapabilities: {
+            for (final capability in prepared.targetCapabilities.capabilities)
+              capability.capabilityId.value.substring('native.study.'.length):
+                  capability.capabilityId
+          },
+          approvedCandidateHashes: prepared.approvedCandidateHashes);
+      expect(
+          () => admitPlan(unknown, context),
+          throwsA(isA<ContractError>()
+              .having((error) => error.code, 'code', 'policy.targetAction')));
+      for (final change in [
+        {'targetCapabilitiesHash': oldCapabilities},
+        {'rulesHash': oldRules}
+      ]) {
+        final body = {...recipe.toJson(), ...change}..remove('canonicalHash');
+        final stale = ConverterStudyPlanRecipe.fromJson({
+          ...body,
+          'canonicalHash':
+              canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+                  .value
+        });
+        final fresh = ConverterWorkflow();
+        try {
+          await expectLater(fresh.restoreStudyPlanRecipe(stale),
+              _throwsWorkflow('workflow.recipe.stale'));
+          expect(fresh.state.snapshot, isNull);
+          expect(fresh.state.prepared, isNull);
+        } finally {
+          await fresh.dispose();
+        }
+      }
+
+      expect(prepared.targetCapabilities.profileId.value,
+          'avelune-converter-native-study-ac15-border-ledgeline-v1');
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test('AC15 workflow preserves caller mutation budget before staging Borders',
+      () async {
+    final harness = await _ledgeWorkflowHarness(jumpScriptsPath!);
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow
+          .updateSettings(harness.settings(snapshot, selected: [98]));
+      final prepared = await harness.workflow.prepareStudy();
+      final bound = prepared.nativeDraft!.mutations.length - 1;
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          selected: [98], writeLimits: NativeWriteLimits(maxMutations: bound)));
+      await expectLater(harness.workflow.prepareStudy(),
+          _throwsWorkflow('native.quota.draft'));
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: jumpScriptsPath == null || !Platform.isMacOS);
+
   test('AC13 workflow publishes attested map music and preserves its gain',
       () async {
     final oracle = await SourceMapMusicOracle.read(scriptsPath!);
@@ -1598,8 +1863,10 @@ final class _WorkflowHarness {
           Sha256Hash? acknowledgementEvidenceHash,
           SourceNormalizationLimits normalizationLimits =
               const SourceNormalizationLimits(),
-          NativeWriteLimits writeLimits = const NativeWriteLimits()}) =>
+          NativeWriteLimits writeLimits = const NativeWriteLimits(),
+          AssetReviewSession? reviewSession}) =>
       ConverterStudySettings(
+        reviewSession: reviewSession,
         projectName: projectName ?? 'Controlled original workflow study',
         parentPath: parentPath ?? output.path,
         folderName: folderName ?? 'original-study-project',
@@ -1673,6 +1940,67 @@ final class _WorkflowHarness {
     await workflow.dispose();
     await root.delete(recursive: true);
   }
+}
+
+Future<_WorkflowHarness> _ledgeWorkflowHarness(String scriptsPath,
+    {bool eventFootprint = false}) async {
+  final atlas = image.Image(width: 256, height: 64, numChannels: 4);
+  for (var y = 0; y < 32; y++) {
+    for (var x = 0; x < 32; x++) {
+      atlas.setPixelRgba(x, y, 31, 41, 59, 255);
+    }
+  }
+  for (var part = 0; part < 3; part++) {
+    for (var y = 48; y < 64; y++) {
+      for (var x = 32 * part; x < 32 * (part + 1); x++) {
+        atlas.setPixelRgba(x, y, 73 + part * 20, x, y, 255);
+      }
+    }
+  }
+  final middle = List<int>.filled(25, 0);
+  for (var x = 1; x <= 3; x++) {
+    middle[10 + x] = 391 + x;
+  }
+  return _WorkflowHarness.create(
+      scriptsBytes: await File(scriptsPath).readAsBytes(),
+      includeEventSystem: true,
+      maps: [
+        LiteralFixtureMap(id: 98, width: 5, height: 5, layers: [
+          List.filled(25, 384),
+          middle,
+          List.filled(25, 0)
+        ], events: [
+          const LiteralFixtureEvent(
+              id: 1,
+              x: 0,
+              y: 0,
+              name: 'HiddenItem Original',
+              pages: [
+                LiteralFixtureEventPage(commands: [
+                  LiteralFixtureEventCommand(101, ['Original greeting']),
+                  LiteralFixtureEventCommand(123, ['A', 0])
+                ])
+              ]),
+          if (eventFootprint)
+            const LiteralFixtureEvent(id: 2, x: 2, y: 2, pages: [
+              LiteralFixtureEventPage(commands: [
+                LiteralFixtureEventCommand(355, ['unknown()'])
+              ])
+            ])
+        ])
+      ],
+      tilesets: [
+        LiteralFixtureTileset(
+            id: 1,
+            png: image.encodePng(atlas),
+            passages: {392: 7, 393: 7, 394: 7},
+            terrainTags: {392: 1, 393: 1, 394: 1})
+      ],
+      extraFiles: {
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+        'Graphics/Characters/OriginalPlayer.png': image
+            .encodePng(image.Image(width: 128, height: 192, numChannels: 4))
+      });
 }
 
 Future<Map<String, Sha256Hash>> _diskHashes(String root) async {

@@ -1682,6 +1682,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
         Text(
           '${prepared.composition.nativeMaps.length} cartes, ${prepared.composition.tilesetIds.length} atlas et ${prepared.assetLibrary?.candidateBindings.length ?? 0} objet(s) approuvé(s) pour la bibliothèque.',
         ),
+        if (prepared.nativeDraft case final draft?) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Plan : ${draft.artifacts.length + draft.sourceArtifacts.length} fichiers / ${prepared.settings.writeLimits.maxArtifacts}, '
+            '${draft.mutations.length} opérations / ${prepared.settings.writeLimits.maxMutations}, '
+            '${draft.validatedJsonByteLength} octets / ${prepared.settings.writeLimits.maxTotalDraftJsonBytes}.',
+          ),
+        ],
         const SizedBox(height: 16),
         const Text('Destination prévue'),
         SelectableText(
@@ -1722,6 +1730,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
           const SizedBox(height: 8),
           Text(_eventSummary!),
         ],
+        if (_directedJumpSummary case final summary?) ...[
+          const SizedBox(height: 8),
+          Text(summary),
+          if (_directedJumpProjection?['nativeAnimationQualified'] != true ||
+              _directedJumpProjection?['runtimeJourneyQualified'] != true)
+            const StudioNotice(
+              'Le parcours animé reste à tester dans le Player.',
+            ),
+        ],
         const SizedBox(height: 16),
         StudioSection(
           title: 'Détails de la préparation',
@@ -1760,77 +1777,105 @@ class _ConverterWindowState extends State<ConverterWindow> {
     return projection is Map<String, Object?> ? projection : null;
   }
 
+  Map<String, Object?>? get _directedJumpProjection {
+    final semantics =
+        _prepared?.nativeDraft?.compositionEvidence['sourceSemantics'];
+    if (semantics is! Map<String, Object?>) return null;
+    final jumps = semantics['directedJumps'];
+    return jumps is Map<String, Object?> ? jumps : null;
+  }
+
+  String? get _directedJumpSummary {
+    final jumps = _directedJumpProjection;
+    if (jumps == null) return null;
+    final preserved = ((jumps['rows'] as List?) ?? const [])
+        .whereType<Map<String, Object?>>()
+        .where((row) => row['nativeStatus'] == 'preservedOnly')
+        .length;
+    return 'Rebords : ${jumps['importedJumpCount']} importé(s) automatiquement ; '
+        '$preserved conservé(s) sans saut natif.';
+  }
+
   Widget _issuesPanel() {
     final gaps = (_semanticProjection?['gaps'] as List?) ?? const [];
-    final issues =
-        <({String code, String message, String locator, bool blocking})>[
-          for (final gap in gaps.whereType<Map<String, Object?>>())
-            (
-              code: gap['code'] as String,
-              message: _semanticIssueMessage(gap),
-              locator: gap['sourceMapId'] is int
-                  ? _mapName(gap['sourceMapId'] as int)
-                  : 'Sélection actuelle',
-              blocking: false,
-            ),
-          for (final event
-              in ((_eventProjection?['events'] as List?) ?? const [])
-                  .whereType<Map<String, Object?>>())
-            if (event['status'] == 'quarantinedWholeEvent')
-              (
-                code: 'workflow.events.quarantined',
-                message: 'Cet événement reste inactif et ses données source sont conservées. Son contenu doit être adapté avant de pouvoir le jouer.',
-                locator: jsonEncode({
-                  'source': event['locator'],
-                  'pointsÀAdapter': event['gaps'],
-                }),
-                blocking: false,
-              ),
-          for (final value
-              in _state.snapshot?.diagnostics ?? <SourceScanDiagnostic>[])
-            (
-              code: value.code,
-              message: value.message,
-              locator: value.relativePath,
-              blocking: value.blocksExtraction,
-            ),
-          for (final value
-              in _prepared?.normalizedSource.diagnostics ??
-                  <SourceNormalizationDiagnostic>[])
-            (
-              code: value.code,
-              message: value.message,
-              locator: jsonEncode(value.locator.toJson()),
-              blocking: value.blocksPlanning,
-            ),
-          for (final value
-              in _prepared?.composition.diagnostics ??
-                  <LiteralCompositionDiagnostic>[])
-            (
-              code: value.code,
-              message: value.message,
-              locator: jsonEncode(value.locator),
-              blocking: value.blocksPlanning,
-            ),
-          for (final value
-              in _prepared?.assetProposalDiagnostics ??
-                  <LocalAssetProposalDiagnostic>[])
-            (
-              code: value.code,
-              message: _assetIssueMessage(value.code, value.message),
-              locator: jsonEncode(value.toJson()),
-              blocking: false,
-            ),
-          for (final value
-              in _prepared?.assetLibrary?.diagnostics ??
-                  <ApprovedAssetLibraryDiagnostic>[])
-            (
-              code: value.code,
-              message: _assetIssueMessage(value.code, value.message),
-              locator: jsonEncode(value.locator?.toJson()),
-              blocking: value.blocksExport,
-            ),
-        ];
+    final issues = <({String code, String message, String locator, bool blocking})>[
+      for (final gap in gaps.whereType<Map<String, Object?>>())
+        (
+          code: gap['code'] as String,
+          message: _semanticIssueMessage(gap),
+          locator: gap['sourceMapId'] is int
+              ? _mapName(gap['sourceMapId'] as int)
+              : 'Sélection actuelle',
+          blocking: false,
+        ),
+      for (final issue
+          in ((_directedJumpProjection?['diagnostics'] as List?) ?? const [])
+              .whereType<Map<String, Object?>>())
+        (
+          code: issue['code'] as String,
+          message: _directedJumpIssueMessage(issue['code'] as String),
+          locator:
+              '${_mapName(issue['sourceMapId'] as int)} · case (${(issue['via'] as List).join(', ')}) · ${_jumpDirectionLabel(issue['direction'])}',
+          blocking: false,
+        ),
+      for (final event
+          in ((_eventProjection?['events'] as List?) ?? const [])
+              .whereType<Map<String, Object?>>())
+        if (event['status'] == 'quarantinedWholeEvent')
+          (
+            code: 'workflow.events.quarantined',
+            message: 'Cet événement reste inactif et ses données source sont conservées. Son contenu doit être adapté avant de pouvoir le jouer.',
+            locator: jsonEncode({
+              'source': event['locator'],
+              'pointsÀAdapter': event['gaps'],
+            }),
+            blocking: false,
+          ),
+      for (final value
+          in _state.snapshot?.diagnostics ?? <SourceScanDiagnostic>[])
+        (
+          code: value.code,
+          message: value.message,
+          locator: value.relativePath,
+          blocking: value.blocksExtraction,
+        ),
+      for (final value
+          in _prepared?.normalizedSource.diagnostics ??
+              <SourceNormalizationDiagnostic>[])
+        (
+          code: value.code,
+          message: value.message,
+          locator: jsonEncode(value.locator.toJson()),
+          blocking: value.blocksPlanning,
+        ),
+      for (final value
+          in _prepared?.composition.diagnostics ??
+              <LiteralCompositionDiagnostic>[])
+        (
+          code: value.code,
+          message: value.message,
+          locator: jsonEncode(value.locator),
+          blocking: value.blocksPlanning,
+        ),
+      for (final value
+          in _prepared?.assetProposalDiagnostics ??
+              <LocalAssetProposalDiagnostic>[])
+        (
+          code: value.code,
+          message: _assetIssueMessage(value.code, value.message),
+          locator: jsonEncode(value.toJson()),
+          blocking: false,
+        ),
+      for (final value
+          in _prepared?.assetLibrary?.diagnostics ??
+              <ApprovedAssetLibraryDiagnostic>[])
+        (
+          code: value.code,
+          message: _assetIssueMessage(value.code, value.message),
+          locator: jsonEncode(value.locator?.toJson()),
+          blocking: value.blocksExport,
+        ),
+    ];
     return StudioPanel(
       title: 'À examiner avant la création',
       radius: 16,
@@ -2116,6 +2161,7 @@ String _failureMessage(Object error) {
 }
 
 String _issueTitle(String code, bool blocking) {
+  if (code.startsWith('jumps.')) return 'Rebord à vérifier';
   if (code == 'workflow.events.quarantined') {
     return 'Événement conservé en quarantaine';
   }
@@ -2160,10 +2206,26 @@ String _assetIssueMessage(String code, String fallback) {
 
 String _semanticIssueMessage(Map<String, Object?> gap) => switch (gap['code']) {
   'semantics.passage.unqualified' =>
-    '${gap['unqualifiedTransitionCount']} passage(s) dépendent de règles non prises en charge, par exemple les sauts. Ils restent fermés dans ce projet.',
+    '${gap['unqualifiedTransitionCount']} passage(s) ordinaires dépendent de règles non prises en charge. Ils restent fermés dans ce projet. Les rebords importés sont comptés séparément.',
   'semantics.render.reflections.unqualified' =>
     '${gap['sourceTileCount']} tuile(s) utilisent des reflets ou un ordre de rendu particulier. Leurs pixels sont conservés, mais cet effet reste non certifié.',
   'semantics.occlusion.geometry' => 'Ce morceau de décor ne peut pas encore recevoir une profondeur fidèle à sa position. Il reste dans sa couche source.',
   'semantics.preview_spawn.unavailable' => 'Aucun point de départ sûr n’a été trouvé pour le test. Le démarrage de cette carte reste à définir dans Studio.',
   _ => 'Ce comportement source reste à qualifier avant de pouvoir être testé fidèlement.',
+};
+
+String _directedJumpIssueMessage(String code) => switch (code) {
+  'jumps.source_event_footprint' => 'Un événement occupe le départ, le rebord ou la réception. Le saut reste inactif pour conserver cette interaction.',
+  'jumps.orientation_unqualified' => 'Le sens de ce rebord n’est pas encore pris en charge. Son apparence source est conservée sans activer le saut.',
+  'jumps.source_glyph_unqualified' => 'L’image ou les propriétés de ce rebord ne permettent pas un import fidèle. Sa représentation source est conservée.',
+  _ =>
+    'Ce rebord conserve sa représentation source ; son saut reste à adapter.',
+};
+
+String _jumpDirectionLabel(Object? direction) => switch (direction) {
+  'up' => 'vers le haut',
+  'right' => 'vers la droite',
+  'down' => 'vers le bas',
+  'left' => 'vers la gauche',
+  _ => 'sens à vérifier',
 };

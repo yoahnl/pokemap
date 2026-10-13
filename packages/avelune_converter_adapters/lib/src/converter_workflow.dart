@@ -1624,7 +1624,9 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             limits: prepared.settings.writeLimits,
             cancellation: relay.cancellation);
         relay.finish(
-            done: receipt.mapHashes.length + receipt.assetHashes.length);
+            done: receipt.mapHashes.length +
+                receipt.assetHashes.length +
+                receipt.borderSnapshotFiles.length);
         await relay.start(ConverterWorkflowPhase.verifySource, JobUnit.files);
         await files.verifyUnchanged();
         relay.cancellation.check();
@@ -1873,7 +1875,7 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 1,
+      'version': 2,
       'converterVersion': _converterVersion,
       'sourceFormat': 'rmxp-marshal-4.8',
       'tilePolicy': 'literal-32px-stored-autotile-variant',
@@ -1882,6 +1884,8 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'assetLibrary': 'human-reviewed-static-parts-with-original-png-witnesses',
       'assetPlacements': 'attested-static-priority-elements',
       'sourceSemantics': 'kanto-profile-walking-cardinal-closed-unqualified',
+      'sourceDirectedJumps':
+          'kanto-static-south-ledgeline32-v2-exact-source-replay-with-event-footprint-exclusion',
       'sourceConnections': 'compiled-complete-graph-unique-opposing-selected-edges',
       'sourcePlayer': 'attested-original-pixels-padded-without-resampling',
       'dimension': 'twoD',
@@ -1957,6 +1961,11 @@ const _nativeStudyActions = [
   'map.save',
   'map.audio.update',
   'connection.create_bidirectional_apply',
+  'border.blueprint.draft.upsert',
+  'border.blueprint.publish',
+  'border_layer.feature_create',
+  'border_layer.feature_set_replacement',
+  'border_layer.materialize_apply',
   'element_category.upsert',
   'element.upsert',
   'asset.import',
@@ -1993,9 +2002,9 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac13-audio-v1',
+      'profileId': 'avelune-converter-native-study-ac15-border-ledgeline-v1',
       'repository': 'yoahnl/pokemap',
-      'revision': '2f07c5c7f58cc4da9f63739c3d69fb7000554f3a',
+      'revision': 'e02f2559db53ea909c06e786a4fa4c95e79df1bc',
       'capabilities': [
         for (final action in _nativeStudyActions)
           {
@@ -2039,6 +2048,15 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                 'reference':
                     'repo:packages/avelune_converter_adapters/test/source_event_study_composer_test.dart:AC-13',
               },
+              if (action.startsWith('border.blueprint.') ||
+                  action.startsWith('border_layer.'))
+                {
+                  'type': 'test',
+                  'summary':
+                      'Exact-source south ledgeLine modules use canonical Border publication, per-edge replacements and materialization after map saves, with full regeneration and strict native reopen; event state and runtime journey are separate.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:AC15 workflow publishes native Borders with events and approved assets',
+                },
               if (action == 'map.audio.update')
                 {
                   'type': 'test',
@@ -2153,6 +2171,47 @@ ConversionPlan? _previewPlan(
     add('connections.source_profile_unqualified',
         'Compiled source connectivity is preserved but lacks qualified source destination passage; native regional connectivity is not activated.',
         false, family: 'maps');
+  }
+  final jumpEvidence =
+      semanticEvidence is Map ? semanticEvidence['directedJumps'] : null;
+  if (jumpEvidence is Map) {
+    final rows = (jumpEvidence['rows'] as List).cast<Map>();
+    final sourceAllowed =
+        rows.where((row) => row['status'] == 'allowed').length;
+    final imported = jumpEvidence['importedJumpCount'] as int;
+    final preserved = rows
+        .where(
+          (row) =>
+              row['status'] == 'allowed' && row['nativeStatus'] != 'imported',
+        )
+        .length;
+    add(
+      'workflow.jumps.summary',
+      '$imported of $sourceAllowed source-allowed directed jumps use native Border ledgeLine modules; $preserved remain inactive with preserved source data. Ordinary cardinal passages are unchanged. Source event state, native animation and runtime journey remain uncertified.',
+      false,
+      family: 'maps',
+      disposition: 'adapted',
+    );
+    for (final raw in (jumpEvidence['diagnostics'] as List).cast<Map>()) {
+      final code = raw['code'] as String;
+      final via = raw['via'] as List;
+      final reason = switch (code) {
+        'jumps.source_event_footprint' =>
+          'A source event intersects departure, intermediate or landing cells',
+        'jumps.orientation_unqualified' =>
+          'The source direction has no qualified native ledge glyph',
+        'jumps.source_glyph_unqualified' =>
+          'The source glyph does not meet the qualified native module contract',
+        _ => code,
+      };
+      add(
+        code,
+        '$reason at (${via[0]}, ${via[1]}) toward ${raw['direction']}; the source jump remains inactive and preserved.',
+        false,
+        family: 'maps',
+        locator: _planLocator(normalized, {'mapId': raw['sourceMapId']}),
+      );
+    }
   }
   if (eventEvidence is Map) {
     final projection = eventEvidence['projection'] as Map;

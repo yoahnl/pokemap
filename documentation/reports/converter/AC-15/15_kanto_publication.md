@@ -1067,3 +1067,52 @@ Nouvelle source QA : copie APFS séparée du dossier Downloads,23 707fichiers or
 Auto-critique : une admission statique n’est pas une animation, un rendu ni une session Studio réelle. La fixture MCP n’est pas Route9. Le helper de publication continue de refuser toute modification incohérente plutôt que de récupérer une sortie altérée. Les JSON de métadonnées intermédiaires invalides sont conservés et remplacés par ledger05/06 valides ; aucun code ou reçu de test maquillé. Prochaine tranche : workflow/capability/diagnostics et compteurs explicites, puis banque réelle de chemins/arbres entiers, nouvelle publication98/100 et parcours Studio/Player fermé après usage.
 
 Git : dix-huit blobs propres et ce rapport, sans hunks mobile/3D/render3D ni ancien prototype zone. `root-host-integration-03/prepared-blobs-04.json` et `host-apply-proof-03.json` attestent la conservation de62chemins préexistants non possédés et de border_actions host byte-exact, index vide avant staging. Le reçu de commit local doit confirmer parent e02f2559,19blobs exacts,index final vide et hashes/modes host conservés ; aucunpush/rebase/PR. Le ticket existant AC15 reste DOING/PARTIAL jusqu’au résultat complet, sans nouveau ticket ou domaine.
+
+## Complément AC-15 — workflow et interface des rebords natifs, 13 octobre 2026
+
+Portée : raccorder la conversion des rebords au workflow existant, exposer les exclusions et les budgets déclarés avant approbation, puis produire l’application macOS Converter. Le commit source précédent est acquis : `b19e12810aab708daebe972d742acec678374748`, parent `e02f2559db53ea909c06e786a4fa4c95e79df1bc`, dix-neuf chemins, index final vide, quatre-vingt-un témoins host hashes/modes conservés et soixante-quatre chemins étrangers encore dirty. Reçu `source-border-conversion-private-b57zk3zh/root-host-integration-03/source-commit-01.json`, SHA256 `44e68539ca9fcc7b32e83ad885aaf0e0b470b0fd48eb14b50166fb7908038d8a`. Aucune publication jouable ni fenêtre Route9 attribuée à ce commit.
+
+Audit initial : le composer/writer possède désormais les Borders natifs et les snapshots typés, mais le profil workflow et les écrans de préparation ne les exposaient pas encore. Les actions canoniques existantes suffisent ; aucun nouveau modèle, transport ou plafond par défaut n’est requis. La review globale des ressources demeure séparée : elle ne qualifie encore ni une banque de chemins ni un arbre entier. Quatre blobs privés ont été gelés puis appliqués après contrôle du parent et des hashes de base ; soixante-quatre chemins préexistants étrangers restent exacts.
+
+| Fichier de cette tranche | Zones modifiées, raison et effet |
+| --- | --- |
+| `packages/avelune_converter_adapters/lib/src/converter_workflow.dart` | profil `avelune-converter-native-study-ac15-border-ledgeline-v1`, manifeste v2, cinq actions Border autorisées explicitement ; résumé des imports/exclusions et diagnostics localisés ; progression incluant les snapshots Border ; fusion append-only de bibliothèque sans remplacement des cartes |
+| `packages/avelune_converter_adapters/test/converter_workflow_test.dart` | préparation/reprise avec nouveau profil, rejet des recettes antérieures et des actions inconnues, budgets conservés, publication et relecture native stricte des snapshots, conservation des cartes lors de l’ajout de bibliothèque |
+| `apps/avelune_converter/lib/converter_app.dart` | compteurs du draft déclarés face aux plafonds, rebords importés/conservés sans saut, cellule/carte/direction et motif d’exclusion visibles ; parcours animé explicitement restant à tester ; primitives du design system conservées |
+| `apps/avelune_converter/test/converter_app_test.dart` | assertions sur compteurs et libellés, exclusion située et lisible, petite fenêtre/chemins longs, fixtures originales ; aucun média de production généré |
+| `apps/avelune_converter/macos/Flutter/GeneratedPluginRegistrant.swift` | régénération depuis le graphe Converter déjà déclaré : seul `file_picker` reste enregistré, cinq anciens plugins Studio transitoires retirés ; header généré seul supprimé pour conserver la convention du fichier et la demande humaine sans commentaires |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | ce complément consolide audit, fichiers, preuves, défaut de cache, clôture Git et limites |
+
+Les compteurs de préparation désignent les artifacts et JSON du draft déclaré, pas tous les futurs fichiers de staging. Le résumé final des ressources dénombre les vrais assets du catalogue ; les snapshots Border gardent leur reçu distinct. Les plafonds du caller sont conservés, aucune augmentation silencieuse. Les anciennes recettes au hash de profil différent sont rejetées avant scan plutôt que recyclées.
+
+Preuves privées gelées : workflow `workflow-qualification-ledger-final-01.json` SHA256 `297ad01dd8fb7d7f5a269f68778ef175cc6eea6fdf394a0244737095ca7261b1` ; gel UI `converter-app-ui-final-pins-01.json` SHA256 `5cc287302538d70522ccbe92b8becedaf80bb6332c2f1b796db95bbae8dc146c`. Les quatre blobs host concordent avec ces gels. UI privée 14PASS/46.573s, analyse sans problème/8.405s, kernel 116567792bytes/15.866s ; les runs host ci-dessous constituent la preuve fraîche sur le checkout partagé.
+
+Répertoire de reçus host : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-converter-workflow-private-d2luex84/root-host-integration-01`. Les commandes sont lancées depuis le package indiqué, sous `run_owned.py`.
+
+| Package et commande exacte | Résultat frais |
+| --- | --- |
+| adapters : `dart test test/converter_workflow_test.dart test/converter_asset_workflow_test.dart test/converter_study_plan_recipe_test.dart --concurrency=1 --reporter expanded`, témoins AC12 et AC13 activés ; `host-regressions-01.json` | 96PASS/0SKIP, exit0,41.066s ; ligne finale `00:39 +96: All tests passed!` |
+| adapters : `dart analyze lib/src/converter_workflow.dart test/converter_workflow_test.dart` ; `host-analyze-01.json` | `No issues found!`, exit0,4.3s |
+| Converter : `flutter test --no-pub --concurrency=1 test/converter_app_test.dart --reporter expanded` ; `host-ui-tests-01.json` | premier run exit1,7.374s : chargement impossible car package_config ancien ne contenait pas `avelune_design_system` déjà déclaré ; aucune assertion exécutée |
+| Converter : `flutter pub get --offline` ; `host-pubget-01.json` | `Got dependencies!`, exit0,1.643s ; pubspec et lockfile hashes inchangés ; cache et registrant natif régénérés |
+| Converter : `flutter test --no-pub --concurrency=1 test/converter_app_test.dart --reporter expanded` ; `host-ui-tests-02.json` | 14PASS, exit0,41.273s ; ligne finale `00:24 +14: All tests passed!` |
+| Converter : `flutter analyze --no-pub lib/converter_app.dart test/converter_app_test.dart` ; `host-ui-analyze-01.json` | `No issues found! (ran in 6.0s)`, exit0,7.368s |
+| Converter : `flutter build macos --debug --no-pub --target=lib/main.dart` ; `host-macos-build-01.json` | exit0,35.695s ; `✓ Built build/macos/Build/Products/Debug/Avelune Converter.app` |
+
+Le log du build contient le message SwiftCompile « failed with exit code 0 » puis la build réussie, ainsi que le warning de dépréciation `kSecUseAuthenticationUIFail` dans `MainFlutterWindow.swift:30`. Ces lignes sont conservées ; aucun correctif Swift hors scope ajouté. Le retrait ultérieur du header de commentaires seul ne modifie aucune instruction du registrant compilé. Il n’y a pas de suite globale revendiquée.
+
+Tous les runs de tests/analyse/pub-get retenus terminent sans signal ni survivant et avec processus protégés inchangés. Le build a laissé deux descendants possédés `ibtoold`, PIDs78442/78443 ; UID/start/commande recontrôlés, SIGTERM normal envoyé à chacun, aucun survivant confirmé après nettoyage. Aucun ancien PID ou session concurrente arrêté, aucune fenêtre ouverte pour ces preuves.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root + ac12_native_mapping | workflow et UI réemploient les contrats natifs ; raccord de review multi-carte audité séparément, sans relèvement des défauts ni changement ici |
+| Implémentation root | quatre blobs gelés exacts appliqués, registrant régénéré après cache périmé ; six chemins possédés avec ce rapport |
+| Tests root | 96workflow et14widget PASS frais sur host ; défaut de chargement initial explicite, pas de preuve graphique Route9 |
+| Build/Validation root | analyses sans problème et application macOS réelle produite ; deux helpers possédés reapés, pubspec/lock inchangés |
+| Critique indépendante ac15_connection_review_fresh | aucunP1/P2 sur les quatre blobs workflow/UI et le registrant final ; pins/logSHA/graphe natif et cleanup host revérifiés ; retrait du header seul post-build signalé explicitement |
+
+Parité : les cinq mutations Border utilisent le contrat canonique map_authoring. La fixture MCP de la tranche source prouve le cycle draft/publish/materialize/reopen et le resolver3 ; cette UI ne crée aucune action supplémentaire. PMCP-085 global reste PARTIAL, une recette persistée seule ne constitue pas une preuve sémantique. FG-120 reste PARTIAL, AC-15 DOING/PARTIAL, sans modification de roadmap ou Gate bêta.
+
+Auto-critique : tests widget et build desktop ne prouvent pas une animation dans le Player. La review synthétique approuvée ne remplace pas une bibliothèque réutilisable sur le vrai pair98/100 ; r8 conserve `nativePathsAndWholeTreeLibraryImported=false`. La nouvelle copie source QA contient 23718fichiers et le scan complet 23906entrées/383maps/0diagnostic, snapshot `448e76b43bea176dd96ec2376823b2418dd42b3d0bf8de9ba375a3b812225468` ; original23707fichiers exacts, mais 367chemins de l’ancien inventaire historique restent absents. Ne pas confondre scan complet et récupération de tous les anciens médias. La suite doit raccorder la review segmentée sous budgets explicites, approuver chemin/arbre entier, republier la paire réelle, puis peindre/placer/enregistrer/réouvrir dans Studio et exécuter le Player avec collisions/profondeur/sauts.
+
+Git : parent attendu `b19e12810aab708daebe972d742acec678374748`, index vide avant staging, six chemins de cette tranche exclusivement. Le reçu `workflow-ui-commit-01.json` doit attester blobs exacts, index final vide et conservation de tous les témoins host hashes/modes. Ni writer mixte, Border actions étrangers, mobiles, 3D, caches ou lockfile inclus ; aucunpush/rebase/PR. Le ticket AC15 existant sera actualisé avec les deux commits et ces preuves sans être clôturé.
