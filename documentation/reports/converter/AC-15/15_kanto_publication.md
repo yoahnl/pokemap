@@ -572,3 +572,83 @@ dart --packages=.dart_tool/package_config.json tool/pmcp085_conformance.dart
 Auto-critique : un descripteur et un roundtrip ne constituent pas une capacité de gameplay. La propriété manque encore de producteur de plan, règles sur normales/angles/transforms, exception des seules contributions de collision de la Border, invalidation après déplacement/suppression/republication, picker Studio et parcours réel. Le prototype movementEffect/zone n’est pas retenu comme contrat d’auteur final. Le composer prototype garde son P2 manifeste incomplet ; aucune publication source nouvelle.
 
 La compilation complète de Studio/Converter, GUI, distribution et parcours Kanto ne sont pas requis pour prouver cette tranche de données et ne sont pas revendiqués ; la meilleure validation alternative est la compilation AOT de l’API réelle et les tests Flutter des consommateurs. AC15 reste DOING/PARTIAL dans son domaine Post Bêta existant. Aucun ticket/famille/gate bêta créé ou étendu ; aucune roadmap modifiée. Le reçu externe border-data-commit-01.json sera créé puis vérifié après commit pour SHA/parent/blobs/index et conservation de tous les fichiers host avant/après. Aucun push/rebase/PR. La prochaine tranche raccorde le saut réel à la Border avant qualification Route9↔Route10 et le reste du workflow multicarte.
+
+
+### Sous-tranche AC-15 — candidats topologiques de saut Border, 13 octobre 2026
+
+Audit initial : le contrat DATA V6 est commité `fb4c8c27a292d8f87884faad6f3f5085cb5ce53f`. Les contours de région possèdent déjà une arête unitaire, son `interiorCell` et sa normale extérieure ; le lattice possède les directions canoniques des nœuds et arêtes et la lineage de parcours. Les transformations visuelles ConnectedLine 2D ne certifient pas une normale dirigée ; les slotKeys hashés ne permettent pas de retrouver une arête. Le futur producteur doit donc qualifier ses placements finaux et contacts propriétaires, au lieu de déduire un droit de saut d'une bounding box ou d'un nom de template.
+
+Portée retenue : API descriptive pure `deriveBorderJumpFaceCandidates`. Elle ne choisit pas le carrier physique `gridEdges`, ne produit aucune permission ni arrivée et n'atteste aucune matérialisation. `topologicalNormal` et `potentialCarrierCells` rendent cette limite explicite. Régions : B potentiel égale interiorCell, cellules avec normales concurrentes omises, trous selon le contour original. CellCenters : angles omis, caps héritent de leur portion droite. GridEdges : un segment donne un candidat avec ses seuls carriers adjacents dans le domaine de carte. Inverser le saut conserve coordonnées et carriers potentiels. Géométrie/template/alignment/dimensions/publication et bornes portables sont vérifiées ; les blueprints spatiaux sont explicitement refusés par cette API 2D. Aucun commentaire ajouté conformément à la consigne directe.
+
+Lot FG concerné : FG-120 reste PARTIAL. FG-014 et FG-067 sont les frontières d'arrivée/sauvegarde de la suite, sans modification de leurs statuts ni de la roadmap. Le contrat d'auteur reste la vraie Border ; aucune zone persistée nouvelle.
+
+Inventaire exhaustif de cette tranche :
+
+| Fichier | Zones / raison / impact |
+| --- | --- |
+| `packages/map_core/lib/src/operations/border_jump_faces.dart` | Nouveau fichier, lignes 17/37/168/252/259 : candidat immutable, dérivation strokes/régions, conversion pixel et refus du canvas non portable. Aucune permission physique. |
+| `packages/map_core/lib/map_core_domain.dart` | Un seul export adjacent aux contours, vérifié par retrait byte-exact contre HEAD. |
+| `packages/map_core/test/border/border_jump_faces_test.dart` | 14 nouveaux cas : quatre directions conservées, sides, caps, angles, trous, bandes minces, frontières de carte, tuiles impaires rectangulaires, immutabilité, refus géométrie/template/spatial/portable et Border ordinaire. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Cette section consolide audit, preuves et limites ; zéro nouveau Markdown. |
+
+État Git initial : HEAD `fb4c8c27a292d8f87884faad6f3f5085cb5ce53f`, index vide. Inventaire exact conservé dans `git-initial-status-01.bin` du répertoire de preuve ; 85 chemins dirty préexistants à l'ajout de cette section, dont les 3 chemins de géométrie de cette tranche. Aucun nettoyage ni absorption des autres travaux.
+
+Preuve privée : archive `HEAD fb4c + 3 chemins root uniquement`, pas un nouveau worktree Git. Runtime/zone/Converter et changements étrangers ne sont pas dans cette archive. Graphe de dépendances qualifié copié sans résolution Pub automatique. Répertoire : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-geometry-private`.
+
+Le premier RED est fonctionnel : 2 PASS / 7 FAIL avec le dériveur vide. Les noms ont ensuite été précisés pour distinguer candidats/permission, sans modifier la prémisse du RED. GREEN01 : 9 PASS. Extension des garde-fous puis GREEN02 : 14 PASS. Régressions finales : 78 PASS / 0 FAIL sur candidats, contours, lattice, canonicalisation, fraîcheur et contrat DATA. La suite complète map_core n'a pas été exécutée : la modification ajoute une API descriptive sans changer les algorithmes existants ; les six suites concernées sont vérifiées.
+
+Commandes exactes et résultats (cwd package map_core de l'archive, fichiers/reçus/logs hashés) :
+
+`faces-red-01.json` : exit1, 8.714 s.
+
+```text
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.1/bin/test.dart test/border/border_jump_faces_test.dart --reporter=expanded
+```
+
+`faces-green-01.json` : exit0, 6.903 s.
+
+```text
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.1/bin/test.dart test/border/border_jump_faces_test.dart --reporter=expanded
+```
+
+`faces-green-02.json` : exit0, 12.565 s.
+
+```text
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.1/bin/test.dart test/border/border_jump_faces_test.dart --reporter=expanded
+```
+
+`faces-regressions-01.json` : exit0, 6.745 s.
+
+```text
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.1/bin/test.dart test/border/border_jump_faces_test.dart test/border/border_region_contours_test.dart test/border/border_linear_lattice_test.dart test/border/border_stroke_canonicalization_test.dart test/border/border_materialization_freshness_test.dart test/border/border_jump_behavior_test.dart --reporter=expanded
+```
+
+`faces-analyze-01.json` : exit0, 2.852 s.
+
+```text
+dart analyze lib/src/operations/border_jump_faces.dart test/border/border_jump_faces_test.dart lib/map_core_domain.dart
+```
+
+`faces-kernel-01.json` : exit0, 3.459 s.
+
+```text
+dart compile kernel --packages=.dart_tool/package_config.json test/border/border_jump_faces_test.dart -o "/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-geometry-private/faces-kernel-01.dill"
+```
+
+L'analyse termine exit0 avec une INFO `unnecessary_library_name` dans le barrel : sa déclaration `library map_core;` est byte-identique à HEAD. Aucun warning/erreur. Compilation kernel de l'entrée de test et du barrel public PASS ; aucun build GUI complet ni compilation/distribution Converter revendiqués. Les reçus du supervisor vérifient stabilité des fichiers avant/après, logs SHA exacts, protectedUnchanged=true, confirmedSurvivors=[] ; aucun GUI ouvert, aucun signal nécessaire.
+
+Ledger final `faces-final-pins-01.json`, SHA `47aef54552f108a8f4d45d908d2bee26e2096b9fb34b587febc53bed643dbae2` : 3 sources/tests host=archive, six reçus et hashes de logs. Correction de métadonnée `baseline-01-correction.json` : le premier reçu avait réutilisé la variable du chemin pubspec.lock dans son champ barrel ; les sources et le RED n'ont pas été modifiés par cette correction.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit / Architecture ac15_connection_review_fresh | Les carriers et normales sont topologiques ; contacts finaux et attribution resolver nécessaires. ConnectedLine q0/q1 ne prouve pas quatre faces visuelles. |
+| Implémentation root | 3 chemins de code, aucune modification des données/projets, aucune admission de saut. |
+| Tests root | RED fonctionnel puis 14 cas, 78 régressions PASS ; aucune extrapolation vers Player ou source. |
+| Build / Validation root | Kernel PASS, analyse exit0 avec une INFO préexistante, reçus et pins exacts. |
+| Critique indépendante ac15_connection_review_fresh | Aucun P1/P2 sur les 3 fichiers et la portée descriptive ; GREEN02/pins/analyse relus. Les régressions78 et kernel ont été vérifiés par root ; aucune exécution indépendante revendiquée. |
+
+Évaluation MCP : cette API pure n'ajoute ni donnée auteur ni commande/transport. Le contrat jumpBehavior est déjà porté par l'action canonique attestée dans la tranche DATA. Une permission semantic native, son contrôle de fraîcheur et le picker Studio ne sont toujours pas exposés : couverture produit globale PARTIAL. Aucun generic save n'est utilisé comme preuve.
+
+Auto-critique / limites : key est locale à feature/request et ne contient pas map/layer/révision/contexte de collision ; le binder doit lui ajouter ce contexte. Les deux carriers gridEdges ne sont pas deux ledges ; un unique B doit être prouvé par contacts. Le sens topologique ne garantit pas le dessin ConnectedLine. Le binder devra refuser conflits, overrides déplaçant la face, collisions inconnues et matérialisation périmée, puis vérifier B et C avec la hitbox entière. Ni Route9↔Route10, ni source Carillon projetée, ni saut spatial, ni nouveau corpus/import/IA ne sont qualifiés. La collision propriétaire développée en parallèle est une tranche séparée ; ses deltas de prototype restent exclus du présent commit.
+
+État final attendu / tracé : commit local strict des 4 chemins ci-dessus, reçu externe `faces-commit-01.json` avec SHA/parent/blobs/index et hashes/modes host avant/après ; index vide après commit, travaux étrangers conservés. Aucune opération push/rebase/PR. AC15 reste DOING/PARTIAL dans son ticket Post Bêta existant, aucun nouveau ticket/famille/gate. Suite : terminer l'exception de collision propriétaire, puis le binder aux placements finaux et le producteur Border, réglage Studio et vrai parcours Route9 avec collisions/profondeur/save/load.

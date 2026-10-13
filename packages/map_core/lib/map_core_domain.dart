@@ -171,6 +171,7 @@ export 'src/operations/border_override_resolution.dart';
 export 'src/operations/border_materialization_freshness.dart';
 export 'src/operations/border_feature_update_operations.dart';
 export 'src/operations/border_region_contours.dart';
+export 'src/operations/border_jump_faces.dart';
 export 'src/operations/border_stroke_canonicalization.dart';
 export 'src/operations/border_stroke_editing.dart';
 export 'src/operations/map_visual_composition.dart';
