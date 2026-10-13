@@ -51,6 +51,7 @@ import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_capture_sprite_resolver.dart';
 import '../../player/runtime_audio_mixer.dart';
+import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_world_service_models.dart';
@@ -288,6 +289,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     String? initialPlayerAvatarCharacterId,
     PlayerPronounSet? initialPlayerPronounSet,
     RuntimeAudioMixer? audioMixer,
+    OverworldSfxPlayer? overworldSfxPlayer,
     this.dialogueFeedbackPlaybackPort,
     this.dialogueIconBytesLoader,
     this.presentationCinematicPlayer,
@@ -295,6 +297,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
         _audioMixer = audioMixer,
+        _overworldSfxPlayer = overworldSfxPlayer ??
+            FlameAudioOverworldSfxPlayer(mixer: audioMixer),
         _injectedMusicService = musicService,
         _gameState = normalizeLoadedGameState(
           initialGameState ??
@@ -696,6 +700,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// en état désiré par [_syncRuntimeMusic] ; créée au premier besoin pour ne
   /// rien coûter aux hôtes de test qui n'authorent aucune musique.
   final RuntimeAudioMixer? _audioMixer;
+  final OverworldSfxPlayer _overworldSfxPlayer;
   final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
   FlameDialogueFeedbackPlaybackAdapter? _dialogueFeedbackPlayer;
@@ -3906,6 +3911,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void onRemove() {
     _isRemoved = true;
     _cancelPendingDirectedJump();
+    unawaited(_overworldSfxPlayer.dispose());
     unawaited(_dialogueFeedbackPlayer?.dispose());
     _dialogueFeedbackPlayer = null;
     _battleExitTransitionVisible.value = false;
@@ -4829,6 +4835,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _publishInputAuthoritySnapshot();
       rethrow;
     }
+    unawaited(_overworldSfxPlayer.playJump());
     _publishInputAuthoritySnapshot();
   }
 

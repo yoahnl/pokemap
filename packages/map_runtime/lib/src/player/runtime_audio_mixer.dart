@@ -10,6 +10,7 @@ enum RuntimeAudioRoute {
   cinematicMusic,
   cinematicEffects,
   battleEffects,
+  overworldEffects,
 }
 
 enum RuntimeAudioBus { music, effects }
@@ -22,7 +23,9 @@ extension RuntimeAudioRouteBus on RuntimeAudioRoute {
         RuntimeAudioRoute.battle ||
         RuntimeAudioRoute.cinematicMusic =>
           RuntimeAudioBus.music,
-        RuntimeAudioRoute.cinematicEffects || RuntimeAudioRoute.battleEffects =>
+        RuntimeAudioRoute.cinematicEffects ||
+        RuntimeAudioRoute.battleEffects ||
+        RuntimeAudioRoute.overworldEffects =>
           RuntimeAudioBus.effects,
       };
 }

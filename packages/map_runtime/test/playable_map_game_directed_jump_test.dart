@@ -214,6 +214,7 @@ final class _Game extends PlayableMapGame {
     required super.saveRepository,
     super.runtimeMapBundleLoader,
     super.beforeNarrativeAuthorityPreparation,
+    super.overworldSfxPlayer,
     PixelOffset? pixelPosition,
   }) : super(
          projectFilePath: '${bundle.projectRootDirectory}/project.json',
@@ -273,6 +274,7 @@ Future<_Game> _load({
   ProjectManifest? manifest,
   Future<void> Function(NarrativeEventOccurrence)? beforeAuthority,
   PixelOffset? pixelPosition,
+  OverworldSfxPlayer? overworldSfxPlayer,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'border-jump-runtime-original-',
@@ -289,6 +291,7 @@ Future<_Game> _load({
     saveRepository: repository ?? _Repository(),
     beforeNarrativeAuthorityPreparation: beforeAuthority,
     pixelPosition: pixelPosition,
+    overworldSfxPlayer: overworldSfxPlayer ?? _JumpSounds(),
     runtimeMapBundleLoader:
         ({required projectFilePath, required mapId}) async => _bundle(
           _map(
@@ -337,6 +340,39 @@ Future<void> _pump(_Game game, bool Function() done) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'jump sound starts once on admission and never on blocked movement',
+    () async {
+      final sound = _JumpSounds();
+      final game = await _load(overworldSfxPlayer: sound);
+      expect(sound.starts, 0);
+      _jump(game);
+      expect(sound.starts, 1);
+      game.update(.25);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+      );
+      game.update(.25);
+      expect(sound.starts, 1);
+      game.onRemove();
+      expect(sound.disposals, 1);
+
+      final blockedSound = _JumpSounds();
+      final blocked = await _load(
+        overworldSfxPlayer: blockedSound,
+        map: _map(
+          entities: const [
+            MapEntity(id: 'blocker', kind: MapEntityKind.npc, pos: _c),
+          ],
+        ),
+      );
+      addTearDown(blocked.onRemove);
+      _jump(blocked);
+      expect(blocked.debugPlayerGridPosition, _a);
+      expect(blockedSound.starts, 0);
+    },
+  );
 
   test('jump reserves logical landing and blocks all input and checkpoints for the animation', () async {
     final repository = _Repository();
@@ -865,4 +901,15 @@ void main() {
       );
     },
   );
+}
+
+final class _JumpSounds implements OverworldSfxPlayer {
+  int starts = 0;
+  int disposals = 0;
+
+  @override
+  Future<void> playJump() async => starts++;
+
+  @override
+  Future<void> dispose() async => disposals++;
 }

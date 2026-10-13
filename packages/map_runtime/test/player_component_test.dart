@@ -32,9 +32,9 @@ void main() {
       expect(component.debugActorLocalPosition!.y, 0);
     });
 
-    test('walk and run preserve their established durations and velocities', () async {
-      expect(PlayerComponent.kDefaultStepSeconds, .12);
-      expect(PlayerComponent.kRunStepSeconds, .075);
+    test('default walk and run match the Kanto reference cadence', () async {
+      expect(PlayerComponent.kDefaultStepSeconds, .25);
+      expect(PlayerComponent.kRunStepSeconds, .125);
       for (final duration in [PlayerComponent.kDefaultStepSeconds, PlayerComponent.kRunStepSeconds]) {
         final component = PlayerComponent(bundle: _bundle(),
           state: _stateAt(const GridPos(x: 0, y: 0)),

@@ -1,0 +1,17 @@
+{
+  "sourceProject": "PSDK test project",
+  "sourceRelativePath": "audio/se/jump.wav",
+  "sourceConfig": "Data/configs/sound_design_config.json",
+  "sourceConfigSha256": "8643e2411d3c3d41711a08ed5d2f4958fe3ff528bf9d54b6fa2f038f272eb2bb",
+  "sha256": "38c2e846c2c0b387167a8c32ef64eae99dba4298622458198f83eee8ead4f779",
+  "bytes": 29612,
+  "volume": 100,
+  "pitch": 100,
+  "audio": {
+    "channels": 2,
+    "sampleRate": 44100,
+    "sampleWidthBytes": 2,
+    "durationSeconds": 0.1676190476190476
+  },
+  "importer": "tool/import_overworld_jump_audio.py"
+}

@@ -17,8 +17,8 @@ import 'overworld_actor_component.dart';
 /// qu’aligner sur `pos` grille, l’interpolation et les frames de marche se
 /// désynchronisent (effet saccadé / 3 frames visibles).
 class PlayerComponent extends PositionComponent {
-  static const double kDefaultStepSeconds = 0.12;
-  static const double kRunStepSeconds = 0.075;
+  static const double kDefaultStepSeconds = 0.25;
+  static const double kRunStepSeconds = 0.125;
 
   PlayerComponent({
     required this.bundle,
@@ -158,7 +158,7 @@ class PlayerComponent extends PositionComponent {
     _jumpLiftPx = 0;
     _stepDurationSeconds = plan.durationMs / 1000;
     _moveRemaining = _stepDurationSeconds;
-    _stepAnimationState = CharacterAnimationState.idle;
+    _stepAnimationState = CharacterAnimationState.walk;
     size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: state));
     _moveFrom = _computeWorldTopLeft(
       mapOrigin: _mapOrigin,
@@ -174,7 +174,7 @@ class PlayerComponent extends PositionComponent {
     _layoutActor();
     _actor?.setMotion(
       EntityFacing.values.byName(state.facing.name),
-      CharacterAnimationState.idle,
+      CharacterAnimationState.walk,
     );
   }
 
@@ -337,6 +337,24 @@ class PlayerComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (isJumping) {
+      final foot = footPoint - position;
+      final width =
+          math.min(
+            bundle.manifest.settings.tileWidth,
+            _state.playerSpriteWidthPx,
+          ) *
+          .55 *
+          _scaleX;
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(foot.x, foot.y - _scaleY),
+          width: width,
+          height: 4 * _scaleY,
+        ),
+        Paint()..color = const Color(0x99000000),
+      );
+    }
     if (_actor != null) return;
     canvas.save();
     canvas.translate(0, -_jumpLiftPx);

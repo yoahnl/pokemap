@@ -54,7 +54,7 @@ void main() {
           const RuntimeInputEvent.release(RuntimeInputControl.right));
       game.update(.08);
       expect(game.debugIsPlayerStepping, isTrue);
-      game.update(.05);
+      game.update(.18);
       expect(game.debugIsPlayerStepping, isFalse);
     });
 
@@ -1186,7 +1186,7 @@ void main() {
         ),
         isTrue,
       );
-      for (var i = 0; i < 16; i++) {
+      for (var i = 0; i < 34; i++) {
         game.update(0.016);
         await Future<void>.delayed(Duration.zero);
       }

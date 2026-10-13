@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import '../../map_gameplay/test/support/border_jump_fixture.dart';
 
 import 'package:flame/components.dart';
@@ -149,6 +151,39 @@ Future<PlayerComponent> _component({double scale = 1}) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('jump animates the legs and draws its shadow at ground level', () async {
+    final player = await _component();
+    player.startDirectedJump(
+      _state(const GridPos(x: 2, y: 3)),
+      plan: _plan(),
+      onComplete: () {},
+    );
+    expect(player.debugStepAnimationState, CharacterAnimationState.walk);
+    player.update(.25);
+    final recorder = ui.PictureRecorder();
+    player.render(ui.Canvas(recorder));
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(128, 128);
+    final bytes = (await rendered.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    ))!;
+    expect(bytes.getUint8((63 * 128 + 32) * 4 + 3), greaterThan(0));
+    expect(bytes.getUint8((39 * 128 + 32) * 4 + 3), 0);
+    rendered.dispose();
+    picture.dispose();
+    player.update(.25);
+    final stoppedRecorder = ui.PictureRecorder();
+    player.render(ui.Canvas(stoppedRecorder));
+    final stoppedPicture = stoppedRecorder.endRecording();
+    final stoppedImage = await stoppedPicture.toImage(128, 128);
+    final stoppedBytes = (await stoppedImage.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    ))!;
+    expect(stoppedBytes.getUint8((63 * 128 + 32) * 4 + 3), 0);
+    stoppedImage.dispose();
+    stoppedPicture.dispose();
+  });
 
   test('jump has a 500ms ground translation and a 24px visual peak with unchanged feet', () async {
     final player = await _component();

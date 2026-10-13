@@ -42,6 +42,7 @@ void main() {
     expect(mix.volumeFor(RuntimeAudioRoute.battle), 0.2);
     expect(mix.volumeFor(RuntimeAudioRoute.cinematicMusic), 0.2);
     expect(mix.volumeFor(RuntimeAudioRoute.cinematicEffects), 0.1);
+    expect(mix.volumeFor(RuntimeAudioRoute.overworldEffects), 0.1);
   });
 
   test('mix transitions update every registered bus and preserve source volume',

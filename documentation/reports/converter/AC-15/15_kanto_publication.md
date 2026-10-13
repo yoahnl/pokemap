@@ -1187,3 +1187,65 @@ La reprise QA est lancée via `restart_publish_bank.dart`, dans un workflow neuf
 Le build Studio debug `studio-macos-build-01.json` est PASS (exit0,46.222s), avec point d'entrée Marionette et chemin de copie QA explicite. Deux descendants ibtoold propres au build ont été terminés normalement après vérification d'identité ; zéro survivant et protégés inchangés. La copie du nouveau projet, la fenêtre Studio et le Player n'ont pas encore été lancés. La preuve Studio historique du12octobre porte sur la première étude Route9 modifiée/enregistrée/rouverte ; elle ne certifie pas la nouvelle paire avec chemins, arbre entier, rebords et collisions.
 
 La tranche code est reviewable et vérifiée ; AC-15 global reste DOING/PARTIAL jusqu'à la publication et aux parcours réels. Les15pins de code, parent31ac268 et index vide sont revérifiés avant staging. Aucun changement du writer étranger ni des64chemins hors scope n'est inclus.
+
+
+## Complément du 14 octobre 2026 — cadence, saut et son après essai humain
+
+Yoahn a testé la conversion et confirmé qu’elle fonctionne. Il signale un personnage trop rapide, un saut étrange et l’absence du petit son de saut ; il demande une comparaison avec des vidéos des jeux originaux. Ce correctif reste dans AC-15, FG-120 PARTIAL. Aucun nouveau ticket de réparation ni changement de roadmap.
+
+### Audit et décision
+
+Le runtime utilisait 120 ms/case en marche et 75 ms/case en course. Le témoin Essentials Kanto extrait et attesté, `ledge-source-audit/outputs/044.rb:110–139`, fixe respectivement 250 et 125 ms/case. Les lignes 321–325, 783 et 935–962 confirment la translation linéaire et la parabole de deux cases à 500 ms / 24 px. Les lignes 990–1020 continuent les frames pendant le saut. Ces durées, hauteur, collisions, réservation et conséquences d’atterrissage sont conservées ; les jambes passent à l’animation de marche pendant le saut.
+
+La vidéo [Route 9, Rouge Feu, PokeTeckers](https://www.youtube.com/watch?v=X5IohZcJ3_M&t=86s) a été ouverte dans le navigateur et examinée par vingt avancées d’images autour de 85,9–86,58 s. Les images successives montrent une ombre au sol distincte du personnage élevé. Le lecteur était muet : aucune écoute du son de cette vidéo n’est revendiquée. Le téléchargement ordinaire du média blob a échoué ; aucune autre méthode ni contournement employé.
+
+Les sources primaires [event_object_movement.c](https://github.com/pret/pokefirered/blob/master/src/event_object_movement.c#L5741) et [field_player_avatar.c](https://github.com/pret/pokefirered/blob/master/src/field_player_avatar.c#L905) recoupent ombre et son au départ du saut. Le projet de test PSDK configure `Data/configs/sound_design_config.json:54–58` vers `audio/se/jump.wav`, volume/pitch 100 ; le moteur PSDK `scripts/4 Systems/003 Map Engine/2 Logic/50 RMXP/400 Game_Player.rb:135–139` le joue à la première update du saut. Import rerunnable depuis ce corpus autorisé : WAV PCM16 stéréo 44100 Hz, 29612 octets, 167,619 ms, SHA256 `38c2e846c2c0b387167a8c32ef64eae99dba4298622458198f83eee8ead4f779`. Aucune exécution Ruby, création IA ou modification source.
+
+### Fichiers et zones modifiés
+
+| Fichier sous `packages/map_runtime/` | Zone et rôle |
+| --- | --- |
+| `lib/src/presentation/flame/player_component.dart` | Constantes marche/course ; motion du saut ; ellipse rendue au pied au sol, avant l’acteur élevé. |
+| `lib/src/presentation/flame/playable_map_game.dart` | Injection du lecteur d’effets overworld ; son une fois après admission du saut ; fermeture du lecteur avec le game. |
+| `lib/src/player/overworld_sfx_player.dart` | Nouveau lecteur réutilisable : asset WAV, mixer complet, échecs audio contenus, arrêt et disposal indépendants. |
+| `lib/src/player/runtime_audio_mixer.dart` | Route native `overworldEffects` dans le bus effects. |
+| `lib/map_runtime.dart` | Export du port et du lecteur. |
+| `pubspec.yaml` | Inclusion de `assets/audio/overworld/`. |
+| `tool/import_overworld_jump_audio.py` | Import depuis la configuration PSDK, confinement source et reçu SHA/format. |
+| `assets/audio/overworld/jump.wav` | Son source exact importé par l’outil. |
+| `assets/audio/overworld/jump.source.json` | Provenance, hash, format et paramètres source. |
+| `test/player_component_test.dart` | Cadence de référence et interpolation existante. |
+| `test/player_directed_jump_component_test.dart` | Motion walk et pixels de l’ombre au sol ; disparition après atterrissage. |
+| `test/playable_map_game_directed_jump_test.dart` | Son une fois ; aucun son sur refus ; disposal avec le game ; fake audio des parcours. |
+| `test/playable_map_game_input_test.dart` | Deux durées de témoins ajustées à la marche plus lente ; commandes et enchaînement conservés. |
+| `test/player/runtime_audio_mixer_test.dart` | Route effects du nouveau son. |
+| `test/player/overworld_sfx_player_test.dart` | Source embarquée, voix unique, volume/ducking, stale async, refus backend et teardown. |
+
+Le seul autre fichier versionné modifié est ce rapport existant. Le formatteur a initialement reformaté des zones anciennes ; ce churn a été retiré en reconstruisant les fichiers propres depuis HEAD plus les seuls remplacements du correctif. Les 64 chemins étrangers présents avant la tâche sont conservés SHA et permissions compris.
+
+### Vérification et passes
+
+Racine des reçus : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/movement-feel-01`.
+
+- **Audit / architecture** : comparaison vidéo réelle, Ruby Essentials extrait attesté et PSDK en lecture seule ; défaut de cadence et absence d’ombre/son identifiés. Valeurs Essentials retenues explicitement, sans prétendre reproduire tous les profils PSDK/GBA.
+- **Implémentation** : 15 fichiers runtime physiques, aucun changement de modèle gameplay/core/converter, aucune nouvelle permission de passage et aucune logique de combat modifiée.
+- **Tests** : `player-red-02.json` = 13 PASS / 2 FAIL fonctionnels sur cadence et motion ; premier red avait aussi un import de test mal placé, corrigé. Premier green = 93 PASS / 3 FAIL : un champ de fake audio en conflit et deux témoins à l’ancienne cadence ; corrigés. Un import mal renommé pendant le retrait du churn a été corrigé avant green03. `runtime-green-03.json` = 99 PASS. Deux contrepreuves audio `audio-red-01.json` = 4 PASS / 2 FAIL : ducking initial contourné et erreurs de teardown propagées. Ces deux défauts sont corrigés.
+- **Vérification finale** : `runtime-final-01.json` = **101 PASS / 0 FAIL / 17,189 s**, exit0. Commande : `flutter test --no-pub --concurrency=1 test/player_component_test.dart test/player_directed_jump_component_test.dart test/playable_map_game_directed_jump_test.dart test/player/overworld_sfx_player_test.dart test/player/runtime_audio_mixer_test.dart test/battle_sfx_audio_mix_test.dart test/playable_map_game_input_test.dart test/phase_a_golden_battle_slice_smoke_test.dart --reporter expanded`. Après le seul ajout de diagnostics dans les catches, `audio-final-02.json` = **6 PASS / 8,110 s**, exit0.
+- **Analyse** : `flutter analyze --no-pub --no-fatal-infos` sur les onze fichiers Dart concernés ; `analyze-final-02.json` = **exit0 / 10,606 s / 0 erreur / 0 warning / 6 INFO préexistantes**. Aucune INFO nouvelle conservée.
+- **Build / validation** : Studio macOS debug compilé puis lancé sur la copie QA via `flutter run --debug --no-pub -t movement_main.dart -d macos` avec les deux defines projet/captures exacts. Les dernières méthodes audio sont appliquées par deux hot reloads réussis, une bibliothèque chacun ; aucun cold restart final revendiqué.
+- **MCP** : comportement runtime par défaut et effet audio interne, aucun nouveau contrat d’authoring ou champ de projet. API/JSONL/editor/MCP de la permission native restent inchangés ; nouveaux transports de réglage N/A. `npm run build` et `npm run check` exit0 ; `pokemap_describe` vivant via serveur construit : **410 actions**, contrats rebords/imports toujours découverts. Les tests runtime exécutent le consommateur du même Border natif.
+- **Critique indépendante** : audit de références et revue du delta par `ac15_connection_review_fresh`. Deux P2 audio relevés et fermés par contrepreuves ; vérification finale des pins/reçus consignée séparément dans le reçu de preuve, aucun verdict positif anticipé.
+
+Les résultats précédents sont des checkpoints sans pins enregistrés durant ces runs. Clôture sur le gel final : `runtime-pinned-final-01.json` = **101 PASS / 0 FAIL / 20,397 s / exit0** ; `analyze-pinned-final-01.json` = **exit0 / 9,856 s / six INFO préexistantes / zéro erreur et warning**. Chacun enregistre les 16 SHA (15 fichiers runtime + helper QA) avant et après, tous identiques au gel `freeze-final-02.json`. Les logs SHA sont respectivement `32c195fab4b4987c0957c34b3afa7b3d674ebc248c7d6d80223322008a05d2f6` et `ea1177dad8d02db122b75bcaf823cd877542bc2bfadd359c1aefa2aafb0f20b9`.
+
+Tous les reçus terminaux de tests/analyse/MCP ont zéro survivant et leurs processus protégés inchangés. `git diff --check` et Markdown hygiene passent, zéro nouveau Markdown.
+
+### Studio réel, reprise humaine et limites
+
+La copie QA contient 1324 fichiers byte-exacts depuis le projet modifié en Studio : `…/ConverterQA-20261013-movement-r10/Projet converti`. Route 9 a été ouverte et lancée dans le vrai Player avec les changements. Le joueur, le chemin et l’arbre entier sont rendus à l’écran. Les observations initiales au clavier sont conservées, mais ne certifient pas un parcours automatisé : Yoahn jouait dans la même fenêtre et ses touches se mélangeaient aux contrôles. Il a confirmé vouloir continuer à jouer ; aucune autre touche de déplacement envoyée après cette confirmation. Un démarrage de capture à 30 fps a été refusé (plage autorisée 10–20) : aucun film de saut n’en est déduit.
+
+La fenêtre et sa session debug vivante sont donc **conservées à la demande de Yoahn**, exception explicite à la fermeture des seules applications de test. Marionette déconnectée, activité de capture désactivée, watchdog propre suspendu avant son délai afin de ne pas interrompre le jeu humain ; identité et descendants exacts enregistrés dans `studio-user-handoff-01.json`. Flutter stdin hérité du heredoc était fermé : `d\n` n’a pas détaché l’app et n’est pas présenté comme une réussite. Quand Yoahn termine : fermeture normale de l’app vérifiée, reprise du superviseur puis contrôle/reap des seuls descendants enregistrés. Aucun PID étranger ciblé.
+
+Le projet d’origine de cette copie reste byte-exact sur ses 1324 fichiers. Le correctif ralentit les defaults natifs de tous les projets ; les durées explicitement fournies aux appels restent conservées. Le saut garde 500 ms/24 px et ses règles d’admission ; le son natif PSDK n’est pas une certification acoustique exacte de chaque jeu source. AC-15 et FG-120 restent **PARTIAL** : trajet contrôlé collisions/profondeur/sauts/transfert/save/load et Kanto entier toujours à qualifier. Cette réparation est prête pour revue technique, jamais marquée DONE à la place de l’utilisateur.
+
+Git initial : main `d8d0ec3c96e33618c816ced7c283f7d17f61c7c2`, index vide, 64 chemins étrangers dirty. Livraison locale prévue : les 15 fichiers ci-dessus plus ce rapport, SHA et état Git terminal consignés dans le reçu de commit ; aucun push/rebase/PR.
