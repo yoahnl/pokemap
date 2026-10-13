@@ -706,6 +706,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           asset.relativePath,
         ),
         mixer: _audioMixer,
+        musicService: _music,
       ));
 
   void _clearBattleMusicState() {
@@ -731,6 +732,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     String? path;
     var route = RuntimeAudioRoute.overworld;
+    var volume = 0.8;
     switch (_flowPhase) {
       case _RuntimeFlowPhase.battle:
       case _RuntimeFlowPhase.battleTransition:
@@ -753,12 +755,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           route = RuntimeAudioRoute.battle;
           path = encounterPath;
         } else {
+          volume = _bundle.map.mapMetadata.musicVolume ?? 0.8;
           path = _battleMusicResolver.resolveMapMusicAbsolutePath(
             bundle: _bundle,
           );
         }
     }
-    unawaited(_music.update(route: route, path: path));
+    unawaited(_music.update(route: route, path: path, volume: volume));
   }
 
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =

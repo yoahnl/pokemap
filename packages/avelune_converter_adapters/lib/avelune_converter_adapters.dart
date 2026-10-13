@@ -20,6 +20,7 @@ export 'src/source_semantic_study_composer.dart';
 export 'src/source_event_projection.dart';
 export 'src/source_event_character_import.dart';
 export 'src/source_event_study_composer.dart';
+export 'src/source_map_music_binding.dart';
 export 'src/source_event_arrival_validation.dart';
 export 'src/source_event_item_bindings.dart';
 export 'src/source_pickup_feedback_binding.dart';

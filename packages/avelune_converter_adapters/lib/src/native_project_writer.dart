@@ -993,6 +993,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'pokemon.configuration.set_enabled',
           'item.create',
           'scene.dialogue.audioMedia.import',
+          'map.audio.update',
         }.contains(mutation.actionId);
     final catalogs = draft.compositionEvidence.containsKey('sourceCatalogs') &&
         const {
@@ -1356,6 +1357,37 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         final id = _string(parameters, 'assetId');
         final handle = _string(parameters, 'artifactHandle');
         final artifact = artifacts[handle];
+        if (artifact != null &&
+            artifact.reference.mediaType.startsWith('audio/')) {
+          semantics.requireOperation(mutation);
+          final binding = semantics.events?.musicBindings.values
+              .where((entry) => entry.importMutations.any(
+                  (operation) => operation.operationId == mutation.operationId))
+              .firstOrNull;
+          final logicalPath = _string(parameters, 'logicalPath');
+          if (binding == null ||
+              binding.mapMusicPath != logicalPath ||
+              !binding.artifacts.any((entry) =>
+                  entry.handle == handle &&
+                  entry.rawSha256 == artifact.rawSha256) ||
+              audio.containsKey(id) ||
+              assetRecords.any((entry) => entry.id == id) ||
+              !_targetIds(mutation.targetEntityIds, {id})) {
+            throw const NativeWriteException('native.events.map_audio',
+                'Map music requires one exact regenerated source audio binding');
+          }
+          const PresentationMediaHeaderProbe().inspect(artifact.bytes,
+              declaredMediaType: artifact.reference.mediaType);
+          audio[id] = artifact;
+          usedArtifacts.add(handle);
+          assetRecords.add(AssetRecord(
+              id: id,
+              logicalPath: logicalPath,
+              artifact: artifact.reference,
+              tags: (parameters['tags'] as List).cast<String>(),
+              usages: (parameters['usages'] as List).cast<String>()));
+          break;
+        }
         if (artifact == null ||
             artifact.reference.mediaType != 'application/json' ||
             companions.containsKey(id) ||
@@ -1450,6 +1482,30 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'A canonical map save must follow the exact approved creation geometry');
         }
         maps[map.id] = map;
+      case 'map.audio.update':
+        semantics.requireOperation(mutation);
+        _allowParameters(
+            parameters, const {'mapId', 'musicPath', 'musicVolume'});
+        final id = _string(parameters, 'mapId');
+        _requireMapBinding(draft, mutation, id);
+        final sourceMapId =
+            draft.mapIds.entries.where((entry) => entry.value == id).single.key;
+        final binding = semantics.events?.musicBindings[sourceMapId];
+        final map = maps[id];
+        if (map == null ||
+            binding == null ||
+            parameters['musicPath'] != binding.mapMusicPath ||
+            parameters['musicVolume'] != binding.nativeVolume ||
+            !assetRecords.any((entry) =>
+                entry.logicalPath == binding.mapMusicPath &&
+                entry.artifact.mediaType.startsWith('audio/'))) {
+          throw const NativeWriteException('native.events.map_audio',
+              'Map music must follow its saved map and exact audio import');
+        }
+        maps[id] = map.copyWith(
+            mapMetadata: map.mapMetadata.copyWith(
+                musicPath: binding.mapMusicPath,
+                musicVolume: binding.nativeVolume));
       case 'pokemon.catalog.write':
       case 'pokemon.configuration.set_enabled':
         semantics.requireOperation(mutation);

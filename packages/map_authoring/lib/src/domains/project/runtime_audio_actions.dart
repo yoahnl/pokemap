@@ -17,7 +17,7 @@ final class RuntimeAudioActions {
 
   static const mapActionId = 'map.audio.update';
   static const projectActionId = 'project.battle_audio.update';
-  static const mapFields = {'musicPath', 'battleMusicPath'};
+  static const mapFields = {'musicPath', 'musicVolume', 'battleMusicPath'};
   static const projectFields = {
     'wildBattleMusicPath',
     'trainerBattleMusicPath',
@@ -33,7 +33,7 @@ final class RuntimeAudioActions {
         id: id,
         version: 1,
         summary: id == mapActionId
-            ? 'Set or clear map music and its battle music override'
+            ? 'Set or clear map music, its gain and its battle music override'
             : 'Set or clear project battle, victory and encounter audio defaults',
         inputSchemaId: 'pokemap.authoring.$id.input.v1',
         outputSchemaId: 'pokemap.authoring.runtime_audio.output.v1',
@@ -53,8 +53,32 @@ final class RuntimeAudioActions {
               ? ['mapId', ...mapFields]
               : projectFields.toList(),
           'omittedFields': 'preserved',
-          'nullOrBlankFields': 'cleared',
+          'nullFields': 'cleared',
+          'blankPathFields': 'cleared',
           'audioReferences': 'imported project asset logical paths',
+          if (id == mapActionId) ...{
+            'musicVolumeDefault': 0.8,
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['mapId'],
+              'minProperties': 2,
+              'properties': {
+                'mapId': {'type': 'string', 'minLength': 1},
+                'musicPath': {
+                  'type': ['string', 'null']
+                },
+                'musicVolume': {
+                  'type': ['number', 'null'],
+                  'minimum': 0,
+                  'maximum': 1,
+                },
+                'battleMusicPath': {
+                  'type': ['string', 'null']
+                },
+              },
+            },
+          },
         },
       ),
   ];
@@ -77,6 +101,15 @@ final class RuntimeAudioActions {
     for (final field in fields) {
       if (!context.request.parameters.containsKey(field)) continue;
       final value = context.request.parameters[field];
+      if (field == 'musicVolume') {
+        if (value != null &&
+            (value is! num || !value.isFinite || value < 0 || value > 1)) {
+          throw const FormatException(
+              'musicVolume must be null or finite in 0..1.');
+        }
+        patch[field] = (value as num?)?.toDouble();
+        continue;
+      }
       if (value != null && value is! String) {
         throw FormatException('$field must be a string or null.');
       }

@@ -29,10 +29,14 @@ final class RuntimeMusicService {
     RuntimeAudioMixer? mixer,
     RuntimeAudioFadeDelay? fadeDelay,
     int fadeSteps = 8,
-  })  : _driver = driver ?? FlameAudioCinematicRuntimeDriver(),
-        _mixer = mixer ?? RuntimeAudioMixer(),
-        _fadeDelay = fadeDelay ?? Future<void>.delayed,
-        _fadeSteps = fadeSteps < 1 ? 1 : fadeSteps;
+    Duration Function()? clock,
+    Timer Function(Duration, void Function())? loopTimerFactory,
+  }) : _driver = driver ?? FlameAudioCinematicRuntimeDriver(),
+       _mixer = mixer ?? RuntimeAudioMixer(),
+       _fadeDelay = fadeDelay ?? Future<void>.delayed,
+       _fadeSteps = fadeSteps < 1 ? 1 : fadeSteps,
+       _clock = clock ?? _monotonicClock(),
+       _loopTimerFactory = loopTimerFactory ?? Timer.new;
 
   static const Duration fadeOutDuration = Duration(milliseconds: 250);
 
@@ -40,22 +44,21 @@ final class RuntimeMusicService {
   final RuntimeAudioMixer _mixer;
   final RuntimeAudioFadeDelay _fadeDelay;
   final int _fadeSteps;
+  final Duration Function() _clock;
+  final Timer Function(Duration, void Function()) _loopTimerFactory;
+  final Map<Object, Duration> _musicEffects = {};
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
+  Object? _pausedHandle;
   StreamSubscription<void>? _loopSubscription;
-
-  /// Le retour au point de reprise, programmé sur la fin de la RÉGION de
-  /// boucle et non sur la fin du fichier — BETA-BAT-026, recette 2026-08-25.
   Timer? _loopReturnTimer;
   Duration? _loopReturnDelay;
-
-  /// Le délai avant le prochain retour au point de reprise.
-  ///
-  /// C'est LE chiffre qui distingue une boucle propre d'une boucle qui mord :
-  /// la fin de la région, pas la fin du fichier.
-  @visibleForTesting
-  Duration? get debugLoopReturnDelay => _loopReturnDelay;
+  Duration? _loopDueAt;
+  void Function()? _loopReturnAction;
+  int _loopGeneration = 0;
+  int _interruptionGeneration = 0;
+  double _interruptionEnvelope = 1;
   String? _playingPath;
   double _playingSourceVolume = 0.8;
   String? _desiredPath;
@@ -66,11 +69,14 @@ final class RuntimeMusicService {
   Object? lastFailure;
 
   bool get isPlaying => _handle != null;
+  bool get _isPaused => _handle != null && identical(_handle, _pausedHandle);
+
+  @visibleForTesting
+  Duration? get debugLoopReturnDelay => _loopReturnDelay;
 
   @visibleForTesting
   String? get playingPath => _playingPath;
 
-  /// Déclare l'état musical voulu. Idempotent : même chemin, même piste.
   Future<void> update({
     required RuntimeAudioRoute route,
     required String? path,
@@ -83,10 +89,39 @@ final class RuntimeMusicService {
     return _enqueue(_applyDesiredState);
   }
 
+  void beginMusicEffect({
+    required Object owner,
+    required Duration fadeOut,
+    required Duration fadeIn,
+  }) {
+    if (_disposed || _musicEffects.containsKey(owner)) return;
+    if (fadeOut < Duration.zero || fadeIn < Duration.zero) {
+      throw ArgumentError('Music effect fade durations must be nonnegative.');
+    }
+    if (_driver is! FlameCinematicAudioPausableDriver) {
+      throw StateError('Music effect interruption requires a pausable driver.');
+    }
+    _musicEffects[owner] = fadeIn;
+    final generation = ++_interruptionGeneration;
+    if (_isPaused) return;
+    unawaited(_fadeInterruption(0, fadeOut, generation, pauseAtEnd: true));
+  }
+
+  Future<void> endMusicEffect(Object owner) {
+    final fadeIn = _musicEffects.remove(owner);
+    if (_disposed || fadeIn == null || _musicEffects.isNotEmpty) {
+      return Future<void>.value();
+    }
+    final generation = ++_interruptionGeneration;
+    return _resumeInterruption(fadeIn, generation);
+  }
+
   Future<void> dispose() {
     if (_disposed) return _pending;
     _disposed = true;
     _desiredPath = null;
+    _musicEffects.clear();
+    _interruptionGeneration += 1;
     return _enqueue(() => _stop(fade: false));
   }
 
@@ -98,8 +133,8 @@ final class RuntimeMusicService {
     }
     if (_handle != null && _playingPath == path) {
       try {
-        await _mixer.updateSourceVolume(_handle!, _desiredVolume);
         _playingSourceVolume = _desiredVolume;
+        await _applyCurrentVolume(_handle!);
         lastFailure = null;
       } on Object catch (error) {
         lastFailure = error;
@@ -108,40 +143,42 @@ final class RuntimeMusicService {
       return;
     }
     await _stop(fade: true);
+    if (_disposed || _desiredPath != path) return;
+    Object? startedHandle;
     try {
-      // BETA-BAT-026 (recette du 2026-08-24) : « la musique est en boucle
-      // c'est bien, mais on a aussi le jingle de début de combat ». Le
-      // lecteur bouclait le FICHIER ENTIER, donc l'intro du morceau (14 s sur
-      // la piste de combat sauvage du Train) revenait à chaque tour. Quand la
-      // piste porte les points de boucle de la convention RPG Maker, on joue
-      // l'intro UNE fois puis on ne reboucle que sur la région marquée.
       final loopPoints = readRuntimeMusicLoopPoints(path);
       final loopDriver = _driver;
-      final usesIntroLoop = loopPoints != null &&
+      final usesIntroLoop =
+          loopPoints != null &&
           loopDriver is FlameCinematicAudioLoopDriver &&
           loopPoints.start > Duration.zero;
+      _interruptionEnvelope = _musicEffects.isEmpty ? 1 : 0;
       final handle = await _driver.play(
         path,
         volume: _mixer.mix.volumeFor(
           _desiredRoute,
-          sourceVolume: _desiredVolume,
+          sourceVolume: _desiredVolume * _interruptionEnvelope,
         ),
         loop: !usesIntroLoop,
       );
+      startedHandle = handle;
+      if (_disposed || _desiredPath != path) {
+        await _driver.stop(handle);
+        return;
+      }
+      _handle = handle;
+      _playingPath = path;
+      _playingSourceVolume = _desiredVolume;
+      _interruptionEnvelope = _musicEffects.isEmpty ? 1 : 0;
+      await _mixer.register(
+        channel: handle,
+        route: _desiredRoute,
+        sourceVolume: _playingSourceVolume * _interruptionEnvelope,
+        setVolume: (volume) => _driver.setVolume(handle, volume),
+        applyImmediately: false,
+      );
       if (usesIntroLoop) {
         final looping = loopDriver as FlameCinematicAudioLoopDriver;
-        // Recette du 2026-08-25 : « la boucle fonctionne presque mais elle
-        // MORD au moment de la boucle ».
-        //
-        // Attendre `onComplete`, c'est attendre la fin du FICHIER — or la
-        // région de boucle s'arrête à LOOPSTART+LOOPLENGTH, avant. Mesuré sur
-        // le Train : 473 ms de queue jouée en trop sur la piste sauvage,
-        // 1,19 s sur celle de dresseur. C'était ça, la morsure.
-        //
-        // On revient donc au point de reprise à la fin de la RÉGION, pas à la
-        // fin du fichier. `onComplete` reste branché en filet : si l'horloge
-        // dérive et que la piste va au bout malgré tout, la boucle repart
-        // quand même au lieu de mourir.
         _scheduleLoopReturn(
           driver: looping,
           handle: handle,
@@ -149,74 +186,197 @@ final class RuntimeMusicService {
           firstPass: true,
         );
         _loopSubscription = looping.onComplete(handle).listen((_) {
-          unawaited(looping.seekAndResume(handle, loopPoints.start));
-          _scheduleLoopReturn(
-            driver: looping,
-            handle: handle,
-            points: loopPoints,
-            firstPass: false,
-          );
+          if (!identical(_handle, handle) || _isPaused) return;
+          unawaited(_enqueue(() => _restartLoop(looping, handle, loopPoints)));
         });
       }
-      _handle = handle;
-      _playingPath = path;
-      _playingSourceVolume = _desiredVolume;
-      await _mixer.register(
-        channel: handle,
-        route: _desiredRoute,
-        sourceVolume: _desiredVolume,
-        setVolume: (volume) => _driver.setVolume(handle, volume),
-        applyImmediately: false,
-      );
+      if (_musicEffects.isNotEmpty) {
+        await _applyCurrentVolume(handle);
+        await _pauseCurrentHandle(handle);
+      }
       lastFailure = null;
     } on Object catch (error) {
-      _handle = null;
-      _playingPath = null;
+      lastFailure = error;
+      if (startedHandle != null && identical(_handle, startedHandle)) {
+        await _stop(fade: false);
+      } else {
+        _handle = null;
+        _playingPath = null;
+      }
+    }
+  }
+
+  Future<void> _applyCurrentVolume(Object handle) => _mixer.updateSourceVolume(
+    handle,
+    _playingSourceVolume * _interruptionEnvelope,
+  );
+
+  bool _validInterruption(Object handle, int generation) =>
+      !_disposed &&
+      generation == _interruptionGeneration &&
+      identical(_handle, handle);
+
+  Future<void> _fadeInterruption(
+    double target,
+    Duration duration,
+    int generation, {
+    bool pauseAtEnd = false,
+  }) async {
+    final handle = _handle;
+    if (handle == null) {
+      if (!_disposed && generation == _interruptionGeneration) {
+        _interruptionEnvelope = target;
+      }
+      return;
+    }
+    final from = _interruptionEnvelope;
+    final steps = duration <= Duration.zero ? 1 : _fadeSteps;
+    final step = Duration(
+      microseconds: (duration.inMicroseconds / steps).ceil(),
+    );
+    try {
+      for (var index = 1; index <= steps; index += 1) {
+        if (duration > Duration.zero) await _fadeDelay(step);
+        if (!_validInterruption(handle, generation)) return;
+        await _enqueue(() async {
+          if (!_validInterruption(handle, generation)) return;
+          _interruptionEnvelope = from + (target - from) * index / steps;
+          await _applyCurrentVolume(handle);
+        });
+      }
+      if (pauseAtEnd) {
+        await _enqueue(() async {
+          if (!_validInterruption(handle, generation) ||
+              _musicEffects.isEmpty) {
+            return;
+          }
+          await _pauseCurrentHandle(handle);
+        });
+      }
+    } on Object catch (error) {
       lastFailure = error;
     }
   }
 
-  /// Programme le retour au point de reprise à la fin de la RÉGION de boucle.
-  ///
-  /// La première passe part de zéro et joue l'intro : elle dure donc
-  /// jusqu'à `end`. Les suivantes partent de `start` : elles ne durent que la
-  /// longueur de la région.
+  Future<void> _resumeInterruption(Duration fadeIn, int generation) async {
+    try {
+      await _enqueue(() async {
+        final handle = _handle;
+        if (handle == null || !_validInterruption(handle, generation)) return;
+        if (_isPaused) {
+          await (_driver as FlameCinematicAudioPausableDriver).resume(handle);
+          if (_disposed || !identical(_handle, handle)) return;
+          _pausedHandle = null;
+          if (_musicEffects.isNotEmpty) {
+            _interruptionEnvelope = 0;
+            await _applyCurrentVolume(handle);
+            await _pauseCurrentHandle(handle);
+            return;
+          }
+          _resumeLoopReturn();
+        }
+      });
+      if (_disposed || generation != _interruptionGeneration) return;
+      await _fadeInterruption(1, fadeIn, generation);
+    } on Object catch (error) {
+      lastFailure = error;
+    }
+  }
+
+  Future<void> _pauseCurrentHandle(Object handle) async {
+    if (!identical(_handle, handle) || _isPaused) return;
+    _suspendLoopReturn();
+    try {
+      await (_driver as FlameCinematicAudioPausableDriver).pause(handle);
+      _pausedHandle = handle;
+    } on Object {
+      _resumeLoopReturn();
+      rethrow;
+    }
+  }
+
   void _scheduleLoopReturn({
     required FlameCinematicAudioLoopDriver driver,
     required Object handle,
     required RuntimeMusicLoopPoints points,
     required bool firstPass,
   }) {
-    _loopReturnTimer?.cancel();
     final remaining = firstPass ? points.end : points.end - points.start;
     _loopReturnDelay = remaining;
-    if (remaining <= Duration.zero) return;
-    _loopReturnTimer = Timer(remaining, () {
-      if (!identical(_handle, handle)) return;
-      unawaited(driver.seekAndResume(handle, points.start));
+    _loopReturnAction = () {
+      if (!identical(_handle, handle) || _isPaused) return;
+      unawaited(_enqueue(() => _restartLoop(driver, handle, points)));
+    };
+    _armLoopReturn(remaining);
+  }
+
+  Future<void> _restartLoop(
+    FlameCinematicAudioLoopDriver driver,
+    Object handle,
+    RuntimeMusicLoopPoints points,
+  ) async {
+    if (!identical(_handle, handle) || _isPaused || _disposed) return;
+    try {
+      await driver.seekAndResume(handle, points.start);
+      if (!identical(_handle, handle) || _isPaused || _disposed) return;
       _scheduleLoopReturn(
         driver: driver,
         handle: handle,
         points: points,
         firstPass: false,
       );
+    } on Object catch (error) {
+      lastFailure = error;
+    }
+  }
+
+  void _armLoopReturn(Duration remaining) {
+    _loopReturnTimer?.cancel();
+    final generation = ++_loopGeneration;
+    _loopReturnDelay = remaining;
+    _loopDueAt = _clock() + remaining;
+    _loopReturnTimer = _loopTimerFactory(remaining, () {
+      if (_disposed || generation != _loopGeneration || _isPaused) return;
+      _loopReturnTimer = null;
+      _loopDueAt = null;
+      _loopReturnAction?.call();
     });
+  }
+
+  void _suspendLoopReturn() {
+    final dueAt = _loopDueAt;
+    if (dueAt != null) {
+      final remaining = dueAt - _clock();
+      _loopReturnDelay = remaining < Duration.zero ? Duration.zero : remaining;
+    }
+    _loopReturnTimer?.cancel();
+    _loopReturnTimer = null;
+    _loopDueAt = null;
+    _loopGeneration += 1;
+  }
+
+  void _resumeLoopReturn() {
+    final remaining = _loopReturnDelay;
+    if (_loopReturnAction != null && remaining != null) {
+      _armLoopReturn(remaining);
+    }
   }
 
   Future<void> _stop({required bool fade}) async {
     final handle = _handle;
-    final fromVolume = _playingSourceVolume;
-    // La boucle à point de reprise meurt avec sa piste : laisser vivre cette
-    // souscription ferait revenir un morceau arrêté.
+    final fromVolume = _playingSourceVolume * _interruptionEnvelope;
+    _interruptionGeneration += 1;
     unawaited(_loopSubscription?.cancel());
     _loopSubscription = null;
-    _loopReturnTimer?.cancel();
-    _loopReturnTimer = null;
+    _suspendLoopReturn();
     _loopReturnDelay = null;
+    _loopReturnAction = null;
     _handle = null;
+    _pausedHandle = null;
     _playingPath = null;
+    _interruptionEnvelope = _musicEffects.isEmpty ? 1 : 0;
     if (handle == null) return;
-    if (fade) {
+    if (fade && fromVolume > 0) {
       final step = Duration(
         microseconds: (fadeOutDuration.inMicroseconds / _fadeSteps).ceil(),
       );
@@ -243,7 +403,12 @@ final class RuntimeMusicService {
 
   Future<void> _enqueue(Future<void> Function() operation) {
     final result = _pending.then((_) => operation());
-    _pending = result.onError((_, __) {});
+    _pending = result.onError((_, _) {});
     return result;
   }
+}
+
+Duration Function() _monotonicClock() {
+  final watch = Stopwatch()..start();
+  return () => watch.elapsed;
 }

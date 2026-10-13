@@ -55,6 +55,7 @@ abstract class MapMetadata with _$MapMetadata {
     /// S'appelait `musicId` sans catalogue derrière (politique pré-1.0.0 :
     /// renommage propre, aucun porteur de valeur dans les données).
     String? musicPath,
+    @JsonKey(fromJson: _mapMusicVolumeFromJson) double? musicVolume,
 
     /// Musique de combat des rencontres sur cette carte — BETA-BAT-015.
     ///
@@ -72,4 +73,12 @@ abstract class MapMetadata with _$MapMetadata {
 
   factory MapMetadata.fromJson(Map<String, dynamic> json) =>
       _$MapMetadataFromJson(json);
+}
+
+double? _mapMusicVolumeFromJson(Object? value) {
+  if (value == null) return null;
+  if (value is! num || !value.isFinite || value < 0 || value > 1) {
+    throw const FormatException('Map music volume must be finite in 0..1.');
+  }
+  return value.toDouble();
 }

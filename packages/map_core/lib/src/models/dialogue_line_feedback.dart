@@ -185,42 +185,120 @@ final class DialogueIconSegment extends DialogueLineSegment {
   int get hashCode => Object.hash(assetId, widthPx, heightPx);
 }
 
+enum DialogueAudioCueRole { effect, musicEffect }
+
+final class DialogueBgmInterruption {
+  DialogueBgmInterruption({required this.fadeOutMs, required this.fadeInMs}) {
+    for (final entry in {
+      'fadeOutMs': fadeOutMs,
+      'fadeInMs': fadeInMs,
+    }.entries) {
+      if (entry.value < 0 || entry.value > 60000) {
+        throw ArgumentError.value(entry.value, entry.key);
+      }
+    }
+  }
+
+  final int fadeOutMs;
+  final int fadeInMs;
+
+  factory DialogueBgmInterruption.fromJson(Map<String, dynamic> json) {
+    _fields(json, {'fadeOutMs', 'fadeInMs'}, {});
+    int duration(String field) {
+      final value = json[field];
+      if (value is! int || value < 0 || value > 60000) {
+        throw FormatException('$field must be an integer in 0..60000.');
+      }
+      return value;
+    }
+
+    return DialogueBgmInterruption(
+      fadeOutMs: duration('fadeOutMs'),
+      fadeInMs: duration('fadeInMs'),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'fadeOutMs': fadeOutMs,
+    'fadeInMs': fadeInMs,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is DialogueBgmInterruption &&
+      fadeOutMs == other.fadeOutMs &&
+      fadeInMs == other.fadeInMs;
+
+  @override
+  int get hashCode => Object.hash(fadeOutMs, fadeInMs);
+}
+
 final class DialogueAudioCue {
   DialogueAudioCue({
     required this.mediaAssetId,
     required this.cueId,
     this.volume = 1.0,
+    this.role = DialogueAudioCueRole.effect,
+    this.bgmInterruption,
   }) {
     _id(mediaAssetId);
     _id(cueId);
     if (!volume.isFinite || volume < 0 || volume > 1) {
       throw ArgumentError.value(volume, 'volume');
     }
+    if (bgmInterruption != null && role != DialogueAudioCueRole.musicEffect) {
+      throw ArgumentError('BGM interruption requires a music effect cue.');
+    }
   }
 
   final String mediaAssetId;
   final String cueId;
   final double volume;
+  final DialogueAudioCueRole role;
+  final DialogueBgmInterruption? bgmInterruption;
 
   factory DialogueAudioCue.fromJson(Map<String, dynamic> json) {
-    _fields(json, {'mediaAssetId', 'cueId'}, {'volume'});
+    _fields(
+      json,
+      {'mediaAssetId', 'cueId'},
+      {'volume', 'role', 'bgmInterruption'},
+    );
     final volume = json.containsKey('volume') ? json['volume'] : 1.0;
     if (volume is! num || !volume.isFinite || volume < 0 || volume > 1) {
       throw const FormatException(
         'Dialogue cue volume must be finite in 0..1.',
       );
     }
-    return DialogueAudioCue(
-      mediaAssetId: _string(json['mediaAssetId']),
-      cueId: _string(json['cueId']),
-      volume: volume.toDouble(),
-    );
+    final role = json.containsKey('role')
+        ? switch (json['role']) {
+            'effect' => DialogueAudioCueRole.effect,
+            'musicEffect' => DialogueAudioCueRole.musicEffect,
+            _ => throw const FormatException(
+              'Unknown dialogue audio cue role.',
+            ),
+          }
+        : DialogueAudioCueRole.effect;
+    try {
+      return DialogueAudioCue(
+        mediaAssetId: _string(json['mediaAssetId']),
+        cueId: _string(json['cueId']),
+        volume: volume.toDouble(),
+        role: role,
+        bgmInterruption: json.containsKey('bgmInterruption')
+            ? DialogueBgmInterruption.fromJson(_object(json['bgmInterruption']))
+            : null,
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
   }
 
   Map<String, Object?> toJson() => {
     'mediaAssetId': mediaAssetId,
     'cueId': cueId,
     if (volume != 1.0) 'volume': volume,
+    if (role != DialogueAudioCueRole.effect) 'role': role.name,
+    if (bgmInterruption != null) 'bgmInterruption': bgmInterruption!.toJson(),
   };
 
   @override
@@ -228,10 +306,13 @@ final class DialogueAudioCue {
       other is DialogueAudioCue &&
       mediaAssetId == other.mediaAssetId &&
       cueId == other.cueId &&
-      volume == other.volume;
+      volume == other.volume &&
+      role == other.role &&
+      bgmInterruption == other.bgmInterruption;
 
   @override
-  int get hashCode => Object.hash(mediaAssetId, cueId, volume);
+  int get hashCode =>
+      Object.hash(mediaAssetId, cueId, volume, role, bgmInterruption);
 }
 
 final class DialogueLineFeedback {

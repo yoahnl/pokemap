@@ -5,6 +5,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 final class _RecordingAudioDriver implements FlameCinematicAudioDriver {
   final List<String> playedPaths = <String>[];
+  final List<double> playedVolumes = <double>[];
 
   @override
   Future<Object> play(
@@ -13,6 +14,7 @@ final class _RecordingAudioDriver implements FlameCinematicAudioDriver {
     required bool loop,
   }) async {
     playedPaths.add(path);
+    playedVolumes.add(volume);
     return Object();
   }
 
@@ -26,27 +28,54 @@ final class _RecordingAudioDriver implements FlameCinematicAudioDriver {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('la musique de carte démarre au chargement du runtime — BETA-BAT-015',
-      () async {
-    final driver = _RecordingAudioDriver();
-    final service = RuntimeMusicService(
-      driver: driver,
-      mixer: RuntimeAudioMixer(),
-      fadeDelay: (_) async {},
-    );
-    final game = PlayableMapGame(
-      bundle: _bundle(musicPath: 'audio/town.ogg'),
-      projectFilePath: '/tmp/test_runtime_music/project.json',
-      musicService: service,
-    );
+  test(
+    'la musique de carte démarre au chargement du runtime — BETA-BAT-015',
+    () async {
+      final driver = _RecordingAudioDriver();
+      final service = RuntimeMusicService(
+        driver: driver,
+        mixer: RuntimeAudioMixer(),
+        fadeDelay: (_) async {},
+      );
+      final game = PlayableMapGame(
+        bundle: _bundle(musicPath: 'audio/town.ogg'),
+        projectFilePath: '/tmp/test_runtime_music/project.json',
+        musicService: service,
+      );
 
-    game.onGameResize(Vector2(320, 240));
-    await game.onLoad();
-    await Future<void>.delayed(Duration.zero);
+      game.onGameResize(Vector2(320, 240));
+      await game.onLoad();
+      await Future<void>.delayed(Duration.zero);
 
-    expect(driver.playedPaths, ['/tmp/test_runtime_music/audio/town.ogg']);
-    expect(service.playingPath, '/tmp/test_runtime_music/audio/town.ogg');
-  });
+      expect(driver.playedPaths, ['/tmp/test_runtime_music/audio/town.ogg']);
+      expect(service.playingPath, '/tmp/test_runtime_music/audio/town.ogg');
+    },
+  );
+
+  test(
+    'map music uses authored source volume and keeps the default fallback',
+    () async {
+      for (final volume in <double?>[.64, null]) {
+        final driver = _RecordingAudioDriver();
+        final service = RuntimeMusicService(
+          driver: driver,
+          mixer: RuntimeAudioMixer(),
+          fadeDelay: (_) async {},
+        );
+        final game = PlayableMapGame(
+          bundle: _bundle(musicPath: 'audio/town.ogg', musicVolume: volume),
+          projectFilePath: '/tmp/test_runtime_music/project.json',
+          musicService: service,
+        );
+        game.onGameResize(Vector2(320, 240));
+        await game.onLoad();
+        await Future<void>.delayed(Duration.zero);
+        expect(driver.playedVolumes, [volume ?? .8]);
+        game.onRemove();
+        await service.dispose();
+      }
+    },
+  );
 
   test('aucune musique authored : le runtime charge en silence', () async {
     final driver = _RecordingAudioDriver();
@@ -70,7 +99,7 @@ void main() {
   });
 }
 
-RuntimeMapBundle _bundle({required String? musicPath}) {
+RuntimeMapBundle _bundle({required String? musicPath, double? musicVolume}) {
   return RuntimeMapBundle(
     manifest: const ProjectManifest(
       name: 'Runtime Music Integration Test',
@@ -87,9 +116,7 @@ RuntimeMapBundle _bundle({required String? musicPath}) {
       id: 'test_music_map',
       name: 'Music Map',
       size: const GridSize(width: 3, height: 3),
-      layers: const <MapLayer>[
-        MapLayer.object(id: 'objects', name: 'Objects'),
-      ],
+      layers: const <MapLayer>[MapLayer.object(id: 'objects', name: 'Objects')],
       entities: const <MapEntity>[
         MapEntity(
           id: 'spawn_start',
@@ -106,6 +133,7 @@ RuntimeMapBundle _bundle({required String? musicPath}) {
       mapMetadata: MapMetadata(
         defaultSpawnId: 'spawn_start',
         musicPath: musicPath,
+        musicVolume: musicVolume,
       ),
     ),
     projectRootDirectory: '/tmp/test_runtime_music',

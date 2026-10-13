@@ -36,6 +36,38 @@ SceneDialogueLinePolicy _policy(
             audioCue: audioCue));
 
 void main() {
+  test('canonical scene feedback accepts and preserves bounded music effects',
+      () {
+    final cue = DialogueAudioCue(
+      mediaAssetId: 'cue',
+      cueId: 'item_found',
+      volume: 0.8,
+      role: DialogueAudioCueRole.musicEffect,
+      bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 500),
+    );
+    final project = _project().copyWith(cinematicMediaAssets: [
+      CinematicMediaAsset(
+          id: 'cue',
+          label: 'Found',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'media/found.ogg'),
+    ]);
+    final updated = const SceneActions().updateDialogueLineFeedback(
+      project,
+      maps: const [],
+      sceneId: 'scene',
+      nodeId: 'dialogue',
+      linePolicy: _policy(audioCue: cue),
+      dialogue: const YarnDialogueCompiler().compile(_source),
+    );
+    expect(_payload(updated).linePolicies.first.feedback.audioCue, cue);
+    final reloaded = ProjectManifest.fromJson(
+        jsonDecode(jsonEncode(updated.toJson())) as Map<String, dynamic>);
+    expect(_payload(reloaded).linePolicies.first.feedback.audioCue, cue);
+    expect(_payload(reloaded).choicePolicies, _payload(project).choicePolicies);
+    expect(_payload(reloaded).declaredCancellationOutcomes, ['cancel']);
+  });
+
   test(
       'duplicate audio cue across two distinct lines is a precise domain refusal',
       () {

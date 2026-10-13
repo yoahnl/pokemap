@@ -351,6 +351,7 @@ export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
 export 'src/presentation/flame/flame_cinematic_media_playback_adapter.dart'
     show
         FlameCinematicAudioDriver,
+        FlameCinematicAudioPausableDriver,
         FlameAudioCinematicRuntimeDriver,
         FlameCinematicMediaPlaybackAdapter,
         FlameCinematicMediaPathResolver;

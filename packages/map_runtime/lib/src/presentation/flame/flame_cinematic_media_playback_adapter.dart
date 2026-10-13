@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame_audio/flame_audio.dart';
 import 'package:map_core/map_core.dart';
 
@@ -31,23 +33,47 @@ abstract interface class FlameCinematicAudioLoopDriver {
   Stream<void> onComplete(Object handle);
 }
 
+abstract interface class FlameCinematicAudioPausableDriver {
+  Future<void> pause(Object handle);
+  Future<void> resume(Object handle);
+}
+
 final class FlameAudioCinematicRuntimeDriver
-    implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver {
+    implements
+        FlameCinematicAudioDriver,
+        FlameCinematicAudioLoopDriver,
+        FlameCinematicAudioPausableDriver {
+  FlameAudioCinematicRuntimeDriver({AudioPlayer Function()? playerFactory})
+    : _playerFactory = playerFactory ?? AudioPlayer.new;
+
+  final AudioPlayer Function() _playerFactory;
+  final Map<AudioPlayer, _FlameAudioCompletionRelay> _completions = {};
+
   @override
   Future<Object> play(
     String path, {
     required double volume,
     required bool loop,
   }) async {
-    final player = AudioPlayer();
+    final player = _playerFactory();
     // `stop` plutôt que `release` quand on gère la boucle nous-mêmes : le
     // player doit rester vivant à la fin de la piste pour pouvoir revenir au
     // point de reprise.
-    await player.setReleaseMode(
-      loop ? ReleaseMode.loop : ReleaseMode.stop,
-    );
-    await player.play(DeviceFileSource(path), volume: volume);
-    return player;
+    try {
+      _completions[player] = _FlameAudioCompletionRelay(
+        player.onPlayerComplete,
+      );
+      await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
+      await player.play(DeviceFileSource(path), volume: volume);
+      return player;
+    } on Object catch (error, stackTrace) {
+      try {
+        await _releasePlayer(player, stop: false);
+      } on Object {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   @override
@@ -58,18 +84,121 @@ final class FlameAudioCinematicRuntimeDriver
   }
 
   @override
-  Stream<void> onComplete(Object handle) =>
-      (handle as AudioPlayer).onPlayerComplete;
+  Stream<void> onComplete(Object handle) {
+    final completion = _completions[handle];
+    if (completion == null) {
+      throw StateError('Unknown audio completion handle.');
+    }
+    return completion.stream;
+  }
+
+  @override
+  Future<void> pause(Object handle) => (handle as AudioPlayer).pause();
+
+  @override
+  Future<void> resume(Object handle) => (handle as AudioPlayer).resume();
 
   @override
   Future<void> setVolume(Object handle, double volume) =>
       (handle as AudioPlayer).setVolume(volume);
 
   @override
-  Future<void> stop(Object handle) async {
-    final player = handle as AudioPlayer;
-    await player.stop();
-    await player.dispose();
+  Future<void> stop(Object handle) =>
+      _releasePlayer(handle as AudioPlayer, stop: true);
+
+  Future<void> _releasePlayer(AudioPlayer player, {required bool stop}) async {
+    Object? failure;
+    StackTrace? failureStack;
+    try {
+      await _completions.remove(player)?.dispose();
+    } on Object catch (error, stackTrace) {
+      failure = error;
+      failureStack = stackTrace;
+    }
+    if (stop) {
+      try {
+        await player.stop();
+      } on Object catch (error, stackTrace) {
+        failure ??= error;
+        failureStack ??= stackTrace;
+      }
+    }
+    try {
+      await player.dispose();
+    } on Object catch (error, stackTrace) {
+      failure ??= error;
+      failureStack ??= stackTrace;
+    }
+    if (failure != null) {
+      Error.throwWithStackTrace(failure, failureStack!);
+    }
+  }
+}
+
+final class _FlameAudioCompletionRelay {
+  _FlameAudioCompletionRelay(Stream<void> source) {
+    _subscription = source.listen(_forward, onError: _forwardError);
+  }
+
+  late final StreamSubscription<void> _subscription;
+  final Set<MultiStreamController<void>> _listeners = {};
+  bool _pendingCompletion = false;
+  (Object, StackTrace)? _pendingError;
+  bool _disposed = false;
+
+  Stream<void> get stream => Stream<void>.multi((controller) {
+    if (_disposed) {
+      controller.close();
+      return;
+    }
+    _listeners.add(controller);
+    controller.onCancel = () {
+      _listeners.remove(controller);
+    };
+    final error = _pendingError;
+    _pendingError = null;
+    if (error != null) controller.addError(error.$1, error.$2);
+    if (_pendingCompletion) {
+      _pendingCompletion = false;
+      controller.add(null);
+    }
+  }, isBroadcast: true);
+
+  void _forward(void _) {
+    if (_disposed) return;
+    if (_listeners.isEmpty) {
+      _pendingCompletion = true;
+      return;
+    }
+    for (final listener in _listeners.toList(growable: false)) {
+      listener.add(null);
+    }
+  }
+
+  void _forwardError(Object error, StackTrace stackTrace) {
+    if (_disposed) return;
+    if (_listeners.isEmpty) {
+      _pendingError = (error, stackTrace);
+      return;
+    }
+    for (final listener in _listeners.toList(growable: false)) {
+      listener.addError(error, stackTrace);
+    }
+  }
+
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    try {
+      await _subscription.cancel();
+    } finally {
+      for (final listener in _listeners.toList(growable: false)) {
+        listener.close();
+      }
+      _listeners.clear();
+      _pendingCompletion = false;
+      _pendingError = null;
+    }
   }
 }
 
@@ -81,9 +210,9 @@ final class FlameCinematicMediaPlaybackAdapter
     required this.fx,
     FlameCinematicAudioDriver? audioDriver,
     RuntimeAudioMixer? audioMixer,
-  })  : _mediaById = {for (final asset in mediaAssets) asset.id: asset},
-        _audioDriver = audioDriver ?? FlameAudioCinematicRuntimeDriver(),
-        _audioMixer = audioMixer ?? RuntimeAudioMixer();
+  }) : _mediaById = {for (final asset in mediaAssets) asset.id: asset},
+       _audioDriver = audioDriver ?? FlameAudioCinematicRuntimeDriver(),
+       _audioMixer = audioMixer ?? RuntimeAudioMixer();
 
   final Map<String, CinematicMediaAsset> _mediaById;
   final FlameCinematicMediaPathResolver resolvePath;
@@ -147,10 +276,7 @@ final class FlameCinematicMediaPlaybackAdapter
         final route = _routeFor(asset);
         final handle = await _audioDriver.play(
           resolvePath(asset),
-          volume: _audioMixer.mix.volumeFor(
-            route,
-            sourceVolume: volume,
-          ),
+          volume: _audioMixer.mix.volumeFor(route, sourceVolume: volume),
           loop: loop,
         );
         await _audioMixer.register(
@@ -192,10 +318,7 @@ final class FlameCinematicMediaPlaybackAdapter
     final initialVolume = fadeMs > 0 ? 0.0 : volume;
     final handle = await _audioDriver.play(
       resolvePath(asset),
-      volume: _audioMixer.mix.volumeFor(
-        route,
-        sourceVolume: initialVolume,
-      ),
+      volume: _audioMixer.mix.volumeFor(route, sourceVolume: initialVolume),
       loop: command.loop,
     );
     await _audioMixer.register(
@@ -237,8 +360,8 @@ final class FlameCinematicMediaPlaybackAdapter
 
   RuntimeAudioRoute _routeFor(CinematicMediaAsset asset) =>
       asset.kind == CinematicMediaAssetKind.sound
-          ? RuntimeAudioRoute.cinematicEffects
-          : RuntimeAudioRoute.cinematicMusic;
+      ? RuntimeAudioRoute.cinematicEffects
+      : RuntimeAudioRoute.cinematicMusic;
 
   CinematicMediaAsset _requireAsset(String id) {
     final asset = _mediaById[id];

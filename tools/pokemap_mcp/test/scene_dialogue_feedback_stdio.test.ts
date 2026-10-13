@@ -12,6 +12,7 @@ const source = "title: Start\n---\nFound!\n-> Yes\n    <<outcome yes>>\n-> No\n 
 const choiceAction = "scene.dialogue.choicePolicy.update";
 const feedbackAction = "scene.dialogue.lineFeedback.update";
 const audioAction = "scene.dialogue.audioMedia.import";
+const mapAudioAction = "map.audio.update";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -82,12 +83,13 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     await client.connect(transport);
     const catalog = await call("pokemap_describe");
     const actions = new Map((catalog.mutationActions as JsonRecord[]).map((action) => [action.id, action]));
-    for (const actionId of [choiceAction, feedbackAction, audioAction]) {
+    for (const actionId of [choiceAction, feedbackAction, audioAction, mapAudioAction]) {
       const descriptor = actions.get(actionId);
       assert.ok(descriptor, actionId);
       assert.equal(descriptor.version, 1);
       assert.ok((descriptor.guarantees as string[]).includes("atomic"));
     }
+    assert.ok((record(actions.get(mapAudioAction)!.extensions).parameterNames as string[]).includes("musicVolume"));
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     async function plan(actionId: string, parameters: JsonRecord, failure = false): Promise<JsonRecord> {
       assert.ok(workspace);
@@ -133,16 +135,37 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     await mutate(audioAction, { artifactHandle: artifact.artifactHandle, assetId: "pickup_audio",
       mediaId: "pickup", label: "Found", logicalPath: "assets/dialogue/found.wav" });
     assert.deepEqual(await readFile(join(root, "assets/dialogue/found.wav")), sound());
+    await mutate("map.create", { mapId: "route", name: "Original route", width: 4, height: 4 });
+    await mutate(mapAudioAction, { mapId: "route", musicPath: "assets/dialogue/found.wav", musicVolume: 0.64 });
+    async function map(): Promise<JsonRecord> {
+      assert.ok(workspace);
+      const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle,
+        resourceKind: "map", operation: "get", ids: ["route"], view: "detail" });
+      return record((queried.items as JsonRecord[])[0]);
+    }
+    assert.equal(record((await map()).mapMetadata).musicVolume, 0.64);
+    await mutate(mapAudioAction, { mapId: "route", musicPath: null });
+    assert.equal(record((await map()).mapMetadata).musicVolume, 0.64);
+    assert.equal(record((await map()).mapMetadata).musicPath, null);
+    await mutate(mapAudioAction, { mapId: "route", musicPath: "assets/dialogue/found.wav" });
+    assert.equal(record((await map()).mapMetadata).musicVolume, 0.64);
+    const badVolume = await plan(mapAudioAction, { mapId: "route", musicVolume: 1.01 }, true);
+    assert.ok(badVolume.code);
     const linePolicy = { nodeName: "Start", lineIndex: 0, feedback: {
       segments: [{ kind: "text", text: "Found!", style: { colorArgb: 0xff0070f8 } }],
       revealIntervalMicros: 25000, advance: { kind: "autoAfterReveal", delayMicros: 1000000 },
-      audioCue: { mediaAssetId: "pickup", cueId: "item-found" },
+      audioCue: { mediaAssetId: "pickup", cueId: "item-found", volume: 0.64,
+        role: "musicEffect", bgmInterruption: { fadeOutMs: 200, fadeInMs: 1000 } },
     } };
     await mutate(feedbackAction, { sceneId: "scene", nodeId: "dialogue", linePolicy });
     const after = await scene();
     assert.deepEqual(dialoguePayload(after).linePolicies, [linePolicy]);
     assert.deepEqual(dialoguePayload(after).declaredCancellationOutcomes, ["cancel"]);
     assert.deepEqual(record(after.graph).edges, record(record((original.scenes as JsonRecord[])[0]).graph).edges);
+    const invalidInterruption = await plan(feedbackAction, { sceneId: "scene", nodeId: "dialogue",
+      linePolicy: { ...linePolicy, feedback: { ...linePolicy.feedback, audioCue: {
+        ...linePolicy.feedback.audioCue, role: "effect" } } } }, true);
+    assert.equal(invalidInterruption.domainCode, "scene.dialogue.line_feedback.invalid");
     const wrongText = await plan(feedbackAction, { sceneId: "scene", nodeId: "dialogue",
       linePolicy: { ...linePolicy, feedback: { ...linePolicy.feedback,
         segments: [{ kind: "text", text: "Changed!" }] } } }, true);
@@ -160,15 +183,17 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     workspace = undefined;
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     assert.deepEqual(dialoguePayload(await scene()), dialoguePayload(after));
+    assert.equal(record((await map()).mapMetadata).musicVolume, 0.64);
     assert.equal(await readFile(sourcePath, "utf8"), source);
     const saved = record(JSON.parse(await readFile(manifestPath, "utf8")));
     const media = (saved.cinematicMediaAssets as JsonRecord[])[0];
     assert.ok(media);
     assert.equal(media.kind, "sound"); assert.equal(media.durationMs, 1000);
     assert.notEqual(media.loopByDefault, true);
-    console.log(JSON.stringify({ liveCatalog: true, actions: [choiceAction, feedbackAction, audioAction],
+    console.log(JSON.stringify({ liveCatalog: true, actions: [choiceAction, feedbackAction, audioAction, mapAudioAction],
       choicePoliciesApplied: 3, lineFeedbackApplied: true, audioArtifactImported: true,
-      exactRejections: 4, reopenedThroughMcp: true }));
+      musicEffectPolicyApplied: true, mapVolumeAppliedAndPreserved: true,
+      exactRejections: 6, reopenedThroughMcp: true }));
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = undefined;
   } finally {

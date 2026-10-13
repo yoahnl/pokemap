@@ -1948,6 +1948,7 @@ const _nativeStudyActions = [
   'tileset.upsert',
   'map.create',
   'map.save',
+  'map.audio.update',
   'element_category.upsert',
   'element.upsert',
   'asset.import',
@@ -1984,9 +1985,9 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
       'schemaVersion': '1.0',
       'kind': 'targetCapabilities',
       'exampleOnly': false,
-      'profileId': 'avelune-converter-native-study-ac15-v1',
+      'profileId': 'avelune-converter-native-study-ac13-audio-v1',
       'repository': 'yoahnl/pokemap',
-      'revision': '6b153da4ad1b2b7b9bfe629caa5b8789c909d8d0',
+      'revision': '2f07c5c7f58cc4da9f63739c3d69fb7000554f3a',
       'capabilities': [
         for (final action in _nativeStudyActions)
           {
@@ -2030,6 +2031,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                 'reference':
                     'repo:packages/avelune_converter_adapters/test/source_event_study_composer_test.dart:AC-13',
               },
+              if (action == 'map.audio.update')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Attested source BGM import, canonical map audio assignment, exact native gain and publication with strict fresh reopen.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:AC13 workflow publishes attested map music and preserves its gain',
+                },
             ],
             'limitations': [
               'Native study verification; publication requires a committed exclusive-promotion receipt. Gameplay remains uncertified.',

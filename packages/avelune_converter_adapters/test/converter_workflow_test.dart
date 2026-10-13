@@ -13,9 +13,91 @@ import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
 import 'support/original_autotile_fixture.dart';
+import 'support/source_map_music_fixture.dart';
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  test('AC13 workflow publishes attested map music and preserves its gain',
+      () async {
+    final oracle = await SourceMapMusicOracle.read(scriptsPath!);
+    final sourceRoot = File(scriptsPath).parent.parent;
+    final harness = await _WorkflowHarness.create(
+        scriptsBytes: oracle.scriptsBytes,
+        includeEventSystem: true,
+        maps: [
+          LiteralFixtureMap(
+              id: 1, autoplayBgm: true, bgmName: 'Original Route'),
+          LiteralFixtureMap(
+              id: 8, autoplayBgm: true, bgmName: 'Original Route'),
+        ],
+        extraFiles: {
+          'Game.ini': oracle.gameIniBytes,
+          'mkxp.json': oracle.mkxpConfigBytes,
+          'Game.exe': await File('${sourceRoot.path}/Game.exe').readAsBytes(),
+          'Audio/BGM/Original Route.wav': sourceMapMusicFixtureWav(),
+          'PBS/metadata.txt':
+              utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+          'Graphics/Characters/OriginalPlayer.png': image
+              .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+        });
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      expect(prepared.canApprove, isTrue);
+      final assignments = prepared.nativeDraft!.mutations
+          .where((mutation) => mutation.actionId == 'map.audio.update')
+          .toList();
+      expect(assignments, hasLength(2));
+      final result =
+          await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(result.published, isTrue);
+      final capability = prepared.targetCapabilities.capabilities.singleWhere(
+          (value) =>
+              value.capabilityId.value == 'native.study.map.audio.update');
+      expect(capability.status, CapabilityStatus.supported);
+      expect(capability.evidence, isNotEmpty);
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [harness.output.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(result.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        final expectedMaps = prepared.nativeDraft!.mutations
+            .where((mutation) => mutation.actionId == 'map.save')
+            .map((mutation) {
+          final map = MapData.fromJson(
+              Map<String, dynamic>.from(mutation.parameters['map'] as Map));
+          final assignment = assignments.singleWhere(
+              (mutation) => mutation.parameters['mapId'] == map.id);
+          return map.copyWith(
+              mapMetadata: map.mapMetadata.copyWith(
+                  musicPath: assignment.parameters['musicPath'] as String,
+                  musicVolume: 0.64));
+        });
+        expect(expectedMaps, hasLength(2));
+        for (final expected in expectedMaps) {
+          final actual = native.mapById(expected.id)!;
+          expect(actual, expected);
+          expect(actual.mapMetadata.musicVolume, 0.64);
+          expect(actual.mapMetadata.musicPath, isNotNull);
+        }
+        expect(
+            expectedMaps.map((map) => map.mapMetadata.musicPath).toSet(),
+            hasLength(1));
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS || scriptsPath == null);
   test(
       'AC-15 published study reopens in a fresh context after workflow disposal',
       () async {

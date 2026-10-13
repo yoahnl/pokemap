@@ -3077,6 +3077,13 @@ class MapValidator {
 
   static void _validateMapMetadata(MapData map) {
     final md = map.mapMetadata;
+    final musicVolume = md.musicVolume;
+    if (musicVolume != null &&
+        (!musicVolume.isFinite || musicVolume < 0 || musicVolume > 1)) {
+      throw ValidationException(
+        'Map metadata musicVolume must be null or finite in 0..1',
+      );
+    }
     if (md.musicPath != null && md.musicPath!.trim().isEmpty) {
       throw ValidationException(
         'Map metadata musicPath must be null or a non-blank string',

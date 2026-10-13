@@ -8,13 +8,17 @@ import 'source_event_projection.dart';
 import 'source_event_character_import.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
+import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 
 final class SourceEventStudyComposition {
   const SourceEventStudyComposition(
-      {required this.draft, required this.projection});
+      {required this.draft,
+      required this.projection,
+      this.musicBindings = const {}});
   final NativeProjectDraft draft;
   final SourceEventProjection projection;
+  final Map<int, SourceMapMusicBinding> musicBindings;
 }
 
 final class SourceEventStudyComposer {
@@ -72,6 +76,33 @@ final class SourceEventStudyComposer {
         .where((entry) => witnessPaths.contains(entry.relativePath))) {
       await recording.read(entry.fileId);
     }
+    final musicBindings = <int, SourceMapMusicBinding>{};
+    final musicEvidence = <Map<String, Object?>>[];
+    final musicMapIds = nativeMaps.keys.toList()..sort();
+    for (final sourceMapId in musicMapIds) {
+      try {
+        final binding = await const SourceMapMusicResolver().read(
+            source: source,
+            files: recording,
+            sourceMapId: sourceMapId,
+            limits: limits,
+            cancellation: cancellation);
+        if (binding == null) continue;
+        musicBindings[sourceMapId] = binding;
+        musicEvidence.add({'status': 'imported', ...binding.evidence});
+        final map = nativeMaps[sourceMapId]!;
+        nativeMaps[sourceMapId] = map.copyWith(
+            mapMetadata: map.mapMetadata.copyWith(
+                musicPath: binding.mapMusicPath,
+                musicVolume: binding.nativeVolume));
+      } on SourceMapMusicBindingUnavailable catch (error) {
+        musicEvidence.add({
+          'sourceMapId': sourceMapId,
+          'status': 'preservedOnly',
+          'reason': error.reason
+        });
+      }
+    }
     final pickupBindings = <String, SourcePickupFeedbackBinding>{};
     final pickupEvidence = <Map<String, Object?>>[];
     SourceEventItemBindings? items;
@@ -104,6 +135,7 @@ final class SourceEventStudyComposer {
                 files: recording,
                 item: item,
                 sourceMapId: pickup.$1,
+                music: musicBindings[pickup.$1],
                 limits: limits,
                 cancellation: cancellation);
             pickupBindings[key] = binding;
@@ -375,6 +407,7 @@ final class SourceEventStudyComposer {
         ...base.artifacts,
         ...characterArtifacts,
         ...pickupArtifacts,
+        ...musicBindings.values.expand((entry) => entry.artifacts),
         ...preservedArtifacts.values,
         companion
       ])
@@ -394,6 +427,7 @@ final class SourceEventStudyComposer {
     for (final entry in [
       ...characterMutations,
       ...pickupMutations,
+      ...musicBindings.values.expand((entry) => entry.importMutations),
       ...catalogMutations
     ]) {
       final prior = operations[entry.operationId];
@@ -409,6 +443,10 @@ final class SourceEventStudyComposer {
       }
     }
     final eventMutations = [
+      for (final sourceMapId in musicMapIds)
+        if (musicBindings.containsKey(sourceMapId))
+          musicBindings[sourceMapId]!
+              .mapMutation(nativeMapId: base.mapIds[sourceMapId]!),
       ...preservedMutations,
       companionMutation,
       ...projection.mutations
@@ -423,6 +461,7 @@ final class SourceEventStudyComposer {
       'characters': characterEvidence,
       'items': items?.evidence,
       'pickups': pickupEvidence,
+      'mapMusic': musicEvidence,
       'witnesses': recording.evidence,
       'actorDepthParityQualified': false,
       'actorDepthParityStatus':
@@ -436,6 +475,7 @@ final class SourceEventStudyComposer {
     };
     return SourceEventStudyComposition(
         projection: projection,
+        musicBindings: Map.unmodifiable(musicBindings),
         draft: NativeProjectDraft(
             source: source,
             projectName: base.projectName,

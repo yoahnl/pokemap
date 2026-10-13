@@ -46,6 +46,10 @@ final class LiteralFixtureMap {
     List<List<int>>? layers,
     List<List<Object?>> warpParameters = const [],
     this.events = const [],
+    this.autoplayBgm = false,
+    this.bgmName = '',
+    this.bgmVolume = 100,
+    this.bgmPitch = 100,
   })  : name = name ?? 'Original map $id',
         layers = List.unmodifiable((layers ??
                 const [
@@ -65,6 +69,10 @@ final class LiteralFixtureMap {
   final List<List<int>> layers;
   final List<List<Object?>> warpParameters;
   final List<LiteralFixtureEvent> events;
+  final bool autoplayBgm;
+  final String bgmName;
+  final int bgmVolume;
+  final int bgmPitch;
 }
 
 final class LiteralFixtureEvent {
@@ -216,7 +224,13 @@ final class LiteralTileFixture {
             if (map.warpParameters.isNotEmpty) 6: _event(map.warpParameters),
             for (final event in map.events) event.id: _fixtureEvent(event),
           },
-          '@autoplay_bgm': false,
+          '@autoplay_bgm': map.autoplayBgm,
+          if (map.autoplayBgm || map.bgmName.isNotEmpty)
+            '@bgm': _Object('RPG::AudioFile', {
+              '@name': map.bgmName,
+              '@volume': map.bgmVolume,
+              '@pitch': map.bgmPitch,
+            }),
           '@autoplay_bgs': false,
           '@encounter_list': <Object?>[],
           '@encounter_step': 30,

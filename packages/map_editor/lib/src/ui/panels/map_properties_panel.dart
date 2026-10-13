@@ -6,6 +6,8 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../design_system/pokemap_guided_slider.dart';
+import '../design_system/pokemap_toggle_tile.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
@@ -31,6 +33,7 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
   MapWeather _weather = MapWeather.none;
   bool _isIndoor = false;
   bool _allowEscapeRope = true;
+  double? _musicVolume;
   String _defaultSpawnMenuValue = _kSpawnNone;
 
   @override
@@ -125,6 +128,22 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
           controller: _musicPathController,
           placeholder: 'Optionnel',
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        const SizedBox(height: 10),
+        PokeMapToggleTile(
+          label: 'Volume par défaut (80 %)',
+          value: _musicVolume == null,
+          onChanged: (value) => setState(() {
+            _musicVolume = value ? null : 0.8;
+          }),
+        ),
+        const SizedBox(height: 6),
+        PokeMapGuidedSlider(
+          label: 'Volume de la musique',
+          value: ((_musicVolume ?? 0.8) * 100).round(),
+          onChanged: (value) => setState(() {
+            _musicVolume = value / 100;
+          }),
         ),
         const SizedBox(height: 10),
         Text(
@@ -252,6 +271,7 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
     final md = map.mapMetadata;
     _displayNameController.text = md.displayName;
     _musicPathController.text = md.musicPath ?? '';
+    _musicVolume = md.musicVolume;
     _battleMusicPathController.text = md.battleMusicPath ?? '';
     _tagsController.text = md.tags.join(', ');
     _mapType = md.mapType;
@@ -303,6 +323,7 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
       displayName: _displayNameController.text,
       mapType: _mapType,
       musicPath: music.isEmpty ? null : music,
+      musicVolume: _musicVolume,
       battleMusicPath: battleMusic.isEmpty ? null : battleMusic,
       weather: _weather,
       isIndoor: _isIndoor,

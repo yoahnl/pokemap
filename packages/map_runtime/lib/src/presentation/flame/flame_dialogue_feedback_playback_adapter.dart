@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/dialogue_feedback_playback_port.dart';
 import '../../player/runtime_audio_mixer.dart';
+import '../../player/runtime_music_service.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 
 final class FlameDialogueFeedbackPlaybackAdapter
@@ -13,6 +14,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
     required this.resolvePath,
     FlameCinematicAudioDriver? audioDriver,
     RuntimeAudioMixer? mixer,
+    this._musicService,
   }) : _media = {for (final asset in mediaAssets) asset.id: asset},
        _driver = audioDriver ?? FlameAudioCinematicRuntimeDriver(),
        _mixer = mixer ?? RuntimeAudioMixer() {
@@ -27,6 +29,8 @@ final class FlameDialogueFeedbackPlaybackAdapter
   final Map<String, CinematicMediaAsset> _media;
   final FlameCinematicAudioDriver _driver;
   final RuntimeAudioMixer _mixer;
+  final RuntimeMusicService? _musicService;
+  Object? lastFailure;
   final Map<String, Future<void>> _starting = {};
   final Map<String, _DialogueSound> _active = {};
   bool _disposed = false;
@@ -49,28 +53,69 @@ final class FlameDialogueFeedbackPlaybackAdapter
         asset.loopByDefault) {
       throw StateError('Dialogue cue requires a known non-looping sound.');
     }
-    final handle = await _driver.play(
-      resolvePath(asset),
-      volume:
-          cue.volume * _mixer.mix.volumeFor(RuntimeAudioRoute.cinematicEffects),
-      loop: false,
-    );
+    final route = cue.role == DialogueAudioCueRole.musicEffect
+        ? RuntimeAudioRoute.cinematicMusic
+        : RuntimeAudioRoute.cinematicEffects;
+    final interruption = cue.bgmInterruption;
+    Object? owner;
+    if (interruption != null) {
+      final music = _musicService;
+      if (music == null) {
+        throw StateError('Music effect interruption requires the BGM service.');
+      }
+      owner = Object();
+      music.beginMusicEffect(
+        owner: owner,
+        fadeOut: Duration(milliseconds: interruption.fadeOutMs),
+        fadeIn: Duration(milliseconds: interruption.fadeInMs),
+      );
+    }
+    final Object handle;
+    try {
+      handle = await _driver.play(
+        resolvePath(asset),
+        volume: _mixer.mix.volumeFor(route, sourceVolume: cue.volume),
+        loop: false,
+      );
+    } on Object {
+      if (owner != null) await _musicService!.endMusicEffect(owner);
+      rethrow;
+    }
     if (_disposed) {
-      await _driver.stop(handle);
+      try {
+        await _driver.stop(handle);
+      } finally {
+        if (owner != null) await _musicService!.endMusicEffect(owner);
+      }
       return;
     }
-    final sound = _DialogueSound(handle);
+    final sound = _DialogueSound(handle, owner);
     _active[playbackId] = sound;
     try {
       sound.completion = (_driver as FlameCinematicAudioLoopDriver)
           .onComplete(handle)
-          .listen((_) {
-            unawaited(_release(playbackId, sound));
-          });
+          .listen(
+            (_) {
+              unawaited(
+                _release(playbackId, sound).catchError((Object error) {
+                  lastFailure = error;
+                }),
+              );
+            },
+            onError: (Object error, StackTrace _) {
+              lastFailure = error;
+              unawaited(
+                _release(playbackId, sound).catchError((Object releaseError) {
+                  lastFailure = releaseError;
+                }),
+              );
+            },
+          );
       await _mixer.register(
         channel: handle,
-        route: RuntimeAudioRoute.cinematicEffects,
-        setVolume: (volume) => _driver.setVolume(handle, cue.volume * volume),
+        route: route,
+        sourceVolume: cue.volume,
+        setVolume: (volume) => _driver.setVolume(handle, volume),
       );
       if (_disposed || !identical(_active[playbackId], sound)) return;
     } on Object {
@@ -84,7 +129,12 @@ final class FlameDialogueFeedbackPlaybackAdapter
     _active.remove(playbackId);
     await sound.completion?.cancel();
     _mixer.unregister(sound.handle);
-    await _driver.stop(sound.handle);
+    try {
+      await _driver.stop(sound.handle);
+    } finally {
+      final owner = sound.musicEffectOwner;
+      if (owner != null) await _musicService!.endMusicEffect(owner);
+    }
   }
 
   Future<void> dispose() async {
@@ -99,7 +149,8 @@ final class FlameDialogueFeedbackPlaybackAdapter
 }
 
 final class _DialogueSound {
-  _DialogueSound(this.handle);
+  _DialogueSound(this.handle, this.musicEffectOwner);
   final Object handle;
+  final Object? musicEffectOwner;
   StreamSubscription<void>? completion;
 }

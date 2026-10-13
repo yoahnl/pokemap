@@ -6,11 +6,20 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/source_event_item_bindings.dart';
 import 'package:avelune_converter_adapters/src/source_pickup_feedback_binding.dart';
+import 'package:avelune_converter_adapters/src/source_map_music_binding.dart';
+import 'package:avelune_converter_adapters/avelune_converter_adapters.dart'
+    show
+        LiteralTileComposer,
+        SourceSemanticStudyComposer,
+        SourceEventStudyComposer;
+import 'package:map_authoring/map_authoring.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/source_map_music_fixture.dart';
+import 'support/native_writer_fixture.dart';
 
 final class _Symbol {
   const _Symbol(this.value);
@@ -245,12 +254,268 @@ Matcher _unavailable(String reason) =>
 Matcher _contract(String code) =>
     throwsA(isA<ContractError>().having((error) => error.code, 'code', code));
 
+Future<_Fixture> _musicFixture(SourceMapMusicOracle oracle,
+    {String namespace = 'pickup-music-fixture',
+    bool includeSecondMusicMap = false}) async {
+  final fixture = await SourceMapMusicFixture.create(
+      oracle: oracle,
+      namespace: namespace,
+      includeEventSystem: true,
+      maps: [
+        LiteralFixtureMap(
+            id: 1,
+            width: 4,
+            height: 4,
+            layers: [
+              List.filled(16, 384),
+              List.filled(16, 0),
+              List.filled(16, 0)
+            ],
+            autoplayBgm: true,
+            bgmName: 'Original Route',
+            events: const [
+              LiteralFixtureEvent(
+                  id: 14,
+                  x: 1,
+                  y: 1,
+                  name: 'HiddenItem',
+                  pages: [
+                    LiteralFixtureEventPage(through: true, commands: [
+                      LiteralFixtureEventCommand(
+                          111, [12, 'pbItemBall(:ETHER)']),
+                      LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
+                      LiteralFixtureEventCommand(0, [], indent: 1),
+                      LiteralFixtureEventCommand(412, []),
+                      LiteralFixtureEventCommand(0, []),
+                    ]),
+                    LiteralFixtureEventPage(
+                        selfSwitch: 'A',
+                        through: true,
+                        commands: [LiteralFixtureEventCommand(0, [])]),
+                  ]),
+            ]),
+        if (includeSecondMusicMap)
+          LiteralFixtureMap(
+              id: 2, autoplayBgm: true, bgmName: 'Original Route'),
+      ],
+      extraFiles: {
+        'Data/items.dat': _dump(
+            {_Symbol('ETHER'): _Object('GameData::Item', _item('ETHER'))}),
+        'Data/map_metadata.dat': _dump({
+          1: _Object('GameData::MapMetadata', {
+            '@id': 1,
+            '@town_map_position': [1, 16, 5],
+            '@real_name': 'Original Route'
+          })
+        }),
+        _skinPath: _png(96, 48),
+        _iconPath: _png(18, 32),
+        _audioPath: _wav(),
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+        'Graphics/Characters/OriginalPlayer.png': _png(128, 192),
+      });
+  final items = await const SourceEventItemBindingResolver().read(
+      snapshot: fixture.snapshot,
+      files: fixture.files,
+      symbols: ['ETHER'],
+      eventProfile: SourceEventProfile.kantoForProject(fixture.source));
+  return _Fixture(fixture.source, fixture.files, items);
+}
+
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   List<int>? scripts;
+  SourceMapMusicOracle? musicOracle;
   setUpAll(() async {
     if (scriptsPath != null) scripts = await File(scriptsPath).readAsBytes();
+    if (scriptsPath != null) {
+      musicOracle = await SourceMapMusicOracle.read(scriptsPath);
+    }
   });
+
+  group('qualified active map music', () {
+    test('two source maps share one exact imported music asset', () async {
+      final f = await _musicFixture(musicOracle!, includeSecondMusicMap: true);
+      final temporary =
+          await Directory.systemTemp.createTemp('ac13-shared-music-writer-');
+      addTearDown(() => temporary.delete(recursive: true));
+      final literal = await const LiteralTileComposer().compose(
+          source: f.source,
+          files: f.files,
+          selectedSourceMapIds: [1, 2],
+          projectName: 'Original shared music',
+          parentPath: temporary.path,
+          folderName: 'project');
+      final semantic = (await const SourceSemanticStudyComposer()
+          .compose(source: f.source, files: f.files, base: literal))!;
+      final composed = (await const SourceEventStudyComposer()
+          .compose(source: f.source, files: f.files, base: semantic))!;
+      final music = composed.musicBindings[1]!;
+      expect(composed.musicBindings[2]!.mapMusicPath, music.mapMusicPath);
+      expect(
+          composed.draft.mutations.where((mutation) =>
+              mutation.actionId == 'asset.import' &&
+              mutation.parameters['logicalPath'] == music.mapMusicPath),
+          hasLength(1));
+      expect(
+          composed.draft.mutations
+              .where((mutation) => mutation.actionId == 'map.audio.update'),
+          hasLength(2));
+      final approval = approveNativeFixtureDraft(composed.draft);
+      final receipt = await NativeProjectWriter()
+          .write(approval.plan, approval.context, composed.draft);
+      expect(receipt.verified, isTrue);
+      for (final mapId in composed.draft.mapIds.values) {
+        final json = jsonDecode(
+            await File('${receipt.projectPath}/maps/$mapId.json')
+                .readAsString()) as Map<String, dynamic>;
+        final metadata = MapData.fromJson(json).mapMetadata;
+        expect(metadata.musicPath, music.mapMusicPath);
+        expect(metadata.musicVolume, closeTo(0.64, 0.000000001));
+      }
+    });
+
+    test('pickup requires the exact map music binding and emits a music effect',
+        () async {
+      final f = await _musicFixture(musicOracle!);
+      await expectLater(_read(f, symbol: 'ETHER'),
+          _unavailable('pickup.feedback.bgm_active'));
+      final music = (await const SourceMapMusicResolver()
+          .read(source: f.source, files: f.files, sourceMapId: 1))!;
+      final feedback = await const SourcePickupFeedbackResolver().read(
+          source: f.source,
+          files: f.files,
+          item: f.items.bindings['ETHER']!,
+          sourceMapId: 1,
+          music: music);
+      final cue = feedback.foundFeedback(cueId: 'found-ether').audioCue!;
+      expect(cue.volume, closeTo(0.64, 0.000000001));
+      expect(cue.role, DialogueAudioCueRole.musicEffect);
+      expect(cue.bgmInterruption,
+          DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 1000));
+      expect(feedback.evidence['sourceBgmAutoplay'], isTrue);
+      expect(feedback.evidence['sourceAudioGain'], 0.8);
+      expect(feedback.evidence['nativeAudioGain'], music.nativeVolume);
+      expect(feedback.evidence['sourceEngineAudioGainQualified'], isTrue);
+      expect(feedback.evidence['sourceAudioPauseResumeQualified'], isFalse);
+      expect(feedback.evidence['mapMusicBinding'], music.evidence);
+    });
+
+    test('a music binding from another snapshot cannot qualify a pickup',
+        () async {
+      final a = await _musicFixture(musicOracle!, namespace: 'music-a');
+      final b = await _musicFixture(musicOracle!, namespace: 'music-b');
+      final music = (await const SourceMapMusicResolver()
+          .read(source: a.source, files: a.files, sourceMapId: 1))!;
+      await expectLater(
+          const SourcePickupFeedbackResolver().read(
+              source: b.source,
+              files: b.files,
+              item: b.items.bindings['ETHER']!,
+              sourceMapId: 1,
+              music: music),
+          _contract('source.pickup_feedback.music_binding'));
+    });
+
+    test(
+        'native composition imports exact music after map save and refuses an altered gain',
+        () async {
+      final f = await _musicFixture(musicOracle!);
+      final temporary =
+          await Directory.systemTemp.createTemp('ac13-active-music-writer-');
+      addTearDown(() => temporary.delete(recursive: true));
+      final literal = await const LiteralTileComposer().compose(
+          source: f.source,
+          files: f.files,
+          selectedSourceMapIds: [1],
+          projectName: 'Original active music',
+          parentPath: temporary.path,
+          folderName: 'project');
+      final semantic = (await const SourceSemanticStudyComposer()
+          .compose(source: f.source, files: f.files, base: literal))!;
+      final composed = (await const SourceEventStudyComposer()
+          .compose(source: f.source, files: f.files, base: semantic))!;
+      final draft = composed.draft;
+      final music = composed.musicBindings[1]!;
+      expect(composed.projection.semanticEvidence['qualifiedEventCount'], 1,
+          reason: jsonEncode(composed.projection.semanticEvidence));
+      expect(composed.projection.semanticEvidence['quarantinedEventCount'], 0);
+      final audioIndex =
+          draft.mutations.indexWhere((m) => m.actionId == 'map.audio.update');
+      expect(
+          audioIndex,
+          greaterThan(
+              draft.mutations.indexWhere((m) => m.actionId == 'map.save')));
+      expect(
+          audioIndex,
+          greaterThan(draft.mutations.indexWhere((m) =>
+              m.actionId == 'asset.import' &&
+              m.parameters['logicalPath'] == music.mapMusicPath)));
+      final approved = approveNativeFixtureDraft(draft);
+      final receipt = await NativeProjectWriter()
+          .write(approved.plan, approved.context, draft);
+      expect(receipt.verified, isTrue);
+      const reader = LocalProjectFileReader();
+      final handles = WorkspaceHandleStore();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(receipt.projectPath);
+      try {
+        final loaded = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        final map = loaded.mapById(draft.mapIds[1]!)!;
+        expect(map.mapMetadata.musicPath, music.mapMusicPath);
+        expect(map.mapMetadata.musicVolume, closeTo(0.64, 0.000000001));
+        expect(
+            await File('${receipt.projectPath}/${music.mapMusicPath}')
+                .readAsBytes(),
+            music.artifacts.single.bytes);
+        final cue = loaded.manifest.scenes
+            .expand((s) => s.graph.nodes)
+            .map((n) => n.payload)
+            .whereType<SceneYarnDialoguePayload>()
+            .expand((p) => p.linePolicies)
+            .map((p) => p.feedback.audioCue)
+            .whereType<DialogueAudioCue>()
+            .single;
+        expect(cue.role, DialogueAudioCueRole.musicEffect);
+        expect(cue.bgmInterruption,
+            DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 1000));
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      final altered = NativeProjectDraft(
+          source: draft.source,
+          projectName: draft.projectName,
+          parentPath: draft.parentPath,
+          folderName: draft.folderName,
+          mapIds: draft.mapIds,
+          artifacts: draft.artifacts,
+          sourceArtifacts: draft.sourceArtifacts,
+          compositionEvidence: draft.compositionEvidence,
+          mutations: draft.mutations
+              .map((m) => m.actionId == 'map.audio.update'
+                  ? NativeMutation(
+                      operationId: m.operationId,
+                      actionId: m.actionId,
+                      sourceEntityIds: m.sourceEntityIds,
+                      targetEntityIds: m.targetEntityIds,
+                      parameters: {...m.parameters, 'musicVolume': 1.0})
+                  : m)
+              .toList());
+      final changedApproval = approveNativeFixtureDraft(altered);
+      final stages = <NativeWriteStage>[];
+      await expectLater(
+          NativeProjectWriter(checkpoint: (s, _, __) => stages.add(s))
+              .write(changedApproval.plan, changedApproval.context, altered),
+          throwsA(isA<NativeWriteException>()
+              .having((e) => e.code, 'code', 'native.semantics.regeneration')));
+      expect(stages, isEmpty);
+    });
+  }, skip: scriptsPath == null || !Platform.isMacOS);
 
   test('unqualified scripts never invent pickup feedback', () async {
     final f = await _fixture();

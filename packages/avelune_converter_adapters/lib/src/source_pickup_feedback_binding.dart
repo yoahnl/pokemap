@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_item_bindings.dart';
+import 'source_map_music_binding.dart';
 
 final class SourcePickupBindingUnavailable implements Exception {
   const SourcePickupBindingUnavailable(this.reason);
@@ -29,6 +30,7 @@ final class SourcePickupFeedbackBinding {
     required this.metadataReference,
     required this.metadataArchive,
     required this.bagFeedback,
+    required this.music,
     required List<DialogueLineSegment> foundSegments,
     required List<NativeArtifact> artifacts,
     required List<NativeMutation> mutations,
@@ -50,6 +52,7 @@ final class SourcePickupFeedbackBinding {
   final SourcePreservedData metadataReference;
   final SourceArchive metadataArchive;
   final DialogueLineFeedback bagFeedback;
+  final SourceMapMusicBinding? music;
   final List<DialogueLineSegment> _foundSegments;
   final List<NativeArtifact> artifacts;
   final List<NativeMutation> mutations;
@@ -60,8 +63,17 @@ final class SourcePickupFeedbackBinding {
         segments: _foundSegments,
         revealIntervalMicros: 25000,
         advance: DialogueLineAdvancePolicy.autoAfterReveal(2000000),
-        audioCue:
-            DialogueAudioCue(mediaAssetId: mediaId, cueId: cueId, volume: 0.8),
+        audioCue: DialogueAudioCue(
+          mediaAssetId: mediaId,
+          cueId: cueId,
+          volume: music?.nativeVolume ?? 0.8,
+          role: music == null
+              ? DialogueAudioCueRole.effect
+              : DialogueAudioCueRole.musicEffect,
+          bgmInterruption: music == null
+              ? null
+              : DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 1000),
+        ),
       );
 }
 
@@ -73,6 +85,7 @@ final class SourcePickupFeedbackResolver {
     required SourceFilePort files,
     required SourceEventItemBinding item,
     required int sourceMapId,
+    SourceMapMusicBinding? music,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -116,7 +129,19 @@ final class SourcePickupFeedbackResolver {
     if (autoplayId == null) _unavailable('bgm_unqualified');
     final autoplay = mapFile.document.node(autoplayId);
     if (autoplay.kind != MarshalKind.boolean) _unavailable('bgm_unqualified');
-    if (autoplay.booleanValue != false) _unavailable('bgm_active');
+    if (autoplay.booleanValue == true && music == null) {
+      _unavailable('bgm_active');
+    }
+    if (music != null &&
+        (autoplay.booleanValue != true ||
+            music.sourceMapId != sourceMapId ||
+            music.sourceSnapshotHash != snapshot.canonicalHash ||
+            music.normalizedSourceHash != source.canonicalHash ||
+            music.mapFile.fileId != mapFile.entry.fileId ||
+            music.mapFile.sha256 != mapFile.contentHash)) {
+      throw ContractError('source.pickup_feedback.music_binding', r'$',
+          'Pickup music must bind the exact normalized source map and snapshot.');
+    }
 
     SourceFileEntry entry(String path, String family) {
       final matches = snapshot.entries
@@ -342,6 +367,7 @@ final class SourcePickupFeedbackResolver {
         metadataReference: metadataReference,
         metadataArchive: metadataArchive,
         bagFeedback: bag,
+        music: music,
         foundSegments: foundSegments,
         artifacts: [iconArtifact, audioArtifact],
         mutations: mutations,
@@ -363,8 +389,11 @@ final class SourcePickupFeedbackResolver {
           'audioFile': audioFile.toJson(),
           'sourceRegion': region,
           'sourceQuantity': 1,
-          'requiredRuntimeContext': 'freshGameDefaultOptionsAndNoActiveBgm',
-          'sourceBgmAutoplay': false,
+          'requiredRuntimeContext': music == null
+              ? 'freshGameDefaultOptionsAndNoActiveBgm'
+              : 'freshGameDefaultOptionsAndQualifiedMapBgm',
+          'sourceBgmAutoplay': music != null,
+          if (music != null) 'mapMusicBinding': music.evidence,
           'sourceSessionBgmInheritanceQualified': false,
           'sourceOptions': {
             'textSpeed': 1,
@@ -387,7 +416,11 @@ final class SourcePickupFeedbackResolver {
           'revealIntervalMicros': 25000,
           'foundAutoAfterRevealMicros': 2000000,
           'sourceAudioGain': 0.8,
-          'nativeAudioGain': 0.8,
+          'nativeAudioGain': music?.nativeVolume ?? 0.8,
+          'nativeAudioRole': music == null ? 'effect' : 'musicEffect',
+          if (music != null)
+            'nativeBgmInterruption': {'fadeOutMs': 200, 'fadeInMs': 1000},
+          'sourceEngineAudioGainQualified': music != null,
           'sourceIconSize': {'width': icon.width, 'height': icon.height},
           'sourcePixelsResampled': false,
           'iconTilesetId': iconTilesetId,
