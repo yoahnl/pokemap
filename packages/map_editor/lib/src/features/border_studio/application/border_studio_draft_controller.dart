@@ -855,6 +855,7 @@ BorderBlueprintDraftDefinition _copyDefinition(
     ground: replaceGround ? ground : source.ground,
     categoryId: source.categoryId,
     sortOrder: source.sortOrder,
+    jumpBehavior: source.jumpBehavior,
   );
 }
 

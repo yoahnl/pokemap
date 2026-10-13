@@ -609,7 +609,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   };
   final components = BorderInputFingerprints(
     blueprint: _hash(
-      encodeBorderBlueprintRevisionJson(revision, formatVersion: 5),
+      encodeBorderBlueprintRevisionJson(revision, formatVersion: 6),
     ),
     geometryAndSeed: _hash({
       'geometry': featureJson['geometry'],

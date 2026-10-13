@@ -457,3 +457,118 @@ Aucune nouvelle action native n'est créée : `connection.create_bidirectional_a
 Auto-critique : un graph nativement relisible et une validation d'arrivée ne rendent pas le bord accessible ; la preuve statique avec sauts identifie justement la capacité runtime manquante. Le binding compact ne dispense pas d'intégrer la revue multicarte, ni de mesurer sa recette portable. L'application garde les limites par défaut128 artefacts/256 mutations ; la paire utilise130/266 avec budget d'étude explicite, encore à intégrer au parcours normal. La bibliothèque chemins/arbres reste dans une autre sortie. Aucun all-green global ni conversion intégrale Kanto déclaré.
 
 Le commit est limité aux25 chemins de l'inventaire. `connection-tranche-commit.json` sera produit après commit pour conserver SHA, parent, blobs exacts, index et preuve des50 chemins étrangers ; son existence et son contenu devront alors être vérifiés. Aucun push/rebase/amend/branche. Le ticket AC15 demeure DOING/PARTIAL dans son domaine Post Bêta existant, hors gate ; aucune roadmap FG ou famille bêta modifiée. La suite autorisée traite le saut dirigé natif puis le parcours réel avec sauvegarde, et les consommateurs de la revue multicarte dans leurs propres tranches.
+
+## Complément AC-15 — propriété de saut sur Border, 13 octobre 2026
+
+### Audit initial et portée
+
+La demande utilisateur fixe la vraie Border comme source de vérité du saut. La tranche DATA porte une propriété nullable sur sa définition draft/pub, sans zone gameplay persistée ni surcharge indépendante par feature. Le plan runtime doit encore être dérivé de la géométrie placée et de la révision publiée. FG-120 reste PARTIAL ; FG-014/FG-067 ne reçoivent aucun statut DONE et la roadmap reste inchangée. Les règles de combat Avelune sont conservées.
+
+Base `main`, HEAD `91bb4e7e58ce5ce65ff681b7f1c720246b705e6b`, index initial vide. `baseline-01.json` sous la racine QA ci-dessous conserve les dix sources initiales et67chemins étrangers, puis les baselines additionnelles/consumers. Les6fichiers du scope déjà modifiés par un autre chantier ne sont jamais copiés intégralement dans le commit. `implementation-code-pins-final-02.json` couvre22sources/tests ; inverser exactement nos insertions dans le host restitue leurs baselines étrangères byte-pour-byte. Le snapshot privé est HEAD plus nos seuls hunks, sans worktree Git.
+
+L’audit du modèle/codec a fixé V6, le payload strict et la promotion des deux branches avant le retour spatial V5. La revue indépendante a identifié trois pertes du nouveau champ : copie du draft, candidat legacy et réédition ressource Studio. Chaque chemin reconstruit sa définition ; la correction copie uniquement le champ existant. Aucune géométrie, collision, interface ou source projet n’est modifiée dans ce commit.
+
+### Inventaire complet et zones
+
+| Fichier | Zone et effet |
+| --- | --- |
+| `packages/map_core/lib/map_core_domain.dart` | Export du modèle public. |
+| `packages/map_core/lib/src/models/border_blueprint.dart` | Champ nullable draft/pub ; égalité et hash. |
+| `packages/map_core/lib/src/models/border_catalog.dart` | Version catalogue V6. |
+| `packages/map_core/lib/src/operations/border_blueprint_json_codec.dart` | Lecture/écriture fermée et refus avant V6. |
+| `packages/map_core/lib/src/operations/border_format_version.dart` | Promotion draft/pub V6 avant retour spatial V5. |
+| `packages/map_core/lib/src/operations/project_border_catalog_json_codec.dart` | Admission stricte V6. |
+| `packages/map_core/lib/src/operations/border_fingerprints.dart` | Empreintes 2D liées aux paramètres. |
+| `packages/map_core/lib/src/operations/border_publication_readiness.dart` | Empreinte du candidat de publication. |
+| `packages/map_core/lib/src/operations/spatial_border_resolution.dart` | Empreinte spatiale liée au payload V6. |
+| `packages/map_authoring/lib/src/domains/maps/border_catalog_actions.dart` | Publications 2D/3D et extension discoverable typée. |
+| `packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart` | Publication2D atomique avec payload et non-régression ordinaire. |
+| `packages/map_core/test/border/project_border_catalog_json_codec_test.dart` | V6 admis ; future version7 refusée. |
+| `packages/map_editor/lib/src/features/border_studio/application/border_studio_draft_controller.dart` | Conserver source.jumpBehavior dans _copyDefinition. |
+| `packages/map_editor/lib/src/features/border_studio/application/border_publication_candidate_builder.dart` | Conserver draftDefinition.jumpBehavior lors de publication. |
+| `apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart` | Conserver existing.draft.definition.jumpBehavior en réédition. |
+| `packages/map_editor/test/border_studio/border_publication_candidate_builder_test.dart` | Conservation du candidat et régressions existantes. |
+| `packages/map_core/lib/src/models/border_jump_behavior.dart` | Payload fermé side/distanceCells/durationMs/peakHeightPx et bornes. |
+| `packages/map_core/test/border/border_jump_behavior_test.dart` | Roundtrip, fermeture, promotion, empreintes et résolution. |
+| `packages/map_authoring/test/domains/maps/border_jump_behavior_actions_test.dart` | Descripteurs, publication canonique3D et matérialisation sans zone. |
+| `packages/map_editor/test/border_studio/border_jump_behavior_preservation_test.dart` | Controller réel mounted ou Studio ResourcePort réel ; édition/save/reopen. |
+| `apps/avelune_studio/test/resource_io/border_jump_behavior_preservation_test.dart` | Controller réel mounted ou Studio ResourcePort réel ; édition/save/reopen. |
+| `tools/pokemap_mcp/test/border_jump_behavior_stdio.test.ts` | MCP stdio vivant, invalidité sans write, upsert/pub/query/reopen. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Ce complément consolidé ; aucun nouveau Markdown. |
+
+### Contrat et limites
+
+`jumpBehavior` absent conserve une Border ordinaire. Présent, il exige exactement `side` (primary/inverted), `distanceCells` (2), `durationMs` (1..60000) et `peakHeightPx` (1..1024). Défauts2/500/24. Les payloads incomplets, nuls présents, inconnus, mal typés ou hors bornes sont refusés ; aucune lecture/écriture antérieure à V6 ne perd silencieusement le réglage. Le champ modifie equality/hash et les empreintes2D/spatiales/publication. Les paramètres existent comme contrat DATA ; cette tranche ne prouve pas leur exécution dans le Player.
+
+Le côté devra combiner la normale du contour et le lineSide de la feature ; angles ambigus, phase A/B/C et ownership de collision restent à qualifier. Deux cellules natives32px sont bornées au profil Essentials étudié. Le handoff Carillon projeté f6d75b177df1ab41ccba734cbd744ae6fac077b0ac83f6578eba285e6e4e36fa mesure une cellule verticale24.033px :153contacts sources plans valides,57paires seulement raccordables à deux cellules natives. Ces mesures ne certifient pas la distance retail HGSS et ne sont pas couvertes par ce profil. Aucun élargissement du sol ni déplacement de passerelle n’est autorisé par un mismatch.
+
+### Vérifications fraîches
+
+Racine durable : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private`. Les commandes des reçus tournent dans son `repository/<package>` avec configurations qualifiées, image4.9.2/archive4.0.9 ; aucun lockfile host modifié. Le superviseur enregistre les descendants et vérifie PID/UID/date/commande avant nettoyage. Tous les reçus finaux cités ci-dessous sont terminaux, sans survivant ni signal et avec processus protégés inchangés. `final-proof-check-01.json` vérifie les hashes de logs et pins encore courants.
+
+| Reçu | Résultat |
+| --- | --- |
+| core-contract-regressions-03 | 209PASS, exit0,14.903s. |
+| authoring-contract-parity-03 | 35PASS, exit0,30.300s, dont publications2D/3D et suite parité. |
+| consumer-editor-green-02 | 18PASS, exit0,5.225s. |
+| consumer-studio-green-02 | 8PASS, exit0,15.506s. |
+| mcp-jump-live-01 | 1PASS, exit0,1.928s : serveur reconstruit, catalogue vivant, vraie mutation/refus/reopen. |
+| mcp-catalog-regressions-01 | 1PASS, exit0,16.310s. |
+| authoring-cli-aot-01 | Build AOT authoring, exit0,22.239s. |
+| mcp-check-01 / mcp-build-01 | TypeScript check/build exit0,1.361s/1.352s. |
+| core-contract-analyze-01 | Exit0,4INFO préexistantes,3.841s ; correspondance HEAD exacte dans core-analysis-baseline-correspondence-01. |
+| authoring-contract-analyze-01 | No issues found, exit0,6.227s. |
+| consumer-editor-analyze-01 | No issues found, exit0,8.115s. |
+| consumer-studio-analyze-01 | No issues found, exit0,9.311s. |
+| authoring-pmcp085-01 | Exit1,15.133s :88resources/405actions,0missing ; certifications transport globale/item false. |
+
+RED fonctionnels conservés : consumer-editor-red-03 échoue2cas avec actualnull (draft et publication) ; consumer-studio-red-02 échoue1cas avec actualnull après réédition. Les corrections produisent les GREEN finaux ci-dessus. Les premiers essais manquaient package_graph ou utilisaient une empreinte fixture invalide ; ils ne sont pas présentés comme RED fonctionnels. Le primitive du test controller exige ses metrics sprite ; le premier GREEN17PASS/1FAIL de fixture est conservé, suivi du GREEN18PASS final.
+
+La suite historique complète `border_studio_draft_controller_test.dart` ne compile pas contre HEAD : consommateurs préexistants de String? dans editor_notifier, asset/publication services et environment use cases. Aucune réparation hors scope. Notre test monte le contrôleur de production dans un vrai ProviderContainer/NotifierProvider, avec teardown, sans importer ce graphe complet. Cela prouve les trois éditions ordinaires et saveDraft ; aucune UI visible revendiquée.
+
+Commandes exactes des reçus terminaux (les tests Dart utilisent directement package:test pour garder le graphe qualifié) :
+
+```text
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_core
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.1/bin/test.dart --reporter=expanded test/border/border_jump_behavior_test.dart test/border/border_blueprint_json_codec_test.dart test/border/border_catalog_operations_test.dart test/border/project_border_catalog_json_codec_test.dart test/border/border_fingerprints_test.dart test/border/spatial_border_resolution_test.dart test/border/border_publication_readiness_test.dart test/border/border_materialization_freshness_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_authoring
+dart --packages=.dart_tool/package_config.json /Users/karim/.pub-cache/hosted/pub.dev/test-1.31.2/bin/test.dart --reporter=expanded test/domains/maps/border_jump_behavior_actions_test.dart test/domains/maps/border_catalog_actions_test.dart test/domains/maps/border_spatial_behavior_actions_test.dart test/parity/full_authoring_parity_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_editor
+flutter test --no-pub --concurrency=1 --reporter=expanded test/border_studio/border_jump_behavior_preservation_test.dart test/border_studio/border_publication_candidate_builder_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/apps/avelune_studio
+flutter test --no-pub --concurrency=1 --reporter=expanded test/resource_io/border_jump_behavior_preservation_test.dart test/resource_io/spatial_border_resource_adapter_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/tools/pokemap_mcp
+node --import tsx --test test/border_jump_behavior_stdio.test.ts
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/tools/pokemap_mcp
+node --import tsx --test test/border_catalog_server.test.ts
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_authoring
+dart compile exe --packages=.dart_tool/package_config.json bin/pokemap_authoring.dart -o '/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/authoring-cli'
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/tools/pokemap_mcp
+npm run check
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/tools/pokemap_mcp
+npm run build
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_core
+dart analyze lib/src/models/border_jump_behavior.dart lib/src/models/border_blueprint.dart lib/src/models/border_catalog.dart lib/src/operations/border_blueprint_json_codec.dart lib/src/operations/border_format_version.dart lib/src/operations/project_border_catalog_json_codec.dart lib/src/operations/border_fingerprints.dart lib/src/operations/border_publication_readiness.dart lib/src/operations/spatial_border_resolution.dart test/border/border_jump_behavior_test.dart test/border/project_border_catalog_json_codec_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_authoring
+dart analyze lib/src/domains/maps/border_catalog_actions.dart test/domains/maps/border_jump_behavior_actions_test.dart test/domains/maps/border_catalog_actions_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_editor
+flutter analyze --no-pub --no-fatal-infos lib/src/features/border_studio/application/border_studio_draft_controller.dart lib/src/features/border_studio/application/border_publication_candidate_builder.dart test/border_studio/border_jump_behavior_preservation_test.dart test/border_studio/border_publication_candidate_builder_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/apps/avelune_studio
+flutter analyze --no-pub --no-fatal-infos lib/features/resources/data/local_border_resource_adapter.dart test/resource_io/border_jump_behavior_preservation_test.dart
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-contract-private/repository/packages/map_authoring
+dart --packages=.dart_tool/package_config.json tool/pmcp085_conformance.dart
+```
+
+### Passes et critique finale
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit / Architecture root et ac15_connection_review_fresh | Propriété du Blueprint retenue ; source géométrique/propriétaire obligatoire ; aucun saut Carillon certifié. |
+| Implémentation root | ContratV6 fermé, forwards2D/3D, empreintes et trois consumers ; aucun commentaire ajouté conformément à la consigne directe. |
+| Tests root | RED/GREEN conservés ;209core/35API-parité/18editor/8Studio/2MCP. |
+| Build / Validation root | CLI AOT et TScheck/build PASS ;4INFO core anciennes ; PMCP globalPARTIAL explicite. |
+| Critique indépendante ac15_connection_review_fresh | P2 des trois consumers fermé sur ledgerfinal02 ;22hashes host/snapshot, RED/GREEN et MCP relus, aucun autre P1/P2 DATA. Runtime/arrivée et producteur non qualifiés par ce verdict. |
+
+Auto-critique : un descripteur et un roundtrip ne constituent pas une capacité de gameplay. La propriété manque encore de producteur de plan, règles sur normales/angles/transforms, exception des seules contributions de collision de la Border, invalidation après déplacement/suppression/republication, picker Studio et parcours réel. Le prototype movementEffect/zone n’est pas retenu comme contrat d’auteur final. Le composer prototype garde son P2 manifeste incomplet ; aucune publication source nouvelle.
+
+La compilation complète de Studio/Converter, GUI, distribution et parcours Kanto ne sont pas requis pour prouver cette tranche de données et ne sont pas revendiqués ; la meilleure validation alternative est la compilation AOT de l’API réelle et les tests Flutter des consommateurs. AC15 reste DOING/PARTIAL dans son domaine Post Bêta existant. Aucun ticket/famille/gate bêta créé ou étendu ; aucune roadmap modifiée. Le reçu externe border-data-commit-01.json sera créé puis vérifié après commit pour SHA/parent/blobs/index et conservation de tous les fichiers host avant/après. Aucun push/rebase/PR. La prochaine tranche raccorde le saut réel à la Border avant qualification Route9↔Route10 et le reste du workflow multicarte.

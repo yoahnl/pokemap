@@ -382,6 +382,7 @@ final class BorderCatalogActions {
       ground: publishedGround,
       categoryId: draftDefinition.categoryId,
       sortOrder: draftDefinition.sortOrder,
+      jumpBehavior: draftDefinition.jumpBehavior,
     );
     final revision = BorderBlueprintRevision(
       revision: nextRevision,
@@ -667,6 +668,7 @@ AuthoringMutationDraft _publishSpatial(
       ],
       defaults: draft.defaults,
       sortOrder: draft.sortOrder,
+      jumpBehavior: draft.jumpBehavior,
       categoryId: draft.categoryId);
   final diagnostics = validateSpatialBorderBlueprint(
       blueprintId: current.id,
@@ -945,6 +947,36 @@ AuthoringActionDescriptor _descriptor(
             ProjectBorderCatalog.latestSupportedFormatVersion,
         'projectWidePreflight': true,
         'artifactSnapshots': true,
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'directedJumpBehavior': {
+            'property': 'definition.jumpBehavior',
+            'owner': 'borderBlueprint',
+            'sideReference': 'contourNormalAndFeatureLineSide',
+            'persistedGameplayZone': false,
+            'schema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'properties': {
+                'side': {
+                  'type': 'string',
+                  'enum': ['primary', 'inverted'],
+                },
+                'distanceCells': {'type': 'integer', 'const': 2},
+                'durationMs': {
+                  'type': 'integer',
+                  'minimum': 1,
+                  'maximum': 60000,
+                },
+                'peakHeightPx': {
+                  'type': 'integer',
+                  'minimum': 1,
+                  'maximum': 1024,
+                },
+              },
+              'required': ['side', 'distanceCells', 'durationMs', 'peakHeightPx'],
+            },
+          },
         if (id == 'border.blueprint.delete' ||
             id == 'border.blueprint.set_deprecated')
           'inputSchema': {

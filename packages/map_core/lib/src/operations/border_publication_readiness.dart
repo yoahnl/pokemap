@@ -2014,6 +2014,8 @@ Object _publicationCandidateProjection(
     'sortOrder': definition.sortOrder.toString(),
     'previewSeed': definition.previewSeed.toString(),
     'template': _templateV1WireName(definition.template),
+    if (definition.jumpBehavior != null)
+      'jumpBehavior': definition.jumpBehavior!.toJson(),
     if (definition.straightOnly) 'straightOnly': 'true',
     'defaults': <String, Object?>{
       'irregularityPermille':

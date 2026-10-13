@@ -253,6 +253,103 @@ void main() {
       );
     });
 
+    test('publishes the directed jump property of a 2D Border atomically', () async {
+      final jump = BorderJumpBehavior(side: BorderLineSide.inverted, durationMs: 750, peakHeightPx: 36);
+      final preparation = const CanonicalBorderSnapshotCompiler().prepare(
+        sourceElementId: 'fence-element',
+        anchorPx: const BorderPixelPos(x: 16, y: 16),
+        frames: <CanonicalBorderSourceFrame>[
+          CanonicalBorderSourceFrame(
+            sourceProjectRelativePath: 'assets/tilesets/fence.png',
+            encodedImageBytes: _pngBytes,
+          ),
+        ],
+      );
+      final primitives = <BorderPrimitiveDraft>[
+        _primitive(
+          id: 'cap',
+          role: BorderPrimitiveRole.lineCap,
+          metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
+        ),
+        _primitive(
+          id: 'span',
+          role: BorderPrimitiveRole.lineStraight,
+          metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
+        ),
+        _primitive(
+          id: 'corner',
+          role: BorderPrimitiveRole.lineCorner,
+          metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
+        ),
+      ];
+      final fixture = _fixture(
+        records: <BorderBlueprintRecord>[
+          _record(primitives: primitives, jumpBehavior: jump),
+        ],
+        elements: const <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'fence-element',
+            name: 'Fence element',
+            tilesetId: 'tileset',
+            categoryId: 'border',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+      final artifact = await fixture.artifacts.put(
+        _pngBytes,
+        declaredMediaType: 'image/png',
+      );
+
+      final mutation = await fixture.actions.build(
+        _context(
+          fixture.snapshot,
+          actionId: 'border.blueprint.publish',
+          parameters: <String, Object?>{
+            'blueprintId': 'fence',
+            'acceptedWarningCodes': const <String>[
+              'border.publication.coverage_overlap_exceeded',
+            ],
+            'primitiveSources': <Object?>[
+              for (final primitive in primitives)
+                <String, Object?>{
+                  'primitiveId': primitive.id,
+                  'frames': <Object?>[
+                    <String, Object?>{
+                      'artifactHandle': artifact.reference.handle,
+                      'sourceProjectRelativePath': 'assets/tilesets/fence.png',
+                    },
+                  ],
+                },
+            ],
+          },
+        ),
+      );
+
+      final projected = _manifestFrom(mutation);
+      final published = projected.borderCatalog.records.single.latestPublished;
+      expect(published?.revision, 1);
+      expect(published?.definition.jumpBehavior, jump);
+      expect(projected.borderCatalog.records.single.draft.definition.jumpBehavior, jump);
+      expect(projected.borderCatalog.formatVersion, 6);
+      expect(projected.borderCatalog.visualSnapshots, hasLength(1));
+      expect(
+        mutation.changeSet.changes.map((change) => change.resource.kind),
+        containsAll(<String>['borderSnapshot', 'project']),
+      );
+      expect(
+        mutation.preview,
+        containsPair('primitiveSnapshotIdsByPrimitiveId', isNotEmpty),
+      );
+    });
+
     test(
       'rejects disconnected network anchors then publishes their centered draft',
       () async {
@@ -536,6 +633,7 @@ BorderBlueprintRecord _record({
   String name = 'Fence',
   int baseRevision = 0,
   int? publishedRevision,
+  BorderJumpBehavior? jumpBehavior,
   int gapTolerancePx = 0,
   int variationPermille = 0,
   BorderSignedInt64? previewSeed,
@@ -556,6 +654,7 @@ BorderBlueprintRecord _record({
       allowAutoRotation: false,
     ),
     sortOrder: 0,
+    jumpBehavior: jumpBehavior,
   );
   return BorderBlueprintRecord(
     id: 'fence',

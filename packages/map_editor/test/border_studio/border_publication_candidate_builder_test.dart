@@ -7,6 +7,24 @@ import 'package:map_editor/src/features/border_studio/application/border_publica
 
 void main() {
   group('BorderPublicationCandidateBuilder', () {
+    test('publication candidate preserves the Border jump behavior', () {
+      final jump = BorderJumpBehavior(side: BorderLineSide.inverted,
+          durationMs: 750, peakHeightPx: 36);
+      final target = _record(id: 'ledge', jumpBehavior: jump, primitives: [
+        _draftPrimitive(id: 'body', sourceElementId: 'ledge-body'),
+      ]);
+      final preparation = _preparation('a', sourceElementId: 'ledge-body');
+      final result = const BorderPublicationCandidateBuilder().build(
+        manifest: _manifest(records: [target], elements: [_element('ledge-body')]),
+        draftRecord: target,
+        primitiveSnapshotsByPrimitiveId: {'body': preparation},
+      );
+      final record = result.nextManifest.borderCatalog.records.single;
+      expect(record.draft.definition.jumpBehavior, jump);
+      expect(record.latestPublished!.definition.jumpBehavior, jump);
+      expect(result.nextManifest.borderCatalog.formatVersion, 6);
+    });
+
     test(
       'publishes positive primitives at the next revision without disturbing the project',
       () {
@@ -800,6 +818,7 @@ BorderBlueprintRecord _record({
   bool isDeprecated = false,
   List<BorderPrimitiveDraft> primitives = const <BorderPrimitiveDraft>[],
   BorderGroundDraft? ground,
+  BorderJumpBehavior? jumpBehavior,
 }) {
   final definition = BorderBlueprintDraftDefinition(
     name: 'Blueprint $id',
@@ -810,6 +829,7 @@ BorderBlueprintRecord _record({
     ground: ground,
     categoryId: 'coasts',
     sortOrder: 7,
+    jumpBehavior: jumpBehavior,
   );
   return BorderBlueprintRecord(
     id: id,

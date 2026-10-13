@@ -1,4 +1,5 @@
 import '../models/border_blueprint.dart';
+import '../models/border_jump_behavior.dart';
 import '../models/border_signed_int64.dart';
 import '../models/border_value_objects.dart';
 import '../models/border_ground_variant_role.dart';
@@ -22,6 +23,7 @@ const Set<String> _definitionRequiredKeys = <String>{
   'sortOrder',
 };
 const Set<String> _definitionOptionalKeys = <String>{
+  'jumpBehavior',
   'ground',
   'categoryId',
   'straightOnly',
@@ -457,6 +459,8 @@ Map<String, Object?> _encodeDraftDefinition(
       ),
     if (categoryId != null) 'categoryId': categoryId,
     'sortOrder': value.sortOrder,
+    if (value.jumpBehavior != null)
+      'jumpBehavior': _encodeJumpBehavior(value.jumpBehavior!, path, formatVersion),
   };
 }
 
@@ -500,6 +504,7 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       ground: _decodeOptionalDraftGround(value, path),
       categoryId: _decodeOptionalCategoryId(value, path),
       sortOrder: _decodeSortOrder(value, path),
+      jumpBehavior: _decodeJumpBehavior(value, path, formatVersion),
     ),
   );
 }
@@ -549,6 +554,8 @@ Map<String, Object?> _encodePublishedDefinition(
       ),
     if (categoryId != null) 'categoryId': categoryId,
     'sortOrder': value.sortOrder,
+    if (value.jumpBehavior != null)
+      'jumpBehavior': _encodeJumpBehavior(value.jumpBehavior!, path, formatVersion),
   };
 }
 
@@ -592,6 +599,7 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       ground: _decodeOptionalPublishedGround(value, path),
       categoryId: _decodeOptionalCategoryId(value, path),
       sortOrder: _decodeSortOrder(value, path),
+      jumpBehavior: _decodeJumpBehavior(value, path, formatVersion),
     ),
   );
 }
@@ -1526,7 +1534,7 @@ bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
 };
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value < 1 || value > 5) {
+  if (value < 1 || value > 6) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }
@@ -1579,3 +1587,24 @@ BorderGroundVariantRole _decodeBorderGroundRole(String value, String path) =>
       'cross' => BorderGroundVariantRole.cross,
       _ => throw FormatException('$path: unknown Border ground role'),
     };
+
+Map<String, Object?> _encodeJumpBehavior(
+  BorderJumpBehavior behavior, String path, int formatVersion,
+) {
+  if (formatVersion < 6) {
+    throw FormatException('$path.jumpBehavior: requires Border format version 6');
+  }
+  return behavior.toJson();
+}
+
+BorderJumpBehavior? _decodeJumpBehavior(
+  BorderJsonObject value, String path, int formatVersion,
+) {
+  if (!value.containsKey('jumpBehavior')) {
+    return null;
+  }
+  if (formatVersion < 6) {
+    throw FormatException('$path.jumpBehavior: requires Border format version 6');
+  }
+  return BorderJumpBehavior.fromJson(value['jumpBehavior'], path: '$path.jumpBehavior');
+}

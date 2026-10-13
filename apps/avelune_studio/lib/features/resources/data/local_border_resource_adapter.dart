@@ -51,6 +51,7 @@ Future<ResourceMutationReceipt> _createBorder(
             ),
         ground: existing?.draft.definition.ground,
         categoryId: existing?.draft.definition.categoryId,
+        jumpBehavior: existing?.draft.definition.jumpBehavior,
         sortOrder:
             existing?.draft.definition.sortOrder ??
             baseline.manifest.borderCatalog.records.length,

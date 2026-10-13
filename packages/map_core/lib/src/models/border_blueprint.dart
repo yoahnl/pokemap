@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../exceptions/map_exceptions.dart';
 import 'border_signed_int64.dart';
 import 'border_value_objects.dart';
+import 'border_jump_behavior.dart';
 import 'border_visual_snapshot.dart';
 import 'border_ground_variant_role.dart';
 import 'project_model3d.dart';
@@ -375,6 +376,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     this.ground,
     this.categoryId,
     required this.sortOrder,
+    this.jumpBehavior,
   }) : _primitives = List<TPrimitive>.unmodifiable(primitives) {
     _requireNonEmpty(name, 'BorderBlueprintDefinition.name');
     final category = categoryId;
@@ -416,6 +418,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
   final TGround? ground;
   final String? categoryId;
   final int sortOrder;
+  final BorderJumpBehavior? jumpBehavior;
 
   List<TPrimitive> get primitives => _primitives;
   bool get isSpatial => _primitives.any(
@@ -439,7 +442,8 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
           defaults == other.defaults &&
           ground == other.ground &&
           categoryId == other.categoryId &&
-          sortOrder == other.sortOrder;
+          sortOrder == other.sortOrder &&
+          jumpBehavior == other.jumpBehavior;
 
   @override
   int get hashCode => Object.hash(
@@ -453,6 +457,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     ground,
     categoryId,
     sortOrder,
+    jumpBehavior,
   );
 }
 

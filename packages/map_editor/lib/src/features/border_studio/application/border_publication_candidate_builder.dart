@@ -302,6 +302,7 @@ final class BorderPublicationCandidateBuilder {
       ground: publishedGround,
       categoryId: draftDefinition.categoryId,
       sortOrder: draftDefinition.sortOrder,
+      jumpBehavior: draftDefinition.jumpBehavior,
     );
     final replacement = BorderBlueprintRecord(
       id: currentRecord.id,

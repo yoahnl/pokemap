@@ -181,6 +181,8 @@ Object _blueprintProjection({
     'blueprintId': blueprintId,
     'revision': _jsonInteger(revision.revision),
     'template': _templateV1WireName(definition.template),
+    if (definition.jumpBehavior != null)
+      'jumpBehavior': definition.jumpBehavior!.toJson(),
     'defaults': _parametersProjection(definition.defaults),
     'primitives': <Object?>[
       for (final primitive in primitives)

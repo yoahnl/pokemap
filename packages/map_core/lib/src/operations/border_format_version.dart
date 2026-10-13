@@ -57,6 +57,10 @@ bool borderBlueprintRecordRequiresFormatV2(BorderBlueprintRecord record) {
 }
 
 int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
+  if (record.draft.definition.jumpBehavior != null ||
+      record.latestPublished?.definition.jumpBehavior != null) {
+    return ProjectBorderCatalog.formatVersionV6;
+  }
   var result = ProjectBorderCatalog.formatVersionV1;
   for (final definition in <BorderBlueprintDefinition>[
     record.draft.definition,
