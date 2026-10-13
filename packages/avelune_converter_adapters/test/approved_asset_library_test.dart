@@ -16,6 +16,61 @@ import 'support/original_asset_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 
 void main() {
+  test('approved cardinal terrain publishes an exact native paintable preset',
+      () async {
+    final fixture =
+        await OriginalAssetFixture.create(includeTerrainPixels: true);
+    final candidate = _approved(fixture.terrainCandidate());
+    final result = await _compose(fixture, [candidate]);
+    expect(result.canExport, isTrue);
+    expect(result.mutations.map((mutation) => mutation.operationId).toSet(),
+        hasLength(result.mutations.length));
+    final actions = result.mutations.map((mutation) => mutation.actionId);
+    expect(actions.where((action) => action == 'tileset.import_image'),
+        hasLength(2));
+    expect(actions, contains('smart_tile.atlas.upsert'));
+    expect(actions, contains('smart_tile.material.upsert'));
+    final preset = result.mutations
+        .singleWhere(
+            (mutation) => mutation.actionId == 'smart_tile.preset.publish')
+        .parameters['preset'] as Map;
+    expect(preset['usage'], 'path');
+    expect(preset['status'], 'published');
+    expect(preset['coveragePolicy'], 'sparse');
+    expect(preset['rules'], hasLength(16));
+    final terrain =
+        result.candidateBindings.single.record['terrainBrush'] as Map;
+    final artifact = result.artifacts
+        .singleWhere((entry) => entry.handle == terrain['pngArtifactHandle']);
+    final raster = image.decodePng(Uint8List.fromList(artifact.bytes))!;
+    expect((raster.width, raster.height), (128, 128));
+    expect(terrain['layout'], 'cardinal3x3');
+    expect(terrain['placementsSubstituted'], isFalse);
+    expect(
+        result.mutations.every((mutation) =>
+            mutation.sourceEntityIds.single == candidate.candidateId),
+        isTrue);
+  });
+
+  test('atlas-only provenance must point to the actual part image before IO',
+      () async {
+    final fixture = await OriginalAssetFixture.create();
+    final original = fixture.treeCandidate();
+    final candidate = _approved(AssetCandidate.fromJson({
+      ...original.toJson(),
+      'parts': [
+        {
+          ...original.parts.single.toJson(),
+          'locator': {...original.parts.single.locator.toJson(), 'mapId': null}
+        }
+      ]
+    }));
+    final files = _CountingFiles(fixture.literalFixture.files);
+    _blocked(await _compose(fixture, [candidate], files: files),
+        'library.source.locator');
+    expect(files.readCount, 0);
+  });
+
   test(
       'AST-04 real scanner and snapshot-bound source files preserve source pixels',
       () async {

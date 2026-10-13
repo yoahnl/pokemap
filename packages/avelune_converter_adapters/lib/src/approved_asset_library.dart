@@ -8,6 +8,7 @@ import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'native_terrain_brush.dart';
 
 final class ApprovedAssetLibraryDiagnostic {
   const ApprovedAssetLibraryDiagnostic({
@@ -105,6 +106,13 @@ final class ApprovedAssetLibraryComposer {
           'library.quota.entries', 'Library collection budget exceeded');
     }
     final frozenCandidates = List<AssetCandidate>.unmodifiable(candidates);
+    final terrainCount = frozenCandidates
+        .where((candidate) => candidate.terrainLayout != null)
+        .length;
+    if (frozenCandidates.length * 4 + terrainCount * 4 > limits.maxMutations) {
+      throw const ApprovedAssetLibraryFailure(
+          'library.quota.entries', 'Native library action budget exceeded');
+    }
     final receipts =
         Map<ConverterId, Sha256Hash>.unmodifiable(approvedCandidateHashes);
     canonicalJsonOf(frozenCandidates.map((value) => value.toJson()).toList(),
@@ -337,8 +345,21 @@ final class ApprovedAssetLibraryComposer {
         throw const ApprovedAssetLibraryFailure(
             'library.quota.bytes', 'Aggregate image byte budget exceeded');
       }
+      if (candidate.terrainLayout != null) {
+        chargePixels(128, 128);
+        final brushBound = _pngByteBound(128, 128);
+        if (brushBound > limits.maxArtifactBytes) {
+          throw const ApprovedAssetLibraryFailure('library.quota.output',
+              'Terrain brush PNG exceeds its byte budget');
+        }
+        byteBudget += brushBound;
+        if (byteBudget > limits.maxTotalArtifactBytes) {
+          throw const ApprovedAssetLibraryFailure('library.quota.bytes',
+              'Terrain brush exceeds the aggregate byte budget');
+        }
+      }
     }
-    if (sourceImages.length + frozenCandidates.length * 2 >
+    if (sourceImages.length + frozenCandidates.length * 2 + terrainCount >
         limits.maxArtifacts) {
       throw const ApprovedAssetLibraryFailure('library.quota.entries',
           'Source witnesses and output artifacts exceed the collection budget');
@@ -402,15 +423,13 @@ final class ApprovedAssetLibraryComposer {
       final geometry = geometries[candidate.candidateId]!;
       NativeArtifact png;
       String rgbaHash;
+      final rgba = await _raster(candidate, decodedImages, geometry,
+          cancellation: cancellation);
       if (outputMode == AssetOutputMode.sharedAtlas) {
         png = sourceArtifacts.singleWhere((artifact) =>
             artifact.rawSha256 == candidate.sources.single.contentHash);
-        final region = await _raster(candidate, decodedImages, geometry,
-            cancellation: cancellation);
-        rgbaHash = sha256.convert(region).toString();
+        rgbaHash = sha256.convert(rgba).toString();
       } else {
-        final rgba = await _raster(candidate, decodedImages, geometry,
-            cancellation: cancellation);
         rgbaHash = sha256.convert(rgba).toString();
         png = NativeArtifact(
             bytes: _encodeLibraryPng(
@@ -431,6 +450,26 @@ final class ApprovedAssetLibraryComposer {
       final elementId = 'library_element_$suffix';
       final companionId = 'library_metadata_$suffix';
       final companionPath = 'assets/converter/$companionId.json';
+      final nativeName = candidate.name.trim().isEmpty
+          ? 'Approved ${candidate.category.name}'
+          : candidate.name.trim();
+      final terrain = candidate.terrainLayout == null
+          ? null
+          : NativeTerrainBrush.compile(
+              sourcePngBytes: _encodeLibraryPng(rgba, 96, 96),
+              tilesetId: 'library_path_image_$suffix',
+              atlasId: 'library_path_atlas_$suffix',
+              materialId: 'library_path_material_$suffix',
+              presetId: 'library_path_preset_$suffix',
+              name: nativeName);
+      final terrainPng = terrain == null
+          ? null
+          : NativeArtifact(bytes: terrain.imageBytes, limits: limits);
+      if (terrainPng != null &&
+          !artifactsByHandle.containsKey(terrainPng.handle)) {
+        retainedBytes += terrainPng.bytes.length;
+        artifactsByHandle[terrainPng.handle] = terrainPng;
+      }
       final record = <String, Object?>{
         'candidateId': candidate.candidateId.value,
         'candidateHash': candidate.canonicalHash.value,
@@ -487,6 +526,20 @@ final class ApprovedAssetLibraryComposer {
           'transparent': true,
         },
         'pixelPolicy': _libraryPixelPolicy,
+        if (terrain != null)
+          'terrainBrush': {
+            'layout': candidate.terrainLayout!.name,
+            'pngArtifactHandle': terrainPng!.handle,
+            'pngSha256': terrainPng.rawSha256.value,
+            'nativeTilesetId': terrain.atlas.tilesetId,
+            'nativeAtlasId': terrain.atlas.id,
+            'nativeMaterialId': terrain.material.id,
+            'nativePresetId': terrain.preset.id,
+            'placementsSubstituted': false,
+            'sourceGrid': {'columns': 3, 'rows': 3, 'cellSize': 32},
+            'variantCount': 16,
+            'pixelPolicy': 'exact-source-quadrants-no-transforms',
+          },
       };
       final companionText = canonicalJsonOf({
         'type': 'approvedAssetLibraryEntry',
@@ -521,13 +574,12 @@ final class ApprovedAssetLibraryComposer {
         'companionSha256': companion.rawSha256.value,
       }, limits));
       bindings.add(binding);
-      final nativeName = candidate.name.trim().isEmpty
-          ? 'Approved ${candidate.category.name}'
-          : candidate.name.trim();
       void mutate(
-          String action, List<String> targets, Map<String, Object?> params) {
+          String action, List<String> targets, Map<String, Object?> params,
+          {String? operationKey}) {
         mutations.add(NativeMutation(
-            operationId: ConverterId('library_${suffix}_$action'),
+            operationId:
+                ConverterId('library_${suffix}_${operationKey ?? action}'),
             actionId: action,
             sourceEntityIds: [candidate.candidateId],
             targetEntityIds: targets.map(ConverterId.new).toList(),
@@ -582,6 +634,25 @@ final class ApprovedAssetLibraryComposer {
         'tags': ['converter-library-metadata'],
         'usages': ['converter-library'],
       });
+      if (terrain != null) {
+        mutate(
+            'tileset.import_image',
+            [terrain.atlas.tilesetId, 'image_${terrain.atlas.tilesetId}'],
+            {
+              'artifactHandle': terrainPng!.handle,
+              'tilesetId': terrain.atlas.tilesetId,
+              'name': nativeName,
+              'tileWidth': 32,
+              'tileHeight': 32,
+            },
+            operationKey: 'terrain.image');
+        mutate('smart_tile.atlas.upsert', [terrain.atlas.id],
+            {'atlas': terrain.atlas.toJson()});
+        mutate('smart_tile.material.upsert', [terrain.material.id],
+            {'material': terrain.material.toJson()});
+        mutate('smart_tile.preset.publish', [terrain.preset.id],
+            {'preset': terrain.preset.toJson()});
+      }
     }
     cancellation?.check();
     return _composition(source, outputMode, artifactsByHandle.values.toList(),
@@ -647,7 +718,14 @@ bool _locatorMatches(NormalizedSourceProject source, AssetPart part,
   if (!entries.values.any((entry) => entry.relativePath == locator.file)) {
     return false;
   }
-  if (locator.mapId == null) return true;
+  if (locator.mapId == null) {
+    return entries[part.sourceFileId]?.relativePath == locator.file &&
+        locator.eventId == null &&
+        locator.pageIndex == null &&
+        locator.commandIndex == null &&
+        locator.tileId == null &&
+        locator.line == null;
+  }
   final maps = source.maps.where((map) => map.map.sourceMapId == locator.mapId);
   if (maps.length != 1 ||
       entries[maps.single.map.sourceFileId]?.relativePath != locator.file) {

@@ -372,13 +372,15 @@ void main() {
     final redone = undone.redo(expectedSessionHash: undone.canonicalHash);
     expect(redone.frame.canonicalHash, next.frame.canonicalHash);
   });
-  test('private session 1.0 is explicitly rejected', () {
+  test('private session 1.0 and 1.1 are explicitly rejected', () {
     final session = fixture.session();
-    expect(session.toJson()['schemaVersion'], '1.1');
-    final old =
-        jsonDecode(jsonEncode(session.toJson())) as Map<String, Object?>;
-    old['schemaVersion'] = '1.0';
-    expect(() => AssetReviewSession.fromJson(old), throwsFormatException);
+    expect(session.toJson()['schemaVersion'], '1.2');
+    for (final version in ['1.0', '1.1']) {
+      final old =
+          jsonDecode(jsonEncode(session.toJson())) as Map<String, Object?>;
+      old['schemaVersion'] = version;
+      expect(() => AssetReviewSession.fromJson(old), throwsFormatException);
+    }
   });
   test('discard removes only the proposal and can be undone', () {
     final session = fixture.session();

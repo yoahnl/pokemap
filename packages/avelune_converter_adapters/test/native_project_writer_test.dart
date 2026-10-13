@@ -117,6 +117,7 @@ void main() {
 
   Future<void> refuseBeforeStage(NativeProjectDraft draft,
       {NativeFixtureApproval? approval,
+      Matcher? failureMatcher,
       NativeWriteLimits limits = const NativeWriteLimits(),
       ScanCancellation? cancellation}) async {
     final stages = <NativeWriteStage>[];
@@ -129,7 +130,7 @@ void main() {
     await expectLater(
         writer.write(checked.plan, checked.context, draft,
             limits: limits, cancellation: cancellation),
-        throwsA(anyOf(_nativeFailure, isA<ContractError>())));
+        throwsA(failureMatcher ?? anyOf(_nativeFailure, isA<ContractError>())));
     expect(creation.requests, isEmpty);
     expect(stages, isNot(contains(NativeWriteStage.stageCreated)));
     expect(await _treeBytes(output.path), before);
@@ -191,7 +192,8 @@ void main() {
             NativeFixtureApproval
           )>
       assetLibraryFixture(
-          {AssetOutputMode mode = AssetOutputMode.standaloneObjects}) async {
+          {AssetOutputMode mode = AssetOutputMode.standaloneObjects,
+          bool includeTerrain = false}) async {
     final original = await OriginalAssetFixture.create(
         sourceRootPath: '${root.path}/asset-source');
     final literal = await original.compose(parentPath: output.path);
@@ -199,6 +201,7 @@ void main() {
       original.treeCandidate(outputMode: mode),
       if (mode == AssetOutputMode.standaloneObjects)
         original.houseCandidate(outputMode: mode),
+      if (includeTerrain) original.terrainCandidate(outputMode: mode),
     ].map(_approvedLibraryCandidate).toList();
     final decisions = _libraryDecisions(original, candidates);
     final library = await const ApprovedAssetLibraryComposer().compose(
@@ -235,6 +238,68 @@ void main() {
       _approveLibraryDraft(draft, candidates, decisions)
     );
   }
+
+  test('approved terrain is published and survives strict native reopening',
+      () async {
+    final (_, library, draft, approval) =
+        await assetLibraryFixture(includeTerrain: true);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, draft);
+    final opened = await _NativeProject.open(receipt.projectPath);
+    try {
+      final snapshot = await opened.load();
+      final catalog = snapshot.manifest.smartTileCatalog;
+      expect(catalog.atlases, hasLength(1));
+      expect(catalog.materials, hasLength(1));
+      expect(catalog.presets, hasLength(1));
+      final preset = catalog.presets.single;
+      expect(preset.status, SmartTilePresetStatus.published);
+      expect(preset.usage, SmartTileUsage.path);
+      expect(preset.rules, hasLength(16));
+      expect(preset.coveragePolicy, SmartTileCoveragePolicy.sparse);
+      final expected = library.mutations
+          .singleWhere(
+              (mutation) => mutation.actionId == 'smart_tile.preset.publish')
+          .parameters['preset'];
+      expect(preset.toJson(), expected);
+      for (final mutation
+          in draft.mutations.where((entry) => entry.actionId == 'map.save')) {
+        final map = mutation.parameters['map'] as Map;
+        expect(snapshot.mapById(map['id'] as String)!.toJson(), map);
+      }
+      expect(receipt.verified, isTrue);
+    } finally {
+      await opened.close();
+    }
+  });
+
+  test('a reapproved tampered terrain preset is refused before staging',
+      () async {
+    final (_, _, draft, approval) =
+        await assetLibraryFixture(includeTerrain: true);
+    final changed = _copyLibraryDraft(draft, mutations: [
+      for (final mutation in draft.mutations)
+        if (mutation.actionId == 'smart_tile.preset.publish')
+          NativeMutation(
+              operationId: mutation.operationId,
+              actionId: mutation.actionId,
+              sourceEntityIds: mutation.sourceEntityIds,
+              targetEntityIds: mutation.targetEntityIds,
+              parameters: {
+                'preset': {
+                  ...(mutation.parameters['preset'] as Map),
+                  'rules': <Object?>[]
+                }
+              })
+        else
+          mutation
+    ]);
+    await refuseBeforeStage(changed,
+        failureMatcher: isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.library.mutation'),
+        approval: _approveLibraryDraft(
+            changed, approval.context.candidates, approval.context.decisions));
+  });
 
   test(
       'AC-08 approved library persists native resources and exact literal maps',

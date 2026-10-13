@@ -47,6 +47,8 @@ enum IntegrationMode { libraryOnly, replacePlacements }
 
 enum AssetOutputMode { sharedAtlas, standaloneObjects, packedObjects }
 
+enum AssetTerrainLayout { cardinal3x3 }
+
 enum PlanState { draft, ready, stale, applied }
 
 enum ConversionMode { study, playableSlice }
@@ -245,6 +247,10 @@ final class AssetCandidate extends ConverterDocument {
 
   AssetOutputMode get outputMode =>
       AssetOutputMode.values.byName(_json['outputMode'] as String);
+
+  AssetTerrainLayout? get terrainLayout => _json['terrainLayout'] == null
+      ? null
+      : AssetTerrainLayout.values.byName(_json['terrainLayout'] as String);
 
   List<ContractEvidence> get evidence =>
       List<ContractEvidence>.unmodifiable((_json['evidence'] as List)

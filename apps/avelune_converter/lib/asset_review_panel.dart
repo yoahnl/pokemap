@@ -1473,6 +1473,37 @@ class _ConverterAssetReviewPanelState extends State<ConverterAssetReviewPanel> {
           secondary: true,
           onPressed: _canMutate && _metadataDirty ? _applyMetadata : null,
         ),
+        if ((candidate.canvasSize.width == 96 &&
+                candidate.canvasSize.height == 96) ||
+            candidate.terrainLayout != null) ...[
+          const SizedBox(height: 12),
+          StudioSelect(
+            key: const ValueKey('asset-terrain-layout'),
+            label: 'Utilisation dans Studio',
+            value: candidate.terrainLayout?.name ?? 'object',
+            options: const {
+              'object': 'Objet de décor',
+              'cardinal3x3': 'Chemin raccordé — grille 3 × 3',
+            },
+            onChanged: _canMutate && !_hasDrafts && !_loading && _error == null
+                ? (value) {
+                    final session = widget.session!;
+                    _command(() => session.configureTerrainLayout(
+                        candidateId: candidate.candidateId,
+                        expectedCandidateHash: candidate.canonicalHash,
+                        expectedSessionHash: session.canonicalHash,
+                        layout: value == 'object' ? null :
+                            AssetTerrainLayout.values.byName(value)));
+                  }
+                : null,
+          ),
+          if (candidate.terrainLayout != null)
+            const StudioNotice(
+                'La grille doit montrer les quatre coins, les quatre bords '
+                'et le centre du chemin. Les raccords horizontaux et verticaux '
+                'seront créés avec ces pixels. Cette disposition demande '
+                'une nouvelle approbation.'),
+        ],
         const SizedBox(height: 12),
         StudioSelect(
           label: 'Morceau à corriger',

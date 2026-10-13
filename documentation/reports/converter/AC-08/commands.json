@@ -1330,5 +1330,1277 @@
     "newForeignPaths": 1,
     "allFrozenSourcePinsMatch": true,
     "sha256": "cccca950395d2d0e35e9c66f35c12778e1c6ea4defe74d530fd7b680ed0a420d"
+  },
+  "resourceComplement20261013": {
+    "date": "2026-10-13",
+    "scope": "Approved cardinal3x3 native path brush and whole-object resources; exact RGBA, canonical authoring and real Studio save/close/fresh-process reopen",
+    "status": "verified_pending_scoped_commit",
+    "baseHead": "00abd266a39094679ccf257d944f525bd2be9bf3",
+    "branch": "main",
+    "initialGit": {
+      "dirtyPathCount": 61,
+      "ownedPathCount": 19,
+      "foreignPathCount": 42,
+      "indexEmpty": true,
+      "guard": "/private/tmp/avelune-resources-final-turn-before-20261013-01.json"
+    },
+    "qualificationSnapshot": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository",
+    "sourceAndTestFiles": [
+      {
+        "path": "packages/avelune_converter_core/lib/src/models.dart",
+        "sha256": "a33a216f86da7c2da95ec30e7d9edc310e44cb63aa5d0c9a4d36759b6be43ef6",
+        "lineCount": 806,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -49,0 +50,2 @@ enum AssetOutputMode { sharedAtlas, standaloneObjects, packedObjects }",
+          "@@ -248,0 +251,4 @@ final class AssetCandidate extends ConverterDocument {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/schema_catalog.dart",
+        "sha256": "0e49561d1545a9f10610bb47f1d9c1ca65a1710033616e7fe19b440a237da487",
+        "lineCount": 6,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -4 +4 @@ final Map<String, Object?> _contractSchemas = (jsonDecode("
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/domain_validation.dart",
+        "sha256": "0c877515efaac0e3c2a124d6da0d7e4961a1b7f08520c75ba2dc214495cbb537",
+        "lineCount": 336,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -131,0 +132,38 @@ void _validateDomain(ConverterDocument document) {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/asset_review_session.dart",
+        "sha256": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+        "lineCount": 1574,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -256 +256,2 @@ final class AssetReviewFrame {",
+          "@@ -257,0 +259 @@ final class AssetReviewFrame {",
+          "@@ -270,0 +273,8 @@ final class AssetReviewFrame {",
+          "@@ -285,3 +295,3 @@ final class AssetReviewFrame {",
+          "@@ -290 +300 @@ final class AssetReviewFrame {",
+          "@@ -343,0 +354 @@ final class AssetReviewSession {",
+          "@@ -362,0 +374,4 @@ final class AssetReviewSession {",
+          "@@ -373,0 +389 @@ final class AssetReviewSession {",
+          "@@ -378,4 +393,0 @@ final class AssetReviewSession {",
+          "@@ -407 +419 @@ final class AssetReviewSession {",
+          "@@ -408,0 +421,17 @@ final class AssetReviewSession {",
+          "@@ -418 +447 @@ final class AssetReviewSession {",
+          "@@ -422 +451 @@ final class AssetReviewSession {",
+          "@@ -424,3 +452,0 @@ final class AssetReviewSession {",
+          "@@ -429,2 +455 @@ final class AssetReviewSession {",
+          "@@ -450,0 +476,8 @@ final class AssetReviewSession {",
+          "@@ -451,0 +485 @@ final class AssetReviewSession {",
+          "@@ -460,6 +494 @@ final class AssetReviewSession {",
+          "@@ -467,0 +497,4 @@ final class AssetReviewSession {",
+          "@@ -558,22 +591,33 @@ final class AssetReviewSession {",
+          "@@ -606,0 +651 @@ final class AssetReviewSession {",
+          "@@ -705,5 +750,10 @@ final class AssetReviewSession {",
+          "@@ -796,0 +847 @@ final class AssetReviewSession {",
+          "@@ -842,0 +894 @@ final class AssetReviewSession {",
+          "@@ -936,0 +989 @@ final class AssetReviewSession {",
+          "@@ -1002 +1055,5 @@ final class AssetReviewSession {",
+          "@@ -1005,0 +1063,16 @@ final class AssetReviewSession {",
+          "@@ -1014 +1087,4 @@ final class AssetReviewSession {",
+          "@@ -1087,0 +1164 @@ final class AssetReviewSession {",
+          "@@ -1127,0 +1205 @@ final class AssetReviewSession {",
+          "@@ -1355,0 +1434 @@ final class AssetReviewSession {",
+          "@@ -1400,0 +1480 @@ final class AssetReviewSession {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/terrain_layout_review_test.dart",
+        "sha256": "3069d8e257c2f304990de1db50528a1ae21d89bb0195336ba00f6f9babbc87b4",
+        "lineCount": 359,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/native_terrain_brush.dart",
+        "sha256": "388c6b966dad85a49d1eff7e28fa9a0939e5f2f942c2675013ed1983b857cb22",
+        "lineCount": 216,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_terrain_brush_test.dart",
+        "sha256": "4354576b422676e37cd0980a576f35b9632af1cc37f39f1d6b07752b57d0f31c",
+        "lineCount": 306,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/approved_asset_library.dart",
+        "sha256": "a7bda0d0a4a3856bb07f14a3b8f7c404853719a02266502342e0cdaef663c86f",
+        "lineCount": 894,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -10,0 +11 @@ import 'native_project_writer.dart';",
+          "@@ -107,0 +109,7 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -339,0 +348,13 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -341 +362 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -404,0 +426,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -408,3 +431 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -412,2 +432,0 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -433,0 +453,20 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -489,0 +529,14 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -524,3 +576,0 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -528 +578,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -530 +581,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -584,0 +637,19 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -650 +721,8 @@ bool _locatorMatches(NormalizedSourceProject source, AssetPart part,"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/approved_asset_library_test.dart",
+        "sha256": "e3d1dcb6e017b6d6035b8e1dc364d838b766b2d3bff21c97c476f2541986affe",
+        "lineCount": 832,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -18,0 +19,55 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_project_writer_test.dart",
+        "sha256": "9b26170dc8747c5b01476dd8b43a5efda66f527684b4cd4ae9fb66ce2d552a0c",
+        "lineCount": 1717,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -119,0 +120 @@ void main() {",
+          "@@ -132 +133 @@ void main() {",
+          "@@ -194 +195,2 @@ void main() {",
+          "@@ -201,0 +204 @@ void main() {",
+          "@@ -238,0 +242,62 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart",
+        "sha256": "f9191ee7ac40a9459eb8302e28b1917044973c44a90f87e7fcef08a553376a82",
+        "lineCount": 690,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -15,0 +16,51 @@ void main() {",
+          "@@ -494 +545,2 @@ final class _AssetWorkflow {",
+          "@@ -498,0 +551 @@ final class _AssetWorkflow {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/support/original_asset_fixture.dart",
+        "sha256": "53c3ac4627346c2d4bda61c2a4d739510f6611f7782113fe65007168ec92229e",
+        "lineCount": 335,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -23,0 +24 @@ final class OriginalAssetFixture {",
+          "@@ -28,2 +29,8 @@ final class OriginalAssetFixture {",
+          "@@ -127,0 +135,38 @@ final class OriginalAssetFixture {"
+        ]
+      },
+      {
+        "path": "apps/avelune_converter/lib/asset_review_panel.dart",
+        "sha256": "4dc2c29a9d0310065dfa3265d394b7d6c961067d4d3b953da565a051e7a12889",
+        "lineCount": 2143,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -1475,0 +1476,31 @@ class _ConverterAssetReviewPanelState extends State<ConverterAssetReviewPanel> {"
+        ]
+      },
+      {
+        "path": "apps/avelune_converter/test/asset_review_session_panel_test.dart",
+        "sha256": "15640acb5f4997c9a1c3933e392cfff736968352d448e03f0c5a0d45e20554d7",
+        "lineCount": 897,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -107,0 +108,36 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/native_project_writer.dart",
+        "sha256": "1dd46840099343b8548dd30732c24415c5de14f38eaf68b92ba913f6c8a8a5d7",
+        "lineCount": 2940,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -489 +489,2 @@ final class NativeProjectWriter {",
+          "@@ -960,2 +961,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1067,0 +1075,3 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1196,0 +1207,37 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1469,0 +1517,4 @@ Future<_PreparedNativeDraft> _prepareNativeDraft("
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/converter_workflow.dart",
+        "sha256": "b92866f870a05d7596029ebe15175f59302f0cf1a8417822363c1a0854ec9f98",
+        "lineCount": 2265,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -1953,0 +1954,3 @@ const _nativeStudyActions = ["
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_terrain_authoring_test.dart",
+        "sha256": "71882f0e9f917f0e6e651cebc27e00ca1fe3cbc8e5f84dafadacd6631875a2ec",
+        "lineCount": 513,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/asset_review_session_test.dart",
+        "sha256": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+        "lineCount": 1290,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -130,0 +131,67 @@ AssetReviewSession decide(AssetReviewSession value, String id,",
+          "@@ -538,0 +606,337 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/vision_assistance_test.dart",
+        "sha256": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5",
+        "lineCount": 508,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -375 +375 @@ void main() {",
+          "@@ -377,5 +377,7 @@ void main() {"
+        ]
+      }
+    ],
+    "expectedScopedCommitPaths": [
+      "packages/avelune_converter_core/lib/src/models.dart",
+      "packages/avelune_converter_core/lib/src/schema_catalog.dart",
+      "packages/avelune_converter_core/lib/src/domain_validation.dart",
+      "packages/avelune_converter_core/lib/src/asset_review_session.dart",
+      "packages/avelune_converter_core/test/terrain_layout_review_test.dart",
+      "packages/avelune_converter_adapters/lib/src/native_terrain_brush.dart",
+      "packages/avelune_converter_adapters/test/native_terrain_brush_test.dart",
+      "packages/avelune_converter_adapters/lib/src/approved_asset_library.dart",
+      "packages/avelune_converter_adapters/test/approved_asset_library_test.dart",
+      "packages/avelune_converter_adapters/test/native_project_writer_test.dart",
+      "packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart",
+      "packages/avelune_converter_adapters/test/support/original_asset_fixture.dart",
+      "apps/avelune_converter/lib/asset_review_panel.dart",
+      "apps/avelune_converter/test/asset_review_session_panel_test.dart",
+      "packages/avelune_converter_adapters/lib/src/native_project_writer.dart",
+      "packages/avelune_converter_adapters/lib/src/converter_workflow.dart",
+      "packages/avelune_converter_adapters/test/native_terrain_authoring_test.dart",
+      "packages/avelune_converter_core/test/asset_review_session_test.dart",
+      "packages/avelune_converter_core/test/vision_assistance_test.dart",
+      "documentation/reports/converter/AC-08/08_local_assets.md",
+      "documentation/reports/converter/AC-08/commands.json",
+      "documentation/reports/converter/AC-08/index.json"
+    ],
+    "externalEvidenceReferences": [
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/qualification.json",
+        "sha256": "7019477ffc8863d0b9b72f6dae2c5e72401cc3669183951cafb0e1dfa699049e"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/final-review-persistence.json",
+        "sha256": "fed9995c64c07c588fc212eeb67798f0961a71681ff8e4109ca37b9dde42f467"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-mcp-r2.json",
+        "sha256": "e6709b9a7d132aeb7f2d79652cb1d036ab83d2379620f45425db56853d505de0"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-studio.json",
+        "sha256": "600bb1d09b4c7ef10400c4464183d4171e1990639eeed23b6297cc18661733b3"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/studio-resource-delivery.json",
+        "sha256": "5e188cf3072205972995d846cfbf1c3afc799a90486afb41a3a3dd1f95d79b24"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/studio-resource-captures/studio-reopened.png",
+        "sha256": "c957ee8d8d8b301b8cc8eda415cd5758ca7a7a44749430b7c3ae7c1243be750a"
+      }
+    ],
+    "runs": [
+      {
+        "command": [
+          "/opt/homebrew/bin/dart",
+          "test",
+          "test/asset_review_session_test.dart",
+          "--name",
+          "claim list hashing honors|frame hashes compact",
+          "--reporter",
+          "expanded"
+        ],
+        "cwd": "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 4.65,
+        "runnerPid": 62100,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "1c7cacee8e49497142faa440a8f0dcf86cecd9e612a8d947e758dfe0ed37fdc8",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "a2c1bde7f20b934542ac41fcbcff20b9c3dbe355a0ad5648f54cad25d645ddf0",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "fileHashesAfter": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "1c7cacee8e49497142faa440a8f0dcf86cecd9e612a8d947e758dfe0ed37fdc8",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "a2c1bde7f20b934542ac41fcbcff20b9c3dbe355a0ad5648f54cad25d645ddf0",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "logPath": "/private/tmp/avelune-converter-ac08-claim-budget-red-20261013-01.log",
+        "logSha256": "56fd07f228aa4bb972aa204e7835c30f84b663b2744e97ef1fc8df30dc4eb50c",
+        "receiptPath": "/private/tmp/avelune-converter-ac08-claim-budget-red-20261013-01.json",
+        "receiptSha256": "35392c69e80985be94be8fe0d376ba18105652995654d70960efddd49c1e92b5",
+        "outputTail": "SON text budget exceeded\n  package:avelune_converter_core/src/json_validation.dart 17:7         _freezeJson.countText\n  package:avelune_converter_core/src/json_validation.dart 27:7         _freezeJson.visit\n  package:avelune_converter_core/src/json_validation.dart 63:21        _freezeJson.visit\n  package:avelune_converter_core/src/json_validation.dart 53:13        _freezeJson.visit\n  package:avelune_converter_core/src/json_validation.dart 63:21        _freezeJson.visit\n  package:avelune_converter_core/src/json_validation.dart 63:21        _freezeJson.visit\n  package:avelune_converter_core/src/json_validation.dart 71:10        _freezeJson\n  package:avelune_converter_core/src/json_validation.dart 213:26       canonicalJsonOf\n  package:avelune_converter_core/src/json_validation.dart 220:23       canonicalHashOf\n  package:avelune_converter_core/src/asset_review_session.dart 303:35  AssetReviewFrame.canonicalHash\n  test/asset_review_session_test.dart 736:26                           main.<fn>\n  \n00:02 +0 -2: Some tests failed.\n\nFailing tests:\n  test/asset_review_session_test.dart: claim list hashing honors the caller JSON budget through restore\n  test/asset_review_session_test.dart: frame hashes compact shared lists while preserving conflicts and source\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/bin/dart",
+          "test",
+          "test/asset_review_session_test.dart",
+          "--name",
+          "claim list hashing honors|frame hashes compact",
+          "--reporter",
+          "expanded"
+        ],
+        "cwd": "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 30.777,
+        "runnerPid": 62756,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "fileHashesAfter": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "logPath": "/private/tmp/avelune-converter-ac08-claim-budget-green-20261013-01.log",
+        "logSha256": "b67bcf68968c0db3d98f542f35e43bf90764ecd2b4ed5dfd29897cee240de5ab",
+        "receiptPath": "/private/tmp/avelune-converter-ac08-claim-budget-green-20261013-01.json",
+        "receiptSha256": "75c9b03cdb65169bd599534d1059c0d2d8b29aa99e0c73dc03440ed79493d577",
+        "outputTail": "00:00 +0: loading test/asset_review_session_test.dart\n00:00 +0: claim list hashing honors the caller JSON budget through restore\n00:21 +1: frame hashes compact shared lists while preserving conflicts and source\n00:29 +2: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/bin/dart",
+          "test",
+          "--reporter",
+          "expanded"
+        ],
+        "cwd": "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 58.747,
+        "runnerPid": 63684,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "fileHashesAfter": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "logPath": "/private/tmp/avelune-converter-ac08-claim-budget-full-green-20261013-01.log",
+        "logSha256": "075fb97660f924e1a2a4b26ba5eafcc414edfce703414ca699ac1a1cf2a4fcb8",
+        "receiptPath": "/private/tmp/avelune-converter-ac08-claim-budget-full-green-20261013-01.json",
+        "receiptSha256": "a9ebb766840174ba1f4710d2b62e0b9939eb4852df6af6e59a09c506a41e321d",
+        "outputTail": "art: explicit empty claim lists preserve their reference and semantic hash\n00:57 +736: test/asset_review_session_test.dart: private review history 1.0 and 1.1 are rejected explicitly\n00:57 +737: test/asset_review_session_test.dart: history and geometry quotas reject before accepting another frame\n00:57 +738: test/asset_review_session_test.dart: session rejects foreign candidates and manual identities already used\n00:57 +739: test/asset_review_session_test.dart: JSON reload rejects a substituted candidate version and false receipt\n00:57 +740: test/asset_review_session_test.dart: reload cannot authorize unverified placement replacement\n00:57 +741: test/asset_review_session_test.dart: reload rejects approval decisions inconsistent with the candidate state\n00:57 +742: test/asset_review_session_test.dart: union cannot silently stack two parent canvases at the same destination\n00:57 +743: test/asset_review_session_test.dart: REV-03 union preserves separate part links to the same source placement through split and restore\n00:57 +744: test/asset_review_session_test.dart: union and split preserve exact claims while remapping part identities\n00:57 +745: test/asset_review_session_test.dart: same tile at another source map or Z does not create a false conflict\n00:57 +746: test/asset_review_session_test.dart: review input and exposed collections stay immutable\n00:57 +747: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/bin/dart",
+          "analyze"
+        ],
+        "cwd": "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 1.783,
+        "runnerPid": 63361,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "fileHashesAfter": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/asset_review_session_test.dart": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/test/vision_assistance_test.dart": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5"
+        },
+        "logPath": "/private/tmp/avelune-converter-ac08-claim-budget-analyze-20261013-01.log",
+        "logSha256": "c6a2cb5518842c34bdacf71808a7fbc9d7651465f2e93d850cdf75d014aacd85",
+        "receiptPath": "/private/tmp/avelune-converter-ac08-claim-budget-analyze-20261013-01.json",
+        "receiptSha256": "d1ef8bf7692287547c174ba97701e7500457aff52a9e58184bb07a4a67a21f03",
+        "outputTail": "Analyzing avelune_converter_core...\nNo issues found!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/approved_asset_library_test.dart",
+          "test/native_project_writer_test.dart",
+          "test/converter_asset_workflow_test.dart",
+          "test/native_terrain_brush_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 36.915,
+        "runnerPid": 41947,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-adapters-focused-final-20261013-01.log",
+        "logSha256": "b4a7dca1d434b23a6c54f28469e7792de5fa39d2f9039b18bd3df227031da4b4",
+        "receiptPath": "/private/tmp/avelune-resources-adapters-focused-final-20261013-01.json",
+        "receiptSha256": "9aaac13276b3353cb371d903435f2bd05e29121b388df4554d0b12fd7239b81d",
+        "outputTail": "_asset_workflow_test.dart: disjoint mixed-priority groups require a fresh explicit standalone choice\n00:27 +128: test/converter_asset_workflow_test.dart: keep literal is an explicit decision with no library consumption\n00:28 +129: test/converter_asset_workflow_test.dart: editing a reviewed name or invalidating the UI revokes exact approval\n00:28 +130: loading test/native_terrain_brush_test.dart\n00:28 +130: test/native_terrain_brush_test.dart: sixteen cardinal forms preserve every source quadrant RGBA sample\n00:28 +131: test/native_terrain_brush_test.dart: the fully connected form preserves the entire source center tile\n00:28 +132: test/native_terrain_brush_test.dart: native catalog validation and coverage resolve every form exactly\n00:28 +133: test/native_terrain_brush_test.dart: native layer starts empty and neighboring paint changes the resolved form\n00:28 +134: test/native_terrain_brush_test.dart: diagonal-only neighbors do not imply Blob47 support\n00:28 +135: test/native_terrain_brush_test.dart: equivalent PNG encodings produce identical immutable artifacts\n00:28 +136: test/native_terrain_brush_test.dart: rejects invalid PNG and non-96-square geometry\n00:28 +137: test/native_terrain_brush_test.dart: rejects source bytes above the bounded PNG budget\n00:29 +138: test/native_terrain_brush_test.dart: rejects noncanonical identities and blank names\n00:29 +139: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "2"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 262.251,
+        "runnerPid": 72242,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "fileHashesAfter": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "logPath": "/private/tmp/avelune-resources-adapters-final-20261013-03.log",
+        "logSha256": "15d3af40e26c96cea8a1698ab2d5442b9b46e4e0ea68fd565838dfc16147c6f6",
+        "receiptPath": "/private/tmp/avelune-resources-adapters-final-20261013-03.json",
+        "receiptSha256": "bca8b20a613cf180e388e3265e3160605bd28ef14d36484042c587df222e07ba",
+        "outputTail": "sion PBS over one MiB reconstructs exactly from bounded native chunks\n02:14 +664: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion PBS over one MiB reconstructs exactly from bounded native chunks\n02:30 +665: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion PBS over one MiB reconstructs exactly from bounded native chunks\n02:34 +666: test/native_project_publication_test.dart: AC15 subprocess crash at beforeBootstrap reconciles without replay\n02:34 +667: test/native_project_publication_test.dart: AC15 subprocess crash at beforeBootstrap reconciles without replay\n02:44 +668: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion projection over one MiB preserves bounded unknown source fields\n02:58 +669: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion projection over one MiB preserves bounded unknown source fields\n02:58 +670: test/native_project_publication_test.dart: AC15 subprocess crash at promotedBeforeReceipt reconciles without replay\n03:10 +671: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion local native conversion executes over sixty bounded mutations\n04:18 +672: test/source_catalog_study_composer_test.dart: source-bound catalogue native conversion (tearDownAll)\n04:18 +672: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "analyze"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 4.042,
+        "runnerPid": 83311,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-adapters-analyze-final-20261013-03.log",
+        "logSha256": "8d23f9d257f20bf58ac86603848615487331ac94219f1a9a278a00734183e388",
+        "receiptPath": "/private/tmp/avelune-resources-adapters-analyze-final-20261013-03.json",
+        "receiptSha256": "45bf5969ff4b7a50caea7033bf62191cf945db35c57533be3ee4e37251764107",
+        "outputTail": "Analyzing avelune_converter_adapters...\nNo issues found!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "test",
+          "--no-pub",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "2"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 40.821,
+        "runnerPid": 83045,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "fileHashesAfter": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "logPath": "/private/tmp/avelune-resources-app-final-20261013-03.log",
+        "logSha256": "62997cea845ae1b07df77cc4cd26452e770bc9a3878acc0d9c2e7d874e9c9da2",
+        "receiptPath": "/private/tmp/avelune-resources-app-final-20261013-03.json",
+        "receiptSha256": "88af6feb2d21309708e509516b4828342c880a73c2a94f27e9d1040a74e883d0",
+        "outputTail": "9: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: optional panel starts without key, source, factory or network work\n00:33 +80: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: optional panel starts without key, source, factory or network work\n00:35 +81: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: only displayed material and consent dispatch, human metadata remains unapproved\n00:35 +82: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: selection change during a late response rejects all suggestions\n00:36 +83: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: provider failure never exposes a secret or mutates review\n00:36 +84: /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/test/vision_panel_test.dart: rejected key gives useful recovery while preserving review\n00:36 +85: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "analyze",
+          "--no-pub"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 7.415,
+        "runnerPid": 85733,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "fileHashesAfter": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "logPath": "/private/tmp/avelune-resources-app-analyze-final-20261013-03.log",
+        "logSha256": "1873d022c9519eb354d2c9ced5a5895f7f78a8db4c96cca52b4369399691f3ed",
+        "receiptPath": "/private/tmp/avelune-resources-app-analyze-final-20261013-03.json",
+        "receiptSha256": "7c0a15ff9b414b304bbb3a1c48a1901115efdfdec02a95cfb6403c2e47572093",
+        "outputTail": "Analyzing avelune_converter...                                  \nNo issues found! (ran in 6.1s)\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "build",
+          "macos",
+          "--debug",
+          "--no-pub"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 19.903,
+        "runnerPid": 86579,
+        "confirmedSurvivors": [],
+        "signals": [
+          {
+            "pid": 86713,
+            "signal": "SIGTERM",
+            "reason": "leftover owned test descendant",
+            "verifiedIdentity": {
+              "pid": 86713,
+              "ppid": 1,
+              "uid": 501,
+              "start": "Tue Oct 13 01:55:41 2026",
+              "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+            }
+          },
+          {
+            "pid": 86714,
+            "signal": "SIGTERM",
+            "reason": "leftover owned test descendant",
+            "verifiedIdentity": {
+              "pid": 86714,
+              "ppid": 1,
+              "uid": 501,
+              "start": "Tue Oct 13 01:55:41 2026",
+              "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/ibtoold --sending-client-environment"
+            }
+          }
+        ],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/lib/asset_review_panel.dart": "4dc2c29a9d0310065dfa3265d394b7d6c961067d4d3b953da565a051e7a12889"
+        },
+        "fileHashesAfter": {
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+          "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_converter/lib/asset_review_panel.dart": "4dc2c29a9d0310065dfa3265d394b7d6c961067d4d3b953da565a051e7a12889"
+        },
+        "logPath": "/private/tmp/avelune-resources-app-build-final-20261013-02.log",
+        "logSha256": "15b0c3df3912899cb2fa68f3365f5516fc964fc650a05233dcf778db4e0a88e6",
+        "receiptPath": "/private/tmp/avelune-resources-app-build-final-20261013-02.json",
+        "receiptSha256": "3aab6930d18656ccf62631e8892e13377542280643cb46f1c409ad832f0739de",
+        "outputTail": "Building macOS application...                                   \n✓ Built build/macos/Build/Products/Debug/Avelune Converter.app\n"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "check"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/tools/pokemap_mcp",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 1.232,
+        "runnerPid": 52860,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-mcp-check-20261013-01.log",
+        "logSha256": "7ad59dca3cb8e6445397c9e867326ddeac3b0ef771b0a5278fb8beb66f69ab0b",
+        "receiptPath": "/private/tmp/avelune-resources-mcp-check-20261013-01.json",
+        "receiptSha256": "8ca9211437da769abe9c69e029c8d6cb8e1db1f53ff6da5a0c84783188cd5ad0",
+        "outputTail": "\n> @pokemap/mcp-server@0.1.0 check\n> tsc -p tsconfig.json --noEmit\n\n"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/tools/pokemap_mcp",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 1.225,
+        "runnerPid": 87728,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-mcp-build-20261013-01.log",
+        "logSha256": "627a16613be7704d2b4572a60c3a60c65e6811d680aa85f8a3573bf8375ecd88",
+        "receiptPath": "/private/tmp/avelune-resources-mcp-build-20261013-01.json",
+        "receiptSha256": "197d22199970b099137926647b366dd3cfd50d2fd634f7118c947b6e1c5e5e2f",
+        "outputTail": "\n> @pokemap/mcp-server@0.1.0 build\n> tsc -p tsconfig.json\n\n"
+      },
+      {
+        "command": [
+          "node",
+          "--import",
+          "tsx",
+          "--test",
+          "--test-concurrency=1",
+          "test/smart_tile_batch_stdio.test.ts",
+          "test/smart_tile_material_batch_stdio.test.ts"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/tools/pokemap_mcp",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 17.577,
+        "runnerPid": 52857,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-mcp-smarttiles-20261013-01.log",
+        "logSha256": "cd4d521c35e750119fc35d2020bdc88915fa239241f27959dea4739f93881cbb",
+        "receiptPath": "/private/tmp/avelune-resources-mcp-smarttiles-20261013-01.json",
+        "receiptSha256": "d253dbb0de59cf9caad47850a68fc328baede5a64c5292e7865820246f43d5f9",
+        "outputTail": "✔ live MCP paints one atomic material batch and rejects partial writes (8779.937167ms)\n✔ live MCP upserts 217 Smart Tile materials atomically and preserves map data (7784.005042ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 17288.142625\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/parity/full_authoring_parity_test.dart",
+          "--reporter",
+          "expanded"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/map_authoring",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 23.707,
+        "runnerPid": 54051,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-authoring-parity-20261013-01.log",
+        "logSha256": "46ec76330f25147a61b5f545bf75b4d7b2d794e2970b3d20fa692abf03098954",
+        "receiptPath": "/private/tmp/avelune-resources-authoring-parity-20261013-01.json",
+        "receiptSha256": "5eda2566941d47750039c38ca2fc435fec5f66d8c2ce6ffc16e9abdcb7cdae78",
+        "outputTail": "059 certifies all 25 Character Studio actions\n00:00 +7: PMCP-085 full authoring parity certifies every CIN-006 and CIN-019 action on four transports\n00:00 +8: PMCP-085 full authoring parity binds item transport receipts to action revision and fixture\n00:00 +9: PMCP-085 full authoring parity missing item transport receipt leaves only its action incomplete\n00:00 +10: PMCP-085 full authoring parity rejects receipts from another action revision or fixture\n00:00 +11: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle\n00:07 +12: PMCP-085 full authoring parity PMCP tool refuses an Item transport claim without receipts\n00:14 +13: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically\n00:14 +14: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport\n00:14 +15: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt\n00:15 +16: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity\n00:15 +17: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity\n00:15 +18: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity\n00:15 +19: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource\n00:15 +20: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "run",
+          "tool/pmcp085_conformance.dart"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/map_authoring",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 8.051,
+        "runnerPid": 54052,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-pmcp085-20261013-01.log",
+        "logSha256": "eb63bb14e667a1915273cf4b05b159e8aba2a3cd55ffdfdee2e91df9f7f12272",
+        "receiptPath": "/private/tmp/avelune-resources-pmcp085-20261013-01.json",
+        "receiptSha256": "eafbef2ca081b1785ac473c78b0078376d9e6a4b8f30ef2a5b7ca71f317cd79e",
+        "outputTail": "test.dart\",\n      \"endToEndVerifiedTransports\": [],\n      \"endToEndEvidence\": {},\n      \"transportExecutionReceipts\": {}\n    },\n    {\n      \"actionId\": \"world_rule.update\",\n      \"declaredTransports\": [\n        \"cli\",\n        \"directApi\",\n        \"editor\",\n        \"mcp\"\n      ],\n      \"adapterCapableTransports\": [\n        \"cli\",\n        \"directApi\",\n        \"editor\",\n        \"mcp\"\n      ],\n      \"adapterEvidence\": {\n        \"cli\": \"lib/src/tooling/jsonl_worker.dart\",\n        \"directApi\": \"lib/src/api/local_map_authoring_mutation_api.dart\",\n        \"editor\": \"../map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart\",\n        \"mcp\": \"../../tools/pokemap_mcp/src/authoring_client.ts\"\n      },\n      \"contractTestPath\": \"test/domains/narrative/modern_narrative_authoring_test.dart\",\n      \"endToEndVerifiedTransports\": [],\n      \"endToEndEvidence\": {},\n      \"transportExecutionReceipts\": {}\n    }\n  ],\n  \"runtimeCommands\": [\n    \"playtest\",\n    \"render\"\n  ],\n  \"summary\": {\n    \"coverageScope\": \"canonicalAuthoringCatalog\",\n    \"resourceCount\": 88,\n    \"mutationActionCount\": 405,\n    \"blockedOrMissingCount\": 0,\n    \"notApplicableCount\": 83,\n    \"catalogComplete\": true,\n    \"endToEndVerifiedMutationActionCount\": 138,\n    \"fullyEndToEndVerifiedMutationActionCount\": 104,\n    \"transportCertificationComplete\": false,\n    \"itemTransportCertificationComplete\": false\n  }\n}\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "run",
+          "tool/qa_route9_resources.dart",
+          "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013/output",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013/evidence",
+          "98",
+          "Route 9 — chemins et arbres",
+          "--approved-study"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 2,
+        "timedOut": false,
+        "elapsedSeconds": 340.413,
+        "runnerPid": 44795,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-kanto-final-20261013-01.log",
+        "logSha256": "91e8a93536b79dd3d51e95c98af9a402192761cccc73671beff60937e2957075",
+        "receiptPath": "/private/tmp/avelune-resources-kanto-final-20261013-01.json",
+        "receiptSha256": "38406cc1cb1e1e01cfecdbf600db35c02cd3f16a9c33bed62018776779d09df1",
+        "outputTail": "{\"phase\":\"scan\",\"revision\":2}\n{\"phase\":null,\"revision\":3}\n{\"phase\":\"verifySource\",\"revision\":3}\n{\"phase\":\"normalize\",\"revision\":3}\n{\"phase\":\"compose\",\"revision\":3}\n{\"phase\":\"verifySource\",\"revision\":3}\n{\"status\":\"failed\",\"projectPath\":null,\"error\":\"json.textQuota at $.frames[1].placementClaims.asset_668dbc7e4b3786c37d85496b735f2643b2337d1616dbabfa5294e6454ae95f5b[2577].sourceMapHash: JSON text budget exceeded\",\"evidencePath\":\"/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013/evidence\"}\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "run",
+          "tool/qa_route9_resources.dart",
+          "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/output",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence",
+          "98",
+          "Route 9 — chemins et arbres",
+          "--approved-study"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 1099.951,
+        "runnerPid": 58694,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-kanto-final-20261013-02.log",
+        "logSha256": "423d6ceb9e21d50b2d3096fd94b81f8ae2e8f2e83bc50a4d8703e1f7eb39568a",
+        "receiptPath": "/private/tmp/avelune-resources-kanto-final-20261013-02.json",
+        "receiptSha256": "d4010ee4878680a54cc9bcbc6ba53b797ed78beb66dc859679f4333b2291764e",
+        "outputTail": "{\"phase\":\"scan\",\"revision\":2}\n{\"phase\":null,\"revision\":3}\n{\"phase\":\"verifySource\",\"revision\":3}\n{\"phase\":\"normalize\",\"revision\":3}\n{\"phase\":\"compose\",\"revision\":3}\n{\"phase\":\"verifySource\",\"revision\":3}\n{\"phase\":null,\"revision\":4}\n{\"phase\":\"verifySource\",\"revision\":4}\n{\"phase\":\"normalize\",\"revision\":4}\n{\"phase\":\"compose\",\"revision\":4}\n{\"phase\":\"verifySource\",\"revision\":4}\n{\"phase\":null,\"revision\":4}\n{\"phase\":\"verifySource\",\"revision\":4}\n{\"phase\":\"writeNative\",\"revision\":4}\n{\"phase\":\"verifyNative\",\"revision\":4}\n{\"phase\":\"verifySource\",\"revision\":4}\n{\"phase\":\"publishNative\",\"revision\":4}\n{\"status\":\"nativeStudyPublished\",\"projectPath\":\"/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/output/Projet converti\",\"error\":null,\"evidencePath\":\"/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence\"}\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "--packages=/private/tmp/avelune-resources-final-history-package-config-20261013.json",
+          "tool/qa_persisted_resource_review.dart",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence",
+          "/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 19.329,
+        "runnerPid": 70672,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "fileHashesAfter": {
+          "/private/tmp/avelune-converter-ac08-claim-budget-wlk17_7o/avelune_converter_core/lib/src/asset_review_session.dart": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b"
+        },
+        "logPath": "/private/tmp/avelune-resources-review-persistence-final-20261013-01.log",
+        "logSha256": "a862d11d207f52145bab7442fcbc98010c8cf10e8c419d36b533b84ed6dd6338",
+        "receiptPath": "/private/tmp/avelune-resources-review-persistence-final-20261013-01.json",
+        "receiptSha256": "44338dc6f37c1c7632345b5269e33f700259adce64838fd48cee113ebb0f1832",
+        "outputTail": "{\"passed\":true,\"schemaVersion\":\"1.2\",\"evidenceRoot\":\"/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence\",\"candidateCount\":71,\"approvedCount\":2,\"exactSourcePlacementCount\":8167,\"frameCount\":6,\"frameHashes\":[\"88d2099dd1def3e27510cbf5b8eb8a7c097d716cb186ea73983d0b6f135f14cc\",\"8961a943befeded43d65f2008953cd0e76371382354d3914a457e04bfcf70c46\",\"7a6cd4d14e7bb463253f66791e53c14fe7b4d89852ecd38b9f86b471a8649a88\",\"ec4e94ab70dd12d717428080ae883d508ec43a936c6ce3dd43191755476ac4e2\",\"03e98b4637477d04bda28cf14da6a59bd1887fe3a602573d3d91d0c5821c0df5\",\"f78ad570bfd1c995d55a098379619ea06b5c5e23606299e126ccf2523f6e535d\"],\"sessionHash\":\"7eb1130e74107f7ff1b6f1a6e5a822ce24ef2ff9a33ec59131ae77b0de40ad04\",\"storeHash\":\"19b0a62e865e1d741e4f86222e00033faa09f48ae3d8be60488a533d07776bd2\",\"defaultLimitsUnchanged\":true,\"undoRedoPreserved\":true,\"independentStoreReopenPreserved\":true,\"replayPinsDistinctFromFinalHistoryHashPins\":true}\n"
+      },
+      {
+        "command": [
+          "node",
+          "test/qa_route9_resources.mjs",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/Projet qualification MCP",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-mcp.json"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/tools/pokemap_mcp",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 16.676,
+        "runnerPid": 72240,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-kanto-mcp-20261013-01.log",
+        "logSha256": "4cb58f128f62f3f0540943d18d7d835e6f93cf178dba9296d273f257c2b6d82c",
+        "receiptPath": "/private/tmp/avelune-resources-kanto-mcp-20261013-01.json",
+        "receiptSha256": "11b90cf6a01a2f4d14aaaff9f8a9c8aeeeaaba9032595a91a1556ad1b603d229",
+        "outputTail": " layerId: 'map_35e885d2ecdb186a86d710638cb63ee105a337b2fce9687956f5c6c4_ac12_boundaries',\n        elementId: 'ac12-wall-10',\n        pos: { x: 28, y: 15 },\n        pixelOffset: { x: 0, y: 0 },\n        visualOrder: 0,\n        quarterTurns: 0,\n        applyCollision: true,\n        opacity: 1,\n        animation: null,\n        behaviors: [],\n        properties: { pokemapPlacementOrigin: 'authored' }\n      },\n      ... 215 more items\n    ],\n    movingPlatforms: [],\n    entities: [\n      {\n        id: 'ac12-preview-start-98',\n        name: 'Conversion preview start',\n        kind: 'spawn',\n        pos: { x: 35, y: 22 },\n        size: { width: 1, height: 1 },\n        npc: null,\n        sign: null,\n        item: null,\n        spawn: {\n          spawnKey: '',\n          role: 'player_start',\n          facing: 'south',\n          categoryTag: ''\n        },\n        editorVisual: null,\n        blocksMovement: false,\n        properties: {}\n      }\n    ],\n    connections: [],\n    warps: [],\n    triggers: [],\n    gameplayZones: [],\n    mapMetadata: {\n      displayName: '',\n      mapType: 'route',\n      musicPath: null,\n      battleMusicPath: null,\n      weather: 'none',\n      isIndoor: false,\n      allowEscapeRope: true,\n      defaultSpawnId: 'ac12-preview-start-98',\n      tags: []\n    },\n    properties: {},\n    events: []\n  },\n  operator: 'deepStrictEqual',\n  diff: 'simple'\n}\n\nNode.js v26.3.1\n"
+      },
+      {
+        "command": [
+          "node",
+          "test/qa_route9_resources.mjs",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/Projet qualification MCP r2",
+          "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-mcp-r2.json"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/tools/pokemap_mcp",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 18.317,
+        "runnerPid": 75395,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-kanto-mcp-20261013-02.log",
+        "logSha256": "2adc1a99fc9d96a827dbf2615cabadcefbad7f0362c9b43bf282f9e4e2fd5274",
+        "receiptPath": "/private/tmp/avelune-resources-kanto-mcp-20261013-02.json",
+        "receiptSha256": "a590962d0e4ae8ceb5197186b9b1e1ef7a605e056176634b7610e85b90ea9b0d",
+        "outputTail": "{\"passed\":true,\"projectRoot\":\"/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/Projet qualification MCP r2\",\"sourcePlacementsPreserved\":true,\"collisionOfNewResourcesCertified\":false,\"actionCount\":4,\"callCount\":24,\"callsSha256\":\"8214edd01a514193ce839252148e6b66e7cccccd05af08a4c42c629ab3c5b8c7\"}\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "run",
+          "-d",
+          "macos",
+          "--debug",
+          "--no-pub",
+          "-t",
+          "dev/marionette_main.dart",
+          "--dart-define=MARIONETTE_PROJECT_PATH=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/Projet converti",
+          "--dart-define=MARIONETTE_CAPTURE_ROOT=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/captures"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 72.696,
+        "runnerPid": 72244,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-studio-ui-20261013-01.log",
+        "logSha256": "76c789637b001746eaea8063df97590ece64fbcb9da730af67d8251c869f2f27",
+        "receiptPath": "/private/tmp/avelune-resources-studio-ui-20261013-01.json",
+        "receiptSha256": "938c0bb254fb5ec7e6152273ad72e9abce50b7e1d1a1d6729034c66e22d7b97d",
+        "outputTail": "lSDF).\nFailed to foreground app; open returned 1\n[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Bad state: MARIONETTE_CAPTURE_ROOT must be the owned Studio capture directory.\n#0      requireStudioCaptureRoot (file:///private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio/dev/spatial_frame_recorder.dart:17:5)\n#1      main (file:///private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio/dev/marionette_main.dart:81:29)\n#2      _runMain.<anonymous closure> (dart:ui/hooks.dart:430:23)\n#3      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n\nSyncing files to device macOS...                                   566ms\n\nFlutter run key commands.\nr Hot reload. 🔥🔥🔥\nR Hot restart.\nh List all available interactive commands.\nd Detach (terminate \"flutter run\" but leave application running).\nc Clear the screen\nq Quit (terminate the application on the device).\n\nA Dart VM Service on macOS is available at: http://127.0.0.1:58343/CzqLRYkz9us=/\nThe Flutter DevTools debugger and profiler on macOS is available at: http://127.0.0.1:58343/CzqLRYkz9us=/devtools/?uri=ws://127.0.0.1:58343/CzqLRYkz9us=/ws\n\nApplication finished.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "run",
+          "-d",
+          "macos",
+          "--debug",
+          "--no-pub",
+          "-t",
+          "dev/marionette_main.dart",
+          "--dart-define=MARIONETTE_PROJECT_PATH=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/Projet converti",
+          "--dart-define=MARIONETTE_CAPTURE_ROOT=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/captures"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 242.938,
+        "runnerPid": 75397,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-studio-ui-20261013-02.log",
+        "logSha256": "f60181d223aaf3c990033b1637a0e1eb87e519ea3c1949f93be673d37b418b5a",
+        "receiptPath": "/private/tmp/avelune-resources-studio-ui-20261013-02.json",
+        "receiptSha256": "28a8fa37c1fcc32c8654442a6fe79412d7210d814759dbae295e2f01b791da27",
+        "outputTail": "Launching dev/marionette_main.dart on macOS in debug mode...\nBuilding macOS application...                                   \n✓ Built build/macos/Build/Products/Debug/Avelune Studio.app\n[IMPORTANT:flutter/shell/platform/embedder/embedder_surface_metal_impeller.mm(53)] Using the Impeller rendering backend (MetalSDF).\nFailed to foreground app; open returned 1\nSyncing files to device macOS...                                   307ms\n\nFlutter run key commands.\nr Hot reload. 🔥🔥🔥\nR Hot restart.\nh List all available interactive commands.\nd Detach (terminate \"flutter run\" but leave application running).\nc Clear the screen\nq Quit (terminate the application on the device).\n\nA Dart VM Service on macOS is available at: http://127.0.0.1:58521/hcz-7dvxSNo=/\nThe Flutter DevTools debugger and profiler on macOS is available at: http://127.0.0.1:58521/hcz-7dvxSNo=/devtools/?uri=ws://127.0.0.1:58521/hcz-7dvxSNo=/ws\nflutter: ScreenshotService: Successfully captured screenshot (332318 bytes).\n\nApplication finished.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "run",
+          "-d",
+          "macos",
+          "--debug",
+          "--no-pub",
+          "-t",
+          "dev/marionette_main.dart",
+          "--dart-define=MARIONETTE_PROJECT_PATH=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/Projet converti",
+          "--dart-define=MARIONETTE_CAPTURE_ROOT=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/captures"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 240.948,
+        "runnerPid": 80001,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-studio-ui-20261013-03.log",
+        "logSha256": "def50090f4260ab23774dbdf41cabdf10c39e8f3fb8a0694f1bf26c5bdd04207",
+        "receiptPath": "/private/tmp/avelune-resources-studio-ui-20261013-03.json",
+        "receiptSha256": "43d419a5c160ff011c32580fac252c23a7b77fe682c4b4faee760728b3a6f284",
+        "outputTail": "Launching dev/marionette_main.dart on macOS in debug mode...\nBuilding macOS application...                                   \n✓ Built build/macos/Build/Products/Debug/Avelune Studio.app\n[IMPORTANT:flutter/shell/platform/embedder/embedder_surface_metal_impeller.mm(53)] Using the Impeller rendering backend (MetalSDF).\nFailed to foreground app; open returned 1\nSyncing files to device macOS...                                   125ms\n\nFlutter run key commands.\nr Hot reload. 🔥🔥🔥\nR Hot restart.\nh List all available interactive commands.\nd Detach (terminate \"flutter run\" but leave application running).\nc Clear the screen\nq Quit (terminate the application on the device).\n\nA Dart VM Service on macOS is available at: http://127.0.0.1:59223/l2xS0nK1hNk=/\nThe Flutter DevTools debugger and profiler on macOS is available at: http://127.0.0.1:59223/l2xS0nK1hNk=/devtools/?uri=ws://127.0.0.1:59223/l2xS0nK1hNk=/ws\nflutter: ScreenshotService: Successfully captured screenshot (117800 bytes).\nflutter: ScreenshotService: Successfully captured screenshot (126511 bytes).\nflutter: ScreenshotService: Successfully captured screenshot (143202 bytes).\nflutter: ScreenshotService: Successfully captured screenshot (143950 bytes).\n\nApplication finished.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "run",
+          "-d",
+          "macos",
+          "--debug",
+          "--no-pub",
+          "-t",
+          "dev/marionette_main.dart",
+          "--dart-define=MARIONETTE_PROJECT_PATH=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/Projet converti",
+          "--dart-define=MARIONETTE_CAPTURE_ROOT=/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Kanto chemins et arbres QA 20261013/captures"
+        ],
+        "cwd": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository/apps/avelune_studio",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 85.493,
+        "runnerPid": 82471,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-studio-ui-20261013-04.log",
+        "logSha256": "c881c5e1c8b19eef51911ec6ddaa42dde836427987f9c5f00bdb66c5e83540eb",
+        "receiptPath": "/private/tmp/avelune-resources-studio-ui-20261013-04.json",
+        "receiptSha256": "5563fee08e8a9b3842322b9ed1cf21641b193674031b89f9f72ae93cb1316111",
+        "outputTail": "Launching dev/marionette_main.dart on macOS in debug mode...\nBuilding macOS application...                                   \n✓ Built build/macos/Build/Products/Debug/Avelune Studio.app\n[IMPORTANT:flutter/shell/platform/embedder/embedder_surface_metal_impeller.mm(53)] Using the Impeller rendering backend (MetalSDF).\nFailed to foreground app; open returned 1\nSyncing files to device macOS...                                   172ms\n\nFlutter run key commands.\nr Hot reload. 🔥🔥🔥\nR Hot restart.\nh List all available interactive commands.\nd Detach (terminate \"flutter run\" but leave application running).\nc Clear the screen\nq Quit (terminate the application on the device).\n\nA Dart VM Service on macOS is available at: http://127.0.0.1:59576/mvn3diUVXOM=/\nThe Flutter DevTools debugger and profiler on macOS is available at: http://127.0.0.1:59576/mvn3diUVXOM=/devtools/?uri=ws://127.0.0.1:59576/mvn3diUVXOM=/ws\nflutter: ScreenshotService: Successfully captured screenshot (154495 bytes).\n\nApplication finished.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/approved_asset_library_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--name",
+          "approved cardinal terrain|atlas-only provenance"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 11.267,
+        "runnerPid": 30338,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-root-red-20261013-01.log",
+        "logSha256": "bdf08d119808c4f324a1072027261ef0dca5e603976210ac1d285f1b439723c0",
+        "receiptPath": "/private/tmp/avelune-resources-root-red-20261013-01.json",
+        "receiptSha256": "a8eb7eb39c8198c976a20faa912b149380da88370103a567317ee8a326805e54",
+        "outputTail": "rrain publishes an exact native paintable preset\n00:01 +0 -1: approved cardinal terrain publishes an exact native paintable preset [E]\n  shape.unknown at $.terrainLayout: Unknown property\n  package:avelune_converter_core/src/json_validation.dart 170:11  _validateShape\n  package:avelune_converter_core/src/models.dart 787:3            _readContract\n  package:avelune_converter_core/src/models.dart 209:7            new AssetCandidate.fromJson\n  test/support/original_asset_fixture.dart 133:27                 OriginalAssetFixture.terrainCandidate\n  test/approved_asset_library_test.dart 22:41                     main.<fn>\n  \n00:01 +0 -1: atlas-only provenance must point to the actual part image before IO\n00:02 +0 -2: atlas-only provenance must point to the actual part image before IO [E]\n  Expected: false\n    Actual: <true>\n  \n  package:matcher                              expect\n  test/approved_asset_library_test.dart 746:3  _blocked\n  test/approved_asset_library_test.dart 59:5   main.<fn>\n  \n00:02 +0 -2: Some tests failed.\n\nFailing tests:\n  test/approved_asset_library_test.dart: approved cardinal terrain publishes an exact native paintable preset\n  test/approved_asset_library_test.dart: atlas-only provenance must point to the actual part image before IO\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "test",
+          "test/asset_review_session_panel_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--plain-name",
+          "a path layout requires fresh approval and survives UI undo"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/apps/avelune_converter",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 18.083,
+        "runnerPid": 33804,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-ui-red-20261013-01.log",
+        "logSha256": "0ce3d51fc4301b4870cf532c865a67f82f7c2f14f456e836aa92912bc134466c",
+        "receiptPath": "/private/tmp/avelune-resources-ui-red-20261013-01.json",
+        "receiptSha256": "ad22e5e009760a2595201ad8eaad604d71813173a985176c3b20062d50aabd79",
+        "outputTail": "elune-resources-qualified-chfa6ekd/repository/apps/avelune_converter/test/asset_review_session_panel_test.dart:125:5)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/apps/avelune_converter/test/asset_review_session_panel_test.dart line 125\nThe test description was:\n  a path layout requires fresh approval and survives UI undo\n════════════════════════════════════════════════════════════════════════════════════════════════════\n00:04 +0 -1: a path layout requires fresh approval and survives UI undo [E]\n  Test failed. See exception logs above.\n  The test description was: a path layout requires fresh approval and survives UI undo\n  \n00:04 +0 -1: Some tests failed.\n\nFailing tests:\n  /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/apps/avelune_converter/test/asset_review_session_panel_test.dart: a path layout requires fresh approval and survives UI undo\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+          "test",
+          "test/asset_review_session_panel_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/apps/avelune_converter",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 15.648,
+        "runnerPid": 35154,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-ui-green-20261013-01.log",
+        "logSha256": "4caed57afbe9b20d86512587dc4894169407da10d5d74a0785e0b7ac60a4ed36",
+        "receiptPath": "/private/tmp/avelune-resources-ui-green-20261013-01.json",
+        "receiptSha256": "0b65882d3216376ea5e041b8894bc1e7e8da95b2503350a32732b1626af4886f",
+        "outputTail": "m source cells\n00:08 +9: AC-10 manual selection remains available without any detected proposal\n00:08 +10: AC-10 unavailable review locks all mutations and preserves its session\n00:08 +11: AC-10 adding cells requires explicit placement and expires approval\n00:08 +12: AC-10 removing a source cell preserves every other pixel and refuses empty objects\n00:09 +13: AC-10 category for multiple candidates requires explicit confirmation\n00:09 +14: AC-10 grouped review approves exact versions only after a counted confirmation\n00:09 +15: AC-10 source cells are not transferred to another review session\n00:10 +16: AC-10 adding overlapping destination cells refuses without changing the session\n00:10 +17: AC-10 imported replacement intention is labelled uncertified and cannot be approved\n00:10 +18: AC-10 operation fields block save and cannot be dismissed by the barrier\n00:10 +19: AC-10 narrow inspector preserves invalid fields when reopened\n00:11 +20: AC-10 unapplied fields block approval and candidate switching\n00:11 +21: AC-10 applying metadata retains an unrelated invalid geometry draft\n00:11 +22: AC-10 review at the app width with enlarged text retains the source viewport\n00:11 +23: AC-10 review at Size(1280.0, 800.0) retains a usable canvas and reachable inspector\n00:12 +24: AC-10 review at Size(1100.0, 720.0) retains a usable canvas and reachable inspector\n00:12 +25: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/approved_asset_library_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 1.753,
+        "runnerPid": 35690,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-library-green-20261013-01.log",
+        "logSha256": "b36c80af81f3ccf1ccb949e50bc3e21c2c83b04c511a6827f78bd15e9d5ddec4",
+        "receiptPath": "/private/tmp/avelune-resources-library-green-20261013-01.json",
+        "receiptSha256": "c57c8798ed012dd368a8507962055a79bca9a60ae4ac1736844bd18344ede742",
+        "outputTail": "00:00 +0: loading test/approved_asset_library_test.dart\n00:00 +0 -1: loading test/approved_asset_library_test.dart [E]\n  Failed to load \"test/approved_asset_library_test.dart\":\n  lib/src/native_terrain_brush.dart:157:13: Error: Cannot invoke a non-'const' constructor where a const expression is expected.\n  Try using a constructor or factory that is 'const'.\n        const ZLibCodec().decoder.startChunkedConversion(counter);\n              ^^^^^^^^^\n00:00 +0 -1: Some tests failed.\n\nFailing tests:\n  test/approved_asset_library_test.dart: loading test/approved_asset_library_test.dart\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/approved_asset_library_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 5.104,
+        "runnerPid": 40572,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-library-green-20261013-02.log",
+        "logSha256": "b18004b90299c0eb07fad2903ac90f0108cd99370a10973445f67dcbeeec9543",
+        "receiptPath": "/private/tmp/avelune-resources-library-green-20261013-02.json",
+        "receiptSha256": "30d9f2e9b44de4b01fd380cd30488244fafe7f307252b4654a612e3228d6cac9",
+        "outputTail": "ding\n00:02 +20: AST-04 exact reflected quarter turn 2 and native padding\n00:02 +21: AST-04 exact reflected quarter turn 3 and native padding\n00:02 +22: AST-04 pending refuses before source reading\n00:02 +23: AST-04 missingReceipt refuses before source reading\n00:02 +24: AST-04 staleReceipt refuses before source reading\n00:02 +25: AST-04 missingDecision refuses before source reading\n00:02 +26: AST-04 foreignSnapshot binding refuses before IO\n00:03 +27: AST-04 foreignNamespace binding refuses before IO\n00:03 +28: AST-04 replacePlacements binding refuses before IO\n00:03 +29: AST-04 animation binding refuses before IO\n00:03 +30: AST-04 staleSourceHash binding refuses before IO\n00:03 +31: AST-04 forgedLocator binding refuses before IO\n00:03 +32: AST-04 overlap binding refuses before IO\n00:03 +33: AST-04 mutated content fails exact inventory hash\n00:03 +34: AST-04 same revision mutation rejects the old candidate receipt\n00:03 +35: AST-04 pixels quota precedes source reads and collection copies\n00:03 +36: AST-04 output quota precedes source reads and collection copies\n00:03 +37: AST-04 entries quota precedes source reads and collection copies\n00:03 +38: AST-04 cancellation after asynchronous source read yields no output\n00:03 +39: AST-04 async inputs and nested evidence are immutable\n00:03 +40: AST-02 approved disjoint house exports exact independent RGBA\n00:03 +41: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/native_project_writer_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--name",
+          "approved terrain|reapproved tampered"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 4.552,
+        "runnerPid": 40684,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-writer-red-20261013-01.log",
+        "logSha256": "84097ae7461ab0fb89f66f681632ca9b901610fbd39d06a4b89bdc49b665b9c1",
+        "receiptPath": "/private/tmp/avelune-resources-writer-red-20261013-01.json",
+        "receiptSha256": "0a8a39b851aaad51cb5c90dbb313f4e0e84304a32e62afd0e80b4692e8c22460",
+        "outputTail": "00:00 +0: loading test/native_project_writer_test.dart\n00:00 +0: approved terrain is published and survives strict native reopening\n00:02 +0 -1: approved terrain is published and survives strict native reopening [E]\n  native.action.unsupported: Only image import, atlas animation upsert, map creation and native map save are admitted\n  package:avelune_converter_adapters/src/native_project_writer.dart 755:9  NativeProjectWriter.write\n  ===== asynchronous gap ===========================\n  test/native_project_writer_test.dart 245:21                              main.<fn>\n  \n00:02 +0 -1: a reapproved tampered terrain preset is refused before staging\n00:02 +1 -1: Some tests failed.\n\nFailing tests:\n  test/native_project_writer_test.dart: approved terrain is published and survives strict native reopening\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/native_project_writer_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--name",
+          "approved terrain|reapproved tampered"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 6.806,
+        "runnerPid": 40854,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-writer-green-20261013-01.log",
+        "logSha256": "8a806fc65039a431b9b50475b0d2845917ca4840fb15d437289f3116e163c3ee",
+        "receiptPath": "/private/tmp/avelune-resources-writer-green-20261013-01.json",
+        "receiptSha256": "c4a5794c8cb90d26e0559aa70577124543bc42071903354f31fa5e79ac350b0a",
+        "outputTail": "00:00 +0: loading test/native_project_writer_test.dart\n00:00 +0: approved terrain is published and survives strict native reopening\n00:04 +1: a reapproved tampered terrain preset is refused before staging\n00:04 +2: All tests passed!\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/converter_asset_workflow_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--plain-name",
+          "guided terrain review publishes a native paintable path through workflow"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 4.54,
+        "runnerPid": 40692,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-workflow-red-20261013-01.log",
+        "logSha256": "086fb8ec686336fb034eafdfa1d9256f952d3b02fc9b656a8fcc9e3902cda637",
+        "receiptPath": "/private/tmp/avelune-resources-workflow-red-20261013-01.json",
+        "receiptSha256": "ebaee82d573325d06238e391a2acc214f95d3805ec920ba3cc5b375d4a31611a",
+        "outputTail": "00:00 +0: loading test/converter_asset_workflow_test.dart\n00:00 +0: guided terrain review publishes a native paintable path through workflow\n00:02 +0 -1: guided terrain review publishes a native paintable path through workflow [E]\n  policy.targetAction at $.operations[16]: Action lacks an audited supported capability\n  package:avelune_converter_core/src/domain_validation.dart 17:5        _require\n  package:avelune_converter_core/src/admission.dart 181:7               admitPlan\n  package:avelune_converter_adapters/src/converter_workflow.dart 695:5  ConverterWorkflow.approvePrepared\n  test/converter_asset_workflow_test.dart 668:61                        _AssetWorkflow.approve\n  test/converter_asset_workflow_test.dart 57:54                         main.<fn>\n  \n00:02 +0 -1: Some tests failed.\n\nFailing tests:\n  test/converter_asset_workflow_test.dart: guided terrain review publishes a native paintable path through workflow\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/converter_asset_workflow_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1",
+          "--plain-name",
+          "guided terrain review publishes a native paintable path through workflow"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 1,
+        "timedOut": false,
+        "elapsedSeconds": 6.817,
+        "runnerPid": 40869,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-workflow-green-20261013-01.log",
+        "logSha256": "80ba01b91d1b40df2be8fd16359d6fcea5411c37dd0d8cc9ffb2c137e8937bb1",
+        "receiptPath": "/private/tmp/avelune-resources-workflow-green-20261013-01.json",
+        "receiptSha256": "b35b4622e7b955bc96c0b0dbd20694b94f56495542d0e36dc3c62dc177ea01ba",
+        "outputTail": "00:00 +0: loading test/converter_asset_workflow_test.dart\n00:00 +0: guided terrain review publishes a native paintable path through workflow\n00:04 +0 -1: guided terrain review publishes a native paintable path through workflow [E]\n  native.verify.policy: Read-only verification requires a project inside its explicit allowed parent.\n  package:avelune_converter_adapters/src/native_study_verifier.dart 48:7  NativeStudyVerifier.verify\n  test/converter_asset_workflow_test.dart 58:60                           main.<fn>\n  \n00:04 +0 -1: Some tests failed.\n\nFailing tests:\n  test/converter_asset_workflow_test.dart: guided terrain review publishes a native paintable path through workflow\n\nConsider enabling the flag chain-stack-traces to receive more detailed exceptions.\nFor example, 'dart test --chain-stack-traces'.\n"
+      },
+      {
+        "command": [
+          "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+          "test",
+          "test/converter_asset_workflow_test.dart",
+          "--reporter",
+          "expanded",
+          "--concurrency",
+          "1"
+        ],
+        "cwd": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-qualified-chfa6ekd/repository/packages/avelune_converter_adapters",
+        "exitCode": 0,
+        "timedOut": false,
+        "elapsedSeconds": 11.76,
+        "runnerPid": 41215,
+        "confirmedSurvivors": [],
+        "signals": [],
+        "protectedUnchanged": true,
+        "fileHashesBefore": {},
+        "fileHashesAfter": {},
+        "logPath": "/private/tmp/avelune-resources-workflow-green-20261013-02.log",
+        "logSha256": "407a181dc5b11eaf2956f98a5f0538daf654660d5cc0213832938bd0c60612ba",
+        "receiptPath": "/private/tmp/avelune-resources-workflow-green-20261013-02.json",
+        "receiptSha256": "cbc5894dc22e383a46946576ddeef498078f54fff50f88e9ec9c33b3f69f37e8",
+        "outputTail": "00:00 +0: loading test/converter_asset_workflow_test.dart\n00:00 +0: guided terrain review publishes a native paintable path through workflow\n00:04 +1: AC-10 initial preparation creates an exact durable review seed\n00:04 +2: AC-10 corrected geometry survives preparation and native readback\n00:06 +3: AC-10 metadata correction expires approval without losing the object\n00:06 +4: AC-10 union exports current children without historical decisions\n00:06 +5: AC-10 fresh source rejects a session with a different generation\n00:06 +6: AC-10 output mode changes retain corrections and reattest the seed mode\n00:07 +7: AC-10 a destination rename does not discard source-bound review\n00:07 +8: unreviewed proposals leave the literal draft unchanged\n00:07 +9: valid wider native budgets retain bounded local recognition\n00:07 +10: approved standalone objects enter the native library without changing maps\n00:08 +11: combined literal and witness pixels are refused before approval\n00:08 +12: disjoint mixed-priority groups require a fresh explicit standalone choice\n00:09 +13: keep literal is an explicit decision with no library consumption\n00:09 +14: editing a reviewed name or invalidating the UI revokes exact approval\n00:10 +15: All tests passed!\n"
+      }
+    ],
+    "globalParity": "PARTIAL; PMCP-085 exit 1, per-item transport certification incomplete",
+    "nativeStudyPublished": true,
+    "fullGameplayCertified": false,
+    "newPlacementCollisionCertified": false,
+    "newPlacementRuntimeOcclusionCertified": false,
+    "sourceScriptsExecuted": 0,
+    "aiCalls": 0,
+    "humanClickedResourceApproval": false,
+    "resourceReviewOrigin": "agent qualification under explicit user delegation",
+    "defaultSessionLimitsUnchanged": true,
+    "sessionSchemaVersion": "1.2",
+    "legacySessionVersionsRejected": [
+      "1.0",
+      "1.1"
+    ],
+    "finalCritique": {
+      "agent": "ac12_validation_design",
+      "frozenCodeVerdict": "PASS bounded; no new P1/P2 across 19 reviewed files",
+      "visibleStudioEvidenceReview": "PASS bounded: native Studio paint/erase and whole-tree placement verified; 11 SmartTile cells and one tree saved, closed and reloaded in a distinct process; original map preserved except explicit additions; 757 delivered files exactly match the closed Studio project. New-placement collision/runtime occlusion and full Kanto gameplay remain uncertified."
+    },
+    "postCommitReceipt": "/private/tmp/avelune-resources-local-commit-20261013-01.json"
   }
 }

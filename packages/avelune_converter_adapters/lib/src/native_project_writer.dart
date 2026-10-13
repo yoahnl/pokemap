@@ -486,7 +486,8 @@ final class NativeProjectWriter {
       _checkCancelled(cancellation);
       await _guardDestination(draft, parent);
       stagingRoot = stagingFactory == null
-          ? (await Directory(parent).createTemp('.avelune-converter-stage-')).path
+          ? (await Directory(parent).createTemp('.avelune-converter-stage-'))
+              .path
           : await stagingFactory!();
       _makePrivate(stagingRoot);
       projectPath = path.join(stagingRoot, draft.folderName);
@@ -957,8 +958,14 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       'map.save'
     }.contains(mutation.actionId);
     final library = draft.compositionEvidence.containsKey('assetLibrary') &&
-        const {'element_category.upsert', 'element.upsert', 'asset.import'}
-            .contains(mutation.actionId);
+        const {
+          'element_category.upsert',
+          'element.upsert',
+          'asset.import',
+          'smart_tile.atlas.upsert',
+          'smart_tile.material.upsert',
+          'smart_tile.preset.publish',
+        }.contains(mutation.actionId);
     final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
         const {
           'element_category.upsert',
@@ -1065,6 +1072,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final mediaAssets = <CinematicMediaAsset>[];
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
+  final smartTileAtlases = <ProjectSmartTileAtlas>[];
+  final smartTileMaterials = <ProjectSmartTileMaterial>[];
+  final smartTilePresets = <ProjectSmartTilePreset>[];
   final characters = <ProjectCharacterEntry>[];
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
@@ -1194,6 +1204,43 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Library elements require their exact preceding category and atlas');
         }
         elements.add(element);
+      case 'smart_tile.atlas.upsert':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {'atlas'});
+        final atlas = ProjectSmartTileAtlas.fromJson(
+            Map<String, dynamic>.from(parameters['atlas'] as Map));
+        if (smartTileAtlases.any((entry) => entry.id == atlas.id) ||
+            !tilesets.containsKey(atlas.tilesetId) ||
+            !_targetIds(mutation.targetEntityIds, {atlas.id})) {
+          throw const NativeWriteException('native.library.terrain_atlas',
+              'Terrain atlases require their unique approved identity and preceding image');
+        }
+        smartTileAtlases.add(atlas);
+      case 'smart_tile.material.upsert':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {'material'});
+        final material = ProjectSmartTileMaterial.fromJson(
+            Map<String, dynamic>.from(parameters['material'] as Map));
+        if (smartTileMaterials.any((entry) => entry.id == material.id) ||
+            !_targetIds(mutation.targetEntityIds, {material.id})) {
+          throw const NativeWriteException('native.library.terrain_material',
+              'Terrain materials require their unique approved identity');
+        }
+        smartTileMaterials.add(material);
+      case 'smart_tile.preset.publish':
+        _requireLibraryMutation(library, mutation);
+        _allowParameters(parameters, const {'preset'});
+        final preset = ProjectSmartTilePreset.fromJson(
+            Map<String, dynamic>.from(parameters['preset'] as Map));
+        if (smartTilePresets.any((entry) => entry.id == preset.id) ||
+            preset.status != SmartTilePresetStatus.published ||
+            !preset.allowedMaterialIds.every(
+                (id) => smartTileMaterials.any((entry) => entry.id == id)) ||
+            !_targetIds(mutation.targetEntityIds, {preset.id})) {
+          throw const NativeWriteException('native.library.terrain_preset',
+              'Terrain presets require their unique approved published identity and preceding materials');
+        }
+        smartTilePresets.add(preset);
       case 'characterStudio.character.create':
         semantics.requireOperation(mutation);
         final name = _string(parameters, 'name');
@@ -1467,6 +1514,10 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       tilesets: tilesetEntries,
       elements: elements,
       elementCategories: categories,
+      smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: smartTileAtlases,
+          materials: smartTileMaterials,
+          presets: smartTilePresets),
       characters: characters,
       pokemon: bootstrap.pokemon.copyWith(
           enabled: projectedEvents?.itemCatalog != null ||

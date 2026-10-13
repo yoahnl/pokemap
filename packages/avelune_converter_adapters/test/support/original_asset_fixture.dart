@@ -21,12 +21,19 @@ final class OriginalAssetFixture {
     bool reverseManifest = false,
     String? sourceRootPath,
     bool includeUnplacedAlphaIsland = false,
+    bool includeTerrainPixels = false,
   }) async {
     final pixels = Uint8List(width * height * 4);
     for (var y = 0; y < height; y++) {
       for (var x = 0; x < width; x++) {
-        final color =
-            includeUnplacedAlphaIsland && x < 64 && y >= 192 && y < 224
+        final color = includeTerrainPixels && x < 96 && y >= 96 && y < 192
+            ? [
+                x * 11 % 256,
+                (y - 96) * 7 % 256,
+                (x ~/ 16 * 29 + (y - 96) ~/ 16 * 17) % 256,
+                x % 7 == 0 ? 127 : 255,
+              ]
+            : includeUnplacedAlphaIsland && x < 64 && y >= 192 && y < 224
                 ? [101, 71, 31, x % 7 == 0 ? 127 : 255]
                 : _sourceColor(x, y);
         final offset = (y * width + x) * 4;
@@ -124,6 +131,44 @@ final class OriginalAssetFixture {
             _part('facade-b', 128, 224, 64, 32, 0, 64, 0, 0, 444, 8),
           ],
           outputMode: outputMode);
+
+  AssetCandidate terrainCandidate({
+    AssetOutputMode outputMode = AssetOutputMode.standaloneObjects,
+  }) {
+    final tree = treeCandidate(outputMode: outputMode);
+    final part = tree.parts.single;
+    return AssetCandidate.fromJson({
+      ...tree.toJson(),
+      'candidateId': 'original-asset:terrain',
+      'name': 'Chemin original contrôlé',
+      'category': 'terrain',
+      'terrainLayout': 'cardinal3x3',
+      'canvasSize': {'width': 96, 'height': 96},
+      'anchor': {
+        'unit': 'pixel',
+        'x': 48,
+        'y': 96,
+        'convention': 'bottomCenter'
+      },
+      'parts': [
+        {
+          ...part.toJson(),
+          'sourceRect': {'x': 0, 'y': 96, 'width': 96, 'height': 96},
+          'sourceLayer': null,
+          'sourcePriority': null,
+          'locator': {
+            'file': imagePath,
+            'mapId': null,
+            'eventId': null,
+            'pageIndex': null,
+            'commandIndex': null,
+            'tileId': null,
+            'line': null
+          }
+        }
+      ]
+    });
+  }
 
   AssetCandidate ambiguousCandidate({
     AssetOutputMode outputMode = AssetOutputMode.sharedAtlas,

@@ -129,6 +129,44 @@ void _validateDomain(ConverterDocument document) {
           'domain.approvalRevision',
           r'$.approvedRevision',
           'Approval must belong to the current approved revision');
+      if (document.terrainLayout == AssetTerrainLayout.cardinal3x3) {
+        _require(document.category == AssetCategory.terrain,
+            'domain.terrainLayout.category', r'$.category',
+            'An explicit terrain layout requires the terrain category');
+        _require(size.width == 96 && size.height == 96,
+            'domain.terrainLayout.canvas', r'$.canvasSize',
+            'Cardinal 3x3 layout requires a 96 by 96 pixel canvas');
+        final covered = <(int, int)>{};
+        for (var i = 0; i < document.parts.length; i++) {
+          final part = document.parts[i];
+          final rect = part.sourceRect;
+          final offset = part.destinationOffset;
+          final path = '\$.parts[$i]';
+          _require(
+              part.quarterTurns == 0 &&
+                  !part.reflected &&
+                  rect.x % 32 == 0 &&
+                  rect.y % 32 == 0 &&
+                  rect.width % 32 == 0 &&
+                  rect.height % 32 == 0 &&
+                  offset.x % 32 == 0 &&
+                  offset.y % 32 == 0,
+              'domain.terrainLayout.geometry', path,
+              'Terrain parts require untransformed source and destination rectangles aligned on 32 pixel cells');
+          _require(part.sourcePriority == null || part.sourcePriority == 0,
+              'domain.terrainLayout.priority', '$path.sourcePriority',
+              'Terrain layout cannot carry an occlusive source priority');
+          for (var y = offset.y; y < offset.y + rect.height; y += 32) {
+            for (var x = offset.x; x < offset.x + rect.width; x += 32) {
+              _require(covered.add((x ~/ 32, y ~/ 32)),
+                  'domain.terrainLayout.coverage', path,
+                  'Terrain cells must be covered exactly once');
+            }
+          }
+        }
+        _require(covered.length == 9, 'domain.terrainLayout.coverage',
+            r'$.parts', 'Terrain layout requires all nine cells');
+      }
     case ReviewDecisions():
       _unique(document.decisions.map((d) => d.decisionId), r'$.decisions');
       for (var i = 0; i < document.decisions.length; i++) {

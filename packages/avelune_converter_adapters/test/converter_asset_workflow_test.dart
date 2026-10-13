@@ -13,6 +13,57 @@ void main() {
   setUp(() async => harness = await _AssetWorkflow.create());
   tearDown(() async => harness.close());
 
+  test(
+      'guided terrain review publishes a native paintable path through workflow',
+      () async {
+    await harness.close();
+    harness = await _AssetWorkflow.create(includeTerrainPixels: true);
+    final initial =
+        await harness.prepare(mode: AssetOutputMode.standaloneObjects);
+    var session = harness.seed(initial);
+    final source = initial.assetProposals!.sourceImages.single;
+    final original = harness.fixture.terrainCandidate();
+    final manual = AssetCandidate.fromJson({
+      ...original.toJson(),
+      'logicalProjectNamespace': session.logicalProjectNamespace.value,
+      'sourceSnapshotHash': session.sourceSnapshotHash.value,
+      'terrainLayout': null,
+      'sources': [source.toJson()],
+      'parts': [
+        for (final part in original.parts)
+          {...part.toJson(), 'sourceFileId': source.fileId.value}
+      ]
+    });
+    session = session.createManualCandidate(
+        candidate: manual, expectedSessionHash: session.canonicalHash);
+    session = session.configureTerrainLayout(
+        candidateId: manual.candidateId,
+        expectedCandidateHash: manual.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        layout: AssetTerrainLayout.cardinal3x3);
+    final current = session.activeCandidates.singleWhere(
+        (candidate) => candidate.candidateId == manual.candidateId);
+    session = session.decide(
+        candidateId: current.candidateId,
+        expectedCandidateHash: current.canonicalHash,
+        expectedSessionHash: session.canonicalHash,
+        action: ReviewAction.approve,
+        humanConfirmed: true);
+    final prepared = await harness.prepare(
+        mode: AssetOutputMode.standaloneObjects,
+        session: AssetReviewSession.fromJson(session.toJson()));
+    expect(prepared.canApprove, isTrue);
+    expect(prepared.nativeDraft!.mutations.map((entry) => entry.actionId),
+        contains('smart_tile.preset.publish'));
+    final result =
+        await harness.workflow.writeApproved(harness.approve(prepared));
+    final verification = await const NativeStudyVerifier().verify(
+        projectPath: result.projectPath,
+        allowedParentPath: await harness.output.resolveSymbolicLinks());
+    expect(verification.nativeRevision, result.publication.nativeRevision);
+    await harness.expectSourceUnchanged();
+  });
+
   test('AC-10 initial preparation creates an exact durable review seed',
       () async {
     final prepared = await harness.prepare();
@@ -491,11 +542,13 @@ final class _AssetWorkflow {
   final ConverterWorkflow workflow;
   final List<NativeWriteStage> stages;
 
-  static Future<_AssetWorkflow> create() async {
+  static Future<_AssetWorkflow> create(
+      {bool includeTerrainPixels = false}) async {
     final root =
         await Directory.systemTemp.createTemp('ac08-original-workflow-');
     final output = await Directory('${root.path}/output').create();
     final fixture = await OriginalAssetFixture.create(
+        includeTerrainPixels: includeTerrainPixels,
         sourceRootPath: '${root.path}/source');
     final stages = <NativeWriteStage>[];
     final workflow = ConverterWorkflow(

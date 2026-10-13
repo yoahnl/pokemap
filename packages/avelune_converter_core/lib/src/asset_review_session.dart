@@ -253,8 +253,10 @@ final class AssetReviewFrame {
       required this.outputMode,
       required Map<ConverterId, ReviewDecision> decisions,
       required Map<ConverterId, Sha256Hash> approvedCandidateHashes,
-      required Map<ConverterId, List<SourcePlacementClaim>> placementClaims})
+      required Map<ConverterId, List<SourcePlacementClaim>> placementClaims,
+      required ContractLimits jsonLimits})
       : candidates = List.unmodifiable(candidates),
+        _jsonLimits = jsonLimits,
         visionProposals = List.unmodifiable(visionProposals),
         decisions = Map.unmodifiable(decisions),
         approvedCandidateHashes = Map.unmodifiable(approvedCandidateHashes),
@@ -268,6 +270,14 @@ final class AssetReviewFrame {
   final Map<ConverterId, ReviewDecision> decisions;
   final Map<ConverterId, Sha256Hash> approvedCandidateHashes;
   final Map<ConverterId, List<SourcePlacementClaim>> placementClaims;
+  final ContractLimits _jsonLimits;
+  late final Map<ConverterId, Sha256Hash> _placementClaimHashes =
+      Map.unmodifiable({
+    for (final entry in placementClaims.entries)
+      entry.key: canonicalHashOf(
+          entry.value.map((claim) => claim.toJson()).toList(),
+          limits: _jsonLimits)
+  });
 
   Map<String, Object?> _json() => {
         'candidateHashes':
@@ -282,12 +292,12 @@ final class AssetReviewFrame {
           for (final entry in approvedCandidateHashes.entries)
             entry.key.value: entry.value.value
         },
-        'placementClaims': {
-          for (final entry in placementClaims.entries)
-            entry.key.value: entry.value.map((claim) => claim.toJson()).toList()
+        'placementClaimHashes': {
+          for (final entry in _placementClaimHashes.entries)
+            entry.key.value: entry.value.value
         },
       };
-  Sha256Hash get canonicalHash => canonicalHashOf(_json());
+  Sha256Hash get canonicalHash => canonicalHashOf(_json(), limits: _jsonLimits);
 }
 
 final class AssetReviewSession {
@@ -341,6 +351,7 @@ final class AssetReviewSession {
       },
       frames: [
         AssetReviewFrame._(
+            jsonLimits: limits.jsonLimits,
             candidates: candidates,
             visionProposals: const [],
             outputMode: outputMode,
@@ -360,6 +371,10 @@ final class AssetReviewSession {
       {AssetReviewLimits limits = const AssetReviewLimits()}) {
     limits._validate();
     final json = _reviewObject(_freezeJson(input, limits.jsonLimits));
+    _reviewRequire(
+        json['schemaVersion'] == '1.2' && json['kind'] == 'assetReviewSession',
+        'review.document.version',
+        'Unsupported review document');
     _reviewKeys(json, const {
       'schemaVersion',
       'kind',
@@ -371,14 +386,11 @@ final class AssetReviewSession {
       'proposalGenerationHash',
       'baseProposalHashes',
       'candidateVersions',
+      'placementClaimLists',
       'frames',
       'cursor',
       'revision'
     });
-    _reviewRequire(
-        json['schemaVersion'] == '1.1' && json['kind'] == 'assetReviewSession',
-        'review.document.version',
-        'Unsupported review document');
     final sessionId = ConverterId(_reviewString(json['sessionId']));
     final snapshot = Sha256Hash(_reviewString(json['sourceSnapshotHash']));
     final versionsJson = _reviewObject(json['candidateVersions']);
@@ -404,8 +416,25 @@ final class AssetReviewSession {
           'Candidate version content does not match its hash');
       versions[hash] = candidate;
     }
-    final frames = <AssetReviewFrame>[];
+    final claimLists = <Sha256Hash, List<SourcePlacementClaim>>{};
     var claimsCount = 0;
+    for (final entry in _reviewObject(json['placementClaimLists']).entries) {
+      final hash = Sha256Hash(entry.key);
+      final values = _reviewList(entry.value);
+      claimsCount += values.length;
+      _reviewRequire(claimsCount <= limits.maxTotalClaims,
+          'review.claims.quota', 'Unique placement claim list budget exceeded');
+      final claims = values.map(SourcePlacementClaim.fromJson).toList();
+      _reviewRequire(
+          canonicalHashOf(claims.map((claim) => claim.toJson()).toList(),
+                  limits: limits.jsonLimits) ==
+              hash,
+          'review.claimList.hash',
+          'Placement claim list content does not match its hash');
+      claimLists[hash] = claims;
+    }
+    final frames = <AssetReviewFrame>[];
+    final referencedClaimLists = <Sha256Hash>{};
     var decisionsCount = 0;
     for (final raw in framesJson) {
       final value = _reviewObject(raw);
@@ -415,19 +444,15 @@ final class AssetReviewSession {
         'outputMode',
         'decisions',
         'approvedCandidateHashes',
-        'placementClaims'
+        'placementClaimHashes'
       });
       final hashes = _reviewList(value['candidateHashes']);
       final decisionsJson = _reviewList(value['decisions']);
-      final claimsJson = _reviewObject(value['placementClaims']);
+      final claimHashes = _reviewHashMap(value['placementClaimHashes']);
       decisionsCount += decisionsJson.length;
-      for (final list in claimsJson.values) {
-        claimsCount += _reviewList(list).length;
-      }
       _reviewRequire(
           hashes.length <= limits.maxCandidates &&
-              decisionsCount <= limits.maxTotalDecisions &&
-              claimsCount <= limits.maxTotalClaims,
+              decisionsCount <= limits.maxTotalDecisions,
           'review.history.quota',
           'Review history budget exceeded');
       final candidates = <AssetCandidate>[];
@@ -448,7 +473,16 @@ final class AssetReviewSession {
       }, limits: limits.jsonLimits)
           .decisions;
       _unique(decisions.map((d) => d.candidateId), r'$.frame.decisions');
+      final placementClaims = <ConverterId, List<SourcePlacementClaim>>{};
+      for (final entry in claimHashes.entries) {
+        final claims = claimLists[entry.value];
+        _reviewRequire(claims != null, 'review.claimList.reference',
+            'Frame references an unknown placement claim list');
+        referencedClaimLists.add(entry.value);
+        placementClaims[entry.key] = claims!;
+      }
       frames.add(AssetReviewFrame._(
+        jsonLimits: limits.jsonLimits,
         candidates: candidates,
         visionProposals: _reviewList(value['visionProposals'])
             .map(VisionReviewProposal._fromJson)
@@ -457,14 +491,13 @@ final class AssetReviewSession {
         decisions: {for (final d in decisions) d.candidateId: d},
         approvedCandidateHashes:
             _reviewHashMap(value['approvedCandidateHashes']),
-        placementClaims: {
-          for (final entry in claimsJson.entries)
-            ConverterId(entry.key): _reviewList(entry.value)
-                .map(SourcePlacementClaim.fromJson)
-                .toList()
-        },
+        placementClaims: placementClaims,
       ));
     }
+    _reviewRequire(
+        referencedClaimLists.length == claimLists.length,
+        'review.claimList.unreferenced',
+        'Document contains unreferenced placement claim lists');
     final document = AssetReviewSession._(
       sessionId: sessionId,
       logicalProjectNamespace:
@@ -555,28 +588,39 @@ final class AssetReviewSession {
     ]);
   }
 
-  Map<String, Object?> _json() => {
-        'schemaVersion': '1.1',
-        'kind': 'assetReviewSession',
-        'sessionId': sessionId.value,
-        'logicalProjectNamespace': logicalProjectNamespace.value,
-        'sourceSnapshotHash': sourceSnapshotHash.value,
-        'selectedSourceMapIds': selectedSourceMapIds,
-        'outputMode': outputMode.name,
-        'proposalGenerationHash': proposalGenerationHash.value,
-        'baseProposalHashes': {
-          for (final entry in baseProposalHashes.entries)
-            entry.key.value: entry.value.value
-        },
-        'candidateVersions': {
-          for (final frame in frames)
-            for (final candidate in frame.candidates)
-              candidate.canonicalHash.value: candidate.toJson()
-        },
-        'frames': frames.map((frame) => frame._json()).toList(),
-        'cursor': cursor,
-        'revision': revision,
-      };
+  Map<String, Object?> _json() {
+    final claimLists = <String, Object?>{};
+    for (final frame in frames) {
+      for (final entry in frame.placementClaims.entries) {
+        claimLists.putIfAbsent(frame._placementClaimHashes[entry.key]!.value,
+            () => entry.value.map((claim) => claim.toJson()).toList());
+      }
+    }
+    return {
+      'schemaVersion': '1.2',
+      'kind': 'assetReviewSession',
+      'sessionId': sessionId.value,
+      'logicalProjectNamespace': logicalProjectNamespace.value,
+      'sourceSnapshotHash': sourceSnapshotHash.value,
+      'selectedSourceMapIds': selectedSourceMapIds,
+      'outputMode': outputMode.name,
+      'proposalGenerationHash': proposalGenerationHash.value,
+      'baseProposalHashes': {
+        for (final entry in baseProposalHashes.entries)
+          entry.key.value: entry.value.value
+      },
+      'candidateVersions': {
+        for (final frame in frames)
+          for (final candidate in frame.candidates)
+            candidate.canonicalHash.value: candidate.toJson()
+      },
+      'placementClaimLists': claimLists,
+      'frames': frames.map((frame) => frame._json()).toList(),
+      'cursor': cursor,
+      'revision': revision,
+    };
+  }
+
   Map<String, Object?> toJson() =>
       _reviewObject(_freezeJson(_json(), limits.jsonLimits));
   late final Sha256Hash canonicalHash =
@@ -604,6 +648,7 @@ final class AssetReviewSession {
     final knownCandidates = <Sha256Hash, AssetCandidate>{};
     var partCount = 0;
     var claimCount = 0;
+    final claimLists = <Sha256Hash>{};
     var decisionCount = 0;
     for (final frame in frames) {
       _reviewRequire(frame.candidates.length <= limits.maxCandidates,
@@ -702,11 +747,16 @@ final class AssetReviewSession {
             'Human decision does not match the candidate state');
       }
       for (final entry in frame.placementClaims.entries) {
-        claimCount += entry.value.length;
-        _reviewRequire(claimCount <= limits.maxTotalClaims,
-            'review.claims.quota', 'Placement claim history budget exceeded');
-        _unique(entry.value.map((claim) => (claim.partId, claim.placementKey)),
-            r'$.frame.placementClaims');
+        if (claimLists.add(frame._placementClaimHashes[entry.key]!)) {
+          claimCount += entry.value.length;
+          _reviewRequire(
+              claimCount <= limits.maxTotalClaims,
+              'review.claims.quota',
+              'Unique placement claim list budget exceeded');
+          _unique(
+              entry.value.map((claim) => (claim.partId, claim.placementKey)),
+              r'$.frame.placementClaims');
+        }
         for (final claim in entry.value) {
           claim._validateCandidate(candidates[entry.key]!);
         }
@@ -794,6 +844,7 @@ final class AssetReviewSession {
     final next = _changed(candidate, {
       'name': _reviewName(suggestion.proposedName),
       'category': suggestion.category.name,
+      'terrainLayout': null,
       'evidence': [
         ...candidate.evidence.map((e) => e.toJson()),
         {
@@ -840,6 +891,7 @@ final class AssetReviewSession {
   AssetReviewSession _withVisionProposals(
           List<VisionReviewProposal> proposals) =>
       _append(AssetReviewFrame._(
+        jsonLimits: limits.jsonLimits,
         candidates: frame.candidates,
         visionProposals: proposals,
         outputMode: outputMode,
@@ -934,6 +986,7 @@ final class AssetReviewSession {
       placementClaims[candidate.candidateId] = claims;
     }
     return _append(AssetReviewFrame._(
+      jsonLimits: limits.jsonLimits,
       candidates: [
         for (final old in frame.candidates)
           old.candidateId == candidate.candidateId ? candidate : old
@@ -999,8 +1052,28 @@ final class AssetReviewSession {
     }
     _canAppend();
     return _replace(
-        _changed(candidate, {'name': nextName, 'category': nextCategory.name}),
+        _changed(candidate, {
+          'name': nextName,
+          'category': nextCategory.name,
+          'terrainLayout': null,
+        }),
         name != null ? ReviewAction.rename : ReviewAction.reclassify);
+  }
+
+  AssetReviewSession configureTerrainLayout(
+      {required ConverterId candidateId,
+      required Sha256Hash expectedCandidateHash,
+      required Sha256Hash expectedSessionHash,
+      required AssetTerrainLayout? layout}) {
+    _expect(expectedSessionHash);
+    final candidate = _candidate(candidateId, expectedCandidateHash);
+    _canAppend();
+    return _replace(
+        _changed(candidate, {
+          'terrainLayout': layout?.name,
+          if (layout != null) 'category': AssetCategory.terrain.name,
+        }),
+        ReviewAction.changeGeometry);
   }
 
   AssetReviewSession changeGeometry(
@@ -1011,7 +1084,10 @@ final class AssetReviewSession {
     _expect(expectedSessionHash);
     final candidate = _candidate(candidateId, expectedCandidateHash);
     _canAppend();
-    final next = _changed(candidate, geometry._fields());
+    final next = _changed(candidate, {
+      ...geometry._fields(),
+      'terrainLayout': null,
+    });
     final previousParts = {for (final p in candidate.parts) p.partId: p};
     final nextParts = {for (final p in next.parts) p.partId: p};
     final claims = <SourcePlacementClaim>[];
@@ -1085,6 +1161,7 @@ final class AssetReviewSession {
         'Manual proposal must be a new unapproved library candidate');
     _validateReviewClaims(candidate, placementClaims, sourceMaps);
     return _append(AssetReviewFrame._(
+        jsonLimits: limits.jsonLimits,
         candidates: [...frame.candidates, candidate],
         visionProposals: frame.visionProposals,
         outputMode: outputMode,
@@ -1125,6 +1202,7 @@ final class AssetReviewSession {
           replacements: old?.replacementCandidateIds ?? const []);
     }
     return _append(AssetReviewFrame._(
+        jsonLimits: limits.jsonLimits,
         candidates: candidates,
         visionProposals: frame.visionProposals,
         outputMode: outputMode,
@@ -1353,6 +1431,7 @@ final class AssetReviewSession {
         'state': 'needsReview',
         'approvedRevision': null,
         'integrationMode': 'libraryOnly',
+        'terrainLayout': null,
         'sources': sources,
         'parts': parts,
         'canvasSize': {'width': width, 'height': height},
@@ -1398,6 +1477,7 @@ final class AssetReviewSession {
     }
     candidates.addAll(children);
     return _append(AssetReviewFrame._(
+        jsonLimits: limits.jsonLimits,
         candidates: candidates,
         visionProposals: frame.visionProposals,
         outputMode: outputMode,

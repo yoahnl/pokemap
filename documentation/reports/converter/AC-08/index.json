@@ -863,5 +863,323 @@
     "reportDivergencesOpen": 0,
     "qaReceiptSha256": "fc649906c01b652647e1c2a35c09a9a896e76a1250afe6536ddd7c836781c25a",
     "parityReceiptSha256": "78949859ec79db17ff6b93bc2238235a6cd1e35dce718c39570bfdb83ad34f6b"
+  },
+  "resourceComplement20261013": {
+    "date": "2026-10-13",
+    "scope": "Approved cardinal3x3 native path brush and whole-object resources; exact RGBA, canonical authoring and real Studio save/close/fresh-process reopen",
+    "status": "verified_pending_scoped_commit",
+    "baseHead": "00abd266a39094679ccf257d944f525bd2be9bf3",
+    "branch": "main",
+    "initialGit": {
+      "dirtyPathCount": 61,
+      "ownedPathCount": 19,
+      "foreignPathCount": 42,
+      "indexEmpty": true,
+      "guard": "/private/tmp/avelune-resources-final-turn-before-20261013-01.json"
+    },
+    "qualificationSnapshot": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-resources-final-1gb3qu5p/repository",
+    "sourceAndTestFiles": [
+      {
+        "path": "packages/avelune_converter_core/lib/src/models.dart",
+        "sha256": "a33a216f86da7c2da95ec30e7d9edc310e44cb63aa5d0c9a4d36759b6be43ef6",
+        "lineCount": 806,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -49,0 +50,2 @@ enum AssetOutputMode { sharedAtlas, standaloneObjects, packedObjects }",
+          "@@ -248,0 +251,4 @@ final class AssetCandidate extends ConverterDocument {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/schema_catalog.dart",
+        "sha256": "0e49561d1545a9f10610bb47f1d9c1ca65a1710033616e7fe19b440a237da487",
+        "lineCount": 6,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -4 +4 @@ final Map<String, Object?> _contractSchemas = (jsonDecode("
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/domain_validation.dart",
+        "sha256": "0c877515efaac0e3c2a124d6da0d7e4961a1b7f08520c75ba2dc214495cbb537",
+        "lineCount": 336,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -131,0 +132,38 @@ void _validateDomain(ConverterDocument document) {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/lib/src/asset_review_session.dart",
+        "sha256": "66260a1686cca732eb899502d31851976cbe08e026f682ddbf85be58565cc85b",
+        "lineCount": 1574,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -256 +256,2 @@ final class AssetReviewFrame {",
+          "@@ -257,0 +259 @@ final class AssetReviewFrame {",
+          "@@ -270,0 +273,8 @@ final class AssetReviewFrame {",
+          "@@ -285,3 +295,3 @@ final class AssetReviewFrame {",
+          "@@ -290 +300 @@ final class AssetReviewFrame {",
+          "@@ -343,0 +354 @@ final class AssetReviewSession {",
+          "@@ -362,0 +374,4 @@ final class AssetReviewSession {",
+          "@@ -373,0 +389 @@ final class AssetReviewSession {",
+          "@@ -378,4 +393,0 @@ final class AssetReviewSession {",
+          "@@ -407 +419 @@ final class AssetReviewSession {",
+          "@@ -408,0 +421,17 @@ final class AssetReviewSession {",
+          "@@ -418 +447 @@ final class AssetReviewSession {",
+          "@@ -422 +451 @@ final class AssetReviewSession {",
+          "@@ -424,3 +452,0 @@ final class AssetReviewSession {",
+          "@@ -429,2 +455 @@ final class AssetReviewSession {",
+          "@@ -450,0 +476,8 @@ final class AssetReviewSession {",
+          "@@ -451,0 +485 @@ final class AssetReviewSession {",
+          "@@ -460,6 +494 @@ final class AssetReviewSession {",
+          "@@ -467,0 +497,4 @@ final class AssetReviewSession {",
+          "@@ -558,22 +591,33 @@ final class AssetReviewSession {",
+          "@@ -606,0 +651 @@ final class AssetReviewSession {",
+          "@@ -705,5 +750,10 @@ final class AssetReviewSession {",
+          "@@ -796,0 +847 @@ final class AssetReviewSession {",
+          "@@ -842,0 +894 @@ final class AssetReviewSession {",
+          "@@ -936,0 +989 @@ final class AssetReviewSession {",
+          "@@ -1002 +1055,5 @@ final class AssetReviewSession {",
+          "@@ -1005,0 +1063,16 @@ final class AssetReviewSession {",
+          "@@ -1014 +1087,4 @@ final class AssetReviewSession {",
+          "@@ -1087,0 +1164 @@ final class AssetReviewSession {",
+          "@@ -1127,0 +1205 @@ final class AssetReviewSession {",
+          "@@ -1355,0 +1434 @@ final class AssetReviewSession {",
+          "@@ -1400,0 +1480 @@ final class AssetReviewSession {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/terrain_layout_review_test.dart",
+        "sha256": "3069d8e257c2f304990de1db50528a1ae21d89bb0195336ba00f6f9babbc87b4",
+        "lineCount": 359,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/native_terrain_brush.dart",
+        "sha256": "388c6b966dad85a49d1eff7e28fa9a0939e5f2f942c2675013ed1983b857cb22",
+        "lineCount": 216,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_terrain_brush_test.dart",
+        "sha256": "4354576b422676e37cd0980a576f35b9632af1cc37f39f1d6b07752b57d0f31c",
+        "lineCount": 306,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/approved_asset_library.dart",
+        "sha256": "a7bda0d0a4a3856bb07f14a3b8f7c404853719a02266502342e0cdaef663c86f",
+        "lineCount": 894,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -10,0 +11 @@ import 'native_project_writer.dart';",
+          "@@ -107,0 +109,7 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -339,0 +348,13 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -341 +362 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -404,0 +426,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -408,3 +431 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -412,2 +432,0 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -433,0 +453,20 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -489,0 +529,14 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -524,3 +576,0 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -528 +578,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -530 +581,2 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -584,0 +637,19 @@ final class ApprovedAssetLibraryComposer {",
+          "@@ -650 +721,8 @@ bool _locatorMatches(NormalizedSourceProject source, AssetPart part,"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/approved_asset_library_test.dart",
+        "sha256": "e3d1dcb6e017b6d6035b8e1dc364d838b766b2d3bff21c97c476f2541986affe",
+        "lineCount": 832,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -18,0 +19,55 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_project_writer_test.dart",
+        "sha256": "9b26170dc8747c5b01476dd8b43a5efda66f527684b4cd4ae9fb66ce2d552a0c",
+        "lineCount": 1717,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -119,0 +120 @@ void main() {",
+          "@@ -132 +133 @@ void main() {",
+          "@@ -194 +195,2 @@ void main() {",
+          "@@ -201,0 +204 @@ void main() {",
+          "@@ -238,0 +242,62 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart",
+        "sha256": "f9191ee7ac40a9459eb8302e28b1917044973c44a90f87e7fcef08a553376a82",
+        "lineCount": 690,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -15,0 +16,51 @@ void main() {",
+          "@@ -494 +545,2 @@ final class _AssetWorkflow {",
+          "@@ -498,0 +551 @@ final class _AssetWorkflow {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/support/original_asset_fixture.dart",
+        "sha256": "53c3ac4627346c2d4bda61c2a4d739510f6611f7782113fe65007168ec92229e",
+        "lineCount": 335,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -23,0 +24 @@ final class OriginalAssetFixture {",
+          "@@ -28,2 +29,8 @@ final class OriginalAssetFixture {",
+          "@@ -127,0 +135,38 @@ final class OriginalAssetFixture {"
+        ]
+      },
+      {
+        "path": "apps/avelune_converter/lib/asset_review_panel.dart",
+        "sha256": "4dc2c29a9d0310065dfa3265d394b7d6c961067d4d3b953da565a051e7a12889",
+        "lineCount": 2143,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -1475,0 +1476,31 @@ class _ConverterAssetReviewPanelState extends State<ConverterAssetReviewPanel> {"
+        ]
+      },
+      {
+        "path": "apps/avelune_converter/test/asset_review_session_panel_test.dart",
+        "sha256": "15640acb5f4997c9a1c3933e392cfff736968352d448e03f0c5a0d45e20554d7",
+        "lineCount": 897,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -107,0 +108,36 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/native_project_writer.dart",
+        "sha256": "1dd46840099343b8548dd30732c24415c5de14f38eaf68b92ba913f6c8a8a5d7",
+        "lineCount": 2940,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -489 +489,2 @@ final class NativeProjectWriter {",
+          "@@ -960,2 +961,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1067,0 +1075,3 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1196,0 +1207,37 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(",
+          "@@ -1469,0 +1517,4 @@ Future<_PreparedNativeDraft> _prepareNativeDraft("
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/lib/src/converter_workflow.dart",
+        "sha256": "b92866f870a05d7596029ebe15175f59302f0cf1a8417822363c1a0854ec9f98",
+        "lineCount": 2265,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -1953,0 +1954,3 @@ const _nativeStudyActions = ["
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_adapters/test/native_terrain_authoring_test.dart",
+        "sha256": "71882f0e9f917f0e6e651cebc27e00ca1fe3cbc8e5f84dafadacd6631875a2ec",
+        "lineCount": 513,
+        "snapshotEqual": true,
+        "hunks": [
+          "new file; complete content reviewed"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/asset_review_session_test.dart",
+        "sha256": "12d77d2589c3a6cf663cd05066786ff4a4ab6554f134cc327fa68cb35dcce1f5",
+        "lineCount": 1290,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -130,0 +131,67 @@ AssetReviewSession decide(AssetReviewSession value, String id,",
+          "@@ -538,0 +606,337 @@ void main() {"
+        ]
+      },
+      {
+        "path": "packages/avelune_converter_core/test/vision_assistance_test.dart",
+        "sha256": "d42f3c5a9496700931d9bdde521432dea42d7e18a458116903a51f7383ceace5",
+        "lineCount": 508,
+        "snapshotEqual": true,
+        "hunks": [
+          "@@ -375 +375 @@ void main() {",
+          "@@ -377,5 +377,7 @@ void main() {"
+        ]
+      }
+    ],
+    "expectedScopedCommitPaths": [
+      "packages/avelune_converter_core/lib/src/models.dart",
+      "packages/avelune_converter_core/lib/src/schema_catalog.dart",
+      "packages/avelune_converter_core/lib/src/domain_validation.dart",
+      "packages/avelune_converter_core/lib/src/asset_review_session.dart",
+      "packages/avelune_converter_core/test/terrain_layout_review_test.dart",
+      "packages/avelune_converter_adapters/lib/src/native_terrain_brush.dart",
+      "packages/avelune_converter_adapters/test/native_terrain_brush_test.dart",
+      "packages/avelune_converter_adapters/lib/src/approved_asset_library.dart",
+      "packages/avelune_converter_adapters/test/approved_asset_library_test.dart",
+      "packages/avelune_converter_adapters/test/native_project_writer_test.dart",
+      "packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart",
+      "packages/avelune_converter_adapters/test/support/original_asset_fixture.dart",
+      "apps/avelune_converter/lib/asset_review_panel.dart",
+      "apps/avelune_converter/test/asset_review_session_panel_test.dart",
+      "packages/avelune_converter_adapters/lib/src/native_project_writer.dart",
+      "packages/avelune_converter_adapters/lib/src/converter_workflow.dart",
+      "packages/avelune_converter_adapters/test/native_terrain_authoring_test.dart",
+      "packages/avelune_converter_core/test/asset_review_session_test.dart",
+      "packages/avelune_converter_core/test/vision_assistance_test.dart",
+      "documentation/reports/converter/AC-08/08_local_assets.md",
+      "documentation/reports/converter/AC-08/commands.json",
+      "documentation/reports/converter/AC-08/index.json"
+    ],
+    "externalEvidenceReferences": [
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/qualification.json",
+        "sha256": "7019477ffc8863d0b9b72f6dae2c5e72401cc3669183951cafb0e1dfa699049e"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/final-review-persistence.json",
+        "sha256": "fed9995c64c07c588fc212eeb67798f0961a71681ff8e4109ca37b9dde42f467"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-mcp-r2.json",
+        "sha256": "e6709b9a7d132aeb7f2d79652cb1d036ab83d2379620f45425db56853d505de0"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/native-resource-studio.json",
+        "sha256": "600bb1d09b4c7ef10400c4464183d4171e1990639eeed23b6297cc18661733b3"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/studio-resource-delivery.json",
+        "sha256": "5e188cf3072205972995d846cfbf1c3afc799a90486afb41a3a3dd1f95d79b24"
+      },
+      {
+        "path": "/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence/studio-resource-captures/studio-reopened.png",
+        "sha256": "c957ee8d8d8b301b8cc8eda415cd5758ca7a7a44749430b7c3ae7c1243be750a"
+      }
+    ],
+    "globalParity": "PARTIAL; PMCP-085 exit 1, per-item transport certification incomplete",
+    "nativeStudyPublished": true,
+    "fullGameplayCertified": false,
+    "newPlacementCollisionCertified": false,
+    "newPlacementRuntimeOcclusionCertified": false,
+    "sourceScriptsExecuted": 0,
+    "aiCalls": 0,
+    "humanClickedResourceApproval": false,
+    "resourceReviewOrigin": "agent qualification under explicit user delegation",
+    "defaultSessionLimitsUnchanged": true,
+    "sessionSchemaVersion": "1.2",
+    "legacySessionVersionsRejected": [
+      "1.0",
+      "1.1"
+    ],
+    "finalCritique": {
+      "agent": "ac12_validation_design",
+      "frozenCodeVerdict": "PASS bounded; no new P1/P2 across 19 reviewed files",
+      "visibleStudioEvidenceReview": "PASS bounded: native Studio paint/erase and whole-tree placement verified; 11 SmartTile cells and one tree saved, closed and reloaded in a distinct process; original map preserved except explicit additions; 757 delivered files exactly match the closed Studio project. New-placement collision/runtime occlusion and full Kanto gameplay remain uncertified."
+    },
+    "postCommitReceipt": "/private/tmp/avelune-resources-local-commit-20261013-01.json"
   }
 }

@@ -105,6 +105,42 @@ void main() {
     (candidate) => candidate.candidateId == fixture.treeCandidate().candidateId,
   );
 
+  testWidgets('a path layout requires fresh approval and survives UI undo',
+      (tester) async {
+    final terrain = AssetCandidate.fromJson({
+      ...fixture.terrainCandidate().toJson(),
+      'terrainLayout': null,
+      'category': 'unclassified'
+    });
+    session = AssetReviewSession.create(
+        sessionId: ConverterId('ui-terrain-review'),
+        logicalProjectNamespace: terrain.logicalProjectNamespace,
+        sourceSnapshotHash: terrain.sourceSnapshotHash,
+        selectedSourceMapIds: const [1],
+        outputMode: terrain.outputMode,
+        proposalGenerationHash: canonicalHashOf('ui-terrain-generation'),
+        candidates: [terrain]);
+    await pump(tester, scrollable: true);
+    final selector = find.byKey(const ValueKey('asset-terrain-layout'));
+    expect(selector, findsOneWidget);
+    await tap(tester, selector);
+    await tap(tester, find.text('Chemin raccordé — grille 3 × 3').last);
+    final current = session.activeCandidates.single;
+    expect(current.terrainLayout, AssetTerrainLayout.cardinal3x3);
+    expect(current.category, AssetCategory.terrain);
+    expect(current.state, CandidateState.needsReview);
+    expect(session.approvedCandidateHashes, isEmpty);
+    final restored = AssetReviewSession.fromJson(session.toJson());
+    expect(restored.activeCandidates.single.terrainLayout,
+        AssetTerrainLayout.cardinal3x3);
+    await tap(tester, find.byKey(const ValueKey('asset-review-undo')));
+    expect(session.activeCandidates.single.terrainLayout, isNull);
+    await tap(tester, find.byKey(const ValueKey('asset-review-redo')));
+    expect(session.activeCandidates.single.terrainLayout,
+        AssetTerrainLayout.cardinal3x3);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'AC-10 metadata drafts expire approval only when explicitly applied',
     (tester) async {

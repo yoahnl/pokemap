@@ -143,3 +143,104 @@ Aucune modification étrangère n'est reprise ni restaurée. Le contrôle avant 
 Ticket unique : [AC-08 — Reconnaissance locale et assets approuvables](https://app.notion.com/p/3f7197a7bfa5810e8c6cdee63832e61b), grand domaine Post-bêta 14, `Gate bêta=false`. L'implémentation qualifiée sera proposée en `TO REVIEW` avec le SHA ciblé, jamais `DONE` automatiquement.
 
 Suite autorisée après clôture technique et commit AC-08 : AC-10, revue géométrique et reprise durable des décisions. Aucun travail AC-10 n'est inclus dans ce lot.
+
+## Complément du 13 octobre 2026 — chemins peignables et arbres entiers
+
+Les sections précédentes conservent la livraison initiale AC-08 du commit `1813ed8ab`. Ce complément répond à la demande de ressources réellement utiles pour éditer Route 9. Il produit un preset de chemin cardinal publié et un arbre entier, depuis les pixels originaux, sans IA requise et sans substitution des placements source. Le parcours visible Studio peinture, gomme, pose, sauvegarde, fermeture puis réouverture dans un nouveau processus est vérifié. Ce résultat ne certifie ni le jeu Kanto complet ni les collisions des nouvelles poses.
+
+### Audit initial et frontières
+
+Base : `00abd266a39094679ccf257d944f525bd2be9bf3`, branche `main`, index vide. La garde `/private/tmp/avelune-resources-final-turn-before-20261013-01.json` compte 61 chemins dirty : 19 du complément et 42 étrangers. Les travaux mobiles, bordures, rendu et recorder Studio sont exclus. La qualification utilise une archive de cette base avec seulement les 19 overlays du complément ; chacun correspond exactement au fichier hôte. Aucun changement de branche, push, rebase ou nettoyage étranger.
+
+L'audit confirme que les pixels des chemins existaient dans l'atlas source, mais sans preset natif utilisable ; les propositions de tuiles seules ne fournissaient pas un pinceau. Un arbre complet 64×96 est également présent dans l'atlas. Ses deux tuiles inférieures ne sont pas utilisées sur Route 9 : ce candidat est explicitement lié à l'atlas, sans faux locator Map098 ni faux claims de placements. Les modèles SmartTile, catalogues et actions canoniques existants couvrent cette publication ; aucune extension du modèle de carte cible n'est nécessaire.
+
+Le contrat `cardinal3x3` exige catégorie terrain, canvas 96×96, neuf cellules de 32 px couvertes exactement une fois, sans transformation et sans priorité source occlusive. La configuration ou une modification géométrique invalide l'approbation. Le compilateur prélève les quadrants RGBA exacts, y compris les RGB sous alpha nul, et produit un atlas 128×128 avec 16 variantes cardinales, 16 règles explicites, sans fallback. Le preset publié `sparse` ne remplit pas automatiquement la carte. Le writer régénère les artifacts et mutations depuis les témoins source et les décisions avant tout staging ; un preset altéré puis réapprouvé reste refusé.
+
+La reprise Kanto a révélé `json.textQuota` : les six frames répétaient les 8 167 claims. La session privée passe à 1.2 et mutualise les listes ordonnées par leur SHA, sans relever les plafonds par défaut. La restauration contrôle références, hash, budgets et provenance ; 1.0/1.1 sont refusés. Deux régressions supplémentaires sur les limites JSON personnalisées et les hashes de frames compactes ont un RED puis un GREEN dédiés. Les pins du replay Kanto initial et ceux des derniers correctifs d'historique restent distincts dans les preuves ; la reprise du store est requalifiée sur le code final.
+
+### Inventaire du complément
+
+Les 19 SHA, nombres de lignes et hunks exacts figurent dans `index.json.resourceComplement20261013.sourceAndTestFiles`. Git et les fichiers source restent la preuve des diffs.
+
+| Fichier | Zones et impact |
+| --- | --- |
+| `packages/avelune_converter_core/lib/src/models.dart` | Enum `AssetTerrainLayout`, lignes 50–51, et getter du candidat, 251–254. |
+| `packages/avelune_converter_core/lib/src/schema_catalog.dart` | Schéma embarqué de candidat, ligne 4 : champ optionnel fermé `terrainLayout`. |
+| `packages/avelune_converter_core/lib/src/domain_validation.dart` | Lignes 132–169 : catégorie, grille, couverture, transformations et priorités. |
+| `packages/avelune_converter_core/lib/src/asset_review_session.dart` | Pool de claims, sérialisation/restauration 1.2 et hash de frame avec les limites de session ; `configureTerrainLayout` ligne 1063 ; invalidation sur edits/union/split/vision. |
+| `packages/avelune_converter_core/test/terrain_layout_review_test.dart` | Nouveau, 359 lignes : configurations admissibles, erreurs de géométrie/priorité, approbation invalidée et reprise. |
+| `packages/avelune_converter_core/test/asset_review_session_test.dart` | Hunks 131–197 et 606–942 : quotas, pool exact, formats rejetés, références/hash corrompus, custom limits et undo/redo. |
+| `packages/avelune_converter_core/test/vision_assistance_test.dart` | Hunk 375–384 : attentes de schéma et provenance après le changement de format privé. |
+| `packages/avelune_converter_adapters/lib/src/native_terrain_brush.dart` | Nouveau, 216 lignes : compilation RGBA, atlas, variantes et règles natives explicites. |
+| `packages/avelune_converter_adapters/test/native_terrain_brush_test.dart` | Nouveau, 306 lignes : oracle indépendant de quadrants, alpha/RGB caché et contrats négatifs. |
+| `packages/avelune_converter_adapters/lib/src/approved_asset_library.dart` | Budgets avant allocation, compilation du terrain, publication et metadata exactes des artifacts/candidats. |
+| `packages/avelune_converter_adapters/lib/src/native_project_writer.dart` | Admission fermée des mutations SmartTile, recomposition fraîche avant staging et validation après relecture. |
+| `packages/avelune_converter_adapters/lib/src/converter_workflow.dart` | Actions SmartTile autorisées dans le contrat de conversion de bibliothèque approuvée. |
+| `packages/avelune_converter_adapters/test/approved_asset_library_test.dart` | Lignes 19–74 : export cardinal approuvé, PNG/règles exacts et budget avant I/O. |
+| `packages/avelune_converter_adapters/test/native_project_writer_test.dart` | Lignes 242–303 et fixture : écriture réelle, réouverture et refus d'un preset altéré avant staging. |
+| `packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart` | Lignes 16–66 et fixture 545–552 : vrai workflow bibliothèque puis publication native. |
+| `packages/avelune_converter_adapters/test/native_terrain_authoring_test.dart` | Nouveau, 513 lignes : API directe et JSONL, îlot/L/T, gomme, arbre, pixels et réouvertures. |
+| `packages/avelune_converter_adapters/test/support/original_asset_fixture.dart` | Fixture originale 3×3, quadrants distincts et transparence, sans média Kanto copié. |
+| `apps/avelune_converter/lib/asset_review_panel.dart` | Lignes 1476–1506 : sélection guidée objet/chemin et contraintes affichées. |
+| `apps/avelune_converter/test/asset_review_session_panel_test.dart` | Lignes 108–143 : sélection, invalidation de revue et feedback. |
+
+Les trois preuves AC-08 existantes sont actualisées : ce document, `commands.json` et `index.json`. Les instruments QA, scripts temporaires, projets Kanto et médias externes restent hors commit. Exactement 22 chemins sont prévus.
+
+### Commandes et résultats finaux
+
+Les commandes complètes, cwd, variables source, pins, PID descendants, sorties et SHA des logs sont conservés dans `commands.json.resourceComplement20261013.runs`. Les sous-suites se recouvrent ; leurs totaux ne sont pas additionnés.
+
+| Commande / preuve | Résultat exact |
+| --- | --- |
+| Core, `dart test --reporter expanded`, gel final des budgets/hashes | `00:57 +747: All tests passed!`, exit 0, 58.747 s. |
+| Core, `dart analyze` | `No issues found!`, exit 0, 1.783 s. |
+| Adapters, suite complète avec les trois variables source opt-in | `04:18 +672: All tests passed!`, exit 0, 262.251 s, aucun skip. |
+| Adapters, `dart analyze` final 03 | `No issues found!`, exit 0, 4.042 s. |
+| App, `flutter test --no-pub --reporter expanded --concurrency 2`, source opt-in | `00:36 +85: All tests passed!`, exit 0, 40.821 s. |
+| App, `flutter analyze --no-pub` final 03 | `No issues found! (ran in 6.1s)`, exit 0, 7.415 s. |
+| App, `flutter build macos --debug --no-pub` final 02, vrai main produit | `✓ Built build/macos/Build/Products/Debug/Avelune Converter.app`, exit 0, 19.903 s. |
+| MCP, `npm run check` / `npm run build` | Exit 0, respectivement 1.232 s / 1.225 s. |
+| MCP SmartTiles ciblé | 2/2, exit 0, 17.577 s. |
+| Parité authoring ciblée | 20/20, exit 0, 23.707 s. |
+| PMCP-085 global | Exit 1, 8.051 s : catalogue découvert, certification des transports par item incomplète ; **PARTIAL**. |
+| Replay Kanto final : scan, préparation, approbation, écriture, relecture, publication | Exit 0, 1099.951 s ; une Route 9 native publiée, source inchangée, zéro Ruby exécuté et zéro appel IA. |
+| Reprise de revue sur les pins finaux | Exit 0, 19.329 s ; 71 candidats, deux approbations, 8 167 claims, six frames, undo/redo et nouvelle instance du store conservés. |
+| MCP réel Route 9, peinture/pose/effacement/réouvertures | Exit 0, 18.317 s ; 24 appels, quatre mutations canoniques, carte originale préservée sauf ajouts explicites. |
+
+Les RED fonctionnels et essais échoués restent dans les reçus. Le premier replay réel a refusé le dépassement JSON ; le premier probe MCP a échoué sur une comparaison QA incluant `resourceKind`, corrigée dans le probe seulement. Les premiers lancements Studio n'ont pas accompli le parcours d'édition. Ces sorties terminales ne sont pas assimilées à une preuve produit. L'analyse adapters 01 contenait un diagnostic info d'import relatif dans un probe QA, corrigé puis analysé sans issue aux runs suivants.
+
+Le build final laisse deux descendants `ibtoold` appartenant au runner ; leurs UID, start et commande ont été revérifiés puis ils ont reçu SIGTERM. Le reçu termine avec zéro survivant. Aucun PID étranger n'a été arrêté. Les suites et les deux sessions Studio finales déclarent zéro survivant confirmé et `protectedUnchanged=true`.
+
+### Conversion réelle et parcours Studio
+
+Source : `/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto`, snapshot `5bc0f5dd57e70951cb86fe7c71114e983827251830b2b11f23ef2dab48f1c8de`. Atlas FRLG Outside 256×16192, SHA `fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81`. Le chemin utilise le crop x32/y384, 96×96 ; l'arbre x128/y1664, 64×96, ancre (32,96). Les deux candidats sont approuvés par l'agent sous la délégation explicite de Yoahn ; `humanClickedResourceApproval=false`. Les autres 69 candidats ne deviennent pas automatiquement des ressources métier approuvées.
+
+Projet publié : `/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/output/Projet converti`, 757 fichiers, révision `sha256:d3fcb29dd0eb48e28b7ec57c0dacccc730e218732c5e127524cb654481733d54`. Route 9 : 72×61, cinq couches, 315 décors, huit animations joueur. Les 536 transitions non qualifiées restent fermées ; les 16 événements source restent quarantinés. Le spawn (35,22) est une prévisualisation, pas le départ source certifié. L'autorité de combat reste Avelune.
+
+Studio03 ouvre une copie possédée dans son container, PID 80329. Le parcours utilise les vrais outils visibles : Terrains, sélection du chemin, peinture de L/T/îlots, Gomme et effacement, Décors et pose de l'arbre entier (34,25), puis Enregistrer. Le checkpoint instantané avec `saving=true` n'est pas une preuve de fin ; le checkpoint suivant confirme `dirty=false`, `saving=false`, `error=null` et carte mémoire égale au fichier sauvegardé. Les 14 mutations aboutissent à 11 cellules de chemin et 316 décors. Retirer uniquement la nouvelle couche SmartTile et l'arbre rend exactement la carte initiale.
+
+Après fermeture normale par `q`, Studio04 ouvre le même projet dans un nouveau processus, PID 82744. Sa carte mémoire, sa sauvegarde disque et l'état sauvegardé du premier processus sont exactement égaux ; les outils et les ressources sont visibles dans une vraie fenêtre native levée par CUA. Le deuxième processus est également fermé normalement, puis Marionette déconnecté. Reçus `/private/tmp/avelune-resources-studio-ui-20261013-03.json` et `-04.json` : exit 0, respectivement 240.948 s et 85.493 s, zéro survivant/signal.
+
+Les probes d'observation sont uniquement dans le snapshot QA : extension 2D en lecture seule et guard de capture limité au dossier possédé. Ils n'ajoutent aucune voie de mutation. La bannière Home « lecture seule » vient de `project_open_controls.dart:74–75`, qui l'affiche pour tout projet ouvert ; elle ne décrit pas les permissions de l'éditeur. Aucun correctif UI étranger n'est inclus ici.
+
+La copie livrée `/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/Projet modifié dans Studio` correspond exactement aux 757 fichiers du projet Studio fermé. Le projet publié original est inchangé. Les preuves sont sous le dossier sibling `evidence`, notamment `native-resource-studio.json`, `studio-resource-delivery.json`, les checkpoints et `studio-resource-captures/studio-reopened.png`, SHA `c957ee8d8d8b301b8cc8eda415cd5758ca7a7a44749430b7c3ae7c1243be750a`. L'enregistrement de dix frames a zéro erreur. Ses flags génériques `durableSaveObserved=false` et `persistenceScope=studioTestCheckpoint` restent conservés : la preuve durable vient des fichiers sauvegardés et de la réouverture, pas du flag de la vidéo.
+
+### Passes séparées, critique et limites
+
+| Passe | Verdict |
+| --- | --- |
+| Audit / Architecture, root | PASS borné : contrats SmartTile existants, source inerte, pixels d'origine et scope bibliothèque identifiés. |
+| Implémentation, root | PASS borné : approbation explicite, 16 règles cardinales et arbre entier ; aucun remplacement des placements. |
+| Tests, root et qualifications isolées | PASS sur les suites finales ci-dessus ; RED, essais QA et PMCP global non vert conservés séparément. |
+| Build / Validation, root | PASS build produit debug et parcours natif Studio avec sauvegarde et nouveau processus ; aucun appareil mobile certifié. |
+| Critique finale, `ac12_validation_design` | PASS borné sur les 19 fichiers figés, preuves source/pixels/writer/budgets/transports et les 757 fichiers Studio/livraison ; aucun nouveau P1/P2 identifié. |
+
+L'arbre entier garde `collisionProfile=null` : pose et persistance sont prouvées, collision et occlusion en jeu restent non certifiées. Les SmartTiles peints ne qualifient pas la navigation gameplay ; ce complément ne rouvre aucune des 536 transitions fermées. Le contrat cardinal ne prétend pas couvrir Blob47. La revue sémantique de toute la bibliothèque, les 382 autres cartes Kanto, les événements, rencontres et le parcours KAN-03 restent à faire. La release AC-16 précédente n'est pas reconstruite par ce build debug.
+
+Auto-critique : le résultat livre enfin des outils d'édition concrets, mais seuls deux candidats métier sont approuvés. Les motifs de chemin ajoutés sont des essais d'outils, pas une refonte artistique de Route 9. Zéro appel IA démontre l'indépendance du pipeline ; cela ne démontre pas une reconnaissance sémantique automatique à 100 %. Le gate global MCP reste PARTIAL, sans élargissement silencieux du chantier ni du gate bêta.
+
+### Git et traçabilité du complément
+
+Les preuves initiales restent historiques. Les nouveaux champs `resourceComplement20261013` des deux ledgers consignent la base, les 19 pins, les 22 chemins, les 34 reçus, les preuves externes et les limites. Ce document est figé avant le commit : la garde immédiatement avant/après commit et son SHA final seront enregistrés dans `/private/tmp/avelune-resources-local-commit-20261013-01.json`, puis dans le ticket AC-08 existant. L'index doit rester vide après ce commit et les 42 chemins étrangers doivent conserver leurs empreintes initiales ; cette vérification conditionne la clôture technique. Aucun SHA autoréférentiel ni nouvel artifact Markdown.
+
+Ticket unique AC-08, grand domaine Post-bêta Monde & narration inchangé, Gate bêta false. Le complément qualifié est proposé `TO REVIEW`, jamais `DONE` sans décision de Yoahn. Suite autorisée après le commit ciblé : correction bornée des codes 0 internes RMXP, puis qualification des événements réels de Route 9. Ces changements ne sont pas inclus dans ce commit ressources.

@@ -128,6 +128,73 @@ AssetReviewSession decide(AssetReviewSession value, String id,
       humanConfirmed: true,
     );
 
+({SourceMapIr map, AssetReviewSession session}) _claimHistory(
+    {int count = 3, AssetReviewLimits limits = const AssetReviewLimits()}) {
+  final original = sourceMap();
+  const width = 96;
+  final height = (count + width - 1) ~/ width;
+  final map = SourceMapIr.fromJson({
+    ...original.toJson(),
+    'map': {
+      ...(original.toJson()['map'] as Map).cast<String, Object?>(),
+      'width': width,
+      'height': height,
+      'layers': [
+        for (var z = 0; z < 3; z++)
+          {
+            'sourceZ': z,
+            'cells': List.filled(width * height, z == 0 ? 384 : 0)
+          },
+      ],
+    },
+  });
+  final tree = candidate('tree');
+  return (
+    map: map,
+    session: AssetReviewSession.create(
+      sessionId: ConverterId('original-claim-history'),
+      logicalProjectNamespace: namespace,
+      sourceSnapshotHash: snapshotHash,
+      selectedSourceMapIds: [1],
+      outputMode: AssetOutputMode.standaloneObjects,
+      proposalGenerationHash: proposalHash,
+      candidates: [tree],
+      placementClaims: {
+        tree.candidateId: [
+          for (var i = 0; i < count; i++)
+            SourcePlacementClaim(
+              sourceSnapshotHash: snapshotHash,
+              sourceMapHash: map.canonicalHash,
+              sourceMapFileId: map.map.sourceFileId,
+              sourceMapId: map.map.sourceMapId,
+              sourceZ: 0,
+              x: i % width,
+              y: i ~/ width,
+              tileId: 384,
+              partId: ConverterId('p0'),
+            ),
+        ],
+      },
+      sourceMaps: [map],
+      limits: limits,
+    ),
+  );
+}
+
+AssetReviewSession _renameHistory(AssetReviewSession value, String name) =>
+    value.editMetadata(
+      candidateId: ConverterId('tree'),
+      expectedCandidateHash: current(value, 'tree').canonicalHash,
+      expectedSessionHash: value.canonicalHash,
+      name: name,
+    );
+
+Map<String, dynamic> _historyJson(AssetReviewSession value) =>
+    (jsonDecode(jsonEncode(value.toJson())) as Map).cast<String, dynamic>();
+
+Matcher _reviewError(String code) =>
+    throwsA(isA<ContractError>().having((error) => error.code, 'code', code));
+
 void main() {
   test('REV-01 changed pixel provenance removes stale placement claims', () {
     final map = sourceMap();
@@ -534,6 +601,343 @@ void main() {
     expect(json['frames'], hasLength(2));
     expect(
         AssetReviewSession.fromJson(json).canonicalHash, renamed.canonicalHash);
+  });
+
+  test('dense repeated claims remain compact through review and undo redo', () {
+    final fixture = _claimHistory(count: 6000);
+    var reviewed = fixture.session;
+    for (var i = 0; i < 8; i++) {
+      reviewed = _renameHistory(reviewed, 'Original tree revision $i');
+    }
+    reviewed = decide(reviewed, 'tree');
+    final json = reviewed.toJson();
+    expect(json['schemaVersion'], '1.2');
+    final lists = json['placementClaimLists'] as Map;
+    expect(lists, hasLength(1));
+    expect(lists.values.single, hasLength(6000));
+    expect(jsonEncode(json).length, lessThan(4194304));
+    final exactClaims = fixture
+        .session.frame.placementClaims[ConverterId('tree')]!
+        .map((claim) => claim.toJson())
+        .toList();
+    expect(lists.values.single, exactClaims);
+    expect(lists.keys.single, canonicalHashOf(exactClaims).value);
+    final legacy = _historyJson(reviewed)
+      ..remove('placementClaimLists')
+      ..['schemaVersion'] = '1.1';
+    for (final raw in legacy['frames'] as List) {
+      final frame = raw as Map;
+      expect(frame.remove('placementClaimHashes'), {'tree': lists.keys.single});
+      frame['placementClaims'] = {'tree': exactClaims};
+    }
+    expect(() => canonicalJsonOf(legacy), _reviewError('json.textQuota'));
+    var restored = AssetReviewSession.fromJson(json);
+    expect(restored.canonicalHash, reviewed.canonicalHash);
+    expect(restored.approvedCandidateHashes, reviewed.approvedCandidateHashes);
+    restored.validatePlacements([fixture.map]);
+    for (var index = reviewed.cursor; index >= 0; index--) {
+      expect(
+          restored.frame.canonicalHash, reviewed.frames[index].canonicalHash);
+      expect(
+          restored.frame.placementClaims[ConverterId('tree')]!
+              .map((claim) => claim.toJson())
+              .toList(),
+          exactClaims);
+      if (index > 0) {
+        restored = restored.undo(expectedSessionHash: restored.canonicalHash);
+      }
+    }
+    while (restored.canRedo) {
+      restored = restored.redo(expectedSessionHash: restored.canonicalHash);
+    }
+    expect(restored.frame.canonicalHash, reviewed.frame.canonicalHash);
+    expect(restored.approvedCandidateHashes, reviewed.approvedCandidateHashes);
+    restored.validatePlacements([fixture.map]);
+    expect(() => restored.validatePlacements([sourceMap()]),
+        _reviewError('review.claim.source'));
+  });
+
+  test('claim quota counts a repeated exact list only once', () {
+    final initial =
+        _claimHistory(limits: const AssetReviewLimits(maxTotalClaims: 3))
+            .session;
+    var renamed = initial;
+    for (var i = 0; i < 6; i++) {
+      renamed = _renameHistory(renamed, 'Original bounded name $i');
+    }
+    expect((renamed.toJson()['placementClaimLists'] as Map), hasLength(1));
+    expect(
+        AssetReviewSession.fromJson(renamed.toJson(),
+                limits: const AssetReviewLimits(maxTotalClaims: 3))
+            .canonicalHash,
+        renamed.canonicalHash);
+  });
+
+  test('claim list hashing honors the caller JSON budget through restore', () {
+    const limits = AssetReviewLimits(
+        jsonLimits: ContractLimits(maxTextCodeUnits: 8388608));
+    final fixture = _claimHistory(count: 20000, limits: limits);
+    final initial = fixture.session;
+    final next = _renameHistory(initial, 'Original explicit larger budget');
+    final json = next.toJson();
+    final lists = json['placementClaimLists'] as Map;
+    expect(lists, hasLength(1));
+    final claims = lists.values.single as List;
+    expect(claims, hasLength(20000));
+    expect(() => canonicalHashOf(claims), _reviewError('json.textQuota'));
+    expect(lists.keys.single,
+        canonicalHashOf(claims, limits: limits.jsonLimits).value);
+    expect(
+        next.frame.canonicalHash,
+        canonicalHashOf((json['frames'] as List).last,
+            limits: limits.jsonLimits));
+    final restored = AssetReviewSession.fromJson(json, limits: limits);
+    expect(restored.canonicalHash, next.canonicalHash);
+    expect(restored.frame.canonicalHash, next.frame.canonicalHash);
+    restored.validatePlacements([fixture.map]);
+    final undone = restored.undo(expectedSessionHash: restored.canonicalHash);
+    expect(undone.frame.canonicalHash, initial.frame.canonicalHash);
+    final redone = undone.redo(expectedSessionHash: undone.canonicalHash);
+    expect(redone.frame.canonicalHash, next.frame.canonicalHash);
+    expect(
+        redone.frame.placementClaims[ConverterId('tree')]!
+            .map((claim) => claim.toJson())
+            .toList(),
+        claims);
+    for (final smaller in [
+      const AssetReviewLimits(),
+      const AssetReviewLimits(
+          jsonLimits: ContractLimits(maxTextCodeUnits: 2097152)),
+    ]) {
+      expect(() => _claimHistory(count: 20000, limits: smaller),
+          _reviewError('json.textQuota'));
+      expect(() => AssetReviewSession.fromJson(json, limits: smaller),
+          _reviewError('json.textQuota'));
+    }
+  });
+
+  test(
+      'frame hashes compact shared lists while preserving conflicts and source',
+      () {
+    final fixture = _claimHistory(count: 4000);
+    final claims = fixture.session.frame.placementClaims[ConverterId('tree')]!;
+    final candidates = [
+      for (var i = 0; i < 8; i++) candidate('shared-$i'),
+    ];
+    final initial = AssetReviewSession.create(
+        sessionId: ConverterId('original-shared-history'),
+        logicalProjectNamespace: namespace,
+        sourceSnapshotHash: snapshotHash,
+        selectedSourceMapIds: [1],
+        outputMode: AssetOutputMode.standaloneObjects,
+        proposalGenerationHash: proposalHash,
+        candidates: candidates,
+        placementClaims: {
+          for (final candidate in candidates) candidate.candidateId: claims,
+        },
+        sourceMaps: [fixture.map]);
+    final json = initial.toJson();
+    expect(json['placementClaimLists'], hasLength(1));
+    final rawFrame = (json['frames'] as List).single as Map;
+    expect(rawFrame['placementClaimHashes'], hasLength(8));
+    expect(initial.frame.canonicalHash, canonicalHashOf(rawFrame));
+    final expanded = Map<String, Object?>.from(rawFrame)
+      ..remove('placementClaimHashes')
+      ..['placementClaims'] = {
+        for (final candidate in candidates)
+          candidate.candidateId.value:
+              claims.map((claim) => claim.toJson()).toList(),
+      };
+    expect(() => canonicalHashOf(expanded), _reviewError('json.textQuota'));
+    var changed = initial;
+    for (var i = 0; i < 2; i++) {
+      final id = ConverterId('shared-$i');
+      changed = changed.setIntegrationMode(
+          candidateId: id,
+          expectedCandidateHash: current(changed, id.value).canonicalHash,
+          expectedSessionHash: changed.canonicalHash,
+          integrationMode: IntegrationMode.replacePlacements,
+          placementClaims: claims,
+          sourceMaps: [fixture.map]);
+    }
+    final restored = AssetReviewSession.fromJson(changed.toJson());
+    expect(restored.canonicalHash, changed.canonicalHash);
+    expect(restored.frame.canonicalHash, changed.frame.canonicalHash);
+    expect(restored.conflicts, hasLength(4000));
+    expect(
+        restored.conflicts.every((conflict) => conflict.candidateIds
+            .toSet()
+            .containsAll([ConverterId('shared-0'), ConverterId('shared-1')])),
+        isTrue);
+    expect(restored.approvedCandidateHashes, isEmpty);
+    restored.validatePlacements([fixture.map]);
+    expect(() => restored.validatePlacements([sourceMap()]),
+        _reviewError('review.claim.source'));
+    var undone = restored;
+    while (undone.canUndo) {
+      undone = undone.undo(expectedSessionHash: undone.canonicalHash);
+    }
+    expect(undone.frame.canonicalHash, initial.frame.canonicalHash);
+    expect(undone.conflicts, isEmpty);
+    while (undone.canRedo) {
+      undone = undone.redo(expectedSessionHash: undone.canonicalHash);
+    }
+    expect(undone.frame.canonicalHash, changed.frame.canonicalHash);
+    expect(undone.conflicts, hasLength(4000));
+    expect(
+        () => AssetReviewSession.fromJson(json,
+            limits: const AssetReviewLimits(
+                jsonLimits: ContractLimits(maxTextCodeUnits: 262144))),
+        _reviewError('json.textQuota'));
+  });
+
+  test('distinct ordered claim lists remain bounded during append and restore',
+      () {
+    final fixture = _claimHistory();
+    final initial = fixture.session;
+    final reversed =
+        initial.frame.placementClaims[ConverterId('tree')]!.reversed.toList();
+    final next = initial.setIntegrationMode(
+        candidateId: ConverterId('tree'),
+        expectedCandidateHash: current(initial, 'tree').canonicalHash,
+        expectedSessionHash: initial.canonicalHash,
+        integrationMode: IntegrationMode.libraryOnly,
+        placementClaims: reversed,
+        sourceMaps: [fixture.map]);
+    final json = next.toJson();
+    final lists = json['placementClaimLists'] as Map;
+    expect(lists, hasLength(2));
+    expect(
+        lists[canonicalHashOf(reversed.map((claim) => claim.toJson()).toList())
+            .value],
+        reversed.map((claim) => claim.toJson()).toList());
+    final restored = AssetReviewSession.fromJson(json);
+    expect(
+        restored.frame.placementClaims[ConverterId('tree')]!
+            .map((claim) => claim.x),
+        [2, 1, 0]);
+    expect(
+        () => AssetReviewSession.fromJson(json,
+            limits: const AssetReviewLimits(maxTotalClaims: 5)),
+        _reviewError('review.claims.quota'));
+    final bounded =
+        _claimHistory(limits: const AssetReviewLimits(maxTotalClaims: 3));
+    expect(
+        () => bounded.session.setIntegrationMode(
+            candidateId: ConverterId('tree'),
+            expectedCandidateHash:
+                current(bounded.session, 'tree').canonicalHash,
+            expectedSessionHash: bounded.session.canonicalHash,
+            integrationMode: IntegrationMode.libraryOnly,
+            placementClaims: bounded
+                .session.frame.placementClaims[ConverterId('tree')]!.reversed
+                .toList(),
+            sourceMaps: [bounded.map]),
+        _reviewError('review.claims.quota'));
+  });
+
+  for (final tamper in ['claim content', 'list key', 'list order']) {
+    test('restore rejects tampered $tamper in the claim pool', () {
+      final json = _historyJson(_claimHistory().session);
+      final lists = json['placementClaimLists'] as Map;
+      final hash = lists.keys.single;
+      final claims = lists[hash] as List;
+      switch (tamper) {
+        case 'claim content':
+          (claims.first as Map)['x'] = 4;
+        case 'list key':
+          lists['f' * 64] = lists.remove(hash);
+        case 'list order':
+          lists[hash] = claims.reversed.toList();
+      }
+      expect(() => AssetReviewSession.fromJson(json),
+          _reviewError('review.claimList.hash'));
+    });
+  }
+
+  test('restore rejects absent or unknown claim list references', () {
+    for (final removed in [false, true]) {
+      final json = _historyJson(_claimHistory().session);
+      final refs = ((json['frames'] as List).single
+          as Map)['placementClaimHashes'] as Map;
+      if (removed) {
+        (json['placementClaimLists'] as Map).clear();
+      } else {
+        refs['tree'] = 'f' * 64;
+      }
+      expect(() => AssetReviewSession.fromJson(json),
+          _reviewError('review.claimList.reference'));
+    }
+  });
+
+  test(
+      'restore still validates claims against the candidate after valid rehashing',
+      () {
+    final json = _historyJson(_claimHistory().session);
+    final lists = json['placementClaimLists'] as Map;
+    final claims = lists.remove(lists.keys.single) as List;
+    (claims.first as Map)['tileId'] = 385;
+    final hash = canonicalHashOf(claims).value;
+    lists[hash] = claims;
+    (((json['frames'] as List).single as Map)['placementClaimHashes']
+        as Map)['tree'] = hash;
+    expect(() => AssetReviewSession.fromJson(json),
+        _reviewError('review.claim.locator'));
+  });
+
+  for (final empty in [false, true]) {
+    test('restore rejects an unused ${empty ? 'empty' : 'nonempty'} claim list',
+        () {
+      final json = _historyJson(session());
+      final claims = empty ? <Object?>[] : [claim(sourceMap()).toJson()];
+      (json['placementClaimLists'] as Map)[canonicalHashOf(claims).value] =
+          claims;
+      expect(() => AssetReviewSession.fromJson(json),
+          _reviewError('review.claimList.unreferenced'));
+    });
+  }
+
+  test('explicit empty claim lists preserve their reference and semantic hash',
+      () {
+    final initial = session();
+    final explicit = initial.setIntegrationMode(
+        candidateId: ConverterId('tree'),
+        expectedCandidateHash: current(initial, 'tree').canonicalHash,
+        expectedSessionHash: initial.canonicalHash,
+        integrationMode: IntegrationMode.libraryOnly,
+        placementClaims: const [],
+        sourceMaps: const []);
+    final json = explicit.toJson();
+    expect(json['placementClaimLists'], {canonicalHashOf([]).value: []});
+    final frames = json['frames'] as List;
+    expect((frames.first as Map)['placementClaimHashes'], isEmpty);
+    expect((frames.last as Map)['placementClaimHashes'],
+        {'tree': canonicalHashOf([]).value});
+    final restored = AssetReviewSession.fromJson(json);
+    expect(restored.frame.placementClaims.containsKey(ConverterId('tree')),
+        isTrue);
+    expect(restored.frame.canonicalHash, explicit.frame.canonicalHash);
+    final undone = restored.undo(expectedSessionHash: restored.canonicalHash);
+    expect(undone.frame.placementClaims, isEmpty);
+    expect(undone.frame.canonicalHash, initial.frame.canonicalHash);
+    final redone = undone.redo(expectedSessionHash: undone.canonicalHash);
+    expect(redone.frame.canonicalHash, explicit.frame.canonicalHash);
+  });
+
+  test('private review history 1.0 and 1.1 are rejected explicitly', () {
+    for (final version in ['1.0', '1.1']) {
+      final json = _historyJson(session())..['schemaVersion'] = version;
+      expect(() => AssetReviewSession.fromJson(json),
+          _reviewError('review.document.version'));
+      json.remove('placementClaimLists');
+      for (final raw in json['frames'] as List) {
+        final frame = raw as Map;
+        frame.remove('placementClaimHashes');
+        frame['placementClaims'] = <String, Object?>{};
+      }
+      expect(() => AssetReviewSession.fromJson(json),
+          _reviewError('review.document.version'));
+    }
   });
 
   test('history and geometry quotas reject before accepting another frame', () {
