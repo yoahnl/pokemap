@@ -3,6 +3,7 @@ part of '../avelune_converter_core.dart';
 final class SourceNormalizationLimits {
   const SourceNormalizationLimits({
     this.maxMaps = 4096,
+    this.maxConnections = 16384,
     this.maxTotalCells = 16777216,
     this.maxEvents = 100000,
     this.maxCommands = 500000,
@@ -16,6 +17,7 @@ final class SourceNormalizationLimits {
   });
 
   final int maxMaps;
+  final int maxConnections;
   final int maxTotalCells;
   final int maxEvents;
   final int maxCommands;
@@ -30,6 +32,7 @@ final class SourceNormalizationLimits {
   void _validate() {
     for (final pair in [
       (maxMaps, 100000),
+      (maxConnections, 65536),
       (maxTotalCells, 67108864),
       (maxEvents, 1000000),
       (maxCommands, 2000000),
@@ -215,11 +218,78 @@ final class NormalizedPreservedParameter {
       };
 }
 
+enum SourceConnectionDirection {
+  north,
+  east,
+  south,
+  west;
+
+  String get sourceCode => switch (this) {
+        north => 'N',
+        east => 'E',
+        south => 'S',
+        west => 'W',
+      };
+
+  SourceConnectionDirection get opposite => switch (this) {
+        north => south,
+        east => west,
+        south => north,
+        west => east,
+      };
+}
+
+enum SourceConnectionsState { notRequested, missing, extracted, invalid }
+
+final class NormalizedMapConnection {
+  const NormalizedMapConnection._({
+    required this.identity,
+    required this.sourceRowIndex,
+    required this.sourceMapId,
+    required this.sourceDirection,
+    required this.sourceOffset,
+    required this.targetSourceMapId,
+    required this.targetDirection,
+    required this.targetOffset,
+    required this.rawDataRef,
+    required this.locator,
+  });
+
+  final ConverterId identity;
+  final int sourceRowIndex;
+  final int sourceMapId;
+  final SourceConnectionDirection sourceDirection;
+  final int sourceOffset;
+  final int targetSourceMapId;
+  final SourceConnectionDirection targetDirection;
+  final int targetOffset;
+  final SourcePreservedData rawDataRef;
+  final SourceLocator locator;
+  int get nativeOffset => sourceOffset - targetOffset;
+
+  Map<String, Object?> toJson() => {
+        'identity': identity.value,
+        'sourceRowIndex': sourceRowIndex,
+        'sourceMapId': sourceMapId,
+        'sourceDirection': sourceDirection.sourceCode,
+        'sourceOffset': sourceOffset,
+        'targetSourceMapId': targetSourceMapId,
+        'targetDirection': targetDirection.sourceCode,
+        'targetOffset': targetOffset,
+        'nativeOffset': nativeOffset,
+        'rawDataRef': rawDataRef.id.value,
+        'locator': locator.toJson(),
+      };
+}
+
 final class NormalizedSourceProject {
   NormalizedSourceProject._({
     required this.snapshot,
     required this.sourceProfileId,
     required List<SourceMapIr> maps,
+    required List<NormalizedMapConnection> connections,
+    required this.connectionsState,
+    required this.connectionsFileId,
     required List<NormalizedMapInfo> mapHierarchy,
     required List<NormalizedTileset> tilesets,
     required List<NormalizedMediaReference> eventImages,
@@ -229,6 +299,7 @@ final class NormalizedSourceProject {
     required List<int> unprocessedSourceMapIds,
     required this.archive,
   })  : maps = List.unmodifiable(maps),
+        connections = List.unmodifiable(connections),
         mapHierarchy = List.unmodifiable(mapHierarchy),
         tilesets = List.unmodifiable(tilesets),
         eventImages = List.unmodifiable(eventImages),
@@ -240,6 +311,11 @@ final class NormalizedSourceProject {
   final SourceSnapshot snapshot;
   final ConverterId sourceProfileId;
   final List<SourceMapIr> maps;
+  final List<NormalizedMapConnection> connections;
+  final SourceConnectionsState connectionsState;
+  final ConverterId? connectionsFileId;
+  bool get connectionsExtracted =>
+      connectionsState == SourceConnectionsState.extracted;
   final List<NormalizedMapInfo> mapHierarchy;
   final List<NormalizedTileset> tilesets;
   final List<NormalizedMediaReference> eventImages;
@@ -270,7 +346,12 @@ final class NormalizedSourceProject {
   Map<String, Object?> _normalizedJson() => {
         'schemaVersion': '1.0',
         'kind': 'normalizedSourceProject',
-        'extractorVersion': 'rmxp-normalization-v1',
+        'extractorVersion': 'rmxp-normalization-v2',
+        'connections':
+            connections.map((connection) => connection.toJson()).toList(),
+        'connectionsState': connectionsState.name,
+        'connectionsExtracted': connectionsExtracted,
+        'connectionsFileId': connectionsFileId?.value,
         'sourceSnapshotHash': snapshot.canonicalHash.value,
         'logicalProjectNamespace': snapshot.logicalProjectNamespace.value,
         'sourceProfileId': sourceProfileId.value,
@@ -312,6 +393,7 @@ final class RmxpSourceNormalizer {
     ScanCancellation? cancellation,
     Set<int>? selectedMapIds,
     bool includeEventSystem = false,
+    bool includeConnections = false,
   }) async {
     limits._validate();
     final token = cancellation ?? ScanCancellation();
@@ -322,14 +404,21 @@ final class RmxpSourceNormalizer {
             limits,
             token,
             selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
-            includeEventSystem)
+            includeEventSystem,
+            includeConnections)
         .run();
   }
 }
 
 final class _SourceNormalizationRun {
-  _SourceNormalizationRun(this.snapshot, this.files, this.limits,
-      this.cancellation, this.selectedMapIds, this.includeEventSystem)
+  _SourceNormalizationRun(
+      this.snapshot,
+      this.files,
+      this.limits,
+      this.cancellation,
+      this.selectedMapIds,
+      this.includeEventSystem,
+      this.includeConnections)
       : archive = SourceArchive(
           limits: SourceArchiveLimits(maxTotalBytes: limits.maxTotalBytes),
         ),
@@ -337,6 +426,13 @@ final class _SourceNormalizationRun {
             ConverterId('profile:${snapshot.profile.evidenceHash.value}') {
     for (final entry in snapshot.entries) {
       byPath[sourcePathCollisionKey(entry.relativePath)] = entry;
+    }
+    if (includeConnections) {
+      final entry = byPath[sourcePathCollisionKey('Data/map_connections.dat')];
+      connectionsFileId = entry?.fileId;
+      connectionsState = entry == null
+          ? SourceConnectionsState.missing
+          : SourceConnectionsState.invalid;
     }
   }
 
@@ -346,10 +442,14 @@ final class _SourceNormalizationRun {
   final ScanCancellation cancellation;
   final Set<int>? selectedMapIds;
   final bool includeEventSystem;
+  final bool includeConnections;
   final SourceArchive archive;
   final ConverterId sourceProfileId;
   final byPath = <String, SourceFileEntry>{};
   final maps = <SourceMapIr>[];
+  final connections = <NormalizedMapConnection>[];
+  var connectionsState = SourceConnectionsState.notRequested;
+  ConverterId? connectionsFileId;
   final hierarchy = <int, NormalizedMapInfo>{};
   final tilesets = <NormalizedTileset>[];
   final eventImages = <NormalizedMediaReference>[];
@@ -622,7 +722,8 @@ final class _SourceNormalizationRun {
       for (final path in [
         'Data/MapInfos.rxdata',
         'Data/Tilesets.rxdata',
-        if (includeEventSystem) 'Data/System.rxdata'
+        if (includeEventSystem) 'Data/System.rxdata',
+        if (includeConnections) 'Data/map_connections.dat'
       ])
         if (byPath[sourcePathCollisionKey(path)] != null)
           byPath[sourcePathCollisionKey(path)]!,
@@ -675,6 +776,9 @@ final class _SourceNormalizationRun {
       } on Object catch (error) {
         failure(error, locator(infoEntry.relativePath));
       }
+    }
+    if (includeConnections) {
+      await readConnections(mapEntries);
     }
     final ids = (selectedMapIds ?? mapEntries.keys.toSet()).toList()..sort();
     for (final id in ids) {
@@ -762,6 +866,9 @@ final class _SourceNormalizationRun {
       snapshot: snapshot,
       sourceProfileId: sourceProfileId,
       maps: maps,
+      connections: connections,
+      connectionsState: connectionsState,
+      connectionsFileId: connectionsFileId,
       mapHierarchy: infos,
       tilesets: tilesets,
       eventImages: eventImages,
@@ -771,6 +878,125 @@ final class _SourceNormalizationRun {
       unprocessedSourceMapIds: unprocessed,
       archive: archive,
     );
+  }
+
+  Future<void> readConnections(Map<int, SourceFileEntry> mapEntries) async {
+    const path = 'Data/map_connections.dat';
+    final entry = byPath[sourcePathCollisionKey(path)];
+    if (entry == null) {
+      diagnostic('normalization.missing_connections', locator(path),
+          'Requested compiled map connections source file is absent');
+      return;
+    }
+    final fileLocator = locator(entry.relativePath);
+    try {
+      final file = await load(entry);
+      final doc = file.document;
+      final root = doc.node(doc.rootId);
+      preserve(file, doc.rootId, fileLocator);
+      _require(
+          root.kind == MarshalKind.array,
+          'normalization.connection.graph',
+          entry.relativePath,
+          'Compiled map connections require an inert array');
+      _require(
+          root.elements.length <= limits.maxConnections,
+          'normalization.quota.connections',
+          entry.relativePath,
+          'Compiled map connection record quota exceeded');
+      final records = <NormalizedMapConnection>[];
+      final identities = <ConverterId>{};
+      var valid = true;
+      for (final indexed in root.elements.indexed) {
+        cancellation.check();
+        final rowIndex = indexed.$1;
+        final nodeId = indexed.$2;
+        try {
+          final values = array(doc, nodeId, maximum: 6);
+          _require(
+              values.length == 6,
+              'normalization.connection.arity',
+              doc.node(nodeId).location.graphPath,
+              'Compiled map connections require exactly six fields');
+          final sourceMapId = integer(doc, values[0], minimum: 1);
+          final targetSourceMapId = integer(doc, values[3], minimum: 1);
+          final rowLocator = locator(entry.relativePath, mapId: sourceMapId);
+          SourceConnectionDirection direction(int id) {
+            final code = text(doc, id, maxLength: 1);
+            final matches = SourceConnectionDirection.values
+                .where((value) => value.sourceCode == code);
+            _require(
+                matches.length == 1,
+                'normalization.connection.direction',
+                doc.node(id).location.graphPath,
+                'Compiled map edges require N, E, S or W');
+            return matches.single;
+          }
+
+          final sourceDirection = direction(values[1]);
+          final targetDirection = direction(values[4]);
+          final sourceOffset = integer(doc, values[2], minimum: -2147483648);
+          final targetOffset = integer(doc, values[5], minimum: -2147483648);
+          _require(
+              sourceMapId != targetSourceMapId,
+              'normalization.connection.self',
+              doc.node(nodeId).location.graphPath,
+              'A compiled map connection must join distinct source maps');
+          _require(
+              sourceDirection.opposite == targetDirection,
+              'normalization.connection.opposition',
+              doc.node(nodeId).location.graphPath,
+              'The admitted compiled map connection profile requires opposing edges');
+          for (final id in [sourceMapId, targetSourceMapId]) {
+            _require(
+                hierarchy.containsKey(id) &&
+                    mapEntries[id]?.kind == SourceNodeKind.file &&
+                    mapEntries[id]?.sha256 != null,
+                'normalization.connection.map_reference',
+                doc.node(nodeId).location.graphPath,
+                'Compiled connection endpoints require complete MapInfos and inventoried hashed map files');
+          }
+          final identity = ConverterId('s1:${canonicalHashOf([
+                'avelune-converter-connection-id-v1',
+                snapshot.logicalProjectNamespace.value,
+                sourceMapId,
+                sourceDirection.sourceCode,
+                sourceOffset,
+                targetSourceMapId,
+                targetDirection.sourceCode,
+                targetOffset,
+              ]).value}');
+          _require(
+              identities.add(identity),
+              'normalization.connection.duplicate',
+              doc.node(nodeId).location.graphPath,
+              'Duplicate literal compiled connection identities cannot be overwritten');
+          final record = NormalizedMapConnection._(
+            identity: identity,
+            sourceRowIndex: rowIndex,
+            sourceMapId: sourceMapId,
+            sourceDirection: sourceDirection,
+            sourceOffset: sourceOffset,
+            targetSourceMapId: targetSourceMapId,
+            targetDirection: targetDirection,
+            targetOffset: targetOffset,
+            rawDataRef: preserve(file, nodeId, rowLocator),
+            locator: rowLocator,
+          );
+          reserveProjection(record.toJson(), rowLocator);
+          records.add(record);
+        } on Object catch (error) {
+          valid = false;
+          failure(error, fileLocator);
+        }
+      }
+      if (valid) {
+        connections.addAll(records);
+        connectionsState = SourceConnectionsState.extracted;
+      }
+    } on Object catch (error) {
+      failure(error, fileLocator);
+    }
   }
 
   void readHierarchy(SourceArchivedFile file) {

@@ -722,27 +722,7 @@ int _estimate(NativeProjectDraft draft, NativePublicationLimits limits) {
   final artifacts = [...draft.artifacts, ...draft.sourceArtifacts];
   final artifactBytes =
       artifacts.fold<int>(0, (sum, item) => sum + item.bytes.length);
-  final metadata = {
-    'draftHash': draft.canonicalHash.value,
-    'projectName': draft.projectName,
-    'folderName': draft.folderName,
-    'mapIds': {
-      for (final entry in draft.mapIds.entries) '${entry.key}': entry.value
-    },
-    'compositionEvidence': draft.compositionEvidence,
-    'mutations': [
-      for (var i = 0; i < draft.mutations.length; i++)
-        draft.mutations[i].toJson(i)
-    ],
-  };
-  final metadataBytes = utf8
-      .encode(canonicalJsonOf(metadata,
-          limits: const ContractLimits(
-              maxDepth: 64,
-              maxNodes: 4000000,
-              maxStringCodeUnits: 1048576,
-              maxTextCodeUnits: 16777216)))
-      .length;
+  final metadataBytes = draft.validatedJsonByteLength;
   return artifactBytes * 3 +
       metadataBytes * 2 +
       limits.maxJournalBytes * 2 +

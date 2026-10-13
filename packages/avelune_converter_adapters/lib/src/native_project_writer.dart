@@ -28,6 +28,7 @@ final class NativeWriteLimits {
     this.maxMutations = 256,
     this.maxArtifactBytes = 16777216,
     this.maxTotalArtifactBytes = 67108864,
+    this.maxTotalDraftJsonBytes = 67108864,
     this.maxImagePixels = 16777216,
     this.maxMapCells = 1048576,
     this.jsonLimits = const ContractLimits(),
@@ -37,6 +38,7 @@ final class NativeWriteLimits {
   final int maxMutations;
   final int maxArtifactBytes;
   final int maxTotalArtifactBytes;
+  final int maxTotalDraftJsonBytes;
   final int maxImagePixels;
   final int maxMapCells;
   final ContractLimits jsonLimits;
@@ -49,6 +51,7 @@ final class NativeWriteLimits {
       (maxMutations, 2048),
       (maxArtifactBytes, 67108864),
       (maxTotalArtifactBytes, 268435456),
+      (maxTotalDraftJsonBytes, 268435456),
       (maxImagePixels, 16777216),
       (maxMapCells, 4194304),
       (jsonLimits.maxDepth, 64),
@@ -248,7 +251,12 @@ final class NativeMutation {
   final Map<String, Object?> parameters;
 
   OperationDomain get domain => switch (actionId.split('.').first) {
-        'map' || 'entity' || 'trigger' || 'warp' => OperationDomain.maps,
+        'map' ||
+        'entity' ||
+        'trigger' ||
+        'warp' ||
+        'connection' =>
+          OperationDomain.maps,
         'event_v2' ||
         'fact' ||
         'world_rule' ||
@@ -312,9 +320,9 @@ final class NativeProjectDraft {
     canonicalJsonOf(compositionEvidence, limits: limits.jsonLimits);
     final frozenComposition =
         _freezeNativeJson(compositionEvidence) as Map<String, Object?>;
-    final binding = {
+    final metadata = <String, Object?>{
       'kind': 'nativeProjectDraft',
-      'version': 1,
+      'version': 2,
       'projectName': projectName,
       'parentPath': parentPath,
       'folderName': folderName,
@@ -325,7 +333,6 @@ final class NativeProjectDraft {
       'defaultMapWidth': defaultMapWidth,
       'defaultMapHeight': defaultMapHeight,
       'normalizedSourceHash': normalizedHash.value,
-      'compositionEvidence': frozenComposition,
       'mapIds': {
         for (final entry in mapIds.entries) '${entry.key}': entry.value
       },
@@ -342,11 +349,9 @@ final class NativeProjectDraft {
                   'rawSha256': artifact.rawSha256.value
                 })
             .toList(),
-      'mutations': [
-        for (var i = 0; i < mutations.length; i++) mutations[i].toJson(i)
-      ],
     };
-    final hash = canonicalHashOf(binding, limits: limits.jsonLimits);
+    final binding =
+        _bindNativeDraft(metadata, frozenComposition, mutations, limits);
     return NativeProjectDraft._(
         source,
         projectName,
@@ -361,8 +366,9 @@ final class NativeProjectDraft {
         List.unmodifiable(mutations),
         normalizedHash,
         frozenComposition,
-        hash,
-        _freezeNativeJson(binding) as Map<String, Object?>);
+        binding.hash,
+        binding.totalBytes,
+        _freezeNativeJson(binding.manifest) as Map<String, Object?>);
   }
 
   const NativeProjectDraft._(
@@ -380,6 +386,7 @@ final class NativeProjectDraft {
       this.normalizedSourceHash,
       this.compositionEvidence,
       this.canonicalHash,
+      this.validatedJsonByteLength,
       this._binding);
 
   final NormalizedSourceProject source;
@@ -396,6 +403,7 @@ final class NativeProjectDraft {
   final Sha256Hash normalizedSourceHash;
   final Map<String, Object?> compositionEvidence;
   final Sha256Hash canonicalHash;
+  final int validatedJsonByteLength;
   final Map<String, Object?> _binding;
   String get bindingEvidence => 'native-draft-sha256:${canonicalHash.value}';
 
@@ -403,8 +411,82 @@ final class NativeProjectDraft {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits._validate();
+    _validateNativeDraftBinding(this, limits);
     _preflightNativeResourceBudget(this, limits);
   }
+}
+
+({Map<String, Object?> manifest, Sha256Hash hash, int totalBytes})
+    _bindNativeDraft(
+        Map<String, Object?> metadata,
+        Map<String, Object?> compositionEvidence,
+        List<NativeMutation> mutations,
+        NativeWriteLimits limits) {
+  var totalBytes = 0;
+  Sha256Hash bindRecord(Object? value) {
+    final bytes =
+        utf8.encode(canonicalJsonOf(value, limits: limits.jsonLimits));
+    totalBytes += bytes.length;
+    if (totalBytes > limits.maxTotalDraftJsonBytes) {
+      throw const NativeWriteException('native.quota.draft_json',
+          'Aggregate draft JSON byte budget exceeded');
+    }
+    return Sha256Hash(sha256.convert(bytes).toString());
+  }
+
+  final evidenceHash = bindRecord(compositionEvidence);
+  final mutationHashes = <String>[];
+  for (var index = 0; index < mutations.length; index++) {
+    final mutation = mutations[index];
+    if (mutation.sourceEntityIds.length > limits.maxMutations ||
+        mutation.targetEntityIds.length > limits.maxMutations) {
+      throw const NativeWriteException(
+          'native.quota.references', 'Mutation reference budget exceeded');
+    }
+    mutationHashes.add(bindRecord(mutation.toJson(index)).value);
+  }
+  final manifest = <String, Object?>{
+    ...metadata,
+    'compositionEvidenceHash': evidenceHash.value,
+    'mutationHashes': mutationHashes,
+  };
+  final hash = bindRecord(manifest);
+  return (manifest: manifest, hash: hash, totalBytes: totalBytes);
+}
+
+void _validateNativeDraftBinding(
+    NativeProjectDraft draft, NativeWriteLimits limits) {
+  if (draft.artifacts.length + draft.sourceArtifacts.length >
+          limits.maxArtifacts ||
+      draft.mutations.length > limits.maxMutations ||
+      draft.mapIds.length > limits.maxMutations) {
+    throw const NativeWriteException(
+        'native.quota.draft', 'Draft collection budget exceeded');
+  }
+  final metadata = Map<String, Object?>.from(draft._binding)
+    ..remove('compositionEvidenceHash')
+    ..remove('mutationHashes');
+  final rebound = _bindNativeDraft(
+      metadata, draft.compositionEvidence, draft.mutations, limits);
+  if (rebound.hash != draft.canonicalHash ||
+      rebound.totalBytes != draft.validatedJsonByteLength ||
+      canonicalJsonOf(rebound.manifest, limits: limits.jsonLimits) !=
+          canonicalJsonOf(draft._binding, limits: limits.jsonLimits)) {
+    throw const NativeWriteException('native.draft.binding',
+        'Draft contents differ from their exact ordered binding');
+  }
+}
+
+bool _sameOrderedNativeMutations(List<NativeMutation> actual,
+    List<NativeMutation> expected, ContractLimits limits) {
+  if (actual.length != expected.length) return false;
+  for (var index = 0; index < actual.length; index++) {
+    if (canonicalJsonOf(actual[index].toJson(index), limits: limits) !=
+        canonicalJsonOf(expected[index].toJson(index), limits: limits)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 enum NativeWriteStage {
@@ -901,7 +983,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     throw const NativeWriteException(
         'native.quota.draft', 'Draft collection budget exceeded');
   }
-  canonicalJsonOf(draft._binding, limits: limits.jsonLimits);
+  _validateNativeDraftBinding(draft, limits);
   final wantedMaps = {
     ...plan.selectedSourceMapIds,
     ...plan.dependencySourceMapIds
@@ -968,6 +1050,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }.contains(mutation.actionId);
     final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
         const {
+          'connection.create_bidirectional_apply',
           'element_category.upsert',
           'element.upsert',
           'characterStudio.character.create',
@@ -1482,6 +1565,45 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'A canonical map save must follow the exact approved creation geometry');
         }
         maps[map.id] = map;
+      case 'connection.create_bidirectional_apply':
+        semantics.requireOperation(mutation);
+        _allowParameters(
+            parameters, const {'mapId', 'direction', 'targetMapId', 'offset'});
+        final sourceId = _string(parameters, 'mapId');
+        final targetId = _string(parameters, 'targetMapId');
+        _requireMapBinding(draft, mutation, sourceId,
+            expectedTargets: {sourceId, targetId});
+        _requireMapBinding(draft, mutation, targetId,
+            expectedTargets: {sourceId, targetId});
+        final from = maps[sourceId], to = maps[targetId];
+        final direction = MapConnectionDirection.values
+            .where((value) => value.name == parameters['direction'])
+            .firstOrNull;
+        final offset = parameters['offset'];
+        if (from == null ||
+            to == null ||
+            from.id == to.id ||
+            direction == null ||
+            offset is! int ||
+            !_targetIds(mutation.targetEntityIds, {sourceId, targetId}) ||
+            findMapConnection(from, direction) != null ||
+            findMapConnection(to, direction.opposite) != null ||
+            !hasMapConnectionOverlap(
+                sourceSize: from.size,
+                targetSize: to.size,
+                direction: direction,
+                offset: offset)) {
+          throw const NativeWriteException('native.connections.binding',
+              'Exact source connections require saved distinct native maps and unoccupied overlapping edges');
+        }
+        maps[sourceId] = upsertMapConnectionOnMap(from,
+            connection: MapConnection(
+                direction: direction, targetMapId: targetId, offset: offset));
+        maps[targetId] = upsertMapConnectionOnMap(to,
+            connection: MapConnection(
+                direction: direction.opposite,
+                targetMapId: sourceId,
+                offset: -offset));
       case 'map.audio.update':
         semantics.requireOperation(mutation);
         _allowParameters(
@@ -1596,6 +1718,13 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
   }
+  const SourceEventArrivalValidator().validateConnections(
+      manifest: manifest,
+      maps: maps.values.toList(),
+      source: draft.source,
+      connectionMutations: draft.mutations.where(
+          (entry) => entry.actionId == 'connection.create_bidirectional_apply'),
+      cancellation: cancellation);
   if (projectedEvents != null) {
     for (final scene in projectedEvents.scenes) {
       try {
@@ -2056,13 +2185,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
   if (canonicalJsonOf(evidence, limits: limits.jsonLimits) !=
           canonicalJsonOf(expected.compositionEvidence,
               limits: limits.jsonLimits) ||
-      canonicalJsonOf(
-              [for (var i = 0; i < actual.length; i++) actual[i].toJson(i)],
-              limits: limits.jsonLimits) !=
-          canonicalJsonOf([
-            for (var i = 0; i < expected.mutations.length; i++)
-              expected.mutations[i].toJson(i)
-          ], limits: limits.jsonLimits) ||
+      !_sameOrderedNativeMutations(
+          actual, expected.mutations, limits.jsonLimits) ||
       expected.artifacts.any((artifact) =>
           artifacts[artifact.handle]?.rawSha256 != artifact.rawSha256) ||
       canonicalJsonOf(_artifactBindings(expected.sourceArtifacts),
@@ -2218,15 +2342,8 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
   final actualMutations = draft.mutations
       .where((mutation) => operationIds.contains(mutation.operationId))
       .toList();
-  if (actualMutations.length != regenerated.mutations.length ||
-      canonicalJsonOf([
-            for (var i = 0; i < actualMutations.length; i++)
-              actualMutations[i].toJson(i)
-          ], limits: limits.jsonLimits) !=
-          canonicalJsonOf([
-            for (var i = 0; i < regenerated.mutations.length; i++)
-              regenerated.mutations[i].toJson(i)
-          ], limits: limits.jsonLimits)) {
+  if (!_sameOrderedNativeMutations(
+      actualMutations, regenerated.mutations, limits.jsonLimits)) {
     throw const NativeWriteException('native.library.mutation',
         'Every library mutation must equal its exact approved candidate operation');
   }
@@ -2585,13 +2702,14 @@ bool _sameIntegerIds(List<int> left, List<int> right) =>
     left.length == right.length && left.toSet().containsAll(right);
 
 void _requireMapBinding(
-    NativeProjectDraft draft, NativeMutation mutation, String id) {
+    NativeProjectDraft draft, NativeMutation mutation, String id,
+    {Set<String>? expectedTargets}) {
   final binding =
       draft.mapIds.entries.where((entry) => entry.value == id).firstOrNull;
   if (binding == null ||
       id.length > 64 ||
       !RegExp(r'^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$').hasMatch(id) ||
-      !_targetIds(mutation.targetEntityIds, {id}) ||
+      !_targetIds(mutation.targetEntityIds, expectedTargets ?? {id}) ||
       !mutation.sourceEntityIds
           .contains(draft.source.mapIdentity(binding.key))) {
     throw const NativeWriteException('native.map.identity',

@@ -6,6 +6,7 @@ import 'package:avelune_converter_adapters/src/source_player_character_import.da
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
@@ -112,6 +113,68 @@ void main() {
       expect(result.wallMasksByCell, isEmpty);
       expect(
           result.fullyBlockedCells.where((blocked) => blocked), hasLength(1));
+    });
+
+    test('isolated source-allowed cells keep their arrival space', () {
+      final cells = _cells({1: 1, 3: 4, 5: 2, 7: 8});
+      final resolver = _resolver();
+      final result = SourceCollisionProjection.resolve(
+        cells: cells,
+        resolver: resolver,
+        mapSize: const GridSize(width: 3, height: 3),
+      );
+      expect(resolver.resolveConnectionEntryTile(cells[4]).isPassable, isTrue);
+      expect(result.allowedTransitions[4], 0);
+      expect(result.fullyBlockedCells[4], isFalse);
+      expect(result.wallMasksByCell[4], 10);
+      expect(result.wallMasksByCell[5], 2);
+      expect(result.wallMasksByCell[7], 8);
+      expect(result.qualified, isTrue);
+    });
+
+    test('source d0 border admission survives four blocked cardinal arcs', () {
+      final cells = _cells({3: 8, 4: 15, 6: 15}, terrainTags: {3: 17});
+      final resolver = _resolver();
+      final result = SourceCollisionProjection.resolve(
+        cells: cells,
+        resolver: resolver,
+        mapSize: const GridSize(width: 3, height: 3),
+      );
+      expect(resolver.resolveConnectionEntryTile(cells[3]).isPassable, isTrue);
+      expect(result.allowedTransitions[3], 0);
+      expect(result.fullyBlockedCells[3], isFalse);
+      expect(result.fullyBlockedCells[4], isTrue);
+      expect(result.fullyBlockedCells[6], isTrue);
+      expect(result.wallMasksByCell[3], SourceCardinalDirection.up.bit);
+      expect(result.qualified, isTrue);
+    });
+
+    test(
+        'native feet fit an isolated arrival while all four steps stay blocked',
+        () {
+      const size = GridSize(width: 3, height: 3);
+      for (final (cells, arrival) in [
+        (_cells({1: 1, 3: 4, 5: 2, 7: 8}), const GridPos(x: 1, y: 1)),
+        (
+          _cells({3: 8, 4: 15, 6: 15}, terrainTags: {3: 17}),
+          const GridPos(x: 0, y: 1)
+        ),
+      ]) {
+        final collision = SourceCollisionProjection.resolve(
+          cells: cells,
+          resolver: _resolver(),
+          mapSize: size,
+        );
+        final world = _collisionWorld(collision, size, arrival);
+        expect(world.worldStaticObstaclesCollidePlayerCollisionRect(), isFalse);
+        for (final direction in Direction.values) {
+          final step = stepGameplayWorld(
+              world, MoveIntent(direction, pixelsPerStep: 32));
+          expect(step, isA<Blocked>(), reason: '$arrival $direction');
+          expect(step.world.player.playerPositionPx,
+              world.player.playerPositionPx);
+        }
+      }
     });
 
     test('unknown metadata remains unqualified and cannot become an open arc',
@@ -388,6 +451,58 @@ SourceSemanticResolver _resolver() => SourceSemanticResolver(
         sourceSelectionHash: Sha256Hash(List.filled(64, 'b').join()),
       ),
     );
+
+GameplayWorldState _collisionWorld(
+    SourceCollisionProjection collision, GridSize size, GridPos arrival) {
+  final map = MapData(
+      id: 'source-arrival',
+      name: 'Source arrival',
+      size: size,
+      layers: [
+        MapLayer.collision(
+            id: 'collision',
+            name: 'Source passages',
+            collisions: collision.fullyBlockedCells),
+        MapLayer.tile(
+            id: 'boundaries',
+            name: 'Source boundaries',
+            cells: List.filled(size.width * size.height, 0)),
+      ],
+      placedElements: [
+        for (final wall in collision.wallMasksByCell.entries)
+          MapPlacedElement(
+              id: 'wall-${wall.key}',
+              layerId: 'boundaries',
+              elementId: 'wall-${wall.value}',
+              pos:
+                  GridPos(x: wall.key % size.width, y: wall.key ~/ size.width)),
+      ]);
+  final manifest = ProjectManifest(
+      name: 'Source arrival',
+      maps: const [],
+      tilesets: const [],
+      settings: const ProjectSettings(tileWidth: 32, tileHeight: 32),
+      elements: [
+        for (final mask in collision.wallMasksByCell.values.toSet())
+          ProjectElementEntry(
+              id: 'wall-$mask',
+              name: 'Source boundary',
+              tilesetId: 'boundaries',
+              categoryId: 'source',
+              frames: const [
+                TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1)),
+              ],
+              collisionProfile: ElementCollisionProfile(
+                  collisionMask: sourceBoundaryCollisionMask(mask))),
+      ]);
+  return GameplayWorldState.initial(
+      map: map,
+      playerPos: arrival,
+      project: manifest,
+      tileWidth: 32,
+      tileHeight: 32);
+}
 
 List<SourceSemanticCell> _cells(Map<int, int> passages,
         {int width = 3,

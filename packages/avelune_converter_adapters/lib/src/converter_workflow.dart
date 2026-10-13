@@ -1310,7 +1310,10 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             limits: settings.normalizationLimits,
             cancellation: relay.cancellation,
             selectedMapIds: wanted,
-            includeEventSystem: true);
+            includeEventSystem: true,
+            includeConnections: snapshot.entries.any((entry) =>
+                entry.kind == SourceNodeKind.file &&
+                sourcePathCollisionKey(entry.relativePath) == 'data/map_connections.dat'));
         relay.finish(done: normalized.maps.length);
         await relay.start(ConverterWorkflowPhase.compose, JobUnit.assets);
         final composition = await const LiteralTileComposer().compose(
@@ -1716,6 +1719,7 @@ final class _CooperativeSourceTree implements SourceTreePort {
 void _validateNormalizationLimits(SourceNormalizationLimits limits) {
   final bounds = [
     (limits.maxMaps, 100000),
+    (limits.maxConnections, 65536),
     (limits.maxTotalCells, 67108864),
     (limits.maxEvents, 1000000),
     (limits.maxCommands, 2000000),
@@ -1737,6 +1741,7 @@ Map<String, Object?> _normalizationLimitsJson(
         SourceNormalizationLimits limits) =>
     {
       'maxMaps': limits.maxMaps,
+      'maxConnections': limits.maxConnections,
       'maxTotalCells': limits.maxTotalCells,
       'maxEvents': limits.maxEvents,
       'maxCommands': limits.maxCommands,
@@ -1754,6 +1759,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits limits) => {
       'maxMutations': limits.maxMutations,
       'maxArtifactBytes': limits.maxArtifactBytes,
       'maxTotalArtifactBytes': limits.maxTotalArtifactBytes,
+      'maxTotalDraftJsonBytes': limits.maxTotalDraftJsonBytes,
       'maxImagePixels': limits.maxImagePixels,
       'maxMapCells': limits.maxMapCells,
       'jsonLimits': {
@@ -1876,6 +1882,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'assetLibrary': 'human-reviewed-static-parts-with-original-png-witnesses',
       'assetPlacements': 'attested-static-priority-elements',
       'sourceSemantics': 'kanto-profile-walking-cardinal-closed-unqualified',
+      'sourceConnections': 'compiled-complete-graph-unique-opposing-selected-edges',
       'sourcePlayer': 'attested-original-pixels-padded-without-resampling',
       'dimension': 'twoD',
       'template': 'empty',
@@ -1949,6 +1956,7 @@ const _nativeStudyActions = [
   'map.create',
   'map.save',
   'map.audio.update',
+  'connection.create_bidirectional_apply',
   'element_category.upsert',
   'element.upsert',
   'asset.import',
@@ -2039,6 +2047,12 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:AC13 workflow publishes attested map music and preserves its gain',
                 },
+              if (action == 'connection.create_bidirectional_apply')
+                {
+                  'type': 'test',
+                  'summary': 'Original compiled graph, opposing unique edges, canonical bidirectional action after all map saves and strict source regeneration.',
+                  'reference': 'repo:packages/avelune_converter_adapters/test/source_connection_study_composer_test.dart',
+                },
             ],
             'limitations': [
               'Native study verification; publication requires a committed exclusive-promotion receipt. Gameplay remains uncertified.',
@@ -2122,6 +2136,24 @@ ConversionPlan? _previewPlan(
       false,
       family: 'events');
   final eventEvidence = draft.compositionEvidence['sourceEvents'];
+  final semanticEvidence = draft.compositionEvidence['sourceSemantics'];
+  final connectionEvidence = semanticEvidence is Map
+      ? semanticEvidence['connections'] : null;
+  if (connectionEvidence is Map) {
+    for (final raw in (connectionEvidence['diagnostics'] as List).cast<Map>()) {
+      add(raw['code'] as String, raw['message'] as String, false,
+          family: 'maps', locator: _planLocator(normalized,
+            Map<String, Object?>.from(raw['locator'] as Map)));
+    }
+  } else if (!normalized.connectionsExtracted) {
+    add('connections.not_requested',
+        'Source connectivity was not extracted; regional connectivity is not certified.',
+        false, family: 'maps');
+  } else if (normalized.connections.isNotEmpty) {
+    add('connections.source_profile_unqualified',
+        'Compiled source connectivity is preserved but lacks qualified source destination passage; native regional connectivity is not activated.',
+        false, family: 'maps');
+  }
   if (eventEvidence is Map) {
     final projection = eventEvidence['projection'] as Map;
     final qualified = projection['qualifiedEventCount'] as int;

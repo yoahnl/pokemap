@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
@@ -30,7 +31,9 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<PreparedStudy> prepare({String? parentPath}) async {
+  Future<PreparedStudy> prepare(
+      {String? parentPath,
+      NativeWriteLimits writeLimits = sourceCatalogStudyWriteLimits}) async {
     final snapshot = await original.scanSource(ConverterSourceSelection(
         rootPath: fixture.sourceRootPath!,
         logicalProjectNamespace: ConverterId('original-ac16')));
@@ -39,6 +42,7 @@ void main() {
         parentPath: parentPath ?? output.path,
         folderName: 'original-study',
         selectedSourceMapIds: [1],
+        writeLimits: writeLimits,
         profileAcknowledgement: SourceStudyAcknowledgement(
             sourceSnapshotHash: snapshot.canonicalHash,
             profileEvidenceHash: snapshot.profile.evidenceHash,
@@ -46,6 +50,195 @@ void main() {
             reason:
                 'Original literal fixture without Scripts or Pokemon assets.')));
     return original.prepareStudy();
+  }
+
+  ConverterStudyPlanRecipe connectionRecipe(int maxConnections,
+      {NativeWriteLimits writeLimits = const NativeWriteLimits()}) {
+    final sourceHash = Sha256Hash('1' * 64);
+    final profileHash = Sha256Hash('2' * 64);
+    final settings = ConverterStudySettings(
+        projectName: 'Original connection quota study',
+        parentPath: output.path,
+        folderName: 'original-study',
+        selectedSourceMapIds: [1],
+        writeLimits: writeLimits,
+        profileAcknowledgement: SourceStudyAcknowledgement(
+            sourceSnapshotHash: sourceHash,
+            profileEvidenceHash: profileHash,
+            humanConfirmed: true,
+            reason: 'Original bounded recipe fixture'),
+        normalizationLimits:
+            SourceNormalizationLimits(maxConnections: maxConnections));
+    return ConverterStudyPlanRecipe(
+        sessionId: ConverterId('original-connection-recipe'),
+        sessionRevision: 3,
+        sourceSelection: ConverterSourceSelection(
+            rootPath: fixture.sourceRootPath!,
+            logicalProjectNamespace: ConverterId('original-connection-quota')),
+        settings: settings,
+        sourceSnapshotHash: sourceHash,
+        profileEvidenceHash: profileHash,
+        settingsHash: settings.canonicalHash,
+        nativeDraftHash: Sha256Hash('3' * 64),
+        preparationHash: Sha256Hash('4' * 64),
+        previewPlanHash: Sha256Hash('5' * 64),
+        approvedPlanHash: Sha256Hash('6' * 64),
+        targetCapabilitiesHash: Sha256Hash('7' * 64),
+        rulesHash: Sha256Hash('8' * 64),
+        converterVersion: 'original-quota-fixture');
+  }
+
+  Map<String, Object?> changedConnectionQuota(Object? value,
+      {bool remove = false}) {
+    final body =
+        jsonDecode(connectionRecipe(2).encode()) as Map<String, dynamic>;
+    body.remove('canonicalHash');
+    final settings = body['settings'] as Map<String, dynamic>;
+    final normalization =
+        settings['normalizationLimits'] as Map<String, dynamic>;
+    if (remove) {
+      normalization.remove('maxConnections');
+    } else {
+      normalization['maxConnections'] = value;
+    }
+    body['settingsHash'] = canonicalHashOf(settings).value;
+    return {
+      ...body,
+      'canonicalHash':
+          canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+              .value
+    };
+  }
+
+  Map<String, Object?> changedDraftBudget(Object? value,
+      {bool remove = false, int? version}) {
+    final body =
+        jsonDecode(connectionRecipe(2).encode()) as Map<String, dynamic>;
+    body.remove('canonicalHash');
+    if (version != null) body['version'] = version;
+    final settings = body['settings'] as Map<String, dynamic>;
+    final write = settings['writeLimits'] as Map<String, dynamic>;
+    if (remove) {
+      write.remove('maxTotalDraftJsonBytes');
+    } else {
+      write['maxTotalDraftJsonBytes'] = value;
+    }
+    body['settingsHash'] = canonicalHashOf(settings).value;
+    return {
+      ...body,
+      'canonicalHash':
+          canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits)
+              .value
+    };
+  }
+
+  test('draft JSON budget recipe roundtrip preserves the exact custom limit',
+      () {
+    for (final budget in [1, 67108864, 268435456]) {
+      final recipe = connectionRecipe(2,
+          writeLimits: NativeWriteLimits(maxTotalDraftJsonBytes: budget));
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(decoded.settings.writeLimits.maxTotalDraftJsonBytes, budget);
+      expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
+      expect(decoded.canonicalHash, recipe.canonicalHash);
+    }
+  });
+
+  test('draft JSON budget settings and recipe hashes distinguish limits', () {
+    final two = connectionRecipe(2,
+        writeLimits: const NativeWriteLimits(maxTotalDraftJsonBytes: 2));
+    final three = connectionRecipe(2,
+        writeLimits: const NativeWriteLimits(maxTotalDraftJsonBytes: 3));
+    expect(two.settings.canonicalHash, isNot(three.settings.canonicalHash));
+    expect(two.canonicalHash, isNot(three.canonicalHash));
+  });
+
+  test('draft JSON budget recipe emits version 2', () {
+    expect(connectionRecipe(2).toJson()['version'], 2);
+  });
+
+  test('draft JSON budget recipe refuses a resigned version 1', () {
+    expect(
+        () => ConverterStudyPlanRecipe.fromJson(
+            changedDraftBudget(67108864, version: 1)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+  });
+
+  test('draft JSON budget recipe refuses a resigned missing field', () {
+    expect(
+        () => ConverterStudyPlanRecipe.fromJson(
+            changedDraftBudget(null, remove: true)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+  });
+
+  for (final invalid in [null, true, 0, -1, 268435457, 2.5, '2']) {
+    test('draft JSON budget recipe refuses resigned invalid value $invalid',
+        () {
+      expect(
+          () => ConverterStudyPlanRecipe.fromJson(changedDraftBudget(invalid)),
+          throwsA(isA<ConverterWorkflowFailure>()
+              .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+    });
+  }
+
+  test('draft JSON budget survives fresh workflow restore without approval',
+      () async {
+    final prepared = await prepare(
+        writeLimits:
+            const NativeWriteLimits(maxTotalDraftJsonBytes: 134217728));
+    final recipe = ConverterStudyPlanRecipe.decode(
+        original.exportStudyPlanRecipe().encode());
+    expect(recipe.settings.writeLimits.maxTotalDraftJsonBytes, 134217728);
+    final fresh = await restored.restoreStudyPlanRecipe(recipe);
+    expect(restored.state.settings!.writeLimits.maxTotalDraftJsonBytes,
+        134217728);
+    expect(fresh.preparationHash, prepared.preparationHash);
+    expect(fresh.previewPlan!.canonicalHash, recipe.previewPlanHash);
+    expect(fresh.nativeDraft!.canonicalHash, recipe.nativeDraftHash);
+    expect(restored.state.approval, isNull);
+    expect(await output.list().toList(), isEmpty);
+  }, skip: !Platform.isMacOS);
+
+  test('connection quota recipe roundtrip preserves the exact custom limit',
+      () {
+    for (final quota in [1, 2, 16384, 65536]) {
+      final recipe = connectionRecipe(quota);
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(decoded.settings.normalizationLimits.maxConnections, quota);
+      expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
+      expect(decoded.canonicalHash, recipe.canonicalHash);
+    }
+  });
+
+  test('connection quota settings and recipe hashes distinguish limits', () {
+    final two = connectionRecipe(2);
+    final three = connectionRecipe(3);
+    expect(two.settings.canonicalHash, isNot(three.settings.canonicalHash));
+    expect(two.canonicalHash, isNot(three.canonicalHash));
+  });
+
+  test('connection quota recipe refuses a resigned missing field', () {
+    expect(
+        () => ConverterStudyPlanRecipe.fromJson(
+            changedConnectionQuota(null, remove: true)),
+        throwsA(isA<ConverterWorkflowFailure>()
+            .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
+  });
+
+  for (final invalid in [null, true, 0, -1, 65537, 2.5, '2']) {
+    test('connection quota recipe refuses resigned invalid value $invalid', () {
+      expect(
+          () => ConverterStudyPlanRecipe.fromJson(
+              changedConnectionQuota(invalid)),
+          throwsA(isA<ConverterWorkflowFailure>().having(
+              (error) => error.code,
+              'code',
+              invalid is int
+                  ? 'workflow.invalid_limits'
+                  : 'workflow.recipe.invalid')));
+    });
   }
 
   test('REL03 restored recipe recomposes the exact plan without saved approval',
@@ -342,7 +535,6 @@ void main() {
             .having((e) => e.code, 'code', 'workflow.cancelled')));
     expect(loads, 3);
   }, skip: !Platform.isMacOS);
-
 }
 
 Future<Map<String, List<int>>> _treeBytes(String root) async => {

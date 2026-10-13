@@ -79,7 +79,7 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 1) {
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 2) {
         throw _invalid();
       }
       final source = _object(json['sourceSelection']);
@@ -146,6 +146,7 @@ final class ConverterStudyPlanRecipe {
               }).toList(),
               normalizationLimits: SourceNormalizationLimits(
                   maxMaps: _int(normalization['maxMaps']),
+                  maxConnections: _int(normalization['maxConnections']),
                   maxTotalCells: _int(normalization['maxTotalCells']),
                   maxEvents: _int(normalization['maxEvents']),
                   maxCommands: _int(normalization['maxCommands']),
@@ -163,6 +164,7 @@ final class ConverterStudyPlanRecipe {
                   maxMutations: _int(write['maxMutations']),
                   maxArtifactBytes: _int(write['maxArtifactBytes']),
                   maxTotalArtifactBytes: _int(write['maxTotalArtifactBytes']),
+                  maxTotalDraftJsonBytes: _int(write['maxTotalDraftJsonBytes']),
                   maxImagePixels: _int(write['maxImagePixels']),
                   maxMapCells: _int(write['maxMapCells']),
                   jsonLimits: ContractLimits(
@@ -223,7 +225,7 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 1,
+        'version': 2,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {

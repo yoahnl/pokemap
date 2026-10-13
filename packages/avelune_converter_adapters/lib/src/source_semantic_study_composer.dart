@@ -7,6 +7,7 @@ import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
 import 'source_player_character_import.dart';
 import 'source_semantics_projection.dart';
+import 'source_connection_study_composer.dart';
 
 final class SourceSemanticStudyComposer {
   const SourceSemanticStudyComposer();
@@ -60,6 +61,9 @@ final class SourceSemanticStudyComposer {
         files: recording,
         limits: limits,
         cancellation: cancellation);
+    final connections = await const SourceConnectionStudyComposer().compose(
+        source: source, nativeMaps: projection.nativeMaps, files: recording,
+        limits: limits, cancellation: cancellation);
     final playerArtifact =
         NativeArtifact(bytes: player.outputBytes, limits: limits);
     NativeMutation mutation(String suffix, String action,
@@ -132,6 +136,7 @@ final class SourceSemanticStudyComposer {
       'normalizedSourceHash': source.canonicalHash.value,
       'projection': projection.semanticEvidence,
       'player': player.evidence,
+      'connections': connections.evidence,
       'witnesses': recording.evidence,
       'automatic': true,
       'aiCalls': 0,
@@ -139,6 +144,7 @@ final class SourceSemanticStudyComposer {
       'operationIds': [
         ...playerMutations.map((entry) => entry.operationId.value),
         ...projection.operationIds.map((entry) => entry.value),
+        ...connections.mutations.map((entry) => entry.operationId.value),
       ],
     };
     return NativeProjectDraft(
@@ -160,6 +166,7 @@ final class SourceSemanticStudyComposer {
               .where((entry) => entry.actionId == 'map.create'),
           ...projection.mutations
               .where((entry) => entry.actionId.startsWith('map.')),
+          ...connections.mutations,
         ],
         compositionEvidence: {
           ...original.compositionEvidence,

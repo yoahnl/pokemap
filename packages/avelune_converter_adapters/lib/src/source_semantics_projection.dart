@@ -134,7 +134,8 @@ final class SourceCollisionProjection {
           unqualified++;
         }
       }
-      blocked[index] = blockedMask == 15;
+      blocked[index] = blockedMask == 15 &&
+          resolver.resolveConnectionEntryTile(from).isPassable != true;
     }
     final walls = <int, int>{};
     for (var index = 0; index < cells.length; index++) {

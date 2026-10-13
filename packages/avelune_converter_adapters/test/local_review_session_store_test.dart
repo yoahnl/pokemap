@@ -42,6 +42,141 @@ void main() {
           limits: limits ?? const LocalReviewSessionStoreLimits(),
           checkpoint: checkpoint);
 
+  Map<String, Object?> changedResumeBudget(
+      String group, String field, Object? value,
+      {bool remove = false}) {
+    final body = jsonDecode(jsonEncode(settings.toJson()))
+        as Map<String, dynamic>;
+    final limits = body[group] as Map<String, dynamic>;
+    if (remove) {
+      limits.remove(field);
+    } else {
+      limits[field] = value;
+    }
+    return body;
+  }
+
+  test('draft JSON budget resume survives exact disk reopen', () async {
+    final custom = LocalReviewResumeSettings(
+        sourceRootPath: source.path,
+        destinationParentPath: destination.path,
+        projectName: settings.projectName,
+        folderName: settings.folderName,
+        writeLimits:
+            const NativeWriteLimits(maxTotalDraftJsonBytes: 134217728));
+    final created =
+        await store().create(session: _session(), resumeSettings: custom);
+    final loaded = (await store().load(created.session.sessionId))!;
+    expect(loaded.resumeSettings.writeLimits.maxTotalDraftJsonBytes,
+        134217728);
+    expect(loaded.resumeSettings.toJson(), custom.toJson());
+    expect(loaded.canonicalHash, created.canonicalHash);
+  });
+
+  test('draft JSON budget resume preserves both admitted boundaries', () {
+    for (final budget in [1, 67108864, 268435456]) {
+      final custom = LocalReviewResumeSettings(
+          sourceRootPath: source.path,
+          destinationParentPath: destination.path,
+          projectName: settings.projectName,
+          folderName: settings.folderName,
+          writeLimits: NativeWriteLimits(maxTotalDraftJsonBytes: budget));
+      final loaded = LocalReviewResumeSettings.fromJson(custom.toJson());
+      expect(loaded.writeLimits.maxTotalDraftJsonBytes, budget);
+    }
+  });
+
+  test('draft JSON budget resume envelope hashes distinguish limits', () {
+    StoredReviewSession envelope(int budget) => StoredReviewSession(
+        session: _session(),
+        storedRevision: 1,
+        resumeSettings: LocalReviewResumeSettings(
+            sourceRootPath: source.path,
+            destinationParentPath: destination.path,
+            projectName: settings.projectName,
+            folderName: settings.folderName,
+            writeLimits: NativeWriteLimits(maxTotalDraftJsonBytes: budget)));
+    expect(envelope(2).canonicalHash, isNot(envelope(3).canonicalHash));
+  });
+
+  test('draft JSON budget resume refuses missing required field', () {
+    expect(
+        () => LocalReviewResumeSettings.fromJson(changedResumeBudget(
+            'writeLimits', 'maxTotalDraftJsonBytes', null,
+            remove: true)),
+        _error('session.store.document'));
+  });
+
+  for (final invalid in [null, true, 0, -1, 268435457, 2.5, '2']) {
+    test('draft JSON budget resume refuses invalid value $invalid', () {
+      expect(
+          () => LocalReviewResumeSettings.fromJson(changedResumeBudget(
+              'writeLimits', 'maxTotalDraftJsonBytes', invalid)),
+          _error('session.store.document'));
+    });
+  }
+
+  test('connection quota resume survives exact disk reopen', () async {
+    final custom = LocalReviewResumeSettings(
+        sourceRootPath: source.path,
+        destinationParentPath: destination.path,
+        projectName: settings.projectName,
+        folderName: settings.folderName,
+        normalizationLimits:
+            const SourceNormalizationLimits(maxConnections: 2));
+    final created =
+        await store().create(session: _session(), resumeSettings: custom);
+    final loaded = (await store().load(created.session.sessionId))!;
+    expect(loaded.resumeSettings.normalizationLimits.maxConnections, 2);
+    expect(loaded.resumeSettings.toJson(), custom.toJson());
+    expect(loaded.canonicalHash, created.canonicalHash);
+  });
+
+  test('connection quota resume preserves both admitted boundaries', () {
+    for (final quota in [1, 16384, 65536]) {
+      final custom = LocalReviewResumeSettings(
+          sourceRootPath: source.path,
+          destinationParentPath: destination.path,
+          projectName: settings.projectName,
+          folderName: settings.folderName,
+          normalizationLimits:
+              SourceNormalizationLimits(maxConnections: quota));
+      final loaded = LocalReviewResumeSettings.fromJson(custom.toJson());
+      expect(loaded.normalizationLimits.maxConnections, quota);
+    }
+  });
+
+  test('connection quota resume envelope hashes distinguish limits', () {
+    StoredReviewSession envelope(int quota) => StoredReviewSession(
+        session: _session(),
+        storedRevision: 1,
+        resumeSettings: LocalReviewResumeSettings(
+            sourceRootPath: source.path,
+            destinationParentPath: destination.path,
+            projectName: settings.projectName,
+            folderName: settings.folderName,
+            normalizationLimits:
+                SourceNormalizationLimits(maxConnections: quota)));
+    expect(envelope(2).canonicalHash, isNot(envelope(3).canonicalHash));
+  });
+
+  test('connection quota resume refuses missing required field', () {
+    expect(
+        () => LocalReviewResumeSettings.fromJson(changedResumeBudget(
+            'normalizationLimits', 'maxConnections', null,
+            remove: true)),
+        _error('session.store.document'));
+  });
+
+  for (final invalid in [null, true, 0, -1, 65537, 2.5, '2']) {
+    test('connection quota resume refuses invalid value $invalid', () {
+      expect(
+          () => LocalReviewResumeSettings.fromJson(changedResumeBudget(
+              'normalizationLimits', 'maxConnections', invalid)),
+          _error('session.store.document'));
+    });
+  }
+
   test('create and reopen preserve exact review history and envelope',
       () async {
     final initial = _session();

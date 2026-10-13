@@ -12,6 +12,115 @@ void require(bool condition, String message) {
   if (!condition) throw StateError(message);
 }
 
+Map<String, MapData> expectedStudyMaps(List<NativeMutation> mutations) {
+  final maps = <String, MapData>{};
+  for (final mutation in mutations) {
+    final parameters = mutation.parameters;
+    switch (mutation.actionId) {
+      case 'map.create':
+        break;
+      case 'map.save':
+        final raw = parameters['map'];
+        require(raw is Map, 'A study map save requires native map data');
+        final map = MapData.fromJson(Map<String, dynamic>.from(raw as Map));
+        require(!maps.containsKey(map.id),
+            'A study map must be saved exactly once before later mutations');
+        maps[map.id] = map;
+      case 'map.audio.update':
+        final mapId = parameters['mapId'];
+        final map = maps[mapId];
+        final musicPath = parameters['musicPath'];
+        final volume = parameters['musicVolume'];
+        require(
+            map != null &&
+                musicPath is String &&
+                volume is num &&
+                volume.isFinite &&
+                volume >= 0 &&
+                volume <= 1,
+            'Study music must follow its saved map with an explicit valid gain');
+        maps[map!.id] = map.copyWith(
+            mapMetadata: map.mapMetadata.copyWith(
+                musicPath: musicPath as String,
+                musicVolume: (volume as num).toDouble()));
+      case 'connection.create_bidirectional_apply':
+        final sourceId = parameters['mapId'];
+        final targetId = parameters['targetMapId'];
+        final from = maps[sourceId], to = maps[targetId];
+        final direction = MapConnectionDirection.values
+            .where((value) => value.name == parameters['direction'])
+            .firstOrNull;
+        final offset = parameters['offset'];
+        require(
+            from != null &&
+                to != null &&
+                from.id != to.id &&
+                direction != null &&
+                offset is int &&
+                findMapConnection(from, direction) == null &&
+                findMapConnection(to, direction.opposite) == null &&
+                hasMapConnectionOverlap(
+                    sourceSize: from.size,
+                    targetSize: to.size,
+                    direction: direction,
+                    offset: offset),
+            'Study connections must follow both map saves with unoccupied overlapping edges');
+        maps[from!.id] = upsertMapConnectionOnMap(from,
+            connection: MapConnection(
+                direction: direction!,
+                targetMapId: to!.id,
+                offset: offset as int));
+        maps[to.id] = upsertMapConnectionOnMap(to,
+            connection: MapConnection(
+                direction: direction.opposite,
+                targetMapId: from.id,
+                offset: -offset));
+      case 'entity.upsert':
+        final map = maps[parameters['mapId']];
+        final raw = parameters['entity'];
+        require(map != null && raw is Map,
+            'A study entity must follow its saved map with native entity data');
+        final entity =
+            MapEntity.fromJson(Map<String, dynamic>.from(raw as Map));
+        maps[map!.id] = findEntityById(map, entity.id) == null
+            ? addEntityToMap(map, entity: entity)
+            : updateEntityOnMap(map,
+                entityId: entity.id,
+                id: entity.id,
+                name: entity.name,
+                kind: entity.kind,
+                pos: entity.pos,
+                size: entity.size,
+                properties: entity.properties,
+                blocksMovement: entity.blocksMovement,
+                npc: entity.npc,
+                sign: entity.sign,
+                item: entity.item,
+                spawn: entity.spawn,
+                editorVisual: entity.editorVisual);
+      case 'trigger.create':
+        final map = maps[parameters['mapId']];
+        final raw = parameters['trigger'];
+        require(map != null && raw is Map,
+            'A study trigger must follow its saved map with native trigger data');
+        maps[map!.id] = addTriggerToMap(map,
+            trigger:
+                MapTrigger.fromJson(Map<String, dynamic>.from(raw as Map)));
+      case 'warp.create':
+        final map = maps[parameters['mapId']];
+        final raw = parameters['warp'];
+        require(map != null && raw is Map,
+            'A study warp must follow its saved map with native warp data');
+        maps[map!.id] = addWarpToMap(map,
+            warp: MapWarp.fromJson(Map<String, dynamic>.from(raw as Map)));
+      default:
+        require(mutation.domain != OperationDomain.maps,
+            'An unsupported map mutation cannot be omitted from the study proof');
+    }
+  }
+  return Map.unmodifiable(maps);
+}
+
 Future<(Directory, Directory)> validateFreshStudyDirectories(
     String sourceRoot, String destinationPath, String evidencePath) async {
   Future<Directory> validate(String raw) async {
@@ -205,14 +314,12 @@ Future<void> main(List<String> args) async {
       require(
           native.loadDiagnostics.isEmpty && native.maps.length == mapIds.length,
           'Strict native reopening must return all converted maps');
-      final expected = {
-        for (final mutation in draft.mutations)
-          if (mutation.actionId == 'map.save')
-            (mutation.parameters['map'] as Map)['id']:
-                canonicalHashOf(mutation.parameters['map']).value
-      };
+      final expected = expectedStudyMaps(draft.mutations);
       for (final map in native.maps) {
-        require(expected[map.id] == canonicalHashOf(map.toJson()).value,
+        require(
+            expected[map.id] != null &&
+                canonicalHashOf(expected[map.id]!.toJson()) ==
+                    canonicalHashOf(map.toJson()),
             'Reopened native map differs from its deterministic conversion');
         MapValidator.validate(map, projectDialogueContext: native.manifest);
       }
@@ -224,6 +331,8 @@ Future<void> main(List<String> args) async {
                 'hash': canonicalHashOf(map.toJson()).value,
                 'defaultSpawnId': map.mapMetadata.defaultSpawnId,
                 'placedElementCount': map.placedElements.length,
+                'connections':
+                    map.connections.map((entry) => entry.toJson()).toList(),
               })
           .toList();
       record['nativeCharacters'] = native.manifest.characters

@@ -17,6 +17,7 @@ export 'src/vision_assistance_service.dart';
 export 'src/source_player_character_import.dart';
 export 'src/source_semantics_projection.dart';
 export 'src/source_semantic_study_composer.dart';
+export 'src/source_connection_study_composer.dart';
 export 'src/source_event_projection.dart';
 export 'src/source_event_character_import.dart';
 export 'src/source_event_study_composer.dart';

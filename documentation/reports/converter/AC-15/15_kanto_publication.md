@@ -366,3 +366,94 @@ Le contrôle actuel du dossier source constate `Data/Scripts.rxdata` absent ; Ma
 Le commit local est limité aux six chemins de l'inventaire. `review-segments-commit.json` conserve son SHA final, l'inventaire et les hashes étrangers avant/après. Les compléments connexion/binding/projection/runtime restent non commités ; aucun push, rebase, amend ni changement de branche. AC-15 demeure DOING/PARTIAL, et la bêta reste inchangée.
 
 Auto-critique : les budgets ne peuvent plus être multipliés par la partition ou rouverts par undo. Cela prouve un contrat borné et compilable, pas une bibliothèque complète de Kanto ni une interface multicarte terminée. Le coût de sérialisation et la taille de recette doivent être mesurés sur les segments réels avant choix de stockage ; augmenter arbitrairement la limite de recette serait une décision non justifiée.
+
+
+## Complément du 13 octobre — connexions source attestées et admission native
+
+### Audit initial et portée
+
+Base `main`, HEAD `0fbbf6d5f2e2533da243d3b13fd4dd9c30d75369`, index vide. Avant ce complément, 74 chemins sont dirty : 24 du convertisseur et de l'arrivée runtime, 50 étrangers. `connection-tranche-initial-pins.json` puis `connection-tranche-final-code-pins.json` sous la racine QA durable conservent les hashes exacts du scope, les modes complets et hashes des 50 chemins étrangers, ainsi que la copie privée utilisée. Les 24 fichiers host et privés sont byte-identiques ; seul un import privé de test redondant a été retiré après la première analyse. Aucun worktree Git créé.
+
+L'audit a distingué trois contrats : graphe compilé complet source, géométrie native à une connexion par bord, et admission d'une arrivée. Le cardinal inverse d'une marche n'est pas l'oracle d'arrivée Essentials : la destination de connexion utilise `passable?(x,y,0)`, bit zéro. Le profil source exact reste obligatoire ; événements de bord, voisins multiples, directions non opposées et références hors sélection ne sont pas inventés. Les sources restent inertes, sans exécution Ruby ni appel IA.
+
+Le writer liait précédemment toute la liste de mutations et l'évidence dans un seul gros record JSON. Le complément garde leurs données complètes, valide chaque record sous les limites existantes et lie leurs hashes ordonnés dans un manifeste compact v2 ; un budget UTF-8 cumulé explicite empêche de contourner les quotas par cette partition. La recette passe strictement en v2 pour porter les deux budgets nouveaux, sans lecteur de compatibilité v1.
+
+### Inventaire complet et zones du commit
+
+| Fichier | Zone modifiée et effet |
+| --- | --- |
+| `packages/avelune_converter_core/lib/src/source_normalization.dart` | `SourceNormalizationLimits.maxConnections`, états d'extraction et `NormalizedMapConnection` ; lecture bornée du graphe compilé complet, identités/locators et conservation des voisins exclus. |
+| `packages/avelune_converter_core/lib/src/source_semantics.dart` | `SourceConnectionEntryTilePassage` et `resolveConnectionEntryTile` : Z2→Z0, d0, full nibble, pont inactif/tag ignoré, profils/contextes inconnus explicitement fermés. |
+| `packages/avelune_converter_core/test/source_normalization_test.dart` | Graphes originaux : six champs, offsets, limites, corruption, états d'extraction ; opt-in du vrai graphe Kanto avec neighbors conservés. |
+| `packages/avelune_converter_core/test/source_connection_entry_semantics_test.dart` | d0 distinct du cardinal inverse, passages15/7, priorités, terrains, contexte/hash et preuve source exacts. |
+| `packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart` | Export public de `source_connection_study_composer`. |
+| `packages/avelune_converter_adapters/lib/src/source_connection_study_composer.dart` | Nouveau composer : hash du fichier complet, géométrie, multiplicité globale avant sélection, empreintes `size(w,h)` des événements, toutes arrivées bidirectionnelles et mutation canonique après sauvegarde des cartes. |
+| `packages/avelune_converter_adapters/lib/src/source_event_arrival_validation.dart` | `validateConnections` : relecture de toutes les destinations source/native, hitbox finale et eau, liaison exacte source/map/offset/réciproque ; mismatch refusé avant staging. |
+| `packages/avelune_converter_adapters/lib/src/source_semantics_projection.dart` | Une case cardinalement fermée ne devient pas un bloc solide quand l'oracle d0 source admet une arrivée. |
+| `packages/avelune_converter_adapters/lib/src/source_semantic_study_composer.dart` | Compose les connexions après les cartes et conserve leurs preuves/diagnostics dans les sémantiques attestées. |
+| `packages/avelune_converter_adapters/lib/src/source_event_study_composer.dart` | Propagation des connexions, limites et preuve finale lors de l'ajout des événements natifs. |
+| `packages/avelune_converter_adapters/lib/src/converter_workflow.dart` | Extraction du graphe quand le fichier existe, budgets/maxConnections dans les settings, règle et capability d'action canonique, diagnostics de connexions dans le plan. |
+| `packages/avelune_converter_adapters/lib/src/converter_study_plan_recipe.dart` | Recette stricte v2, maxConnections et maxTotalDraftJsonBytes revalidés ; anciennes versions refusées. |
+| `packages/avelune_converter_adapters/lib/src/local_review_session_store.dart` | Persistance/reprise des budgets nouveaux et refus des configurations hors limites. |
+| `packages/avelune_converter_adapters/lib/src/native_project_writer.dart` | Binding v2 ordonné, budget JSON total défaut64MiB/plafond256MiB et références bornées ; rebind avant staging, régénération exacte record par record ; action bidirectionnelle et validation des arrivées. |
+| `packages/avelune_converter_adapters/lib/src/native_project_publication.dart` | Estimation de disque depuis `validatedJsonByteLength`, sans reconstruire un record agrégé non borné ; facteurs artefacts×3, metadata×2, journaux×2 conservés. |
+| `packages/avelune_converter_adapters/tool/source_semantics_study.dart` | Graphe compilé et budgets explicites ; relecture stricte des cartes après connexions/audio/événements, flags de qualification non extrapolés. |
+| `packages/avelune_converter_adapters/test/source_connection_study_composer_test.dart` | Positif réciproque/offsets, multiplicité incluant voisins exclus, bord/events/footprints, mismatch et données modifiées ; import redondant retiré. |
+| `packages/avelune_converter_adapters/test/native_project_draft_binding_test.dart` | Records complets et ordonnés, manifestes distincts, quotas cumulés et références, refus avant mutation du port. |
+| `packages/avelune_converter_adapters/test/source_semantics_study_tool_test.dart` | Tests du calcul des cartes attendues de l'outil après mutations ; garde-fous de sélection, géométrie et connexions. Le test n'exécute pas le main de la CLI. |
+| `packages/avelune_converter_adapters/test/converter_study_plan_recipe_test.dart` | Round-trip v2 et garde-fous des nouveaux budgets, versions/champs invalides refusés. |
+| `packages/avelune_converter_adapters/test/local_review_session_store_test.dart` | Settings exacts après reprise, limites/admission et refus des données persistées invalides. |
+| `packages/avelune_converter_adapters/test/source_semantics_projection_test.dart` | Cas d0/cardinal divergents et non-régression des obstacles/depth. |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | À l'arrivée d'une connexion, remplace le test de cellule par la vraie hitbox de collision et le garde eau/surf ; aucune logique Ruby dans Flame. |
+| `packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart` | Neuf scénarios réels d'arrivée, obstacles/hitbox/eau et aller-retour sur fixture originale. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Ce complément consolidé ; aucun nouveau Markdown. Les diffs Git restent la preuve des hunks. |
+
+### Vérifications terminales fraîches
+
+Racine des reçus : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5`. Les commandes utilisent `repository/<package>` privé dont les sources correspondent exactement au host. Le superviseur conserve PID, descendants et identité, vérifie leur propriété avant terminaison et ne touche pas aux sessions étrangères. Tous les runs cités ci-dessous sont terminaux sans timeout/survivant et avec protections/pins identiques.
+
+| Commande, depuis le package concerné | Résultat exact | Reçu |
+| --- | --- | --- |
+| Core : `dart test test/source_normalization_test.dart test/source_connection_entry_semantics_test.dart --concurrency=1 --reporter=expanded` | 74 PASS, 0 SKIP, exit0 /8.964s ; opt-in graphe Kanto actif | `connection-core-tests-03.json` |
+| Adapters : `dart test test/source_connection_study_composer_test.dart test/source_event_arrival_validation_test.dart test/native_project_draft_binding_test.dart test/native_project_writer_test.dart test/native_project_publication_test.dart test/publication_workflow_reproducibility_test.dart test/converter_study_plan_recipe_test.dart test/local_review_session_store_test.dart test/review_session_resumer_test.dart test/source_semantics_projection_test.dart test/source_semantics_study_tool_test.dart test/converter_workflow_test.dart --concurrency=1 --reporter=expanded` | 299 PASS, 0 FAIL, 0 SKIP, exit0 /191.243s ; trois oracles Scripts opt-in actifs | `connection-adapters-tests-04.json` |
+| Adapters : `dart analyze lib test tool/source_semantics_study.dart` | No issues found, exit0 /9.346s | `connection-adapters-analyze-02.json` |
+| Core : `dart analyze lib/src/source_normalization.dart lib/src/source_semantics.dart test/source_normalization_test.dart test/source_connection_entry_semantics_test.dart` | No issues found, exit0 /2.455s | `connection-core-analyze-01.json` |
+| Authoring : `dart test test/domains/maps/warp_connection_transaction_test.dart test/tooling/jsonl_connection_flow_test.dart test/parity/full_authoring_parity_test.dart --concurrency=1 --reporter=expanded` | 31 PASS, exit0 /29.554s | `connection-authoring-tests-02.json` |
+| Runtime : `flutter test --no-pub --concurrency=1 --reporter=expanded test/playable_map_game_connection_arrival_collision_test.dart` | 9 PASS, exit0 /6.358s | `connection-runtime-tests-02.json` |
+| Runtime : `flutter test --no-pub --concurrency=1 --reporter=expanded test/phase_a_golden_battle_slice_smoke_test.dart` | 3 PASS, exit0 /5.233s | `connection-runtime-smoke-01.json` |
+| Runtime : `flutter analyze --no-pub --no-fatal-infos lib/src/presentation/flame/playable_map_game.dart test/playable_map_game_connection_arrival_collision_test.dart` | 0 erreur/warning, 4 infos préexistantes, exit0 /11.291s ; pas « No issues » | `connection-runtime-analyze-02.json` |
+| Adapters : `dart compile exe tool/source_semantics_study.dart -o <QA>/bin/source-semantics-study-connections-final` | Generated executable, exit0 /25.566s | `connection-cli-aot-02.json` |
+| MCP : `npm run check` puis `npm run build` | exit0 /2.333s puis exit0 /2.351s | `connection-mcp-check-01.json`, `connection-mcp-build-01.json` |
+| MCP : `node --import tsx --test --test-concurrency=1 test/spatial_authoring.test.ts test/read_only_server.test.ts` | 6 PASS/1 FAIL, exit1 /44.490s ; connexion canonique et lectures graphe PASS | `connection-mcp-tests-01.json` |
+| Authoring : `dart run tool/pmcp085_conformance.dart` | PARTIAL global, exit1 /11.174s :88 resources/405 actions,0 missing déclarées ; certification transport globale false | `connection-pmcp085-01.json` |
+| MCP vivant reconstruit : `node qa_connection_read.mjs <projet r8> <QA>/connection-published-live-mcp-result-02.json` | 2 cartes/2 connexions, catalogue/action présents, validation structure valide ;1160 fichiers exacts, exit0 /25.732s | `connection-published-live-mcp-02.json` |
+
+Le test MCP en échec attend une liste fermée d'outils qui omet les deux outils actuels de création de projet. Son fichier est exact contre HEAD, SHA `2f0aebdc535f807a58356e5759a5dc525c5015777e7345ad1535d3501851b716` ; aucun fichier serveur/test MCP n'est modifié par cette tranche. Le catalogue global ne possède pas tous les reçus end-to-end : les tests ciblés ne sont pas assimilés à sa certification. Les quatre infos runtime correspondent à des lignes inchangées de HEAD :281/296 initializing formals,9574 null-aware element,10625 braces. Aucun correctif étranger pour obtenir artificiellement un vert.
+
+Incidents conservés : premier run adapters285 PASS/14 SKIP sans oracles ; deuxième298 PASS/1 FAIL avec support Game.exe absent du dossier privé ; après récupération attestée,299 PASS/0 SKIP puis rerun final identique. Premier authoring échouait au chargement sur image4.11/archive4.0.9 résolus sans lock ; la copie exacte du lock host (image4.9.2/archive4.0.9) dans QA ferme cet incident sans modifier les dépendances host. Première analyse adapters signalait1 import redondant ; retrait et analyse finale sans issue. Premier probe MCP privé omettait l'ID du worldGraph et avait un message assert invalide ; correction du harnais selon le contrat publié, pas du produit, puis preuve02 PASS. Les reçus d'échec restent disponibles.
+
+### Témoins source retrouvés et parcours encore incomplet
+
+Les témoins conservés dans la publication r8 permettent de reconstituer en privé `Data/Scripts.rxdata` (1080290 octets, SHA `3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d`) et `Graphics/Tilesets/FRLG_Outside.png` (305862 octets, SHA `fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81`). Le décodage des chunks contrôle leurs offsets, tailles et hashes contre le snapshot historique. `recovered-source-witnesses-01.json` vérifie avant/après les1160 fichiers publiés et l'absence des originaux. `source-oracle-support-recovery-01.json` consigne les configurations source présentes et un Game.exe Hoenn byte-identique au hash Kanto historique, copié dans QA uniquement et jamais exécuté. Aucun remplacement du backup PNG ni restauration silencieuse dans le dossier source.
+
+Les copies privées attestées débloquent les oracles, pas une affirmation de nouveau scan global actuel. Les trois originaux restent absents de Kanto. La publication r8 est autonome ; sa révision native live est `sha256:d726bda92dbcd049ac93a5f3d85ccc149ed15fa313d2de0f1dacb3be97906ebf`.
+
+L'audit source indépendant `ac12_validation_design`, gelé dans `ledge-source-audit/audit-result-final.json`, SHA `27fcb3d8d1f938b9c7b9244d6808e25370e6e8facee15a0ff7ddf4fb4680f2ef`, lit les402 sections du Ruby sans l'exécuter. `044.rb:237–257` admet sortie+entrée inverse avant que `046.rb:141–153` détecte le ledge ; `044.rb:767` contrôle l'atterrissage d0. Le Nord `(68,21)→(68,20)` est réellement interdit par la source. Le trajet légal vers la jointure exige des sauts vers le bas :1 depuis le spawn,3 depuis ETHER ; un retour légal comporte2 sauts. Cela établit l'oracle statique manquant, pas une nouvelle exécution runtime.
+
+La qualification runtime réelle v5 reste0 PASS/1 FAIL : départ natif, marche jusqu'à ETHER, messages et gain/self-A, sauvegarde disque et nouvelle instance/load puis retour/réinteraction sans duplication sont acquis ; aucune connexion traversée. Les flags `sourceCrossingParityQualified`, `wholeSourceConnectivityQualified`, `realCrossingJourneyQualified` et certification gameplay globale restent false. Aucun spawn déplacé, obstacle ouvert ou position injectée pour masquer cet échec.
+
+### Passes, parité et autocritique
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit / Architecture, root et ac12_validation_design | d0/entrée connexion distincte de marche et saut ; graphe complet avant sélection ; autorité native Avelune conservée. |
+| Implémentation, root et passes précédentes | Connexions canoniques et binding ordonné sous budgets cumulatifs, settings/recette propagés ; modification runtime limitée à admission d'arrivée. |
+| Tests, root | Core74, adapters299 sans skip, authoring31, runtime arrivée9 et smoke3 ; garde-fous positifs/négatifs et non-régressions. |
+| Build / Validation, root | AOT final PASS, MCP reconstruit et lu sur vrai r8 ;1160 fichiers inchangés ; analyse adapters sans issue, infos runtime et échec global MCP explicites. |
+| Critique finale, ac15_connection_review_fresh | Aucun P1/P2 identifié sur les24 fichiers ; suspicion regex de footprint infirmée par code et probe privé. Verdict ne remplace pas la qualification réelle intercartes. |
+
+Aucune nouvelle action native n'est créée : `connection.create_bidirectional_apply` et les ressources mapConnection/worldGraph existantes sont utilisées. Direct API/JSONL et MCP vivant sont éprouvés ; lecture/édition Studio historique de la paire reste distincte, aucun nouveau contrat d'interface ici. La suite complète du monorepo, le rebuild de l'application desktop et la distribution ne sont pas revendiqués par la compilation de la CLI.
+
+Auto-critique : un graph nativement relisible et une validation d'arrivée ne rendent pas le bord accessible ; la preuve statique avec sauts identifie justement la capacité runtime manquante. Le binding compact ne dispense pas d'intégrer la revue multicarte, ni de mesurer sa recette portable. L'application garde les limites par défaut128 artefacts/256 mutations ; la paire utilise130/266 avec budget d'étude explicite, encore à intégrer au parcours normal. La bibliothèque chemins/arbres reste dans une autre sortie. Aucun all-green global ni conversion intégrale Kanto déclaré.
+
+Le commit est limité aux25 chemins de l'inventaire. `connection-tranche-commit.json` sera produit après commit pour conserver SHA, parent, blobs exacts, index et preuve des50 chemins étrangers ; son existence et son contenu devront alors être vérifiés. Aucun push/rebase/amend/branche. Le ticket AC15 demeure DOING/PARTIAL dans son domaine Post Bêta existant, hors gate ; aucune roadmap FG ou famille bêta modifiée. La suite autorisée traite le saut dirigé natif puis le parcours réel avec sauvegarde, et les consommateurs de la revue multicarte dans leurs propres tranches.

@@ -10,6 +10,7 @@ import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
+import 'source_connection_study_composer.dart';
 
 final class SourceEventStudyComposition {
   const SourceEventStudyComposition(
@@ -57,13 +58,26 @@ final class SourceEventStudyComposer {
       throw const NativeWriteException('events.base.maps',
           'Every event destination requires its exact preceding native map');
     }
+    final recording = SourceSemanticWitnessFiles(
+        source.snapshot, files, limits, cancellation);
+    final connections = await const SourceConnectionStudyComposer().compose(
+        source: source, nativeMaps: nativeMaps, files: recording,
+        limits: limits, cancellation: cancellation);
+    final baseConnections = base.mutations.where((entry) =>
+        entry.actionId == 'connection.create_bidirectional_apply').toList();
+    if (canonicalJsonOf([for (var i = 0; i < baseConnections.length; i++)
+          baseConnections[i].toJson(i)], limits: limits.jsonLimits) !=
+        canonicalJsonOf([for (var i = 0; i < connections.mutations.length; i++)
+          connections.mutations[i].toJson(i)], limits: limits.jsonLimits)) {
+      throw const NativeWriteException('events.base.connections',
+          'Event maps require the exact preceding source connections');
+    }
+    nativeMaps.addAll(connections.nativeMaps);
     final analysis =
         SourceEventAnalyzer.forProject(source, profile: profile).analyze();
     final selectedEvents = analysis.events
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .toList();
-    final recording = SourceSemanticWitnessFiles(
-        source.snapshot, files, limits, cancellation);
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -487,10 +501,12 @@ final class SourceEventStudyComposer {
             sourceArtifacts: witnesses,
             mutations: [
               ...base.mutations
-                  .where((entry) => !entry.actionId.startsWith('map.')),
+                  .where((entry) => !entry.actionId.startsWith('map.') &&
+                    entry.actionId != 'connection.create_bidirectional_apply'),
               ...importedMutations,
               ...base.mutations
                   .where((entry) => entry.actionId.startsWith('map.')),
+              ...baseConnections,
               ...eventMutations,
             ],
             compositionEvidence: {

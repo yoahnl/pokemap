@@ -361,12 +361,14 @@ _Files _source(Map<String, List<int>> bytes,
 Future<NormalizedSourceProject> _normalize(_Files files,
         {SourceNormalizationLimits limits = const SourceNormalizationLimits(),
         Set<int>? selectedMapIds,
+        bool includeConnections = false,
         ScanCancellation? cancellation}) =>
     const RmxpSourceNormalizer().normalize(
         snapshot: files.snapshot,
         files: files,
         limits: limits,
         selectedMapIds: selectedMapIds,
+        includeConnections: includeConnections,
         cancellation: cancellation);
 
 void _blocked(NormalizedSourceProject result, {String? file}) {
@@ -381,7 +383,420 @@ void _blocked(NormalizedSourceProject result, {String? file}) {
   }
 }
 
+SourceSnapshot _connectionSourceSnapshot(Map<String, dynamic> json) =>
+    SourceSnapshot(
+      logicalProjectNamespace:
+          ConverterId(json['logicalProjectNamespace'] as String),
+      policyHash: Sha256Hash(json['policyHash'] as String),
+      entries: [
+        for (final row in json['entries'] as List)
+          SourceFileEntry(
+              fileId: ConverterId(row['fileId'] as String),
+              relativePath: row['relativePath'] as String,
+              kind: SourceNodeKind.values.byName(row['kind'] as String),
+              byteLength: row['byteLength'] as int,
+              sha256: row['sha256'] == null
+                  ? null
+                  : Sha256Hash(row['sha256'] as String),
+              format: row['format'] as String,
+              family: row['family'] as String)
+      ],
+      diagnostics: [
+        for (final row in json['diagnostics'] as List)
+          SourceScanDiagnostic(
+              code: row['code'] as String,
+              relativePath: row['relativePath'] as String,
+              message: row['message'] as String,
+              blocksExtraction: row['blocksExtraction'] as bool,
+              relatedPaths: (row['relatedPaths'] as List).cast<String>())
+      ],
+      excludedPaths: (json['excludedPaths'] as List).cast<String>(),
+      profileEvidence: [
+        for (final row in json['profileEvidence'] as List)
+          SourceProfileEvidence(
+              relativePath: row['relativePath'] as String,
+              fileHash: Sha256Hash(row['fileHash'] as String),
+              version: row['version'] as String,
+              line: row['line'] as int,
+              excerpt: row['excerpt'] as String)
+      ],
+      state: SourceScanState.values.byName(json['state'] as String),
+    );
+
+final class _ExternalConnectionFiles implements SourceFilePort {
+  _ExternalConnectionFiles(this.root, SourceSnapshot snapshot)
+      : entries = {for (final entry in snapshot.entries) entry.fileId: entry};
+  final String root;
+  final Map<ConverterId, SourceFileEntry> entries;
+  final reads = <String>[];
+  @override
+  Future<List<int>> read(ConverterId id) async {
+    final entry = entries[id]!;
+    if (entry.byteLength > 16777216) {
+      throw StateError('External fixture file quota');
+    }
+    final file = File('$root/${entry.relativePath}');
+    if (FileSystemEntity.typeSync(file.path, followLinks: false) !=
+        FileSystemEntityType.file) {
+      throw StateError('External fixture requires a regular source file');
+    }
+    final bytes = await file.readAsBytes();
+    expect(bytes.length, entry.byteLength);
+    expect(_hash(bytes), entry.sha256);
+    reads.add(entry.relativePath);
+    return bytes;
+  }
+}
+
+Map<String, List<int>> _connectionProject(List<Object?> rows) {
+  _RubyObject map(int width, int height) => _map(
+      width: width,
+      height: height,
+      data: _RubyTable(
+          width,
+          height,
+          3,
+          List.generate(
+              width * height * 3, (i) => i < width * height ? 384 : 0)));
+  return _project(maps: {
+    21: map(48, 40),
+    83: map(48, 40),
+    98: map(72, 61),
+    100: map(30, 85),
+  })
+    ..['Data/map_connections.dat'] = _MarshalFixture().dump(rows);
+}
+
+List<Object?> _routeConnections() => [
+      [21, 'E', 5, 98, 'W', 0],
+      [83, 'E', 0, 98, 'W', 35],
+      [98, 'E', 0, 100, 'W', 0],
+    ];
+
 void main() {
+  test('CONN-01 distinguishes unrequested, missing and extracted empty graph',
+      () async {
+    final unrequested = _source(_connectionProject(_routeConnections()));
+    final first = await _normalize(unrequested, selectedMapIds: {98, 100});
+    expect(first.connectionsState, SourceConnectionsState.notRequested);
+    expect(first.connectionsExtracted, isFalse);
+    expect(first.connections, isEmpty);
+    expect(unrequested.reads, isNot(contains('Data/map_connections.dat')));
+    final missing =
+        await _normalize(_source(_project()), includeConnections: true);
+    expect(missing.connectionsState, SourceConnectionsState.missing);
+    expect(missing.connectionsExtracted, isFalse);
+    _blocked(missing, file: 'Data/map_connections.dat');
+    final empty = await _normalize(_source(_connectionProject([])),
+        selectedMapIds: {98, 100}, includeConnections: true);
+    expect(empty.canPlan, isTrue);
+    expect(empty.connectionsState, SourceConnectionsState.extracted);
+    expect(empty.connectionsExtracted, isTrue);
+    expect(empty.connections, isEmpty);
+  });
+
+  test('CONN-02 preserves whole ordered graph and split west outside selection',
+      () async {
+    final files = _source(_connectionProject(_routeConnections()));
+    final result = await _normalize(files,
+        selectedMapIds: {98, 100}, includeConnections: true);
+    expect(result.canPlan, isTrue);
+    expect(result.connectionsExtracted, isTrue);
+    expect(result.connections.map((row) => row.sourceRowIndex), [0, 1, 2]);
+    expect(result.connections.map((row) => row.sourceMapId), [21, 83, 98]);
+    expect(result.connections.map((row) => row.nativeOffset), [5, -35, 0]);
+    expect(result.connections.last.sourceDirection,
+        SourceConnectionDirection.east);
+    expect(result.connections.last.targetDirection,
+        SourceConnectionDirection.west);
+    expect(result.connections.last.sourceDirection.opposite,
+        SourceConnectionDirection.west);
+    expect(result.maps.map((map) => map.map.sourceMapId), [98, 100]);
+    expect(files.reads.where((path) => path == 'Data/map_connections.dat'),
+        hasLength(1));
+    expect(files.reads, isNot(contains('Data/Map021.rxdata')));
+    expect(files.reads, isNot(contains('Data/Map083.rxdata')));
+    final file = result.archive.files[result.connectionsFileId]!;
+    expect(file.rawBytes, files.bytes['Data/map_connections.dat']);
+    final row = result.connections.last;
+    expect(row.locator.file, 'Data/map_connections.dat');
+    expect(row.rawDataRef.binaryLocation.byteOffset, greaterThan(0));
+    expect(row.rawDataRef.binaryLocation.graphPath, contains('[2]'));
+    expect(row.toJson()['nativeOffset'], 0);
+    expect(row.toJson()['sourceDirection'], 'E');
+    expect(result.toJson()['extractorVersion'], 'rmxp-normalization-v2');
+  });
+
+  test(
+      'CONN-03 identity is independent from manifest selection and signed coordinates',
+      () async {
+    final bytes = _connectionProject([
+      [98, 'N', -12, 100, 'S', 3]
+    ]);
+    final a = await _normalize(_source(bytes),
+        selectedMapIds: {98, 100}, includeConnections: true);
+    final b = await _normalize(_source(bytes, reverse: true),
+        selectedMapIds: {98}, includeConnections: true);
+    expect(a.canPlan, isTrue);
+    expect(b.canPlan, isTrue);
+    expect(a.connections.single.identity, b.connections.single.identity);
+    expect(a.connections.single.nativeOffset, -15);
+    expect(a.connections.single.sourceDirection.sourceCode, 'N');
+    expect(a.connections.single.targetDirection.sourceCode, 'S');
+    expect(a.connections.single.sourceDirection.opposite,
+        SourceConnectionDirection.south);
+  });
+
+  test('CONN-04 malformed row cannot become a partially admitted graph',
+      () async {
+    final rows = [
+      ..._routeConnections(),
+      [98, 'E', 0, 100, 'W']
+    ];
+    final files = _source(_connectionProject(rows));
+    final result = await _normalize(files,
+        selectedMapIds: {98, 100}, includeConnections: true);
+    _blocked(result, file: 'Data/map_connections.dat');
+    expect(result.connectionsState, SourceConnectionsState.invalid);
+    expect(result.connectionsExtracted, isFalse);
+    expect(result.connections, isEmpty);
+    expect(result.archive.files[result.connectionsFileId]!.rawBytes,
+        files.bytes['Data/map_connections.dat']);
+  });
+
+  for (final rows in [
+    [
+      [98, 'East', 0, 100, 'W', 0]
+    ],
+    [
+      [98, 'E', 0, 100, 'N', 0]
+    ],
+    [
+      [98, 'E', 0, 98, 'W', 0]
+    ],
+    [
+      [98, 'E', 2147483648, 100, 'W', 0]
+    ],
+    [
+      [98, 'E', _RubyFloat('0.5'), 100, 'W', 0]
+    ],
+    [
+      [98, 'E', 0, 999, 'W', 0]
+    ],
+  ]) {
+    test('CONN-05 rejects invalid endpoints, edges or bounded offsets $rows',
+        () async {
+      final result = await _normalize(_source(_connectionProject(rows)),
+          selectedMapIds: {98, 100}, includeConnections: true);
+      _blocked(result, file: 'Data/map_connections.dat');
+      expect(result.connectionsState, SourceConnectionsState.invalid);
+      expect(result.connectionsExtracted, isFalse);
+    });
+  }
+
+  test(
+      'CONN-06 duplicate literal rows remain visible and block without overwrite',
+      () async {
+    final row = [98, 'E', 0, 100, 'W', 0];
+    final result = await _normalize(_source(_connectionProject([row, row])),
+        selectedMapIds: {98, 100}, includeConnections: true);
+    _blocked(result, file: 'Data/map_connections.dat');
+    expect(result.diagnostics.map((d) => d.code),
+        contains('normalization.connection.duplicate'));
+    expect(result.connectionsExtracted, isFalse);
+    expect(result.archive.files[result.connectionsFileId], isNotNull);
+  });
+
+  test('CONN-07 record quota is cumulative and never silently truncates',
+      () async {
+    final result = await _normalize(
+        _source(_connectionProject(_routeConnections())),
+        selectedMapIds: {98, 100},
+        includeConnections: true,
+        limits: const SourceNormalizationLimits(maxConnections: 2));
+    _blocked(result, file: 'Data/map_connections.dat');
+    expect(result.connectionsExtracted, isFalse);
+    expect(result.connections, isEmpty);
+  });
+
+  test('CONN-08 source drift is refused before archiving connections',
+      () async {
+    final files = _source(_connectionProject(_routeConnections()));
+    files.replacements['Data/map_connections.dat'] = _MarshalFixture().dump([]);
+    final result = await _normalize(files,
+        selectedMapIds: {98, 100}, includeConnections: true);
+    _blocked(result, file: 'Data/map_connections.dat');
+    expect(result.connectionsExtracted, isFalse);
+    expect(
+        result.archive.files.values.any(
+            (file) => file.entry.relativePath == 'Data/map_connections.dat'),
+        isFalse);
+  });
+
+  test('CONN-09 cancellation at graph read escapes without a partial result',
+      () async {
+    final files = _source(_connectionProject(_routeConnections()));
+    final cancellation = ScanCancellation();
+    files.onRead = (path) {
+      if (path == 'Data/map_connections.dat') cancellation.cancel();
+    };
+    await expectLater(
+        _normalize(files,
+            selectedMapIds: {98, 100},
+            includeConnections: true,
+            cancellation: cancellation),
+        throwsA(isA<ContractError>()
+            .having((e) => e.code, 'code', 'source.cancelled')));
+  });
+
+  test(
+      'CONN-10 graph values are immutable and graph changes alter normalization hash',
+      () async {
+    final a = await _normalize(_source(_connectionProject(_routeConnections())),
+        selectedMapIds: {98, 100}, includeConnections: true);
+    final b = await _normalize(
+        _source(_connectionProject(_routeConnections().reversed.toList())),
+        selectedMapIds: {98, 100},
+        includeConnections: true);
+    expect(() => a.connections.clear(), throwsUnsupportedError);
+    expect(a.canonicalHash, isNot(b.canonicalHash));
+    expect(a.connections.map((row) => row.identity).toSet(),
+        b.connections.map((row) => row.identity).toSet());
+  });
+
+  test('CONN-11 endpoints require unselected MapInfos and inventoried files',
+      () async {
+    for (final missingInfo in [true, false]) {
+      final bytes = _connectionProject(_routeConnections());
+      if (missingInfo) {
+        bytes['Data/MapInfos.rxdata'] = _MarshalFixture().dump({
+          83: _mapInfo('Map83'),
+          98: _mapInfo('Map98'),
+          100: _mapInfo('Map100'),
+        });
+      } else {
+        bytes.remove('Data/Map021.rxdata');
+      }
+      final files = _source(bytes);
+      final result = await _normalize(files,
+          selectedMapIds: {98, 100}, includeConnections: true);
+      _blocked(result, file: 'Data/map_connections.dat');
+      expect(result.connectionsState, SourceConnectionsState.invalid);
+      expect(result.diagnostics.map((item) => item.code),
+          contains('normalization.connection.map_reference'));
+      expect(files.reads, isNot(contains('Data/Map021.rxdata')));
+    }
+  });
+
+  test('CONN-12 graph root and cyclic non-scalar fields stay inert and blocked',
+      () async {
+    final cyclic = <Object?>[98, 'E', 0, 100, 'W', null];
+    cyclic[5] = cyclic;
+    for (final graph in [
+      <int, Object?>{
+        1: [98, 'E', 0, 100, 'W', 0]
+      },
+      [cyclic]
+    ]) {
+      final bytes = _connectionProject([])
+        ..['Data/map_connections.dat'] = _MarshalFixture().dump(graph);
+      final result = await _normalize(_source(bytes),
+          selectedMapIds: {98, 100}, includeConnections: true);
+      _blocked(result, file: 'Data/map_connections.dat');
+      expect(result.connections, isEmpty);
+      expect(result.connectionsState, SourceConnectionsState.invalid);
+      expect(result.archive.files[result.connectionsFileId]!.rawBytes,
+          bytes['Data/map_connections.dat']);
+    }
+  });
+
+  test('CONN-13 declared graph bytes join aggregate pre-read admission',
+      () async {
+    final bytes = _connectionProject(_routeConnections());
+    final paths = [
+      'Data/MapInfos.rxdata',
+      'Data/Tilesets.rxdata',
+      'Data/Map098.rxdata',
+      'Data/Map100.rxdata',
+      'Data/map_connections.dat'
+    ];
+    final budget =
+        paths.fold<int>(0, (sum, path) => sum + bytes[path]!.length) - 1;
+    final files = _source(bytes);
+    final result = await _normalize(files,
+        selectedMapIds: {98, 100},
+        includeConnections: true,
+        limits: SourceNormalizationLimits(maxTotalBytes: budget));
+    _blocked(result);
+    expect(files.reads, isEmpty);
+    expect(result.connectionsExtracted, isFalse);
+  });
+
+  test('CONN-14 graph record projections reserve cumulative IR budget',
+      () async {
+    final result = await _normalize(
+        _source(_connectionProject(_routeConnections())),
+        selectedMapIds: {98, 100},
+        includeConnections: true,
+        limits: const SourceNormalizationLimits(maxTotalIrNodes: 110));
+    _blocked(result, file: 'Data/map_connections.dat');
+    expect(result.diagnostics.map((item) => item.code),
+        contains('normalization.quota.ir_nodes'));
+    expect(result.connectionsExtracted, isFalse);
+    expect(result.connections, isEmpty);
+  });
+
+  final externalRoot = Platform.environment['AVELUNE_CONNECTION_SOURCE_ROOT'];
+  final externalSnapshot =
+      Platform.environment['AVELUNE_CONNECTION_SOURCE_SNAPSHOT'];
+  test('CONN-15 attested real Kanto 98 and 100 retain whole compiled graph',
+      () async {
+    final file = File(externalSnapshot!);
+    expect(file.lengthSync(), lessThanOrEqualTo(16777216));
+    final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final snapshot = _connectionSourceSnapshot(json);
+    expect(snapshot.canonicalHash.value, json['canonicalHash']);
+    final files = _ExternalConnectionFiles(externalRoot!, snapshot);
+    final result = await const RmxpSourceNormalizer().normalize(
+        snapshot: snapshot,
+        files: files,
+        selectedMapIds: {98, 100},
+        includeConnections: true);
+    expect(result.diagnostics.where((item) => item.blocksPlanning), isEmpty);
+    expect(result.canPlan, isTrue);
+    expect(result.connectionsExtracted, isTrue);
+    expect(result.maps.map((map) => map.map.sourceMapId), [98, 100]);
+    final east = result.connections.singleWhere(
+        (row) => row.sourceMapId == 98 && row.targetSourceMapId == 100);
+    expect(east.sourceDirection, SourceConnectionDirection.east);
+    expect(east.targetDirection, SourceConnectionDirection.west);
+    expect(east.nativeOffset, 0);
+    expect(
+        result.connections
+            .where((row) => row.targetSourceMapId == 98)
+            .map((row) => row.sourceMapId),
+        containsAll([21, 83]));
+    expect(result.archive.files[result.connectionsFileId]!.contentHash.value,
+        '7afe966d8f6710be30b463d7993029176e4f3fa6ac46e9f0ffc74749211648ef');
+    expect(files.reads, isNot(contains('Data/Map021.rxdata')));
+    expect(files.reads, isNot(contains('Data/Map083.rxdata')));
+    for (final path in files.reads) {
+      final entry =
+          snapshot.entries.singleWhere((entry) => entry.relativePath == path);
+      expect(
+          _hash(await File('$externalRoot/$path').readAsBytes()), entry.sha256);
+    }
+    print(jsonEncode({
+      'kind': 'realConnectionNormalization',
+      'sourceSnapshotHash': snapshot.canonicalHash.value,
+      'normalizedSourceHash': result.canonicalHash.value,
+      'connectionCount': result.connections.length,
+      'selectedMapIds': result.selectedSourceMapIds,
+      'routeConnection': east.toJson(),
+      'readPaths': files.reads
+    }));
+  }, skip: externalRoot == null || externalSnapshot == null);
+
   test('synthetic Marshal oracle has exact axes, cycles and nonfinite nodes',
       () {
     final map = _map();

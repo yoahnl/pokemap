@@ -977,6 +977,7 @@ SourceScanPolicy _readScanPolicy(Object? value) {
 
 const _normalizationCeilings = {
   'maxMaps': 100000,
+  'maxConnections': 65536,
   'maxTotalCells': 67108864,
   'maxEvents': 1000000,
   'maxCommands': 2000000,
@@ -991,6 +992,7 @@ const _normalizationCeilings = {
 
 Map<String, Object?> _normalizationJson(SourceNormalizationLimits value) => {
       'maxMaps': value.maxMaps,
+      'maxConnections': value.maxConnections,
       'maxTotalCells': value.maxTotalCells,
       'maxEvents': value.maxEvents,
       'maxCommands': value.maxCommands,
@@ -1017,6 +1019,7 @@ SourceNormalizationLimits _readNormalizationLimits(Object? value) {
   _boundedNumbers(json, _normalizationCeilings);
   return SourceNormalizationLimits(
       maxMaps: _integer(json['maxMaps']),
+      maxConnections: _integer(json['maxConnections']),
       maxTotalCells: _integer(json['maxTotalCells']),
       maxEvents: _integer(json['maxEvents']),
       maxCommands: _integer(json['maxCommands']),
@@ -1034,6 +1037,7 @@ Map<String, Object?> _writeLimitsJson(NativeWriteLimits value) => {
       'maxMutations': value.maxMutations,
       'maxArtifactBytes': value.maxArtifactBytes,
       'maxTotalArtifactBytes': value.maxTotalArtifactBytes,
+      'maxTotalDraftJsonBytes': value.maxTotalDraftJsonBytes,
       'maxImagePixels': value.maxImagePixels,
       'maxMapCells': value.maxMapCells,
       'jsonLimits': _contractLimitsJson(value.jsonLimits),
@@ -1046,6 +1050,7 @@ NativeWriteLimits _readWriteLimits(Object? value) {
     'maxMutations',
     'maxArtifactBytes',
     'maxTotalArtifactBytes',
+    'maxTotalDraftJsonBytes',
     'maxImagePixels',
     'maxMapCells',
     'jsonLimits'
@@ -1055,6 +1060,7 @@ NativeWriteLimits _readWriteLimits(Object? value) {
       maxMutations: _integer(json['maxMutations']),
       maxArtifactBytes: _integer(json['maxArtifactBytes']),
       maxTotalArtifactBytes: _integer(json['maxTotalArtifactBytes']),
+      maxTotalDraftJsonBytes: _integer(json['maxTotalDraftJsonBytes']),
       maxImagePixels: _integer(json['maxImagePixels']),
       maxMapCells: _integer(json['maxMapCells']),
       jsonLimits: _readContractLimits(json['jsonLimits']));

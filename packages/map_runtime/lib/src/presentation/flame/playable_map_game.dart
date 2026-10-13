@@ -13529,7 +13529,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapEntityPresencePredicate:
             _mapEntityPresencePredicateFor(target.bundle.manifest),
       );
-      if (newWorld.isBlocked(targetPos.x, targetPos.y)) {
+      if (newWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
+          (newWorld.isWaterCell(targetPos.x, targetPos.y) &&
+              newWorld.player.movementMode != MovementMode.surf)) {
         debugPrint(
           '[connection] blocked entry map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
         );

@@ -307,6 +307,59 @@ final class SourceTransitionPassage {
       };
 }
 
+final class SourceConnectionEntryTilePassage {
+  SourceConnectionEntryTilePassage({
+    required this.cell,
+    required this.profile,
+    required this.context,
+    required this.status,
+    required this.reason,
+    required List<SourceTilePassageTrace> trace,
+  }) : trace = List.unmodifiable(trace);
+
+  final SourceSemanticCell cell;
+  final SourceSemanticProfile profile;
+  final SourceSemanticContext context;
+  final SourcePassageStatus status;
+  final SourcePassageReason reason;
+  final List<SourceTilePassageTrace> trace;
+
+  bool? get isPassable => switch (status) {
+        SourcePassageStatus.allowed => true,
+        SourcePassageStatus.blocked => false,
+        SourcePassageStatus.unqualified => null,
+      };
+
+  Map<String, Object?> toJson() => {
+        'kind': 'sourceConnectionEntryTilePassage',
+        'version': 1,
+        'scope': 'destinationStaticTiles',
+        'sourceDirection': 0,
+        'directionBit': 0,
+        'profile': profile.toJson(),
+        'context': context.toJson(),
+        'cell': cell.toJson(),
+        'status': status.name,
+        'reason': reason.name,
+        'trace': trace.map((step) => step.toJson()).toList(),
+        'eventStateQualified': false,
+        'oracle': {
+          'Game_Map': {
+            'sectionIndex': 42,
+            'sha256':
+                '2e31060a4dc0ac036fecc510735f8a70f8cb8c7f33291b572e489e89c4f5b7f9',
+            'lines': [142, 158, 222, 247],
+          },
+          'PokemonMapFactory': {
+            'sectionIndex': 43,
+            'sha256':
+                'bba3deeae94afff918edfcde6d251748498f44f59655fc9ce32aa42f304d98c6',
+            'lines': [149, 176],
+          },
+        },
+      };
+}
+
 final class SourceSemanticResolver {
   const SourceSemanticResolver({required this.profile}) : _maps = const {};
 
@@ -357,6 +410,87 @@ final class SourceSemanticResolver {
             _resolveDirection(cell, direction, context)
         ],
       );
+
+  SourceConnectionEntryTilePassage resolveConnectionEntryTile(
+    SourceSemanticCell cell, {
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) {
+    final trace = <SourceTilePassageTrace>[];
+    SourceConnectionEntryTilePassage result(
+            SourcePassageStatus status, SourcePassageReason reason) =>
+        SourceConnectionEntryTilePassage(
+          cell: cell,
+          profile: profile,
+          context: context,
+          status: status,
+          reason: reason,
+          trace: trace,
+        );
+    if (!profile.isQualified) {
+      return result(SourcePassageStatus.unqualified,
+          SourcePassageReason.unqualifiedProfile);
+    }
+    if (!context.isQualified) {
+      return result(SourcePassageStatus.unqualified,
+          SourcePassageReason.unsupportedContext);
+    }
+    if (!cell.isInBounds) {
+      return result(
+          SourcePassageStatus.blocked, SourcePassageReason.outOfBounds);
+    }
+    for (final tile in cell.stack) {
+      SourceConnectionEntryTilePassage decided(
+          SourcePassageStatus status, SourcePassageReason reason) {
+        trace.add(SourceTilePassageTrace(tile: tile, reason: reason));
+        return result(status, reason);
+      }
+
+      if (tile.tileId == 0) {
+        trace.add(SourceTilePassageTrace(
+            tile: tile, reason: SourcePassageReason.emptyTile));
+        continue;
+      }
+      final terrainTag = tile.terrainTag;
+      if (tile.tileId < 0 || terrainTag == null || terrainTag < 0) {
+        return decided(SourcePassageStatus.unqualified,
+            SourcePassageReason.missingMetadata);
+      }
+      if (terrainTag > 17) {
+        return decided(SourcePassageStatus.unqualified,
+            SourcePassageReason.unknownTerrainTag);
+      }
+      if (terrainTag == 15 || terrainTag == 13) {
+        trace.add(SourceTilePassageTrace(
+            tile: tile,
+            reason: terrainTag == 15
+                ? SourcePassageReason.inactiveBridge
+                : SourcePassageReason.ignoredTerrain));
+        continue;
+      }
+      final passage = tile.passage;
+      if (passage == null || passage < 0 || passage > 255) {
+        return decided(SourcePassageStatus.unqualified,
+            SourcePassageReason.missingMetadata);
+      }
+      if (passage & 15 == 15) {
+        return decided(SourcePassageStatus.blocked,
+            SourcePassageReason.allDirectionsBlocked);
+      }
+      final priority = tile.priority;
+      if (priority == null || priority < 0 || priority > 5) {
+        return decided(SourcePassageStatus.unqualified,
+            SourcePassageReason.missingMetadata);
+      }
+      if (priority == 0) {
+        return decided(
+            SourcePassageStatus.allowed, SourcePassageReason.groundAllows);
+      }
+      trace.add(SourceTilePassageTrace(
+          tile: tile, reason: SourcePassageReason.raisedTileContinues));
+    }
+    return result(
+        SourcePassageStatus.allowed, SourcePassageReason.stackExhausted);
+  }
 
   SourceDirectionPassage _resolveDirection(SourceSemanticCell cell,
       SourceCardinalDirection direction, SourceSemanticContext context) {
