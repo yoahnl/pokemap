@@ -58,6 +58,8 @@ final class BorderCreationRequest {
     this.primitiveModelIds = const {},
     this.primitiveModelSettings = const {},
     this.straightOnly,
+    this.jumpSide,
+    this.expectedRecord,
     this.blueprintId,
     this.publish = true,
     this.acceptedWarningCodes = const [],
@@ -71,6 +73,8 @@ final class BorderCreationRequest {
   final Map<String, String> primitiveModelIds;
   final Map<String, BorderModelSettings> primitiveModelSettings;
   final bool? straightOnly;
+  final BorderLineSide? jumpSide;
+  final BorderBlueprintRecord? expectedRecord;
   final String? blueprintId;
   final bool publish;
   final List<String> acceptedWarningCodes;

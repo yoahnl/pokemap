@@ -239,8 +239,59 @@ final class MapBorderEditingCommands {
   }) {
     final map = document.current;
     if (map.spatialScene == null) {
-      throw const ValidationException(
-        'Cette régénération s’applique aux bordures 3D.',
+      final layer = map.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == layerId)
+          .firstOrNull;
+      final feature = layer?.content.features
+          .where((feature) => feature.id == featureId)
+          .firstOrNull;
+      if (feature == null) {
+        throw const ValidationException('Ce tracé de bordure est introuvable.');
+      }
+      final record = project.borderCatalog.recordById(feature.blueprintId);
+      final revision = record?.latestPublished;
+      if (revision == null ||
+          revision.definition.isSpatial ||
+          project.settings.dimension != ProjectDimension.twoD ||
+          !borderTemplateUsesStrokeGeometry(revision.definition.template) ||
+          !project.resourceLibraryCatalog.availableForMap(
+            'borderBlueprint',
+            feature.blueprintId,
+            map.id,
+          )) {
+        throw const ValidationException(
+          'Cette bordure publiée n’est plus disponible.',
+        );
+      }
+      final request = BorderResolutionRequest(
+        mapSize: map.size,
+        tileSizePx: GridSize(
+          width: project.settings.tileWidth,
+          height: project.settings.tileHeight,
+        ),
+        blueprintId: feature.blueprintId,
+        blueprintRevision: revision,
+        feature: feature,
+        visualSnapshots: project.borderCatalog.visualSnapshots,
+        resolverVersion: borderResolverVersion,
+      );
+      final result = resolveBorderFeature(request);
+      if (!result.canApply) {
+        throw ValidationException(
+          'La bordure ne peut pas être régénérée (${result.diagnostics.first.code}).',
+        );
+      }
+      return applyBorderFeaturePreview(
+        map,
+        expectedMapId: map.id,
+        layerId: layerId,
+        featureId: featureId,
+        expectedBaseFeatureFingerprint: computeBorderFeatureEditFingerprint(
+          feature,
+        ),
+        proposedRequest: request,
+        proposedResult: result,
       );
     }
     final result = resolveSpatialBorderFeature(

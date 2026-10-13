@@ -8,13 +8,25 @@ Future<ResourceMutationReceipt> _createBorder(
     throw const ResourceFailure('Donnez un nom à la bordure.');
   }
   final baseline = await adapter.mapAdapter.resourceBaseline(adapter.session);
+  final id = request.blueprintId ?? adapter._identity('border');
+  final existing = baseline.manifest.borderCatalog.recordById(id);
+  if (request.expectedRecord != null && request.expectedRecord != existing) {
+    throw const ResourceFailure(
+      'Cette bordure a changé depuis l’ouverture de l’éditeur. Fermez puis rouvrez-la avant de modifier ses réglages.',
+    );
+  }
+  final originalJump = existing?.draft.definition.jumpBehavior;
+  if (request.jumpSide != null &&
+      (existing?.draft.definition.template !=
+              BorderBlueprintTemplate.ledgeLine ||
+          originalJump == null)) {
+    throw const ResourceFailure('Ce rebord ne possède pas de saut à régler.');
+  }
   final sources = await prepareBorderResources(
     manifest: baseline.manifest,
     projectRoot: adapter.session.directoryPath,
     request: request,
   );
-  final id = request.blueprintId ?? adapter._identity('border');
-  final existing = baseline.manifest.borderCatalog.recordById(id);
   if (existing?.draft.definition.isSpatial == true &&
       existing!.draft.definition.template !=
           BorderBlueprintTemplate.connectedLine) {
@@ -51,7 +63,14 @@ Future<ResourceMutationReceipt> _createBorder(
             ),
         ground: existing?.draft.definition.ground,
         categoryId: existing?.draft.definition.categoryId,
-        jumpBehavior: existing?.draft.definition.jumpBehavior,
+        jumpBehavior: request.jumpSide == null
+            ? originalJump
+            : BorderJumpBehavior(
+                side: request.jumpSide!,
+                distanceCells: originalJump!.distanceCells,
+                durationMs: originalJump.durationMs,
+                peakHeightPx: originalJump.peakHeightPx,
+              ),
         sortOrder:
             existing?.draft.definition.sortOrder ??
             baseline.manifest.borderCatalog.records.length,

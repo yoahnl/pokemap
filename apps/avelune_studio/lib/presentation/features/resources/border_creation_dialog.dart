@@ -6,6 +6,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
+import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_navigation.dart';
@@ -13,6 +14,7 @@ import 'border_discard_dialog.dart';
 import 'border_pattern_panel.dart';
 import 'border_source_panel.dart';
 import 'resource_catalog.dart';
+import 'native_ledge_panel.dart';
 
 class BorderCreationDialog extends StatefulWidget {
   const BorderCreationDialog({
@@ -41,6 +43,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   final _primitiveModelSettings = <String, BorderModelSettings>{};
   String _settingsRole = 'lineStraight';
   late bool _straightOnly;
+  BorderBlueprintRecord? _expectedRecord;
+  BorderLineSide? _jumpSide;
   ResourceItem? _activeElement;
   String? _pendingId;
   bool _saving = false;
@@ -53,6 +57,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   void initState() {
     super.initState();
     final record = widget.initialRecord;
+    _expectedRecord = record;
+    _jumpSide = record?.draft.definition.jumpBehavior?.side;
     _name = TextEditingController(text: record?.draft.definition.name ?? '');
     _pendingId = record?.id;
     _straightOnly = record?.draft.definition.straightOnly ?? false;
@@ -89,33 +95,43 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     super.dispose();
   }
 
-  bool get _hasChanges =>
-      _name.text != (widget.initialRecord?.draft.definition.name ?? '') ||
-      _straightOnly !=
-          (widget.initialRecord?.draft.definition.straightOnly ?? false) ||
-      _primitiveModelIds.entries.any(
-        (entry) =>
-            widget.initialRecord?.draft.definition.primitives
-                .where((primitive) => primitive.id == entry.key)
-                .firstOrNull
-                ?.sourceModelId !=
-            entry.value,
-      ) ||
-      _primitiveModelSettings.entries.any(
-        (entry) => entry.value != _initialSettings(entry.key),
-      ) ||
-      const ['lineCap', 'lineStraight', 'lineCorner'].any(
-        (role) =>
-            !_selectedPrimitiveIds.containsKey(role) &&
-            _sourceId(role) !=
-                widget.initialRecord?.draft.definition.primitives
-                    .where((primitive) => primitive.role.name == role)
-                    .map(
-                      (primitive) =>
-                          primitive.sourceModelId ?? primitive.sourceElementId,
-                    )
-                    .firstOrNull,
-      );
+  bool get _nativeLedge =>
+      widget.initialRecord != null &&
+      !widget.initialRecord!.draft.definition.isSpatial &&
+      widget.initialRecord!.draft.definition.template ==
+          BorderBlueprintTemplate.ledgeLine;
+
+  bool get _hasChanges => _nativeLedge
+      ? _name.text != _expectedRecord?.draft.definition.name ||
+            _jumpSide != _expectedRecord?.draft.definition.jumpBehavior?.side
+      : _name.text != (widget.initialRecord?.draft.definition.name ?? '') ||
+            _straightOnly !=
+                (widget.initialRecord?.draft.definition.straightOnly ??
+                    false) ||
+            _primitiveModelIds.entries.any(
+              (entry) =>
+                  widget.initialRecord?.draft.definition.primitives
+                      .where((primitive) => primitive.id == entry.key)
+                      .firstOrNull
+                      ?.sourceModelId !=
+                  entry.value,
+            ) ||
+            _primitiveModelSettings.entries.any(
+              (entry) => entry.value != _initialSettings(entry.key),
+            ) ||
+            const ['lineCap', 'lineStraight', 'lineCorner'].any(
+              (role) =>
+                  !_selectedPrimitiveIds.containsKey(role) &&
+                  _sourceId(role) !=
+                      widget.initialRecord?.draft.definition.primitives
+                          .where((primitive) => primitive.role.name == role)
+                          .map(
+                            (primitive) =>
+                                primitive.sourceModelId ??
+                                primitive.sourceElementId,
+                          )
+                          .firstOrNull,
+            );
 
   String? _sourceId(String role) => _modifiedRoles.contains(role)
       ? _chosen[role]?.id
@@ -128,10 +144,15 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                 )
                 .firstOrNull;
 
-  bool get _complete =>
-      _sourceId('lineCap') != null &&
-      _sourceId('lineStraight') != null &&
-      (_straightOnly || _sourceId('lineCorner') != null);
+  bool get _complete => _nativeLedge
+      ? NativeLedgePanel.sourcesAvailable(
+          _expectedRecord!,
+          widget.project,
+          widget.visuals,
+        )
+      : _sourceId('lineCap') != null &&
+            _sourceId('lineStraight') != null &&
+            (_straightOnly || _sourceId('lineCorner') != null);
 
   String _primitiveId(String role) => _selectedPrimitiveIds[role] ?? role;
 
@@ -384,47 +405,63 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
       _saving = true;
       _error = null;
     });
-    final request = BorderCreationRequest(
-      name: _name.text.trim(),
-      capElementId: widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineCap')
-          : null,
-      straightElementId:
-          widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineStraight')
-          : null,
-      cornerElementId:
-          widget.project.settings.dimension == ProjectDimension.twoD
-          ? _sourceId('lineCorner')
-          : null,
-      capModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineCap')
-          ? _sourceId('lineCap')
-          : null,
-      straightModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineStraight')
-          ? _sourceId('lineStraight')
-          : null,
-      cornerModelId:
-          widget.project.settings.dimension == ProjectDimension.threeD &&
-              !_selectedPrimitiveIds.containsKey('lineCorner')
-          ? _sourceId('lineCorner')
-          : null,
-      blueprintId: _pendingId,
-      primitiveModelIds: Map.unmodifiable(_primitiveModelIds),
-      primitiveModelSettings: Map.unmodifiable(_primitiveModelSettings),
-      straightOnly: _straightOnly,
-      publish: publish,
-      acceptedWarningCodes: _warningCodes,
-    );
+    final request = _nativeLedge
+        ? BorderCreationRequest(
+            name: _name.text.trim(),
+            blueprintId: _pendingId,
+            jumpSide: _jumpSide,
+            expectedRecord: _expectedRecord,
+            publish: publish,
+            acceptedWarningCodes: _warningCodes,
+          )
+        : BorderCreationRequest(
+            name: _name.text.trim(),
+            capElementId:
+                widget.project.settings.dimension == ProjectDimension.twoD
+                ? _sourceId('lineCap')
+                : null,
+            straightElementId:
+                widget.project.settings.dimension == ProjectDimension.twoD
+                ? _sourceId('lineStraight')
+                : null,
+            cornerElementId:
+                widget.project.settings.dimension == ProjectDimension.twoD
+                ? _sourceId('lineCorner')
+                : null,
+            capModelId:
+                widget.project.settings.dimension == ProjectDimension.threeD &&
+                    !_selectedPrimitiveIds.containsKey('lineCap')
+                ? _sourceId('lineCap')
+                : null,
+            straightModelId:
+                widget.project.settings.dimension == ProjectDimension.threeD &&
+                    !_selectedPrimitiveIds.containsKey('lineStraight')
+                ? _sourceId('lineStraight')
+                : null,
+            cornerModelId:
+                widget.project.settings.dimension == ProjectDimension.threeD &&
+                    !_selectedPrimitiveIds.containsKey('lineCorner')
+                ? _sourceId('lineCorner')
+                : null,
+            blueprintId: _pendingId,
+            expectedRecord: _expectedRecord,
+            primitiveModelIds: Map.unmodifiable(_primitiveModelIds),
+            primitiveModelSettings: Map.unmodifiable(_primitiveModelSettings),
+            straightOnly: _straightOnly,
+            publish: publish,
+            acceptedWarningCodes: _warningCodes,
+          );
     try {
       final receipt = await widget.navigation.port.createBorder(request);
       await widget.navigation.accept(receipt);
       if (mounted) Navigator.of(context).pop(true);
     } on ResourceFailure catch (failure) {
       if (failure.partialReceipt case final partial?) {
+        _expectedRecord =
+            partial.manifest.borderCatalog.recordById(
+              failure.borderId ?? _pendingId ?? '',
+            ) ??
+            _expectedRecord;
         await widget.navigation.accept(partial);
       }
       if (!mounted) return;
@@ -477,28 +514,44 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.initialRecord == null
+                      _nativeLedge
+                          ? 'Modifier le rebord natif'
+                          : widget.initialRecord == null
                           ? 'Créer une bordure avec un patron'
                           : 'Modifier la bordure',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 5),
-                    const Text(
-                      'Déposez vos décors sur le patron. La bordure publiée sera disponible dans Carte › Bordures.',
+                    Text(
+                      _nativeLedge
+                          ? 'Les modules importés sont conservés. Le rebord publié sera disponible dans Carte › Bordures.'
+                          : 'Déposez vos décors sur le patron. La bordure publiée sera disponible dans Carte › Bordures.',
                     ),
                   ],
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  key: const ValueKey('border-name'),
-                  controller: _name,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom de la bordure',
-                  ),
-                  onChanged: (_) => setState(() => _warningCodes = const []),
-                ),
+                child: _nativeLedge
+                    ? StudioDraftField(
+                        key: const ValueKey('border-name'),
+                        label: 'Nom du rebord',
+                        value: _name.text,
+                        enabled: !_saving,
+                        onChanged: (value) => setState(() {
+                          _name.text = value;
+                          _warningCodes = const [];
+                        }),
+                      )
+                    : TextField(
+                        key: const ValueKey('border-name'),
+                        controller: _name,
+                        decoration: const InputDecoration(
+                          labelText: 'Nom de la bordure',
+                        ),
+                        onChanged: (_) =>
+                            setState(() => _warningCodes = const []),
+                      ),
               ),
               if (_error != null)
                 ConstrainedBox(
@@ -529,6 +582,22 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: LayoutBuilder(
                     builder: (context, bounds) {
+                      if (_nativeLedge) {
+                        return SingleChildScrollView(
+                          child: NativeLedgePanel(
+                            record: _expectedRecord!,
+                            project: widget.project,
+                            visuals: widget.visuals,
+                            jumpSide: _jumpSide,
+                            onJumpSideChanged: _saving
+                                ? null
+                                : (side) => setState(() {
+                                    _jumpSide = side;
+                                    _warningCodes = const [];
+                                  }),
+                          ),
+                        );
+                      }
                       final pattern = BorderPatternPanel(
                         project: widget.project,
                         chosen: _chosen,

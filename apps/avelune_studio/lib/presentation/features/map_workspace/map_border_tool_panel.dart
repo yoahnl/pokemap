@@ -67,6 +67,13 @@ class MapBorderToolPanel extends StatelessWidget {
       if (report.hasErrors) {
         diagnostic = 'Cette bordure doit être corrigée avant régénération.';
       }
+      } else {
+        final proposed = MapBorderEditingCommands(document, project)
+            .previewExisting(
+              layerId: selected.layer.id,
+              featureId: selected.feature.id,
+            );
+        stale = proposed != map;
       }
     } on Object {
       diagnostic =
@@ -144,7 +151,7 @@ class MapBorderToolPanel extends StatelessWidget {
                 onChanged();
               },
             ),
-            if (map.spatialScene != null) StudioButton(
+            StudioButton(
               key: const ValueKey('border-regeneration-preview'),
               label: 'Préparer la régénération',
               icon: Icons.refresh,
@@ -229,7 +236,7 @@ class MapBorderToolPanel extends StatelessWidget {
               ? 'Le tracé sélectionné n’est plus visible. Choisissez un tracé visible pour continuer à gommer.'
               : 'Glissez sur le tracé sélectionné pour gommer une partie. Relâchez pour appliquer ; Échap annule. Les autres tracés restent inchangés.'),
         ],
-        if (map.spatialScene != null && !selectionRequired && (stale || missing || diagnostic != null || ready)) ...[
+        if (!selectionRequired && (stale || missing || diagnostic != null || ready)) ...[
           const SizedBox(height: 6),
           StudioNotice(
             diagnostic ??
