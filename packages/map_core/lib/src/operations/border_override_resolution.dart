@@ -294,7 +294,15 @@ BorderResolvedPlacement _resolvePlacementOverride({
     final candidates = primitives.values.where(
       (candidate) =>
           candidate.role == basePrimitive.role &&
-          _transformAllowed(candidate, transform),
+          _transformAllowed(candidate, transform) &&
+          (request.blueprintRevision!.definition.template !=
+                  BorderBlueprintTemplate.ledgeLine ||
+              (candidate.authoredOrientation ==
+                      basePrimitive.authoredOrientation &&
+                  candidate.publishedMetrics.pixelSize == request.tileSizePx &&
+                  !candidate.transforms.allowFlipX &&
+                  candidate.transforms.allowedQuarterTurns.length == 1 &&
+                  candidate.transforms.allowedQuarterTurns.single == 0)),
     );
     final selected = chooseBorderWeightedCandidate(
       BorderDeterministicRng.fromComponents(<BorderRngKeyComponent>[
@@ -374,8 +382,16 @@ BorderResolvedPlacement _resolvePlacementOverride({
       targetAnchorWorldPx: const BorderPixelPos(x: 0, y: 0),
     );
     final target = BorderPixelPos(
-      x: base.topLeftWorldPx.x - baseOrigin.topLeftWorldPx.x + offset.x,
-      y: base.topLeftWorldPx.y - baseOrigin.topLeftWorldPx.y + offset.y,
+      x:
+          request.blueprintRevision!.definition.template ==
+              BorderBlueprintTemplate.ledgeLine
+          ? base.topLeftWorldPx.x + primitive.anchorPx.x + offset.x
+          : base.topLeftWorldPx.x - baseOrigin.topLeftWorldPx.x + offset.x,
+      y:
+          request.blueprintRevision!.definition.template ==
+              BorderBlueprintTemplate.ledgeLine
+          ? base.topLeftWorldPx.y + primitive.anchorPx.y + offset.y
+          : base.topLeftWorldPx.y - baseOrigin.topLeftWorldPx.y + offset.y,
     );
     final sprite = resolveBorderSpriteGeometry(
       metrics: primitive.publishedMetrics,

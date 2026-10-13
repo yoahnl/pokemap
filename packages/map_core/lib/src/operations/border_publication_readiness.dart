@@ -573,6 +573,7 @@ void _diagnoseTemplateGround(
     case BorderBlueprintTemplate.postAndRailLine:
     case BorderBlueprintTemplate.connectedLine:
     case BorderBlueprintTemplate.stoneChainLine:
+    case BorderBlueprintTemplate.ledgeLine:
       diagnostics.add(_diagnostic(
         code: 'border.publication.linear_ground_not_supported',
         scope: BorderDiagnosticScope.blueprint,
@@ -592,49 +593,70 @@ void _diagnoseTemplateGround(
 /// offered during authoring can never become invalid only at publication.
 Set<BorderPrimitiveRole> borderAllowedPrimitiveRolesForTemplate(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.organicEdge => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.structureLarge,
-          BorderPrimitiveRole.structureMedium,
-          BorderPrimitiveRole.filler,
-          BorderPrimitiveRole.accent,
-          BorderPrimitiveRole.surfacePatch,
-          BorderPrimitiveRole.outerAccent,
-        },
-      BorderBlueprintTemplate.masonryLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.structureLarge,
-          BorderPrimitiveRole.structureMedium,
-          BorderPrimitiveRole.filler,
-          BorderPrimitiveRole.post,
-          BorderPrimitiveRole.accent,
-          BorderPrimitiveRole.surfacePatch,
-        },
-      BorderBlueprintTemplate.postAndRailLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.post,
-          BorderPrimitiveRole.span,
-          BorderPrimitiveRole.accent,
-          BorderPrimitiveRole.surfacePatch,
-        },
-      BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.lineCap,
-          BorderPrimitiveRole.lineStraight,
-          BorderPrimitiveRole.lineCorner,
-        },
-      BorderBlueprintTemplate.stoneChainLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.structureLarge,
-          BorderPrimitiveRole.structureMedium,
-          BorderPrimitiveRole.filler,
-          BorderPrimitiveRole.lineCorner,
-          BorderPrimitiveRole.lineCap,
-        },
-    };
+) => switch (template) {
+  BorderBlueprintTemplate.organicEdge => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.structureLarge,
+    BorderPrimitiveRole.structureMedium,
+    BorderPrimitiveRole.filler,
+    BorderPrimitiveRole.accent,
+    BorderPrimitiveRole.surfacePatch,
+    BorderPrimitiveRole.outerAccent,
+  },
+  BorderBlueprintTemplate.masonryLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.structureLarge,
+    BorderPrimitiveRole.structureMedium,
+    BorderPrimitiveRole.filler,
+    BorderPrimitiveRole.post,
+    BorderPrimitiveRole.accent,
+    BorderPrimitiveRole.surfacePatch,
+  },
+  BorderBlueprintTemplate.postAndRailLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.post,
+    BorderPrimitiveRole.span,
+    BorderPrimitiveRole.accent,
+    BorderPrimitiveRole.surfacePatch,
+  },
+  BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+    BorderPrimitiveRole.lineCorner,
+  },
+  BorderBlueprintTemplate.ledgeLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.structureLarge,
+  },
+  BorderBlueprintTemplate.stoneChainLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.structureLarge,
+    BorderPrimitiveRole.structureMedium,
+    BorderPrimitiveRole.filler,
+    BorderPrimitiveRole.lineCorner,
+    BorderPrimitiveRole.lineCap,
+  },
+};
 
 void _diagnoseTemplateGenerationParams(
   String blueprintId,
   BorderBlueprintPublishedDefinition definition,
   List<BorderDiagnostic> diagnostics,
 ) {
+  if (definition.template == BorderBlueprintTemplate.ledgeLine) {
+    final parameters = definition.defaults;
+    if (parameters.depthRows != 1 ||
+        parameters.irregularityPermille != 0 ||
+        parameters.detailDensityPermille != 0 ||
+        parameters.allowAutoRotation ||
+        parameters.gapTolerancePx != 0 ||
+        parameters.maxOverlapPx != 0) {
+      diagnostics.add(
+        _diagnostic(
+          code: 'border.publication.ledge_parameters_invalid',
+          scope: BorderDiagnosticScope.blueprint,
+          blueprintId: blueprintId,
+          action: 'border.action.use_native_ledge_parameters',
+        ),
+      );
+    }
+    return;
+  }
   if (definition.template != BorderBlueprintTemplate.stoneChainLine) return;
   final depthRows = definition.defaults.depthRows;
   if (depthRows != 1 && depthRows != 2) {
@@ -754,6 +776,41 @@ void _diagnoseRequiredRolesAndOrientations(
   List<BorderDiagnostic> diagnostics,
 ) {
   switch (definition.template) {
+    case BorderBlueprintTemplate.ledgeLine:
+      if (definition.primitives.isEmpty) {
+        diagnostics.add(
+          _diagnostic(
+            code: 'border.publication.required_role_missing',
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: {
+              'roles': ['structureLarge'],
+            },
+            action: 'border.action.add_required_line_primitive',
+          ),
+        );
+      }
+      final size =
+          definition.primitives.firstOrNull?.publishedMetrics.pixelSize;
+      for (final primitive in definition.primitives) {
+        if (primitive.authoredOrientation ==
+                BorderPrimitiveOrientation.legacyAxis ||
+            primitive.sourceModelId != null ||
+            primitive.transforms.allowFlipX ||
+            primitive.transforms.allowedQuarterTurns.length != 1 ||
+            primitive.transforms.allowedQuarterTurns.single != 0 ||
+            primitive.publishedMetrics.pixelSize != size) {
+          diagnostics.add(
+            _diagnostic(
+              code: 'border.publication.ledge_primitive_invalid',
+              scope: BorderDiagnosticScope.primitive,
+              blueprintId: blueprintId,
+              parameters: {'primitiveId': primitive.id},
+              action: 'border.action.choose_native_cardinal_module',
+            ),
+          );
+        }
+      }
     case BorderBlueprintTemplate.organicEdge:
     case BorderBlueprintTemplate.masonryLine:
       final eligible = definition.primitives
@@ -1199,6 +1256,37 @@ void _diagnosePrimitiveMetrics(
         action: 'border.action.reanalyze_asset_occupancy',
       ),
       );
+    }
+    if (hasStructuralOccupancy == true &&
+        definition.template == BorderBlueprintTemplate.ledgeLine) {
+      final horizontalTangent =
+          primitive.authoredOrientation == BorderPrimitiveOrientation.north ||
+          primitive.authoredOrientation == BorderPrimitiveOrientation.south;
+      final intervals = projectBorderStructuralMaskOntoWorldAxis(
+        metrics: metrics,
+        transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+        topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+        worldXAxis: horizontalTangent,
+      );
+      final tangentLength = horizontalTangent
+          ? metrics.pixelSize.width
+          : metrics.pixelSize.height;
+      if (intervals.length != 1 ||
+          intervals.single.startPx != 0 ||
+          intervals.single.endPx != tangentLength) {
+        diagnostics.add(
+          _diagnostic(
+            code: 'border.publication.ledge_variant_coverage_incomplete',
+            scope: BorderDiagnosticScope.primitive,
+            blueprintId: blueprintId,
+            parameters: {
+              'primitiveId': primitive.id,
+              'orientation': primitive.authoredOrientation.name,
+            },
+            action: 'border.action.choose_complete_native_ledge_module',
+          ),
+        );
+      }
     }
     if (hasStructuralOccupancy == false) {
       diagnostics.add(_diagnostic(
@@ -1839,34 +1927,35 @@ bool _insideAsset(
 /// Returns the immutable, exact canonical evidence set for [template].
 List<BorderCanonicalGalleryCase> borderCanonicalGalleryCasesForTemplate(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.organicEdge => const <BorderCanonicalGalleryCase>[
-          BorderCanonicalGalleryCase.longEdge,
-          BorderCanonicalGalleryCase.gentleCurve,
-          BorderCanonicalGalleryCase.sharpConvexCorner,
-          BorderCanonicalGalleryCase.sharpConcaveCorner,
-          BorderCanonicalGalleryCase.hole,
-          BorderCanonicalGalleryCase.smallIsland,
-        ],
-      BorderBlueprintTemplate.masonryLine => const <BorderCanonicalGalleryCase>[
-          BorderCanonicalGalleryCase.longEdge,
-          BorderCanonicalGalleryCase.sharpCorner,
-          BorderCanonicalGalleryCase.endpoint,
-        ],
-      BorderBlueprintTemplate.postAndRailLine =>
-        const <BorderCanonicalGalleryCase>[
-          BorderCanonicalGalleryCase.longEdge,
-          BorderCanonicalGalleryCase.sharpCorner,
-          BorderCanonicalGalleryCase.endpoint,
-          BorderCanonicalGalleryCase.opening,
-        ],
-      BorderBlueprintTemplate.connectedLine =>
-        const <BorderCanonicalGalleryCase>[
-          BorderCanonicalGalleryCase.longEdge,
-          BorderCanonicalGalleryCase.sharpCorner,
-          BorderCanonicalGalleryCase.endpoint,
-          BorderCanonicalGalleryCase.opening,
+) => switch (template) {
+  BorderBlueprintTemplate.ledgeLine => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.endpoint,
+  ],
+  BorderBlueprintTemplate.organicEdge => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.gentleCurve,
+    BorderCanonicalGalleryCase.sharpConvexCorner,
+    BorderCanonicalGalleryCase.sharpConcaveCorner,
+    BorderCanonicalGalleryCase.hole,
+    BorderCanonicalGalleryCase.smallIsland,
+  ],
+  BorderBlueprintTemplate.masonryLine => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.sharpCorner,
+    BorderCanonicalGalleryCase.endpoint,
+  ],
+  BorderBlueprintTemplate.postAndRailLine => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.sharpCorner,
+    BorderCanonicalGalleryCase.endpoint,
+    BorderCanonicalGalleryCase.opening,
+  ],
+  BorderBlueprintTemplate.connectedLine => const <BorderCanonicalGalleryCase>[
+    BorderCanonicalGalleryCase.longEdge,
+    BorderCanonicalGalleryCase.sharpCorner,
+    BorderCanonicalGalleryCase.endpoint,
+    BorderCanonicalGalleryCase.opening,
     BorderCanonicalGalleryCase.sBend,
         ],
       BorderBlueprintTemplate.stoneChainLine =>
@@ -2107,6 +2196,7 @@ String _templateV1WireName(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
       BorderBlueprintTemplate.connectedLine => 'connectedLine',
       BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
+      BorderBlueprintTemplate.ledgeLine => 'ledgeLine',
     };
 
 String _borderGroundRoleV1WireName(BorderGroundVariantRole role) => switch (role) {

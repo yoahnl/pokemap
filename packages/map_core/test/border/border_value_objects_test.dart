@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('Border template enums', () {
-    test('templates retain historical order and append stoneChainLine', () {
+    test('templates retain explicit order and append ledgeLine', () {
       expect(
         BorderBlueprintTemplate.values.map((value) => value.name),
         <String>[
@@ -12,6 +12,7 @@ void main() {
           'postAndRailLine',
           'connectedLine',
           'stoneChainLine',
+          'ledgeLine',
         ],
       );
       expect(

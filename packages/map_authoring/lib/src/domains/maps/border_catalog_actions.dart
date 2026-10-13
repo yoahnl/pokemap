@@ -949,6 +949,23 @@ AuthoringActionDescriptor _descriptor(
         'artifactSnapshots': true,
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')
+          'ledgeLine': {
+            'template': 'ledgeLine',
+            'minimumCatalogFormatVersion': 7,
+            'geometry': 'stroke',
+            'alignment': 'gridEdges',
+            'modulesPerUnitEdge': 1,
+            'primitiveRole': 'structureLarge',
+            'orientation': 'nativeCardinal',
+            'frameSize': 'oneCell',
+            'automaticRotation': false,
+            'flipX': false,
+            'sourceOrigin': 'carrierCellOrigin',
+            'jumpOwner': 'borderBlueprint',
+            'jumpSideChangesVisuals': false,
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
           'directedJumpBehavior': {
             'property': 'definition.jumpBehavior',
             'owner': 'borderBlueprint',

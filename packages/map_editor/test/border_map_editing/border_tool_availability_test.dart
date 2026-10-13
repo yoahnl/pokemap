@@ -64,14 +64,12 @@ void main() {
         BorderBlueprintTemplate.postAndRailLine,
         BorderBlueprintTemplate.connectedLine,
         BorderBlueprintTemplate.stoneChainLine,
+        BorderBlueprintTemplate.ledgeLine,
       ]) {
         final result = assessBorderToolAvailability(
           manifest: _manifest(template),
           map: _lineMap(
-            alignment: template == BorderBlueprintTemplate.stoneChainLine
-                ? BorderStrokeAlignment.gridEdges
-                : BorderStrokeAlignment.cellCenters,
-          ),
+            alignment: borderTemplateStrokeAlignment(template)),
           activeLayerId: 'borders',
           activeFeatureId: 'wall',
         );

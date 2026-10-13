@@ -1,3 +1,4 @@
+import 'ledge_line_border_resolver.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/border_feature.dart';
 import '../models/border_geometry.dart';
@@ -214,6 +215,10 @@ BorderLocalResolutionState resolveBorderFeatureLocalBaseline(
   }
   final capture = BorderLocalResolutionCapture();
   final result = switch (revision.definition.template) {
+    BorderBlueprintTemplate.ledgeLine => resolveLedgeLineBorderWithEvidence(
+      request,
+      localCapture: capture,
+    ).result,
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorderWithEvidence(
         request,
         localCapture: capture,
@@ -270,6 +275,11 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
     affectedBoundsPx: dirtyHalo.affectedBoundsPx,
   );
   final result = switch (revision.definition.template) {
+    BorderBlueprintTemplate.ledgeLine => resolveLedgeLineBorderWithEvidence(
+      request,
+      localScope: scope,
+      localCapture: capture,
+    ).result,
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorderWithEvidence(
         request,
         localScope: scope,

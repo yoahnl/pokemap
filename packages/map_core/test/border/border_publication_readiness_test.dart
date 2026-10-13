@@ -2357,6 +2357,8 @@ bool _isStructural(
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||
             role == BorderPrimitiveRole.lineCorner,
+      BorderBlueprintTemplate.ledgeLine =>
+        role == BorderPrimitiveRole.structureLarge,
       BorderBlueprintTemplate.stoneChainLine =>
         role == BorderPrimitiveRole.structureLarge ||
             role == BorderPrimitiveRole.structureMedium ||

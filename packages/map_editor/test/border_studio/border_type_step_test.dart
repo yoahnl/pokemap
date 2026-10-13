@@ -58,7 +58,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Publication disponible'), findsNWidgets(5));
+      expect(find.text('Publication disponible'), findsNWidgets(6));
       expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(

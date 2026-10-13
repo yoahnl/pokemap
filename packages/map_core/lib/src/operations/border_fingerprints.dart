@@ -218,18 +218,18 @@ Object _blueprintProjection({
 Object _geometryAndSeedProjection(
   BorderFeature feature, {
   required BorderBlueprintTemplate template,
-}) =>
-    <String, Object?>{
-      'featureId': feature.id,
-      'seed': feature.seed.toString(),
-      'geometry': _geometryProjection(feature.geometry),
-      if (template == BorderBlueprintTemplate.connectedLine ||
-          template == BorderBlueprintTemplate.stoneChainLine)
-        'lineSide': switch (feature.lineSide) {
-          BorderLineSide.primary => 'primary',
-          BorderLineSide.inverted => 'inverted',
-        },
-    };
+}) => <String, Object?>{
+  'featureId': feature.id,
+  'seed': feature.seed.toString(),
+  'geometry': _geometryProjection(feature.geometry),
+  if (template == BorderBlueprintTemplate.connectedLine ||
+      template == BorderBlueprintTemplate.stoneChainLine ||
+      template == BorderBlueprintTemplate.ledgeLine)
+    'lineSide': switch (feature.lineSide) {
+      BorderLineSide.primary => 'primary',
+      BorderLineSide.inverted => 'inverted',
+    },
+};
 
 Object _geometryProjection(BorderFeatureGeometry geometry) =>
     switch (geometry) {

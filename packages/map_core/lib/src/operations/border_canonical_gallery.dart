@@ -1,3 +1,4 @@
+import 'ledge_line_border_resolver.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
@@ -394,6 +395,37 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             geometry: geometry,
             resolverResult: primary.result,
             invertedResolverResult: inverted.result,
+            publicationSample: sample,
+          ),
+        );
+      case BorderBlueprintTemplate.ledgeLine:
+        final geometry = _ledgeLineGeometryFor(galleryCase, definition);
+        final evidence = resolveLedgeLineBorderWithEvidence(
+          _request(
+            mapSize: _lineGalleryMapSize,
+            tileSizePx: tileSizePx,
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: snapshots,
+            resolverVersion: resolverVersion,
+            caseWire: caseWire,
+            geometry: geometry,
+          ),
+        );
+        diagnostics.addAll(evidence.result.diagnostics);
+        final sample = BorderPublicationGallerySample(
+          galleryCase: galleryCase,
+          coverageChecks: [
+            _ledgeLineCoverageCheck(evidence, definition, geometry, tileSizePx),
+          ],
+          structuralRuns: const [],
+        );
+        cases.add(
+          BorderCanonicalGalleryCaseResult._(
+            galleryCase: galleryCase,
+            mapSize: _lineGalleryMapSize,
+            geometry: geometry,
+            resolverResult: evidence.result,
             publicationSample: sample,
           ),
         );
@@ -1859,4 +1891,121 @@ bool _listEquals<T>(List<T> left, List<T> right) {
     if (left[index] != right[index]) return false;
   }
   return true;
+}
+
+BorderStrokeGeometry _ledgeLineGeometryFor(
+  BorderCanonicalGalleryCase galleryCase,
+  BorderBlueprintPublishedDefinition definition,
+) {
+  final count = galleryCase == BorderCanonicalGalleryCase.endpoint ? 1 : 4;
+  final declared = definition.primitives
+      .map((p) => p.authoredOrientation)
+      .toSet();
+  final strokes = <BorderStroke>[];
+  for (final orientation in BorderPrimitiveOrientation.values.where(
+    declared.contains,
+  )) {
+    if (orientation == BorderPrimitiveOrientation.legacyAxis) {
+      continue;
+    }
+    final points = switch (orientation) {
+      BorderPrimitiveOrientation.east => [
+        for (var i = 0; i <= count; i++) GridPos(x: 3, y: 6 - i),
+      ],
+      BorderPrimitiveOrientation.south => [
+        for (var i = 0; i <= count; i++) GridPos(x: 2 + i, y: 8),
+      ],
+      BorderPrimitiveOrientation.west => [
+        for (var i = 0; i <= count; i++) GridPos(x: 9, y: 2 + i),
+      ],
+      BorderPrimitiveOrientation.north => [
+        for (var i = 0; i <= count; i++) GridPos(x: 6 - i, y: 1),
+      ],
+      BorderPrimitiveOrientation.legacyAxis => throw StateError(
+        'Cardinal orientation required',
+      ),
+    };
+    strokes.add(
+      BorderStroke(
+        id: buildBorderPreservedStrokeIdV1(
+          authoredStrokeId: 'native-${orientation.name}',
+          sourceEdgeOffset: 0,
+          wrapLength: null,
+          orderedPoints: points,
+        ),
+        points: points,
+        closed: false,
+      ),
+    );
+  }
+  return BorderStrokeGeometry(
+    strokes: strokes,
+    alignment: BorderStrokeAlignment.gridEdges,
+  );
+}
+
+BorderPublicationCoverageCheck _ledgeLineCoverageCheck(
+  LedgeLineBorderResolutionEvidence evidence,
+  BorderBlueprintPublishedDefinition definition,
+  BorderStrokeGeometry geometry,
+  GridSize tileSizePx,
+) {
+  var gap = 0;
+  var overlap = 0;
+  final primitives = {for (final p in definition.primitives) p.id: p};
+  for (final stroke in geometry.strokes) {
+    final horizontal = stroke.points.first.y == stroke.points.last.y;
+    final axisLength = horizontal ? tileSizePx.width : tileSizePx.height;
+    final perimeter = (stroke.points.length - 1) * axisLength;
+    final coordinates = stroke.points.map(
+      (p) => (horizontal ? p.x : p.y) * axisLength,
+    );
+    final origin = coordinates.reduce((a, b) => a < b ? a : b);
+    final assessment = assessBorderLoopCoverage(
+      perimeterPx: perimeter,
+      projections: [
+        for (final edge in evidence.edges.where(
+          (e) =>
+              e.strokeId ==
+              resolveBorderStrokeLineageIdentityV1(stroke).authoredStrokeId,
+        ))
+          BorderStructuralCoverageProjection(
+            placementId: edge.finalPlacement.id,
+            drawBand: edge.finalPlacement.drawBand,
+            passIndex: 0,
+            intervals: [
+              for (final interval in projectBorderStructuralMaskOntoWorldAxis(
+                metrics: primitives[edge.finalPlacement.primitiveId]!
+                    .publishedMetrics,
+                transform: edge.finalPlacement.transform,
+                topLeftWorldPx: edge.finalPlacement.topLeftWorldPx,
+                worldXAxis: horizontal,
+              ))
+                BorderCoverageInterval(
+                  startPx: interval.startPx - origin,
+                  endPx: interval.endPx - origin,
+                ),
+            ],
+          ),
+      ],
+      gapTolerancePx: definition.defaults.gapTolerancePx,
+      maxOverlapPx: definition.defaults.maxOverlapPx,
+    );
+    if (assessment.longestContiguousGapPx > gap) {
+      gap = assessment.longestContiguousGapPx;
+    }
+    if (assessment.maximumPairwiseOverlapPx > overlap) {
+      overlap = assessment.maximumPairwiseOverlapPx;
+    }
+  }
+  if (!evidence.result.canApply && gap == 0) {
+    gap = 1;
+  }
+  return BorderPublicationCoverageCheck(
+    component: BorderCanonicalCoverageComponent.primary,
+    longestContiguousGapPx: gap,
+    maximumPairwiseOverlapPx: overlap,
+    gapTolerancePx: definition.defaults.gapTolerancePx,
+    maxOverlapPx: definition.defaults.maxOverlapPx,
+  );
 }

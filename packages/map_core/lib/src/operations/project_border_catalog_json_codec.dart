@@ -145,9 +145,10 @@ void _requireSupportedVersion(int value, String path) {
       value != ProjectBorderCatalog.formatVersionV2 &&
       value != ProjectBorderCatalog.formatVersionV3 &&
       value != ProjectBorderCatalog.formatVersionV4 && value != ProjectBorderCatalog.formatVersionV5 &&
-      value != ProjectBorderCatalog.formatVersionV6) {
+      value != ProjectBorderCatalog.formatVersionV6 &&
+      value != ProjectBorderCatalog.formatVersionV7) {
     throw FormatException(
-      '$path: expected ProjectBorderCatalog format version between 1 and 6',
+      '$path: expected ProjectBorderCatalog format version between 1 and 7',
     );
   }
 }

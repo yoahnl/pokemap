@@ -72,8 +72,7 @@ class BorderRolesStep extends StatelessWidget {
                 PokeMapSectionHeader(
                   title: 'Couverture des rôles',
                   description: _roleRequirementDescription(
-                    definition.template,
-                  ),
+                    definition.template),
                 ),
                 const SizedBox(height: 8),
                 if (definition.template ==
@@ -110,8 +109,7 @@ class BorderRolesStep extends StatelessWidget {
                     PokeMapStatusTile(
                       label: _roleRequirementLabel(
                         definition.template,
-                        role,
-                      ),
+                        role),
                       value: borderRoleLabel(
                         role,
                         template: definition.template,
@@ -131,7 +129,8 @@ class BorderRolesStep extends StatelessWidget {
                   BorderStudioNotice(
                     title: 'Rôles non résolus',
                     description:
-                        unresolvedBorderRoleLabels(definition).join(', '),
+                        unresolvedBorderRoleLabels(definition,
+                    ).join(', '),
                     tone: PokeMapTone.warning,
                     icon: CupertinoIcons.exclamationmark_triangle,
                   ),
@@ -154,7 +153,8 @@ class BorderRolesStep extends StatelessWidget {
         _ => CupertinoIcons.square_stack_3d_down_right,
       };
 
-  String _roleRequirementDescription(BorderBlueprintTemplate template) =>
+  String _roleRequirementDescription(BorderBlueprintTemplate template,
+  ) =>
       switch (template) {
         BorderBlueprintTemplate.organicEdge ||
         BorderBlueprintTemplate.masonryLine =>
@@ -165,6 +165,8 @@ class BorderRolesStep extends StatelessWidget {
           'Extrémité, Segment droit et Angle sont requis. Ajoutez plusieurs assets à un même rôle pour créer des variantes.',
         BorderBlueprintTemplate.stoneChainLine =>
           'Sommet plat et Face de falaise sont requis pour deux étages. Les pierres libres, angles et extrémités restent facultatifs.',
+    BorderBlueprintTemplate.ledgeLine =>
+      'Une Structure principale complète par cellule est requise, avec une orientation native cardinale.',
       };
 
   String _roleRequirementLabel(
@@ -179,6 +181,7 @@ class BorderRolesStep extends StatelessWidget {
       BorderBlueprintTemplate.postAndRailLine => 'Rôle requis',
       BorderBlueprintTemplate.connectedLine => 'Raccord requis',
       BorderBlueprintTemplate.stoneChainLine => 'Rôle requis',
+      BorderBlueprintTemplate.ledgeLine => 'Module complet requis',
     };
   }
 }

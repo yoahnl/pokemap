@@ -252,7 +252,9 @@ class BorderAssetsStep extends StatelessWidget {
                             ),
                           ],
                           if (template ==
-                              BorderBlueprintTemplate.stoneChainLine) ...[
+                              BorderBlueprintTemplate.stoneChainLine ||
+                              template ==
+                                  BorderBlueprintTemplate.ledgeLine) ...[
                             const SizedBox(height: 10),
                             PokeMapDropdownField<BorderPrimitiveOrientation>(
                               key: ValueKey<String>(
@@ -260,13 +262,24 @@ class BorderAssetsStep extends StatelessWidget {
                               ),
                               label: 'Orientation dessinée dans l\'asset',
                               value: primitive.authoredOrientation,
-                              items: const <PokeMapDropdownItem<
+                              items:
+                                  <PokeMapDropdownItem<
                                   BorderPrimitiveOrientation
                                     >
                                   >[
-                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                    if (template !=
+                                            BorderBlueprintTemplate.ledgeLine ||
+                                        primitive.authoredOrientation ==
+                                            BorderPrimitiveOrientation
+                                                .legacyAxis)
+                                      PokeMapDropdownItem<BorderPrimitiveOrientation>(
                                   value: BorderPrimitiveOrientation.legacyAxis,
-                                  label: 'Historique',
+                                  label:
+                                            template ==
+                                                BorderBlueprintTemplate
+                                                    .ledgeLine
+                                            ? 'À définir'
+                                            : 'Historique',
                                 ),
                                 PokeMapDropdownItem<BorderPrimitiveOrientation>(
                                   value: BorderPrimitiveOrientation.north,
@@ -354,7 +367,7 @@ class BorderAssetsStep extends StatelessWidget {
     return elements.isEmpty ? null : elements.first.id;
   }
 
-  String _elementName(String sourceElementId) {
+  String _elementName(String? sourceElementId) {
     for (final element in manifest.elements) {
       if (element.id == sourceElementId) return element.name;
     }

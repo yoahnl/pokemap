@@ -1622,6 +1622,7 @@ String _templateLabel(BorderBlueprintTemplate template) => switch (template) {
       BorderBlueprintTemplate.postAndRailLine => 'Clôture linéaire',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
       BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
+      BorderBlueprintTemplate.ledgeLine => 'Rebord',
     };
 
 String _featurePreviewStateLabel(BorderBlueprintFeaturePreviewState state) {

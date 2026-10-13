@@ -1,3 +1,4 @@
+import 'ledge_line_border_resolver.dart';
 import 'dart:collection';
 
 import '../exceptions/map_exceptions.dart';
@@ -185,6 +186,16 @@ BorderMaterializationFreshnessInspection inspectBorderMaterializationFreshness(
               receipt.components.keepOutRegions &&
           currentNonVisualComponents.mapContext ==
               receipt.components.mapContext;
+      if (nonVisualComponentsUnchanged &&
+          currentRevision.definition.template ==
+              BorderBlueprintTemplate.ledgeLine &&
+          !ledgeLineNativePlacementGeometryMatches(
+            currentRequest,
+            materialization,
+          )) {
+        reasons.add(BorderStalenessReason.outputAltered);
+        intrinsicallyInvalid = true;
+      }
     }
 
     final currentComponents = currentFingerprints.full;

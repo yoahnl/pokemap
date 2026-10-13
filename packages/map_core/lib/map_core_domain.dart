@@ -386,3 +386,5 @@ export 'src/runtime/cinematic_actor_geometry.dart';
 export 'src/runtime/cinematic_route_sampling.dart';
 
 export 'src/operations/spatial_map_operations.dart';
+
+export 'src/operations/ledge_line_border_resolver.dart';

@@ -12,9 +12,11 @@ String borderTemplateLabel(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.postAndRailLine => 'Clôture poteaux-traverses',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
       BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
+      BorderBlueprintTemplate.ledgeLine => 'Rebord',
     };
 
-String borderTemplateDescription(BorderBlueprintTemplate template) =>
+String borderTemplateDescription(BorderBlueprintTemplate template,
+) =>
     switch (template) {
       BorderBlueprintTemplate.organicEdge =>
         'Falaises, plages, rives et contours naturellement irréguliers.',
@@ -26,6 +28,8 @@ String borderTemplateDescription(BorderBlueprintTemplate template) =>
         'Falaises, murs et bordures libres assemblés sur un tracé cardinal.',
       BorderBlueprintTemplate.stoneChainLine =>
         'Falaises et bordures naturelles composées de petites pierres le long d\'un tracé sur la grille.',
+  BorderBlueprintTemplate.ledgeLine =>
+    'Modules complets d’une cellule, avec leur orientation dessinée, sur un tracé de la grille.',
     };
 
 String borderRoleLabel(
@@ -107,6 +111,11 @@ List<String> unresolvedBorderRoleLabels(BorderBlueprintDraftDefinition draft) {
           'Segment droit',
         if (!assigned.contains(BorderPrimitiveRole.lineCorner)) 'Angle',
       ];
+    case BorderBlueprintTemplate.ledgeLine:
+      return <String>[
+        if (!assigned.contains(BorderPrimitiveRole.structureLarge))
+          'Structure principale',
+      ];
     case BorderBlueprintTemplate.stoneChainLine:
       return <String>[
         if (!assigned.contains(BorderPrimitiveRole.structureLarge))
@@ -135,6 +144,8 @@ bool isRequiredBorderRole(
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||
             role == BorderPrimitiveRole.lineCorner,
+  BorderBlueprintTemplate.ledgeLine =>
+    role == BorderPrimitiveRole.structureLarge,
       BorderBlueprintTemplate.stoneChainLine =>
         role == BorderPrimitiveRole.structureLarge ||
             (depthRows == 2 && role == BorderPrimitiveRole.structureMedium),

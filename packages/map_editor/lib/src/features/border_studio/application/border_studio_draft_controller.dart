@@ -269,7 +269,9 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
       (current) => _copyDefinition(
         current,
         template: template,
-        defaults: usesUntouchedTemplateDefaults
+        defaults:
+            template == BorderBlueprintTemplate.ledgeLine ||
+                usesUntouchedTemplateDefaults
             ? _defaultGenerationParams(template)
             : current.defaults,
       ),
@@ -957,6 +959,15 @@ Set<String> _sourceDivergenceIds(
 BorderGenerationParams _defaultGenerationParams(
   BorderBlueprintTemplate template,
 ) => switch (template) {
+  BorderBlueprintTemplate.ledgeLine => BorderGenerationParams(
+    irregularityPermille: 0,
+    detailDensityPermille: 0,
+    variationPermille: 0,
+    maxOverlapPx: 0,
+    gapTolerancePx: 0,
+    depthRows: 1,
+    allowAutoRotation: false,
+  ),
   BorderBlueprintTemplate.stoneChainLine => BorderGenerationParams(
     irregularityPermille: 180,
     detailDensityPermille: 0,

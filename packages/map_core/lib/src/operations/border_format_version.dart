@@ -57,16 +57,18 @@ bool borderBlueprintRecordRequiresFormatV2(BorderBlueprintRecord record) {
 }
 
 int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
-  if (record.draft.definition.jumpBehavior != null ||
-      record.latestPublished?.definition.jumpBehavior != null) {
-    return ProjectBorderCatalog.formatVersionV6;
-  }
   var result = ProjectBorderCatalog.formatVersionV1;
   for (final definition in <BorderBlueprintDefinition>[
     record.draft.definition,
     if (record.latestPublished != null) record.latestPublished!.definition,
   ]) {
-    if (definition.isSpatial) return ProjectBorderCatalog.formatVersionV5;
+    if (definition.jumpBehavior != null &&
+        result < ProjectBorderCatalog.formatVersionV6) {
+      result = ProjectBorderCatalog.formatVersionV6;
+    }
+    if (definition.isSpatial && result < ProjectBorderCatalog.formatVersionV5) {
+      result = ProjectBorderCatalog.formatVersionV5;
+    }
     final minimum = minimumBorderCatalogFormatVersionForTemplate(
       definition.template,
     );
@@ -76,7 +78,9 @@ int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
           primitive.authoredOrientation !=
           BorderPrimitiveOrientation.legacyAxis,
     )) {
-      result = ProjectBorderCatalog.formatVersionV4;
+      if (result < ProjectBorderCatalog.formatVersionV4) {
+        result = ProjectBorderCatalog.formatVersionV4;
+      }
     }
     if (!definition.defaults.allowAutoRotation ||
         definition.primitives.any(

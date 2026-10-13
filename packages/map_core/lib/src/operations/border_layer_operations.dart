@@ -104,7 +104,7 @@ int _formatVersionForFeatureWrite(
 }) {
   final templateVersion = template == null
       ? BorderLayerContent.formatVersionV1
-      : minimumBorderCatalogFormatVersionForTemplate(template);
+      : minimumBorderLayerFormatVersionForTemplate(template);
   final featureVersion = minimumBorderLayerFormatVersionForFeatures(features);
   return <int>[
     content.formatVersion,

@@ -338,7 +338,7 @@ void main() {
       expect(published?.revision, 1);
       expect(published?.definition.jumpBehavior, jump);
       expect(projected.borderCatalog.records.single.draft.definition.jumpBehavior, jump);
-      expect(projected.borderCatalog.formatVersion, 6);
+      expect(projected.borderCatalog.formatVersion, ProjectBorderCatalog.latestSupportedFormatVersion);
       expect(projected.borderCatalog.visualSnapshots, hasLength(1));
       expect(
         mutation.changeSet.changes.map((change) => change.resource.kind),

@@ -13,7 +13,8 @@ final class ProjectBorderCatalog {
   static const int formatVersionV4 = 4;
   static const int formatVersionV5 = 5;
   static const int formatVersionV6 = 6;
-  static const int latestSupportedFormatVersion = formatVersionV6;
+  static const int formatVersionV7 = 7;
+  static const int latestSupportedFormatVersion = formatVersionV7;
 
   /// Backward-compatible alias for [latestSupportedFormatVersion].
   ///
@@ -39,9 +40,10 @@ final class ProjectBorderCatalog {
         formatVersion != formatVersionV3 &&
         formatVersion != formatVersionV4 &&
         formatVersion != formatVersionV5 &&
-        formatVersion != formatVersionV6) {
+        formatVersion != formatVersionV6 &&
+        formatVersion != formatVersionV7) {
       throw ValidationException(
-        'ProjectBorderCatalog.formatVersion must be between 1 and 6',
+        'ProjectBorderCatalog.formatVersion must be between 1 and 7',
       );
     }
     _rejectDuplicateIds<BorderBlueprintRecord>(

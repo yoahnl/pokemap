@@ -113,7 +113,8 @@ final class BorderFeatureAuthoringController {
         BorderBlueprintTemplate.masonryLine ||
         BorderBlueprintTemplate.postAndRailLine ||
         BorderBlueprintTemplate.connectedLine ||
-        BorderBlueprintTemplate.stoneChainLine =>
+        BorderBlueprintTemplate.stoneChainLine ||
+        BorderBlueprintTemplate.ledgeLine =>
           BorderStrokeGeometry(
             alignment: borderTemplateStrokeAlignment(
               published.definition.template,

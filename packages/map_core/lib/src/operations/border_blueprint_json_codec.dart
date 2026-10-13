@@ -1452,6 +1452,7 @@ String _encodeTemplate(
   String path,
 ) {
   final minimumVersion = switch (value) {
+    BorderBlueprintTemplate.ledgeLine => 7,
     BorderBlueprintTemplate.stoneChainLine => 3,
     BorderBlueprintTemplate.connectedLine => 2,
     _ => 1,
@@ -1475,9 +1476,11 @@ BorderBlueprintTemplate _decodeTemplate(
     'postAndRailLine' => BorderBlueprintTemplate.postAndRailLine,
     'connectedLine' => BorderBlueprintTemplate.connectedLine,
     'stoneChainLine' => BorderBlueprintTemplate.stoneChainLine,
+    'ledgeLine' => BorderBlueprintTemplate.ledgeLine,
     _ => throw FormatException('$path: unknown Border blueprint template'),
   };
   final minimumVersion = switch (template) {
+    BorderBlueprintTemplate.ledgeLine => 7,
     BorderBlueprintTemplate.stoneChainLine => 3,
     BorderBlueprintTemplate.connectedLine => 2,
     _ => 1,
@@ -1534,7 +1537,7 @@ bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
 };
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value < 1 || value > 6) {
+  if (value < 1 || value > 7) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }

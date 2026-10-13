@@ -30,7 +30,7 @@ void main() {
               ['side', 'distanceCells', 'durationMs', 'peakHeightPx']));
       expect((properties['side'] as Map)['enum'], ['primary', 'inverted']);
       expect((properties['distanceCells'] as Map)['const'], 2);
-      expect(descriptor.extensions['catalogFormatVersion'], 6);
+      expect(descriptor.extensions['catalogFormatVersion'], 7);
     }
   });
 

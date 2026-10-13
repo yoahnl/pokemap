@@ -495,7 +495,11 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                   BorderBlueprintTemplate.connectedLine ||
               working.blueprint.definition.template ==
                   BorderBlueprintTemplate.masonryLine,
-          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+          allowedQuarterTurns:
+              working.blueprint.definition.template ==
+                  BorderBlueprintTemplate.ledgeLine
+              ? const <int>[0]
+              : const <int>[0, 1, 2, 3],
         ),
       );
       if (!_isAssetAnalysisTargetCurrent(

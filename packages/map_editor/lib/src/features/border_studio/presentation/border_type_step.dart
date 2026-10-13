@@ -33,7 +33,10 @@ class BorderTypeStep extends StatelessWidget {
                     ? const <BorderPrimitiveRole>[]
                     : _incompatibleRoles(definition, template);
                 final disabledReason = incompatibleRoles.isEmpty
-                    ? null
+                    ? template == BorderBlueprintTemplate.ledgeLine &&
+                              definition != null
+                          ? _ledgeTemplateDisabledReason(definition)
+                          : null
                     : _incompatibleTemplateReason(incompatibleRoles);
                 return PokeMapCard(
                   selected: selected == template,
@@ -51,6 +54,8 @@ class BorderTypeStep extends StatelessWidget {
                             CupertinoIcons.arrow_3_trianglepath,
                           BorderBlueprintTemplate.stoneChainLine =>
                             CupertinoIcons.circle_grid_hex,
+                          BorderBlueprintTemplate.ledgeLine =>
+                            CupertinoIcons.arrow_down_to_line,
                         },
                         tone: template == BorderBlueprintTemplate.organicEdge
                             ? PokeMapTone.info
@@ -90,8 +95,9 @@ class BorderTypeStep extends StatelessWidget {
                               'border-studio-template-connected-line',
                             BorderBlueprintTemplate.stoneChainLine =>
                               'border-studio-template-stone-chain',
-                          },
-                        ),
+                          BorderBlueprintTemplate.ledgeLine =>
+                            'border-studio-template-ledge-line',
+                        }),
                         onPressed: definition == null || disabledReason != null
                             ? null
                             : () => onTemplateSelected(template),
@@ -141,4 +147,21 @@ String _incompatibleTemplateReason(List<BorderPrimitiveRole> roles) {
   return 'Indisponible : les rôles ${labels.map((label) => '« $label »').join(', ')} '
       'ne sont pas pris en charge. Réattribuez ou retirez les assets concernés '
       'avant de choisir ce type.';
+}
+
+String? _ledgeTemplateDisabledReason(
+  BorderBlueprintDraftDefinition definition,
+) {
+  final incompatible = definition.primitives.any(
+    (primitive) =>
+        primitive.sourceModelId != null ||
+        primitive.authoredOrientation ==
+            BorderPrimitiveOrientation.legacyAxis ||
+        primitive.transforms.allowFlipX ||
+        primitive.transforms.allowedQuarterTurns.length != 1 ||
+        primitive.transforms.allowedQuarterTurns.single != 0,
+  );
+  return incompatible
+      ? 'Indisponible : créez un Rebord vide puis ajoutez ses modules avec une orientation native, sans rotation ni miroir.'
+      : null;
 }

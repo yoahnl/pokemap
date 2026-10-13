@@ -239,8 +239,8 @@ void _diagnoseFeatureGeometry(
     BorderBlueprintTemplate.masonryLine ||
     BorderBlueprintTemplate.postAndRailLine ||
     BorderBlueprintTemplate.connectedLine ||
-    BorderBlueprintTemplate.stoneChainLine =>
-      false,
+    BorderBlueprintTemplate.stoneChainLine ||
+    BorderBlueprintTemplate.ledgeLine => false,
   };
   final intentErrorSeverity =
       purpose == BorderFeatureValidationPurpose.playExport

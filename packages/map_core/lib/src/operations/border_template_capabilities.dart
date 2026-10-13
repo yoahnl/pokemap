@@ -7,16 +7,16 @@ bool borderTemplateUsesStrokeGeometry(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.masonryLine ||
       BorderBlueprintTemplate.postAndRailLine ||
       BorderBlueprintTemplate.connectedLine ||
-      BorderBlueprintTemplate.stoneChainLine =>
-        true,
+      BorderBlueprintTemplate.stoneChainLine ||
+      BorderBlueprintTemplate.ledgeLine => true,
     };
 
 bool borderTemplateSupportsLineSide(BorderBlueprintTemplate template) =>
     switch (template) {
       BorderBlueprintTemplate.masonryLine ||
       BorderBlueprintTemplate.connectedLine ||
-      BorderBlueprintTemplate.stoneChainLine =>
-        true,
+      BorderBlueprintTemplate.stoneChainLine ||
+      BorderBlueprintTemplate.ledgeLine => true,
       _ => false,
     };
 
@@ -43,29 +43,26 @@ bool borderTemplateRequiresInvertedCanonicalGallery(
 Set<BorderPrimitiveRole> borderTemplateRequiredPrimitiveRoles({
   required BorderBlueprintTemplate template,
   required int depthRows,
-}) =>
-    switch (template) {
-      BorderBlueprintTemplate.organicEdge ||
-      BorderBlueprintTemplate.masonryLine =>
-        const <BorderPrimitiveRole>{},
-      BorderBlueprintTemplate.postAndRailLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.post,
-          BorderPrimitiveRole.span,
-        },
-      BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.lineCap,
-          BorderPrimitiveRole.lineStraight,
-          BorderPrimitiveRole.lineCorner,
-        },
-      BorderBlueprintTemplate.stoneChainLine when depthRows == 2 =>
-        const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.structureLarge,
-          BorderPrimitiveRole.structureMedium,
-        },
-      BorderBlueprintTemplate.stoneChainLine => const <BorderPrimitiveRole>{
-          BorderPrimitiveRole.structureLarge
-        },
-    };
+}) => switch (template) {
+  BorderBlueprintTemplate.organicEdge ||
+  BorderBlueprintTemplate.masonryLine => const <BorderPrimitiveRole>{},
+  BorderBlueprintTemplate.postAndRailLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.post,
+    BorderPrimitiveRole.span,
+  },
+  BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+    BorderPrimitiveRole.lineCorner,
+  },
+  BorderBlueprintTemplate.stoneChainLine when depthRows == 2 =>
+    const <BorderPrimitiveRole>{
+      BorderPrimitiveRole.structureLarge,
+      BorderPrimitiveRole.structureMedium,
+    },
+  BorderBlueprintTemplate.ledgeLine || BorderBlueprintTemplate.stoneChainLine =>
+    const <BorderPrimitiveRole>{BorderPrimitiveRole.structureLarge},
+};
 
 bool borderTemplateRequiresTwoTierStoneChainEvidence({
   required BorderBlueprintTemplate template,
@@ -75,19 +72,27 @@ bool borderTemplateRequiresTwoTierStoneChainEvidence({
 
 BorderStrokeAlignment borderTemplateStrokeAlignment(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.stoneChainLine => BorderStrokeAlignment.gridEdges,
-      _ => BorderStrokeAlignment.cellCenters,
-    };
+) => switch (template) {
+  BorderBlueprintTemplate.stoneChainLine ||
+  BorderBlueprintTemplate.ledgeLine => BorderStrokeAlignment.gridEdges,
+  _ => BorderStrokeAlignment.cellCenters,
+};
 
 int minimumBorderCatalogFormatVersionForTemplate(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.stoneChainLine =>
-        ProjectBorderCatalog.formatVersionV3,
-      BorderBlueprintTemplate.connectedLine =>
-        ProjectBorderCatalog.formatVersionV2,
-      _ => ProjectBorderCatalog.formatVersionV1,
-    };
+) => switch (template) {
+  BorderBlueprintTemplate.ledgeLine => ProjectBorderCatalog.formatVersionV7,
+  BorderBlueprintTemplate.stoneChainLine =>
+    ProjectBorderCatalog.formatVersionV3,
+  BorderBlueprintTemplate.connectedLine => ProjectBorderCatalog.formatVersionV2,
+  _ => ProjectBorderCatalog.formatVersionV1,
+};
+
+int minimumBorderLayerFormatVersionForTemplate(
+  BorderBlueprintTemplate template,
+) => switch (template) {
+  BorderBlueprintTemplate.stoneChainLine ||
+  BorderBlueprintTemplate.ledgeLine => 3,
+  BorderBlueprintTemplate.connectedLine => 2,
+  _ => 1,
+};

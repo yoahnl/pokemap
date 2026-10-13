@@ -278,16 +278,14 @@ BorderGeometryFamily borderGeometryFamily(BorderFeatureGeometry geometry) =>
 
 BorderGeometryFamily borderTemplateGeometryFamily(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.organicEdge => BorderGeometryFamily.region,
-      BorderBlueprintTemplate.masonryLine ||
-      BorderBlueprintTemplate.postAndRailLine ||
-      BorderBlueprintTemplate.connectedLine =>
-        BorderGeometryFamily.linear,
-      BorderBlueprintTemplate.stoneChainLine =>
-        BorderGeometryFamily.gridEdgeLinear,
-    };
+) => switch (template) {
+  BorderBlueprintTemplate.organicEdge => BorderGeometryFamily.region,
+  BorderBlueprintTemplate.masonryLine ||
+  BorderBlueprintTemplate.postAndRailLine ||
+  BorderBlueprintTemplate.connectedLine => BorderGeometryFamily.linear,
+  BorderBlueprintTemplate.stoneChainLine ||
+  BorderBlueprintTemplate.ledgeLine => BorderGeometryFamily.gridEdgeLinear,
+};
 
 BorderFeatureGeometry _emptyGeometryFor(
   BorderGeometryFamily family, {
@@ -364,7 +362,8 @@ MapData _replaceFeature(
       minimumFormatVersion < BorderLayerContent.formatVersionV2) {
     minimumFormatVersion = BorderLayerContent.formatVersionV2;
   }
-  if (template == BorderBlueprintTemplate.stoneChainLine &&
+  if ((template == BorderBlueprintTemplate.stoneChainLine ||
+          template == BorderBlueprintTemplate.ledgeLine) &&
       minimumFormatVersion < BorderLayerContent.formatVersionV3) {
     minimumFormatVersion = BorderLayerContent.formatVersionV3;
   }

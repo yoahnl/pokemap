@@ -1,3 +1,4 @@
+import 'ledge_line_border_resolver.dart';
 import '../models/border_diagnostics.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
@@ -31,6 +32,7 @@ BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
     );
   }
   return switch (revision.definition.template) {
+    BorderBlueprintTemplate.ledgeLine => resolveLedgeLineBorder(request),
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorder(request),
     BorderBlueprintTemplate.masonryLine => resolveMasonryLineBorder(request),
     BorderBlueprintTemplate.postAndRailLine =>

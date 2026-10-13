@@ -722,3 +722,120 @@ Parité MCP : API collision pure de runtime, aucune donnée auteur ni nouvelle a
 Auto-critique : un caller peut fournir des owners ; la query n'atteste pas qu'ils portent la même face, seulement la même Border. Le binder doit le prouver depuis la revision publiée, placements finaux et profils collision courants. C doit appeler sans exclusion. L'import doit remplacer exclusivement le solide source du ledge par cette Border sans effacer les obstacles superposés. Le composer garde son finding de manifeste incomplet. Aucune permission Border, animation, source119sauts, Route9↔Route10 ni face visuelle/3D n'est qualifiée ici.
 
 Git initial : HEAD80ed7fe80da12e04c5de4400d7e0551cd7950e52, index vide, inventaire NUL exact git-initial-status-01.bin. Commit local prévu sur les seuls six chemins ci-dessus, reçu externe ownership-commit-01.json : SHA/parent/blobs/index et hash/mode host avant/après. Staging des blobs privés, pas des fichiers host complets. Aucun push/rebase/PR, aucun nouveau ticket/famille/gate bêta ; AC15 DOING/PARTIAL. Suite : vrai profil de face fidèle aux modules source, attribution resolver→placements finaux→owners et admission A/B/C, puis UI et parcours réel.
+
+
+## Tranche AC-15 — Rebord natif porté par un Border : core V7 et API canonique
+
+Le saut à sens unique reste une propriété optionnelle de la définition Border. Le nouveau template `ledgeLine` représente un rebord de cellule avec un module natif complet par arête unitaire. Il ne transforme pas les autres Borders en passages franchissables. La qualification de cette tranche concerne le contrat core, la résolution et la publication, puis le descripteur et les transports canoniques. Le binder gameplay, l'animation, l'import source et le parcours réel restent des gates séparées. FG-120 reste PARTIAL ; la roadmap n'est pas modifiée.
+
+Audit initial : HEAD `1ddeb9ad6e07d7daa7a22f267c9ffe0f27b3628d`, index vide, 82 entrées dirty au moment de l'intégration. Le modèle jumpBehavior et l'ownership de collision existent déjà, mais aucun resolver ne place encore un module natif complet en gardant le canvas et l'ancre. Les états source doivent distinguer normale physique, sens autorisé et vrai contact de collision. Le champ `structure` ne prouve pas l'ordre de rendu : le runtime dessine actuellement les couches Border en arrière-plan. Aucun nouveau draw band n'est introduit.
+
+Le resolver exige `stroke/gridEdges`, une frame de la taille de cellule, `structureLarge`, une orientation cardinale native disponible, q0 sans flip/scale/jitter, depthRows1 et absence de ground. L'origine est celle de la cellule attendue ; targetAnchor = origine + ancre primitive. Changer jump.side ne tourne ni ne retourne le sprite. Les fixtures originales asymétriques 32×32 conservent leur alpha inférieur16 et ancre16,31. Les trois replacements explicites 1194/1212/1198 restent des identités stables ; cette preuve synthétique ne certifie pas les vrais PNG Kanto ni les 119 parcours source.
+
+Après overrides, le resolver émet les endpoints typés, la normale physique, la cellule attendue et le placement final. Suppression totale et deux faces partageant le même carrier sont refusées. Les fingerprints+forme ne suffisent pas à établir la canonicité : les deux contrepreuves resealées sont fresh au sens du helper, mais rejetées par le replay canonique Apply. Le futur binder doit comparer la matérialisation complète au replay avant toute permission.
+
+Un P2 de publication a été reproduit : une variante complète sélectionnée par variation0 cachait une autre variante trouée. La publication vérifie maintenant chaque variante admissible indépendamment du RNG, avec continuité tangentielle sur toute la cellule. RED35PASS/1FAIL fonctionnel, puis GREEN36PASS. Ce défaut est fermé ; aucune orientation source manquante n'est fabriquée.
+
+Inventaire core et API — les blobs exacts HEAD+tranche sont la source du staging ; les fichiers host mixtes ne sont jamais stagés en entier :
+
+| Chemin | Zone et conséquence |
+| --- | --- |
+| `packages/map_core/lib/map_core_domain.dart` | export des deux API de résolution et des preuves typées |
+| `packages/map_core/lib/src/models/border_catalog.dart` | catalogue V7 et promotion par maximum des capacités |
+| `packages/map_core/lib/src/models/border_value_objects.dart` | template ledgeLine et nom sérialisé |
+| `packages/map_core/lib/src/operations/border_format_version.dart` | séparation catalogue V7 / couche V3 |
+| `packages/map_core/lib/src/operations/border_blueprint_json_codec.dart` | validation de la politique de module natif lors du décodage |
+| `packages/map_core/lib/src/operations/border_resolver.dart` | dispatch canonique vers ledgeLine |
+| `packages/map_core/lib/src/operations/border_relink_operations.dart` | famille gridEdges et reprise du profil natif |
+| `packages/map_core/lib/src/operations/border_materialization_freshness.dart` | contrôle intrinsèque de la géométrie finale, sans promesse de replay |
+| `packages/map_core/lib/src/operations/border_publication_readiness.dart` | politique ledgeLine et continuité tangentielle de chaque variante |
+| `packages/map_core/lib/src/operations/border_override_resolution.dart` | revalidation après overrides et contraintes natives |
+| `packages/map_core/lib/src/operations/ledge_line_border_resolver.dart` | un module complet par arête, origine du carrier, evidence immuable après overrides |
+| `packages/map_core/lib/src/operations/border_canonical_gallery.dart` | galerie des seules normales disponibles et réduction explicite de couverture |
+| `packages/map_core/lib/src/operations/project_border_catalog_json_codec.dart` | catalogue V7 et validation des références |
+| `packages/map_core/lib/src/operations/border_fingerprints.dart` | entrées du profil ledgeLine dans les fingerprints |
+| `packages/map_core/lib/src/operations/border_layer_operations.dart` | promotion de couche lors de upsert |
+| `packages/map_core/lib/src/operations/border_template_capabilities.dart` | capabilités ledgeLine et maximum de version |
+| `packages/map_core/lib/src/operations/border_locality.dart` | dispatch full/local ; extraction étrangère de slots conservée dans le host |
+| `packages/map_core/lib/src/validation/border_validation.dart` | famille gridEdges et contrat de template |
+| `packages/map_core/test/border/ledge_line_border_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/border_format_version_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/border_catalog_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/border_manifest_integration_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/border_value_objects_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/project_border_catalog_json_codec_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_core/test/border/border_publication_readiness_test.dart` | tests des versions, formats et contrats Border courants |
+| `packages/map_authoring/lib/src/domains/maps/border_catalog_actions.dart` | descripteur canonique upsert/publication avec propriété ledgeLine |
+| `packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart` | attente de la version courante lors de la publication |
+| `packages/map_authoring/test/domains/maps/border_jump_behavior_actions_test.dart` | descripteur catalogue V7 |
+| `packages/map_authoring/test/domains/maps/border_ledge_line_actions_test.dart` | descripteur, snapshots, publication et construction de mutation canonique native |
+| `tools/pokemap_mcp/test/border_ledge_line_stdio.test.ts` | serveur/worker réels, refus sans writes, publication et réouverture |
+
+Preuves gelées sous `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5` :
+
+- `ledge-line-core-private-v2s2j7pz/ledge-line-core-final-ledger-02.json`, SHA438396840d7d85f040612ff2296b9de724ad54406747d8f0312ee2b35928a283 ; patch SHA961ee4c5bc6d14e4bc221647b4a2887a3c7d576b214f4733148a8c883f141e32 ; 25blobs,18prod+7tests,2créations. Deux archives ont la même fermeture972sources SHA6d8f2060e792e4e20bd2a1be723f3888739eeada2ca291847800e02bbe6a65aa.
+- `ledge-authoring-private/ledge-authoring-final-ledger-02.json`, SHA80879857dc1f1de89226e683f671bbadf8b2cbff13954e38796a2f9682aa52d5 ; patch SHA7e10e1bb33c1bd725774b4cf1b1de182a625f871a1d94ee38a6731939d79ec7b ;5blobs,1063sources import/config qualifiées et952pointeurs d'evidence HEAD séparés. Les dépendances image4.10.1/archive4.0.9 appartiennent uniquement à la copie privée ; aucun pubspec/lock/config host changé.
+- `ledge-host-integration-01/integration.json` : inverse du patch récupère exactement tous les bytes antérieurs sur les30chemins ; foreign before horsscope inchangés, index encore vide. La résolution locality garde l'extraction étrangère `_resolveBorderFeatureWithCapture` et y ajoute son dispatch, sans l'absorber dans le blob committé.
+
+Commandes supervisées et résultats exacts, cwd des packages de ces copies privées, sauf la dernière ligne exécutée dans le host :
+
+| Cwd relatif / commande | Résultat |
+| --- | --- |
+| map_core : `dart test test/border -r expanded` |1071PASS, exit0,119.315s |
+| map_core archive d'application : `dart test test/border/ledge_line_border_test.dart test/border/border_format_version_test.dart -r expanded` |42PASS, exit0,7.128s |
+| map_core archive d'application : compilation kernel du barrel public |exit0,3.191s ; argv exact dans patch-application-kernel-02.json |
+| map_core : `dart analyze` sur25chemins |exit0,2.357s ;5INFO strictement identiques à HEAD |
+| map_authoring : `dart test test/domains/maps/border_ledge_line_actions_test.dart test/domains/maps/border_jump_behavior_actions_test.dart test/domains/maps/border_catalog_actions_test.dart test/domains/maps/border_actions_test.dart --reporter expanded` |19PASS,exit0,2.279s |
+| map_authoring : `dart analyze lib/src/domains/maps/border_catalog_actions.dart test/domains/maps/border_ledge_line_actions_test.dart test/domains/maps/border_jump_behavior_actions_test.dart test/domains/maps/border_catalog_actions_test.dart` |No issues found,exit0,3.776s |
+| map_authoring : `dart compile exe bin/pokemap_authoring.dart -o <QA>/ledge-authoring-private/authoring-cli` |exit0,22.208s |
+| map_authoring : `dart test test/parity/full_authoring_parity_test.dart --reporter expanded` |20PASS,exit0,17.359s |
+| map_authoring : `dart run tool/pmcp085_conformance.dart` |exit1,9.514s ;88resources/405actions/0missing/catalogComplete=true ; item/global transportCertificationComplete=false |
+| tools/pokemap_mcp : `node --import tsx --test --test-concurrency=1 test/border_ledge_line_stdio.test.ts test/border_jump_behavior_stdio.test.ts` |2PASS,exit0,1.950s ; vrais MCPstdio/worker AOTJSONL |
+| tools/pokemap_mcp : `npm run check` |exit0,1.002s |
+| tools/pokemap_mcp : `npm run build` |exit0,1.027s avec pin final du test |
+| host map_core : `dart test test/border/ledge_line_border_test.dart test/border/border_format_version_test.dart --reporter expanded` |42PASS,exit0,2.859s, après combinaison avec les hunks étrangers |
+
+Les reçus contiennent les argv absolus, cwd, PID observés, hashes avant/après et logs. Tous les runs finaux ont pins stables, protectedUnchanged=true, confirmedSurvivors=[], signals=[] ; aucun GUI lancé. Les premiers échecs authoring provenaient d'un graphe image privé incompatible et de fixtures incomplètes ; seul actions-red-04 est le RED fonctionnel du descripteur. Deux échecs de parité sur des fichiers d'evidence absents dans l'archive ont été fermés par copie exacte HEAD ; aucun code produit modifié pour cela. PMCP-085 exit1 reste un résultat PARTIAL, même avec20tests de parité verts.
+
+Parité : le test direct construit une mutation canonique de matérialisation et relit son JSON ; il n'applique pas cette mutation sur disque. Le MCP réel vérifie live describe, refus invaliddistance3 sans writes, draft, stagePNG, publication, fermeture/réouverture et query, avec bytes PNG conservés ; il ne matérialise pas de Border sur une carte. Le nouveau parcours Editor/Studio et le Player ne sont pas certifiés par ces tests. Les actions génériques du catalogue ne constituent pas une preuve UI spécifique ledgeLine.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root et ac12_native_mapping | Module entier, normale physique distincte du sens ; anciennes branches exhaustives Editor à adapter avant commit. |
+| Implémentation ac12_native_mapping / root |25core et5authoring/MCP, sans nouveau modèle de zone ; séparation mechanical HEAD+ours/foreign conservée. |
+| Tests ac12_native_mapping / root | RED de la variante et du descripteur ; suites Border1071, API19, parité20, transports2, host42 attestés. |
+| Build/Validation root | Kernel core et worker AOT ; TypeScript check/build pins finaux ; aucune build GUI déduite. |
+| Critique ac15_connection_review_fresh | Aucun P1/P2 sur core25 et authoring5, P2variante fermé ; limitation de replay et de mutation sans disque explicitement retenue. |
+
+Auto-critique : le binder peut seulement accorder la permission après preuve du vrai owner et du contact complet dans B, puis admission stricte A/C. Le rendu structure n'offre pas de garantie Y-sort. Les normales N/E/W synthétiques ne prouvent pas leur présence dans Kanto. L'ouverture native, la modification/réouverture Studio, le saut animé, la collision réelle et le bon affichage devant/derrière restent requis. Aucun traitement IA, changement de règle de combat, suppression d'obstacle source ou réparation silencieuse d'un autre chantier n'est introduit ici.
+
+
+Raccord obligatoire des consommateurs `map_editor` avant commit : ajout du type aux switches exhaustifs, alignement de tracé, règles natives, rôle, analyse q0 et labels. Le picker cardinal existant est réutilisé ; une orientation non définie reste « À définir » et la publication la refuse. Aucun asset directionnel manquant n'est inventé. Le helper AssetsStep accepte désormais sourceElementId nullable : seule sa signature est ajustée, son libellé indisponible reste identique, afin de compiler ce fichier déjà édité. Les autres erreurs HEAD de PaletteItem nullable ne sont pas réparées.
+
+| Chemin Editor | Zone |
+| --- | --- |
+| `packages/map_editor/lib/src/features/border_map_editing/application/border_feature_authoring_controller.dart` | géométrie stroke/gridEdges |
+| `packages/map_editor/lib/src/features/border_map_editing/application/border_tool_availability.dart` | template admis et alignement canonique |
+| `packages/map_editor/lib/src/features/border_map_editing/presentation/border_layer_inspector_panel.dart` | libellé Rebord |
+| `packages/map_editor/lib/src/features/border_studio/application/border_studio_draft_controller.dart` | règles natives fixes lors de création ou changement du template |
+| `packages/map_editor/lib/src/features/border_studio/border_studio_workspace.dart` | analyse du module avec q0 seulement |
+| `packages/map_editor/lib/src/features/border_studio/presentation/border_assets_step.dart` | picker cardinal existant ; helper source nullable garde son libellé existant |
+| `packages/map_editor/lib/src/features/border_studio/presentation/border_roles_step.dart` | rôle unique structureLarge et libellé |
+| `packages/map_editor/lib/src/features/border_studio/presentation/border_rules_step.dart` | profils fixes/variantes sans jitter, gaps ni rotation |
+| `packages/map_editor/lib/src/features/border_studio/presentation/border_studio_presentation.dart` | labels, description et rôle natif requis |
+| `packages/map_editor/lib/src/features/border_studio/presentation/border_type_step.dart` | picker Rebord et refus de primitives incompatibles |
+| `packages/map_editor/test/border_map_editing/border_tool_availability_test.dart` | mise à jour du consommateur existant et de ses attentes |
+| `packages/map_editor/test/border_studio/border_type_step_test.dart` | mise à jour du consommateur existant et de ses attentes |
+| `packages/map_editor/test/border_studio/ledge_line_consumers_test.dart` | six tests directs du controller/providers/widgets sans notifier global |
+
+Ledger `ledge-editor-consumers-ppuv5r1l/ledge-editor-consumers-final-ledger-01.json` SHA19c5e1d1b9f7dd760e0f75fd5463cdea62f65c065db669a2fa614b7c943ad755 ; patch SHA18209ed804d93e6526074e02cbd89387d8d95bc2e874103324ca8788e7223dd6 ;13blobs/10prod+3tests,373ajouts/33suppressions et1nouveau test. Root relit5431sources/pins et les13blobs, puis inverse l'application host : récupération exacte de chaque état antérieur.
+
+Cwd de la copie privée `packages/map_editor` :
+
+- `flutter test --no-pub test/border_studio/ledge_line_consumers_test.dart test/border_studio/border_type_step_test.dart test/border_map_editing/border_tool_availability_test.dart -r expanded` :13PASS/exit0/4.447s, six nouveaux directs et sept existants.
+- `dart analyze` sur les13chemins ci-dessus : No issues found/exit0/9.872s ; argv complet dans editor-analyze-02.json.
+- Les essais initiaux reproduisent les switches manquants ; le gros harness controller/notifier importe aussi les erreurs PaletteItem String? HEAD, demeure PARTIAL et son fichier a été remis byte-exact avant gel. Aucune assertion de RED fonctionnel des defaults ni de build complète Editor/Studio.
+
+Les reçus finaux Editor attestent protectedUnchanged, pins stables et aucun survivant ; aucun GUI. Critique indépendante finale ac15_connection_review_fresh : aucun P1/P2 sur les13chemins, pins/patch/inverse/closure5431 et reçus exacts. La paire de tests widgets/controllers n'est pas un parcours natif du produit. Le picker de l'application `apps/avelune_studio` et la réouverture/modification réelle du projet restent à qualifier.
+
+Git de cette tranche :43chemins code/tests + ce rapport existant. Le staging doit être constitué des seuls blobs privés gelés ; les hunks foreign dans les fichiers mixtes et les prototypes gameplay/runtime/source restent dans le worktree. Le reçu externe `ledge-host-integration-01/ledge-commit-01.json` porte SHA/parent,44blobs, index final et hashes/modes avant/après du host. Aucun push/rebase/PR ; aucune création de Markdown. AC15 reste DOING/PARTIAL, sans nouvelle famille ni Gate bêta. Le binder gameplay est une tranche suivante distincte, bloquée sur son P2 de coût avant intégration ; aucun saut jouable n'est revendiqué dans ce commit.

@@ -12,6 +12,7 @@ enum BorderBlueprintTemplate {
   postAndRailLine,
   connectedLine,
   stoneChainLine,
+  ledgeLine,
 }
 
 /// Coordinate space used by authored stroke points.
@@ -48,6 +49,7 @@ String borderBlueprintTemplateV1WireName(
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
       BorderBlueprintTemplate.connectedLine => 'connectedLine',
       BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
+      BorderBlueprintTemplate.ledgeLine => 'ledgeLine',
     };
 
 /// Stable persisted spelling shared by strict codecs and fingerprints.
