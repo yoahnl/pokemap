@@ -711,6 +711,15 @@ final class _AssetInputs {
         throw ContractError('asset.proposal.grid', r'$',
             'The admitted source grid must be 32 pixels');
       }
+      final mapFileId = map.sourceFileId;
+      final entries = source.snapshot.entries
+          .where((entry) => entry.fileId == mapFileId)
+          .toList();
+      if (entries.length != 1) {
+        throw ContractError('asset.proposal.binding', r'$',
+            'Selected source map has no unique inventory file');
+      }
+      sourceMapEntries[map.sourceMapId] = entries.single;
       maps[map.sourceMapId] = map;
       sourceMaps[map.sourceMapId] = ir;
       sourceMapHashes[map.sourceMapId] = ir.canonicalHash;
@@ -809,6 +818,7 @@ final class _AssetInputs {
   final maps = <int, SourceMapData>{};
   final sourceMaps = <int, SourceMapIr>{};
   final sourceMapHashes = <int, Sha256Hash>{};
+  final sourceMapEntries = <int, SourceFileEntry>{};
   final layerCells = <int, Map<int, List<int>>>{};
   final crops = <(int, int), LiteralTileCrop>{};
   final images = <ConverterId, _AssetImage>{};
@@ -866,8 +876,7 @@ final class _AssetInputs {
       final crop = crops[(map.map.sourceTilesetId, claim.tileId)];
       final image = images[part.sourceFileId];
       final declaredImage = declaredImages[part.sourceFileId];
-      final mapEntry = source.snapshot.entries
-          .singleWhere((entry) => entry.fileId == map.map.sourceFileId);
+      final mapEntry = sourceMapEntries[claim.sourceMapId]!;
       if (crop == null ||
           crop.autotileSlot != null ||
           image == null ||
@@ -1109,8 +1118,7 @@ final class _AssetInputs {
         }).value}';
     final sourceIds = resolved.map((row) => row.$2.imageFileId).toSet().toList()
       ..sort((a, b) => a.value.compareTo(b.value));
-    final mapEntry = source.snapshot.entries
-        .singleWhere((entry) => entry.fileId == map.sourceFileId);
+    final mapEntry = sourceMapEntries[map.sourceMapId]!;
     return AssetCandidate.fromJson({
       'schemaVersion': '1.0',
       'kind': 'assetCandidate',

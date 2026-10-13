@@ -89,7 +89,185 @@ Future<LocalAssetProposalSet> _propose(
 Matcher _failure(String code) =>
     isA<ContractError>().having((e) => e.code, 'code', code);
 
+Future<LiteralTileFixture> _mapFileLookupFixture() => LiteralTileFixture.create(
+    namespace: 'original-map-file-lookup',
+    maps: [
+      LiteralFixtureMap(id: 1, width: 2, height: 1, layers: const [
+        [384, 384],
+        [391, 0],
+        [0, 0],
+      ]),
+      LiteralFixtureMap(id: 8, width: 2, height: 1, layers: const [
+        [392, 392],
+        [0, 0],
+        [391, 0],
+      ]),
+    ]);
+
 void main() {
+  test('map file lookup preserves every locator and claim across two maps',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final beforeMaps = {
+      for (final entry in literal.nativeMaps.entries)
+        entry.key: canonicalHashOf(entry.value.toJson()),
+    };
+    final result = await _usedTiles(fixture, literal);
+    expect(result.candidates, hasLength(4));
+    expect(result.placementClaims.values.expand((claims) => claims),
+        hasLength(6));
+    for (final candidate in result.candidates) {
+      final part = candidate.parts.single;
+      final map = fixture.source.maps
+          .singleWhere((map) => map.map.sourceMapId == part.locator.mapId);
+      final sourceFile = fixture.snapshot.entries
+          .singleWhere((entry) => entry.fileId == map.map.sourceFileId);
+      expect(part.locator.file, sourceFile.relativePath);
+      expect(part.sourcePriority, 0);
+      for (final claim in result.placementClaims[candidate.candidateId]!) {
+        expect(claim.sourceMapFileId, sourceFile.fileId);
+        expect(claim.sourceSnapshotHash, fixture.snapshot.canonicalHash);
+        expect(claim.sourceMapHash, map.canonicalHash);
+        expect(claim.sourceMapId, part.locator.mapId);
+        expect(claim.sourceZ, part.sourceLayer);
+        expect(claim.tileId, part.locator.tileId);
+        expect(claim.partId, part.partId);
+        expect(
+            map.map.layers
+                .singleWhere((layer) => layer.sourceZ == claim.sourceZ)
+                .cells[claim.y * map.map.width + claim.x],
+            claim.tileId);
+      }
+      const LocalAssetProposer().validatePlacementClaims(
+          source: fixture.source,
+          literal: literal,
+          candidate: candidate,
+          claims: result.placementClaims[candidate.candidateId]!);
+    }
+    expect({
+      for (final entry in literal.nativeMaps.entries)
+        entry.key: canonicalHashOf(entry.value.toJson()),
+    }, beforeMaps);
+    expect((await _usedTiles(fixture, literal)).toJson(), result.toJson());
+    expect((await _usedTiles(fixture, literal)).canonicalHash,
+        result.canonicalHash);
+  });
+
+  test('map file lookup refuses claims with another map file or hash',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final result = await _usedTiles(fixture, literal);
+    final candidate = result.candidates
+        .firstWhere((candidate) => candidate.parts.single.locator.mapId == 1);
+    final claim = result.placementClaims[candidate.candidateId]!.first;
+    final other = fixture.source.maps
+        .singleWhere((map) => map.map.sourceMapId == 8);
+    for (final fields in [
+      {'sourceMapFileId': other.map.sourceFileId.value},
+      {'sourceMapHash': other.canonicalHash.value},
+    ]) {
+      final changed = SourcePlacementClaim.fromJson({
+        ...claim.toJson(),
+        ...fields,
+      });
+      expect(
+          () => const LocalAssetProposer().validatePlacementClaims(
+              source: fixture.source,
+              literal: literal,
+              candidate: candidate,
+              claims: [changed]),
+          throwsA(_failure('review.claim.source')));
+    }
+    for (final fields in [
+      {'sourceMapId': 8},
+      {'sourceZ': 2},
+    ]) {
+      final changed = SourcePlacementClaim.fromJson({
+        ...claim.toJson(),
+        ...fields,
+      });
+      expect(
+          () => const LocalAssetProposer().validatePlacementClaims(
+              source: fixture.source,
+              literal: literal,
+              candidate: candidate,
+              claims: [changed]),
+          throwsA(_failure('review.claim.locator')));
+    }
+    final raw = jsonDecode(jsonEncode(candidate.toJson()))
+        as Map<String, dynamic>;
+    final locator = (raw['parts'] as List).single['locator']
+        as Map<String, dynamic>;
+    locator['file'] = 'Data/Map008.rxdata';
+    final wrongFile = AssetCandidate.fromJson(raw);
+    expect(
+        () => const LocalAssetProposer().validatePlacementClaims(
+            source: fixture.source,
+            literal: literal,
+            candidate: wrongFile,
+            claims: [claim]),
+        throwsA(_failure('asset.proposal.claim_crop')));
+  });
+
+  test('map file lookup refuses missing inventory maps before image reads',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final snapshot = fixture.snapshot;
+    final missing = SourceSnapshot(
+        logicalProjectNamespace: snapshot.logicalProjectNamespace,
+        policyHash: snapshot.policyHash,
+        entries: snapshot.entries
+            .where((entry) => entry.relativePath != 'Data/Map001.rxdata')
+            .toList(),
+        diagnostics: snapshot.diagnostics,
+        excludedPaths: snapshot.excludedPaths,
+        profileEvidence: snapshot.profileEvidence,
+        state: snapshot.state);
+    final source = await const RmxpSourceNormalizer().normalize(
+        snapshot: missing,
+        files: fixture.files,
+        selectedMapIds: {1, 8});
+    expect(source.canPlan, isFalse);
+    fixture.files.reads.clear();
+    await expectLater(
+        const LocalAssetProposer().propose(
+            source: source,
+            files: fixture.files,
+            literal: literal,
+            strategy: LocalAssetProposalStrategy.usedStaticTiles),
+        throwsA(_failure('asset.proposal.binding')));
+    expect(fixture.files.reads, isEmpty);
+  });
+
+  test('map file lookup refuses duplicated inventory file identities',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final snapshot = fixture.snapshot;
+    final original = snapshot.entries
+        .singleWhere((entry) => entry.relativePath == 'Data/Map001.rxdata');
+    final duplicate = SourceFileEntry(
+        fileId: original.fileId,
+        relativePath: 'Data/Map999.rxdata',
+        kind: original.kind,
+        byteLength: original.byteLength,
+        sha256: original.sha256,
+        format: original.format,
+        family: original.family);
+    expect(
+        () => SourceSnapshot(
+            logicalProjectNamespace: snapshot.logicalProjectNamespace,
+            policyHash: snapshot.policyHash,
+            entries: [...snapshot.entries, duplicate],
+            diagnostics: snapshot.diagnostics,
+            excludedPaths: snapshot.excludedPaths,
+            profileEvidence: snapshot.profileEvidence,
+            state: snapshot.state),
+        throwsA(_failure('source.snapshot_duplicate')));
+  });
+
   test('used static tile fixture metadata bounds are explicit', () {
     for (final count in [0, -1, 65537]) {
       expect(() => LiteralFixtureTileset(id: 1, metadataTileCount: count),

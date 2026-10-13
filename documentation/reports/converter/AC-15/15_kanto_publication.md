@@ -242,3 +242,67 @@ Limites : étude d'une carte, pas Kanto entier ; événements Kanto quarantinés
 Auto-critique : la publication est une frontière plus complexe que le writer, mais ses checkpoints et journaux bornés couvrent les fenêtres dangereuses plutôt que cacher un rename ordinaire. L'inventaire strict inclut les fichiers auxiliaires et blobs ; le normaliseur PUB-04 ne doit pas devenir une excuse pour retirer des champs natifs supplémentaires. Le succès Studio est tangible mais le bouton test n'atteste ni mouvement ni save gameplay. Le manque de ressources métier signalé par Yoahn limite directement l'utilité d'authoring et demeure explicite.
 
 Suite autorisée par Yoahn, dans un commit séparé : AC-16, extraction minimale du design system sans médias transitifs, CLI et desktop sur le même plan, fixture originale offline, installation/build propres, inventaire/licences et archive locale. La lacune générique des ressources doit être traitée dans son contexte existant ; pas de ticket de contenu Route 9 ni d'extension bêta.
+
+## Complément du 13 octobre — lookup des fichiers de map
+
+Ce complément qualifie uniquement le cache local du fichier source utilisé par les propositions de ressources. Les résultats du 12 octobre ci-dessus sont historiques. L'application est désormais indépendante et la livraison locale AC-16 existe ; les compléments musique/ETHER et ressources natives ont leurs preuves dans AC-13/AC-16. Le raccord réel Route 9–Route 10 Nord, la bibliothèque complète et la qualification finale restent en cours, sans certification globale de Kanto.
+
+### Audit initial et périmètre
+
+Base `main`, HEAD `5f8c1568e7dda889e81cbd1fc17b1a03c6074f5b`, index vide. Les 50 chemins étrangers du garde `/private/tmp/avelune-ac15-connections-initial-guard-20261013-01.json` sont byte-identiques au contrôle frais. Les autres changements du complément AC-15 sont exclus du présent commit.
+
+L'audit a localisé une recherche `snapshot.entries.singleWhere` dans la validation de chaque claim et dans la construction des candidats. L'expression recréait aussi le `sourceFileId` de la map pendant la recherche. Chaque carte normalisée et le snapshot sont immuables ; résoudre une fois l'entrée exacte ne change donc pas la provenance. Le cache vérifie encore l'unicité de cette entrée, puis conserve tous les contrôles map/hash/fichier/Z/cellule/crop/image/priorité/locator.
+
+L'observation réelle avant correction est un timeout en phase `propose`, exit `-15` après `180.587s`, avec arrêt normal du seul runner possédé et zéro survivant. Aucun succès ni compteur complet n'est revendiqué pour ce run : `/private/tmp/avelune-ac15-proposals-pair-measurement-20261013-01.json`.
+
+### Inventaire complet de ce commit
+
+| Fichier | Zone modifiée et effet |
+| --- | --- |
+| `packages/avelune_converter_adapters/lib/src/local_asset_proposer.dart` | `_AssetInputs` résout une entrée unique par map sélectionnée dans `sourceMapEntries`. `validatePlacementClaims` et la construction des candidats consomment cette même entrée. IDs, clés, crops, hashes, quotas et formats inchangés. |
+| `packages/avelune_converter_adapters/test/local_asset_proposer_test.dart` | Fixture originale à deux cartes, quatre candidats et six claims ; correspondance exacte des locators, refus des mauvaises identités/hashes/maps/Z, refus d'inventaire manquant/dupliqué et répétition déterministe. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Le présent complément consigne l'audit, les commandes, les preuves, les verdicts et les limites. Aucun nouveau Markdown. |
+
+Les diffs Git sont l'inventaire des hunks ; aucun snapshot intégral de source n'est ajouté. Les deux sources host correspondent aux pins du ledger `/private/tmp/avelune-ac15-map-file-lookup-final-pins-20261013-01.json` : production `9d2175ce471cab565b4beec8549fe452998206255f0af0125c65ec728798a87d`, test `4f2ad2eb6b51fa8dc0a2dd014a526861269dbcb62b664579ed7b52489d5088ed`.
+
+### Commandes et résultats frais
+
+Les commandes Dart sont exécutées depuis `packages/avelune_converter_adapters` dans une copie privée qualifiée ; aucun worktree Git n'est créé. Le superviseur consigne le PID du runner, ses descendants et leurs identités, puis recontrôle les survivants. Les six reçus du ledger sont terminaux, sans signal ni enfant possédé survivant, processus protégés inchangés.
+
+| Commande ou contrôle | Résultat exact | Reçu sous `/private/tmp/` |
+| --- | --- | --- |
+| `dart test test/local_asset_proposer_test.dart --name 'map file lookup' --reporter expanded`, avant cache | 4 PASS, exit 0, 9.332s | `avelune-ac15-map-file-lookup-characterization-before-20261013-01.json` |
+| Même commande, après cache | 4 PASS, exit 0, 4.747s | `avelune-ac15-map-file-lookup-characterization-after-20261013-01.json` |
+| `dart run tool/qa_map_file_lookup.dart /private/tmp/avelune-ac15-map-file-lookup-json-{before,after}-result-20261013-01.json`, deux exécutions distinctes | JSON de 9 494 octets byte-identique, SHA `c10fb21f7236ddbee59cbf9f5347a6512d8cc6536edcc306328c413d13e1bdc1` | `avelune-ac15-map-file-lookup-json-comparison-20261013-01.json` |
+| `dart test test/local_asset_proposer_test.dart test/converter_asset_workflow_test.dart --reporter expanded` | 40 PASS, exit 0, 13.783s | `avelune-ac15-map-file-lookup-full-green-20261013-01.json` |
+| `dart analyze lib/src/local_asset_proposer.dart test/local_asset_proposer_test.dart` | No issues found, exit 0, 4.779s | `avelune-ac15-map-file-lookup-analyze-20261013-01.json` |
+
+Le contrôle réel utilise le même outil et les mêmes arguments que le timeout, avec le seul cache ajouté au proposer. Commande exacte du run après correction :
+
+```text
+dart run tool/qa_route9_pair_proposals_diagnostic.dart '/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto' /private/tmp/avelune-ac15-fresh-source-snapshot-20261013-01.json '/Users/karim/Library/Application Support/AveluneConverterStudies/Kanto Route 9 - Route 10 Nord 20261013-r6/evidence/qualification.json' /private/tmp/avelune-ac15-proposals-pair-measurement-result-20261013-02.json
+```
+
+Exit 0, `25.031s`, sans timeout/signal/survivant, protégés inchangés : `/private/tmp/avelune-ac15-proposals-pair-measurement-20261013-02.json`. Résultat : 274 candidats, 11 519 claims, 252 600 nœuds, 3 606 772 unités de texte, plus grande chaîne 85 unités, normalisation `4431387f73fa4062b3ce403d64f8fbfb8193377f7db65ea1444ed54fbd451b92`, source inchangée, zéro appel IA et zéro script Ruby exécuté. L'outil privé garde le SHA `47c11514f4807fe937a5597114074793f22f311634742b1b5f5b76ed52ffa9e2` ; les arguments et pins des deux exécutions sont dans leurs reçus.
+
+Le plafond de 512 candidats est explicite dans ce diagnostic, sous le plafond dur existant ; il ne modifie pas le défaut de l'application de 256. Le snapshot utilisé provient d'un scan antérieur attesté ; les fichiers lus sont liés et recontrôlés. Ce run n'est ni une publication, ni une reprise de revue, ni un nouveau scan complet, ni un benchmark isolé.
+
+La compilation AOT du qualifier réel consommant le cache et les autres compléments a passé : `dart compile exe tool/qa_route9_route10_literal_pair.dart -o /private/tmp/avelune-ac15-route9-route10-literal-pair-20261013-02`, exit 0, 27.301s, zéro survivant. Reçu `avelune-ac15-literal-pair-arrival-build-20261013-01.json`. Ce build prouve la compilation du package intégré ; il ne remplace pas la reconstruction de l'application distribuée.
+
+### Verdicts des passes et parité
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit / Architecture, ac12_semantics et root | Cause du coût identifiée dans les recherches répétées de fichier ; immutabilité et provenance conservées. |
+| Implémentation, ac12_semantics | Cache privé par map uniquement, aucun changement de contrat ni de quota. |
+| Tests, ac12_semantics | Caractérisations fraîches avant/après et sortie byte-identique ; 40 tests PASS. Aucun RED unité de coût revendiqué. |
+| Build / Validation, root | Mesure réelle après correction PASS et compilation AOT PASS. Aucun parcours Studio/runtime impliqué. |
+| Critique finale, ac12_native_mapping | PASS borné ; aucun P1/P2 trouvé sur les deux pins et six reçus relus. Les refus missing/duplicate sont exercés en amont, pas chaque branche privée du cache. |
+
+Le changement concerne une recherche interne de provenance dans le convertisseur. Il n'ajoute aucune action d'authoring, aucun modèle natif, aucune sémantique de carte ni commande Studio : nouvelle exposition MCP N/A. Le pipeline reste sur les API canoniques existantes. La qualification MCP des connexions et les mutations de publication sont suivies séparément ; ce cache ne les certifie pas.
+
+### Git, limites et auto-critique
+
+Le commit est limité aux trois chemins de l'inventaire ci-dessus. La preuve finale SHA/inventaire/index et le contrôle des 50 chemins étrangers sont enregistrés dans `/private/tmp/avelune-ac15-map-file-lookup-commit-20261013-01.json` après commit. Aucun push, rebase, changement de branche ou nettoyage étranger. Le reste du complément AC-15 demeure non commité et le ticket reste DOING/PARTIAL.
+
+Auto-critique : la réduction des recherches est utile et la sortie est inchangée sur la fixture, mais la mesure réelle ne permet pas d'attribuer tout le temps à ce seul coût dans une machine partagée. La sérialisation des propositions réelles dépasse déjà 250 000 nœuds ; relever le plafond candidat ne suffit donc pas à qualifier la reprise. La bibliothèque doit conserver tous les candidats par segments explicites, avec budgets et décisions revalidés. L'essai r7 de publication a révélé séparément `connections.arrival_mismatch` à Map100 `(0,16)` ; sa correction et la nouvelle tentative sont hors de ce commit et encore en cours au moment de cette preuve.
