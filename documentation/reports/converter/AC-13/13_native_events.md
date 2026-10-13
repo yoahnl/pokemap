@@ -380,7 +380,94 @@ La livraison est un commit local unique composé des 88 fichiers de code/tests l
 
 Ticket canonique unique : [AC-13 — Sous-ensemble d’événements natifs](https://app.notion.com/p/3f7197a7bfa581dab5b9c551c806e2ce), grand domaine 14 Post Bêta, hors gate. Passage `TO REVIEW` avec preuve et SHA ; `DONE` réservé à Yoahn. Le domaine garde `PARTIAL`. La suite autorisée est AC-14, catalogues Essentials sélectionnés avec identités stables et effets explicitement séparés.
 
-État Git avant ce commit (après implementation et qualification) :
+## Complément du 13 octobre 2026 — codes 0 internes RMXP
+
+Les sections précédentes conservent la livraison initiale du commit `71c34d614`. Après le complément ressources `80cd5e8d978edb9eac6c87538189264923050f6a`, le parseur doit reconnaître les codes 0 sans effet placés à l'intérieur des branches RMXP. Il les refusait à tort comme terminaux invalides, ce qui quarantinait cinq pickups réels de Route 9 avant même d'atteindre les contrôles de catalogue, feedback et déclenchement.
+
+### Audit initial et décision
+
+Base `80cd5e8d978edb9eac6c87538189264923050f6a`, branche `main`, index vide, deux fichiers cibles propres et 42 chemins étrangers déjà modifiés/non suivis. La garde `/private/tmp/avelune-ac13-rmxp-zero-host-before-20261013-01.json` contient les SHA avant/après attendus et les empreintes/modes étrangers. Aucun travail de ressources, audio, runtime, combat ou UI n'est repris dans ce commit.
+
+L'oracle est la section `034 Interpreter_Commands` de l'archive Kanto attestée : `/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-converter-ac13-source-audit-m_nzr33l/outputs/034.rb`, SHA `ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561`. Les lignes 11–18 déterminent la fin par la position finale de la liste ; 117–122 traitent le code 0 sans effet. La lecture Ruby est une référence statique, jamais une exécution ni une copie de code.
+
+Le correctif garde les contrôles d'indentation avant la dispatch. Un zéro interne n'est consommé qu'avec paramètres vides, à l'indentation du bloc courant, et un dernier zéro valide — code 0, indentation 0, paramètres vides. Il avance l'index puis poursuit la lecture ; il ne crée aucun nœud AST. Les fermetures 412/404 restent requises à la bonne indentation. Les inconnus, paramètres inattendus, scopes incomplets et terminaux malformés restent en quarantaine. Les commandes brutes, indices, références et spans sont conservés.
+
+### Inventaire et diff utile
+
+| Fichier | Zone et impact |
+| --- | --- |
+| `packages/avelune_converter_core/lib/src/source_events.dart` | Hunk 760–776, méthode privée du parser : vérifier le terminal final, consommer le no-op interne, arrêter seulement à la fin de liste. 11 lignes de diff. SHA avant `6f382b86d3e0952a342fba357ec0bd544ed4683f87057f9fb33ed9dcaf2b1223`, après `60d7ef445dc8cbb693b05fb903f752f2f3209512be50cbdbe50e30a1f335e34a`. |
+| `packages/avelune_converter_core/test/source_events_test.dart` | Hunk 401–619 : sept régressions originales, 212 lignes ajoutées. SHA avant `7b5278a8a772d923b15df261244c531ee4734ecb9ff1f8838ed862030d8dee72`, après `7e89e30bb2b8ba50f533902a52f152218d35823498ede0a6091faf8dffe0c8ea`. |
+| `documentation/reports/converter/AC-13/13_native_events.md` | Ce complément consolidé : audit, inventaire, preuve avant/après sur le vrai Kanto et limites restantes. Aucun nouveau Markdown. |
+
+Patch qualifié : `/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-ac13-rmxp-zero-qualified-uf078tsl/rmxp-internal-zero.patch`, SHA `db8e338f8d3ecc1d57fcb8551253302c9ed7d8fbe6d9926d5d8a456c516056ab`. Le host a reçu exactement les deux fichiers gelés, après contrôle des deux SHA avant. Aucun modèle cible, schéma, API publique, action MCP, adapter, dépendance, configuration de build ou code UI/runtime n'est modifié.
+
+Les sept tests couvrent : pickup avec `111 → 123/indent1 → 0/indent1 → 412 → 0` ; dernière page vide sous self-switch A ; branches imbriquées ; choix/options/annulation ; effets après no-ops racine ; sept structures malformées ; maintien d'une inconnue après un no-op. Le cas ancien `[0,123]`, sans terminal final valide, reste refusé.
+
+### Vérifications fraîches
+
+Tous les runners sont supervisés avec leurs descendants et leurs identités. Les reçus ci-dessous contiennent les commandes exactes, pins, sorties, SHA des logs et états de nettoyage ; zéro survivant/signal et `protectedUnchanged=true` sur ces runs.
+
+| Commande / preuve | Résultat et reçu |
+| --- | --- |
+| RED isolé, `dart test test/source_events_test.dart --name RMXP --reporter expanded` | 1 PASS / 6 FAIL, exit 1, 3.419 s ; `/private/tmp/avelune-ac13-rmxp-zero-red-20261013-03.json`. Le premier essai antérieur de résolution package dans TEMP n'est pas un RED fonctionnel. |
+| Host intégré, `dart test test/source_events_test.dart --reporter expanded` | `00:02 +31: All tests passed!`, exit 0, 4.025 s ; `/private/tmp/avelune-ac13-rmxp-zero-host-targeted-20261013-01.json`. |
+| Host intégré, `dart test --reporter expanded` | `01:18 +754: All tests passed!`, exit 0, 79.931 s ; `/private/tmp/avelune-ac13-rmxp-zero-host-full-20261013-01.json`. |
+| Host intégré, `dart analyze` | `No issues found!`, exit 0, 1.865 s ; `/private/tmp/avelune-ac13-rmxp-zero-host-analyze-20261013-01.json`. |
+| `dart compile exe --packages=…/package_config.json -o …/route9-parser-probe …/route9_parser_probe.dart` | Exécutable AOT généré, exit 0, 7.982 s ; `/private/tmp/avelune-ac13-rmxp-zero-aot-build-20261013-01.json`. Toutes les bibliothèques core de ce gel correspondent au host intégré ; les dépendances adapters viennent du snapshot qualifié, pas des chantiers étrangers. |
+| Exécutable AOT sur la vraie source Route 9, état après correctif | Exit 0, 8.557 s ; `/private/tmp/avelune-ac13-rmxp-zero-route9-real-20261013-01.json` : 16 événements analysés, six grammaires admises par le parser, zéro événement natif activé. |
+| AOT témoin avec le core avant correctif | Build exit 0, 7.410 s ; `/private/tmp/avelune-ac13-rmxp-zero-baseline-aot-build-20261013-01.json`. |
+| Exécutable témoin sur la même vraie source | Exit 0, 7.911 s ; `/private/tmp/avelune-ac13-rmxp-zero-route9-baseline-20261013-01.json` : une seule grammaire admise, refus attendu d'ETHER confirmé. Ce témoin positif du refus ancien n'est pas un test GREEN de la fonctionnalité corrigée. |
+
+Le build AOT est la preuve de compilation pertinente pour ce correctif pur. Aucun nouveau comportement UI/runtime cible n'est implémenté ; le build macOS produit du complément ressources reste attribué à son commit. Aucune application graphique n'a été relancée pour le parser.
+
+### Résultat réel Route 9 et provenance
+
+Le probe reconstitue les contrats publics du snapshot conservé, vérifie son hash canonique `5bc0f5dd57e70951cb86fe7c71114e983827251830b2b11f23ef2dab48f1c8de`, puis utilise le vrai `MacOsSourceTree` et `SnapshotSourceFiles.bind`. Les métadonnées du corpus sont fraîchement rebondées, les bytes des témoins lus sont contrôlés contre leur SHA et taille, et `verifyUnchanged` est exécuté avant fermeture du port. Les bytes réels de `Data/Scripts.rxdata` correspondent au SHA `3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d`. Aucun nouveau scan complet des hashes des fichiers inutilisés n'est prétendu.
+
+La normalisation fraîche de Map098 avec System reproduit exactement l'IR de carte et l'archive brute des preuves publiées. Les fichiers `source-snapshot.json` et `normalized-source.json` restent octet-identiques. Le probe après correctif et son témoin avant correctif lisent la même source et les mêmes témoins ; seul le core du parser diffère.
+
+| Événement Map098 | Avant | Après, au niveau du parser uniquement |
+| --- | --- | --- |
+| 13, panneau Route 9 | Grammaire admise | Grammaire admise, inchangée. |
+| 4, TM101 | Quarantaine | Grammaire admise ; binding du catalogue et feedback encore à qualifier. |
+| 5, BURNHEAL | Quarantaine | Grammaire admise ; aucune récompense native annoncée. |
+| 14, ETHER | Quarantaine | Grammaire admise ; page 0 initiale et page 1 vide sous self-switch A vérifiées. |
+| 15, CHESTOBERRY | Quarantaine | Grammaire admise ; aucune récompense native annoncée. |
+| 16, RARECANDY | Quarantaine | Grammaire admise ; aucune récompense native annoncée. |
+| 1, 2, 3, 6, 7, 8, 9, 10, 11, 12 | Quarantaine | Quarantaine conservée. |
+
+Preuves externes sous `/Users/karim/Documents/Avelune Converter Studies/Kanto Route 9 - chemins et arbres 20261013-r2/evidence` : `route9-parser-internal-zero.json`, SHA `2a42b680ac88761240bee5a80ad4b590ce2d1930b4a3a7ef3093946d1f49961c`, et `route9-parser-before-internal-zero-fix.json`, SHA `f449bcc294480d74d977b475e8c0fffc3967c9eed75af3b2160a0340d3da9d2d`. Elles conservent commandes/indents bruts, diagnostics et références, avec `nativeEventsActivated=false` et `fullGameplayCertified=false`. Le projet natif publié n'est pas modifié ; ses 16 événements restent quarantinés jusqu'à une nouvelle composition admise.
+
+### Passes, parité et risques
+
+| Passe | Verdict |
+| --- | --- |
+| Audit / Architecture, `ac12_native_mapping` et root | PASS borné : source primaire 034 revalidée, contrat parser existant et garde de terminal identifiés. |
+| Implémentation, `ac12_native_mapping`, intégration root | PASS borné : deux fichiers exacts, aucun élargissement des commandes inconnues. |
+| Tests, agent puis root | RED fonctionnel conservé ; host intégré 31/31 et 754/754, analyse sans issue. |
+| Build / Validation, root | AOT compilé ; source réelle avant/après 1→6 grammaires comprises, port fermé et témoins intacts. |
+| Critique finale, `ac12_native_mapping` et `ac12_validation_design` | PASS borné sur le patch exact, indents/fences/spans/inconnus et indépendance cible ; aucun P1/P2 de code identifié. Les sept reçus frais, les deux preuves réelles, les bibliothèques AOT et les vrais témoins source sont revalidés. Les deux clarifications documentaires sur les inventaires historiques et la concurrence Git sont intégrées avant commit. |
+
+Parité MCP : aucune nouvelle sémantique native d'authoring ni aucun action/resource/transport cible n'est ajouté. Les preuves ciblées du contrat natif existant restent celles d'AC-13 et du complément ressources ; les relancer ne testerait pas ce correctif source privé. PMCP-085 global conserve son verdict PARTIAL. La roadmap FG-067/068 et FG-080/082/083/088/090 a été relue pour préserver les frontières ; aucun statut FG n'est modifié ou proposé DONE par ce correctif.
+
+Auto-critique : cinq faux refus sont retirés sur une vraie source, mais une grammaire reconnue ne constitue pas un événement jouable. Le BGM actif, le bus de fanfare, la chronologie du gain source, le cas TM101, les triggers, les combats et les Ruby dynamiques gardent leurs contrôles distincts. L'autorité de combat reste Avelune. La comparaison réelle est statique ; elle ne prouve ni dialogue à l'écran, ni audibilité, ni gain/save/reload dans le jeu.
+
+### Git et traçabilité du correctif
+
+Ce complément est figé avant commit. Exactement trois chemins sont prévus : les deux fichiers core et ce rapport existant. La garde initiale de 42 chemins étrangers est historique : six chemins de bordures sont apparus pendant la qualification et `tools/nb2_modular_assets/test_directed_cliff_profiles.py` a évolué. L'état précommit observé contient 51 chemins modifiés/non suivis, dont trois du scope et 48 étrangers, avec index vide. Aucun de ces travaux concurrents n'est restauré, modifié ou ajouté au commit.
+
+Les six chemins supplémentaires sont `packages/map_authoring/lib/src/domains/maps/border_actions.dart`, `packages/map_authoring/test/domains/maps/border_slot_override_actions_test.dart`, `packages/map_core/lib/src/operations/border_local_resolution_scope.dart`, `packages/map_core/lib/src/operations/border_locality.dart`, `packages/map_editor/test/authoring_api/border_slot_override_editor_test.dart` et `tools/pokemap_mcp/test/border_slot_override_stdio.test.ts`. Le test Python passe du SHA `a2c267fa606bd90c683e2bc31ee5175b2d1dad951db2bee92d280b7503b4a7ad` au SHA `2710159ac32f8688460312d36409cdfa2736a3ee5ad3cc9f8918c6107ecf1515`, sans changement de mode. Ce delta concurrent est enregistré ; il ne constitue pas une écriture du lot.
+
+Une garde fraîche `/private/tmp/avelune-ac13-rmxp-zero-precommit-20261013-01.json` lie les trois fichiers du scope, HEAD, branche, index et bytes/modes des 48 fichiers étrangers immédiatement avant l'opération. Le reçu `/private/tmp/avelune-ac13-rmxp-zero-local-commit-20261013-01.json` sera écrit après le commit, comparé à cette garde fraîche puis reporté dans le ticket AC-13 existant. Aucun nouveau ticket de bug/carte, aucun nouveau grand domaine, aucune modification de gate bêta. Aucun push, rebase, amend ou changement de branche.
+
+La livraison du correctif sera proposée TO REVIEW, avec domaine PARTIAL et décision DONE réservée à Yoahn. Suite du goal : binder le vrai BGM et qualifier le feedback des pickups admissibles, puis exécuter un événement réel avec sauvegarde/chargement sans répétition. Cette suite n'est pas incluse dans le commit parser.
+
+## Inventaires historiques de la livraison initiale AC-13
+
+Les inventaires ci-dessous concernent exclusivement le commit initial `71c34d614`. Ils ne décrivent pas le complément parser à trois fichiers du 13 octobre.
+
+État Git historique avant le commit `71c34d614` (après implémentation et qualification initiales) :
 
 ```text
  M .github/workflows/avelune_android_release.yml
@@ -507,7 +594,7 @@ Ticket canonique unique : [AC-13 — Sous-ensemble d’événements natifs](http
 ?? tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts
 ```
 
-Fichiers étrangers exclus de ce commit (34) :
+Fichiers étrangers exclus du commit historique `71c34d614` (34) :
 
 - `.github/workflows/avelune_android_release.yml`.
 - `.github/workflows/pokemap_quick_checks.yml`.

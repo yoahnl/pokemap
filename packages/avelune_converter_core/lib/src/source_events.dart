@@ -760,14 +760,17 @@ final class _SourceEventParser {
         continue;
       }
       if (command.code == 0) {
-        if (indent != 0 ||
-            command.parameters.isNotEmpty ||
-            index != commands.length - 1) {
+        final terminal = commands.last;
+        if (command.parameters.isNotEmpty ||
+            terminal.code != 0 ||
+            terminal.indent != 0 ||
+            terminal.parameters.isNotEmpty) {
           nodes.add(_unknown('events.invalid_terminal_command'));
           continue;
         }
         index++;
-        break;
+        if (index == commands.length) break;
+        continue;
       }
       final before = index;
       try {

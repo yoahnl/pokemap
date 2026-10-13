@@ -401,6 +401,218 @@ extension on SourceEventAnalysis {
 
 void main() {
   test(
+      'RMXP internal zero preserves the original pickup branch and raw commands',
+      () async {
+    final analysis = _analyzer(await _events([
+      _page([
+        _command(111, [12, 'pbItemBall(:ETHER)']),
+        _command(123, ['A', 0], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []),
+        _command(0, []),
+      ])
+    ]))
+        .analyze();
+    final event = analysis.requireEvent(1, 1);
+    final page = event.pages.single;
+    expect(event.isQuarantined, isFalse);
+    expect(analysis.diagnostics, isEmpty);
+    final conditional = page.body.nodes.single as SourceConditionalNode;
+    expect(conditional.condition.pickup!.sourceSymbol, 'ETHER');
+    expect(conditional.condition.pickup!.quantity, 1);
+    final effect = conditional.whenTrue.nodes.single as SourceSelfSwitchNode;
+    expect(effect.letter, 'A');
+    expect(effect.value, isTrue);
+    expect(conditional.whenTrue.span.lastCommandIndex, 2);
+    expect(conditional.span.lastCommandIndex, 3);
+    expect(page.body.span.lastCommandIndex, 4);
+    expect(page.sourcePage.commands.map((command) => command.code),
+        [111, 123, 0, 412, 0]);
+    expect(page.sourcePage.commands.map((command) => command.indent),
+        [0, 1, 1, 0, 0]);
+    expect(page.rawDataRef, isNotNull);
+  });
+
+  test('RMXP internal zero does not hide the last true empty pickup page',
+      () async {
+    final analyzer = _analyzer(await _events([
+      _page([
+        _command(111, [12, 'pbItemBall(:ETHER)']),
+        _command(123, ['A', 0], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []),
+        _command(0, []),
+      ]),
+      _withCondition(_page([_command(0, [])]),
+          {'@self_switch_valid': true, '@self_switch_ch': 'A'}),
+    ]));
+    final event = analyzer.analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    expect(event.selectPage()!.originalPageIndex, 0);
+    final consumed =
+        event.selectPage(facts: {analyzer.selfFactId(1, 1, 'A'): true});
+    expect(consumed!.originalPageIndex, 1);
+    expect(consumed.isEmpty, isTrue);
+    expect(consumed.body.nodes, isEmpty);
+  });
+
+  test('RMXP internal zeros preserve nested true and false branch scopes',
+      () async {
+    final event = _analyzer(await _events([
+      _page([
+        _command(111, [2, 'A', 0]),
+        _command(111, [2, 'B', 0], indent: 1),
+        _command(123, ['C', 0], indent: 2),
+        _command(0, [], indent: 2),
+        _command(411, [], indent: 1),
+        _command(0, [], indent: 2),
+        _command(412, [], indent: 1),
+        _command(0, [], indent: 1),
+        _command(411, []),
+        _command(0, [], indent: 1),
+        _command(123, ['D', 0], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []),
+        _command(0, []),
+      ])
+    ]))
+        .analyze()
+        .requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    final outer = event.pages.single.body.nodes.single as SourceConditionalNode;
+    final inner = outer.whenTrue.nodes.single as SourceConditionalNode;
+    expect((inner.whenTrue.nodes.single as SourceSelfSwitchNode).letter, 'C');
+    expect(inner.whenFalse.nodes, isEmpty);
+    expect((outer.whenFalse.nodes.single as SourceSelfSwitchNode).letter, 'D');
+    expect(inner.whenTrue.span.lastCommandIndex, 3);
+    expect(inner.whenFalse.span.firstCommandIndex, 5);
+    expect(inner.span.lastCommandIndex, 6);
+    expect(outer.whenTrue.span.lastCommandIndex, 7);
+    expect(outer.whenFalse.span.lastCommandIndex, 11);
+    expect(outer.span.lastCommandIndex, 12);
+  });
+
+  test(
+      'RMXP internal zeros preserve choice options and the cancellation branch',
+      () async {
+    final event = _analyzer(await _events([
+      _page([
+        _command(102, [
+          ['Take', 'Leave'],
+          5
+        ]),
+        _command(402, [0, 'Take']),
+        _command(0, [], indent: 1),
+        _command(123, ['A', 0], indent: 1),
+        _command(0, [], indent: 1),
+        _command(402, [1, 'Leave']),
+        _command(0, [], indent: 1),
+        _command(403, []),
+        _command(0, [], indent: 1),
+        _command(404, []),
+        _command(0, []),
+      ])
+    ]))
+        .analyze()
+        .requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    final choice = event.pages.single.body.nodes.single as SourceChoiceNode;
+    expect(choice.branches.map((branch) => branch.label), ['Take', 'Leave']);
+    expect(
+        choice.branches.first.body.nodes.single, isA<SourceSelfSwitchNode>());
+    expect(choice.branches.last.body.nodes, isEmpty);
+    expect(choice.cancelBranch!.nodes, isEmpty);
+    expect(choice.cancelType, 5);
+    expect(choice.span.lastCommandIndex, 9);
+  });
+
+  test('RMXP internal root zeros cannot truncate later effects or raw spans',
+      () async {
+    final event = _analyzer(await _events([
+      _page([
+        _command(0, []),
+        _command(101, ['Still here']),
+        _command(0, []),
+        _command(123, ['A', 0]),
+        _command(0, []),
+      ])
+    ]))
+        .analyze()
+        .requireEvent(1, 1);
+    expect(event.isQuarantined, isFalse);
+    final body = event.pages.single.body;
+    expect(body.nodes, hasLength(2));
+    expect((body.nodes.first as SourceTextNode).text, 'Still here');
+    expect(body.nodes.last, isA<SourceSelfSwitchNode>());
+    expect(body.span.firstCommandIndex, 0);
+    expect(body.span.lastCommandIndex, 4);
+  });
+
+  test(
+      'RMXP internal zeros still reject malformed scopes and terminal commands',
+      () async {
+    for (final commands in [
+      [
+        _command(0, []),
+        _command(123, ['A', 0])
+      ],
+      [
+        _command(0, ['unexpected']),
+        _command(0, [])
+      ],
+      [
+        _command(0, []),
+        _command(0, ['unexpected'])
+      ],
+      [_command(0, []), _command(0, [], indent: 1)],
+      [
+        _command(111, [2, 'A', 0]),
+        _command(0, [], indent: 2),
+        _command(412, []),
+        _command(0, []),
+      ],
+      [
+        _command(111, [2, 'A', 0]),
+        _command(0, [], indent: 1),
+        _command(0, []),
+      ],
+      [
+        _command(111, [2, 'A', 0]),
+        _command(0, [], indent: 1),
+        _command(412, [], indent: 1),
+        _command(0, []),
+      ],
+    ]) {
+      final analysis = _analyzer(await _events([_page(commands)])).analyze();
+      expect(analysis.requireEvent(1, 1).isQuarantined, isTrue);
+      expect(analysis.diagnostics, isNotEmpty);
+    }
+  });
+
+  test('RMXP internal zero cannot qualify an unknown nested command', () async {
+    final analysis = _analyzer(await _events([
+      _page([
+        _command(111, [2, 'A', 0]),
+        _command(0, [], indent: 1),
+        _command(999, [], indent: 1),
+        _command(0, [], indent: 1),
+        _command(412, []),
+        _command(0, []),
+      ])
+    ]))
+        .analyze();
+    final event = analysis.requireEvent(1, 1);
+    expect(event.isQuarantined, isTrue);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('events.unknown_command'));
+    final conditional =
+        event.pages.single.body.nodes.single as SourceConditionalNode;
+    expect(conditional.whenTrue.nodes, hasLength(1));
+    expect(conditional.whenTrue.nodes.single, isA<SourceUnknownNode>());
+    expect(conditional.whenTrue.nodes.single.span.firstCommandIndex, 2);
+  });
+
+  test(
       'closed literal pickup condition preserves the source symbol and both return branches',
       () async {
     for (final expression in [
