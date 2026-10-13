@@ -15,6 +15,69 @@ import 'support/original_autotile_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 
 void main() {
+  test('multi-map defaults retain proposals beyond the one-map budget',
+      () async {
+    final raster = image.Image(width: 256, height: 576, numChannels: 4);
+    image.fill(raster, color: image.ColorRgba8(34, 67, 91, 255));
+    final ground = List<int>.generate(144, (index) => 384 + index);
+    final harness = await _WorkflowHarness.create(
+      maps: [
+        for (final id in [1, 8])
+          LiteralFixtureMap(id: id, width: 16, height: 9, layers: [
+            ground,
+            List<int>.filled(144, 0),
+            List<int>.filled(144, 0),
+          ]),
+      ],
+      tilesets: [
+        LiteralFixtureTileset(
+          id: 1,
+          metadataTileCount: 576,
+          png: image.encodePng(raster),
+        )
+      ],
+    );
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      final settings = ConverterStudySettings(
+        projectName: 'Original multi-map resource review',
+        parentPath: harness.output.path,
+        folderName: 'original-study-project',
+        selectedSourceMapIds: [1, 8],
+        profileAcknowledgement: SourceStudyAcknowledgement(
+          sourceSnapshotHash: snapshot.canonicalHash,
+          profileEvidenceHash: snapshot.profile.evidenceHash,
+          humanConfirmed: true,
+          reason: 'Controlled original fixture.',
+        ),
+      );
+      harness.workflow.updateSettings(settings);
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.assetCandidates, hasLength(288));
+      expect(prepared.assetProposalDiagnostics, isEmpty);
+      expect(prepared.reviewSet!.segments.keys, [1, 8]);
+      expect(prepared.settings.writeLimits.maxArtifacts, 256);
+      expect(prepared.settings.writeLimits.maxMutations, 512);
+      expect(prepared.settings.writeLimits.maxTotalArtifactBytes,
+          sourceCatalogStudyWriteLimits.maxTotalArtifactBytes);
+      harness.workflow.updateSettings(harness.settings(snapshot,
+          writeLimits: sourceCatalogStudyWriteLimits));
+      final bounded = await harness.workflow.prepareStudy();
+      expect(bounded.settings.writeLimits.maxMutations,
+          sourceCatalogStudyWriteLimits.maxMutations);
+      expect(bounded.settings.writeLimits.maxArtifacts,
+          sourceCatalogStudyWriteLimits.maxArtifacts);
+      expect(bounded.assetCandidates, isEmpty);
+      expect(bounded.assetProposalDiagnostics.map((d) => d.code),
+          contains('asset.proposal.quota'));
+      expect(harness.nativeStages, isEmpty);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   final jumpScriptsPath = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
   test('AC15 workflow publishes native Borders with events and approved assets',
@@ -643,6 +706,15 @@ void main() {
       expect(snapshot.profile.version, '21.1');
       expect(harness.workflow.state.snapshot, same(snapshot));
       expect(harness.workflow.state.availableSourceMapIds, [1, 8]);
+      final catalog = harness.workflow.state.sourceCatalog!;
+      expect(catalog.maps, isEmpty);
+      expect(catalog.tilesets, isEmpty);
+      expect(catalog.mapHierarchy.map((info) => info.name),
+          ['Original map 1', 'Original map 8']);
+      expect(
+          catalog.archive.files.values.map((file) => file.entry.relativePath),
+          ['Data/MapInfos.rxdata']);
+      expect(harness.workflow.state.prepared, isNull);
       expect(harness.workflow.state.isBusy, isFalse);
       expect(await harness.output.list().toList(), isEmpty);
 

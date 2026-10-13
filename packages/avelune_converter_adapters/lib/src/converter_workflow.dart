@@ -114,8 +114,10 @@ final class ConverterStudySettings {
     ConverterAssetReviewSet? reviewSet,
     SourceNormalizationLimits normalizationLimits =
         const SourceNormalizationLimits(),
-    NativeWriteLimits writeLimits = sourceCatalogStudyWriteLimits,
+    NativeWriteLimits? writeLimits,
   }) {
+    writeLimits ??=
+        sourceCatalogStudyWriteLimitsFor(selectedSourceMapIds.length);
     writeLimits.validate();
     _validateNormalizationLimits(normalizationLimits);
     _workflowPath(parentPath);
@@ -358,6 +360,7 @@ final class ConverterWorkflowState {
     this.revision = 1,
     this.source,
     this.snapshot,
+    this.sourceCatalog,
     this.availableSourceMapIds = const [],
     this.settings,
     this.prepared,
@@ -375,6 +378,7 @@ final class ConverterWorkflowState {
   final int revision;
   final ConverterSourceSelection? source;
   final SourceSnapshot? snapshot;
+  final NormalizedSourceProject? sourceCatalog;
   final List<int> availableSourceMapIds;
   final ConverterStudySettings? settings;
   final PreparedStudy? prepared;
@@ -392,6 +396,7 @@ final class ConverterWorkflowState {
     int? revision,
     Object? source = _keep,
     Object? snapshot = _keep,
+    Object? sourceCatalog = _keep,
     List<int>? availableSourceMapIds,
     Object? settings = _keep,
     Object? prepared = _keep,
@@ -413,6 +418,9 @@ final class ConverterWorkflowState {
         snapshot: identical(snapshot, _keep)
             ? this.snapshot
             : snapshot as SourceSnapshot?,
+        sourceCatalog: identical(sourceCatalog, _keep)
+            ? this.sourceCatalog
+            : sourceCatalog as NormalizedSourceProject?,
         availableSourceMapIds:
             availableSourceMapIds ?? this.availableSourceMapIds,
         settings: identical(settings, _keep)
@@ -586,6 +594,7 @@ final class ConverterWorkflow {
       final complete = snapshot.state == SourceScanState.complete;
       _state = _state._copy(
           snapshot: snapshot,
+          sourceCatalog: outcome.sourceCatalog,
           availableSourceMapIds:
               complete ? _availableMapIds(snapshot) : const [],
           isBusy: false,
@@ -1124,8 +1133,13 @@ final class _WorkerCheckpoint {
 
 final class _WorkerOutcome {
   const _WorkerOutcome(
-      {this.snapshot, this.prepared, this.result, this.failure});
+      {this.snapshot,
+      this.sourceCatalog,
+      this.prepared,
+      this.result,
+      this.failure});
   final SourceSnapshot? snapshot;
+  final NormalizedSourceProject? sourceCatalog;
   final PreparedStudy? prepared;
   final ConverterStudyResult? result;
   final ConverterWorkflowFailure? failure;
@@ -1294,8 +1308,19 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
     }
     relay.cancellation.check();
     if (request.kind == _WorkerKind.scan) {
+      NormalizedSourceProject? catalog;
+      if (snapshot.state == SourceScanState.complete) {
+        final files = await SnapshotSourceFiles.bind(
+            source: source,
+            snapshot: snapshot,
+            policy: request.source.policy,
+            cancellation: relay.cancellation);
+        catalog = await const RmxpSourceNormalizer().inspectMapHierarchy(
+            snapshot: snapshot, files: files, cancellation: relay.cancellation);
+        relay.cancellation.check();
+      }
       if (snapshot.state == SourceScanState.complete) relay.finish();
-      outcome = _WorkerOutcome(snapshot: snapshot);
+      outcome = _WorkerOutcome(snapshot: snapshot, sourceCatalog: catalog);
     } else {
       if (snapshot.state != SourceScanState.complete) {
         throw const ConverterWorkflowFailure(

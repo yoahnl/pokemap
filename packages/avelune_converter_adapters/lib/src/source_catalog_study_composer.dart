@@ -9,6 +9,23 @@ import 'source_semantic_study_composer.dart';
 
 const sourceCatalogStudyWriteLimits = NativeWriteLimits(maxArtifacts: 128);
 
+NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount) {
+  final mapCount = selectedMapCount.clamp(1, 8);
+  return NativeWriteLimits(
+    maxArtifacts:
+        (sourceCatalogStudyWriteLimits.maxArtifacts * mapCount).clamp(1, 256),
+    maxMutations:
+        (sourceCatalogStudyWriteLimits.maxMutations * mapCount).clamp(1, 2048),
+    maxArtifactBytes: sourceCatalogStudyWriteLimits.maxArtifactBytes,
+    maxTotalArtifactBytes: sourceCatalogStudyWriteLimits.maxTotalArtifactBytes,
+    maxTotalDraftJsonBytes:
+        sourceCatalogStudyWriteLimits.maxTotalDraftJsonBytes,
+    maxImagePixels: sourceCatalogStudyWriteLimits.maxImagePixels,
+    maxMapCells: sourceCatalogStudyWriteLimits.maxMapCells,
+    jsonLimits: sourceCatalogStudyWriteLimits.jsonLimits,
+  );
+}
+
 final class SourceCatalogStudyComposition {
   const SourceCatalogStudyComposition(
       {required this.draft, required this.projection});

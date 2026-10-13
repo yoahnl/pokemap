@@ -386,6 +386,20 @@ final class NormalizedSourceProject {
 final class RmxpSourceNormalizer {
   const RmxpSourceNormalizer();
 
+  Future<NormalizedSourceProject> inspectMapHierarchy({
+    required SourceSnapshot snapshot,
+    required SourceFilePort files,
+    SourceNormalizationLimits limits = const SourceNormalizationLimits(),
+    ScanCancellation? cancellation,
+  }) async {
+    limits._validate();
+    final token = cancellation ?? ScanCancellation();
+    token.check();
+    return _SourceNormalizationRun(
+            snapshot, files, limits, token, null, false, false)
+        .run(hierarchyOnly: true);
+  }
+
   Future<NormalizedSourceProject> normalize({
     required SourceSnapshot snapshot,
     required SourceFilePort files,
@@ -655,7 +669,7 @@ final class _SourceNormalizationRun {
     }
   }
 
-  Future<NormalizedSourceProject> run() async {
+  Future<NormalizedSourceProject> run({bool hierarchyOnly = false}) async {
     _require(
         snapshot.state == SourceScanState.complete,
         'normalization.incomplete_snapshot',
@@ -670,7 +684,11 @@ final class _SourceNormalizationRun {
           'Invalid source map selection');
     }
     try {
-      await extract();
+      if (hierarchyOnly) {
+        await extractHierarchy();
+      } else {
+        await extract();
+      }
     } on Object catch (error) {
       if (error is ContractError && error.code == 'source.cancelled') rethrow;
       if (error is ContractError &&
@@ -749,7 +767,6 @@ final class _SourceNormalizationRun {
           'Declared extraction bytes exceed the quota before reading');
       plannedBytes += entry.byteLength;
     }
-    final infoEntry = byPath[sourcePathCollisionKey('Data/MapInfos.rxdata')];
     if (includeEventSystem) {
       final systemEntry = byPath[sourcePathCollisionKey('Data/System.rxdata')];
       if (systemEntry == null) {
@@ -766,17 +783,7 @@ final class _SourceNormalizationRun {
         }
       }
     }
-    if (infoEntry == null) {
-      diagnostic('normalization.missing_map_infos',
-          locator('Data/MapInfos.rxdata'), 'MapInfos source file is absent');
-    } else {
-      try {
-        final file = await load(infoEntry);
-        readHierarchy(file);
-      } on Object catch (error) {
-        failure(error, locator(infoEntry.relativePath));
-      }
-    }
+    await extractHierarchy();
     if (includeConnections) {
       await readConnections(mapEntries);
     }
@@ -838,6 +845,31 @@ final class _SourceNormalizationRun {
       }
     }
     validateUsedImages();
+  }
+
+  Future<void> extractHierarchy() async {
+    const sourcePath = 'Data/MapInfos.rxdata';
+    final entry = byPath[sourcePathCollisionKey(sourcePath)];
+    if (entry == null) {
+      diagnostic('normalization.missing_map_infos', locator(sourcePath),
+          'MapInfos source file is absent');
+      return;
+    }
+    _require(
+        entry.kind == SourceNodeKind.file && entry.sha256 != null,
+        'normalization.required_source_file',
+        entry.relativePath,
+        'Required RMXP input must be an admitted hashed regular file');
+    _require(
+        entry.byteLength <= 67108864,
+        'normalization.quota.file_bytes',
+        entry.relativePath,
+        'Source file exceeds the decoder byte quota before reading');
+    try {
+      readHierarchy(await load(entry));
+    } on Object catch (error) {
+      failure(error, locator(entry.relativePath));
+    }
   }
 
   NormalizedSourceProject finish() {

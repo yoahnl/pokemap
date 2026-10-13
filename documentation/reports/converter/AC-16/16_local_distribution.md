@@ -453,3 +453,91 @@ Les coordonnées Ldébut,nombre proviennent du diff unifié contre fb654a223c799
 | tools/avelune_converter_cli/test/scan_cli_test.dart | L149 void main() { ; L176 void main() { ; L254 void main() { ; L273 void main() { ; L288 void main() { | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
 | tools/avelune_converter_cli/test/study_cli_test.dart | créé, 220 lignes ; _ObservedSink | Assertions ciblées sur contrat/transport/immuabilité/propositions/reproductibilité ; conserve les cas négatifs. |
 | documentation/reports/converter/AC-16/16_local_distribution.md | Document consolidé : audit, frontières, preuves, limites, inventaire et clôture | Livrable AC-16 explicitement demandé par le kit ; un seul nouveau Markdown. |
+
+## Actualisation AC-16 — parcours normal et distribution du 14 octobre 2026
+
+**Verdict : PARTIAL / DOING.** Les corrections du parcours de préparation et la distribution actualisée sont vérifiées. Le dossier Kanto original testé depuis la fenêtre bloque sur une ressource manquante ; aucune conversion complète depuis cette fenêtre, aucun jeu arbitraire et aucun parcours Player KAN-03 ne sont certifiés. Le lot complet AC-16 et le goal AC-00 à AC-16 restent ouverts.
+
+### Audit initial et périmètre de cette actualisation
+
+Base Git : b34b2e80988a18cbf7bb7e8241a825d128a3e3c9, branche main, index initial vide. Neuf fichiers de code/tests possédés ; 64 chemins étrangers déjà modifiés/non suivis, identifiés par SHA/mode dans start.json. Le writer natif sale appartient à un autre chantier : il est exclu du snapshot propre construit par git archive HEAD. Aucun checkout/worktree/rebase/push/amend. Les sources/test possédés du host et du snapshot sont byte-identical au gel source-pins-final-04.json.
+
+Quatre obstacles de code : scan préparant toutes les cartes immédiatement ; plafond implicite256 insuffisant pour les274/276 propositions de la paire réelle ; budgets importés perdus à la préparation/sauvegarde suivante ; décisions de dépendances vidant leur propre contexte de revue. Correction limitée à la découverte, la préparation et les paramètres ; aucune modification du modèle natif, du moteur de combat ni des règles de gameplay. La conversion reste locale/déterministe, sans exécution Ruby source ni IA obligatoire.
+
+Les défauts résolus sont concrets et hashés : une carte128 artefacts/256 mutations, deux cartes256/512 ; saturation aux plafonds existants256/2048. Le plafond distinct de revue reste1024 candidats. Les limites explicites importées ou reprises sont prioritaires et conservées ; une dépendance supplémentaire peut toujours provoquer un refus de quota, sans extension automatique.
+
+### Fichiers modifiés et zones du diff contre la base
+
+| Fichier | Zones exactes du diff (-avant +après) | Motif / impact |
+|---|---|---|
+| apps/avelune_converter/lib/converter_app.dart | -136,0 +137; -247,2 +248,7; -502,0 +509; -533,0 +541; -614,0 +623,3; -626 +637; -634,5 +644,0; -662,0 +669; -666 +673; -707,0 +715; -768,0 +777; -861 +870; -1285 +1294; -1302 +1311; -1413,2 +1422,2; -1553 +1562,2; -1951 +1961,2; -2024 +2035,3 | _scan, _settings, import/reprise, _changeDependency et catalogue : choix explicite des cartes, conservation des budgets et contexte de revue sans approbation périmée. |
+| apps/avelune_converter/test/converter_app_test.dart | -20,0 +21,259; -958,0 +1218,11; -1084,0 +1355,12; -1189,0 +1472,10 | Nouveaux parcours scan sans préparation, sélection nommée, recette/budgets et décisions de dépendances groupées ; adaptations des helpers explicites. |
+| apps/avelune_converter/test/converter_session_lifecycle_test.dart | -399,0 +400,8 | Le helper sélectionne et prépare explicitement avant la qualification de reprise. |
+| packages/avelune_converter_adapters/lib/src/converter_workflow.dart | -117 +117; -118,0 +119,2; -360,0 +363; -377,0 +381; -394,0 +399; -415,0 +421,3; -588,0 +597; -1127 +1136,5; -1128,0 +1142; -1296,0 +1311,11; -1298 +1323 | ConverterStudySettings résout le défaut de budget ; ConverterWorkflowState et worker exposent le catalogue MapInfos avant préparation. |
+| packages/avelune_converter_adapters/lib/src/source_catalog_study_composer.dart | -11,0 +12,17 | sourceCatalogStudyWriteLimitsFor : défaut par nombre de cartes, sans augmenter les plafonds globaux d’artefacts/mutations/octets/JSON/pixels/cellules. |
+| packages/avelune_converter_adapters/test/converter_workflow_test.dart | -17,0 +18,63; -645,0 +709,9 | 288 candidats sur deux cartes admis avec le défaut ; même cas refusé avec limite explicite256 ; catalogue scan limité à MapInfos. |
+| packages/avelune_converter_core/lib/src/source_normalization.dart | -388,0 +389,14; -658 +672; -673 +687,5; -752 +769,0; -769,11 +786; -842,0 +850,25 | inspectMapHierarchy et extractHierarchy : réutilisation du lecteur borné, sans lire cartes/tilesets/scripts pendant cette inspection. |
+| packages/avelune_converter_core/test/source_normalization_test.dart | -476,0 +477,64 | Inspection de métadonnées même si une carte non sélectionnée est malformée ; refus SHA/inventaire incomplet/quota et annulation. |
+| packages/avelune_converter_adapters/test/converter_asset_workflow_test.dart | -79 +79,2 | Le refus négatif conserve un budget explicitement fixé à 256 mutations ; aucun assouplissement de l’assertion. |
+| documentation/reports/converter/AC-16/16_local_distribution.md | Append de cette actualisation | Preuves consolidées et limites actuelles ; aucun nouveau Markdown. |
+
+### Tests, analyses et builds terminés
+
+Racine de QA privée : /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej. Chaque reçu contient la commande argv, cwd, durée, pins avant/après, log SHA et identités PID/UID/date/commande. Les logs de tous les reçus ci-dessous sont rehashés avant ajout de cette actualisation. Tous ont exit0, timedOut=false, zéro descendant possédé survivant et protectedUnchanged=true. Les pins déclarés des tests/build/installation sont stables ; les reçus d’analyse et de packaging n’ont pas de pins pendant leur run. Leur raccord repose sur le gel final04 identique host/snapshot et sur les pins des suites/build, pas sur une surveillance de source absente de ces reçus. Un exit0 du superviseur seul ne suffit jamais : l’exitCode du reçu enfant est contrôlé.
+
+| Reçu JSON | Commande (depuis le package du snapshot) | Résultat exact | Durée |
+|---|---|---|---|
+| core-tests-final-01.json | /opt/homebrew/bin/dart test --reporter expanded --concurrency=2 | 820 PASS / 1 SKIP / 0 FAIL | 65.459 s |
+| adapters-tests-final-02.json | /opt/homebrew/bin/dart test --reporter expanded --concurrency=2 | 763 PASS / 90 SKIP / 0 FAIL | 186.554 s |
+| app-tests-final-02.json | /opt/homebrew/bin/flutter test --no-pub --reporter expanded --concurrency=2 | 91 PASS / 4 SKIP / 0 FAIL | 55.959 s |
+| cli-tests-final-01.json | /opt/homebrew/bin/dart test --reporter expanded --concurrency=2 | 28 PASS / 3 SKIP / 0 FAIL | 23.768 s |
+| core-analyze-final-01.json | /opt/homebrew/bin/dart analyze | No issues found | 5.496 s |
+| adapters-analyze-final-01.json | /opt/homebrew/bin/dart analyze | No issues found | 11.387 s |
+| app-analyze-final-01.json | /opt/homebrew/bin/flutter analyze --no-pub | No issues found | 10.827 s |
+| cli-analyze-final-01.json | /opt/homebrew/bin/dart analyze | No issues found | 3.591 s |
+| build-release-final-02.json | /opt/homebrew/bin/flutter build macos --release --no-pub | Release71.1MB, arm64+x86_64 | 72.185 s |
+| cli-compile-final-02.json | /opt/homebrew/bin/dart compile exe bin/avelune_converter.dart -o '/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/bin/avelune-converter-current' | CLI AOT arm64 produite | 26.483 s |
+| package-current-01.json | /usr/bin/python3 tool/package_distribution.py --app '/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/repository/apps/avelune_converter/build/macos/Build/Products/Release/Avelune Converter.app' --cli '/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/bin/avelune-converter-current' --fixture /Users/karim/Library/Containers/com.yoahnl.avelune.converter/Data/Documents/AC16-refresh-20261014-ftgqyeej/source --output /Users/karim/Project/pokemonProject/apps/avelune_converter/build/distribution/AC16-local-20261014-current | ZIP/inventaire scellés | 4.494 s |
+| install-current-run-01.json | python3 '/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac16-refresh-20261014-ftgqyeej/qualify_extracted.py' | Extraction/inventaire/CLI réels PASS | 1.308 s |
+
+Les SKIP restent des preuves absentes : corpus externes optionnels non activés et cas de plateforme inapplicable. RED conservés : sélection initiale produisant un plan malgré zéro sélection ; budget deux cartes refusant288 candidats ; contexte des choix disparaissant après la première décision. Les replays ciblés GREEN sont selection-import-green-02 (2 PASS), workflow-green-02 (2 PASS), dependencies-green-01 (1 PASS). La première suite adapters finale01 échoue sur un ancien test qui comptait sur le défaut256 : la correction du test exprime maintenant cette limite explicitement ; la suite finale02 passe. Aucun test supprimé.
+
+La résolution pub/locks a lieu exclusivement dans le snapshot. La CLI nécessitait une entrée map_gameplay absente de son lock privé ; pub get offline l’a résolue. Les locks app/core/adapters sont copiés/enforced dans le snapshot. Aucun lock, .dart_tool ou dependency config du host modifié.
+
+### Installation réelle de la nouvelle archive
+
+Archive : apps/avelune_converter/build/distribution/AC16-local-20261014-current/AveluneConverter-local-validation.zip, 37 761 635 octets, SHA effd1aff022ec84674e9000b022cb9d95739b59fdfca71e928de8c1a41e14f32. Inventaire SHA6f5c64f664d0b60d028042bbc7069cb87483f04bd2107e3f00c9df3e4cfd3a7c :38 fichiers réguliers,35 répertoires,9 liens internes relatifs,1NOTICE Flutter réel,0 sidecar Pods. Non notarized, non publié, aucune licence globale inventée.
+
+Extraction ditto dans QA/install-current-01 : inventaire complet, modes et liens exactement égaux. Le binaire extrait exécute --help → plan → convert avec le SHA exact du plan → verify, PATH=/usr/bin:/bin:/usr/sbin:/sbin. Fixture originale synthétique incluse, cartes1/8, aucun SDK Dart/Flutter requis à l’exécution. Résultat :2 cartes/1atlas, published=true, verified=true, playableCertified=false ; source inchangée ; inventaire natif inchangé pendant verify. Révision sha256:642a26b19527a118df8767afb34f8d0eeb0bcc4a3cc935546f8ec661fc28dcb6. Reçus install-current-cli-01.json et install-current-run-01.json. Ceci ne prouve pas un import Kanto complet.
+
+### Interface normale avec Kanto original — blocage source réellement observé
+
+Entrée originale : /Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto. Copie de QA originale de23 707 fichiers, hashes source avant=copie=source après, zéro symlink, original-kanto-source-copy-01.json (32.562s). Elle est distincte de la copie complétée employée pour la démo r9.
+
+Le helper QA est hors dépôt, observe ConverterApp réelle et démarre vide : aucun plan injecté, aucun picker substitué, aucun scan ou préparation automatique. Depuis les champs et boutons normaux : source/destination/nom entrés → Analyser →383 cartes nommées, archive catalogue Data/MapInfos.rxdata seulement, zéro sélection/préparation → recherche et sélection Route9(ID98)/Route10-N(ID100) → acknowledgment du profil d’étude → Préparer explicitement. Paramètres effectifs256 artefacts/512 mutations.
+
+Préparation bloquée : normalisation signale normalization.missing_image, tileset FRLG_Outside absent, locator Data/Tilesets.rxdata ; UI affiche0cartes natives,33 événements extraits,2données bloquantes/4observations. Le dossier de destination Kanto-interface-original-r1 n’existe pas. Aucun export/publication/contournement du refus. Trace normal-interface-trace-01.json ; captures normal-source-original-kanto.png et normal-original-kanto-blocked.png.
+
+Trois variantes réelles256×16192 ont des SHA différents : Kanto/FRLG_Outside_backup.png f147d2ff225eb152c8130b4f984b8a0b89b96d9bcb498a117aaed5dae9faab3a ; Johto/FRLG_Outside.png fea9e5fab963dda8c831ba6a71f2668ce39523cf44c0fbf137daa130ae6b562a ; Hoenn/FRLG_Outside.png fb9950c4130bf1201d924af4de2da65f744c7c663ac41993ce332867c24cdd81. La démo r9 complétée utilisait cette variante Hoenn. Aucun renommage/alias/choix automatique implémenté ici. Remplacer une variante sans revue ne prouverait pas la fidélité.
+
+La comparaison actuelle avec la copie r9 qualifiée trouve11 fichiers ajoutés à cette dernière : image, BGM Route03, Scripts.rxdata, items.dat, species.dat, Game.exe et cinq PBS (items/moves/pokemon/pokemon_base_Gen_9_Pack/pokemon_forms). Les preuves r9 sur cette copie complétée ne sont pas des preuves d’import autonome de ce dossier original. Aucun exécutable source ni Ruby lancé.
+
+Limites observation : deux hot reloads du helper hors dépôt ont ajouté une observation plus robuste après erreur d’extension ; la lecture d’état bloqué par extension restait indisponible et le diagnostic a été constaté dans la vraie UI. Les sources produit restent gelées. La release native ouverte lors d’un premier essai n’était pas contrôlable via CUA (-10005, ambiguïté de bundle) ; elle a été fermée avec identité vérifiée. Le parcours observé est une app debug réelle, pas la certification de la fenêtre release finale.
+
+Fermeture : QA Converter PID35004 fermé par l’action de qualification, Marionette déconnecté ; normal-interface-run-01 exit0,1620.747s, sans timeout ni survivant. La fenêtre Studio que Yoahn garde pour jouer, PID1307 avec runner310/superviseur308, reste vivante et protégée. Aucune reprise/fermeture de ces PID et aucun blanket kill.
+
+### Parité, passes et critique
+
+Parité MCP : aucune sémantique native nouvelle ; le writer map_authoring, les actions projet et schémas cibles sont inchangés. Le catalogue source MapInfos et la préparation sont des contrats Converter core/workflow/CLI ; ils ne deviennent pas une action d’authoring Studio/MCP. Tests directs core/workflow, CLI et UI ci-dessus. Aucun nouveau catalog natif à enregistrer ; les anciennes preuves MCP ne sont pas présentées comme un nouveau run live de cette actualisation.
+
+| Passe | Verdict et preuve |
+|---|---|
+| Audit / Architecture | Quatre obstacles de parcours identifiés ; frontières source/cible, budgets et source read-only conservés. |
+| Implémentation | Neuf fichiers ciblés, changements indépendants du chantier writer/borders et du moteur de combat. |
+| Tests | Quatre suites finales et quatre analyses PASS dans leur portée, SKIP et RED explicités. |
+| Build / Validation | Release universelle, CLI arm64, archive/extraction/CLI fixture PASS ; interface Kanto originale bloquée et release visuelle non certifiée. |
+| Critique finale | Revue indépendante ac15_connection_review_fresh : aucune P1/P2 dans les neuf fichiers gel04 ; logs/SHA des suites et de l’installation relus. Analyses/package sans pins de source pendant run, parcours GUI bloqué et portée fixture correctement distingués. |
+
+Auto-critique : des totaux de tests et une conversion accompagnée ont été trop faciles à confondre avec un convertisseur autonome. Cette actualisation conserve explicitement le verdict incomplet. Le défaut de scan est corrigé ; la ressource manquante, le choix entre trois variantes, la publication depuis une fenêtre normale et KAN-03 restent à traiter. Aucune promesse de conversion universelle ou d’estimation horaire sans preuve.
+
+État Git avant commit ciblé : neuf fichiers possédés et ce rapport ;64 chemins étrangers inchangés depuis start.json, index vide. Le contrôle final et le SHA du commit seront consignés dans le reçu de clôture et Notion. Pas de nouveau Markdown. Prochaine action autorisée : résolution explicite/traçable des ressources manquantes puis qualification de source → sélection → revue → publication → Studio, sans réduire le goal aux fixtures.

@@ -474,6 +474,70 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  test('map hierarchy inspection reads names without decoding map content',
+      () async {
+    final bytes = _project(maps: {1: _map(), 8: _map()})
+      ..['Data/Map008.rxdata'] = [4, 8, 0xff]
+      ..['Data/Tilesets.rxdata'] = [4, 8, 0xff];
+    final files = _source(bytes);
+    final result = await const RmxpSourceNormalizer().inspectMapHierarchy(
+      snapshot: files.snapshot,
+      files: files,
+    );
+    expect(files.reads, ['Data/MapInfos.rxdata']);
+    expect(result.maps, isEmpty);
+    expect(result.tilesets, isEmpty);
+    expect(result.selectedSourceMapIds, isEmpty);
+    expect(result.mapHierarchy.map((info) => info.sourceMapId), [1, 8]);
+    expect(result.mapHierarchy.every((info) => info.name.isNotEmpty), isTrue);
+    expect(result.diagnostics, isEmpty);
+  });
+
+  test('map hierarchy inspection keeps source integrity and admission guards',
+      () async {
+    final changed = _source(_project());
+    changed.replacements['Data/MapInfos.rxdata'] = [4, 8, 0xff];
+    final changedResult =
+        await const RmxpSourceNormalizer().inspectMapHierarchy(
+      snapshot: changed.snapshot,
+      files: changed,
+    );
+    _blocked(changedResult, file: 'Data/MapInfos.rxdata');
+    expect(changedResult.diagnostics.map((d) => d.code),
+        contains('normalization.source_changed'));
+    final partial = _source(_project(), state: SourceScanState.partial);
+    await expectLater(
+      const RmxpSourceNormalizer().inspectMapHierarchy(
+        snapshot: partial.snapshot,
+        files: partial,
+      ),
+      throwsA(isA<ContractError>()
+          .having((e) => e.code, 'code', 'normalization.incomplete_snapshot')),
+    );
+    expect(partial.reads, isEmpty);
+    final bounded = _source(_project());
+    final boundedResult =
+        await const RmxpSourceNormalizer().inspectMapHierarchy(
+      snapshot: bounded.snapshot,
+      files: bounded,
+      limits: const SourceNormalizationLimits(maxTotalBytes: 1),
+    );
+    _blocked(boundedResult);
+    expect(bounded.reads, isEmpty);
+    final cancelled = _source(_project());
+    final token = ScanCancellation()..cancel();
+    await expectLater(
+      const RmxpSourceNormalizer().inspectMapHierarchy(
+        snapshot: cancelled.snapshot,
+        files: cancelled,
+        cancellation: token,
+      ),
+      throwsA(isA<ContractError>()
+          .having((e) => e.code, 'code', 'source.cancelled')),
+    );
+    expect(cancelled.reads, isEmpty);
+  });
+
   test('CONN-01 distinguishes unrequested, missing and extracted empty graph',
       () async {
     final unrequested = _source(_connectionProject(_routeConnections()));

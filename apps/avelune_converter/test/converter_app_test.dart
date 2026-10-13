@@ -18,6 +18,265 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('dependency choices remain visible until explicit preparation', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(
+      () => _OriginalSource.create(
+        maps: [
+          LiteralFixtureMap(
+            id: 1,
+            warpParameters: [
+              [0, 8, 0, 0, 0, 0],
+              [0, 12, 0, 0, 0, 0],
+            ],
+          ),
+          LiteralFixtureMap(id: 8),
+          LiteralFixtureMap(id: 12),
+        ],
+      ),
+    ))!;
+    _setWindow(tester, const Size(1600, 1000));
+    final store = LocalReviewSessionStore(
+      rootPath: '${source.root.path}/sessions',
+    );
+    Iterable<StudioSelect> choices() => tester
+        .widgetList<StudioSelect>(find.byType(StudioSelect))
+        .where((s) => s.label.startsWith('Transfert'));
+    try {
+      await tester.pumpWidget(
+        ConverterApp(
+          workflow: source.workflow,
+          initialSourcePath: source.sourcePath,
+          initialParentPath: source.output.path,
+          sessionStore: store,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.snapshot != null &&
+            !source.workflow.state.isBusy,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('select-map-1')));
+      await tester.tap(find.byKey(const ValueKey('select-map-1')));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('acknowledge-study')),
+      );
+      await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared != null &&
+            !source.workflow.state.isBusy,
+      );
+      await tester.tap(find.text('Vérification'));
+      await tester.pump();
+      expect(choices(), hasLength(2));
+      choices().first.onChanged!('excludeStudy');
+      await tester.pump();
+      expect(source.workflow.state.prepared, isNull);
+      expect(choices(), hasLength(2));
+      expect(choices().first.value, 'excludeStudy');
+      expect(choices().last.onChanged, isNotNull);
+      choices().last.onChanged!('excludeStudy');
+      await tester.pump();
+      expect(choices().map((s) => s.value), ['excludeStudy', 'excludeStudy']);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<StudioButton>(
+              find.byKey(const ValueKey('create-study-project')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(source.workflow.state.approval, isNull);
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared?.canApprove == true &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.settings!.dependencyDecisions, hasLength(2));
+      expect(source.nativeStages, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets('imported plan limits survive preparation and session save', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    final planPath = '${source.root.path}/bounded-plan.json';
+    final store = LocalReviewSessionStore(
+      rootPath: '${source.root.path}/sessions',
+    );
+    ConverterWorkflow? restored;
+    try {
+      await tester.runAsync(() async {
+        final snapshot = await source.workflow.scanSource(
+          ConverterSourceSelection(
+            rootPath: source.sourcePath,
+            logicalProjectNamespace: ConverterId('original-bounded-plan'),
+          ),
+        );
+        source.workflow.updateSettings(
+          ConverterStudySettings(
+            projectName: 'Original bounded import',
+            parentPath: source.output.path,
+            folderName: 'bounded-import',
+            selectedSourceMapIds: [1, 8],
+            normalizationLimits: const SourceNormalizationLimits(maxMaps: 16),
+            writeLimits: const NativeWriteLimits(
+              maxArtifacts: 48,
+              maxMutations: 64,
+            ),
+            profileAcknowledgement: SourceStudyAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: true,
+              reason: 'Controlled original fixture.',
+            ),
+          ),
+        );
+        await source.workflow.prepareStudy();
+        await const LocalStudyPlanStore().writeNew(
+          source.workflow.exportStudyPlanRecipe(),
+          planPath,
+        );
+      });
+      await tester.pumpWidget(
+        ConverterApp(
+          workflowFactory: () => restored = ConverterWorkflow(),
+          pathPicker: (kind) async =>
+              kind == ConverterPathKind.planFile ? planPath : null,
+          sessionStore: store,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('load-conversion-plan')));
+      await _waitFor(
+        tester,
+        () => restored?.state.prepared != null && !restored!.state.isBusy,
+      );
+      await tester.tap(find.text('Analyse'));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('acknowledge-study')),
+      );
+      await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            restored!.state.prepared != null &&
+            !restored!.state.isBusy &&
+            !restored!
+                .state
+                .prepared!
+                .settings
+                .profileAcknowledgement
+                .humanConfirmed,
+      );
+      expect(restored!.state.prepared!.settings.writeLimits.maxArtifacts, 48);
+      expect(restored!.state.prepared!.settings.writeLimits.maxMutations, 64);
+      expect(
+        restored!.state.prepared!.settings.normalizationLimits.maxMaps,
+        16,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-review-session')));
+      await _waitFor(
+        tester,
+        () => find.text('Session enregistrée').evaluate().isNotEmpty,
+      );
+      final saved = (await tester.runAsync(store.list))!.single;
+      expect(saved.resumeSettings.writeLimits.maxArtifacts, 48);
+      expect(saved.resumeSettings.writeLimits.maxMutations, 64);
+      expect(saved.resumeSettings.normalizationLimits.maxMaps, 16);
+      expect(restored!.state.approval, isNull);
+      expect(restored!.state.result, isNull);
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets('source analysis waits for an explicit named map selection', (
+    tester,
+  ) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await tester.pumpWidget(
+        ConverterApp(
+          workflow: source.workflow,
+          initialSourcePath: source.sourcePath,
+          initialParentPath: source.output.path,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.snapshot != null &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.prepared, isNull);
+      expect(find.text('Original map 1 · 001'), findsOneWidget);
+      expect(find.text('Original map 8 · 008'), findsOneWidget);
+      expect(
+        tester
+            .widget<StudioToggleRow>(find.byKey(const ValueKey('select-map-1')))
+            .value,
+        isFalse,
+      );
+      expect(
+        tester
+            .widget<StudioButton>(find.byKey(const ValueKey('prepare-study')))
+            .onPressed,
+        isNull,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('select-map-1')));
+      await tester.tap(find.byKey(const ValueKey('select-map-1')));
+      await tester.pump();
+      expect(source.workflow.state.prepared, isNull);
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(
+        tester,
+        () =>
+            source.workflow.state.prepared != null &&
+            !source.workflow.state.isBusy,
+      );
+      expect(source.workflow.state.prepared!.settings.selectedSourceMapIds, [
+        1,
+      ]);
+      expect(
+        source.workflow.state.prepared!.composition.nativeMaps,
+        hasLength(1),
+      );
+      expect(source.nativeStages, isEmpty);
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('segmented review selects one named source map at a time', (
     tester,
   ) async {
@@ -959,6 +1218,17 @@ void main() {
       await _waitFor(
         tester,
         () =>
+            source.workflow.state.snapshot != null &&
+            !source.workflow.state.isBusy,
+      );
+      await tester.ensureVisible(find.text('Tout sélectionner'));
+      await tester.tap(find.text('Tout sélectionner'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await tester.pump();
+      await _waitFor(
+        tester,
+        () =>
             source.workflow.state.prepared != null &&
             !source.workflow.state.isBusy,
       );
@@ -1085,6 +1355,18 @@ void main() {
         await _waitFor(
           tester,
           () =>
+              source.workflow.state.snapshot != null &&
+              !source.workflow.state.isBusy,
+        );
+        await _tabTo(tester, find.text('Tout sélectionner'));
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+        await _tabTo(tester, find.text('Préparer la sélection'));
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+        await _waitFor(
+          tester,
+          () =>
               source.workflow.state.prepared != null &&
               !source.workflow.state.isBusy,
         );
@@ -1186,6 +1468,16 @@ Future<void> _scanAndPrepare(
     ),
   );
   await tester.tap(find.byKey(const ValueKey('analyse-project')));
+  await tester.pump();
+  await _waitFor(
+    tester,
+    () =>
+        source.workflow.state.snapshot != null && !source.workflow.state.isBusy,
+  );
+  await tester.ensureVisible(find.text('Tout sélectionner'));
+  await tester.tap(find.text('Tout sélectionner'));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('prepare-study')));
   await tester.pump();
   await _waitFor(
     tester,

@@ -134,6 +134,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
   int _sessionGeneration = 0;
   AssetOutputMode _assetOutputMode = AssetOutputMode.sharedAtlas;
   PreparedStudy? _reviewPreview;
+  ConverterStudySettings? _importedSettings;
   StreamSubscription<ConverterWorkflowEvent>? _subscription;
   int _step = 0;
   int? _previewMap;
@@ -244,8 +245,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
       allowFirstFrameAutotiles: _allowFirstFrameAutotiles,
       sourceScanPolicy: _state.source?.policy ?? previous?.sourceScanPolicy,
       normalizationLimits:
-          previous?.normalizationLimits ?? const SourceNormalizationLimits(),
-      writeLimits: previous?.writeLimits ?? sourceCatalogStudyWriteLimits,
+          previous?.normalizationLimits ??
+          _importedSettings?.normalizationLimits ??
+          const SourceNormalizationLimits(),
+      writeLimits:
+          previous?.writeLimits ??
+          _importedSettings?.writeLimits ??
+          sourceCatalogStudyWriteLimitsFor(_selectedMaps.length),
       profileAcknowledgement: snapshot == null || keepAcknowledgement
           ? previousAcknowledgement
           : LocalReviewProfileAcknowledgement(
@@ -500,6 +506,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _loadingSession = true;
       _storedReview = stored;
+      _importedSettings = null;
       _reviewSet = stored.reviewSet;
       _reviewMapId = null;
       _reconcileReviewMap();
@@ -531,6 +538,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ..addAll(prepared.settings.dependencyDecisions);
         _studyAcknowledged =
             prepared.settings.profileAcknowledgement.humanConfirmed;
+        _importedSettings = prepared.settings;
         _reviewPreview = null;
         _reviewSourceVerified = true;
         _dirty = false;
@@ -612,6 +620,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (!await _prepareForSessionChange() || !mounted) return;
     setState(() {
       _step = 1;
+      _selectedMaps.clear();
+      _importedSettings = null;
+      _dirty = false;
       _studyAcknowledged = false;
       _allowFirstFrameAutotiles = false;
       _decisions.clear();
@@ -623,7 +634,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _reviewSourceVerified = false;
       _sessionGeneration++;
     });
-    final snapshot = await _workflow.scanSource(
+    await _workflow.scanSource(
       ConverterSourceSelection(
         rootPath: _sourceRoot,
         logicalProjectNamespace: ConverterId(
@@ -631,11 +642,6 @@ class _ConverterWindowState extends State<ConverterWindow> {
         ),
       ),
     );
-    if (!mounted || snapshot.state != SourceScanState.complete) return;
-    _selectedMaps
-      ..clear()
-      ..addAll(_state.availableSourceMapIds);
-    if (_selectedMaps.isNotEmpty) await _prepareCurrent();
   });
 
   ConverterStudySettings _settings() {
@@ -660,10 +666,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
       reviewSet: _reviewSet,
       normalizationLimits:
           _storedReview?.resumeSettings.normalizationLimits ??
+          _importedSettings?.normalizationLimits ??
           const SourceNormalizationLimits(),
       writeLimits:
           _storedReview?.resumeSettings.writeLimits ??
-          sourceCatalogStudyWriteLimits,
+          _importedSettings?.writeLimits,
     );
   }
 
@@ -705,6 +712,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     setState(() {
       _dirty = false;
       _reviewPreview = null;
+      if (stored != null) _importedSettings = prepared.settings;
       _reviewSet ??= prepared.reviewSet;
       _reconcileReviewMap();
       _reviewSourceVerified = true;
@@ -766,6 +774,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _folder.text = recipe.settings.folderName;
       setState(() {
         _sessionGeneration++;
+        _importedSettings = recipe.settings;
         _storedReview = null;
         _reviewSet = null;
         _reviewMapId = null;
@@ -858,7 +867,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       final prepared = _prepared!;
       if (!await _prepareForSessionChange() || !mounted) return;
       setState(() {
-        _reviewPreview = null;
+        _reviewPreview = prepared;
         _reviewSet = null;
         _reviewMapId = null;
         _storedReview = null;
@@ -1282,7 +1291,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       );
     }
     final prepared = _prepared;
-    final normalized = prepared?.normalizedSource;
+    final normalized = prepared?.normalizedSource ?? _state.sourceCatalog;
     final search = _search.text.trim().toLowerCase();
     final ids = _state.availableSourceMapIds
         .where((id) => _mapName(id).toLowerCase().contains(search))
@@ -1299,7 +1308,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Cartes : ${normalized?.maps.length ?? 0} extraites ; ${prepared?.composition.nativeMaps.length ?? 0} préparées pour Avelune.',
+              'Cartes : ${_state.availableSourceMapIds.length} disponibles ; ${prepared?.composition.nativeMaps.length ?? 0} préparées pour Avelune.',
             ),
             const SizedBox(height: 8),
             Text(
@@ -1410,8 +1419,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
     };
     if (prepared == null && reviewSet == null) {
       return const StudioEmptyState(
-        title: 'Les ressources apparaîtront après l’analyse',
-        description: 'Les atlas affichés proviennent des fichiers du projet sélectionné.',
+        title: 'Préparez les cartes à convertir',
+        description: 'Choisissez vos cartes dans Analyse, puis préparez la sélection pour examiner leurs ressources.',
       );
     }
     return Column(
@@ -1550,7 +1559,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       limits:
           prepared?.settings.writeLimits ??
           _storedReview?.resumeSettings.writeLimits ??
-          sourceCatalogStudyWriteLimits,
+          _importedSettings?.writeLimits ??
+          sourceCatalogStudyWriteLimitsFor(_selectedMaps.length),
       outputMode: _assetOutputMode,
       enabled:
           !_busy &&
@@ -1948,7 +1958,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
           blocking: value.blocksExtraction,
         ),
       for (final value
-          in _prepared?.normalizedSource.diagnostics ??
+          in (_prepared?.normalizedSource ?? _state.sourceCatalog)
+                  ?.diagnostics ??
               <SourceNormalizationDiagnostic>[])
         (
           code: value.code,
@@ -2021,7 +2032,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   String _mapName(int id) {
     for (final info
-        in _prepared?.normalizedSource.mapHierarchy ?? <NormalizedMapInfo>[]) {
+        in (_prepared?.normalizedSource ?? _state.sourceCatalog)
+                ?.mapHierarchy ??
+            <NormalizedMapInfo>[]) {
       if (info.sourceMapId == id) {
         return '${info.name} · ${id.toString().padLeft(3, '0')}';
       }

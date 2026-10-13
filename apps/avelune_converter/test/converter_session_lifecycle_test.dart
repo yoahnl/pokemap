@@ -399,6 +399,14 @@ final class _SessionHarness {
     await tester.tap(find.byKey(const ValueKey('analyse-project')));
     await _wait(
       tester,
+      () => workflow.state.snapshot != null && !workflow.state.isBusy,
+    );
+    await tester.ensureVisible(find.text('Tout sélectionner'));
+    await tester.tap(find.text('Tout sélectionner'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('prepare-study')));
+    await _wait(
+      tester,
       () => workflow.state.prepared != null && !workflow.state.isBusy,
     );
   }

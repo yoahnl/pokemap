@@ -76,7 +76,8 @@ void main() {
         parentPath: output.path,
         folderName: 'output',
         selectedSourceMapIds: const [1, 8],
-        profileAcknowledgement: prepared.settings.profileAcknowledgement));
+        profileAcknowledgement: prepared.settings.profileAcknowledgement,
+        writeLimits: const NativeWriteLimits(maxMutations: 256)));
     final bounded = await workflow.prepareStudy();
     expect(bounded.reviewSet, isNull);
     expect(bounded.assetCandidates, isEmpty);
