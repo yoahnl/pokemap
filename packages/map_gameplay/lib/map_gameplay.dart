@@ -1,5 +1,8 @@
 library map_gameplay;
 
+export 'src/border_directed_jump_binding.dart';
+export 'src/directed_jump_plan.dart';
+
 export 'src/moving_platform_gameplay.dart';
 
 export 'src/collision/border_collision_geometry.dart'
@@ -128,11 +131,12 @@ export 'src/gameplay_movement_effect.dart'
     show GameplayMovementEffect, GameplayMovementEffectKind;
 export 'src/grid_pathfinder.dart'
     show GridCellPassability, GridPathfindingResult, GridPathfinder;
-export 'src/gameplay_step.dart' show stepGameplayWorld;
+export 'src/gameplay_step.dart' show stepGameplayWorld, resolveGameplayArrival;
 export 'src/gameplay_step_result.dart'
     show
         GameplayStepResult,
         Moved,
+        Jumped,
         Blocked,
         WarpTriggered,
         ConnectionTriggered,

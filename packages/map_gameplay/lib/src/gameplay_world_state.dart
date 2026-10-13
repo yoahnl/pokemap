@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import 'direction.dart';
+import 'border_directed_jump_binding.dart';
 import 'gameplay_exceptions.dart';
 import 'movement_block_reason.dart';
 import 'gameplay_player_state.dart';
@@ -41,10 +44,11 @@ class GameplayWorldState {
   GameplayWorldState._({
     required this.map,
     required this.player,
+    required this.borderJumpBindings,
     required List<bool> tileCollisionCellCache,
     required List<bool> placedElementCellCollisionCache,
     required WorldCollisionStorage staticCollisionStorage,
-    required Map<int, MapEntity> blockingEntityByPos,
+    required Map<int, List<MapEntity>> blockingEntityByPos,
     required Map<int, List<MapWarp>> warpCandidatesByPos,
     required Map<int, MapEntity> entityByPos,
     required Map<int, PlacedElementBehaviorActivation> actionBehaviorByPos,
@@ -90,6 +94,8 @@ class GameplayWorldState {
         worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
             height: tileHeight <= 0 ? 16 : tileHeight));
+    map = _captureBorderJumpMap(map, project);
+    final borderBindings = _bindBorderJumps(map, project, tileWidth, tileHeight);
     final blockingEntities = _buildBlockingEntityByPos(
       map,
       npcPresence: npcMapPresencePredicate,
@@ -115,6 +121,7 @@ class GameplayWorldState {
         mapWidthCells: map.size.width,
         mapHeightCells: map.size.height,
       ),
+      borderJumpBindings: borderBindings,
       tileCollisionCellCache: tileCollisionCellCache,
       placedElementCellCollisionCache: placedElementCellCollisionCache,
       blockingEntityByPos: blockingEntities,
@@ -201,6 +208,8 @@ class GameplayWorldState {
         worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
             height: tileHeight <= 0 ? 16 : tileHeight));
+    map = _captureBorderJumpMap(map, project);
+    final borderBindings = _bindBorderJumps(map, project, tileWidth, tileHeight);
     final player = resolveInitialPlayerSpawn(
       map,
       tileWidthPx: tileWidth,
@@ -238,6 +247,7 @@ class GameplayWorldState {
     final world = GameplayWorldState._(
       map: map,
       player: player,
+      borderJumpBindings: borderBindings,
       tileCollisionCellCache: cache,
       placedElementCellCollisionCache: placedElementCellCollisionCache,
       staticCollisionStorage: staticCollisionStorage,
@@ -307,6 +317,7 @@ class GameplayWorldState {
 
   final MapData map;
   final GameplayPlayerState player;
+  final List<BorderDirectedJumpBinding> borderJumpBindings;
 
   /// Filtre optionnel de présence des PNJ sur la grille (voir [NpcMapPresencePredicate]).
   final NpcMapPresencePredicate? npcMapPresencePredicate;
@@ -318,7 +329,7 @@ class GameplayWorldState {
   final List<bool> _tileCollisionCellCache;
   final List<bool> _placedElementCellCollisionCache;
   final WorldCollisionStorage _staticCollisionStorage;
-  final Map<int, MapEntity> _blockingEntityByPos;
+  final Map<int, List<MapEntity>> _blockingEntityByPos;
   final Map<int, List<MapWarp>> _warpCandidatesByPos;
   final Map<int, MapEntity> _entityByPos;
   final Map<int, PlacedElementBehaviorActivation> _actionBehaviorByPos;
@@ -363,19 +374,21 @@ class GameplayWorldState {
         : rect.topPx + rect.heightPx;
     for (var y = top ~/ _tileHeight; y <= (bottom - 1) ~/ _tileHeight; y++) {
       for (var x = left ~/ _tileWidth; x <= (right - 1) ~/ _tileWidth; x++) {
-        final entity = _blockingEntityByPos[y * map.size.width + x];
-        if (entity == null) continue;
-        final obstacle = resolveEntityCollisionRectPx(
-          entity,
-          tileWidthPx: _tileWidth,
-          tileHeightPx: _tileHeight,
-        );
-        final moving = entity.kind == MapEntityKind.npc ? contact : rect;
-        if (moving.leftPx < obstacle.leftPx + obstacle.widthPx &&
-            moving.leftPx + moving.widthPx > obstacle.leftPx &&
-            moving.topPx < obstacle.topPx + obstacle.heightPx &&
-            moving.topPx + moving.heightPx > obstacle.topPx) {
-          return true;
+        final entities = _blockingEntityByPos[y * map.size.width + x];
+        if (entities == null) continue;
+        for (final entity in entities) {
+          final obstacle = resolveEntityCollisionRectPx(
+            entity,
+            tileWidthPx: _tileWidth,
+            tileHeightPx: _tileHeight,
+          );
+          final moving = entity.kind == MapEntityKind.npc ? contact : rect;
+          if (moving.leftPx < obstacle.leftPx + obstacle.widthPx &&
+              moving.leftPx + moving.widthPx > obstacle.leftPx &&
+              moving.topPx < obstacle.topPx + obstacle.heightPx &&
+              moving.topPx + moving.heightPx > obstacle.topPx) {
+            return true;
+          }
         }
       }
     }
@@ -405,8 +418,9 @@ class GameplayWorldState {
       cellX,
       cellY,
       isDynamicCellBlocked: (index) {
-        final entity = _blockingEntityByPos[index];
-        return entity != null && entity.id != ignoredEntityId;
+        final entities = _blockingEntityByPos[index];
+        return entities != null &&
+            entities.any((entity) => entity.id != ignoredEntityId);
       },
     );
   }
@@ -591,6 +605,7 @@ class GameplayWorldState {
         tileCollisionCellCache: _tileCollisionCellCache,
         placedElementCellCollisionCache: _placedElementCellCollisionCache,
         staticCollisionStorage: _staticCollisionStorage,
+      borderJumpBindings: borderJumpBindings,
         blockingEntityByPos: _blockingEntityByPos,
         warpCandidatesByPos: _warpCandidatesByPos,
         entityByPos: _entityByPos,
@@ -622,6 +637,7 @@ class GameplayWorldState {
       tileCollisionCellCache: _tileCollisionCellCache,
       placedElementCellCollisionCache: _placedElementCellCollisionCache,
       staticCollisionStorage: _staticCollisionStorage,
+      borderJumpBindings: borderJumpBindings,
       blockingEntityByPos: newBlocking,
       entityByPos: _buildEntityByPos(
         map,
@@ -659,6 +675,7 @@ class GameplayWorldState {
       tileCollisionCellCache: _tileCollisionCellCache,
       placedElementCellCollisionCache: _placedElementCellCollisionCache,
       staticCollisionStorage: _staticCollisionStorage,
+      borderJumpBindings: borderJumpBindings,
       blockingEntityByPos: newBlocking,
       entityByPos: _buildEntityByPos(
         map,
@@ -726,6 +743,7 @@ class GameplayWorldState {
       tileCollisionCellCache: _tileCollisionCellCache,
       placedElementCellCollisionCache: _placedElementCellCollisionCache,
       staticCollisionStorage: _staticCollisionStorage,
+      borderJumpBindings: borderJumpBindings,
       // Les entités bloquantes et interactives doivent refléter la nouvelle map.
       blockingEntityByPos: newBlocking,
       entityByPos: _buildEntityByPos(
@@ -1094,13 +1112,13 @@ bool _includeMapEntityInSpatialCaches(
   return npcPresence(map.id, entity);
 }
 
-Map<int, MapEntity> _buildBlockingEntityByPos(
+Map<int, List<MapEntity>> _buildBlockingEntityByPos(
   MapData map, {
   NpcMapPresencePredicate? npcPresence,
   MapEntityPresencePredicate? entityPresence,
 }) {
   final w = map.size.width;
-  final result = <int, MapEntity>{};
+  final result = <int, List<MapEntity>>{};
   for (final entity in map.entities) {
     if (!_includeMapEntityInSpatialCaches(
       map,
@@ -1118,10 +1136,13 @@ Map<int, MapEntity> _buildBlockingEntityByPos(
           cell.y >= map.size.height) {
         continue;
       }
-      result[cell.y * w + cell.x] = entity;
+      (result[cell.y * w + cell.x] ??= []).add(entity);
     }
   }
-  return result;
+  return Map.unmodifiable({
+    for (final entry in result.entries)
+      entry.key: List<MapEntity>.unmodifiable(entry.value),
+  });
 }
 
 Map<int, MapEntity> _buildEntityByPos(
@@ -1397,4 +1418,48 @@ extension GameplayWorldStateCollisionStorageDiagnostics on GameplayWorldState {
       _staticCollisionStorage.allocatedPixelMaskChunkCount;
   int get debugAllocatedPixelMaskWordCount =>
       _staticCollisionStorage.allocatedPixelMaskWordCount;
+}
+
+List<BorderDirectedJumpBinding> _bindBorderJumps(
+  MapData map,
+  ProjectManifest? project,
+  int tileWidth,
+  int tileHeight,
+) {
+  final features = map.layers.whereType<BorderLayer>()
+      .expand((layer) => layer.content.features).toList(growable: false);
+  if (features.isEmpty) return const [];
+  if (project == null) {
+    throw const ValidationException('Border world requires a project context');
+  }
+  var hasJump = false;
+  for (final feature in features) {
+    final revision = project.borderCatalog
+        .recordById(feature.blueprintId)?.latestPublished;
+    if (revision == null) {
+      throw const ValidationException('Border world requires a published blueprint');
+    }
+    hasJump |= revision.definition.jumpBehavior != null;
+  }
+  if (!hasJump) return const [];
+  return bindMaterializedBorderJumpFaces(
+    map: map,
+    project: project,
+    tileSize: PixelSize(
+      width: tileWidth <= 0 ? 16 : tileWidth,
+      height: tileHeight <= 0 ? 16 : tileHeight,
+    ),
+  );
+}
+
+MapData _captureBorderJumpMap(MapData map, ProjectManifest? project) {
+  if (project == null) return map;
+  final hasJump = map.layers.whereType<BorderLayer>()
+      .expand((layer) => layer.content.features)
+      .any((feature) => project.borderCatalog
+        .recordById(feature.blueprintId)?.latestPublished
+        ?.definition.jumpBehavior != null);
+  return hasJump
+      ? MapData.fromJson(jsonDecode(jsonEncode(map.toJson())) as Map<String, dynamic>)
+      : map;
 }

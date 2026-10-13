@@ -839,3 +839,65 @@ Cwd de la copie privée `packages/map_editor` :
 Les reçus finaux Editor attestent protectedUnchanged, pins stables et aucun survivant ; aucun GUI. Critique indépendante finale ac15_connection_review_fresh : aucun P1/P2 sur les13chemins, pins/patch/inverse/closure5431 et reçus exacts. La paire de tests widgets/controllers n'est pas un parcours natif du produit. Le picker de l'application `apps/avelune_studio` et la réouverture/modification réelle du projet restent à qualifier.
 
 Git de cette tranche :43chemins code/tests + ce rapport existant. Le staging doit être constitué des seuls blobs privés gelés ; les hunks foreign dans les fichiers mixtes et les prototypes gameplay/runtime/source restent dans le worktree. Le reçu externe `ledge-host-integration-01/ledge-commit-01.json` porte SHA/parent,44blobs, index final et hashes/modes avant/après du host. Aucun push/rebase/PR ; aucune création de Markdown. AC15 reste DOING/PARTIAL, sans nouvelle famille ni Gate bêta. Le binder gameplay est une tranche suivante distincte, bloquée sur son P2 de coût avant intégration ; aucun saut jouable n'est revendiqué dans ce commit.
+
+
+## Complément AC-15 — admission gameplay des rebords natifs, 13 octobre 2026
+
+Portée : permission de saut issue d'un Border `ledgeLine` V7 matérialisé et canonique, dans `map_gameplay` pur Dart. Cette tranche remplace le prototype à zones dans le gameplay. Elle ne livre pas encore l'animation Player, la réservation runtime d'arrivée, le composer Kanto, le picker de la nouvelle application Studio ni une qualification visuelle. Le but complet Kanto ouvrable, modifiable et jouable demeure inchangé ; AC-15 reste DOING/PARTIAL et FG-120 PARTIAL. La roadmap n'est pas modifiée ; frontières FG-014 et FG-067 conservées.
+
+Audit initial : HEAD `a0dd22006751a71e9f1bf9da92967802b1a4f9bb`, branche main, index vide, 82 chemins dirty. Quatre fichiers de production gameplay et trois fichiers de prototype/test déjà présents appartenaient à cette conversion ; les autres chantiers mobile, Studio/3D et transports sont préservés. Le binder privé gel02 part de `1ddeb9ad6e07d7daa7a22f267c9ffe0f27b3628d` avec les 18 dépendances core exactes du commit a0dd220. Aucun patch 3D étranger n'entre dans cette tranche.
+
+Le binder valide ProjectManifest et MapData avant d'admettre les références. Il re-résout le tracé ledgeLine et compare exactement la matérialisation finale complète, plutôt que de faire confiance au seul statut fresh d'un receipt recalculé. Une permission lie map, couche, feature, placement final, arête typée, carrier entier, normale physique, direction permise et fingerprints. Une collision propriétaire doit couvrir exactement toute la cellule B ; contact extérieur, trou, owner inconnu, ambiguïté ou deux owners du même carrier sont refusés. Les suppressions et keep-outs ne laissent aucune permission fantôme. Les maps de saut sont capturées en profondeur avant de garder les bindings statiques.
+
+Le déplacement évalue A, B et C avec le décalage et les footprints réels du joueur. A et C ne bénéficient d'aucune exclusion. En B, seul le owner sélectionné est ignoré, uniquement dans son aire ; collisions de base, autres Borders, éléments, entités, eau et réservations restent actives. Un saut sélectionné puis bloqué ne retombe pas sur une marche ordinaire. La permission inversée ne change aucun placement visuel. Jumped porte un plan pur ; les effets d'arrivée sont différés au consommateur runtime, tandis que la marche conserve le helper canonique d'arrivée.
+
+Deux P2 de la critique ont été fermés avant intégration :
+
+- Matching quadratique : index local construit une fois à partir des endpoints/carriers typés ; un lookup par edge, sans parsing des clés opaques. Huit caractérisations sur dix arêtes, quatre directions et deux côtés passent avant/après. Ce résultat ne mesure pas la latence totale d'un grand monde.
+- Collision superposée : un PNJ après un panneau au même C masquait le contact du panneau. Contrepreuve fonctionnelle 1PASS/1FAIL, Expected Blocked / Actual Jumped ; cache désormais immutable de toutes les entités bloquantes par cellule, avec query des contacts exacts. Présence et déplacement reconstruisent la liste, ignorer un ID laisse les autres bloqueurs actifs. Le cache d'interaction reste inchangé. Les régressions couvrent les deux ordres, offset -20px et marche ordinaire.
+
+Inventaire complet des dix fichiers de cette tranche ; le diff Git est l'autorité des zones précises :
+
+| Chemin | Zones et résultat |
+| --- | --- |
+| `packages/map_gameplay/lib/map_gameplay.dart` | exports binding/plan/Jumped/helper arrivée ; API publique pure |
+| `packages/map_gameplay/lib/src/border_directed_jump_binding.dart` | nouveau binder, replay canonique exact, index typé et union couvrant B |
+| `packages/map_gameplay/lib/src/directed_jump_plan.dart` | nouveau plan immuable lié au binding Border, positions A/B/C et présentation |
+| `packages/map_gameplay/lib/src/gameplay_step.dart` | évaluation prioritaire du saut, admission stricte A/B/C et extraction resolveGameplayArrival |
+| `packages/map_gameplay/lib/src/gameplay_step_result.dart` | résultat Jumped distinct des conséquences d'arrivée |
+| `packages/map_gameplay/lib/src/gameplay_world_state.dart` | capture map, bindings statiques partagés, query owner-exclusion et cache complet des entités |
+| `packages/map_gameplay/test/border_directed_jump_binding_test.dart` | nouveaux cas canonicalité, quatre normales, overrides, ambiguïté, références et aliasing |
+| `packages/map_gameplay/test/gameplay_arrival_test.dart` | nouveaux tests du helper d'arrivée : warp/connection/hazard/event et marche |
+| `packages/map_gameplay/test/gameplay_directed_jump_test.dart` | nouvelle matrice de déplacement, garde-fous collisions/eau/bounds/offsets/réservations et overlap |
+| `packages/map_gameplay/test/support/border_jump_fixture.dart` | nouveau fixture de vrais Borders natifs synthétiques, sans média source ni production dépendant des tests |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | ce complément consolidé, aucune nouvelle documentation |
+
+Nettoyage possédé hors diff commit : les cinq lignes non commitées du prototype dans `test/border_collision_ownership_test.dart` qui appelaient ignoredStaticCell ont été supprimées après un échec de compilation du run host. Le fichier est maintenant byte-exact HEAD, sans perte des onze tests d'ownership strict. Le reçu `binder-host-integration-01/obsolete-test-cleanup-01.json` atteste avant/après ; aucun fichier étranger n'a été remplacé par ce nettoyage.
+
+Preuves gelées sous `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/border-jump-gameplay-private-h_hwe48d` : pins02 SHA `9bb6a281161aca363965d10e68478c742c39ee1e83ba9997f6b7bada06bd7272`, patch02 SHA `32888e23afb5437130cd4118333f382709163e31a52c5a4a3b99739ad2852c2b`, ledger02 SHA `8ebb37b2d8d7edf57f5da2eb829f003664262b0c1591b2f398c1cc40577266ce`. Dix blobs propres, 18 core, fermeture production 555 fichiers SHA `9d3487d249bd180fb3eb05dade7d7d70f2a68ce0ce20d4266a09dc0c078b957e`. Root et reviewer recomputent pins, reçus, logs et fermeture ; l'inversion du patch restitue les quatre baselines et retire exactement les six nouveaux fichiers.
+
+Depuis `packages/map_gameplay` de la copie privée, puis du host pour les deux dernières lignes :
+
+| Commande / reçu | Résultat exact |
+| --- | --- |
+| `dart test test/border_directed_jump_binding_test.dart test/gameplay_directed_jump_test.dart test/gameplay_arrival_test.dart test/border_collision_ownership_test.dart test/npc_map_presence_predicate_test.dart test/npc_default_collision_footprint_test.dart test/gameplay_world_state_entity_move_test.dart test/gameplay_world_state_collision_storage_characterization_test.dart test/runtime_movement_collision_regression_test.dart --concurrency=1 --reporter expanded` | gel02 :109PASS, exit0,4.601s ;82matrice+27régressions |
+| `dart analyze` | gel02 :exit0,1.912s ;0erreur/0warning/1INFO unnecessary_library_name préexistante |
+| `dart compile kernel tool/qa_border_jump_kernel.dart -o <QA>/border-jump-kernel-02.dill` puis `dart <QA>/border-jump-kernel-02.dill` | compilation exit0/3.128s ; quatre traces cardinales synthétiques exit0/0.749s ; meilleur build alternatif du package pur, pas une build GUI |
+| même commande ciblée de neuf suites sur le host, reçu `binder-host-integration-01/host-focused-02.json` |109PASS, exit0,4.290s ; test ownership byte-exact HEAD |
+| `dart analyze lib/map_gameplay.dart lib/src/border_directed_jump_binding.dart lib/src/directed_jump_plan.dart lib/src/gameplay_step.dart lib/src/gameplay_step_result.dart lib/src/gameplay_world_state.dart test/border_directed_jump_binding_test.dart test/gameplay_arrival_test.dart test/gameplay_directed_jump_test.dart test/support/border_jump_fixture.dart` sur host |exit0,2.783s ; unique INFO unnecessary_library_name, aucune erreur/warning |
+
+La suite complète historique reste 827PASS/2FAIL en67.913s, antérieure aux derniers correctifs et PARTIAL. Le benchmark refuse l'archive sans racine Git (exit64) ; aucun .git factice créé. L'autre échec `spatial_map_navigation_test.dart:112`, Expected StateError / Actual SpatialMovementController, est reproduit frais par root sur archive pure HEAD a0dd220 puis avec le candidat exact : exit1/6.138s et exit1/1.605s, logs byte-identiques SHA `d8160587a19b61a15881af462c000c0f8723ae3290cbb2456e60ef877468d463`. Ce diagnostic est distinct du saut ; aucun correctif 3D/spatial n'est ajouté. Premier run host98PASS/1loadingFAIL est conservé comme preuve du test prototype obsolète ; le rerun final109PASS ne maquille pas ce premier résultat. Aucun full GREEN revendiqué.
+
+Tous les runs finaux ont pins avant/après stables, protectedUnchanged=true, aucun timeout/signal/survivant confirmé. Chaque runner et ses descendants ont été observés et aucune application GUI n'a été ouverte. Les opérations Git autorisées restent le seul commit local de ces dix blobs et du rapport ; aucun push/rebase/PR. Le reçu externe `binder-host-integration-01/binder-commit-01.json` porte parent, SHA, onze blobs exacts, index final et conservation des fichiers host avant/après commit.
+
+Parité : le binder ne crée pas une nouvelle action d'auteur ou un transport. Il consomme les contrats Border V7 déjà publiables par l'API et le MCP du commit a0dd220 ; aucune modification `map_authoring`/serveur dans cette tranche. La preuve précédente publish/reopen ne qualifie toujours pas la matérialisation map via MCP, ni le picker Studio moderne, ni un déplacement Player. PMCP-085 global demeure PARTIAL. Ces bornes restent requises lors du composer final et de la qualification réelle.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root et ac12_semantics | owner matériel réel, replay complet, empreintes A/B/C et snapshot canonique obligatoires |
+| Implémentation ac12_semantics | dix blobs gel02, deux P2 fermés, aucun code zone ajouté |
+| Tests ac12_semantics / root |109privés et109host ; contrepreuve overlap réelle ; spatial baseline isolée fraîche identique |
+| Build/Validation ac12_semantics / root | kernel pur quatre traces et analyse package/host ; pas de build Flutter/GUI attribuée |
+| Critique indépendante ac15_connection_review_fresh | aucun P1/P2 dans gel02 ; patch/inverse/pins/closure et reçus vérifiés, intégration host vérifiée ensuite par root |
+
+Auto-critique : la permission pure ne prouve ni disponibilité des trois médias source, ni passage animé, ni réservation NPC runtime, ni son/image/profondeur de Route9. Les autres prototypes zone restent non committés et doivent être remplacés par les consommateurs définitifs. Les 119 décisions source statiques ne sont pas 119 parcours Player. Prochaine tranche distincte : port runtime et réception réservée, composition native des trois modules source avec Z1 consommé précisément et tous les masques conservés, puis parcours réel Studio/Player fermé après usage. AC15 reste DOING/PARTIAL, Gate bêta inchangée.

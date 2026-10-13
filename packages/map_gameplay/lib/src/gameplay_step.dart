@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'collision/pixel_movement_resolver.dart';
+import 'collision/border_collision_geometry.dart';
+import 'directed_jump_plan.dart';
 import 'direction.dart';
 import 'gameplay_hazard.dart';
 import 'gameplay_intent.dart';
@@ -29,6 +31,11 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
   final feet = facingWorld.player.pos;
   final nextCellX = feet.x + direction.dx;
   final nextCellY = feet.y + direction.dy;
+  final jump = step > 0
+      ? _resolveBorderJump(facingWorld, direction,
+          GridPos(x: nextCellX, y: nextCellY), characterReservations)
+      : null;
+  if (jump != null) return jump;
   final isOutOfBounds = nextCellX < 0 ||
       nextCellY < 0 ||
       nextCellX >= facingWorld.map.size.width ||
@@ -137,7 +144,13 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
       pos: newGridPos,
     ),
   );
-  final previousPos = facingWorld.player.pos;
+  return resolveGameplayArrival(movedWorld,
+      previousPos: facingWorld.player.pos, direction: direction);
+}
+
+GameplayStepResult resolveGameplayArrival(GameplayWorldState world,
+    {required GridPos previousPos, required Direction direction}) {
+  final movedWorld = world;
   final targetPos = movedWorld.player.pos;
 
   final warp = movedWorld.warpOnEnterAt(
@@ -177,6 +190,119 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
     hazardEffect: _resolveHazardEffectAt(movedWorld, targetPos),
   );
 }
+
+GameplayStepResult? _resolveBorderJump(
+  GameplayWorldState world,
+  Direction direction,
+  GridPos via,
+  Iterable<PixelRect> reservations,
+) {
+  final matching = world.borderJumpBindings.where((binding) =>
+    binding.mapId == world.map.id &&
+    binding.carrierCell == via &&
+    binding.allowedDirection == direction
+  ).toList(growable: false);
+  if (matching.isEmpty) return null;
+  if (matching.length != 1) return Blocked(world);
+  final binding = matching.single;
+  final sourceCell = GridPos(
+    x: via.x - direction.dx,
+    y: via.y - direction.dy,
+  );
+  final landing = GridPos(
+    x: via.x + direction.dx,
+    y: via.y + direction.dy,
+  );
+  final source = world.player.playerPositionPx;
+  final viaPosition = PixelPosition(
+    leftPx: source.leftPx + direction.dx * world.tileWidthPx,
+    topPx: source.topPx + direction.dy * world.tileHeightPx,
+  );
+  final landingPosition = PixelPosition(
+    leftPx: source.leftPx + direction.dx * world.tileWidthPx * 2,
+    topPx: source.topPx + direction.dy * world.tileHeightPx * 2,
+  );
+  final obstacles = reservations.toList(growable: false);
+  final exclusion = BorderCollisionExclusion(
+    owners: {binding.owner},
+    area: binding.carrierArea,
+  );
+  for (final (cell, position, borderExclusion) in [
+    (sourceCell, source, null),
+    (via, viaPosition, exclusion),
+    (landing, landingPosition, null),
+  ]) {
+    final rect = PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+      spriteTopLeftPx: position,
+      spriteWidthPx: world.player.playerSpriteWidthPx,
+      spriteHeightPx: world.player.playerSpriteHeightPx,
+    );
+    final contact = world.playerCharacterContactRect(rect);
+    final anchor = rect.bottomCenterPx;
+    if (!_jumpRectInBounds(world, rect) ||
+        !_jumpRectInBounds(world, contact) ||
+        GridPos(
+          x: anchor.xPx ~/ world.tileWidthPx,
+          y: anchor.yPx ~/ world.tileHeightPx,
+        ) != cell ||
+        world.player.pos != sourceCell) {
+      return Blocked(world, reason: GameplayMovementBlockReason.outOfBounds);
+    }
+    if (world.player.movementMode != MovementMode.surf) {
+      for (final area in [rect, contact]) {
+        for (var y = area.topPx ~/ world.tileHeightPx;
+            y <= (area.topPx + area.heightPx - 1) ~/ world.tileHeightPx;
+            y++) {
+          for (var x = area.leftPx ~/ world.tileWidthPx;
+              x <= (area.leftPx + area.widthPx - 1) ~/ world.tileWidthPx;
+              x++) {
+            if (world.isWaterCell(x, y)) {
+              return Blocked(world, reason: GameplayMovementBlockReason.waterRequiresSurf);
+            }
+          }
+        }
+      }
+    }
+    if (world.worldStaticObstaclesCollidePixelRect(
+          rect,
+          playerContact: true,
+          borderExclusion: borderExclusion,
+        ) ||
+        obstacles.any((obstacle) => _jumpRectsIntersect(contact, obstacle))) {
+      return Blocked(world);
+    }
+  }
+  final plan = DirectedJumpPlan(
+    binding: binding,
+    direction: direction,
+    sourcePos: sourceCell,
+    viaPos: via,
+    landingPos: landing,
+    sourcePositionPx: source,
+    landingPositionPx: landingPosition,
+    durationMs: binding.durationMs,
+    peakHeightPx: binding.peakHeightPx,
+  );
+  return Jumped(
+    world.withPlayer(world.player.copyWith(
+      pos: landing,
+      playerPositionPx: landingPosition,
+    )),
+    plan: plan,
+  );
+}
+
+bool _jumpRectInBounds(GameplayWorldState world, PixelRect rect) =>
+  rect.leftPx >= 0 &&
+  rect.topPx >= 0 &&
+  rect.leftPx + rect.widthPx <= world.map.size.width * world.tileWidthPx &&
+  rect.topPx + rect.heightPx <= world.map.size.height * world.tileHeightPx;
+
+bool _jumpRectsIntersect(PixelRect a, PixelRect b) =>
+  a.leftPx < b.leftPx + b.widthPx &&
+  a.leftPx + a.widthPx > b.leftPx &&
+  a.topPx < b.topPx + b.heightPx &&
+  a.topPx + a.heightPx > b.topPx;
 
 GameplayHazardEffect? _resolveHazardEffectAt(
   GameplayWorldState world,

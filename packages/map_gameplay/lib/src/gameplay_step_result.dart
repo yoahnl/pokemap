@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'gameplay_hazard.dart';
+import 'directed_jump_plan.dart';
 import 'gameplay_movement_effect.dart';
 import 'movement_block_reason.dart';
 import 'gameplay_world_state.dart';
@@ -56,6 +57,11 @@ final class Blocked extends GameplayStepResult {
   });
 
   final GameplayMovementBlockReason reason;
+}
+
+final class Jumped extends GameplayStepResult {
+  const Jumped(super.world, {required this.plan});
+  final DirectedJumpPlan plan;
 }
 
 final class WarpTriggered extends GameplayStepResult {
