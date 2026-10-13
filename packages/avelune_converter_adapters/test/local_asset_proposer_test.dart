@@ -55,6 +55,34 @@ Future<LiteralTileComposition> _usedTileLiteral(
   return literal;
 }
 
+Future<LiteralTileFixture> _manyTileFixture(
+    {int firstCount = 140, int secondCount = 140}) {
+  final raster = image.Image(width: 256, height: 1792, numChannels: 4);
+  for (var y = 0; y < raster.height; y++) {
+    for (var x = 0; x < raster.width; x++) {
+      raster.setPixelRgba(x, y, x % 251, y % 241, (x + y) % 239, 255);
+    }
+  }
+  return LiteralTileFixture.create(
+      namespace: 'original-many-map-tiles',
+      tilesets: [
+        LiteralFixtureTileset(
+            id: 1, metadataTileCount: 832, png: image.encodePng(raster))
+      ],
+      maps: [
+        for (final record in [(1, firstCount), (8, secondCount)])
+          LiteralFixtureMap(
+              id: record.$1,
+              width: record.$2,
+              height: 1,
+              layers: [
+                List.generate(record.$2, (index) => 384 + index),
+                List.filled(record.$2, 0),
+                List.filled(record.$2, 0),
+              ])
+      ]);
+}
+
 Future<LocalAssetProposalSet> _usedTiles(
         LiteralTileFixture fixture, LiteralTileComposition literal,
         {LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
@@ -89,9 +117,8 @@ Future<LocalAssetProposalSet> _propose(
 Matcher _failure(String code) =>
     isA<ContractError>().having((e) => e.code, 'code', code);
 
-Future<LiteralTileFixture> _mapFileLookupFixture() => LiteralTileFixture.create(
-    namespace: 'original-map-file-lookup',
-    maps: [
+Future<LiteralTileFixture> _mapFileLookupFixture() =>
+    LiteralTileFixture.create(namespace: 'original-map-file-lookup', maps: [
       LiteralFixtureMap(id: 1, width: 2, height: 1, layers: const [
         [384, 384],
         [391, 0],
@@ -105,6 +132,208 @@ Future<LiteralTileFixture> _mapFileLookupFixture() => LiteralTileFixture.create(
     ]);
 
 void main() {
+  test(
+      'map segments preserve all proposal identities geometry and exact claims',
+      () async {
+    final fixture = await _usedTileFixture(mapWidth: 5, mapHeight: 2);
+    final literal = await _usedTileLiteral(fixture);
+    final whole = await _usedTiles(fixture, literal,
+        limits: const LocalAssetProposalLimits(maxCandidates: 512));
+    fixture.files.reads.clear();
+    final segmented = await const LocalAssetProposer().proposeByMap(
+        source: fixture.source,
+        files: fixture.files,
+        literal: literal,
+        limits: const LocalAssetProposalLimits(maxCandidates: 512));
+    expect(segmented.keys, [1, 8]);
+    final combined = [
+      for (final segment in segmented.values) ...segment.candidates,
+    ]..sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
+    expect(combined.map((c) => c.toJson()).toList(),
+        whole.candidates.map((c) => c.toJson()).toList());
+    expect({
+      for (final segment in segmented.values)
+        for (final entry in segment.placementClaims.entries)
+          entry.key: entry.value.map((claim) => claim.toJson()).toList()
+    }, {
+      for (final entry in whole.placementClaims.entries)
+        entry.key: entry.value.map((claim) => claim.toJson()).toList()
+    });
+    for (final entry in segmented.entries) {
+      expect(entry.value.normalizedSourceHash, fixture.source.canonicalHash);
+      expect(entry.value.sourceSnapshotHash, fixture.snapshot.canonicalHash);
+      expect(entry.value.literalCompositionHash, whole.literalCompositionHash);
+      expect(entry.value.sourceImages.map((s) => s.toJson()).toList(),
+          whole.sourceImages.map((s) => s.toJson()).toList());
+      expect(
+          entry.value.candidates
+              .expand((c) => c.parts)
+              .map((p) => p.locator.mapId),
+          everyElement(entry.key));
+      expect(
+          entry.value.placementClaims.values
+              .expand((claims) => claims)
+              .map((claim) => claim.sourceMapId),
+          everyElement(entry.key));
+    }
+    expect(fixture.files.reads, hasLength(1));
+    expect(() => segmented.clear(), throwsUnsupportedError);
+  });
+
+  test('map segments order is canonical despite inventory permutation',
+      () async {
+    final first = await _usedTileFixture(mapWidth: 3, mapHeight: 1);
+    final second = await _usedTileFixture(
+        reverseManifest: true, mapWidth: 3, mapHeight: 1);
+    Future<Map<int, LocalAssetProposalSet>> read(
+        LiteralTileFixture fixture) async {
+      final literal = await _usedTileLiteral(fixture);
+      return const LocalAssetProposer().proposeByMap(
+          source: fixture.source, files: fixture.files, literal: literal);
+    }
+
+    final a = await read(first);
+    final b = await read(second);
+    expect({for (final e in a.entries) e.key: e.value.toJson()},
+        {for (final e in b.entries) e.key: e.value.toJson()});
+  });
+
+  test('map segments retain cumulative claims and usage quotas', () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    for (final limits in [
+      const LocalAssetProposalLimits(maxCandidates: 512, maxTotalClaims: 5),
+      const LocalAssetProposalLimits(
+          maxCandidates: 512, maxUsageComparisons: 11),
+      const LocalAssetProposalLimits(maxCandidates: 3),
+    ]) {
+      await expectLater(
+          const LocalAssetProposer().proposeByMap(
+              source: fixture.source,
+              files: fixture.files,
+              literal: literal,
+              limits: limits),
+          throwsA(_failure('asset.proposal.quota')));
+    }
+  });
+
+  test('map segments reject invalid per-map limits before source reads',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    for (final invalid in [0, -1, 257]) {
+      fixture.files.reads.clear();
+      await expectLater(
+          const LocalAssetProposer().proposeByMap(
+              source: fixture.source,
+              files: fixture.files,
+              literal: literal,
+              maxCandidatesPerMap: invalid),
+          throwsA(_failure('asset.proposal.limits')));
+      expect(fixture.files.reads, isEmpty);
+    }
+  });
+
+  test('map segments refuse any per-map excess without retaining a subset',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source,
+            files: fixture.files,
+            literal: literal,
+            limits: const LocalAssetProposalLimits(maxCandidates: 512),
+            maxCandidatesPerMap: 1),
+        throwsA(_failure('asset.proposal.quota')));
+  });
+
+  test('map segments preserve cancellation and source byte drift refusal',
+      () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    fixture.files.reads.clear();
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source,
+            files: fixture.files,
+            literal: literal,
+            cancellation: ScanCancellation()..cancel()),
+        throwsA(_failure('source.cancelled')));
+    expect(fixture.files.reads, isEmpty);
+    final file = fixture.snapshot.entries
+        .singleWhere((e) => e.relativePath.startsWith('Graphics/Tilesets/'));
+    fixture.files.overrides[file.relativePath] = [0, 1, 2];
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source, files: fixture.files, literal: literal),
+        throwsA(_failure('asset.proposal.source_changed')));
+  });
+
+  test(
+      'map segments admit 280 exact seeds only under explicit cumulative budget',
+      () async {
+    final fixture = await _manyTileFixture();
+    final literal = await _usedTileLiteral(fixture);
+    final whole = await _usedTiles(fixture, literal,
+        limits: const LocalAssetProposalLimits(maxCandidates: 512));
+    expect(whole.candidates, hasLength(280));
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source, files: fixture.files, literal: literal),
+        throwsA(_failure('asset.proposal.quota')));
+    final byMap = await const LocalAssetProposer().proposeByMap(
+        source: fixture.source,
+        files: fixture.files,
+        literal: literal,
+        limits: const LocalAssetProposalLimits(maxCandidates: 512));
+    expect(byMap[1]!.candidates, hasLength(140));
+    expect(byMap[8]!.candidates, hasLength(140));
+    final flattened = byMap.values.expand((set) => set.candidates).toList()
+      ..sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
+    expect(flattened.map((c) => c.toJson()).toList(),
+        whole.candidates.map((c) => c.toJson()).toList());
+    expect(
+        byMap.values
+            .expand((set) => set.placementClaims.values)
+            .expand((claims) => claims),
+        hasLength(280));
+  });
+
+  test('map segments preserve aggregate API but reject one map with 257 seeds',
+      () async {
+    final fixture = await _manyTileFixture(firstCount: 257, secondCount: 2);
+    final literal = await _usedTileLiteral(fixture);
+    expect(
+        (await _usedTiles(fixture, literal,
+                limits: const LocalAssetProposalLimits(maxCandidates: 512)))
+            .candidates,
+        hasLength(259));
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source,
+            files: fixture.files,
+            literal: literal,
+            limits: const LocalAssetProposalLimits(maxCandidates: 512)),
+        throwsA(_failure('asset.proposal.quota')));
+  });
+
+  test('map segments enforce global JSON admission before partition', () async {
+    final fixture = await _mapFileLookupFixture();
+    final literal = await _usedTileLiteral(fixture);
+    const limits = LocalAssetProposalLimits(
+        jsonLimits: ContractLimits(maxNodes: 200));
+    await expectLater(_usedTiles(fixture, literal, limits: limits),
+        throwsA(_failure('json.quota')));
+    await expectLater(
+        const LocalAssetProposer().proposeByMap(
+            source: fixture.source,
+            files: fixture.files,
+            literal: literal,
+            limits: limits),
+        throwsA(_failure('json.quota')));
+  });
+
   test('map file lookup preserves every locator and claim across two maps',
       () async {
     final fixture = await _mapFileLookupFixture();
@@ -115,8 +344,8 @@ void main() {
     };
     final result = await _usedTiles(fixture, literal);
     expect(result.candidates, hasLength(4));
-    expect(result.placementClaims.values.expand((claims) => claims),
-        hasLength(6));
+    expect(
+        result.placementClaims.values.expand((claims) => claims), hasLength(6));
     for (final candidate in result.candidates) {
       final part = candidate.parts.single;
       final map = fixture.source.maps
@@ -162,8 +391,8 @@ void main() {
     final candidate = result.candidates
         .firstWhere((candidate) => candidate.parts.single.locator.mapId == 1);
     final claim = result.placementClaims[candidate.candidateId]!.first;
-    final other = fixture.source.maps
-        .singleWhere((map) => map.map.sourceMapId == 8);
+    final other =
+        fixture.source.maps.singleWhere((map) => map.map.sourceMapId == 8);
     for (final fields in [
       {'sourceMapFileId': other.map.sourceFileId.value},
       {'sourceMapHash': other.canonicalHash.value},
@@ -196,10 +425,10 @@ void main() {
               claims: [changed]),
           throwsA(_failure('review.claim.locator')));
     }
-    final raw = jsonDecode(jsonEncode(candidate.toJson()))
-        as Map<String, dynamic>;
-    final locator = (raw['parts'] as List).single['locator']
-        as Map<String, dynamic>;
+    final raw =
+        jsonDecode(jsonEncode(candidate.toJson())) as Map<String, dynamic>;
+    final locator =
+        (raw['parts'] as List).single['locator'] as Map<String, dynamic>;
     locator['file'] = 'Data/Map008.rxdata';
     final wrongFile = AssetCandidate.fromJson(raw);
     expect(
@@ -227,9 +456,7 @@ void main() {
         profileEvidence: snapshot.profileEvidence,
         state: snapshot.state);
     final source = await const RmxpSourceNormalizer().normalize(
-        snapshot: missing,
-        files: fixture.files,
-        selectedMapIds: {1, 8});
+        snapshot: missing, files: fixture.files, selectedMapIds: {1, 8});
     expect(source.canPlan, isFalse);
     fixture.files.reads.clear();
     await expectLater(

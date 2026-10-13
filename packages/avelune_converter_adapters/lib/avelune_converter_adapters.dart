@@ -29,3 +29,4 @@ export 'src/source_catalog_study_composer.dart';
 export 'src/converter_study_plan_recipe.dart';
 export 'src/local_study_plan_store.dart';
 export 'src/native_study_verifier.dart';
+export 'src/converter_asset_review_set.dart';

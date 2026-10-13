@@ -118,6 +118,28 @@ final class LocalAssetProposalSet {
 final class LocalAssetProposer {
   const LocalAssetProposer();
 
+  Future<Map<int, LocalAssetProposalSet>> proposeByMap({
+    required NormalizedSourceProject source,
+    required SourceFilePort files,
+    required LiteralTileComposition literal,
+    AssetOutputMode outputMode = AssetOutputMode.sharedAtlas,
+    LocalAssetProposalLimits limits = const LocalAssetProposalLimits(),
+    int maxCandidatesPerMap = 256,
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    if (maxCandidatesPerMap <= 0 || maxCandidatesPerMap > 256) {
+      throw ContractError(
+          'asset.proposal.limits', r'$', 'Invalid per-map candidate budget');
+    }
+    final inputs = _AssetInputs(source, literal, outputMode, limits);
+    for (final info in inputs.images.values) {
+      await _readImage(info, files, inputs, cancellation);
+    }
+    return _usedStaticTileSets(inputs, cancellation,
+        maxCandidatesPerMap: maxCandidatesPerMap);
+  }
+
   Future<LocalAssetProposalSet> propose({
     required NormalizedSourceProject source,
     required SourceFilePort files,
@@ -139,31 +161,7 @@ final class LocalAssetProposer {
     var components = 0;
     for (final info in inputs.images.values) {
       cancellation?.check();
-      final List<int> bytes;
-      try {
-        bytes = await files.read(info.entry.fileId);
-      } on Object {
-        cancellation?.check();
-        throw ContractError('asset.proposal.read', info.entry.relativePath,
-            'Source image cannot be read');
-      }
-      cancellation?.check();
-      if (bytes.length != info.entry.byteLength ||
-          crypto.sha256.convert(bytes).toString() != info.entry.sha256!.value) {
-        throw ContractError(
-            'asset.proposal.source_changed',
-            info.entry.relativePath,
-            'Source image bytes differ from the admitted snapshot');
-      }
-      const NativePngValidator().validate(bytes,
-          limits: NativeWriteLimits(maxImagePixels: limits.maxPixels));
-      final decoded = image.decodePng(Uint8List.fromList(bytes));
-      if (decoded == null ||
-          decoded.width != info.width ||
-          decoded.height != info.height) {
-        throw ContractError('asset.proposal.image', info.entry.relativePath,
-            'Source image geometry could not be decoded');
-      }
+      final decoded = await _readImage(info, files, inputs, cancellation);
       if (strategy == LocalAssetProposalStrategy.usedStaticTiles) continue;
       final columns = info.width ~/ 32;
       final rows = info.height ~/ 32;
@@ -442,11 +440,48 @@ final class LocalAssetProposer {
         canonicalHash: canonicalHashOf(record, limits: limits.jsonLimits));
   }
 
-  Future<LocalAssetProposalSet> _usedStaticTiles(
+  Future<image.Image> _readImage(_AssetImage info, SourceFilePort files,
       _AssetInputs inputs, ScanCancellation? cancellation) async {
+    cancellation?.check();
+    final List<int> bytes;
+    try {
+      bytes = await files.read(info.entry.fileId);
+    } on Object {
+      cancellation?.check();
+      throw ContractError('asset.proposal.read', info.entry.relativePath,
+          'Source image cannot be read');
+    }
+    cancellation?.check();
+    if (bytes.length != info.entry.byteLength ||
+        crypto.sha256.convert(bytes).toString() != info.entry.sha256!.value) {
+      throw ContractError(
+          'asset.proposal.source_changed',
+          info.entry.relativePath,
+          'Source image bytes differ from the admitted snapshot');
+    }
+    const NativePngValidator().validate(bytes,
+        limits: NativeWriteLimits(maxImagePixels: inputs.limits.maxPixels));
+    final decoded = image.decodePng(Uint8List.fromList(bytes));
+    if (decoded == null ||
+        decoded.width != info.width ||
+        decoded.height != info.height) {
+      throw ContractError('asset.proposal.image', info.entry.relativePath,
+          'Source image geometry could not be decoded');
+    }
+    return decoded;
+  }
+
+  Future<LocalAssetProposalSet> _usedStaticTiles(
+          _AssetInputs inputs, ScanCancellation? cancellation) async =>
+      (await _usedStaticTileSets(inputs, cancellation)).values.single;
+
+  Future<Map<int, LocalAssetProposalSet>> _usedStaticTileSets(
+      _AssetInputs inputs, ScanCancellation? cancellation,
+      {int? maxCandidatesPerMap}) async {
     final candidates = <(int, int, int), AssetCandidate>{};
     final claims = <ConverterId, List<SourcePlacementClaim>>{};
     final diagnostics = <LocalAssetProposalDiagnostic>[];
+    final perMapCounts = <int, int>{};
     var totalClaims = 0;
     var comparisons = 0;
     for (final map in inputs.maps.values) {
@@ -489,6 +524,12 @@ final class LocalAssetProposer {
             if (candidates.length >= inputs.limits.maxTotalParts) {
               _quota('Used tile total part budget exceeded');
             }
+            if (maxCandidatesPerMap != null &&
+                (perMapCounts[map.sourceMapId] ?? 0) >= maxCandidatesPerMap) {
+              _quota('Used tile per-map candidate budget exceeded');
+            }
+            perMapCounts.update(map.sourceMapId, (count) => count + 1,
+                ifAbsent: () => 1);
             candidate = inputs.usedTileCandidate(cell);
             candidates[key] = candidate;
             claims[candidate.candidateId] = [];
@@ -539,36 +580,62 @@ final class LocalAssetProposer {
     }
     ordered.sort((a, b) => a.candidateId.value.compareTo(b.candidateId.value));
     cancellation?.check();
-    final orderedClaims = {
-      for (final candidate in ordered)
-        candidate.candidateId: claims[candidate.candidateId]!,
-    };
     final sourceImages = inputs.sourceImages();
-    final record = {
-      'kind': 'localAssetProposals',
-      'version': 1,
-      'sourceSnapshotHash': inputs.source.snapshot.canonicalHash.value,
-      'normalizedSourceHash': inputs.source.canonicalHash.value,
-      'literalCompositionHash': inputs.literal.compositionHash.value,
-      'candidates': ordered.map((candidate) => candidate.toJson()).toList(),
-      'diagnostics':
-          diagnostics.map((diagnostic) => diagnostic.toJson()).toList(),
-      'placementClaims': {
-        for (final entry in orderedClaims.entries)
-          entry.key.value: entry.value.map((claim) => claim.toJson()).toList(),
-      },
-      'sourceImages': sourceImages.map((source) => source.toJson()).toList(),
-    };
-    return LocalAssetProposalSet._(
-        candidates: ordered,
-        diagnostics: diagnostics,
-        placementClaims: orderedClaims,
-        sourceImages: sourceImages,
-        sourceSnapshotHash: inputs.source.snapshot.canonicalHash,
-        normalizedSourceHash: inputs.source.canonicalHash,
-        literalCompositionHash: inputs.literal.compositionHash,
-        canonicalHash:
-            canonicalHashOf(record, limits: inputs.limits.jsonLimits));
+    Map<String, Object?> recordOf(List<AssetCandidate> selected,
+            List<LocalAssetProposalDiagnostic> selectedDiagnostics) =>
+        {
+          'kind': 'localAssetProposals',
+          'version': 1,
+          'sourceSnapshotHash': inputs.source.snapshot.canonicalHash.value,
+          'normalizedSourceHash': inputs.source.canonicalHash.value,
+          'literalCompositionHash': inputs.literal.compositionHash.value,
+          'candidates': selected.map((candidate) => candidate.toJson()).toList(),
+          'diagnostics': selectedDiagnostics
+              .map((diagnostic) => diagnostic.toJson())
+              .toList(),
+          'placementClaims': {
+            for (final candidate in selected)
+              candidate.candidateId.value: claims[candidate.candidateId]!
+                  .map((claim) => claim.toJson())
+                  .toList()
+          },
+          'sourceImages': sourceImages.map((source) => source.toJson()).toList(),
+        };
+    final globalHash = canonicalHashOf(recordOf(ordered, diagnostics),
+        limits: inputs.limits.jsonLimits);
+    final results = <int, LocalAssetProposalSet>{};
+    final mapIds = maxCandidatesPerMap == null ? [0] : inputs.maps.keys;
+    for (final mapId in mapIds) {
+      final selected = maxCandidatesPerMap == null
+          ? ordered
+          : ordered
+              .where(
+                  (candidate) => candidate.parts.single.locator.mapId == mapId)
+              .toList();
+      final selectedDiagnostics = maxCandidatesPerMap == null
+          ? diagnostics
+          : diagnostics
+              .where((diagnostic) => diagnostic.mapId == mapId)
+              .toList();
+      final orderedClaims = {
+        for (final candidate in selected)
+          candidate.candidateId: claims[candidate.candidateId]!,
+      };
+      results[mapId] = LocalAssetProposalSet._(
+          candidates: selected,
+          diagnostics: selectedDiagnostics,
+          placementClaims: orderedClaims,
+          sourceImages: sourceImages,
+          sourceSnapshotHash: inputs.source.snapshot.canonicalHash,
+          normalizedSourceHash: inputs.source.canonicalHash,
+          literalCompositionHash: inputs.literal.compositionHash,
+          canonicalHash: maxCandidatesPerMap == null
+              ? globalHash
+              : canonicalHashOf(recordOf(selected, selectedDiagnostics),
+                  limits: inputs.limits.jsonLimits));
+    }
+    cancellation?.check();
+    return Map.unmodifiable(results);
   }
 
   AssetCandidate manualFromCells({

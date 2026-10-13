@@ -305,4 +305,64 @@ Le changement concerne une recherche interne de provenance dans le convertisseur
 
 Le commit est limité aux trois chemins de l'inventaire ci-dessus. La preuve finale SHA/inventaire/index et le contrôle des 50 chemins étrangers sont enregistrés dans `/private/tmp/avelune-ac15-map-file-lookup-commit-20261013-01.json` après commit. Aucun push, rebase, changement de branche ou nettoyage étranger. Le reste du complément AC-15 demeure non commité et le ticket reste DOING/PARTIAL.
 
-Auto-critique : la réduction des recherches est utile et la sortie est inchangée sur la fixture, mais la mesure réelle ne permet pas d'attribuer tout le temps à ce seul coût dans une machine partagée. La sérialisation des propositions réelles dépasse déjà 250 000 nœuds ; relever le plafond candidat ne suffit donc pas à qualifier la reprise. La bibliothèque doit conserver tous les candidats par segments explicites, avec budgets et décisions revalidés. L'essai r7 de publication a révélé séparément `connections.arrival_mismatch` à Map100 `(0,16)` ; sa correction et la nouvelle tentative sont hors de ce commit et encore en cours au moment de cette preuve.
+Auto-critique : la réduction des recherches est utile et la sortie est inchangée sur la fixture, mais la mesure réelle ne permet pas d'attribuer tout le temps à ce seul coût dans une machine partagée. Le compteur privé de 252 600 éléments inclut les clés ; il ne prouve pas un dépassement des 250 000 nœuds du validateur de recette, qui compte les valeurs. Relever le plafond candidat ne suffit pas à qualifier la reprise : la bibliothèque doit conserver tous les candidats par segments explicites, avec budgets et décisions revalidés. L'essai r7 de publication a révélé séparément `connections.arrival_mismatch` à Map100 `(0,16)` ; sa correction et la nouvelle tentative sont hors de ce commit et encore en cours au moment de cette preuve.
+
+## Complément du 13 octobre — revue bornée par carte
+
+### Audit, périmètre et état initial
+
+Base `main`, HEAD `8246f4f8113977d7af9109a3503db63b3941f1a6`, index vide, 50 chemins étrangers. Le set de propositions agrégé dépasse le plafond enfant de 256 candidats sur la paire réelle. La tranche introduit une session privée par carte, conserve la sélection globale et borne l'ensemble avant toute partition. Elle ne constitue pas encore le raccord du workflow, de la recette, du stockage ou de l'interface.
+
+La machine a redémarré le 13 octobre ; les anciens reçus `/private/tmp/avelune-*` ne sont plus disponibles. Les résultats historiques ci-dessus ne sont pas des reruns. Les projets publiés et leur dossier `evidence` persistent. Les nouvelles preuves sont sous `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5`. Le ledger `owner-and-pins.json` conserve la base, les 28 overlays intégrés initiaux et les hashes/modes des 50 chemins étrangers. Aucun worktree Git n'a été créé.
+
+Une deuxième archive `repository-review-segments` contient uniquement HEAD et les cinq sources/tests/export ci-dessous. Elle exclut les compléments non commités sur les connexions, le writer et le runtime. `review-segments-standalone-pins.json` en conserve les hashes exacts ; le barrel privé contient uniquement le nouvel export de revue, pas `source_connection_study_composer`.
+
+### Inventaire de cette tranche
+
+| Fichier | Zones et effet |
+| --- | --- |
+| `packages/avelune_converter_adapters/lib/src/converter_asset_review_set.dart` | Nouveau contrat privé `ConverterAssetReviewSet` et limites cumulées ; contextes globaux et par carte, sessions enfant 1.2 inchangées, hashes compacts, admission JSON/octet et quotas d'historique, restauration stricte, remplacement CAS, mode commun atomique et validation de tous les claims. |
+| `packages/avelune_converter_adapters/lib/src/local_asset_proposer.dart` | `proposeByMap` et extraction des tuiles statiques partagée ; compteurs globaux avant partition, plafond par carte de 256, record JSON global contrôlé, lectures/pixels/locators exacts conservés. Le défaut global de 256 n'est pas relevé. |
+| `packages/avelune_converter_adapters/test/converter_asset_review_set_test.dart` | Fixtures originales à deux cartes ; restauration exacte, permutations, contextes, immutabilité, limites, CAS, historique/undo/redo, mode commun et claims historiques. Refus explicite du contournement du budget par undo. |
+| `packages/avelune_converter_adapters/test/local_asset_proposer_test.dart` | Partition exacte, quotas globaux/per-map, identité avec l'API agrégée, source/cancellation et refus du contournement du quota JSON global. |
+| `packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart` | Seul l'export `converter_asset_review_set` entre dans ce commit ; l'export de connexion reste hors staging. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Ce complément et correction de l'interprétation du compteur privé de nœuds. Aucun nouveau Markdown. |
+
+### Critique indépendante et corrections
+
+La première relecture `ac15_review_segments` a trouvé deux P2 : l'admission JSON était renouvelée par segment, et `maxTotalCandidates` ne comptait que la frame au curseur. Deux tests frais ont reproduit les refus manquants : 0 PASS / 2 FAIL, exit 1, 4.441s (`review-segments-quotas-red.json`).
+
+Le proposer valide désormais le record global sous `jsonLimits` avant partition et réutilise ce hash pour l'API agrégée. Le set compte les identités de toutes les frames avec son registre global de propriétaires ; undo ne libère pas les identités conservées dans redo. Les mêmes tests passent : 2 PASS, exit 0, 5.229s (`review-segments-quotas-green.json`). La deuxième critique indépendante ferme les deux P2 et n'en identifie pas d'autre ; ce verdict ne certifie pas les consommateurs encore absents.
+
+### Commandes et résultats frais sur la tranche isolée
+
+`cwd` : `repository-review-segments/packages/avelune_converter_adapters` sous la racine QA durable. Tous les reçus ci-dessous sont terminaux, sans timeout, signal ni survivant possédé, PIDs protégés inchangés et pins avant/après identiques.
+
+| Commande | Résultat exact | Reçu dans la racine QA |
+| --- | --- | --- |
+| `dart pub get --offline` | exit 0, 1.047s | `review-segments-standalone-pubget.json` |
+| `dart test test/converter_asset_review_set_test.dart test/local_asset_proposer_test.dart test/converter_asset_workflow_test.dart --concurrency=1 --reporter=expanded` | 84 PASS, exit 0, 27.113s | `review-segments-standalone-tests.json` |
+| `dart analyze lib/src/converter_asset_review_set.dart lib/src/local_asset_proposer.dart test/converter_asset_review_set_test.dart test/local_asset_proposer_test.dart lib/avelune_converter_adapters.dart` | No issues found, exit 0, 4.648s | `review-segments-standalone-analyze.json` |
+| `dart compile exe tool/qa_review_set_round_trip.dart -o <QA>/bin/review-set-round-trip` | Generated executable, exit 0, 5.653s | `review-segments-standalone-aot.json` |
+
+Le harnais AOT est privé dans l'archive QA ; il compile la restauration publique du set et compare sa représentation canonique sans approbation ni mutation native. Il n'entre pas dans Git. La suite complète du package et le rebuild de l'app n'ont pas été rejoués dans cette tranche interne ; ils restent des gates d'intégration après raccord des consommateurs. Les 82 PASS de l'archive intégrée initiale précèdent les deux P2 : ils ne sont pas additionnés aux 84 PASS isolés.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit / Architecture, root et ac15_review_segments | Sessions enfant existantes préservées, contexte global et quotas explicites ; aucun nouveau modèle natif. |
+| Implémentation, ac12_semantics puis root | Partition locale et set immutable ; deux P2 corrigés sans relèvement des plafonds. |
+| Tests, root | RED 2 FAIL puis GREEN 2 PASS ; tranche isolée 84 PASS avec non-régression du workflow asset initial. |
+| Build / Validation, root | Analyse sans issue et AOT de restauration publique PASS sur base sans overlays connexions. |
+| Critique finale, ac15_review_segments | Deux P2 fermés sur code, tests et reçus exacts ; aucun nouveau P1/P2 identifié. |
+
+### Limites, parité et Git
+
+Les sessions et propositions sont des contrats privés du convertisseur. Cette tranche ne change aucune sémantique native d'authoring, aucune action Studio ni aucun schéma de carte ; nouvelle action MCP N/A. Les mutations natives demeurent sur `map_authoring`. La suite de workflow existante est conservée ; aucun catalogue MCP live nouveau n'est revendiqué.
+
+L'application utilise encore la revue agrégée : le set n'est pas présenté comme une capacité déjà disponible dans le parcours UI. La persistance portable, la revalidation des générations source et l'approbation fraîche doivent être raccordées avant qualification réelle multicarte. Aucun appel IA, aucune exécution Ruby, aucune ressource Pokémon dans ce commit. La mesure du corpus réel et le parcours intercartes ont leurs gates séparées.
+
+Le contrôle actuel du dossier source constate `Data/Scripts.rxdata` absent ; Map098, Map100 et Tilesets sont présents. Le snapshot de publication reste historique : cette tranche ne prétend pas avoir rescanné ni validé aujourd'hui l'intégrité globale de la source. Le projet natif publié est autonome et sa vérification stricte fraîche conserve 2 cartes/75 entrées d'assets/1 160 fichiers inchangés (`native-r8-verify-result.json`). La session Studio fraîche a retrouvé le nom sauvegardé et l'état Enregistré, puis a été arrêtée par son timeout possédé à 900.525s ; aucune capture fraîche ni parcours de jeu complet n'est certifié par ce run.
+
+Le commit local est limité aux six chemins de l'inventaire. `review-segments-commit.json` conserve son SHA final, l'inventaire et les hashes étrangers avant/après. Les compléments connexion/binding/projection/runtime restent non commités ; aucun push, rebase, amend ni changement de branche. AC-15 demeure DOING/PARTIAL, et la bêta reste inchangée.
+
+Auto-critique : les budgets ne peuvent plus être multipliés par la partition ou rouverts par undo. Cela prouve un contrat borné et compilable, pas une bibliothèque complète de Kanto ni une interface multicarte terminée. Le coût de sérialisation et la taille de recette doivent être mesurés sur les segments réels avant choix de stockage ; augmenter arbitrairement la limite de recette serait une décision non justifiée.
