@@ -343,11 +343,12 @@ class GameplayWorldState {
 
   /// Test pixel-level contre l’union des obstacles statiques (bitmap monde).
   bool worldStaticObstaclesCollidePixelRect(PixelRect rect,
-      {bool playerContact = false}) {
+      {bool playerContact = false, BorderCollisionExclusion? borderExclusion}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     if (_staticCollisionStorage.collidesPixelRect(
       rect,
       isDynamicCellBlocked: (_) => false,
+      borderExclusion: borderExclusion,
     )) {
       return true;
     }
@@ -931,13 +932,18 @@ WorldCollisionStorage _buildStaticCollisionStorage(
     }
   }
 
+  if (project == null &&
+      map.spatialScene == null &&
+      map.layers.whereType<BorderLayer>().any((layer) => layer.content.features.isNotEmpty)) {
+    throw const ValidationException('Border collision requires a project catalog');
+  }
   if (project != null) {
-    for (final rect in resolveMaterializedBorderCollisionRects(
+    for (final contact in resolveMaterializedBorderCollisions(
       map: map,
       project: project,
       tileSize: PixelSize(width: safeTileWidth, height: safeTileHeight),
     )) {
-      storage.stampRect(rect);
+      storage.stampBorderRect(contact);
     }
   }
   return storage.build();

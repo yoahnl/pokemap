@@ -652,3 +652,73 @@ Ledger final `faces-final-pins-01.json`, SHA `47aef54552f108a8f4d45d908d2bee26e2
 Auto-critique / limites : key est locale à feature/request et ne contient pas map/layer/révision/contexte de collision ; le binder doit lui ajouter ce contexte. Les deux carriers gridEdges ne sont pas deux ledges ; un unique B doit être prouvé par contacts. Le sens topologique ne garantit pas le dessin ConnectedLine. Le binder devra refuser conflits, overrides déplaçant la face, collisions inconnues et matérialisation périmée, puis vérifier B et C avec la hitbox entière. Ni Route9↔Route10, ni source Carillon projetée, ni saut spatial, ni nouveau corpus/import/IA ne sont qualifiés. La collision propriétaire développée en parallèle est une tranche séparée ; ses deltas de prototype restent exclus du présent commit.
 
 État final attendu / tracé : commit local strict des 4 chemins ci-dessus, reçu externe `faces-commit-01.json` avec SHA/parent/blobs/index et hashes/modes host avant/après ; index vide après commit, travaux étrangers conservés. Aucune opération push/rebase/PR. AC15 reste DOING/PARTIAL dans son ticket Post Bêta existant, aucun nouveau ticket/famille/gate. Suite : terminer l'exception de collision propriétaire, puis le binder aux placements finaux et le producteur Border, réglage Studio et vrai parcours Route9 avec collisions/profondeur/save/load.
+
+
+### Sous-tranche AC-15 — collisions propriétaires de Border, 13 octobre 2026
+
+Audit initial : `WorldCollisionStorage` fusionnait les rectangles Border dans le masque générique et perdait leur propriétaire. Une exclusion par cellule entière pouvait donc retirer un obstacle étranger. La vraie Border doit conserver ses contributions layer/feature/placement ; seule la face sélectionnée peut être exemptée à B. Source générique et native ne doivent pas dupliquer la collision du rebord, et C reçoit toutes les collisions. FG-120 demeure PARTIAL ; aucun changement de roadmap, FG-014/067 ou logique de combat.
+
+Portée : cinq chemins gameplay uniquement, plus cette section du rapport existant. Owner immuable (layer/feature/placement), exclusion copiée/non vide et limitée à une même Border, rectangle positif/borné/contenu dans une cellule. Plusieurs placements peuvent être sélectionnés par le futur binder. Masques génériques, supports, personnages, autres owners et pixels hors area restent bloquants. Montage sans manifest d'une carte2D portant des features Border explicitement refusé. Garanties de publication/fraîcheur/références/masques/transforms existantes conservées. Le profil collision actuel de project.elements reste l'autorité.
+
+Le premier stockage propriétaire régressait en coût : les queries ordinaires parcouraient tous les owners pour chaque pixel. Critique indépendante P2, acceptée puis corrigée par une union OR calculée au montage. Query ordinaire/hors area/pixel union libre répond avant tout scan owners. Scan détaillé limité aux pixels solides dans l'exclusion. Test dense1024owners et allocations, buffers détachés du builder. Aucune mesure de latence revendiquée.
+
+| Fichier | Zones / raison / impact |
+| --- | --- |
+| `packages/map_gameplay/lib/src/collision/border_collision_geometry.dart` | Types BorderCollisionOwner/Exclusion/MaterializedBorderCollisionRect et resolver contacts propriétaires ; resolver rect-only réutilise le même chemin. |
+| `packages/map_gameplay/lib/src/collision/world_collision_storage.dart` | Masques propriétaires et union par chunk, validation area, clipping des seuls owners sélectionnés, copies au build et diagnostics d'allocations exacts. |
+| `packages/map_gameplay/lib/src/gameplay_world_state.dart` | Paramètre/forwarding borderExclusion, manifest guard et stamp contacts ; requête et traitement inline des personnages de HEAD conservés. |
+| `packages/map_gameplay/lib/map_gameplay.dart` | Export des cinq APIs collision uniquement ; aucun export Jumped/DirectedJumpPlan/arrival de prototype. |
+| `packages/map_gameplay/test/border_collision_ownership_test.dart` | Onze tests nouveaux : owners exacts, clipping, placements superposés, autres layers/features, générique mêmeB, entités/eau/limites, offsets et masques, fraîcheur/contexte, immutabilité et1024owners. |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | Consolidation de la sous-tranche, aucun nouveau Markdown. |
+
+Séparation de scope : archive HEADfb4 + ownership seule qualifiée48PASS, puis nouvelle archive propre HEAD80ed + mêmes cinq blobs, réappliqués réellement depuis le patch. `ignoredStaticCell`, extraction arrival, gameplay_step, DirectedJumpPlan et runtime restent exclus du commit ; aucun retrait du prototype dans le host. Trois chemins host restent également dirty après staging des seuls blobs propres. Le test combiné contient une assertion sur l'ancien guard, absente du blob commité ; pas d'attribution de ce test au commit strict.
+
+Reçus gelés : patch `border-collision-ownership-only.patch` SHA80ef0f9192aef016fcd1c199931b88ea9c70df2d9adb21a8e810f5b2884b0e11 ; ledger ownership-only01 SHA0edbd67463f832fc89a6bcfe7cf2313ec4dba204c23a276467812fa482e65e40. Critique indépendante :5paths/5blobs/patch application exacts, aucun P1/P2, P2 coût fermé sur combined02 SHA1ba1d51a550d5e5368aa1d439c5b5d4263e67084c7a3dd8173adfe19d3e521b3. Combiné :65focused,791PASS/2FAIL reproduits sur baseline ; ces totaux ne sont pas attribués au patch strict.
+
+Preuve finale HEAD80ed : `/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0`. Ledger ownership-head80ed-final-pins-01 SHA bb089e8c918fd12b90d238bc73e5ff74817429db7888e02c748e319331c3dbfa, fermeture1145fichiers hashés SHA b3d8aad386801751e62e61d6c5977e430f6580d369908519cc01d5622ef266a9 ; lecture root de chaque fichier et reçu vérifie les pins. Patch dry-run et application réelle exit0/5blobs identiques. Aucun fichier source/host changé par cette requalification.
+
+Commandes finales supervisées, cwd gameplay/core de la nouvelle archive :
+
+`focused-green-01.json` : exit0, 8.951 s.
+
+```text
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/repository/packages/map_gameplay
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart test test/border_collision_ownership_test.dart test/materialized_border_collision_test.dart test/gameplay_world_state_collision_storage_characterization_test.dart test/moving_platform_gameplay_test.dart --reporter expanded
+```
+
+`analyze-01.json` : exit0, 4.958 s.
+
+```text
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/repository/packages/map_gameplay
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart analyze lib/src/collision/border_collision_geometry.dart lib/src/collision/world_collision_storage.dart lib/src/gameplay_world_state.dart lib/map_gameplay.dart test/border_collision_ownership_test.dart
+```
+
+`gameplay-kernel-01.json` : exit0, 4.932 s.
+
+```text
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/repository/packages/map_gameplay
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart compile kernel test/border_collision_ownership_test.dart -o "/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/ownership-tests.dill"
+```
+
+`core-barrel-kernel-01.json` : exit0, 4.958 s.
+
+```text
+cwd: /Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/repository/packages/map_core
+/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart compile kernel test/border/border_jump_faces_test.dart -o "/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5/ownership-head80ed-private-odqpsxc0/core-barrel-tests.dill"
+```
+
+Résultats :48PASS/8.951s sur nouveaux owners + materialized collisions/storage/moving platforms ; analyseexit0/4.958s avec la seule INFO unnecessary_library_name préexistante (barrel), aucune erreur/warning ; kernel gameplayPASS4.932s et nouveau barrel corePASS4.958s. Suite complète du strict-only non exécutée : sélection couvre les branches modifiées ; la suite combinée garde ses deux défauts de baseline (.git benchmark d'archive et spatial spawn). Tous pins avant/après/logSHA exacts ; protectedUnchanged=true, confirmedSurvivors=[], signals=[] ; aucun GUI.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root et ac12_native_mapping | Union globale perdait owner ; exception typée par contact retenue, B only, contexte frais nécessaire. |
+| Implémentation ac12_native_mapping |5paths et strict-only séparés du prototype ; ordinary union préserver coût sans nouvelle abstraction gameplay runtime. |
+| Tests ac12_native_mapping | RED03 4PASS/5FAIL puis GREEN ; P2 agrégat RED10PASS/1FAIL puis65focused ; strict-only48PASS sur fb4 puis80ed. |
+| Build/Validation ac12_native_mapping + root | Patch application, kernels et analyse vérifiés sur archive propre ; root relit1145pins/reçus/logs et5host combinés. |
+| Critique ac15_connection_review_fresh | Aucun P1/P2 fonctionnel, P2 coût fermé, séparation ownership01 acquise ; qualification ne couvre aucun binder, import ou parcours runtime. |
+
+Parité MCP : API collision pure de runtime, aucune donnée auteur ni nouvelle action dans cette sous-tranche ; la sélection de face et validation sémantique seront exposées dans le prochain contrat canonique. Le descripteur jumpBehavior précédemment attesté reste la seule capacité auteur livrée. Generic save n'est pas considéré comme une preuve de saut ; globale PARTIAL.
+
+Auto-critique : un caller peut fournir des owners ; la query n'atteste pas qu'ils portent la même face, seulement la même Border. Le binder doit le prouver depuis la revision publiée, placements finaux et profils collision courants. C doit appeler sans exclusion. L'import doit remplacer exclusivement le solide source du ledge par cette Border sans effacer les obstacles superposés. Le composer garde son finding de manifeste incomplet. Aucune permission Border, animation, source119sauts, Route9↔Route10 ni face visuelle/3D n'est qualifiée ici.
+
+Git initial : HEAD80ed7fe80da12e04c5de4400d7e0551cd7950e52, index vide, inventaire NUL exact git-initial-status-01.bin. Commit local prévu sur les seuls six chemins ci-dessus, reçu externe ownership-commit-01.json : SHA/parent/blobs/index et hash/mode host avant/après. Staging des blobs privés, pas des fichiers host complets. Aucun push/rebase/PR, aucun nouveau ticket/famille/gate bêta ; AC15 DOING/PARTIAL. Suite : vrai profil de face fidèle aux modules source, attribution resolver→placements finaux→owners et admission A/B/C, puis UI et parcours réel.

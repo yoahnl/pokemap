@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 
+import 'border_collision_geometry.dart';
+
 /// Immutable static collision storage for one gameplay map.
 ///
 /// Authoring tile/cell collisions remain O(map cells). Pixel precision is
@@ -16,11 +18,16 @@ final class WorldCollisionStorage {
     required List<bool> tileCollisionCells,
     required List<bool> placedElementCollisionCells,
     required Map<(int, int), Uint32List> pixelMaskWordsByChunk,
+    required Map<(int, int), Map<BorderCollisionOwner, Uint32List>>
+        borderMaskWordsByChunk,
+    required Map<(int, int), Uint32List> borderAggregateWordsByChunk,
     required this.supportableTerrainCellsByLayer,
     required this.supportRectsByLayer,
   })  : _tileCollisionCells = tileCollisionCells,
         _placedElementCollisionCells = placedElementCollisionCells,
-        _pixelMaskWordsByChunk = pixelMaskWordsByChunk;
+        _pixelMaskWordsByChunk = pixelMaskWordsByChunk,
+        _borderMaskWordsByChunk = borderMaskWordsByChunk,
+        _borderAggregateWordsByChunk = borderAggregateWordsByChunk;
 
   final int widthCells;
   final int heightCells;
@@ -29,19 +36,30 @@ final class WorldCollisionStorage {
   final List<bool> _tileCollisionCells;
   final List<bool> _placedElementCollisionCells;
   final Map<(int, int), Uint32List> _pixelMaskWordsByChunk;
+  final Map<(int, int), Map<BorderCollisionOwner, Uint32List>>
+      _borderMaskWordsByChunk;
+  final Map<(int, int), Uint32List> _borderAggregateWordsByChunk;
   final Map<String, List<bool>> supportableTerrainCellsByLayer;
   final Map<String, List<PixelRect>> supportRectsByLayer;
 
   int get widthPx => widthCells * tileWidthPx;
   int get heightPx => heightCells * tileHeightPx;
-  int get allocatedPixelMaskChunkCount => _pixelMaskWordsByChunk.length;
+  int get allocatedPixelMaskChunkCount =>
+      _pixelMaskWordsByChunk.length +
+      _borderAggregateWordsByChunk.length +
+      _borderMaskWordsByChunk.values
+          .fold<int>(0, (count, owners) => count + owners.length);
   int get allocatedPixelMaskWordCount =>
-      _pixelMaskWordsByChunk.length * WorldCollisionStorageBuilder.chunkSize;
+      allocatedPixelMaskChunkCount * WorldCollisionStorageBuilder.chunkSize;
 
   bool collidesPixelRect(
     PixelRect rect, {
     required bool Function(int cellIndex) isDynamicCellBlocked,
+    BorderCollisionExclusion? borderExclusion,
   }) {
+    if (borderExclusion != null) {
+      _validateBorderExclusionArea(borderExclusion.area);
+    }
     for (var localY = 0; localY < rect.heightPx; localY += 1) {
       final y = rect.topPx + localY;
       for (var localX = 0; localX < rect.widthPx; localX += 1) {
@@ -50,6 +68,7 @@ final class WorldCollisionStorage {
           x,
           y,
           isDynamicCellBlocked: isDynamicCellBlocked,
+          borderExclusion: borderExclusion,
         )) {
           return true;
         }
@@ -77,6 +96,7 @@ final class WorldCollisionStorage {
     int x,
     int y, {
     required bool Function(int cellIndex) isDynamicCellBlocked,
+    BorderCollisionExclusion? borderExclusion,
   }) {
     if (x < 0 || y < 0 || x >= widthPx || y >= heightPx) {
       return true;
@@ -99,16 +119,46 @@ final class WorldCollisionStorage {
       }
     }
 
-    final chunk = _pixelMaskWordsByChunk[(
+    final key = (
       x ~/ WorldCollisionStorageBuilder.chunkSize,
       y ~/ WorldCollisionStorageBuilder.chunkSize
-    )];
-    if (chunk == null) {
-      return false;
-    }
+    );
+    final chunk = _pixelMaskWordsByChunk[key];
     final localX = x % WorldCollisionStorageBuilder.chunkSize;
     final localY = y % WorldCollisionStorageBuilder.chunkSize;
-    return (chunk[localY] & (1 << localX)) != 0;
+    final bit = 1 << localX;
+    if (chunk != null && (chunk[localY] & bit) != 0) return true;
+    final aggregate = _borderAggregateWordsByChunk[key];
+    if (aggregate == null || (aggregate[localY] & bit) == 0) return false;
+    final area = borderExclusion?.area;
+    if (area == null ||
+        x < area.leftPx ||
+        y < area.topPx ||
+        x >= area.leftPx + area.widthPx ||
+        y >= area.topPx + area.heightPx) {
+      return true;
+    }
+    for (final entry in _borderMaskWordsByChunk[key]!.entries) {
+      if (borderExclusion!.owners.contains(entry.key)) continue;
+      if ((entry.value[localY] & bit) != 0) return true;
+    }
+    return false;
+  }
+
+  void _validateBorderExclusionArea(PixelRect area) {
+    final right = BigInt.from(area.leftPx) + BigInt.from(area.widthPx);
+    final bottom = BigInt.from(area.topPx) + BigInt.from(area.heightPx);
+    if (area.leftPx < 0 ||
+        area.topPx < 0 ||
+        area.widthPx <= 0 ||
+        area.heightPx <= 0 ||
+        right > BigInt.from(widthPx) ||
+        bottom > BigInt.from(heightPx) ||
+        area.leftPx ~/ tileWidthPx != (right.toInt() - 1) ~/ tileWidthPx ||
+        area.topPx ~/ tileHeightPx != (bottom.toInt() - 1) ~/ tileHeightPx) {
+      throw ArgumentError.value(
+          area, 'borderExclusion.area', 'Must be contained in one map cell');
+    }
   }
 }
 
@@ -138,11 +188,18 @@ final class WorldCollisionStorageBuilder {
   final Map<String, List<PixelRect>> supportRectsByLayer;
   final Map<(int, int), Uint32List> _pixelMaskWordsByChunk =
       <(int, int), Uint32List>{};
+  final Map<(int, int), Map<BorderCollisionOwner, Uint32List>>
+      _borderMaskWordsByChunk = {};
 
   int get widthPx => widthCells * tileWidthPx;
   int get heightPx => heightCells * tileHeightPx;
 
-  void stampRect(PixelRect rect) {
+  void stampRect(PixelRect rect) => _stampRect(rect);
+
+  void stampBorderRect(MaterializedBorderCollisionRect contact) =>
+      _stampRect(contact.rect, owner: contact.owner);
+
+  void _stampRect(PixelRect rect, {BorderCollisionOwner? owner}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return;
     final left = rect.leftPx.clamp(0, widthPx);
     final top = rect.topPx.clamp(0, heightPx);
@@ -164,8 +221,13 @@ final class WorldCollisionStorageBuilder {
       final span = (right - x).clamp(0, chunkSize - localX);
       final bits = (0xffffffff >> (chunkSize - span)) << localX;
       for (var y = top; y < bottom; y++) {
-        final words = _pixelMaskWordsByChunk.putIfAbsent(
-            (x ~/ chunkSize, y ~/ chunkSize), () => Uint32List(chunkSize));
+        final key = (x ~/ chunkSize, y ~/ chunkSize);
+        final words = owner == null
+            ? _pixelMaskWordsByChunk.putIfAbsent(
+                key, () => Uint32List(chunkSize))
+            : _borderMaskWordsByChunk
+                .putIfAbsent(key, () => {})
+                .putIfAbsent(owner, () => Uint32List(chunkSize));
         words[y % chunkSize] |= bits;
       }
       x += span;
@@ -238,6 +300,16 @@ final class WorldCollisionStorageBuilder {
   }
 
   WorldCollisionStorage build() {
+    final borderAggregate = <(int, int), Uint32List>{};
+    for (final chunk in _borderMaskWordsByChunk.entries) {
+      final union = Uint32List(chunkSize);
+      for (final words in chunk.value.values) {
+        for (var row = 0; row < chunkSize; row++) {
+          union[row] |= words[row];
+        }
+      }
+      borderAggregate[chunk.key] = union;
+    }
     return WorldCollisionStorage._(
       widthCells: widthCells,
       heightCells: heightCells,
@@ -256,6 +328,14 @@ final class WorldCollisionStorageBuilder {
           List<bool>.unmodifiable(placedElementCollisionCells),
       // Copy the mutable construction chunks so a discarded builder can never
       // mutate storage already shared by later immutable world states.
+      borderAggregateWordsByChunk: Map.unmodifiable(borderAggregate),
+      borderMaskWordsByChunk: Map.unmodifiable({
+        for (final chunk in _borderMaskWordsByChunk.entries)
+          chunk.key: Map<BorderCollisionOwner, Uint32List>.unmodifiable({
+            for (final entry in chunk.value.entries)
+              entry.key: Uint32List.fromList(entry.value)
+          }),
+      }),
       pixelMaskWordsByChunk: Map<(int, int), Uint32List>.unmodifiable(
         <(int, int), Uint32List>{
           for (final entry in _pixelMaskWordsByChunk.entries)

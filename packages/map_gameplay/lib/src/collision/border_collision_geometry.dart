@@ -1,6 +1,62 @@
 import 'package:map_core/map_core.dart';
 
+final class BorderCollisionOwner {
+  const BorderCollisionOwner(
+      {required this.layerId,
+      required this.featureId,
+      required this.placementId});
+  final String layerId;
+  final String featureId;
+  final String placementId;
+  @override
+  bool operator ==(Object other) =>
+      other is BorderCollisionOwner &&
+      layerId == other.layerId &&
+      featureId == other.featureId &&
+      placementId == other.placementId;
+  @override
+  int get hashCode => Object.hash(layerId, featureId, placementId);
+}
+
+final class BorderCollisionExclusion {
+  BorderCollisionExclusion(
+      {required Set<BorderCollisionOwner> owners, required this.area})
+      : owners = Set.unmodifiable(owners) {
+    if (owners.isEmpty) throw ArgumentError.value(owners, 'owners');
+    final first = owners.first;
+    if (owners.any((owner) =>
+        owner.layerId.isEmpty ||
+        owner.featureId.isEmpty ||
+        owner.placementId.isEmpty ||
+        owner.layerId != first.layerId ||
+        owner.featureId != first.featureId)) {
+      throw ArgumentError.value(owners, 'owners');
+    }
+    if (area.widthPx <= 0 || area.heightPx <= 0) {
+      throw ArgumentError.value(area, 'area');
+    }
+  }
+  final Set<BorderCollisionOwner> owners;
+  final PixelRect area;
+}
+
+final class MaterializedBorderCollisionRect {
+  const MaterializedBorderCollisionRect(
+      {required this.owner, required this.rect});
+  final BorderCollisionOwner owner;
+  final PixelRect rect;
+}
+
 Iterable<PixelRect> resolveMaterializedBorderCollisionRects({
+  required MapData map,
+  required ProjectManifest project,
+  required PixelSize tileSize,
+}) =>
+    resolveMaterializedBorderCollisions(
+            map: map, project: project, tileSize: tileSize)
+        .map((contact) => contact.rect);
+
+Iterable<MaterializedBorderCollisionRect> resolveMaterializedBorderCollisions({
   required MapData map,
   required ProjectManifest project,
   required PixelSize tileSize,
@@ -125,11 +181,17 @@ Iterable<PixelRect> resolveMaterializedBorderCollisionRects({
               : rect;
           final rotated =
               transform.sourcePixelRectToDestinationPixelRect(flipped);
-          yield PixelRect(
-            leftPx: _sum(placement.topLeftWorldPx.x, rotated.leftPx),
-            topPx: _sum(placement.topLeftWorldPx.y, rotated.topPx),
-            widthPx: rotated.widthPx,
-            heightPx: rotated.heightPx,
+          yield MaterializedBorderCollisionRect(
+            owner: BorderCollisionOwner(
+                layerId: layer.id,
+                featureId: feature.id,
+                placementId: placement.id),
+            rect: PixelRect(
+              leftPx: _sum(placement.topLeftWorldPx.x, rotated.leftPx),
+              topPx: _sum(placement.topLeftWorldPx.y, rotated.topPx),
+              widthPx: rotated.widthPx,
+              heightPx: rotated.heightPx,
+            ),
           );
         }
       }

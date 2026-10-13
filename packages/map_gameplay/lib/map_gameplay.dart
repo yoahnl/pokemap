@@ -3,7 +3,12 @@ library map_gameplay;
 export 'src/moving_platform_gameplay.dart';
 
 export 'src/collision/border_collision_geometry.dart'
-    show resolveMaterializedBorderCollisionRects;
+    show
+        resolveMaterializedBorderCollisionRects,
+        resolveMaterializedBorderCollisions,
+        BorderCollisionOwner,
+        BorderCollisionExclusion,
+        MaterializedBorderCollisionRect;
 
 export 'src/scene_badge_condition_evaluator.dart';
 export 'src/scene_item_gift.dart';
