@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_core/map_core.dart';
+import 'source_directed_jump_study_composer.dart';
 
 import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
@@ -118,11 +120,21 @@ final class SourceSemanticStudyComposer {
           {'characterId': player.character.id}),
     ];
     final original = literal.draft!;
+    final contextDraft = NativeProjectDraft(source: source, projectName: original.projectName,
+      parentPath: original.parentPath, folderName: original.folderName, mapIds: original.mapIds,
+      artifacts: {for (final a in [...original.artifacts, playerArtifact, ...projection.artifacts]) a.handle: a}.values.toList(),
+      mutations: [...original.mutations, ...playerMutations, ...projection.mutations],
+      defaultMapWidth: original.defaultMapWidth, defaultMapHeight: original.defaultMapHeight, limits: limits);
+    final project = sourceSemanticNativeProject(draft: contextDraft, maps: projection.nativeMaps,
+      mutations: contextDraft.mutations, limits: limits);
+    final jumps = await const SourceDirectedJumpStudyComposer().compose(source: source, base: literal,
+      nativeMaps: projection.nativeMaps, project: project, files: recording, limits: limits, cancellation: cancellation);
     final artifacts = {
       for (final artifact in [
         ...original.artifacts,
         playerArtifact,
-        ...projection.artifacts
+        ...projection.artifacts,
+        ...jumps.artifacts
       ])
         artifact.handle: artifact,
     }.values.toList()
@@ -137,6 +149,7 @@ final class SourceSemanticStudyComposer {
       'projection': projection.semanticEvidence,
       'player': player.evidence,
       'connections': connections.evidence,
+      'directedJumps': jumps.evidence,
       'witnesses': recording.evidence,
       'automatic': true,
       'aiCalls': 0,
@@ -145,6 +158,7 @@ final class SourceSemanticStudyComposer {
         ...playerMutations.map((entry) => entry.operationId.value),
         ...projection.operationIds.map((entry) => entry.value),
         ...connections.mutations.map((entry) => entry.operationId.value),
+        ...jumps.mutations.map((entry) => entry.operationId.value),
       ],
     };
     return NativeProjectDraft(
@@ -162,11 +176,16 @@ final class SourceSemanticStudyComposer {
           ...playerMutations,
           ...projection.mutations
               .where((entry) => !entry.actionId.startsWith('map.')),
+          ...jumps.resourceMutations,
           ...original.mutations
               .where((entry) => entry.actionId == 'map.create'),
-          ...projection.mutations
-              .where((entry) => entry.actionId.startsWith('map.')),
+          for (final mutation in projection.mutations.where((entry) => entry.actionId.startsWith('map.')))
+            if (mutation.actionId == 'map.save') NativeMutation(operationId: mutation.operationId,
+              actionId: mutation.actionId, sourceEntityIds: mutation.sourceEntityIds, targetEntityIds: mutation.targetEntityIds,
+              parameters: {'map': jumps.preparedMaps.values.singleWhere((m) => m.id == (mutation.parameters['map'] as Map)['id']).toJson()}, limits: limits)
+            else mutation,
           ...connections.mutations,
+          ...jumps.mapMutations,
         ],
         compositionEvidence: {
           ...original.compositionEvidence,
@@ -306,4 +325,57 @@ final class SourceSemanticWitnessFiles implements SourceFilePort {
     _bytes[fileId] = List.unmodifiable(bytes);
     return _bytes[fileId]!;
   }
+}
+
+ProjectManifest sourceSemanticNativeProject({
+  required NativeProjectDraft draft,
+  required Map<int, MapData> maps,
+  required Iterable<NativeMutation> mutations,
+  NativeWriteLimits limits = const NativeWriteLimits(),
+}) {
+  final tilesets = <String, ProjectTilesetEntry>{};
+  final categories = <ProjectElementCategory>[];
+  final elements = <ProjectElementEntry>[];
+  final characters = <ProjectCharacterEntry>[];
+  String? defaultCharacter;
+  final artifacts = {for (final a in draft.artifacts) a.handle: a};
+  for (final m in mutations) {
+    final p = m.parameters;
+    switch (m.actionId) {
+      case 'tileset.import_image':
+        final artifact = artifacts[p['artifactHandle']];
+        if (artifact == null) throw const NativeWriteException('jumps.native_context', 'Source Border context requires its imported atlas bytes');
+        final size = const NativePngValidator().headerDimensions(artifact.bytes, limits: limits);
+        final id = p['tilesetId'] as String;
+        tilesets[id] = ProjectTilesetEntry(id: id, name: p['name'] as String, relativePath: 'assets/studio/$id.png',
+          source: ProjectRegularAtlasTilesetSource(assetId: 'image_$id', pixelWidth: size.$1, pixelHeight: size.$2,
+            tileWidth: p['tileWidth'] as int, tileHeight: p['tileHeight'] as int));
+      case 'tileset.upsert':
+        final entry = ProjectTilesetEntry.fromJson(Map<String, dynamic>.from(p['tileset'] as Map));
+        tilesets[entry.id] = entry;
+      case 'element_category.upsert':
+        categories.add(ProjectElementCategory.fromJson(Map<String, dynamic>.from(p['category'] as Map)));
+      case 'element.upsert':
+        elements.add(ProjectElementEntry.fromJson(Map<String, dynamic>.from(p['element'] as Map)));
+      case 'characterStudio.character.create':
+        final name = p['name'] as String;
+        characters.add(ProjectCharacterEntry(id: name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'), name: name,
+          sortOrder: characters.length, tilesetId: p['tilesetId'] as String, frameWidth: p['frameWidth'] as int,
+          frameHeight: p['frameHeight'] as int, tags: (p['tags'] as List).cast<String>()));
+      case 'characterStudio.animationClip.upsert':
+        final index = characters.indexWhere((c) => c.id == p['characterId']);
+        characters[index] = characters[index].copyWith(animations: [...characters[index].animations,
+          CharacterAnimation(state: CharacterAnimationState.values.byName(p['state'] as String),
+            direction: EntityFacing.values.byName(p['direction'] as String), sourceAssetId: p['sourceAssetId'] as String,
+            loop: p['loop'] as bool, frames: [for (final f in p['frames'] as List) CharacterAnimationFrame.fromJson(Map<String, dynamic>.from(f))])]);
+      case 'characterStudio.character.setDefault':
+        defaultCharacter = p['characterId'] as String;
+    }
+  }
+  return ProjectManifest(name: draft.projectName, version: ProjectVersion.v8,
+    maps: [for (final id in draft.mapIds.keys) ProjectMapEntry(id: maps[id]!.id, name: maps[id]!.name, relativePath: 'maps/${maps[id]!.id}.json')],
+    tilesets: tilesets.values.toList(), elementCategories: categories, elements: elements, characters: characters,
+    settings: ProjectSettings(tileWidth: 32, tileHeight: 32, defaultMapWidth: draft.defaultMapWidth,
+      defaultMapHeight: draft.defaultMapHeight, defaultPlayerCharacterId: defaultCharacter),
+    pokemon: const ProjectPokemonConfig(enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
 }

@@ -17,6 +17,7 @@ import 'literal_autotile_composer.dart';
 import 'approved_asset_library.dart';
 import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
+import 'source_directed_jump_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_event_arrival_validation.dart';
 import 'source_catalog_study_composer.dart';
@@ -255,7 +256,7 @@ final class NativeMutation {
         'entity' ||
         'trigger' ||
         'warp' ||
-        'connection' =>
+        'connection' || 'border_layer' =>
           OperationDomain.maps,
         'event_v2' ||
         'fact' ||
@@ -505,6 +506,38 @@ typedef NativeWriteCheckpoint = FutureOr<void> Function(
 
 typedef NativeStagingFactory = Future<String> Function();
 
+final class NativeBorderSnapshotReceipt {
+  NativeBorderSnapshotReceipt({required this.byteLength, required this.sha256}) {
+    if (byteLength <= 0 || byteLength > 67108864) {
+      throw const NativeWriteException('native.verify.border_snapshot',
+          'Border snapshot byte length must be positive and bounded');
+    }
+  }
+
+  factory NativeBorderSnapshotReceipt.fromJson(Object? input) {
+    if (input is! Map ||
+        input.length != 2 ||
+        !input.containsKey('byteLength') ||
+        !input.containsKey('sha256') ||
+        input['byteLength'] is! int ||
+        input['sha256'] is! String) {
+      throw const NativeWriteException('native.verify.border_snapshot',
+          'Border snapshot receipt must contain exact length and raw SHA-256');
+    }
+    return NativeBorderSnapshotReceipt(
+        byteLength: input['byteLength'] as int,
+        sha256: Sha256Hash(input['sha256'] as String));
+  }
+
+  final int byteLength;
+  final Sha256Hash sha256;
+
+  Map<String, Object?> toJson() => {
+        'byteLength': byteLength,
+        'sha256': sha256.value,
+      };
+}
+
 final class NativeWriteReceipt {
   NativeWriteReceipt._({
     required this.stagingRoot,
@@ -513,8 +546,10 @@ final class NativeWriteReceipt {
     required this.nativeRevision,
     required Map<String, Sha256Hash> mapHashes,
     required Map<String, Sha256Hash> assetHashes,
+    required Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles,
   })  : mapHashes = Map.unmodifiable(mapHashes),
-        assetHashes = Map.unmodifiable(assetHashes);
+        assetHashes = Map.unmodifiable(assetHashes),
+        borderSnapshotFiles = Map.unmodifiable(borderSnapshotFiles);
 
   final String stagingRoot;
   final String projectPath;
@@ -522,6 +557,7 @@ final class NativeWriteReceipt {
   final String nativeRevision;
   final Map<String, Sha256Hash> mapHashes;
   final Map<String, Sha256Hash> assetHashes;
+  final Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles;
   bool get verified => true;
   bool get published => false;
 }
@@ -716,6 +752,7 @@ final class NativeProjectWriter {
         mapHashes[entry.key] = Sha256Hash(sha256.convert(bytes).toString());
       }
       final assetHashes = <String, Sha256Hash>{};
+      final borderSnapshotFiles = <String, NativeBorderSnapshotReceipt>{};
       final actualCatalog = AssetCatalog.fromJson(jsonDecode(
               utf8.decode(snapshot.resourceBytes(assetCatalogResourceIdentity)))
           as Map<String, dynamic>);
@@ -809,6 +846,14 @@ final class NativeProjectWriter {
         }
         assetHashes[entry.key] = hash;
       }
+      for (final entry in prepared.borderSnapshots.entries) {
+        _checkCancelled(cancellation);
+        final bytes = await session.readCompanion(entry.key, entry.value,
+            errorCode: 'native.verify.border_snapshot');
+        const NativePngValidator().validate(bytes, limits: limits);
+        borderSnapshotFiles[entry.key] = NativeBorderSnapshotReceipt(
+            byteLength: bytes.length, sha256: entry.value.rawSha256);
+      }
       await checkpoint?.call(
           NativeWriteStage.afterNativeVerify, stagingRoot, projectPath);
       _checkCancelled(cancellation);
@@ -819,6 +864,8 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.changed',
             'Native staging project changed after verification');
       }
+      ProjectValidator.validate(finalSnapshot.manifest, maps: finalSnapshot.maps);
+      for (final map in finalSnapshot.maps) { MapValidator.validate(map, projectDialogueContext: finalSnapshot.manifest); }
       await _verifyNativeCatalogs(session, prepared, limits, cancellation);
       for (final entry in {...prepared.companions, ...prepared.audio}.entries) {
         _checkCancelled(cancellation);
@@ -826,13 +873,18 @@ final class NativeProjectWriter {
             prepared.catalog.require(entry.key).logicalPath, entry.value,
             errorCode: 'native.verify.changed');
       }
+      for (final entry in prepared.borderSnapshots.entries) {
+        _checkCancelled(cancellation);
+        await session.readCompanion(entry.key, entry.value, errorCode: 'native.verify.changed');
+      }
       return NativeWriteReceipt._(
           stagingRoot: stagingRoot,
           projectPath: projectPath,
           draftHash: draft.canonicalHash,
           nativeRevision: snapshot.revision,
           mapHashes: mapHashes,
-          assetHashes: assetHashes);
+          assetHashes: assetHashes,
+          borderSnapshotFiles: borderSnapshotFiles);
     } catch (error) {
       if (error is NativeWriteException) {
         throw NativeWriteException(error.code, error.message,
@@ -862,7 +914,8 @@ final class _PreparedNativeDraft {
       this.dialogueSources,
       this.audio,
       this.itemCatalog,
-      this.pokemonDocuments);
+      this.pokemonDocuments,
+      this.borderSnapshots);
   final ProjectManifest bootstrap;
   final ProjectManifest manifest;
   final Map<String, MapData> maps;
@@ -873,6 +926,7 @@ final class _PreparedNativeDraft {
   final Map<String, NativeArtifact> audio;
   final ProjectItemCatalog? itemCatalog;
   final List<SourceCatalogDocument> pokemonDocuments;
+  final Map<String, NativeArtifact> borderSnapshots;
 }
 
 ({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
@@ -1051,6 +1105,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
         const {
           'connection.create_bidirectional_apply',
+          'border.blueprint.draft.upsert', 'border.blueprint.publish',
+          'border_layer.feature_create', 'border_layer.feature_set_replacement',
+          'border_layer.materialize_apply',
           'element_category.upsert',
           'element.upsert',
           'characterStudio.character.create',
@@ -1159,6 +1216,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final smartTileAtlases = <ProjectSmartTileAtlas>[];
   final smartTileMaterials = <ProjectSmartTileMaterial>[];
   final smartTilePresets = <ProjectSmartTilePreset>[];
+  var borderCatalog = ProjectBorderCatalog();
+  final borderSnapshots = <String, NativeArtifact>{};
   final characters = <ProjectCharacterEntry>[];
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
@@ -1604,6 +1663,41 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                 direction: direction.opposite,
                 targetMapId: sourceId,
                 offset: -offset));
+      case 'border.blueprint.draft.upsert':
+      case 'border.blueprint.publish':
+      case 'border_layer.feature_create':
+      case 'border_layer.feature_set_replacement':
+      case 'border_layer.materialize_apply':
+        semantics.requireOperation(mutation);
+        if (mutation.actionId.startsWith('border_layer.')) {
+          final id = _string(parameters, 'mapId');
+          _requireMapBinding(draft, mutation, id);
+          if (!maps.containsKey(id)) {
+            throw const NativeWriteException('native.border.order', 'Border features require their preceding exact saved map');
+          }
+        }
+        final replay = await replaySourceBorderMutation(
+          project: bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries,
+            elements: elements, elementCategories: categories, borderCatalog: borderCatalog,
+            characters: characters, settings: bootstrap.settings.copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId)),
+          maps: maps, mutation: mutation, artifacts: artifacts.values,
+          limits: limits, cancellation: cancellation,
+        );
+        borderCatalog = replay.project.borderCatalog;
+        maps..clear()..addAll(replay.maps);
+        for (final file in replay.files.entries) {
+          final next = NativeArtifact(bytes: file.value, limits: limits);
+          final previous = borderSnapshots[file.key];
+          if (previous != null && previous.rawSha256 != next.rawSha256) {
+            throw const NativeWriteException('native.border.snapshot', 'Canonical Border snapshot path has conflicting bytes');
+          }
+          borderSnapshots[file.key] = next;
+        }
+        if (mutation.actionId == 'border.blueprint.publish') {
+          for (final primitive in parameters['primitiveSources'] as List) {
+            for (final frame in primitive['frames'] as List) { usedArtifacts.add(frame['artifactHandle'] as String); }
+          }
+        }
       case 'map.audio.update':
         semantics.requireOperation(mutation);
         _allowParameters(
@@ -1692,6 +1786,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       tilesets: tilesetEntries,
       elements: elements,
       elementCategories: categories,
+      borderCatalog: borderCatalog,
       smartTileCatalog: ProjectSmartTileCatalog(
           atlases: smartTileAtlases,
           materials: smartTileMaterials,
@@ -1713,6 +1808,24 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
   if (projectedCatalogs != null) {
     _validateCatalogReferences(projectedCatalogs, manifest);
+  }
+  var derivedBytes = 0;
+  var derivedPixels = 0;
+  for (final artifact in borderSnapshots.values) {
+    derivedBytes += artifact.bytes.length;
+    final size = _pngDimensions(artifact.bytes, limits);
+    derivedPixels += size.$1 * size.$2;
+  }
+  final retained = [...draft.artifacts, ...draft.sourceArtifacts];
+  var retainedPixels = 0;
+  for (final artifact in retained.where((a) => a.reference.mediaType == 'image/png')) {
+    final size = _pngHeaderDimensions(artifact.bytes, limits);
+    retainedPixels += size.$1 * size.$2;
+  }
+  if (retained.length + borderSnapshots.length > limits.maxArtifacts ||
+      retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
+      retainedPixels + derivedPixels > limits.maxImagePixels) {
+    throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');
   }
   ProjectValidator.validate(manifest, maps: maps.values);
   for (final map in maps.values) {
@@ -1756,7 +1869,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       projectedEvents?.dialogueSources ?? const {},
       audio,
       projectedCatalogs?.mergedItemCatalog ?? projectedEvents?.itemCatalog,
-      projectedCatalogs?.documents ?? const []);
+      projectedCatalogs?.documents ?? const [],
+      borderSnapshots);
 }
 
 void _validateCatalogReferences(

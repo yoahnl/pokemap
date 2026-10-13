@@ -384,7 +384,8 @@ final class NativePublicationJob {
       _requireStageIdentity(stageFd);
       projectFd = _os.openDirectoryAt(stageFd, _folder);
       await _revision(_projectPath, _stageRoot, stagedReceipt.nativeRevision,
-          assets: stagedReceipt.assetHashes);
+          assets: stagedReceipt.assetHashes,
+          borderSnapshotFiles: stagedReceipt.borderSnapshotFiles);
       final inventory = _inventory(projectFd, _limitsValue,
           sync: true, cancellation: cancellation);
       _os.sync(stageFd);
@@ -397,6 +398,10 @@ final class NativePublicationJob {
         'assetHashes': {
           for (final entry in stagedReceipt.assetHashes.entries)
             entry.key: entry.value.value
+        },
+        'borderSnapshotFiles': {
+          for (final entry in stagedReceipt.borderSnapshotFiles.entries)
+            entry.key: entry.value.toJson()
         },
       };
       _journal.append('sealed', seal);
@@ -414,7 +419,8 @@ final class NativePublicationJob {
       await _guard();
       _verifyInventory(projectFd, seal, _limitsValue);
       await _revision(_projectPath, _stageRoot, stagedReceipt.nativeRevision,
-          assets: stagedReceipt.assetHashes);
+          assets: stagedReceipt.assetHashes,
+          borderSnapshotFiles: stagedReceipt.borderSnapshotFiles);
       _admit(_plan, await readCurrentContext());
       await verifySourceUnchanged();
       _verifyInventory(projectFd, seal, _limitsValue);
@@ -468,7 +474,8 @@ final class NativePublicationJob {
           _verifyInventory(projectFd, seal, _limitsValue);
           await _revision(
               _projectPath, _stageRoot, seal['nativeRevision'] as String,
-              assets: _sealAssets(seal));
+              assets: _sealAssets(seal),
+              borderSnapshotFiles: _sealBorderSnapshotFiles(seal));
           _verifyInventory(projectFd, seal, _limitsValue);
         } finally {
           _os.close(projectFd);
@@ -493,7 +500,8 @@ final class NativePublicationJob {
       _verifyInventory(fd, seal, _limitsValue);
       await _revision(
           destinationPath, _parent, seal['nativeRevision'] as String,
-          assets: _sealAssets(seal));
+          assets: _sealAssets(seal),
+          borderSnapshotFiles: _sealBorderSnapshotFiles(seal));
       _verifyInventory(fd, seal, _limitsValue);
       if (stage != null) {
         final stageFd = _os.openDirectoryAt(_parentFd, _stageName);
@@ -763,8 +771,31 @@ Map<String, Sha256Hash> _sealAssets(Map<String, Object?> seal) => {
         entry.key as String: Sha256Hash(entry.value as String),
     };
 
+Map<String, NativeBorderSnapshotReceipt> _sealBorderSnapshotFiles(
+    Map<String, Object?> seal) {
+  final input = seal['borderSnapshotFiles'];
+  if (seal.length != 6 ||
+      !const {
+        'projectIdentity',
+        'nativeRevision',
+        'inventory',
+        'inventoryHash',
+        'assetHashes',
+        'borderSnapshotFiles'
+      }.containsAll(seal.keys) ||
+      input is! Map) {
+    throw const NativePublicationException('publication.journal.invalid',
+        'Native seal must contain its exact Border snapshot receipts');
+  }
+  return Map.unmodifiable({
+    for (final entry in input.entries)
+      entry.key as String: NativeBorderSnapshotReceipt.fromJson(entry.value)
+  });
+}
+
 Future<void> _revision(String projectPath, String allowedRoot, String expected,
-    {required Map<String, Sha256Hash> assets}) async {
+    {required Map<String, Sha256Hash> assets,
+    required Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles}) async {
   const reader = LocalProjectFileReader();
   final policy = await WorkspacePolicy.create(
       allowedRootPaths: [allowedRoot], fileReader: reader);
@@ -785,6 +816,38 @@ Future<void> _revision(String projectPath, String allowedRoot, String expected,
             utf8.decode(snapshot.resourceBytes(assetCatalogResourceIdentity)))
         as Map<String, dynamic>);
     final access = handles.resolveProject(opened.projectHandle);
+    final snapshotPaths = {
+      for (final visual in snapshot.manifest.borderCatalog.visualSnapshots)
+        for (final frame in visual.frames) frame.relativeAssetPath
+    };
+    if (snapshotPaths.length != borderSnapshotFiles.length ||
+        !snapshotPaths.containsAll(borderSnapshotFiles.keys)) {
+      throw _nativeChanged();
+    }
+    for (final entry in borderSnapshotFiles.entries) {
+      final logicalPath = entry.key;
+      if (logicalPath.length > 4096 ||
+          !logicalPath.startsWith('assets/borders/snapshots/') ||
+          !logicalPath.endsWith('.png') ||
+          logicalPath.contains(r'\') ||
+          logicalPath.contains(':') ||
+          logicalPath.codeUnits.any((unit) => unit < 0x20) ||
+          logicalPath.split('/').any(
+              (part) => part.isEmpty || part == '.' || part == '..')) {
+        throw _nativeChanged();
+      }
+      final before = await access.readResourceIdentity(logicalPath);
+      if (before == null || before.byteLength != entry.value.byteLength) {
+        throw _nativeChanged();
+      }
+      final bytes = await access.readBytes(logicalPath);
+      final after = await access.readResourceIdentity(logicalPath);
+      if (before != after ||
+          bytes.length != entry.value.byteLength ||
+          sha256.convert(bytes).toString() != entry.value.sha256.value) {
+        throw _nativeChanged();
+      }
+    }
     for (final entry in assets.entries) {
       final record = catalog.require(entry.key);
       for (final logicalPath in {
@@ -999,7 +1062,7 @@ final class _Journal {
         if (decoded is! Map<String, dynamic> ||
             canonicalJsonOf(decoded, limits: _jsonLimits(limits)) != line ||
             decoded['kind'] != 'aveluneNativePublicationJournal' ||
-            decoded['version'] != 1 ||
+            decoded['version'] != 2 ||
             decoded['sequence'] != journal.records.length ||
             decoded['previousHash'] != journal._previous ||
             decoded['payload'] is! Map<String, dynamic> ||
@@ -1041,7 +1104,7 @@ final class _Journal {
     }
     final record = <String, Object?>{
       'kind': 'aveluneNativePublicationJournal',
-      'version': 1,
+      'version': 2,
       'sequence': records.length,
       'previousHash': _previous,
       'state': state,

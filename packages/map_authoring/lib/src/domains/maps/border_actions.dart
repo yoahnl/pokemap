@@ -99,6 +99,7 @@ final class BorderActions {
       'border_layer.feature_set_variation',
       'Set a deterministic Border slot variation',
     ),
+    _descriptor('border_layer.feature_set_replacement', 'Replace one resolved 2D Border slot with an explicit primitive'),
     _descriptor('border_layer.feature_lock', 'Lock a resolved Border slot'),
     _descriptor('border_layer.feature_unlock', 'Unlock a Border slot'),
     _descriptor(
@@ -495,6 +496,9 @@ final class BorderActions {
           'slotKey',
           'variationSalt',
         },
+      'border_layer.feature_set_replacement' => const {
+          'layerId', 'featureId', 'slotKey', 'primitiveId',
+        },
       'border_layer.feature_lock' || 'border_layer.feature_unlock' => const {
           'layerId',
           'featureId',
@@ -834,6 +838,63 @@ final class BorderActions {
           featureId: featureId,
           overrides: overrides,
         );
+      case 'border_layer.feature_set_replacement':
+        final featureId = parameters.string('featureId');
+        final feature = _feature(_borderLayer(context.map, layerId), featureId);
+        final revision = requirePublishedBlueprint(context.manifest, feature.blueprintId);
+        if (context.map.spatialScene != null || revision.definition.isSpatial) {
+          throw semanticFailure('border.replacement_dimension_unsupported',
+              'Explicit primitive replacement currently requires a 2D Border.');
+        }
+        final slotKey = parameters.string('slotKey');
+        final primitiveId = parameters.string('primitiveId');
+        if (!revision.definition.primitives.any((value) => value.id == primitiveId)) {
+          throw semanticFailure('border.primitive_missing',
+              'The replacement primitive is not in the published blueprint.',
+              details: {'primitiveId': primitiveId});
+        }
+        BorderResolutionResult resolve(MapData map) => preview(
+          manifest: context.manifest, map: map, layerId: layerId,
+          featureId: featureId, projectRevision: planning.snapshot.revision,
+          tileSizePx: GridSize(width: context.manifest.settings.tileWidth,
+              height: context.manifest.settings.tileHeight),
+          resolverVersion: borderResolverVersion,
+        ).result;
+        final resolved = resolve(context.map);
+        if (!resolved.canApply || resolved.materialization!.placements
+            .where((value) => value.slotKey == slotKey).length != 1) {
+          throw semanticFailure('border.slot_not_resolved',
+              'The replacement requires one current canonical Border slot.',
+              details: {'slotKey': slotKey});
+        }
+        final overrides = List<BorderSlotOverride>.from(feature.overrides);
+        final index = overrides.indexWhere((value) => value.slotKey == slotKey);
+        final current = index < 0 ? null : overrides[index];
+        final replacement = BorderSlotOverride(
+          slotKey: slotKey,
+          variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
+          suppressed: current?.suppressed ?? false,
+          locked: current?.locked ?? false,
+          lockedPlacement: current?.lockedPlacement,
+          lockedInstanceId: current?.lockedInstanceId,
+          replacementPrimitiveId: primitiveId,
+          offsetDeltaPx: current?.offsetDeltaPx,
+          transformOverride: current?.transformOverride,
+        );
+        if (index < 0) { overrides.add(replacement); }
+        else { overrides[index] = replacement; }
+        updated = updateBorderFeatureOverrides(context.map, layerId: layerId,
+            featureId: featureId, overrides: overrides);
+        final proposed = resolve(updated);
+        final placements = proposed.materialization?.placements
+            .where((value) => value.slotKey == slotKey).toList() ?? const <BorderResolvedPlacement>[];
+        if (!proposed.canApply || placements.length != 1 ||
+            placements.single.primitiveId != primitiveId) {
+          throw semanticFailure('border.replacement_invalid',
+              'The explicit primitive must produce the selected canonical Border slot.',
+              details: {'slotKey': slotKey, 'primitiveId': primitiveId,
+                'diagnostics': proposed.diagnostics.map((value) => value.code).toList()});
+        }
       case 'border_layer.feature_lock':
         updated = _setSlotLock(
           context.map,
@@ -1025,7 +1086,14 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         extensions: {
           'semanticIds': true,
           'rawTilesetRequired': false,
-          'visualKinds': const ['element', 'model3d'],
+          'visualKinds': id == 'border_layer.feature_set_replacement'
+              ? const ['element'] : const ['element', 'model3d'],
+          if (id == 'border_layer.feature_set_replacement') 'inputSchema': {
+            'type': 'object', 'additionalProperties': false,
+            'required': ['mapId', 'layerId', 'featureId', 'slotKey', 'primitiveId'],
+            'properties': {for (final key in ['mapId', 'layerId', 'featureId', 'slotKey', 'primitiveId'])
+              key: const {'type': 'string', 'minLength': 1}},
+          },
           if (id == 'border_layer.stroke_erase') 'inputSchema': {
             'type': 'object', 'additionalProperties': false,
             'required': ['mapId', 'layerId', 'featureId', 'points'],

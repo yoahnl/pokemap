@@ -11,6 +11,7 @@ import 'source_pickup_feedback_binding.dart';
 import 'source_map_music_binding.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_connection_study_composer.dart';
+import 'source_directed_jump_study_composer.dart';
 
 final class SourceEventStudyComposition {
   const SourceEventStudyComposition(
@@ -73,6 +74,19 @@ final class SourceEventStudyComposer {
           'Event maps require the exact preceding source connections');
     }
     nativeMaps.addAll(connections.nativeMaps);
+    var borderProject = sourceSemanticNativeProject(draft: base, maps: nativeMaps,
+        mutations: base.mutations, limits: limits);
+    for (final mutation in base.mutations.where((entry) =>
+        entry.actionId.startsWith('border.') || entry.actionId.startsWith('border_layer.'))) {
+      final replay = await replaySourceBorderMutation(project: borderProject,
+          maps: {for (final map in nativeMaps.values) map.id: map}, mutation: mutation,
+          artifacts: base.artifacts, limits: limits, cancellation: cancellation);
+      borderProject = replay.project;
+      for (final entry in base.mapIds.entries) { nativeMaps[entry.key] = replay.maps[entry.value]!; }
+    }
+    ProjectValidator.validate(borderProject, maps: nativeMaps.values);
+    for (final map in nativeMaps.values) { MapValidator.validate(map, projectDialogueContext: borderProject); }
+
     final analysis =
         SourceEventAnalyzer.forProject(source, profile: profile).analyze();
     final selectedEvents = analysis.events
@@ -502,11 +516,13 @@ final class SourceEventStudyComposer {
             mutations: [
               ...base.mutations
                   .where((entry) => !entry.actionId.startsWith('map.') &&
-                    entry.actionId != 'connection.create_bidirectional_apply'),
+                    entry.actionId != 'connection.create_bidirectional_apply' &&
+                    !entry.actionId.startsWith('border_layer.')),
               ...importedMutations,
               ...base.mutations
                   .where((entry) => entry.actionId.startsWith('map.')),
               ...baseConnections,
+              ...base.mutations.where((entry) => entry.actionId.startsWith('border_layer.')),
               ...eventMutations,
             ],
             compositionEvidence: {

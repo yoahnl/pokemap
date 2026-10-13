@@ -999,3 +999,71 @@ Parité : ResourcePort reste un adapter interne qui emploie border.blueprint.dra
 Auto-critique : les pixels d’aperçu du widget sont représentés par un thumbnail de test recevant les éléments exacts, pas par une fenêtre Studio. Le reçu partiel qualifié correspond à un brouillon effectivement sauvegardé avec incident injecté ensuite, pas à tous les incidents de publication. Le panel recalcule une résolution complète pour son diagnostic stale ; coût non mesuré, sansP2 établi. Pas de suite Studio complète, de testGPU, de création nouvelle native, de remplacement/orientation manuelle, ni de parcoursRoute9/Kanto réel. La source32² et ses119rebords sont encore dans la qualification composer séparée. Prochaine tranche : seam replacement canonique + vraie sortie native du pair98/100, workflow/budgets visibles, puis parcours Studio/Player réellement ouvert, modifié, sauvegardé/réouvert et fermé après usage.
 
 Clôture Git attendue dans `host-integration-02/studio-commit-01.json` : douze blobs (onze privés + ce rapport), parent73a70d9fa, index final vide, worktree étranger conservé. Aucunpush/rebase/PR. Le ticket AC15 existant conserve DOING/PARTIAL dans son grand domaine Post Bêta ; aucune famille ou ticket de contenu créé.
+
+
+## Complément AC-15 — conversion automatique des rebords source et publication, 13 octobre 2026
+
+Portée : convertir les rebords source qualifiés en Borders natifs `ledgeLine`, conserver leurs variantes exactes et publier leurs snapshots avec des témoins distincts du catalogue d’assets. Le raccord workflow et l’interface constituent la tranche suivante. AC-15 reste DOING/PARTIAL et FG-120 PARTIAL ; aucun changement de roadmap ou de Gate bêta. Les combats restent ceux d’Avelune et aucun Ruby source ni appel IA n’est exécuté.
+
+Audit initial : main, HEAD `e02f2559db53ea909c06e786a4fa4c95e79df1bc`, index vide, 72 chemins dirty. Les cinq contrats converter_core nécessaires étaient déjà des prototypes de ce chantier. Le writer confondait aussi les chemins des PNG Border avec les IDs du catalogue d’assets : la première vérification de publication refusait systématiquement ces sorties. Le fichier authoring contient une autre implémentation non committée du même remplacement, avec des actions de slots et du support 3D étrangers : son contenu host reste byte-exact. Le staging utilise uniquement le blob 2D canonique privé. L’ancien domaine gameplay_zone du writer est conservé dans le host comme unique ligne supplémentaire, absent du blob propre committé.
+
+L’oracle fermé reprend les sections Ruby inertes 042 Game_Map:222–247/302–316, 044 Game_Character:237–257/767–801 et 046 Game_Player:141–153. Admission de la sortie et de l’entrée inverse, terrain effectif, puis réception d0 ; les passages ordinaires continuent de refuser les ledges. Profil non attesté, pont actif, joueur non 1×1, orientation inconnue ou empreinte événementielle ne donnent aucune permission implicite. Les trois carriers source sud 1194/1212/1198 conservent les pixels complets 32×32, creux alpha, ancre (16,31), orientation q0, sans flip ni rotation. Seules les cellules Z1 des rebords admis sont consommées ; Z0, Z2, autres Z1, placements et masques génériques restent conservés.
+
+Inventaire des 18 chemins code/tests ; le diff Git reste l’autorité des zones exactes :
+
+| Chemin | Zones et effet |
+| --- | --- |
+| `packages/avelune_converter_core/lib/avelune_converter_core.dart` | export du contrat pur directed jumps |
+| `packages/avelune_converter_core/lib/src/source_semantics.dart` | permission ledge explicite dans le seul trajet dédié ; marche inchangée |
+| `packages/avelune_converter_core/lib/src/source_directed_jump_semantics.dart` | nouveau contrat, traces typées terrain/passages et résolution A/B/C fermée |
+| `packages/avelune_converter_core/test/source_directed_jump_semantics_test.dart` | contrats, géométrie, contextes, ordres et profils |
+| `packages/avelune_converter_core/test/source_directed_jump_resolver_test.dart` | refus terrain/passage/landing et non-régression de la marche |
+| `packages/avelune_converter_adapters/lib/avelune_converter_adapters.dart` | export composer et erreur typée |
+| `packages/avelune_converter_adapters/lib/src/source_directed_jump_study_composer.dart` | nouveau composer, trois modules source, unitEdges, replacements exacts et preuve par cellule |
+| `packages/avelune_converter_adapters/lib/src/source_semantic_study_composer.dart` | appel du composer et consommation précise Z1 ; masques conservés |
+| `packages/avelune_converter_adapters/lib/src/source_event_study_composer.dart` | ordre des sauvegardes conservant les Borders ajoutés avant les événements |
+| `packages/avelune_converter_adapters/lib/src/native_project_writer.dart` | domaine border_layer et reçu immutable snapshots path→longueur/SHA brut distinct des assets |
+| `packages/avelune_converter_adapters/lib/src/native_project_publication.dart` | journal v2 strict, seal et vérification snapshots sur les quatre voies publication/reprise |
+| `packages/avelune_converter_adapters/test/source_directed_jump_study_composer_test.dart` | pixels/alpha/variants, contexte, orientation et exclusions |
+| `packages/avelune_converter_adapters/test/source_directed_jump_writer_test.dart` | writer canonique, publication, reprise préparée/publiée et altérations PNG/reçu/journal |
+| `packages/map_authoring/lib/src/domains/maps/border_actions.dart` | action feature_set_replacement 2D stricte ; slot résolu et primitive publiable obligatoires |
+| `packages/map_authoring/test/domains/maps/border_replacement_action_test.dart` | API directe, préservation d’intent et refus |
+| `packages/map_authoring/test/tooling/jsonl_border_replacement_flow_test.dart` | transport CLI/JSONL et réouverture |
+| `packages/map_authoring/test/support/border_replacement_fixture.dart` | fixture originale de rebord publié, sans média de production |
+| `tools/pokemap_mcp/test/border_replacement_stdio.test.ts` | action découverte, refus, remplacement, republication r2, materialize resolver3 et reopen |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | ce seul rapport consolidé |
+
+Le P2 publication a un RED fonctionnel : 0PASS/3FAIL, exit1,17.063s, refus native.changed puis absence de seal/reprise prepared. `assetHashes` reste ID-only ; `borderSnapshotFiles` exige l’ensemble exact des références du manifeste, des chemins directs bornés, une identité physique stable avant/après lecture, la longueur exacte et le SHA brut. Ces gardes couvrent avant seal, après intention durable, reprise prepared et reprise published. Le journal v1 est refusé ; aucune migration, faux record de catalogue, hausse de quota ou suppression de vérification.
+
+Preuves privées gel03/04 dans `<QA>/source-border-conversion-private-b57zk3zh`, avec QA=`/Users/karim/Library/Application Support/AveluneConverterStudies/QA/ac15-post-restart-20261013-sk83jcu5`. Pins finaux04 SHA `f8fdd9a5288694111fa6af2ed8d96952ccbb5c57c78d08681ea06aadae840918`, ledger06 SHA `278a3639be5689419a561f7f1e85fb5532c6b0daf3b100a7fc89615d8d6ee6f8`, patch Source13 SHA `255335d1eac26f02bb88d47e2ace153076537a3b890838b5908a53855d4f806e`. Root relit les pins, patches, reçus, logs et leurs invariants ; reviewer vérifie fermeture1998, 13blobs et15dépendances, application13/13 sur a0dd220 et e02f2559. Les dix overlays gameplay sont déjà committés ; seuls les cinq converter_core sont ajoutés à cette tranche.
+
+| Cwd / commande | Résultat exact |
+| --- | --- |
+| converter_core privé : `dart test test/source_directed_jump_semantics_test.dart test/source_directed_jump_resolver_test.dart test/source_semantics_test.dart --concurrency=1 --reporter expanded` | root51PASS,exit0,5.207s ; analyse des cinq chemins No issues,1.021s |
+| adapters privé : `dart test test/source_directed_jump_study_composer_test.dart test/source_directed_jump_writer_test.dart test/native_project_publication_test.dart --concurrency=1 --reporter expanded` |35PASS,exit0,84.305s ; seule correction d’accolades du test ensuite |
+| adapters privé : `dart test test/source_directed_jump_writer_test.dart --name 'Border.*(publication\|prepared\|snapshot)' --concurrency=1 --reporter expanded` |3PASS sur bytes finaux,exit0,14.164s ; analyse complète No issues,3.599s |
+| adapters host : même commande combinée de trois suites | root35PASS,exit0,79.697s ; `root-host-integration-03/host-focused-01.json`, logSHAb6a34290769c0e604c296054ac58a08adbfcf2f66fc296251356a42943bec2b2 |
+| adapters host : `dart analyze` | No issues found,exit0,4.922s ; mêmes production pins que le run35 |
+| authoring privé : `dart test test/domains/maps/border_replacement_action_test.dart test/tooling/jsonl_border_replacement_flow_test.dart --concurrency=1 --reporter expanded` |7PASS,exit0,2.876s ; analyse des quatre chemins No issues,2.272s |
+| MCP privé : `npm run build`, `npm run check`, puis `node --import tsx --test test/border_replacement_stdio.test.ts` |build exit0/1.301s,check exit0/0.999s,stdio1PASS/8.845s ; RED frais 7!==3,exit1/9.144s |
+| probe QA Dart après ce dernier stdio : `seed-border-replacement-fixture-resolver3.dart verify <fixture> <result>` |exit0/8.370s ; replay matériel canonique exact, catalogue7/résolveur3/révision2, binding1 et Jumped (3,2)→(3,3)→(3,4), owner/fingerprints exacts |
+| adapters privé : `dart compile kernel --packages=<package_config> <QA>/real-border-conversion-probe-01.dart -o <QA>/source-border-final03.dill` |exit0/6.071s, compilation des production pins finaux ; pas une build GUI |
+| root : `bash tools/scripts/check_markdown_hygiene.sh` |exit0, aucun nouveau Markdown |
+
+Le premier test MCP passait 7 comme version de résolveur en confondant le catalogueV7 avec resolver3. Sa preuve historique est géométrique ; le nouveau RED puis GREEN ci-dessus remplace cette borne et le probe strict vérifie la permission gameplay sur une fixture originale. Aucun parcours animé Kanto n’en est déduit. PMCP-085 global demeure PARTIAL ; refus authoring privés et réussite du writer host sont deux preuves séparées, sans attribuer les refus canoniques au fichier host étranger.
+
+Les preuves corpus réelles restent historiques et bornées : 480 évaluations cardinales,119qualifiées sud,118bindings statiques (91map98+27map100), une exclusion pour event9 map98/B(14,16)/A(14,15). Root/reviewer recomparent sur disque les listes complètes de placements :315+168=483, tous champs égaux au r8. Les295+134 objets ac12-wall ne sont qu’un sous-ensemble. La bibliothèque enrichie r8 n’est pas qualifiée : son propre reçu indique assetCandidateCount0, resourceLibraryQualified=false et nativePathsAndWholeTreeLibraryImported=false, avec quota274>256. Aucun corpus233s rejoué après les deltas publication ou test MCP ; aucune bibliothèque complète, musique ou événements réels intégrés par ce writer seul.
+
+Nouvelle source QA : copie APFS séparée du dossier Downloads,23 707fichiers originaux inchangés hashes/modes. Onze fichiers nécessaires absents sont récupérés seulement dans la copie depuis les témoins exacts conservés : Scripts,Outside,Game.exe jamais exécuté, BGM Route03 et sept Data/PBS. Copie finale23 718fichiers, scan réel ConverterWorkflow complet383cartes/0diagnostic,exit0/34.538s ; snapshot `448e76b43bea176dd96ec2376823b2418dd42b3d0bf8de9ba375a3b812225468`. `qualified-source-copy-post-scan-integrity-02.json` vérifie après scan l’original et la copie attendue,exit0/10.012s. Cela ne restaure pas tous les médias historiques :367chemins historiques restent absents. Les prochains plans doivent être fraîchement préparés et approuvés sur cette empreinte ; aucune recette historique réutilisée implicitement.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root et ac12_validation_design | oracle Ruby attesté ; carriers source exacts, consommation Z1 précise et événements fermés |
+| Implémentation ac12_semantics |13blobs Source +5core ; P2 publication fermé ; seul test MCP révisé ensuite |
+| Tests root et ac12_semantics |51core,35adapters privés puis35host,7API/JSONL,stdio1 et binder1 ; pas de suite globale revendiquée |
+| Build/Validation root et ac12_semantics | analyse adapters privée/host, analyse core/authoring, kernel pur, rebuild/check MCP ; scan et intégrité source séparés |
+| Critique indépendante ac15_connection_review_fresh | aucunP1/P2 restant sur Source18 ; pins/patch/reçus et limite host étranger vérifiés |
+
+Auto-critique : une admission statique n’est pas une animation, un rendu ni une session Studio réelle. La fixture MCP n’est pas Route9. Le helper de publication continue de refuser toute modification incohérente plutôt que de récupérer une sortie altérée. Les JSON de métadonnées intermédiaires invalides sont conservés et remplacés par ledger05/06 valides ; aucun code ou reçu de test maquillé. Prochaine tranche : workflow/capability/diagnostics et compteurs explicites, puis banque réelle de chemins/arbres entiers, nouvelle publication98/100 et parcours Studio/Player fermé après usage.
+
+Git : dix-huit blobs propres et ce rapport, sans hunks mobile/3D/render3D ni ancien prototype zone. `root-host-integration-03/prepared-blobs-04.json` et `host-apply-proof-03.json` attestent la conservation de62chemins préexistants non possédés et de border_actions host byte-exact, index vide avant staging. Le reçu de commit local doit confirmer parent e02f2559,19blobs exacts,index final vide et hashes/modes host conservés ; aucunpush/rebase/PR. Le ticket existant AC15 reste DOING/PARTIAL jusqu’au résultat complet, sans nouveau ticket ou domaine.

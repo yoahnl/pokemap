@@ -411,6 +411,15 @@ final class SourceSemanticResolver {
         ],
       );
 
+  SourceDirectedJumpPassage resolveDirectedJump(
+    SourceSemanticCell from,
+    SourceSemanticCell via,
+    SourceSemanticCell landing,
+    SourceCardinalDirection direction, {
+    SourceSemanticContext context = const SourceSemanticContext(),
+  }) =>
+      _resolveSourceDirectedJump(this, from, via, landing, direction, context);
+
   SourceConnectionEntryTilePassage resolveConnectionEntryTile(
     SourceSemanticCell cell, {
     SourceSemanticContext context = const SourceSemanticContext(),
@@ -493,7 +502,8 @@ final class SourceSemanticResolver {
   }
 
   SourceDirectionPassage _resolveDirection(SourceSemanticCell cell,
-      SourceCardinalDirection direction, SourceSemanticContext context) {
+      SourceCardinalDirection direction, SourceSemanticContext context,
+      {bool allowLedgeGameplay = false}) {
     final trace = <SourceTilePassageTrace>[];
     SourceDirectionPassage result(
             SourcePassageStatus status, SourcePassageReason reason) =>
@@ -552,10 +562,6 @@ final class SourceSemanticResolver {
             tile: tile, reason: SourcePassageReason.inactiveBridge));
         continue;
       }
-      if (terrainTag == 1) {
-        return decided(SourcePassageStatus.unqualified,
-            SourcePassageReason.ledgeRequiresGameplay);
-      }
       if (passage & 15 == 15) {
         return decided(SourcePassageStatus.blocked,
             SourcePassageReason.allDirectionsBlocked);
@@ -563,6 +569,10 @@ final class SourceSemanticResolver {
       if (passage & direction.bit != 0) {
         return decided(
             SourcePassageStatus.blocked, SourcePassageReason.directionBlocked);
+      }
+      if (terrainTag == 1 && !allowLedgeGameplay) {
+        return decided(SourcePassageStatus.unqualified,
+            SourcePassageReason.ledgeRequiresGameplay);
       }
       if (priority == 0) {
         return decided(
