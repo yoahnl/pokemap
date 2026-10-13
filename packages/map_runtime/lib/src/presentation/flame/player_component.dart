@@ -84,6 +84,9 @@ class PlayerComponent extends PositionComponent {
   double _moveRemaining = 0.0;
   double _stepDurationSeconds = kDefaultStepSeconds;
   CharacterAnimationState _stepAnimationState = CharacterAnimationState.walk;
+  DirectedJumpPlan? _jumpPlan;
+  void Function()? _jumpCompletion;
+  double _jumpLiftPx = 0;
 
   /// Facteur gameplay px → monde Flame (écran), identique pour X/Y si tuiles carrées.
   double get _scaleX =>
@@ -123,6 +126,70 @@ class PlayerComponent extends PositionComponent {
   }
 
   bool get isStepping => _moveTo != null && _moveRemaining > 0;
+
+  bool get isJumping => _jumpPlan != null;
+  double get debugJumpLiftPx => _jumpLiftPx;
+
+  void startDirectedJump(
+    GameplayPlayerState state, {
+    required DirectedJumpPlan plan,
+    required void Function() onComplete,
+  }) {
+    if (plan.durationMs < 1 ||
+        plan.durationMs > 60000 ||
+        plan.peakHeightPx < 1 ||
+        plan.peakHeightPx > 1024 ||
+        state.pos != plan.landingPos ||
+        _state.pos != plan.sourcePos ||
+        state.playerPositionPx.leftPx != plan.landingPositionPx.leftPx ||
+        state.playerPositionPx.topPx != plan.landingPositionPx.topPx ||
+        _state.playerPositionPx.leftPx != plan.sourcePositionPx.leftPx ||
+        _state.playerPositionPx.topPx != plan.sourcePositionPx.topPx) {
+      throw ArgumentError(
+        'Directed jump plan differs from player state or animation bounds',
+      );
+    }
+    if (isStepping) {
+      throw StateError('Player movement is already active');
+    }
+    _state = state;
+    _jumpPlan = plan;
+    _jumpCompletion = onComplete;
+    _jumpLiftPx = 0;
+    _stepDurationSeconds = plan.durationMs / 1000;
+    _moveRemaining = _stepDurationSeconds;
+    _stepAnimationState = CharacterAnimationState.idle;
+    size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: state));
+    _moveFrom = _computeWorldTopLeft(
+      mapOrigin: _mapOrigin,
+      bundle: bundle,
+      state: state.copyWith(playerPositionPx: plan.sourcePositionPx),
+    );
+    _moveTo = _computeWorldTopLeft(
+      mapOrigin: _mapOrigin,
+      bundle: bundle,
+      state: state,
+    );
+    position.setFrom(_moveFrom!);
+    _layoutActor();
+    _actor?.setMotion(
+      EntityFacing.values.byName(state.facing.name),
+      CharacterAnimationState.idle,
+    );
+  }
+
+  void cancelDirectedJump() {
+    if (!isJumping) {
+      return;
+    }
+    _jumpPlan = null;
+    _jumpCompletion = null;
+    _jumpLiftPx = 0;
+    _moveFrom = null;
+    _moveTo = null;
+    _moveRemaining = 0;
+    _snapToStatePosition();
+  }
 
   EntityFacing get cinematicFacing =>
       EntityFacing.values.byName(_state.facing.name);
@@ -192,7 +259,7 @@ class PlayerComponent extends PositionComponent {
     }
     actor.position = Vector2(
       (size.x - actor.size.x) / 2,
-      size.y - actor.size.y,
+      size.y - actor.size.y - _jumpLiftPx,
     );
   }
 
@@ -232,6 +299,9 @@ class PlayerComponent extends PositionComponent {
     super.update(dt);
     if (isStepping && _moveFrom != null && _moveTo != null) {
       _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
+      if (_jumpPlan != null && _moveRemaining < 0.000000001) {
+        _moveRemaining = 0;
+      }
       final progress =
           ((_stepDurationSeconds - _moveRemaining) / _stepDurationSeconds)
               .clamp(0.0, 1.0);
@@ -240,16 +310,27 @@ class PlayerComponent extends PositionComponent {
         _moveFrom!.y + (_moveTo!.y - _moveFrom!.y) * progress,
       );
       position = next;
+      final jump = _jumpPlan;
+      if (jump != null) {
+        _jumpLiftPx = 4 * jump.peakHeightPx * _scaleY * progress * (1 - progress);
+        _layoutActor();
+      }
       if (_moveRemaining <= 0) {
         position = _moveTo!.clone();
         _moveFrom = null;
         _moveTo = null;
         _moveRemaining = 0.0;
+        final completion = _jumpCompletion;
+        _jumpCompletion = null;
+        _jumpPlan = null;
+        _jumpLiftPx = 0;
+        _layoutActor();
         _stepAnimationState = CharacterAnimationState.walk;
         _actor?.setMotion(
           EntityFacing.values.byName(_state.facing.name),
           CharacterAnimationState.idle,
         );
+        completion?.call();
       }
     }
   }
@@ -257,6 +338,8 @@ class PlayerComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (_actor != null) return;
+    canvas.save();
+    canvas.translate(0, -_jumpLiftPx);
     final cw = size.x;
     final ch = size.y;
     final cx = cw / 2;
@@ -278,9 +361,13 @@ class PlayerComponent extends PositionComponent {
       r * 0.28,
       Paint()..color = const Color(0xFFFFFFFF),
     );
+    canvas.restore();
   }
 
   void syncState(GameplayPlayerState state, {bool snapToGrid = false}) {
+    if (snapToGrid) {
+      cancelDirectedJump();
+    }
     _state = state;
     final facing = EntityFacing.values.byName(state.facing.name);
     if (snapToGrid || !isStepping) {
@@ -301,6 +388,7 @@ class PlayerComponent extends PositionComponent {
     double durationSeconds = kDefaultStepSeconds,
     CharacterAnimationState animationState = CharacterAnimationState.walk,
   }) {
+    cancelDirectedJump();
     _state = state;
     _stepDurationSeconds = durationSeconds;
     _stepAnimationState = animationState;
@@ -325,6 +413,7 @@ class PlayerComponent extends PositionComponent {
     double durationSeconds = kDefaultStepSeconds,
     CharacterAnimationState? animationState,
   }) {
+    cancelDirectedJump();
     _state = state;
     _stepDurationSeconds = durationSeconds;
     _stepAnimationState = animationState ?? _stepAnimationState;
@@ -346,6 +435,12 @@ class PlayerComponent extends PositionComponent {
 
   void updateState(GameplayPlayerState state) {
     syncState(state, snapToGrid: true);
+  }
+
+  @override
+  void onRemove() {
+    cancelDirectedJump();
+    super.onRemove();
   }
 
   void setMapOrigin(Vector2 origin, {bool snapToGrid = false}) {

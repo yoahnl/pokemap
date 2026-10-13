@@ -214,6 +214,21 @@ final class _NarrativeOutcomeRetryPendingException implements Exception {
   }
 }
 
+final class _PendingDirectedJump {
+  _PendingDirectedJump({
+    required this.plan,
+    required this.mapId,
+    required this.activationId,
+    required Set<GridPos> landingCells,
+  }) : landingCells = Set.unmodifiable(landingCells);
+
+  final DirectedJumpPlan plan;
+  final String mapId;
+  final String activationId;
+  final Set<GridPos> landingCells;
+  bool completed = false;
+}
+
 typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
   required String projectFilePath,
   required String mapId,
@@ -527,6 +542,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _sprintPressed = false;
   int _movementContinuityEpoch = 0;
   TriggeredWarp? _pendingWarp;
+  _PendingDirectedJump? _pendingDirectedJump;
   final PlacedElementWarpTraversalController
       _placedElementWarpTraversalController =
       PlacedElementWarpTraversalController();
@@ -824,6 +840,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _installMapActivation(MapActivation activation) {
+    _cancelPendingDirectedJump();
     _currentMapActivationId = activation.activationId;
   }
 
@@ -839,6 +856,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _pendingDirectedJump != null ||
       _flowPhase == _RuntimeFlowPhase.mapTransition ||
       _flowPhase == _RuntimeFlowPhase.battleTransition ||
       _flowPhase == _RuntimeFlowPhase.battle ||
@@ -873,6 +891,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       'outboxDrain=${_narrativeOutcomeDrainFuture != null} '
       'activity=${_narrativeActivityGate.activity.name} '
       'checkpoint=${_narrativeActivityGate.checkpointInProgress} '
+      'pendingJump=${_pendingDirectedJump != null} '
       'pendingWarp=${_pendingWarp != null} '
       'pendingConnection=${_pendingConnection != null} '
       'pendingConnectionAnimation=${_pendingConnectionEntryAnimation != null} '
@@ -3174,6 +3193,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @visibleForTesting
+  Set<GridPos> debugScriptedNpcDynamicBlockedCells({String? ignoreEntityId}) =>
+      Set.unmodifiable(
+        _scriptedNpcDynamicBlockedCells(ignoreEntityId: ignoreEntityId),
+      );
+
+  @visibleForTesting
   bool debugStartScenarioFollow(String leaderEntityId) {
     return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
   }
@@ -3880,6 +3905,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _cancelPendingDirectedJump();
     unawaited(_dialogueFeedbackPlayer?.dispose());
     _dialogueFeedbackPlayer = null;
     _battleExitTransitionVisible.value = false;
@@ -4142,6 +4168,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
     final control = event.control;
 
+    if (_pendingDirectedJump != null) {
+      _clearPressedMovementControls();
+      _sprintPressed = false;
+      return true;
+    }
+
     // Menu/Start belongs to the shared player shell. A bare GameWidget (the
     // developer host) leaves it unhandled instead of opening product UI from
     // inside Flame.
@@ -4391,6 +4423,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
+
+    if (_pendingDirectedJump != null) {
+      _clearPressedMovementControls();
+      return;
+    }
 
     if (_completePlacedElementWarpTraversal()) {
       return;
@@ -4720,9 +4757,138 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           .map((reservation) => reservation.contactRect)
           .whereType<PixelRect>(),
     );
+    if (result is Jumped) {
+      _startDirectedJump(result);
+      return;
+    }
     _world = result.world;
     _syncGameStateFromWorld();
 
+    _handleGameplayMovementResult(
+      result,
+      previousPlayerPos: previousPlayerPos,
+      attemptedDirection: attemptedDirection,
+      attemptedX: attemptedX,
+      attemptedY: attemptedY,
+      attemptedOutOfBounds: attemptedOutOfBounds,
+    );
+  }
+
+  void _startDirectedJump(Jumped result) {
+    final activationId = _currentMapActivationId;
+    if (activationId == null) {
+      throw StateError('Directed jump requires an active map activation');
+    }
+    final previousWorld = _world;
+    final movementRect = result.world.player.playerCollisionRectPx;
+    final contact = result.world.playerCharacterContactRect(movementRect);
+    final left = math.min(movementRect.leftPx, contact.leftPx);
+    final top = math.min(movementRect.topPx, contact.topPx);
+    final right = math.max(
+      movementRect.leftPx + movementRect.widthPx,
+      contact.leftPx + contact.widthPx,
+    );
+    final bottom = math.max(
+      movementRect.topPx + movementRect.heightPx,
+      contact.topPx + contact.heightPx,
+    );
+    final pending = _PendingDirectedJump(
+      plan: result.plan,
+      mapId: _activeMapId,
+      activationId: activationId,
+      landingCells: {
+        for (
+          var y = top ~/ result.world.tileHeightPx;
+          y <= (bottom - 1) ~/ result.world.tileHeightPx;
+          y++
+        )
+          for (
+            var x = left ~/ result.world.tileWidthPx;
+            x <= (right - 1) ~/ result.world.tileWidthPx;
+            x++
+          )
+            GridPos(x: x, y: y),
+      },
+    );
+    _pendingDirectedJump = pending;
+    _clearPressedMovementControls();
+    _sprintPressed = false;
+    _world = result.world;
+    _syncGameStateFromWorld();
+    try {
+      _player.startDirectedJump(
+        _world.player,
+        plan: result.plan,
+        onComplete: () => _completeDirectedJump(pending),
+      );
+    } catch (_) {
+      _pendingDirectedJump = null;
+      _world = previousWorld;
+      _player.syncState(_world.player, snapToGrid: true);
+      _syncGameStateFromWorld();
+      _publishInputAuthoritySnapshot();
+      rethrow;
+    }
+    _publishInputAuthoritySnapshot();
+  }
+
+  void _cancelPendingDirectedJump() {
+    if (_pendingDirectedJump == null) {
+      return;
+    }
+    _pendingDirectedJump = null;
+    _player.cancelDirectedJump();
+    _clearPressedMovementControls();
+    _sprintPressed = false;
+  }
+
+  void _completeDirectedJump(_PendingDirectedJump pending) {
+    if (!identical(_pendingDirectedJump, pending) || pending.completed) {
+      return;
+    }
+    if (_isRemoved ||
+        pending.mapId != _activeMapId ||
+        pending.activationId != _currentMapActivationId ||
+        _flowPhase != _RuntimeFlowPhase.overworld ||
+        _world.player.pos != pending.plan.landingPos ||
+        _world.player.playerPositionPx.leftPx !=
+            pending.plan.landingPositionPx.leftPx ||
+        _world.player.playerPositionPx.topPx !=
+            pending.plan.landingPositionPx.topPx) {
+      _cancelPendingDirectedJump();
+      return;
+    }
+    pending.completed = true;
+    try {
+      final arrival = resolveGameplayArrival(
+        _world,
+        previousPos: pending.plan.sourcePos,
+        direction: pending.plan.direction,
+      );
+      _world = arrival.world;
+      _syncGameStateFromWorld();
+      _handleGameplayMovementResult(
+        arrival,
+        previousPlayerPos: pending.plan.sourcePos,
+        animatePlayer: false,
+      );
+    } finally {
+      if (identical(_pendingDirectedJump, pending)) {
+        _pendingDirectedJump = null;
+      }
+      _publishInputAuthoritySnapshot();
+    }
+  }
+
+  void _handleGameplayMovementResult(
+    GameplayStepResult result, {
+    required GridPos previousPlayerPos,
+    bool animatePlayer = true,
+    Direction? attemptedDirection,
+    int? attemptedX,
+    int? attemptedY,
+    bool attemptedOutOfBounds = false,
+  }) {
     if (result is Blocked) {
       if (result.reason == GameplayMovementBlockReason.waterRequiresSurf &&
           attemptedX != null &&
@@ -4751,15 +4917,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // rencontre et la ligne de vue doivent voir le mode d'arrivée, pas celui
       // de départ.
       _applyFieldActionExitAfterStep();
-      _player.startStep(
-        _world.player,
-        durationSeconds: _sprintPressed
-            ? PlayerComponent.kRunStepSeconds
-            : PlayerComponent.kDefaultStepSeconds,
-        animationState: _sprintPressed
-            ? CharacterAnimationState.run
-            : CharacterAnimationState.walk,
-      );
+      if (animatePlayer) {
+        _player.startStep(
+          _world.player,
+          durationSeconds: _sprintPressed
+              ? PlayerComponent.kRunStepSeconds
+              : PlayerComponent.kDefaultStepSeconds,
+          animationState: _sprintPressed
+              ? CharacterAnimationState.run
+              : CharacterAnimationState.walk,
+        );
+      }
       _checkStepEncounter();
       _checkTrainerLineOfSight(); // Check LoS only when player position changes
       _dispatchScenarioTriggerEnterFromMovement(
@@ -4774,7 +4942,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         previousPos: previousPlayerPos,
         currentPos: _world.player.pos,
       );
-      if (result.warp.triggerMode == MapWarpTriggerMode.onEnter) {
+      if (animatePlayer && result.warp.triggerMode == MapWarpTriggerMode.onEnter) {
         _player.startStep(
           _world.player,
           durationSeconds: PlayerComponent.kDefaultStepSeconds,
@@ -4815,7 +4983,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           result.trigger == MapPlacedElementTriggerType.onEnter ||
               result.trigger == MapPlacedElementTriggerType.onExit ||
               result.trigger == MapPlacedElementTriggerType.onNear;
-      if (isMovementTrigger) {
+      if (animatePlayer && isMovementTrigger) {
         _player.startStep(
           _world.player,
           durationSeconds: PlayerComponent.kDefaultStepSeconds,
@@ -6452,6 +6620,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _suppressOverworldInputForScriptedPlayerMovement() {
+    if (_pendingDirectedJump != null) {
+      return true;
+    }
     final status = scriptedNpcMovementStatus('player');
     return status.state == ScriptedEntityMovementState.moving;
   }
@@ -13655,6 +13826,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _clearTransientUiState() {
+    _cancelPendingDirectedJump();
     _preservingConnectionInput = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled by transient UI reset.',
@@ -14813,8 +14985,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GridPos cell, {
     String? ignoreEntityId,
   }) {
+    if (_pendingDirectedJump?.landingCells.contains(cell) ?? false) {
+      return true;
+    }
     final activeFollowLeader = _pendingScenarioFollowRequest?.leaderEntityId;
-    final ignorePlayerForLeader = activeFollowLeader != null &&
+    final ignorePlayerForLeader =
+        activeFollowLeader != null &&
         ignoreEntityId != null &&
         ignoreEntityId == activeFollowLeader;
     if (!ignorePlayerForLeader) {
@@ -14894,8 +15070,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Iterable<GridPos> _scriptedNpcDynamicBlockedCells({
     String? ignoreEntityId,
   }) sync* {
+    final pendingJump = _pendingDirectedJump;
+    if (pendingJump != null) {
+      yield* pendingJump.landingCells;
+    }
     final activeFollowLeader = _pendingScenarioFollowRequest?.leaderEntityId;
-    final ignorePlayerForLeader = activeFollowLeader != null &&
+    final ignorePlayerForLeader =
+        activeFollowLeader != null &&
         ignoreEntityId != null &&
         ignoreEntityId == activeFollowLeader;
 

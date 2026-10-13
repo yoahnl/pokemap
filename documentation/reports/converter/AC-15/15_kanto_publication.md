@@ -901,3 +901,47 @@ Parité : le binder ne crée pas une nouvelle action d'auteur ou un transport. I
 | Critique indépendante ac15_connection_review_fresh | aucun P1/P2 dans gel02 ; patch/inverse/pins/closure et reçus vérifiés, intégration host vérifiée ensuite par root |
 
 Auto-critique : la permission pure ne prouve ni disponibilité des trois médias source, ni passage animé, ni réservation NPC runtime, ni son/image/profondeur de Route9. Les autres prototypes zone restent non committés et doivent être remplacés par les consommateurs définitifs. Les 119 décisions source statiques ne sont pas 119 parcours Player. Prochaine tranche distincte : port runtime et réception réservée, composition native des trois modules source avec Z1 consommé précisément et tous les masques conservés, puis parcours réel Studio/Player fermé après usage. AC15 reste DOING/PARTIAL, Gate bêta inchangée.
+
+
+## Complément AC-15 — animation Player des rebords natifs, 13 octobre 2026
+
+Portée : consommation runtime des plans Border du commit gameplay `171a55cfcef27ec51e8632d5dc8362f8c2ef9f1f`. Le but complet Kanto éditable et jouable reste requis ; AC-15 reste DOING/PARTIAL, FG-120 PARTIAL, roadmap et Gate bêta inchangées. Ce commit ne qualifie ni le composer source, ni l’édition Studio moderne, ni un parcours Route 9 réel.
+
+Audit initial root : branche main, HEAD171a55cfc, index vide,74chemins dirty. Les quatre chemins runtime étaient des prototypes de ce chantier ; aucun hunk étranger dans ces quatre fichiers. Intégration conditionnée aux hashes attendus des prototypes, puis copie des quatre blobs gelés. Le reçu `runtime-host-integration-01/integration-01.json` atteste71autres chemins surveillés, hashes/modes inchangés. Les travaux mobile, Studio/3D, render3D, transports et source restent hors commit.
+
+| Chemin | Zones modifiées et effet |
+| --- | --- |
+| `packages/map_runtime/lib/src/presentation/flame/player_component.dart` | start/cancelDirectedJump, update, élévation du sprite enfant ; interpolation A→C au sol et footPoint/depth stables, callback unique |
+| `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | pending lié à activation/map/positions ; verrous input/checkpoint, annulation lifecycle, conséquences d’arrivée différées ; réservation immutable de l’union des rectangles mouvement/contact de C avant exception activeFollowLeader dans query et enumeration NPC |
+| `packages/map_runtime/test/player_directed_jump_component_test.dart` | nouvelle fixture de Border natif ; durée500ms/pic24px, affichage à échelle, dt long/fractionné, annulation et callback unique |
+| `packages/map_runtime/test/playable_map_game_directed_jump_test.dart` | nouveau binder Border, conséquences uniquement C, verrous clavier/touch/menu/save/load, callback périmé, réservation C et contact adjacent, régression de l’exception leader suivi |
+| `documentation/reports/converter/AC-15/15_kanto_publication.md` | ce complément consolidé ; aucun nouveau Markdown |
+
+Le RED réservation NPC est fonctionnel : une requête publique activeFollowLeader accepte indûment une route vers C et le contact adjacent ; enumeration omet la réservation. Reçu privé `npc-landing-red-02.json` :6PASS/3FAIL,6.967s. Le correctif capture les cellules du footprint d’arrivée une fois, les conserve dans Set.unmodifiable et les consulte avant l’exception du leader suivi dans les deux chemins. Les ticks NPC restent gelés pendant le saut : le RED n’est pas une preuve de déplacement physique d’un NPC en C.
+
+Gel privé `border-jump-runtime-private-1h92fycg` : ledger01 SHA `dcc746fd78a122b747646f47ba6c4b4ca2093548fcb6cf41893c4da11cbfe481`, patch01 SHA `bb4f1f5fcc5cfdd4e0856b186657053b7871dfd7119709d11ba0f3fa590a3fd3`, quatre blobs et18core/10gameplay exacts. La base runtime a0dd220 est byte-identique à171a55cfc. Reviewer indépendant ac15_connection_review_fresh vérifie6059sources,14deltas limités aux10gameplay dépendants et4runtime, inverse du patch, reçus/logs/pins et kernel. Verdict : aucunP1/P2 dans cette borne. Complément `runtime-completion-evidence-01.json` SHA `0d2bea8f6092068af10c0a673351af4c6d8f053f82fa049d614ebd866c94fc37` pour6NPC et hygiene.
+
+Vérification fraîche root après intégration des quatre blobs :
+
+| Cwd / commande | Résultat exact |
+| --- | --- |
+| `packages/map_runtime` : `flutter test --no-pub --concurrency=1 test/player_directed_jump_component_test.dart test/playable_map_game_directed_jump_test.dart test/playable_map_game_input_test.dart test/phase_a_golden_battle_slice_smoke_test.dart test/scripted_npc_runtime_interaction_test.dart test/scripted_npc_anchor_passability_test.dart --reporter expanded` |83PASS,exit0,12.468s ; host-focused-02.json/logSHA005fc819717677ab61cfd9c5d4b7ef56e92064178551a53346c92cc04e39d0e2 |
+| `examples/playable_runtime_host` : `flutter test --no-pub --concurrency=1 test/phase_a_golden_slice_launch_test.dart --reporter expanded` |14PASS,exit0,10.847s ; host-golden-01.json |
+| `packages/map_runtime` : `flutter analyze --no-pub --no-fatal-infos lib/src/presentation/flame/playable_map_game.dart lib/src/presentation/flame/player_component.dart test/player_directed_jump_component_test.dart test/playable_map_game_directed_jump_test.dart` |exit0,7.497s ;0erreur/0warning/4INFO strictement préexistantes, host-analyze-01.json |
+| Copie privée `packages/map_runtime` : `flutter build bundle --debug --no-pub --target=<QA>/border-jump-runtime-private-1h92fycg/runtime_jump_contract_kernel.dart` |exit0,9.533s ; barrel runtime complet et contrat saut/checkpoint compilés, kernel SHAa60827e76437d5a70bf4a42fe5179bfd8687beb3aa137e98933af03cd9a1c7bf ; meilleur build alternatif de package, pas une build macOS de Studio |
+
+Premier batch root conservé :77PASS/1loadingFAIL,12.492s, car la commande root contenait un nom de suite NPC inexistant. Le nom a été corrigé d’après les suites réelles et le rerun83PASS ci-dessus inclut leurs6tests. Aucun correctif de production associé à cet incident. Les incidents privés initiaux de fixture et de timeout concurrent sont conservés ; runs finaux isolés qualifiés. Aucune suite runtime complète revendiquée.
+
+Tous les runs retenus utilisent run_owned.py : pins stables,protectedUnchanged=true,aucun timeout/signal/descendant survivant. Aucun GUI ouvert ; seuls les descendants observés des propres runners sont susceptibles de cleanup. Aucun ancien PID touché.
+
+| Passe | Verdict borné |
+| --- | --- |
+| Audit/Architecture root et ac12_native_mapping | consommation du binder natif ; pied au sol, arrivée différée et réservée |
+| Implémentation ac12_native_mapping | quatre blobs gelés, pas de contrat zone consommé |
+| Tests ac12_native_mapping / root |18sauts+59input/golden+6NPC privés, puis83host frais ;14host golden frais séparés |
+| Build/Validation ac12_native_mapping / root | kernel runtime privé exact, analyse host quatreINFO baseline ;97tests ciblés host |
+| Critique indépendante ac15_connection_review_fresh | aucunP1/P2 ; gel/inverse/closure/reçus vérifiés ; limites réelles conservées |
+
+Parité : cette consommation runtime n’ajoute aucune action d’auteur ni transport. Les contrats Border V7 restent ceux déjà exposés au commit a0dd220 ; publication/réouverture MCP précédente n’atteste toujours pas une matérialisation de carte MCP ni l’UX Studio moderne. PMCP-085 global restePARTIAL. La recherche configurée flame_docs n’a renvoyé aucun résultat ; version installée2.0.0-dev.1 et patterns existants utilisés.
+
+Auto-critique : fixtures natives synthétiques orientées sud, aucune preuve de trajet source réel, de visuel Route9 ou de modification/réouverture dans Studio. Les hazards restent typés sans dispatch dégâts dans ce scope. La réservation NPC est prouvée par refus de planification et enumeration, pas par contact physique pendant l’animation. Le commit local ne contient que ces quatre blobs et ce rapport ; index vide et conservation du worktree doivent être vérifiés dans le reçu `runtime-host-integration-01/runtime-commit-01.json`. Aucunpush/rebase/PR. Tranches suivantes : composer source fidèle aux trois variantes et119unitEdges, édition/republication des rebords avec régénération explicite, puis parcours réel fermé après usage.
