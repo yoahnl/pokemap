@@ -11,6 +11,8 @@ enum NarrativeCommandCapabilityStatus { supported, unsupported }
 enum NarrativeCommandParameterKind {
   text,
   integer,
+  number,
+  soundMediaReference,
   boolean,
   fact,
   event,

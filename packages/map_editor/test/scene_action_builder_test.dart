@@ -8,6 +8,273 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  test('sound picker helper filters the real project media inventory', () {
+    final options = buildSceneSoundMediaPickerOptions(_mediaProject());
+    expect(options.map((option) => option.id), ['door', 'bell']);
+    expect(options.map((option) => option.label), ['Porte', 'Cloche']);
+    expect(options.every((option) => option.parameters.isEmpty), isTrue);
+    expect(
+      buildSceneSoundMediaPickerOptions(
+        _mediaProject().copyWith(cinematicMediaAssets: []),
+      ),
+      isEmpty,
+    );
+  });
+
+  testWidgets('tone numbers are editable and neutral defaults submit', (
+    tester,
+  ) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.worldTone,
+      commandCatalog: _presentationCommandCatalog(),
+      onSubmitResult: (value) => result = value,
+    );
+    expect(find.byType(PokeMapTextField), findsNWidgets(5));
+    expect(find.textContaining('Aucun Rouge'), findsNothing);
+    final submit = _submitButton(tester);
+    expect(submit.onPressed, isNotNull);
+    submit.onPressed!();
+    await tester.pump();
+    expect(
+      (result!.payload as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.worldTone(
+        red: 0,
+        green: 0,
+        blue: 0,
+        gray: 0,
+        durationMs: 0,
+      ),
+    );
+  });
+
+  testWidgets(
+    'tone editing round trips finite fractional and boundary values',
+    (tester) async {
+      SceneActionBuildResult? result;
+      const parameters = {
+        'red': '-255',
+        'green': '255',
+        'blue': '-12.5',
+        'gray': '25.25',
+        'durationMs': '2147483647',
+      };
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.worldTone,
+        commandCatalog: _presentationCommandCatalog(),
+        initialParameters: parameters,
+        onSubmitResult: (value) => result = value,
+      );
+      expect(_submitButton(tester).onPressed, isNotNull);
+      _submitButton(tester).onPressed!();
+      await tester.pump();
+      expect(result!.parameters, parameters);
+      expect(
+        (result!.payload as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.worldTone(
+          red: -255,
+          green: 255,
+          blue: -12.5,
+          gray: 25.25,
+          durationMs: 2147483647,
+        ),
+      );
+    },
+  );
+
+  testWidgets('tone rejects invalid numbers and duration without clamp', (
+    tester,
+  ) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.worldTone,
+      commandCatalog: _presentationCommandCatalog(),
+      onSubmit: (_) => fail('Invalid tone must not submit'),
+    );
+    for (final parameter in ['red', 'green', 'blue', 'gray', 'durationMs']) {
+      final input = find.byKey(ValueKey('scene-action-parameter-$parameter'));
+      for (final invalid
+          in parameter == 'durationMs'
+              ? ['', '-1', '0.5', '2147483648', '1e3']
+              : [
+                  '',
+                  'NaN',
+                  'Infinity',
+                  '1e999',
+                  '255.01',
+                  parameter == 'gray' ? '-0.1' : '-255.01',
+                ]) {
+        await tester.ensureVisible(input);
+        await tester.enterText(input, invalid);
+        await tester.pump();
+        expect(
+          _submitButton(tester).onPressed,
+          isNull,
+          reason: '$parameter=$invalid',
+        );
+        expect(tester.widget<TextField>(input).controller!.text, invalid);
+      }
+      await tester.enterText(input, '0');
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNotNull);
+    }
+  });
+
+  testWidgets('sound uses a picker and fractional volume round trips', (
+    tester,
+  ) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.playSoundEffect,
+      commandCatalog: _presentationCommandCatalog(),
+      options: _soundOptions,
+      initialParameters: const {'mediaAssetId': 'bell', 'volume': '0.35'},
+      onSubmitResult: (value) => result = value,
+    );
+    expect(find.byType(PokeMapTextField), findsOneWidget);
+    expect(_picker(tester, 'Effet sonore').value, 'bell');
+    expect(
+      find.byKey(const ValueKey('scene-action-parameter-mediaAssetId')),
+      findsNothing,
+    );
+    expect(_submitButton(tester).onPressed, isNotNull);
+    _submitButton(tester).onPressed!();
+    await tester.pump();
+    expect(result!.parameters, {'mediaAssetId': 'bell', 'volume': '0.35'});
+    expect(
+      (result!.payload as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.playSoundEffect(
+        mediaAssetId: 'bell',
+        volume: 0.35,
+      ),
+    );
+  });
+
+  testWidgets('sound volume is finite and bounded with zero allowed', (
+    tester,
+  ) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.playSoundEffect,
+      commandCatalog: _presentationCommandCatalog(),
+      options: _soundOptions,
+    );
+    final input = find.byKey(const ValueKey('scene-action-parameter-volume'));
+    expect(tester.widget<TextField>(input).controller!.text, '1');
+    expect(_submitButton(tester).onPressed, isNotNull);
+    for (final invalid in ['', '-0.1', '1.1', 'NaN', 'Infinity', '1e999']) {
+      await tester.enterText(input, invalid);
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNull, reason: invalid);
+      expect(tester.widget<TextField>(input).controller!.text, invalid);
+    }
+    for (final valid in ['0', '0.8', '1']) {
+      await tester.enterText(input, valid);
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNotNull, reason: valid);
+    }
+  });
+
+  testWidgets('missing sound reference remains visible and blocks submit', (
+    tester,
+  ) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.playSoundEffect,
+      commandCatalog: _presentationCommandCatalog(),
+      options: _soundOptions,
+      initialParameters: const {'mediaAssetId': 'deleted', 'volume': '0.8'},
+    );
+    expect(find.textContaining('deleted'), findsOneWidget);
+    expect(find.textContaining('n’existe plus'), findsOneWidget);
+    expect(_submitButton(tester).onPressed, isNull);
+  });
+
+  for (final duplicateKind in [
+    CinematicMediaAssetKind.music,
+    CinematicMediaAssetKind.sound,
+  ]) {
+    testWidgets(
+      'ambiguous sound ${duplicateKind.name} blocks submit after registry change',
+      (tester) async {
+        final manifest = _mediaProject().copyWith(
+          cinematicMediaAssets: [
+            ..._mediaProject().cinematicMediaAssets,
+            CinematicMediaAsset(
+              id: 'door',
+              label: 'Autre porte',
+              kind: duplicateKind,
+              relativePath: 'media/other-door.wav',
+            ),
+          ],
+        );
+        expect(
+          ProjectManifest.fromJson(
+            manifest.toJson(),
+          ).cinematicMediaAssets.where((media) => media.id == 'door'),
+          hasLength(2),
+        );
+        final options = buildSceneSoundMediaPickerOptions(manifest);
+        expect(options.map((option) => option.id), ['bell']);
+        await _pumpBuilder(
+          tester,
+          initialCommandId: NarrativeCommandIds.playSoundEffect,
+          commandCatalog: _presentationCommandCatalog(),
+          options: _soundOptions,
+          initialParameters: const {'mediaAssetId': 'door', 'volume': '0.8'},
+        );
+        expect(_submitButton(tester).onPressed, isNotNull);
+        await _pumpBuilder(
+          tester,
+          initialCommandId: NarrativeCommandIds.playSoundEffect,
+          commandCatalog: _presentationCommandCatalog(),
+          options: {NarrativeCommandParameterKind.soundMediaReference: options},
+          initialParameters: const {'mediaAssetId': 'door', 'volume': '0.8'},
+          onSubmit: (_) => fail('Ambiguous sound must not submit'),
+        );
+        expect(_submitButton(tester).onPressed, isNull);
+        expect(find.textContaining('door'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        SceneActionBuildResult? valid;
+        await _pumpBuilder(
+          tester,
+          initialCommandId: NarrativeCommandIds.playSoundEffect,
+          commandCatalog: _presentationCommandCatalog(),
+          options: {NarrativeCommandParameterKind.soundMediaReference: options},
+          initialParameters: const {'mediaAssetId': 'bell', 'volume': '0.8'},
+          onSubmitResult: (value) => valid = value,
+        );
+        expect(_submitButton(tester).onPressed, isNotNull);
+        _submitButton(tester).onPressed!();
+        await tester.pump();
+        expect(
+          (valid!.payload as SceneActionPayload).interactiveCommand,
+          SceneInteractiveCommand.playSoundEffect(
+            mediaAssetId: 'bell',
+            volume: 0.8,
+          ),
+        );
+      },
+    );
+  }
+
+  testWidgets('empty sound inventory blocks instead of accepting raw IDs', (
+    tester,
+  ) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.playSoundEffect,
+      commandCatalog: _presentationCommandCatalog(),
+    );
+    expect(find.textContaining('Aucun Effet sonore'), findsOneWidget);
+    expect(find.byType(PokeMapTextField), findsOneWidget);
+    expect(_submitButton(tester).onPressed, isNull);
+  });
+
   testWidgets(
     'warp loads an inactive destination through the supplied map loader',
     (tester) async {
@@ -908,6 +1175,7 @@ Future<void> _pumpBuilder(
   Map<String, String> initialParameters = const {},
   Set<String>? runtimeCommandIds,
   Future<MapData?> Function(String)? loadWarpMap,
+  NarrativeCommandCatalog? commandCatalog,
 }) async {
   tester.view.physicalSize = const Size(900, 760);
   tester.view.devicePixelRatio = 1;
@@ -923,6 +1191,7 @@ Future<void> _pumpBuilder(
           child: SceneActionBuilder(
             key: ValueKey('builder-$initialCommandId'),
             initialCommandId: initialCommandId,
+            commandCatalog: commandCatalog,
             pickerOptions: options,
             initialParameters: initialParameters,
             runtimeCommandIds: runtimeCommandIds,
@@ -936,3 +1205,63 @@ Future<void> _pumpBuilder(
   );
   await tester.pump();
 }
+
+PokeMapButton _submitButton(WidgetTester tester) => tester
+    .widget<PokeMapButton>(find.byKey(const ValueKey('scene-action-submit')));
+
+const _soundOptions = {
+  NarrativeCommandParameterKind.soundMediaReference: [
+    SceneActionPickerOption(id: 'door', label: 'Porte'),
+    SceneActionPickerOption(id: 'bell', label: 'Cloche'),
+  ],
+};
+
+NarrativeCommandCatalog _presentationCommandCatalog() {
+  final catalog = NarrativeCommandCatalog.canonical();
+  for (var index = 0; index < catalog.commands.length; index++) {
+    final command = catalog.commands[index];
+    if (command.id != NarrativeCommandIds.worldTone &&
+        command.id != NarrativeCommandIds.playSoundEffect) {
+      continue;
+    }
+    catalog.commands[index] = NarrativeCommandDescriptor(
+      id: command.id,
+      label: command.label,
+      description: command.description,
+      backend: command.backend,
+      capabilities: const NarrativeCommandCapabilities.supported(),
+      fgLotId: command.fgLotId,
+      wireId: command.wireId,
+      parameters: command.parameters,
+      isPersistent: command.isPersistent,
+      isAwaitable: command.isAwaitable,
+    );
+  }
+  return catalog;
+}
+
+ProjectManifest _mediaProject() => ProjectManifest(
+  name: 'Présentation du monde',
+  maps: [],
+  tilesets: [],
+  cinematicMediaAssets: [
+    for (final id in ['door', 'bell', 'loop', 'music', 'fx'])
+      CinematicMediaAsset(
+        id: id,
+        label: switch (id) {
+          'door' => 'Porte',
+          'bell' => 'Cloche',
+          'loop' => 'Ambiance en boucle',
+          'music' => 'Musique',
+          _ => 'Effet visuel',
+        },
+        kind: switch (id) {
+          'music' => CinematicMediaAssetKind.music,
+          'fx' => CinematicMediaAssetKind.cinematicFx,
+          _ => CinematicMediaAssetKind.sound,
+        },
+        relativePath: 'media/$id.wav',
+        loopByDefault: id == 'loop',
+      ),
+  ],
+);

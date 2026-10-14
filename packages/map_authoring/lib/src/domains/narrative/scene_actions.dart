@@ -38,6 +38,29 @@ final class SceneActions {
     'arrivalReference': 'warpOwnedByDestinationMap',
   };
 
+  static const _worldToneContract = {
+    'parameters': ['red', 'green', 'blue', 'gray', 'durationMs'],
+    'finiteNumbers': true,
+    'rgbRange': [-255, 255],
+    'grayRange': [0, 255],
+    'durationMsRange': [0, 2147483647],
+    'durationUnit': 'milliseconds',
+    'completion': 'scheduled',
+    'persistent': false,
+    'outputPorts': ['completed', 'blocked'],
+  };
+
+  static const _soundEffectContract = {
+    'parameters': ['mediaAssetId', 'volume'],
+    'mediaReference': 'knownNonLoopingSound',
+    'finiteNumbers': true,
+    'volumeRange': [0, 1],
+    'unsupportedParameters': ['pitch'],
+    'completion': 'started',
+    'persistent': false,
+    'outputPorts': ['completed', 'blocked'],
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -58,6 +81,8 @@ final class SceneActions {
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'command'],
         'warp': _warpContract,
+        'worldTone': _worldToneContract,
+        'playSoundEffect': _soundEffectContract,
       },
     ),
     narrativeActionDescriptor(
@@ -96,6 +121,8 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'warp': _warpContract,
+        'worldTone': _worldToneContract,
+        'playSoundEffect': _soundEffectContract,
         'badgeCondition': {
           'sourceKind': 'badge',
           'sourceId': 'projectBadgeId',

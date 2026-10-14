@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
+import 'package:flame/post_process.dart';
 import 'package:flame/input.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/foundation.dart';
@@ -88,6 +89,8 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
+import '../../application/scene_runtime/scene_sound_effect_playback_port.dart';
+import '../../application/scene_runtime/scene_world_tone_controller.dart';
 import '../../application/scene_runtime/scene_npc_state_metadata.dart';
 import '../../application/scene_runtime/narrative_game_completion_runtime_coordinator.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
@@ -138,7 +141,8 @@ import 'dialogue_text_speed.dart';
 import 'cinematic_emote_sprite_cache.dart';
 import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
-import 'flame_dialogue_feedback_playback_adapter.dart';
+import 'flame_narrative_sound_playback_adapter.dart';
+import 'flame_world_tone_post_process.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
 import 'map_layers_component.dart';
 import 'overworld_render_priority.dart';
@@ -291,6 +295,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeAudioMixer? audioMixer,
     OverworldSfxPlayer? overworldSfxPlayer,
     this.dialogueFeedbackPlaybackPort,
+    this.sceneSoundEffectPlaybackPort,
     this.dialogueIconBytesLoader,
     this.presentationCinematicPlayer,
     @visibleForTesting RuntimeMusicService? musicService,
@@ -367,7 +372,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
       beforeSaveRestoreDispatch: _drainRestoredNarrativeOutcomeOutbox,
       isCurrentActivation: (activationId) =>
-          activationId == _currentMapActivationId,
+          !_isRemoved && activationId == _currentMapActivationId,
       executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
       correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
       deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
@@ -702,8 +707,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeAudioMixer? _audioMixer;
   final OverworldSfxPlayer _overworldSfxPlayer;
   final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
+  final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
+  final SceneWorldToneController _worldTone = SceneWorldToneController();
+  PostProcessComponent? _worldTonePostProcessComponent;
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
-  FlameDialogueFeedbackPlaybackAdapter? _dialogueFeedbackPlayer;
+  FlameNarrativeSoundPlaybackAdapter? _dialogueFeedbackPlayer;
   final RuntimeMusicService? _injectedMusicService;
   RuntimeMusicService? _musicService;
   final BattleMusicResolver _battleMusicResolver = const BattleMusicResolver();
@@ -719,8 +727,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ));
 
   DialogueFeedbackPlaybackPort get _dialogueFeedbackAudio =>
-      dialogueFeedbackPlaybackPort ??
-      (_dialogueFeedbackPlayer ??= FlameDialogueFeedbackPlaybackAdapter(
+      dialogueFeedbackPlaybackPort ?? _narrativeSoundAudio;
+
+  SceneSoundEffectPlaybackPort get _sceneSoundEffectAudio =>
+      sceneSoundEffectPlaybackPort ?? _narrativeSoundAudio;
+
+  FlameNarrativeSoundPlaybackAdapter get _narrativeSoundAudio =>
+      _dialogueFeedbackPlayer ??= FlameNarrativeSoundPlaybackAdapter(
         mediaAssets: _bundle.manifest.cinematicMediaAssets,
         resolvePath: (asset) => resolveDialogueFeedbackProjectFile(
           _bundle.projectRootDirectory,
@@ -728,7 +741,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
         mixer: _audioMixer,
         musicService: _music,
-      ));
+      );
 
   void _clearBattleMusicState() {
     _activeBattleMusicSelection = null;
@@ -1138,6 +1151,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<NarrativeSceneExecutionResult> _executeNarrativeScene(
     NarrativeSceneExecutionRequest request,
   ) async {
+    if (_isRemoved) {
+      return NarrativeSceneExecutionResult.failed(
+        StateError('The runtime was removed before Scene execution.'),
+      );
+    }
     if (_activeNarrativeSceneWorkingSession != null) {
       return NarrativeSceneExecutionResult.failed(
         StateError('A narrative Scene working session is already active.'),
@@ -1148,6 +1166,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final defersMapActivation =
         _narrativeStateTransactions.deferAfterCurrentCommit(
       (committedGameState) {
+        if (_isRemoved) return;
         final activation = session.deferredMapActivation;
         if (activation == null) return;
         _applyNarrativeGameState(committedGameState);
@@ -1184,10 +1203,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           onQualifiedBattleOutcome: hostedBattleOutcomes.add,
         ),
       );
+      if (_isRemoved) {
+        throw StateError('The runtime was removed during Scene execution.');
+      }
       if (result is NarrativeSceneExecutionCompleted) {
         final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState,
         );
+        if (_isRemoved) {
+          throw StateError('The runtime was removed before Scene commit.');
+        }
         final gameCompletion = result.gameCompletion;
         if (gameCompletion != null) {
           final coordinator = _gameCompletionCoordinator;
@@ -3910,6 +3935,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _worldTonePostProcessComponent?.removeFromParent();
+    _worldTonePostProcessComponent = null;
+    _worldTone.dispose();
     _cancelPendingDirectedJump();
     unawaited(_overworldSfxPlayer.dispose());
     unawaited(_dialogueFeedbackPlayer?.dispose());
@@ -4118,6 +4146,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.player);
       _syncGameStateFromWorld();
       _configureCameraViewport();
+      final tonePostProcess = PostProcessComponent(
+        postProcess: FlameWorldTonePostProcess(controller: _worldTone),
+      );
+      _worldTonePostProcessComponent = tonePostProcess;
+      camera.add(tonePostProcess);
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
       _prewarmActiveMapWarpTargets();
@@ -4398,6 +4431,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _updateRuntime(double dt) {
+    if (!_isRemoved) _worldTone.advance(dt);
     for (final loaded in _loadedMapsById.values) {
       loaded.smartTileAnimationController.update(dt);
       loaded.actorOcclusionLayers.update(dt);
@@ -10293,6 +10327,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     MapEventDefinition event,
     ActiveEventPage page,
   ) async {
+    if (_isRemoved) return;
     if (_activeNarrativeSceneWorkingSession != null) {
       _showNotification('Scene V1 impossible.');
       return;
@@ -10334,6 +10369,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       } finally {
         _activeNarrativeSceneWorkingSession = null;
       }
+      if (_isRemoved) {
+        throw StateError('The runtime was removed during the map event Scene.');
+      }
 
       debugPrint(
         '[scene_runtime] event=${event.id} page=${page.pageIndex} '
@@ -10353,6 +10391,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
         );
+        if (_isRemoved) {
+          throw StateError('The runtime was removed before the map event Scene commit.');
+        }
         final gameCompletion = result.consequenceWriteResult?.gameCompletion;
         if (gameCompletion != null) {
           final coordinator = _gameCompletionCoordinator;
@@ -10401,6 +10442,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     void Function(NarrativeOutcomeRef outcome)? onQualifiedBattleOutcome,
   }) {
     final runtimeExecutionSourceId = '$runtimeSourceId:$executionId';
+    final presentationSession = _activeNarrativeSceneWorkingSession;
+    var soundIndex = 0;
     return SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) => _resolveSceneConditionOutput(
         intent,
@@ -10515,6 +10558,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
+        worldTone: (command) => _executeSceneWorldToneCommand(
+          command,
+          session: presentationSession,
+        ),
+        playSoundEffect: (command) => _executeSceneSoundEffectCommand(
+          command,
+          session: presentationSession,
+          playbackId: '$runtimeExecutionSourceId:se:${soundIndex++}',
+        ),
         warp: (command) => _executeSceneWarpCommand(
           command,
           currentGameState: currentGameState,
@@ -11107,6 +11159,74 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[scene_runtime] $message');
     }
   }
+
+  bool _scenePresentationScopeIsCurrent(_NarrativeSceneWorkingSession? session) =>
+      !_isRemoved && identical(_activeNarrativeSceneWorkingSession, session);
+
+  Future<String> _executeSceneWorldToneCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+  }) async {
+    if (command is! SceneWorldToneInteractiveCommand ||
+        !_scenePresentationScopeIsCurrent(session)) {
+      return 'blocked';
+    }
+    final checkpoint = _worldTone.captureCheckpoint();
+    session?.registerCompensation(() async {
+      if (!_isRemoved) _worldTone.restoreCheckpoint(checkpoint);
+    });
+    _worldTone.setTone(
+      SceneWorldToneValue(
+        red: command.red,
+        green: command.green,
+        blue: command.blue,
+        gray: command.gray,
+      ),
+      durationSeconds: command.durationMs / 1000,
+    );
+    return 'completed';
+  }
+
+  Future<String> _executeSceneSoundEffectCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+    required String playbackId,
+  }) async {
+    if (command is! ScenePlaySoundEffectInteractiveCommand ||
+        !_scenePresentationScopeIsCurrent(session)) {
+      return 'blocked';
+    }
+    final media = _bundle.manifest.cinematicMediaAssets
+        .where((asset) => asset.id == command.mediaAssetId);
+    if (media.length != 1 ||
+        media.single.kind != CinematicMediaAssetKind.sound ||
+        media.single.loopByDefault) {
+      return 'blocked';
+    }
+    try {
+      await _sceneSoundEffectAudio.playSoundEffect(
+        command.mediaAssetId,
+        volume: command.volume,
+        playbackId: playbackId,
+      );
+    } on Object catch (error) {
+      debugPrint('[scene_runtime] sound start failed: $error');
+      if (session != null && !_scenePresentationScopeIsCurrent(session)) {
+        rethrow;
+      }
+      return 'blocked';
+    }
+    if (!_scenePresentationScopeIsCurrent(session)) {
+      if (session != null) {
+        throw StateError('The Scene sound execution is no longer current.');
+      }
+      return 'blocked';
+    }
+    return 'completed';
+  }
+
+  @visibleForTesting
+  SceneWorldToneValue get debugWorldToneValue => _worldTone.value;
 
   @visibleForTesting
   Future<String> debugExecuteSceneInteractiveCommand(
@@ -12821,6 +12941,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Si le commit, le remontage ou le `mapEnter` final échoue, le snapshot
   /// runtime précédent est remonté et la sauvegarde fautive reste intacte.
   Future<bool> loadGame() async {
+    if (_isRemoved) return false;
     if (_hasCheckpointUnsafeRuntimeWork) {
       _logCheckpointInterlock('load');
       return false;
@@ -12971,14 +13092,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
+    if (_isRemoved) return false;
+    final sourceTone = _worldTone.captureCheckpoint();
     // 3. Commit atomique. Tout échec après ce point restaure [source].
     try {
+      _worldTone.setTone(SceneWorldToneValue.neutral, durationSeconds: 0);
       _gameState = loadedState;
       _clearTransientScenarioWorkForLoad();
       _clearTransientUiState();
       await _narrativeStateTransactions.transact<void>((_) {
         return NarrativeEventStateTransaction.commit(loadedState, null);
       });
+      if (_isRemoved) return false;
 
       _unmountAllLoadedMaps();
       _bundle = newBundle;
@@ -12989,6 +13114,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         originCellX: 0,
         originCellY: 0,
       );
+      if (_isRemoved) return false;
 
       _world = preparedWorld.withNpcMapPresencePredicate(
         _npcPresencePredicateFor(newBundle.manifest),
@@ -13013,10 +13139,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       _refreshWorldNpcPresence();
       await beforeLoadCommitCompletion?.call();
+      if (_isRemoved) return false;
 
       _setFlowPhase(_RuntimeFlowPhase.overworld);
       _installMapActivation(activation);
       final dispatchResult = await _dispatchCompletedMapActivation(activation);
+      if (_isRemoved) return false;
       if (dispatchResult is MapEnterProductionDispatchFailed ||
           dispatchResult is MapEnterProductionDispatchAuthorityBlocked) {
         throw StateError(
@@ -13029,7 +13157,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     } catch (e, st) {
       debugPrint('[load] commit failed, rolling back: $e\n$st');
+      if (_isRemoved) return false;
       final rolledBack = await _restoreFailedLoad(source);
+      if (!_isRemoved) _worldTone.restoreCheckpoint(sourceTone);
       _showNotification(
         rolledBack
             ? 'Chargement annulé : la partie en cours et la sauvegarde ont '

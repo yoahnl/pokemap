@@ -14,6 +14,8 @@ abstract final class NarrativeCommandIds {
   static const givePokemon = 'givePokemon';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
+  static const worldTone = 'worldTone';
+  static const playSoundEffect = 'playSoundEffect';
   static const openShop = 'openShop';
   static const openHeal = 'openHeal';
   static const openPc = 'openPc';
@@ -407,6 +409,57 @@ final class NarrativeCommandCatalog {
           required: false,
         ),
       ]),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.worldTone,
+        label: 'Changer le ton du monde',
+        description:
+            'Programme un effet transitoire et termine après sa programmation.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D.',
+        ),
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.worldTone',
+        parameters: [
+          _parameter('red', 'Rouge', NarrativeCommandParameterKind.number),
+          _parameter('green', 'Vert', NarrativeCommandParameterKind.number),
+          _parameter('blue', 'Bleu', NarrativeCommandParameterKind.number),
+          _parameter('gray', 'Gris', NarrativeCommandParameterKind.number),
+          _parameter(
+            'durationMs',
+            'Durée (ms)',
+            NarrativeCommandParameterKind.integer,
+          ),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.playSoundEffect,
+        label: 'Jouer un effet sonore',
+        description:
+            'Démarre un effet sonore transitoire et termine après son démarrage.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D.',
+        ),
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.playSoundEffect',
+        parameters: [
+          _parameter(
+            'mediaAssetId',
+            'Effet sonore',
+            NarrativeCommandParameterKind.soundMediaReference,
+          ),
+          _parameter('volume', 'Volume', NarrativeCommandParameterKind.number),
+        ],
+        isAwaitable: true,
+      ),
       interactive(
         NarrativeCommandIds.openShop,
         'Ouvrir une boutique',

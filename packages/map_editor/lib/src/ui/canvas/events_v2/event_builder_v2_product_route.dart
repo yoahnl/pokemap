@@ -2189,6 +2189,8 @@ buildEventBuilderV2TemplateActionPickerOptions({
       for (final cinematic in project.cinematics)
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
+    NarrativeCommandParameterKind.soundMediaReference:
+        buildSceneSoundMediaPickerOptions(project),
     NarrativeCommandParameterKind.railJourney: [
       for (final journey
           in project.railJourneyCatalog?.journeys ??

@@ -8,6 +8,8 @@ import 'enums.dart';
 enum SceneInteractiveCommandKind {
   giveItem,
   warp,
+  worldTone,
+  playSoundEffect,
   moveNpc,
   movePlatform,
   openShop,
@@ -43,6 +45,19 @@ abstract base class SceneInteractiveCommand {
     EntityFacing? arrivalFacing,
     SceneWarpTransition transition,
   }) = SceneWarpInteractiveCommand;
+
+  factory SceneInteractiveCommand.worldTone({
+    required double red,
+    required double green,
+    required double blue,
+    required double gray,
+    required int durationMs,
+  }) = SceneWorldToneInteractiveCommand;
+
+  factory SceneInteractiveCommand.playSoundEffect({
+    required String mediaAssetId,
+    required double volume,
+  }) = ScenePlaySoundEffectInteractiveCommand;
 
   factory SceneInteractiveCommand.moveNpc({
     required String mapId,
@@ -113,6 +128,10 @@ abstract base class SceneInteractiveCommand {
                 (throw const FormatException('transition must be a string.'))
             : SceneWarpTransition.mapDefault,
       ),
+      SceneInteractiveCommandKind.worldTone =>
+        SceneWorldToneInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.playSoundEffect =>
+        ScenePlaySoundEffectInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.moveNpc => SceneMoveNpcInteractiveCommand(
         mapId: _required(json, 'mapId'),
         entityId: _required(json, 'entityId'),
@@ -177,6 +196,158 @@ abstract base class SceneInteractiveCommand {
   SceneInteractiveCommandKind get kind;
   List<String> get outputPortIds;
   Map<String, dynamic> toJson();
+}
+
+@immutable
+final class SceneWorldToneInteractiveCommand extends SceneInteractiveCommand {
+  SceneWorldToneInteractiveCommand({
+    required double red,
+    required double green,
+    required double blue,
+    required double gray,
+    required this.durationMs,
+  }) : red = _boundedPresentationNumber(red, 'red', -255, 255),
+       green = _boundedPresentationNumber(green, 'green', -255, 255),
+       blue = _boundedPresentationNumber(blue, 'blue', -255, 255),
+       gray = _boundedPresentationNumber(gray, 'gray', 0, 255) {
+    if (durationMs < 0 || durationMs > 0x7fffffff) {
+      throw ArgumentError.value(
+        durationMs,
+        'durationMs',
+        'Must be a nonnegative int32.',
+      );
+    }
+  }
+
+  factory SceneWorldToneInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    _presentationCommandFields(json, const {
+      'kind',
+      'red',
+      'green',
+      'blue',
+      'gray',
+      'durationMs',
+    });
+    if (json['kind'] != 'worldTone' || json['durationMs'] is! int) {
+      throw const FormatException('Invalid world tone command.');
+    }
+    return SceneWorldToneInteractiveCommand(
+      red: _presentationNumber(json, 'red'),
+      green: _presentationNumber(json, 'green'),
+      blue: _presentationNumber(json, 'blue'),
+      gray: _presentationNumber(json, 'gray'),
+      durationMs: json['durationMs'] as int,
+    );
+  }
+
+  final double red;
+  final double green;
+  final double blue;
+  final double gray;
+  final int durationMs;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.worldTone;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'red': red,
+    'green': green,
+    'blue': blue,
+    'gray': gray,
+    'durationMs': durationMs,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneWorldToneInteractiveCommand &&
+      other.red == red &&
+      other.green == green &&
+      other.blue == blue &&
+      other.gray == gray &&
+      other.durationMs == durationMs;
+  @override
+  int get hashCode => Object.hash(red, green, blue, gray, durationMs);
+}
+
+@immutable
+final class ScenePlaySoundEffectInteractiveCommand
+    extends SceneInteractiveCommand {
+  ScenePlaySoundEffectInteractiveCommand({
+    required String mediaAssetId,
+    required double volume,
+  }) : mediaAssetId = _normalize(mediaAssetId, 'mediaAssetId'),
+       volume = _boundedPresentationNumber(volume, 'volume', 0, 1);
+
+  factory ScenePlaySoundEffectInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    _presentationCommandFields(json, const {'kind', 'mediaAssetId', 'volume'});
+    if (json['kind'] != 'playSoundEffect') {
+      throw const FormatException('Invalid sound effect command.');
+    }
+    return ScenePlaySoundEffectInteractiveCommand(
+      mediaAssetId: _required(json, 'mediaAssetId'),
+      volume: _presentationNumber(json, 'volume'),
+    );
+  }
+
+  final String mediaAssetId;
+  final double volume;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.playSoundEffect;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'mediaAssetId': mediaAssetId,
+    'volume': volume,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is ScenePlaySoundEffectInteractiveCommand &&
+      other.mediaAssetId == mediaAssetId &&
+      other.volume == volume;
+  @override
+  int get hashCode => Object.hash(mediaAssetId, volume);
+}
+
+void _presentationCommandFields(Map<String, dynamic> json, Set<String> fields) {
+  final keys = json.keys.toSet();
+  if (keys.difference(fields).isNotEmpty ||
+      fields.difference(keys).isNotEmpty) {
+    throw const FormatException(
+      'Presentation command fields do not match the contract.',
+    );
+  }
+}
+
+double _presentationNumber(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value is! num) {
+    throw FormatException('$field must be a number.');
+  }
+  return value.toDouble();
+}
+
+double _boundedPresentationNumber(
+  double value,
+  String field,
+  double minimum,
+  double maximum,
+) {
+  if (!value.isFinite || value < minimum || value > maximum) {
+    throw ArgumentError.value(
+      value,
+      field,
+      'Must be finite in [$minimum, $maximum].',
+    );
+  }
+  return value;
 }
 
 @immutable

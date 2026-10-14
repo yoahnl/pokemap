@@ -23,6 +23,8 @@ void main() {
       NarrativeCommandIds.givePokemon,
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
+      NarrativeCommandIds.worldTone,
+      NarrativeCommandIds.playSoundEffect,
       NarrativeCommandIds.openShop,
       NarrativeCommandIds.openHeal,
       NarrativeCommandIds.openPc,
@@ -87,6 +89,9 @@ void main() {
     expect(published, {
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
       NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',
+      NarrativeCommandIds.worldTone: 'SceneInteractiveCommand.worldTone',
+      NarrativeCommandIds.playSoundEffect:
+          'SceneInteractiveCommand.playSoundEffect',
       NarrativeCommandIds.moveNpc: 'SceneInteractiveCommand.moveNpc',
       NarrativeCommandIds.movePlatform: 'SceneInteractiveCommand.movePlatform',
       NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',

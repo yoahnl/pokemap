@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 
 import '../../application/dialogue_feedback_playback_port.dart';
+import '../../application/scene_runtime/scene_sound_effect_playback_port.dart';
 import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_music_service.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 
-final class FlameDialogueFeedbackPlaybackAdapter
-    implements DialogueFeedbackPlaybackPort {
-  FlameDialogueFeedbackPlaybackAdapter({
+final class FlameNarrativeSoundPlaybackAdapter
+    implements DialogueFeedbackPlaybackPort, SceneSoundEffectPlaybackPort {
+  FlameNarrativeSoundPlaybackAdapter({
     required Iterable<CinematicMediaAsset> mediaAssets,
     required this.resolvePath,
     FlameCinematicAudioDriver? audioDriver,
@@ -20,7 +21,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
        _mixer = mixer ?? RuntimeAudioMixer() {
     if (_driver is! FlameCinematicAudioLoopDriver) {
       throw ArgumentError(
-        'Dialogue audio driver must expose natural completion.',
+        'Narrative audio driver must expose natural completion.',
       );
     }
   }
@@ -32,31 +33,79 @@ final class FlameDialogueFeedbackPlaybackAdapter
   final RuntimeMusicService? _musicService;
   Object? lastFailure;
   final Map<String, Future<void>> _starting = {};
-  final Map<String, _DialogueSound> _active = {};
+  final Map<String, _NarrativeSound> _active = {};
   bool _disposed = false;
 
   @override
-  Future<void> playCue(DialogueAudioCue cue, {required String playbackId}) {
+  Future<void> playCue(DialogueAudioCue cue, {required String playbackId}) =>
+      _queue(
+        cue.mediaAssetId,
+        volume: cue.volume,
+        playbackId: playbackId,
+        route: cue.role == DialogueAudioCueRole.musicEffect
+            ? RuntimeAudioRoute.cinematicMusic
+            : RuntimeAudioRoute.cinematicEffects,
+        interruption: cue.bgmInterruption,
+      );
+
+  @override
+  Future<void> playSoundEffect(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+  }) async {
+    if (!volume.isFinite || volume < 0 || volume > 1) {
+      throw ArgumentError.value(volume, 'volume', 'Expected a gain in [0, 1].');
+    }
+    if (playbackId.trim().isEmpty) {
+      throw ArgumentError.value(playbackId, 'playbackId');
+    }
+    await _queue(
+      mediaAssetId,
+      volume: volume,
+      playbackId: playbackId,
+      route: RuntimeAudioRoute.cinematicEffects,
+    );
     if (_disposed) {
-      return Future.error(StateError('Dialogue playback is disposed.'));
+      throw StateError('The runtime closed before the Scene sound started.');
+    }
+  }
+
+  Future<void> _queue(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+    required RuntimeAudioRoute route,
+    DialogueBgmInterruption? interruption,
+  }) {
+    if (_disposed) {
+      return Future.error(StateError('Narrative sound playback is disposed.'));
     }
     if (_active.containsKey(playbackId)) return Future.value();
-    return _starting[playbackId] ??= _start(cue, playbackId).whenComplete(() {
+    return _starting[playbackId] ??= _start(
+      mediaAssetId,
+      volume: volume,
+      playbackId: playbackId,
+      route: route,
+      interruption: interruption,
+    ).whenComplete(() {
       _starting.remove(playbackId);
     });
   }
 
-  Future<void> _start(DialogueAudioCue cue, String playbackId) async {
-    final asset = _media[cue.mediaAssetId];
+  Future<void> _start(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+    required RuntimeAudioRoute route,
+    required DialogueBgmInterruption? interruption,
+  }) async {
+    final asset = _media[mediaAssetId];
     if (asset == null ||
         asset.kind != CinematicMediaAssetKind.sound ||
         asset.loopByDefault) {
-      throw StateError('Dialogue cue requires a known non-looping sound.');
+      throw StateError('Narrative cue requires a known non-looping sound.');
     }
-    final route = cue.role == DialogueAudioCueRole.musicEffect
-        ? RuntimeAudioRoute.cinematicMusic
-        : RuntimeAudioRoute.cinematicEffects;
-    final interruption = cue.bgmInterruption;
     Object? owner;
     if (interruption != null) {
       final music = _musicService;
@@ -74,7 +123,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
     try {
       handle = await _driver.play(
         resolvePath(asset),
-        volume: _mixer.mix.volumeFor(route, sourceVolume: cue.volume),
+        volume: _mixer.mix.volumeFor(route, sourceVolume: volume),
         loop: false,
       );
     } on Object {
@@ -89,7 +138,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
       }
       return;
     }
-    final sound = _DialogueSound(handle, owner);
+    final sound = _NarrativeSound(handle, owner);
     _active[playbackId] = sound;
     try {
       sound.completion = (_driver as FlameCinematicAudioLoopDriver)
@@ -114,7 +163,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
       await _mixer.register(
         channel: handle,
         route: route,
-        sourceVolume: cue.volume,
+        sourceVolume: volume,
         setVolume: (volume) => _driver.setVolume(handle, volume),
       );
       if (_disposed || !identical(_active[playbackId], sound)) return;
@@ -124,7 +173,7 @@ final class FlameDialogueFeedbackPlaybackAdapter
     }
   }
 
-  Future<void> _release(String playbackId, _DialogueSound sound) async {
+  Future<void> _release(String playbackId, _NarrativeSound sound) async {
     if (!identical(_active[playbackId], sound)) return;
     _active.remove(playbackId);
     await sound.completion?.cancel();
@@ -148,8 +197,8 @@ final class FlameDialogueFeedbackPlaybackAdapter
   }
 }
 
-final class _DialogueSound {
-  _DialogueSound(this.handle, this.musicEffectOwner);
+final class _NarrativeSound {
+  _NarrativeSound(this.handle, this.musicEffectOwner);
   final Object handle;
   final Object? musicEffectOwner;
   StreamSubscription<void>? completion;

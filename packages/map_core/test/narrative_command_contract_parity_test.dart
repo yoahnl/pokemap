@@ -231,6 +231,14 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   NarrativeCommandIds.openShop: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.openShop(shopId: 'shop_port'),
   ),
+  NarrativeCommandIds.worldTone: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.worldTone(
+      red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
+    ),
+  ),
+  NarrativeCommandIds.playSoundEffect: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
+  ),
   NarrativeCommandIds.openHeal: () =>
       SceneActionPayload.interactive(SceneInteractiveCommand.openHeal()),
   NarrativeCommandIds.openPc: () =>
@@ -369,6 +377,10 @@ ProjectManifest _project() => ProjectManifest(
     ),
   ],
   tilesets: const [],
+  cinematicMediaAssets: [
+    CinematicMediaAsset(id: 'door-sound', label: 'Door',
+      kind: CinematicMediaAssetKind.sound, relativePath: 'assets/door.wav'),
+  ],
   facts: [NarrativeFactDefinition(id: 'fact_gate', label: 'Gate')],
   dialogues: const [
     ProjectDialogueEntry(

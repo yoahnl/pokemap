@@ -136,6 +136,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         },
       ),
     ),
+    NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
+    NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
     NarrativeCommandIds.openShop => SceneActionPayload.interactive(
       SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
     ),
@@ -212,6 +214,48 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       'An unsupported Narrative command cannot produce a Scene payload.',
     ),
   };
+}
+
+SceneActionPayload _buildWorldTonePayload(Map<String, String> parameters) {
+  _requirePresentationParameters(parameters, const {
+    'red',
+    'green',
+    'blue',
+    'gray',
+    'durationMs',
+  });
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.worldTone(
+      red: double.parse(parameters['red']!),
+      green: double.parse(parameters['green']!),
+      blue: double.parse(parameters['blue']!),
+      gray: double.parse(parameters['gray']!),
+      durationMs: int.parse(parameters['durationMs']!),
+    ),
+  );
+}
+
+SceneActionPayload _buildSoundEffectPayload(Map<String, String> parameters) {
+  _requirePresentationParameters(parameters, const {'mediaAssetId', 'volume'});
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.playSoundEffect(
+      mediaAssetId: parameters['mediaAssetId']!,
+      volume: double.parse(parameters['volume']!),
+    ),
+  );
+}
+
+void _requirePresentationParameters(
+  Map<String, String> parameters,
+  Set<String> fields,
+) {
+  final keys = parameters.keys.toSet();
+  if (keys.difference(fields).isNotEmpty ||
+      fields.difference(keys).isNotEmpty) {
+    throw const FormatException(
+      'Presentation command parameters do not match the contract.',
+    );
+  }
 }
 
 SceneActionPayload buildSceneRailJourneyPayload(

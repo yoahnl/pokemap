@@ -3,6 +3,205 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
 
 void main() {
+  test('tone preview accepts zero duration and finite fractional values', () {
+    for (final duration in ['0', '300', '2147483647']) {
+      final preview = _presentationPreview(NarrativeCommandIds.worldTone, {
+        ..._toneParameters,
+        'durationMs': duration,
+      });
+      expect(preview.canApply, isTrue, reason: preview.diagnostics.join(' '));
+      final action = preview.scene!.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .single;
+      expect(
+        action.interactiveCommand,
+        SceneInteractiveCommand.worldTone(
+          red: -255,
+          green: 255,
+          blue: -12.5,
+          gray: 25.25,
+          durationMs: int.parse(duration),
+        ),
+      );
+      expect(SceneNodePayload.fromJson(action.toJson()), action);
+    }
+  });
+
+  test('tone preview fails closed on invalid numbers and duration', () {
+    for (final parameter in ['red', 'green', 'blue', 'gray', 'durationMs']) {
+      for (final invalid
+          in parameter == 'durationMs'
+              ? ['', '-1', '0.5', '2147483648']
+              : [
+                  '',
+                  'NaN',
+                  'Infinity',
+                  '1e999',
+                  '255.01',
+                  parameter == 'gray' ? '-0.1' : '-255.01',
+                ]) {
+        NarrativeTemplatePreview? preview;
+        expect(
+          () => preview = _presentationPreview(NarrativeCommandIds.worldTone, {
+            ..._toneParameters,
+            parameter: invalid,
+          }),
+          returnsNormally,
+          reason: '$parameter=$invalid',
+        );
+        expect(preview!.canApply, isFalse, reason: '$parameter=$invalid');
+        expect(preview!.after, isNull);
+        expect(preview!.scene, isNull);
+        expect(preview!.event, isNull);
+        expect(preview!.diagnostics, isNotEmpty);
+      }
+    }
+  });
+
+  test('sound preview uses a real non-looping project reference', () {
+    for (final volume in ['0', '0.8', '1']) {
+      final preview = _presentationPreview(
+        NarrativeCommandIds.playSoundEffect,
+        {'mediaAssetId': 'door', 'volume': volume},
+      );
+      expect(preview.canApply, isTrue, reason: preview.diagnostics.join(' '));
+      final action = preview.scene!.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .single;
+      expect(
+        action.interactiveCommand,
+        SceneInteractiveCommand.playSoundEffect(
+          mediaAssetId: 'door',
+          volume: double.parse(volume),
+        ),
+      );
+      expect(SceneNodePayload.fromJson(action.toJson()), action);
+    }
+  });
+
+  test('sound preview blocks absent loop and other media kinds', () {
+    for (final reference in ['deleted', 'loop', 'music', 'fx']) {
+      final preview = _presentationPreview(
+        NarrativeCommandIds.playSoundEffect,
+        {'mediaAssetId': reference, 'volume': '0.8'},
+      );
+      expect(preview.canApply, isFalse, reason: reference);
+      expect(preview.after, isNull);
+      expect(preview.scene, isNull);
+      expect(preview.event, isNull);
+      expect(preview.diagnostics.join(' '), contains(reference));
+    }
+  });
+
+  for (final duplicateKind in [
+    CinematicMediaAssetKind.music,
+    CinematicMediaAssetKind.sound,
+  ]) {
+    test('ambiguous sound ${duplicateKind.name} blocks template preview', () {
+      final manifest = _emptyProject().copyWith(
+        cinematicMediaAssets: [
+          for (final id in ['door', 'bell'])
+            CinematicMediaAsset(
+              id: id,
+              label: id,
+              kind: CinematicMediaAssetKind.sound,
+              relativePath: 'media/$id.wav',
+            ),
+          CinematicMediaAsset(
+            id: 'door',
+            label: 'Other door',
+            kind: duplicateKind,
+            relativePath: 'media/other-door.wav',
+          ),
+        ],
+      );
+      expect(
+        ProjectManifest.fromJson(
+          manifest.toJson(),
+        ).cinematicMediaAssets.where((media) => media.id == 'door'),
+        hasLength(2),
+      );
+      final blocked = _presentationPreview(
+        NarrativeCommandIds.playSoundEffect,
+        {'mediaAssetId': 'door', 'volume': '0.8'},
+        manifest: manifest,
+      );
+      expect(blocked.canApply, isFalse);
+      expect(blocked.after, isNull);
+      expect(blocked.scene, isNull);
+      expect(blocked.event, isNull);
+      expect(blocked.diagnostics.join(' '), contains('door'));
+      final valid = _presentationPreview(NarrativeCommandIds.playSoundEffect, {
+        'mediaAssetId': 'bell',
+        'volume': '0.8',
+      }, manifest: manifest);
+      expect(valid.canApply, isTrue, reason: valid.diagnostics.join(' '));
+    });
+  }
+
+  test('sound preview fails closed on invalid volume without coercion', () {
+    for (final volume in ['', '-0.1', '1.1', 'NaN', 'Infinity', '1e999']) {
+      NarrativeTemplatePreview? preview;
+      expect(
+        () => preview = _presentationPreview(
+          NarrativeCommandIds.playSoundEffect,
+          {'mediaAssetId': 'door', 'volume': volume},
+        ),
+        returnsNormally,
+      );
+      expect(preview!.canApply, isFalse, reason: volume);
+      expect(preview!.after, isNull);
+      expect(preview!.diagnostics, isNotEmpty);
+    }
+  });
+
+  test('item quantities still require a strictly positive integer', () {
+    final original = _itemBallRequest();
+    final preview = previewNarrativeTemplate(
+      project: _emptyProject(),
+      request: NarrativeTemplateRequest(
+        kind: original.kind,
+        eventId: original.eventId,
+        sceneId: original.sceneId,
+        name: original.name,
+        source: original.source,
+        physicalSource: original.physicalSource,
+        parameters: {...original.parameters, 'quantity': '0'},
+      ),
+    );
+    expect(preview.canApply, isFalse);
+    expect(preview.after, isNull);
+    expect(preview.diagnostics.join(' '), contains('entier positif'));
+  });
+
+  test(
+    'template fixtures can be injected without changing the canonical list',
+    () {
+      final canonical = NarrativeTemplateCatalog.canonical();
+      final definitions = [canonical.byKind(NarrativeTemplateKind.nurse)];
+      NarrativeTemplateCatalog? fixture;
+      expect(
+        () => fixture =
+            Function.apply(NarrativeTemplateCatalog.canonical, const [], {
+                  #testTemplates: definitions,
+                })
+                as NarrativeTemplateCatalog,
+        returnsNormally,
+      );
+      definitions.clear();
+      expect(fixture!.templates, hasLength(1));
+      expect(() => fixture!.templates.clear(), throwsUnsupportedError);
+      expect(
+        NarrativeTemplateCatalog.canonical().templates.map(
+          (template) => template.id,
+        ),
+        canonical.templates.map((template) => template.id),
+      );
+    },
+  );
+
   for (final invalid in const [
     {'arrivalFacing': 'diagonal'},
     {'transition': 'fade'},
@@ -712,6 +911,71 @@ SceneAsset _staticBattleContractScene({
         ),
       ],
       edges: const [],
+    ),
+  );
+}
+
+const _toneParameters = {
+  'red': '-255',
+  'green': '255',
+  'blue': '-12.5',
+  'gray': '25.25',
+  'durationMs': '300',
+};
+
+NarrativeTemplatePreview _presentationPreview(
+  String commandId,
+  Map<String, String> parameters, {
+  ProjectManifest? manifest,
+}) {
+  final descriptor = NarrativeCommandCatalog.canonical().byId(commandId)!;
+  final command = NarrativeCommandDescriptor(
+    id: descriptor.id,
+    label: descriptor.label,
+    description: descriptor.description,
+    backend: descriptor.backend,
+    capabilities: const NarrativeCommandCapabilities.supported(),
+    fgLotId: descriptor.fgLotId,
+    wireId: descriptor.wireId,
+    parameters: descriptor.parameters,
+    isPersistent: descriptor.isPersistent,
+    isAwaitable: descriptor.isAwaitable,
+  );
+  return previewNarrativeTemplate(
+    project: manifest ?? _emptyProject().copyWith(
+      cinematicMediaAssets: [
+        for (final id in ['door', 'loop', 'music', 'fx'])
+          CinematicMediaAsset(
+            id: id,
+            label: id,
+            kind: switch (id) {
+              'music' => CinematicMediaAssetKind.music,
+              'fx' => CinematicMediaAssetKind.cinematicFx,
+              _ => CinematicMediaAssetKind.sound,
+            },
+            relativePath: 'media/$id.wav',
+            loopByDefault: id == 'loop',
+          ),
+      ],
+    ),
+    templateCatalog: NarrativeTemplateCatalog.canonical(
+      testTemplates: [
+        NarrativeTemplateDefinition(
+          kind: NarrativeTemplateKind.badgeReward,
+          label: 'Présentation du monde',
+          command: command,
+          physicalSourceKind: null,
+        ),
+      ],
+    ),
+    request: NarrativeTemplateRequest(
+      kind: NarrativeTemplateKind.badgeReward,
+      eventId: _eventId,
+      sceneId: _sceneId,
+      name: 'Présentation du monde',
+      source: NarrativeEventSourceRef.entityInteract('map_port', 'npc_a'),
+      physicalSource: null,
+      parameters: parameters,
     ),
   );
 }

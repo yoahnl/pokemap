@@ -18,12 +18,15 @@ class SceneActionForm extends StatefulWidget {
     required this.current,
     required this.onApply,
     this.loadMap,
+    this.commandCatalog,
   });
 
   final ProjectManifest project;
   final SceneNodePayload? current;
   final ValueChanged<SceneNodePayload> onApply;
   final Future<MapData> Function(String)? loadMap;
+  @visibleForTesting
+  final List<NarrativeCommandDescriptor>? commandCatalog;
 
   @override
   State<SceneActionForm> createState() => _SceneActionFormState();
@@ -31,7 +34,9 @@ class SceneActionForm extends StatefulWidget {
 
 class _SceneActionFormState extends State<SceneActionForm> {
   List<NarrativeCommandDescriptor> get _commands => [
-    for (final command in NarrativeCommandCatalog.canonical().commands)
+    for (final command
+        in widget.commandCatalog ??
+            NarrativeCommandCatalog.canonical().commands)
       if (command.isPublishable &&
           (command.id != NarrativeCommandIds.playModelAnimation ||
               widget.project.settings.dimension == ProjectDimension.threeD) &&
@@ -61,7 +66,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
   @override
   void didUpdateWidget(SceneActionForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.current != widget.current) _readCurrent();
+    if (oldWidget.current != widget.current ||
+        oldWidget.commandCatalog != widget.commandCatalog) {
+      _readCurrent();
+    }
     if (oldWidget.loadMap != widget.loadMap ||
         oldWidget.project != widget.project) {
       _loadReferenceMap();
@@ -139,6 +147,12 @@ class _SceneActionFormState extends State<SceneActionForm> {
     }
     if (commandId == NarrativeCommandIds.playModelAnimation) {
       _values['speed'] = '1';
+    } else if (commandId == NarrativeCommandIds.worldTone) {
+      for (final id in ['red', 'green', 'blue', 'gray', 'durationMs']) {
+        _values[id] = '0';
+      }
+    } else if (commandId == NarrativeCommandIds.playSoundEffect) {
+      _values['volume'] = '1';
     }
     _loadReferenceMap();
   });
@@ -154,6 +168,9 @@ class _SceneActionFormState extends State<SceneActionForm> {
       }
       if (parameter.kind == NarrativeCommandParameterKind.integer) {
         if (int.tryParse(value) == null) return false;
+      } else if (parameter.kind == NarrativeCommandParameterKind.number) {
+        final number = double.tryParse(value);
+        if (number == null || !number.isFinite) return false;
       } else if (parameter.kind != NarrativeCommandParameterKind.text &&
           parameter.kind != NarrativeCommandParameterKind.boolean &&
           !_options(parameter.kind).containsKey(value)) {
@@ -169,7 +186,29 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
+    if (command.id == NarrativeCommandIds.worldTone ||
+        command.id == NarrativeCommandIds.playSoundEffect) {
+      try {
+        _buildPayload();
+      } catch (_) {
+        return false;
+      }
+    }
     return true;
+  }
+
+  Map<String, String> _soundMediaOptions() {
+    final counts = <String, int>{};
+    for (final media in widget.project.cinematicMediaAssets) {
+      counts[media.id] = (counts[media.id] ?? 0) + 1;
+    }
+    return {
+      for (final media in widget.project.cinematicMediaAssets)
+        if (counts[media.id] == 1 &&
+            media.kind == CinematicMediaAssetKind.sound &&
+            !media.loopByDefault)
+          media.id: media.label,
+    };
   }
 
   Map<String, String> _options(
@@ -209,6 +248,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
     },
     NarrativeCommandParameterKind.modelInstance => _modelInstances,
     NarrativeCommandParameterKind.modelAnimation => _modelAnimations,
+    NarrativeCommandParameterKind.soundMediaReference => _soundMediaOptions(),
     NarrativeCommandParameterKind.shop => {
       for (final shop in widget.project.shops) shop.id: shop.label,
     },
@@ -352,12 +392,24 @@ class _SceneActionFormState extends State<SceneActionForm> {
       );
     }
     if (parameter.kind == NarrativeCommandParameterKind.integer ||
+        parameter.kind == NarrativeCommandParameterKind.number ||
         parameter.kind == NarrativeCommandParameterKind.text) {
+      final presentation =
+          _commandId == NarrativeCommandIds.worldTone ||
+          _commandId == NarrativeCommandIds.playSoundEffect;
       return StudioDraftField(
         key: ValueKey('action-$_commandId-${parameter.id}'),
         label: parameter.label,
         value: _values[parameter.id] ?? '',
         onChanged: changed,
+        helperText: presentation ? _presentationFieldHelp(parameter.id) : null,
+        errorText: presentation ? _presentationFieldError(parameter.id) : null,
+        keyboardType: parameter.kind == NarrativeCommandParameterKind.number
+            ? const TextInputType.numberWithOptions(decimal: true, signed: true)
+            : presentation &&
+                  parameter.kind == NarrativeCommandParameterKind.integer
+            ? TextInputType.number
+            : null,
       );
     }
     final options = _options(parameter.kind);
@@ -376,5 +428,32 @@ class _SceneActionFormState extends State<SceneActionForm> {
           ),
       ],
     );
+  }
+
+  String _presentationFieldHelp(String id) => switch (id) {
+    'durationMs' => 'Millisecondes entières, de 0 à 2147483647.',
+    'volume' => 'Entre 0 et 1.',
+    'gray' => 'Entre 0 et 255.',
+    _ => 'Entre -255 et 255.',
+  };
+
+  String? _presentationFieldError(String id) {
+    final raw = _values[id] ?? '';
+    if (raw.trim().isEmpty) return 'Valeur requise.';
+    if (id == 'durationMs') {
+      final duration = int.tryParse(raw);
+      return duration == null || duration < 0 || duration > 0x7fffffff
+          ? 'Saisir un entier entre 0 et 2147483647.'
+          : null;
+    }
+    final value = double.tryParse(raw);
+    final minimum = id == 'volume' || id == 'gray' ? 0 : -255;
+    final maximum = id == 'volume' ? 1 : 255;
+    return value == null ||
+            !value.isFinite ||
+            value < minimum ||
+            value > maximum
+        ? 'Saisir un nombre fini. ${_presentationFieldHelp(id)}'
+        : null;
   }
 }

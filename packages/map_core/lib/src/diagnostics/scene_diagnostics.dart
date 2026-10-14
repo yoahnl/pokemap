@@ -3,6 +3,7 @@ import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/cinematic_media_asset.dart';
 import '../models/map_data.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
@@ -49,6 +50,8 @@ enum SceneDiagnosticCode {
   commandUnknownModelInstance,
   commandUnknownModel,
   commandUnknownModelAnimation,
+  commandUnknownSoundMedia,
+  commandInvalidSoundMedia,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -438,6 +441,10 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   Map<String, MapData> mapsById = const {},
 }) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
+  final soundMediaById = <String, List<CinematicMediaAsset>>{};
+  for (final media in project.cinematicMediaAssets) {
+    soundMediaById.putIfAbsent(media.id, () => []).add(media);
+  }
   final contracts = buildLinkedAssetContractsSnapshot(project);
   final dialogueById = <String, DialoguePublicContract>{
     for (final dialogue in contracts.dialogues) dialogue.id: dialogue,
@@ -664,6 +671,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           scene,
           node,
           payload,
+          soundMediaById: soundMediaById,
           factIds: factIds,
           projectMapIds: projectMapIds,
           storyStepCounts: storyStepCounts,
@@ -1063,6 +1071,7 @@ void _diagnoseActionConsequenceAgainstProject(
   SceneAsset scene,
   SceneNode node,
   SceneActionPayload payload, {
+  required Map<String, List<CinematicMediaAsset>> soundMediaById,
   required Set<String> factIds,
   required Set<String> projectMapIds,
   required Map<String, int> storyStepCounts,
@@ -1074,6 +1083,29 @@ void _diagnoseActionConsequenceAgainstProject(
   required List<SceneDiagnostic> diagnostics,
 }) {
   final interactiveCommand = payload.interactiveCommand;
+  if (interactiveCommand is ScenePlaySoundEffectInteractiveCommand) {
+    final candidates =
+        soundMediaById[interactiveCommand.mediaAssetId] ??
+        const <CinematicMediaAsset>[];
+    if (candidates.length != 1 ||
+        candidates.single.kind != CinematicMediaAssetKind.sound ||
+        candidates.single.loopByDefault) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: candidates.isEmpty
+              ? SceneDiagnosticCode.commandUnknownSoundMedia
+              : SceneDiagnosticCode.commandInvalidSoundMedia,
+          severity: SceneDiagnosticSeverity.error,
+          message:
+              'L’effet sonore ${interactiveCommand.mediaAssetId} doit référencer un son connu unique sans boucle.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un effet sonore disponible sans boucle.',
+        ),
+      );
+    }
+  }
   if (interactiveCommand is ScenePlayModelAnimationInteractiveCommand) {
     final map = mapsById[interactiveCommand.mapId];
     final instance = map?.spatialScene?.instances

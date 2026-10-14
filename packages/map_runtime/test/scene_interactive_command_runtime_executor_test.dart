@@ -22,6 +22,8 @@ void main() {
       playCharacterAnimation: handler,
       playModelAnimation: handler,
       railJourney: handler,
+      worldTone: handler,
+      playSoundEffect: handler,
     );
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.giveItem(itemId: 'tm23', quantity: 1),
@@ -29,6 +31,8 @@ void main() {
         destinationMapId: 'map.port',
         warpId: 'warp.arrival',
       ),
+      SceneInteractiveCommand.worldTone(red: -255, green: -255, blue: -255, gray: 0, durationMs: 300),
+      SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
       SceneInteractiveCommand.moveNpc(
         mapId: 'map.port',
         entityId: 'npc.guard',
@@ -69,6 +73,16 @@ void main() {
     }
 
     expect(calls, SceneInteractiveCommandKind.values);
+  });
+
+  test('presentation commands require their dedicated consumer', () async {
+    final executor = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed');
+    for (final command in <SceneInteractiveCommand>[
+      SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
+      SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+    ]) {
+      await expectLater(executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), throwsStateError);
+    }
   });
 
   test('custom character animation is awaited through its dedicated handler',

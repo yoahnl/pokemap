@@ -154,6 +154,17 @@ void main() {
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
+      worldTone: handler,
+      playSoundEffect: handler,
+      giveItem: (command) async {
+        calls.add(command.kind);
+        return 'received';
+      },
+      movePlatform: (command) async {
+        calls.add(command.kind);
+        return 'moved';
+      },
+      playModelAnimation: handler,
       moveNpc: handler,
       openShop: handler,
       openHeal: handler,
@@ -379,9 +390,22 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
     };
 
 Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
+      NarrativeCommandIds.giveItemGift: () =>
+          SceneInteractiveCommand.giveItem(itemId: 'item_potion', quantity: 1),
       NarrativeCommandIds.warp: () => SceneInteractiveCommand.warp(
             destinationMapId: 'map_test',
             warpId: 'warp_arrival',
+          ),
+      NarrativeCommandIds.worldTone: () => SceneInteractiveCommand.worldTone(
+            red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
+          ),
+      NarrativeCommandIds.playSoundEffect: () =>
+          SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
+      NarrativeCommandIds.movePlatform: () => SceneInteractiveCommand.movePlatform(
+            mapId: 'map_test', platformId: 'ferry', motion: MovingPlatformMotion.forward,
+          ),
+      NarrativeCommandIds.playModelAnimation: () => SceneInteractiveCommand.playModelAnimation(
+            mapId: 'map_test', instanceId: 'door', animationIndex: 0,
           ),
       NarrativeCommandIds.moveNpc: () => SceneInteractiveCommand.moveNpc(
             mapId: 'map_test',

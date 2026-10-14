@@ -19,6 +19,22 @@ final class SceneActionPickerOption {
   final Map<String, String> parameters;
 }
 
+List<SceneActionPickerOption> buildSceneSoundMediaPickerOptions(
+  ProjectManifest project,
+) {
+  final counts = <String, int>{};
+  for (final media in project.cinematicMediaAssets) {
+    counts[media.id] = (counts[media.id] ?? 0) + 1;
+  }
+  return [
+    for (final media in project.cinematicMediaAssets)
+      if (counts[media.id] == 1 &&
+          media.kind == CinematicMediaAssetKind.sound &&
+          !media.loopByDefault)
+        SceneActionPickerOption(id: media.id, label: media.label),
+  ];
+}
+
 final class SceneActionBuildResult {
   const SceneActionBuildResult({
     required this.command,
@@ -127,7 +143,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.boolean:
           _values[parameter.id] = initial == 'false' ? 'false' : 'true';
         case NarrativeCommandParameterKind.integer:
-          final value = initial ?? '1';
+          final value =
+              initial ??
+              (command.id == NarrativeCommandIds.worldTone &&
+                      parameter.id == 'durationMs'
+                  ? '0'
+                  : '1');
+          _values[parameter.id] = value;
+          _textControllers[parameter.id] = TextEditingController(text: value);
+        case NarrativeCommandParameterKind.number:
+          final value =
+              initial ??
+              (command.id == NarrativeCommandIds.playSoundEffect ? '1' : '0');
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         case NarrativeCommandParameterKind.text:
@@ -315,8 +342,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     if (value == null || value.isEmpty) return false;
     if (parameter.kind == NarrativeCommandParameterKind.integer) {
+      if (_command.id == NarrativeCommandIds.worldTone &&
+          parameter.id == 'durationMs') {
+        return _hasValidPresentationParameter(parameter.id, value);
+      }
       final parsed = int.tryParse(value);
       return parsed != null && parsed > 0;
+    }
+    if (parameter.kind == NarrativeCommandParameterKind.number) {
+      final parsed = double.tryParse(value);
+      return parsed != null &&
+          parsed.isFinite &&
+          _hasValidPresentationParameter(parameter.id, value);
     }
     if (_isReferenceParameter(parameter)) {
       final options = _optionsFor(parameter.kind);
@@ -328,7 +365,37 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   bool _isReferenceParameter(NarrativeCommandParameterDescriptor parameter) =>
       parameter.kind != NarrativeCommandParameterKind.boolean &&
       parameter.kind != NarrativeCommandParameterKind.integer &&
+      parameter.kind != NarrativeCommandParameterKind.number &&
       parameter.kind != NarrativeCommandParameterKind.text;
+
+  bool _hasValidPresentationParameter(String parameterId, String value) {
+    final defaults = switch (_command.id) {
+      NarrativeCommandIds.worldTone => const {
+        'red': '0',
+        'green': '0',
+        'blue': '0',
+        'gray': '0',
+        'durationMs': '0',
+      },
+      NarrativeCommandIds.playSoundEffect => const {
+        'mediaAssetId': 'validation.sound',
+        'volume': '1',
+      },
+      _ => null,
+    };
+    if (defaults == null) return true;
+    try {
+      buildScenePayloadForNarrativeCommand(
+        commandId: _command.id,
+        parameters: {...defaults, parameterId: value},
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+  }
 
   bool get _canSubmit =>
       _command.capabilities.editor ==
@@ -430,12 +497,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           onChanged: (value) => _setReferenceValue(parameter, value),
         );
       case NarrativeCommandParameterKind.integer:
+      case NarrativeCommandParameterKind.number:
       case NarrativeCommandParameterKind.text:
         return PokeMapTextField(
           label: parameter.label,
           fieldKey: ValueKey('scene-action-parameter-${parameter.id}'),
           controller: _textControllers[parameter.id],
-          keyboardType: parameter.kind == NarrativeCommandParameterKind.integer
+          keyboardType: parameter.kind == NarrativeCommandParameterKind.number
+              ? const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                )
+              : parameter.kind == NarrativeCommandParameterKind.integer
               ? TextInputType.number
               : null,
           errorText:

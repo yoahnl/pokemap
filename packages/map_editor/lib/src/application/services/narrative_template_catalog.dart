@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:map_core/map_core.dart';
 
 export 'package:map_core/map_core.dart'
@@ -90,7 +91,13 @@ final class NarrativeTemplateCatalog {
 
   factory NarrativeTemplateCatalog.canonical({
     NarrativeCommandCatalog? commandCatalog,
+    @visibleForTesting List<NarrativeTemplateDefinition>? testTemplates,
   }) {
+    if (testTemplates != null) {
+      return NarrativeTemplateCatalog._(
+        List<NarrativeTemplateDefinition>.unmodifiable(testTemplates),
+      );
+    }
     final commands = commandCatalog ?? NarrativeCommandCatalog.canonical();
     NarrativeCommandDescriptor command(String id) {
       final descriptor = commands.byId(id);
@@ -452,10 +459,35 @@ NarrativeTemplatePreview previewNarrativeTemplate({
     );
   }
 
-  final payload = buildScenePayloadForNarrativeCommand(
-    commandId: template.command.id,
-    parameters: request.parameters,
-  );
+  SceneNodePayload payload;
+  try {
+    payload = buildScenePayloadForNarrativeCommand(
+      commandId: template.command.id,
+      parameters: request.parameters,
+    );
+  } on ArgumentError catch (error) {
+    return NarrativeTemplatePreview(
+      request: request,
+      template: template,
+      before: project,
+      after: null,
+      event: null,
+      scene: null,
+      diagnostics: ['Paramètres incompatibles : $error'],
+      requiresMapEditor: false,
+    );
+  } on FormatException catch (error) {
+    return NarrativeTemplatePreview(
+      request: request,
+      template: template,
+      before: project,
+      after: null,
+      event: null,
+      scene: null,
+      diagnostics: ['Paramètres incompatibles : $error'],
+      requiresMapEditor: false,
+    );
+  }
   final scene = _buildTemplateScene(request, payload);
   final registry = project.eventRegistry;
   final event = NarrativeEventDefinition(
@@ -547,8 +579,20 @@ List<String> _diagnoseParameterValues(
     switch (parameter.kind) {
       case NarrativeCommandParameterKind.integer:
         final parsed = int.tryParse(value);
-        if (parsed == null || parsed <= 0) {
+        if (command.id == NarrativeCommandIds.worldTone &&
+            parameter.id == 'durationMs') {
+          if (parsed == null || parsed < 0) {
+            diagnostics.add(
+              '${parameter.label} doit être un entier positif ou nul.',
+            );
+          }
+        } else if (parsed == null || parsed <= 0) {
           diagnostics.add('${parameter.label} doit être un entier positif.');
+        }
+      case NarrativeCommandParameterKind.number:
+        final parsed = double.tryParse(value);
+        if (parsed == null || !parsed.isFinite) {
+          diagnostics.add('${parameter.label} doit être un nombre fini.');
         }
       case NarrativeCommandParameterKind.boolean:
         if (value != 'true' && value != 'false') {
@@ -638,6 +682,20 @@ List<String> _diagnoseProjectReferences(
   }
 
   switch (command.id) {
+    case NarrativeCommandIds.playSoundEffect:
+      final candidates = project.cinematicMediaAssets
+          .where((media) => media.id == parameters['mediaAssetId']?.trim())
+          .toList(growable: false);
+      requireReference(
+        parameterId: 'mediaAssetId',
+        knownIds: candidates.length == 1 &&
+                candidates.single.kind == CinematicMediaAssetKind.sound &&
+                !candidates.single.loopByDefault
+            ? [candidates.single.id]
+            : const [],
+        label: 'L’effet sonore',
+      );
+      break;
     case NarrativeCommandIds.awardBadge:
       requireReference(
         parameterId: 'badgeId',

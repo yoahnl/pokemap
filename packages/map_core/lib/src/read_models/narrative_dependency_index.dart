@@ -16,6 +16,7 @@ import '../models/rail_journey.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/cinematic_media_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/script_asset.dart';
 import '../models/storyline_asset.dart';
@@ -493,6 +494,7 @@ final class _NarrativeDependencyIndexBuilder {
   final List<NarrativeDependencyUsage> _usages = [];
   final List<NarrativeDependencyIssue> _issues = [];
   final List<(String, String)> _eventCycleEdges = [];
+  final Map<String, List<CinematicMediaAsset>> _soundMediaById = {};
 
   NarrativeDependencyIndex build() {
     _collectProjectDefinitions();
@@ -605,6 +607,7 @@ final class _NarrativeDependencyIndexBuilder {
       );
     }
     for (final media in project.cinematicMediaAssets) {
+      _soundMediaById.putIfAbsent(media.id, () => []).add(media);
       _definition(
         NarrativeDependencyTargetKind.media,
         media.id,
@@ -2268,6 +2271,25 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
+      case ScenePlaySoundEffectInteractiveCommand(:final mediaAssetId):
+        final candidates =
+            _soundMediaById[mediaAssetId] ?? const <CinematicMediaAsset>[];
+        final incompatible =
+            candidates.length == 1 &&
+            (candidates.single.kind != CinematicMediaAssetKind.sound ||
+                candidates.single.loopByDefault);
+        _usage(
+          target: NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.media,
+            mediaAssetId,
+          ),
+          owner: owner,
+          path: '$path.mediaAssetId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          resolution: incompatible
+              ? NarrativeDependencyResolution.unavailable
+              : null,
+        );
       case ScenePlayModelAnimationInteractiveCommand(
         :final mapId,
         :final instanceId,
@@ -2587,7 +2609,9 @@ final class _NarrativeDependencyIndexBuilder {
     for (final usage in _usages) {
       NarrativeDependencyResolution resolution;
       if (usage.resolution == NarrativeDependencyResolution.legacyExternal ||
-          usage.resolution == NarrativeDependencyResolution.ambiguous) {
+          usage.resolution == NarrativeDependencyResolution.ambiguous ||
+          (usage.resolution == NarrativeDependencyResolution.unavailable &&
+              usage.target.kind == NarrativeDependencyTargetKind.media)) {
         resolution = usage.resolution;
       } else {
         final definitionCount = definitionsByKey[usage.target]?.length ?? 0;
@@ -2639,7 +2663,9 @@ final class _NarrativeDependencyIndexBuilder {
               NarrativeDependencyResolution.ambiguous =>
                 '${usage.target} resolves to multiple definitions.',
               NarrativeDependencyResolution.unavailable =>
-                '${usage.target} is declared but its map data is unavailable.',
+                usage.target.kind == NarrativeDependencyTargetKind.media
+                    ? '${usage.target} is not a non-looping sound effect.'
+                    : '${usage.target} is declared but its map data is unavailable.',
               _ => throw StateError('Unsupported dependency issue resolution'),
             },
           ),

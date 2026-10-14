@@ -5,7 +5,7 @@
 Implémentation livrée pour revue, avec trois traces EV-A/B/C converties depuis des fichiers RMXP originaux synthétiques, relues strictement au format natif, exécutées par le vrai runtime puis sauvegardées et chargées par une nouvelle instance de `FileGameSaveRepository`. Le domaine reste PARTIAL : la conversion de jeu entier, les événements Kanto et la parité de toute instruction Essentials ne sont pas certifiés.
 
 
-État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée », « Passages natifs et qualification du Centre » et « Reconnaissance des commandes de présentation source ». Le Centre est publié et son PNJ a été joué ; les portes source restent inactives. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
+État actuel au 14 octobre : voir les derniers compléments « Dialogue du Centre et orientation bornée », « Passages natifs et qualification du Centre », « Reconnaissance des commandes de présentation source » et « Présentation native 2D ». Les fonctions natives de son et de Tone sont raccordées ; les portes source restent inactives. Les copies QA et leurs captures ne sont plus présentes au contrôle courant ; les reçus historiques ne constituent pas des projets disponibles. Les paragraphes de livraison initiale ci-dessous sont historiques. Domaine PARTIAL.
 La grammaire porte textes, choix et annulation typée, pages conditionnelles, switches booléens, self-switches et transferts constants vers des cartes sélectionnées. Un bloc inconnu désactive l’événement entier. Les données sources restent conservées sous forme inerte, avec références et SHA, même pour une quarantaine intégrale. Ruby exécuté : 0 ; appels IA dans la conversion : 0. Les fixtures distribuées sont originales ; aucun asset Pokémon du corpus privé n’entre dans Git.
 
 La politique native de choix/cancel et les capacités nécessaires pour avancer ont été approuvées explicitement par Yoahn dans le fil, avant extension du modèle cible. La commande secondaire rejoint une issue déclarée ou reste désactivée selon la source. L’autorisation de faire tous les lots et de commiter entre lots permet d’enchaîner AC-14 ; la restriction du kit sur une suite implicite ne remplace pas cette instruction directe. La règle directe sans commentaires prévaut sur le §3 de `codex_rule.md` ; aucun commentaire de code ajouté.
@@ -1034,3 +1034,130 @@ Aucun nouveau contrat authoring natif ou action MCP n'est introduit par cette se
 | Critique finale — ac15_connection_review_fresh | Quatre fichiers relus en readonly, pins et oracle recalculés ; aucun nouveau P1/P2 dans le scope. |
 
 Auto-critique : reconnaître le programme de la porte ne le rend pas jouable. Le renderer, le son naturel, la durée de vie après endScene, les routes/visibilité/TempSwitch d'entrée et le save/reload ne sont pas prouvés par ce commit. L'IR accepte une plage de pitch plus large que l'audio natif actuellement raccordé ; l'admission cible doit donc rester bornée et refuser les valeurs non prises en charge. La suite complète core finale n'est pas relancée après deux gardes locales déjà ciblées ; la distinction est explicite. Le goal AC00–16 reste actif, AC13/FG082/090/093 PARTIAL et FG092 TODO, roadmap inchangée. Notion AC13 existant sera actualisé avec ce commit, TO REVIEW pour le code et PARTIAL pour le résultat global ; aucune nouvelle famille ou gate bêta.
+
+## Complément du 14 octobre 2026 — Présentation native 2D
+
+**AC-13 / KAN-03 : tranche native à revoir ; conversion complète toujours PARTIAL.** Le Player 2D consomme maintenant les deux commandes natives worldTone et playSoundEffect. Le convertisseur reconnaît leurs homologues source, mais conserve sourcePresentationUnsupported : aucune porte Essentials n'est admise par cette tranche. Les scripts source, la logique de soins et les combats source ne sont pas activés. Les combats demeurent ceux d'Avelune.
+
+### Audit, contrats et risques
+
+Base host 957d244cd65b281f2911043fa6e20c7c7d0ed530, main, index vide. Le manifeste Q/native-presentation-host-publish-02.json atteste la copie de 35 sources/tests depuis R et la suppression de l'ancien adapter audio ; les 64 chemins étrangers conservent SHA et mode depuis Q/presentation-root-initial-01.json. Le writer Converter, le mobile, les bordures et le rendu spatial restent hors périmètre. Q et R gardent leurs définitions précédentes. Le snapshot privé permet de qualifier le scope sans incorporer les travaux étrangers ; il ne prouve pas une compilation de l'ensemble du worktree host.
+
+L'audit a distingué programmation, début réel de lecture, fin naturelle et durée de vie des scènes. Tone ne doit pas teinter les contrôles du Player, sa durée doit avancer une seule fois par update, et un SE ne doit pas s'arrêter parce que sa scène se termine. Une fermeture pendant un démarrage sonore suspendu ne doit pas se convertir en sortie normale permettant un commit de récompense. La documentation et l'installation Flame 2.0.0-dev.1 ont guidé le montage : un PostProcessComponent sur la caméra, hors HUD ; aucun await ajouté à camera.add, qui retourne void.
+
+worldTone conserve quatre nombres finis, RGB [-255,255], gris [0,255] et une durée entière [0,2147483647] ms. Son port completed signifie que l'effet est programmé. playSoundEffect conserve une référence unique à un média sound non bouclé et un gain fini [0,1] ; completed signifie que le démarrage du driver a réussi. Le pitch et les paramètres inconnus sont refusés. Ces effets sont transitoires ; ils ne deviennent pas des facts persistants. Le catalogue annonce explicitement « Disponible dans le Player 2D. » Le consumer spatial n'est pas annoncé compatible avec ces effets.
+
+Le contrôleur Tone interpole les quatre canaux, reprend une nouvelle cible depuis la couleur réellement affichée et restaure un checkpoint au temps absolu courant sans rembobiner. La matrice applique la luminance .299/.587/.114, puis les offsets RGB, et conserve alpha. Le neutral fast path, le montage unique, le passage entre cartes et le reset au disposal sont testés. L'adapter audio est partagé par les feedbacks de dialogue et les SE natifs, avec le mixer existant et la gestion ME conservée. Les SE restent actifs jusqu'à leur EOF ; un handle reçu après disposal est arrêté et son démarrage ne rend pas completed.
+
+### Inventaire et zones du diff
+
+Le diff Git et les fichiers source sont les preuves canoniques ; aucun snapshot du contenu intégral n'est ajouté. Les 35 chemins source/tests, la suppression et le présent rapport composent cette tranche.
+
+| Fichier | Zone modifiée, raison et effet |
+|---|---|
+| packages/map_core/lib/src/models/scene_interactive_command.dart | Kinds, factories, classes Tone/SE, JSON strict, equality/hash et ports déclarés. |
+| packages/map_core/lib/src/models/narrative_command_descriptor.dart | Paramètres number et soundMediaReference pour les formulaires guidés. |
+| packages/map_core/lib/src/read_models/narrative_command_catalog.dart | Descriptors, labels, paramètres, portée 2D et promotion editor/runtime après qualification native. |
+| packages/map_core/lib/src/authoring/scene_command_payload_builder.dart | Construction depuis les champs no-code, bornes numériques et refus du pitch. |
+| packages/map_core/lib/src/diagnostics/scene_diagnostics.dart | Référence SE unique, type sound, non-loop ; diagnostics contre les références absentes ou ambiguës. |
+| packages/map_core/lib/src/read_models/narrative_dependency_index.dart | Dépendance Scene vers média, chemin du nœud précis et message propre aux médias indisponibles. |
+| packages/map_core/test/scene_world_presentation_command_test.dart | Round-trip et valeurs invalides, durées, champs inconnus, gain et pitch refusé. |
+| packages/map_core/test/scene_sound_effect_reference_test.dart | Références absentes, ambiguës, mauvais type, loop et messages de dépendance. |
+| packages/map_core/test/narrative_command_catalog_closure_test.dart | Publication 2D des deux descriptors et cohérence catalogue/commande. |
+| packages/map_core/test/narrative_command_contract_parity_test.dart | Deux nouveaux exemples et média valide pour la bijection contractuelle. |
+| packages/map_authoring/lib/src/domains/narrative/scene_actions.dart | Extensions découvrables, bornes et validation sémantique de la scène éditée. |
+| packages/map_authoring/test/domains/narrative/scene_world_presentation_transport_test.dart | API directe et JSONL, plan read-only, mutation, refus sans écriture, query et cold reopen. |
+| tools/pokemap_mcp/test/scene_world_presentation_stdio.test.ts | Vrai serveur stdio et worker Dart, describe/plan/apply/refus/reopen sous racine étroite. |
+| packages/map_runtime/lib/src/application/scene_runtime/scene_interactive_command_runtime_executor.dart | Dispatch typé Tone/SE et validation du port réellement reçu. |
+| packages/map_runtime/lib/src/application/scene_runtime/scene_sound_effect_playback_port.dart | Port SE indépendant des cues de dialogue. |
+| packages/map_runtime/lib/src/application/scene_runtime/scene_world_tone_controller.dart | Interpolation, retarget, checkpoint, reset et disposal. |
+| packages/map_runtime/lib/src/presentation/flame/flame_world_tone_post_process.dart | Matrice du monde, alpha préservé, neutral fast path et absence de double tick. |
+| packages/map_runtime/lib/src/presentation/flame/flame_narrative_sound_playback_adapter.dart | Adapter commun, gain par lecture, démarrage réel, durée naturelle et handle tardif arrêté. |
+| packages/map_runtime/lib/src/presentation/flame/flame_dialogue_feedback_playback_adapter.dart | Suppression : responsabilité reprise par l'adapter commun ; aucun second chemin audio conservé. |
+| packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart | Montage/update/disposal Tone, callbacks SE propriétaires de la session, références strictes et trois gardes lifecycle corrigées. |
+| packages/map_runtime/lib/map_runtime.dart | Exports publics du port SE et de l'adapter audio commun. |
+| packages/map_runtime/test/playable_map_game_connection_arrival_collision_test.dart | Tone/SE réels, fin de scène, fermeture pendant SE/load, pages de carte et absence de commit tardif. |
+| packages/map_runtime/test/scene_interactive_command_runtime_executor_test.dart | Handlers absents, dispatch des commandes et sorties déclarées. |
+| packages/map_runtime/test/dialogue_feedback_playback_test.dart | Adapter renommé, SE indépendant, gain et durée naturelle, cleanup des handles tardifs. |
+| packages/map_runtime/test/dialogue_feedback_music_effect_test.dart | Non-régression ME, réservation, mixer et files de feedback audio. |
+| packages/map_runtime/test/scene_world_tone_controller_test.dart | Temps, retarget, checkpoint, valeurs neutres et invalidation. |
+| packages/map_runtime/test/flame_world_tone_post_process_test.dart | Pixels réels, RGB/gris/alpha et consommation unique du temps. |
+| packages/map_runtime/test/narrative_command_runtime_parity_test.dart | Exemples Tone/SE et réparation des trois exemples préexistants manquants ; ports received/moved/completed conservés. |
+| apps/avelune_studio/lib/presentation/features/scenes/scene_action_form.dart | Champs numériques, picker SE unique, refus d'une référence devenue ambiguë et conservation du payload avancé. |
+| apps/avelune_studio/test/presentation/scene_world_presentation_form_test.dart | Formulaire de production, nombres, média absent/mauvais/loop, perte d'unicité et métadonnées. |
+| packages/map_editor/lib/src/ui/canvas/scenes/scene_action_builder.dart | Champs number, helper du picker SE filtré par unicité dans le registre entier et validation no-code. |
+| packages/map_editor/lib/src/application/services/narrative_template_catalog.dart | Templates Tone/SE et vérification d'une référence unique dans le catalogue entier. |
+| packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart | Passage du vrai catalogue média aux formulaires de scène. |
+| packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_product_route.dart | Même catalogue média dans le builder des événements. |
+| packages/map_editor/test/scene_action_builder_test.dart | Champs/strictness/picker, refus et non-régressions du builder. |
+| packages/map_editor/test/narrative_template_catalog_test.dart | Valeurs et références des nouveaux templates, diagnostics et régressions. |
+| documentation/reports/converter/AC-13/13_native_events.md | État actuel et complément consolidé ; aucun nouveau Markdown. |
+
+### Contrepreuves et vérifications
+
+Les reçus Q conservent commandes exactes, cwd, logSHA, pins avant/après et identités des descendants. Les trois défauts lifecycle ont été reproduits avant correction : fermeture pendant le startup SE V2, fermeture pendant le hook postcommit du load et fermeture dans une scène de page de carte V1. Le troisième RED passe par la page sceneTarget, le contrôle primaire et l'adapter audio réel avec seulement un driver contrôlé : il observe money=100 au lieu de 0. Le GREEN attend l'inactivité de la scène, l'arrêt du handle tardif et l'égalité du GameState entier. Une panne audio dans une session vivante conserve la branche blocked.
+
+| Reçu | Commande ou portée réelle | Résultat terminal |
+|---|---|---|
+| world-presentation-lifecycle-red-02 | Deux contre-exemples V2/load avec tests positifs |2 PASS / 2 FAIL, exit1,4.999s|
+| world-presentation-lifecycle-green-01 | Mêmes contrôles après les gardes |4 PASS, exit0,4.329s|
+| world-presentation-map-event-dispose-red-02 | Page de carte et adapter réel |1 FAIL, exit1,6.205s|
+| world-presentation-map-event-dispose-green-01 | Page de carte, deux gardes précédentes et panne vivante |5 PASS, exit0,4.923s|
+| world-presentation-core-pinned-final-01 | map_core : dart test sur les sept suites Tone/command/catalogue/parité/référence/dépendance, reporter expanded, concurrency1 |109 PASS, exit0,3.162s ;35pins stables|
+| world-presentation-runtime-targeted-05 | map_runtime : flutter test --no-pub sur connection/dispatcher/feedback/ME/Tone/pixels/phase_a_golden_battle_slice_smoke, reporter expanded, concurrency2 |95 PASS, exit0,7.280s|
+| world-presentation-runtime-parity-promoted-02 | map_runtime : flutter test --no-pub test/narrative_command_runtime_parity_test.dart --reporter expanded --concurrency=1 |9 PASS, exit0,4.501s ; pin stable|
+| world-presentation-runtime-analyze-04 | flutter analyze --no-pub --no-fatal-infos sur neuf chemins runtime |0 erreur,0 warning,4 infos préexistantes, exit0,8.518s|
+| native-presentation-core-analyze-final-01 | map_core : dart analyze des dix chemins Core de la tranche |No issues, exit0,1.949s ; dix pins stables|
+| native-presentation-parity-analyze-final-01 | flutter analyze --no-pub test/narrative_command_runtime_parity_test.dart |No issues, exit0,8.327s ;35pins stables|
+| native-presentation-authoring-final-01 | map_authoring : dart test test/domains/narrative/scene_world_presentation_transport_test.dart --reporter expanded --concurrency=1 |8 PASS, exit0,3.741s ; pins Core/API stables|
+| world-presentation-studio-pinned-final-01 | Studio : flutter test --no-pub des trois suites présentation/Warp/formulaire UI06, reporter expanded, concurrency1 |30 PASS, exit0,10.390s ;35pins stables avant le correctif picker|
+| presentation-editor-promoted-01 | legacy : flutter test --no-pub test/scene_action_builder_test.dart test/narrative_template_catalog_test.dart --reporter expanded --concurrency=1 |70 PASS, exit0,10.257s ; checkpoint sans pins avant le correctif picker|
+| native-presentation-mcp-final-01 | node --test --test-concurrency=1 dist/test/scene_world_presentation_stdio.test.js avec POKEMAP_TEST_DART explicite |1 PASS,0 SKIP, exit0,7.871s ; pins Core/API/MCP stables|
+| native-sound-picker-studio-red-01 / legacy-red-01 | Tests --name 'ambiguous sound' avant correction |0 PASS/2 FAIL, exit1,9.595s ;0 PASS/4 FAIL, exit1,9.625s|
+| native-sound-picker-studio-green-01 | Trois suites Studio précédentes sur le gel UI6 corrigé |32 PASS,0 SKIP, exit0,9.722s ; six pins stables|
+| native-sound-picker-legacy-green-01 | Deux suites builder/template legacy sur le gel UI6 corrigé |74 PASS,0 SKIP, exit0,6.116s ; six pins stables|
+| native-sound-picker-analyze-01 | flutter analyze --no-pub des six chemins UI/legacy |No issues, exit0,6.381s ; six pins stables|
+| world-presentation-mcp-build-01 / check-01 | tools/pokemap_mcp : npm run build ; npm run check |exit0,1.582s / exit0,1.340s|
+| presentation-studio-debug-build-01 | flutter build macos --debug --no-pub -t Q/presentation_player_main.dart avec chemins QA/captures explicites |exit0,42.189s ; checkpoint sans pins, un ibtoold propre réapé|
+| native-presentation-studio-build-pinned-final-01 / 02 | Même build,35sources+helper pinés |exit1,12.863s / exit1,8.841s : diagnostic Sparkle conservé ; le second utilisait encore le graphe Xcode en cache|
+| native-presentation-xcode-clean-01 | xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Debug -derivedDataPath R/apps/avelune_studio/build/macos clean |exit0,2.588s ;35pins stables ; cache privé uniquement|
+| native-presentation-studio-build-pinned-final-03 | Même flutter build macos --debug --no-pub après reconstruction du cache |exit0,45.399s ;35sources+helper stables ; trois ibtoold possédés terminés normalement, zéro survivant|
+
+La parité Runtime était déjà rouge avant promotion :7PASS/2FAIL sur trois exemples manquants giveItemGift/movePlatform/playModelAnimation. Leur réparation concerne les fixtures et leurs callbacks, pas le comportement des trois commandes. Les essais intermédiaires avec mauvais nom de test, imports manquants ou const invalide ne sont pas des contrepreuves fonctionnelles ; leurs reçus sont conservés. Les suites globales voisines déjà rouges, les deux menus Model3D Studio et les erreurs nullable du provider legacy restent hors scope. Aucun résultat ciblé ne devient une certification globale.
+
+La résolution Xcode native-presentation-sparkle-resolve-01 est un échec d'option, exit64/0.404s ; resolve-02 utilise le vrai flag clonedSourcePackagesDirPath, exit0/2.252s, sans changement des fichiers résolus. Le cache référençait un framework absent. restore-01 refuse un dossier INSTALL inattendu avant extraction ; restore-02 extrait sous staging privé, contrôle chemins et liens et restaure uniquement le framework sous build. L'archive officielle Sparkle2.9.5 de11571026octets a le checksum34b9b2071f3de0012eca3faa3a9290bb94e62131e9a74f6dc91514a000097a6c, exact du Package.swift et du workspace-state. Restore-02 exit0/0.401s ; le framework était ensuite bien présent avec son Info.plist, mais Xcode reprenait son ancien graphe de build en erreur. Le clean de ce seul cache privé a levé cette incohérence ; le nouveau build final passe en45.399s. Aucun manifest source, version ou frontière de sécurité modifié. Les warnings Swift/AVFoundation tiers du build ne sont pas effacés.
+
+La contre-revue finale a identifié un quatrième P2 avant commit : les pickers filtraient kind/loop, mais une référence sound partageant son ID avec un music pouvait encore être proposée. Core/API/Runtime la refusent déjà. Six tests nouveaux ont reproduit deux formes d'ambiguïté, sound+music et sound+sound, dans des brouillons réellement construisibles/fromJson. Les pickers comptent maintenant le registre entier avant le filtre kind/nonloop ; une référence devenue ambiguë désactive Apply/Submit et un autre son unique reste utilisable. Le template exige une seule définition avant type/loop. Aucun autre picker n'est refactoré. La contre-revue indépendante ferme ce quatrième P2 ; les checkpoints antérieurs 30/70 ne sont pas présentés comme preuves de cette garde.
+
+### Scénario natif de QA et portée historique
+
+La copie initiale Q/presentation-native-copy-01.json attestait1349fichiers/163764809octets depuis kan03-probe-06/Projet converti. Dix mutations canoniques ont importé le véritable Exit Door.wav par stage_artifact et scene.dialogue.audioMedia.import, puis posé un wait, deux arrivals, deux PNJ, deux scènes et deux événements V2. Aucun cue de dialogue factice ni écriture manuelle de JSON n'a remplacé l'API.
+
+Les deux scènes de QA exécutent SE gain.8 → Tone noir300ms → Wait400ms → Warp none → Tone neutre300ms → End. Elles ont été ajoutées à la main pour qualifier les commandes natives. Elles ne sont pas une conversion de la porte originale. Centre(9,9)→extérieur(14,34)nord, puis retour Centre(9,9)sud.
+
+presentation-native-authoring-run-03 a effectivement appliqué dix mutations et rouvert strictement, puis a échoué sur une assertion de catalogue entièrement inchangé malgré l'ajout audio légitime ; ce run n'est pas PASS. La reprise read-only presentation-native-qualification-run-01, exit0/20.626s, produit presentation-native-authoring-recovered-01.json : structure et références valides, dix mutations revérifiées, médias précédents/Route9/source inchangés au moment de ce contrôle. capabilityCertification=not_requested, capabilityTruth.status=fail avec noPromotedCapabilities et GUIPlayerCertified=false dans ce reçu : il prouve authoring/reopen, pas la certification du projet entier.
+
+Les deux reçus presentation-native-recorded-outward-01.json et inward-01.json enregistrent ensuite le vrai Player, sans téléportation ou avance artificielle du clock : Tone atteint -255 pendant l'action, les arrivals/facing sont exacts et le retour est neutre. Un Timer privé échantillonne pendant l'attente de la touche ; des requêtes MCP envoyées seulement après cette attente avaient manqué la transition. Le programme démarre via l'adapter Flame réel, mais aucune mesure acoustique matérielle ou de queue audio n'est revendiquée.
+
+Le run01 possède son reçu terminal propre, exit0/576.346s, zéro survivant confirmé, protégés inchangés. Le run03 termine en exit143 ; son application76895 est absente, mais son reçu de superviseur final manque. Aucune cause ou garantie de teardown propre n'est inventée. La tentative CUA de capture native échoue ScreenCaptureKit -3811/-10005 ; aucun réglage de permission n'est changé. Les tests widget qualifient les formulaires ; aucun parcours réel d'édition/sauvegarde/reouverture Tone/SE n'est revendiqué à partir de la navigation Histoire interrompue.
+
+**Disponibilité actuelle : native-presentation-after-gui-availability-01.json constate que le projet QA, le projet source publié probe06 et les deux PNG darkCapture sont absents sur disque.** Les reçus de parcours restent disponibles dans Q ; les anciennes captures et vérifications d'intégrité sont des preuves historiques. Le root ne revendique pas une nouvelle comparaison byte-exact de ces dossiers absents, et ne fournit pas ces chemins comme artefacts utilisables. La source Kanto restaurée reste présente ; la prochaine qualification source doit republier un résultat actuel.
+
+### Parité et critique
+
+API directe et JSONL utilisent la même action sémantique ; upsert/graph.patch ne permettent pas de contourner les diagnostics SE de la scène éditée. Le describe live via stdio expose les paramètres, bornes, ports, fin après programmation/démarrage et pitch non supporté. La racine reste étroite. La parité globale PMCP-085/conformance demeure PARTIAL ; les preuves de cette tranche portent sur les commandes de présentation et non sur l'ensemble des actions authoring.
+
+| Passe | Verdict borné |
+|---|---|
+| Audit / Architecture — root + ac15_connection_review_fresh | Source et cible distinguées ; effets transitoires et dépendances exactes ; porte native de QA explicitement manuelle. |
+| Implémentation — root + ac15_connection_review_fresh | Core/API/formulaires/renderer/audio raccordés ; lifecycle corrigé après les RED. |
+| Tests — root + agents | Reçus et pins contrôlés ; résultats ciblés, incidents et suites globales distingués. |
+| Build / Validation — root | Build historique et Player natif observés ; build final piné PASS après restauration/checksum Sparkle et reconstruction du cache privé. Aucun nouveau Studio lancé. |
+| Critique finale — ac13_warp_runtime_tests | Trois P2 lifecycle fermés dans gel04, aucun autre P1/P2 concret sur son delta ; pas de certification universelle du load/mount. |
+| Critique finale — ac13_warp_final_review |35blobs host/R et64étrangers exacts ; pins109/30 levés ; P2 d'unicité SE UI fermé après six tests et gel UI6 ; aucun nouveau P1/P2 dans cette contre-revue. Rapport final soumis séparément. |
+
+Auto-critique : la télémétrie de deux scènes manuelles ne qualifie aucune porte automatiquement convertie. La disparition des projets/captures réduit la preuve actuellement consultable ; elle est déclarée. Tone/SE ne couvrent pas la chorégraphie, les déclencheurs, les states d'instance ni la reprise du programme source. Les formulaires legacy complets et le support3D restent non certifiés. FG082/090/093 restent PARTIAL, FG092 TODO, roadmap inchangée. Le goal AC00–16 demeure actif.
+
+Suite fidèle identifiée dans l'audit original : Map100/event8 doit conserver les poses de porte colonne3, les routes209 et toutes copies509, les barrières210, la visibilité208, le pas joueur borné et la condition exacte get_self.onEvent?. TempSwitchA appartient à l'instance Game_Event ; le MapFactory source est sauvegardé, donc il ne faut pas le perdre arbitrairement au chargement. La sortie102/event1 arrive exactement sur la porte(13,25), puis la page d'accueil déplace le joueur(13,26) ; décaler l'arrival supprimerait le programme. La SourceIR suivante conserve l'inactivité de l'événement entier jusqu'à ce que les primitives et les deux sens soient réellement qualifiés.
+
+Git : commit local ciblé autorisé de37chemins, sans push/rebase/amend/branche/worktree. Les64travaux étrangers doivent rester hors index et byte-exacts. Les gels runtime04, promotion01 et UI6 sont réunis dans native-presentation-host-publish-02.json. Les pins35 du build final les relient au code compilé. L'hygiène Markdown, le diffcheck, l'index et les37blobs seront contrôlés avant staging ; le reçu après commit enregistrera SHA/parent/index et64empreintes étrangères conservées. Le ticket AC13 existant reste dans l'unique domaine Post Bêta Monde & narration, TO REVIEW pour les tranches implémentées et PARTIAL pour le résultat global ; DONE réservé à Yoahn, gate bêta inchangée.

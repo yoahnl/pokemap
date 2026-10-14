@@ -8,9 +8,84 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/dialogue_feedback_playback_port.dart';
 import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
-import 'package:map_runtime/src/presentation/flame/flame_dialogue_feedback_playback_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/flame_narrative_sound_playback_adapter.dart';
 
 void main() {
+  test('starts a Scene sound without waiting for natural completion', () async {
+    final driver = _Driver();
+    final player = _player(driver);
+    await player.playSoundEffect(
+      'fanfare',
+      volume: 0.8,
+      playbackId: 'scene:door:se',
+    );
+    expect(driver.paths, ['assets/item.ogg']);
+    expect(driver.volumes, [0.8, 0.8]);
+    expect(driver.loops, [false]);
+    expect(driver.stopped, isEmpty);
+    driver.completed.add(null);
+    await Future<void>.delayed(Duration.zero);
+    expect(driver.stopped, [driver.handle]);
+    await player.dispose();
+    await driver.completed.close();
+  });
+
+  test('does not report a Scene sound started after disposal', () async {
+    final driver = _Driver()..playGate = Completer<Object>();
+    final player = _player(driver);
+    final starting = player.playSoundEffect(
+      'fanfare',
+      volume: 0.8,
+      playbackId: 'scene:door:se',
+    );
+    final rejected = expectLater(starting, throwsStateError);
+    final closing = player.dispose();
+    driver.playGate!.complete(driver.handle);
+    await Future.wait([rejected, closing]);
+    expect(driver.stopped, [driver.handle]);
+    await driver.completed.close();
+  });
+
+  test('rejects a Scene sound with unknown or unsuitable media', () async {
+    for (final assets in [
+      <CinematicMediaAsset>[],
+      [_asset(loop: true)],
+      [_asset(kind: CinematicMediaAssetKind.music)],
+    ]) {
+      final driver = _Driver();
+      final player = _player(driver, assets: assets);
+      await expectLater(
+        Future<void>.sync(() => player.playSoundEffect(
+          'fanfare',
+          volume: 0.8,
+          playbackId: 'scene:door:se',
+        )),
+        throwsStateError,
+      );
+      expect(driver.paths, isEmpty);
+      await player.dispose();
+      await driver.completed.close();
+    }
+  });
+
+  test('rejects invalid Scene gains before creating an audio channel', () async {
+    for (final volume in [-0.1, 1.1, double.nan, double.infinity]) {
+      final driver = _Driver();
+      final player = _player(driver);
+      await expectLater(
+        Future<void>.sync(() => player.playSoundEffect(
+          'fanfare',
+          volume: volume,
+          playbackId: 'scene:door:se',
+        )),
+        throwsArgumentError,
+      );
+      expect(driver.paths, isEmpty);
+      await player.dispose();
+      await driver.completed.close();
+    }
+  });
+
   test('applies the cue gain to playback and mixer registration', () async {
     final driver = _Driver();
     final player = _player(driver);
@@ -197,10 +272,10 @@ void main() {
   });
 }
 
-FlameDialogueFeedbackPlaybackAdapter _player(
+FlameNarrativeSoundPlaybackAdapter _player(
   _Driver driver, {
   List<CinematicMediaAsset>? assets,
-}) => FlameDialogueFeedbackPlaybackAdapter(
+}) => FlameNarrativeSoundPlaybackAdapter(
   mediaAssets: assets ?? [_asset()],
   resolvePath: (asset) => asset.relativePath,
   audioDriver: driver,

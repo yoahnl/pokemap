@@ -6,7 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/player/runtime_audio_mixer.dart';
 import 'package:map_runtime/src/player/runtime_music_service.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
-import 'package:map_runtime/src/presentation/flame/flame_dialogue_feedback_playback_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/flame_narrative_sound_playback_adapter.dart';
 
 void main() {
   test(
@@ -222,7 +222,7 @@ void main() {
     'an interrupting cue without a BGM service is rejected before playback',
     () async {
       final driver = _Driver();
-      final player = FlameDialogueFeedbackPlaybackAdapter(
+      final player = FlameNarrativeSoundPlaybackAdapter(
         mediaAssets: [
           CinematicMediaAsset(
             id: 'fanfare',
@@ -283,7 +283,7 @@ void main() {
       final driver = FlameAudioCinematicRuntimeDriver(
         playerFactory: () => voice,
       );
-      final player = FlameDialogueFeedbackPlaybackAdapter(
+      final player = FlameNarrativeSoundPlaybackAdapter(
         mediaAssets: [
           CinematicMediaAsset(
             id: 'fanfare',
@@ -434,11 +434,11 @@ DialogueAudioCue _cue({int fadeOutMs = 0, int fadeInMs = 0}) =>
       ),
     );
 
-FlameDialogueFeedbackPlaybackAdapter _player(
+FlameNarrativeSoundPlaybackAdapter _player(
   _Driver driver,
   RuntimeAudioMixer mixer,
   RuntimeMusicService music,
-) => FlameDialogueFeedbackPlaybackAdapter(
+) => FlameNarrativeSoundPlaybackAdapter(
   mediaAssets: [
     CinematicMediaAsset(
       id: 'fanfare',
